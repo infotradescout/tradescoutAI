@@ -979,6 +979,52 @@ export interface IStorage {
     authenticated?: string;
     /** Collectibles: graded flag stored in specifications JSONB */
     graded?: string;
+    /** Business: business type stored in specifications JSONB */
+    businessType?: string;
+    /** Business: annual revenue range stored in specifications JSONB */
+    annualRevenueRange?: string;
+    /** Business: owner financing stored in specifications JSONB */
+    ownerFinancing?: string;
+    /** Construction / Farm: max machine/engine hours */
+    hoursMax?: number;
+    /** Furniture: material stored in specifications JSONB */
+    material?: string;
+    /** Furniture: assembly status stored in specifications JSONB */
+    assemblyStatus?: string;
+    /** Business Equipment: power requirements stored in specifications JSONB */
+    powerRequirements?: string;
+    /** Electronics: storage capacity stored in specifications JSONB */
+    storage?: string;
+    /** Sports: sport/activity stored in specifications JSONB */
+    sport?: string;
+    /** Jewelry: metal type stored in specifications JSONB */
+    metal?: string;
+    /** Jewelry: handoff method stored in specifications JSONB */
+    handoff?: string;
+    /** Local Food: fulfillment method stored in specifications JSONB */
+    pickupOrDelivery?: string;
+    /** Local Food: lead time stored in specifications JSONB */
+    leadTime?: string;
+    /** Other / Construction: inspection available stored in specifications JSONB */
+    inspectionAvailable?: string;
+    /** Construction: inspection ready stored in specifications JSONB */
+    inspectionReady?: string;
+    /** Farm: field ready stored in specifications JSONB */
+    fieldReady?: string;
+    /** Tools: includes batteries stored in specifications JSONB */
+    includesBatteries?: string;
+    /** Tools: includes chargers stored in specifications JSONB */
+    includesChargers?: string;
+    /** Tools: includes case stored in specifications JSONB */
+    includesCase?: string;
+    /** Electronics: powers on stored in specifications JSONB */
+    powersOn?: string;
+    /** Electronics: carrier status stored in specifications JSONB */
+    carrierStatus?: string;
+    /** Sports: competition ready stored in specifications JSONB */
+    competitionReady?: string;
+    /** Business Equipment: install required stored in specifications JSONB */
+    installRequired?: string;
   }): Promise<MarketplaceListing[]>;
   getMarketplaceListing(id: string): Promise<MarketplaceListing | undefined>;
   getMarketplaceListingBySlug(slug: string): Promise<MarketplaceListing | undefined>;
@@ -5323,6 +5369,43 @@ export class DatabaseStorage implements IStorage {
     }
     if (filters.graded && String(filters.graded).trim()) {
       conditions.push(sql`${marketplaceListings.specifications}->>'graded' = ${filters.graded}`);
+    }
+    // ── Additional JSONB spec filters (all categories) ────────────────────
+    const jsonbSpecFilters: Array<[keyof typeof filters, string]> = [
+      ["businessType", "businessType"],
+      ["annualRevenueRange", "annualRevenueRange"],
+      ["ownerFinancing", "ownerFinancing"],
+      ["material", "material"],
+      ["assemblyStatus", "assemblyStatus"],
+      ["powerRequirements", "powerRequirements"],
+      ["storage", "storage"],
+      ["sport", "sport"],
+      ["metal", "metal"],
+      ["handoff", "handoff"],
+      ["pickupOrDelivery", "pickupOrDelivery"],
+      ["leadTime", "leadTime"],
+      ["inspectionAvailable", "inspectionAvailable"],
+      ["inspectionReady", "inspectionReady"],
+      ["fieldReady", "fieldReady"],
+      ["includesBatteries", "includesBatteries"],
+      ["includesChargers", "includesChargers"],
+      ["includesCase", "includesCase"],
+      ["powersOn", "powersOn"],
+      ["carrierStatus", "carrierStatus"],
+      ["competitionReady", "competitionReady"],
+      ["installRequired", "installRequired"],
+    ];
+    for (const [filterKey, specKey] of jsonbSpecFilters) {
+      const val = filters[filterKey];
+      if (val && String(val).trim()) {
+        conditions.push(sql`${marketplaceListings.specifications}->>${specKey} = ${String(val)}`);
+      }
+    }
+    // ── Hours filter (stored as top-level numeric column or in specs) ─────
+    if (filters.hoursMax !== undefined) {
+      conditions.push(
+        sql`CAST(${marketplaceListings.specifications}->>'hours' AS NUMERIC) <= ${filters.hoursMax}`
+      );
     }
     const whereClause: SQL = and(...conditions) ?? sql`true`;
     const orderByClause = (() => {

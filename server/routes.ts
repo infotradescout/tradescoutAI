@@ -11171,6 +11171,53 @@ export async function registerRoutes(app: any) {
         titleStatus: req.query.titleStatus ? String(req.query.titleStatus) : undefined,
         authenticated: req.query.authenticated ? String(req.query.authenticated) : undefined,
         graded: req.query.graded ? String(req.query.graded) : undefined,
+        // Business
+        businessType: req.query.businessType ? String(req.query.businessType) : undefined,
+        annualRevenueRange: req.query.annualRevenueRange
+          ? String(req.query.annualRevenueRange)
+          : undefined,
+        ownerFinancing: req.query.ownerFinancing ? String(req.query.ownerFinancing) : undefined,
+        // Construction / Farm
+        hoursMax: req.query.hoursMax ? Number(req.query.hoursMax) : undefined,
+        inspectionReady: req.query.inspectionReady ? String(req.query.inspectionReady) : undefined,
+        fieldReady: req.query.fieldReady ? String(req.query.fieldReady) : undefined,
+        // Furniture
+        material: req.query.material ? String(req.query.material) : undefined,
+        assemblyStatus: req.query.assemblyStatus ? String(req.query.assemblyStatus) : undefined,
+        // Business Equipment
+        powerRequirements: req.query.powerRequirements
+          ? String(req.query.powerRequirements)
+          : undefined,
+        installRequired: req.query.installRequired ? String(req.query.installRequired) : undefined,
+        // Electronics
+        storage: req.query.storage ? String(req.query.storage) : undefined,
+        powersOn: req.query.powersOn ? String(req.query.powersOn) : undefined,
+        carrierStatus: req.query.carrierStatus ? String(req.query.carrierStatus) : undefined,
+        // Sports
+        sport: req.query.sport ? String(req.query.sport) : undefined,
+        competitionReady: req.query.competitionReady
+          ? String(req.query.competitionReady)
+          : undefined,
+        // Jewelry
+        metal: req.query.metal ? String(req.query.metal) : undefined,
+        handoff: req.query.handoff ? String(req.query.handoff) : undefined,
+        // Local Food
+        pickupOrDelivery: req.query.pickupOrDelivery
+          ? String(req.query.pickupOrDelivery)
+          : undefined,
+        leadTime: req.query.leadTime ? String(req.query.leadTime) : undefined,
+        // Other
+        inspectionAvailable: req.query.inspectionAvailable
+          ? String(req.query.inspectionAvailable)
+          : undefined,
+        // Tools
+        includesBatteries: req.query.includesBatteries
+          ? String(req.query.includesBatteries)
+          : undefined,
+        includesChargers: req.query.includesChargers
+          ? String(req.query.includesChargers)
+          : undefined,
+        includesCase: req.query.includesCase ? String(req.query.includesCase) : undefined,
       });
 
       const sellerIds = Array.from(

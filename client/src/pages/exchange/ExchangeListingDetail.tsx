@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { share } from "@/utils/share";
 import { CATEGORY_CONFIGS } from "./categoryConfigs";
+import { SELL_CATEGORY_FIELDS } from "@shared/exchangeListingRules";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -243,41 +244,50 @@ export default function ExchangeListingDetail() {
   const prevPhoto = () => setPhotoIndex((i) => (i === 0 ? photos.length - 1 : i - 1));
   const nextPhoto = () => setPhotoIndex((i) => (i === photos.length - 1 ? 0 : i + 1));
 
-  // ── Spec rows ──────────────────────────────────────────────────────────────
+  // ── Spec rows (config-driven for all 13 categories) ──────────────────────
   function buildSpecRows(l: ListingDetail): Array<{ label: string; value: string }> {
     const rows: Array<{ label: string; value: string }> = [];
+    const slug = category as string;
+
+    // Top-level fields that map to dedicated DB columns
     if (l.year) rows.push({ label: "Year", value: String(l.year) });
-    if (l.brand) rows.push({ label: "Make", value: l.brand });
+    // brand stores make for vehicles/construction/farm/business-equipment/electronics/sports/tools/other
+    if (l.brand) {
+      const isMakeCategory = ["vehicles", "construction", "farm", "business-equipment"].includes(
+        slug
+      );
+      rows.push({ label: isMakeCategory ? "Make" : "Brand", value: l.brand });
+    }
     if (l.model) rows.push({ label: "Model", value: l.model });
     if (l.mileage != null) rows.push({ label: "Mileage", value: formatMileage(l.mileage) });
-    if (l.specifications?.titleStatus)
-      rows.push({
-        label: "Title Status",
-        value:
-          l.specifications.titleStatus.charAt(0).toUpperCase() +
-          l.specifications.titleStatus.slice(1),
-      });
-    if (l.specifications?.vin) rows.push({ label: "VIN", value: l.specifications.vin });
-    if (l.specifications?.engine) rows.push({ label: "Engine", value: l.specifications.engine });
-    if (l.specifications?.transmission)
-      rows.push({ label: "Transmission", value: l.specifications.transmission });
-    if (l.specifications?.fuelType)
-      rows.push({ label: "Fuel Type", value: l.specifications.fuelType });
-    if (l.specifications?.provenance)
-      rows.push({ label: "Provenance", value: l.specifications.provenance });
-    if (l.specifications?.authenticated)
-      rows.push({
-        label: "Authenticated",
-        value: l.specifications.authenticated === "yes" ? "Yes" : "No",
-      });
-    if (l.specifications?.graded)
-      rows.push({ label: "Graded", value: l.specifications.graded === "yes" ? "Yes" : "No" });
-    if (l.specifications?.grade) rows.push({ label: "Grade", value: l.specifications.grade });
-    if (l.condition)
+
+    // Condition (shown for categories that track it)
+    if (l.condition && categoryConfig?.showCondition)
       rows.push({
         label: "Condition",
         value: l.condition.charAt(0).toUpperCase() + l.condition.slice(1),
       });
+
+    // Spec fields driven by SELL_CATEGORY_FIELDS for the current category
+    const sellFields = (SELL_CATEGORY_FIELDS as any)[slug] ?? [];
+    const SKIP_KEYS = new Set(["year", "make", "model", "mileage", "brand"]);
+    for (const field of sellFields) {
+      if (SKIP_KEYS.has(field.key)) continue;
+      const raw = l.specifications?.[field.key];
+      if (raw == null || raw === "") continue;
+      // Format boolean-style yes/no fields
+      let display = String(raw);
+      if (display === "yes") display = "Yes";
+      else if (display === "no") display = "No";
+      else if (field.key === "mileage" && typeof raw === "number") display = formatMileage(raw);
+      else if (typeof raw === "number") display = raw.toLocaleString();
+      else {
+        // Capitalise first letter
+        display = display.charAt(0).toUpperCase() + display.slice(1);
+      }
+      rows.push({ label: field.label, value: display });
+    }
+
     return rows;
   }
 

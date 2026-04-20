@@ -267,8 +267,52 @@ export const SELL_CATEGORY_FIELDS: Record<
   SellField[]
 > = {
   business: [
+    {
+      key: "businessType",
+      label: "Business Type",
+      placeholder: "Select business type",
+      options: [
+        { value: "retail", label: "Retail" },
+        { value: "service", label: "Service" },
+        { value: "restaurant", label: "Restaurant / Food" },
+        { value: "manufacturing", label: "Manufacturing" },
+        { value: "franchise", label: "Franchise" },
+        { value: "ecommerce", label: "E-Commerce" },
+        { value: "other", label: "Other" },
+      ],
+    },
     { key: "annualRevenueRange", label: "Revenue", placeholder: "Revenue range" },
     { key: "cashflowRange", label: "Cashflow", placeholder: "Cashflow / EBITDA range" },
+    {
+      key: "yearsInOperation",
+      label: "Years Operating",
+      placeholder: "Years in operation",
+      type: "number",
+      required: false,
+    },
+    {
+      key: "employeeCount",
+      label: "Employees",
+      placeholder: "Number of employees",
+      type: "number",
+      required: false,
+    },
+    {
+      key: "reasonForSale",
+      label: "Reason for Sale",
+      placeholder: "Retirement, relocation, etc.",
+      required: false,
+    },
+    {
+      key: "ownerFinancing",
+      label: "Owner Financing",
+      placeholder: "Select financing option",
+      required: false,
+      options: [
+        { value: "yes", label: "Available" },
+        { value: "no", label: "Not Available" },
+      ],
+    },
   ],
   vehicles: [
     { key: "vin", label: "VIN", placeholder: "17-character VIN", required: false },
@@ -289,9 +333,17 @@ export const SELL_CATEGORY_FIELDS: Record<
     },
   ],
   construction: [
+    { key: "make", label: "Make", placeholder: "Caterpillar, John Deere, Komatsu..." },
+    { key: "model", label: "Model", placeholder: "Model / SKU" },
+    { key: "year", label: "Year", placeholder: "Year", type: "number", required: false },
     { key: "hours", label: "Hours", placeholder: "Machine hours", type: "number" },
     { key: "serialNumber", label: "Serial", placeholder: "Serial number" },
-    { key: "attachments", label: "Attachments", placeholder: "Bucket, forks, etc." },
+    {
+      key: "attachments",
+      label: "Attachments",
+      placeholder: "Bucket, forks, etc.",
+      required: false,
+    },
     {
       key: "serviceHistory",
       label: "Service History",
@@ -362,9 +414,23 @@ export const SELL_CATEGORY_FIELDS: Record<
     },
   ],
   farm: [
+    { key: "make", label: "Make", placeholder: "John Deere, Kubota, Case..." },
+    { key: "model", label: "Model", placeholder: "Model / series" },
+    { key: "year", label: "Year", placeholder: "Year", type: "number", required: false },
     { key: "hours", label: "Hours", placeholder: "Engine/PTO hours", type: "number" },
-    { key: "compatibility", label: "Compatibility", placeholder: "Tractor/PTO size, etc." },
-    { key: "implementType", label: "Implement", placeholder: "Baler, mower, tiller..." },
+    { key: "serialNumber", label: "Serial", placeholder: "Serial number", required: false },
+    {
+      key: "compatibility",
+      label: "Compatibility",
+      placeholder: "Tractor/PTO size, etc.",
+      required: false,
+    },
+    {
+      key: "implementType",
+      label: "Implement Type",
+      placeholder: "Baler, mower, tiller...",
+      required: false,
+    },
     {
       key: "fieldReady",
       label: "Field Ready",
@@ -413,8 +479,27 @@ export const SELL_CATEGORY_FIELDS: Record<
     },
   ],
   sports: [
-    { key: "size", label: "Size", placeholder: "Size / fit" },
-    { key: "sport", label: "Sport", placeholder: "Golf, cycling, etc." },
+    { key: "sport", label: "Sport / Activity", placeholder: "Golf, cycling, archery..." },
+    { key: "brand", label: "Brand", placeholder: "Callaway, Trek, Bowtech..." },
+    { key: "model", label: "Model", placeholder: "Model / series", required: false },
+    {
+      key: "size",
+      label: "Size / Fit",
+      placeholder: "Size, draw length, frame size...",
+      required: false,
+    },
+    {
+      key: "usageHistory",
+      label: "Usage History",
+      placeholder: "Recreational, competitive, seasons used...",
+      required: false,
+    },
+    {
+      key: "includesAccessories",
+      label: "Accessories Included",
+      placeholder: "List included accessories",
+      required: false,
+    },
     {
       key: "competitionReady",
       label: "Competition Ready",

@@ -97,6 +97,25 @@ export type CategoryConfig = {
   priceRanges?: Array<{ value: string; label: string }>;
   /** Whether condition filter applies */
   showCondition?: boolean;
+  /**
+   * Config-driven spec badges shown on each item card.
+   * `specKey` looks up item.specifications[specKey] first, then item[specKey] for top-level fields.
+   * `trueValue` / `trueLabel` renders a badge only when the value equals trueValue.
+   * `valueMap` maps raw values to display labels.
+   * `colorMap` maps raw values to Tailwind color names (green | yellow | red | orange | sky | purple).
+   * `suffix` appends a unit string after the value.
+   * `isTopLevel` reads from the top-level ExchangeItem field instead of specifications.
+   */
+  cardBadges?: Array<{
+    specKey: string;
+    label: string;
+    isTopLevel?: boolean;
+    suffix?: string;
+    trueValue?: string;
+    trueLabel?: string;
+    valueMap?: Record<string, string>;
+    colorMap?: Record<string, string>;
+  }>;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -626,89 +645,77 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                           <span className="shrink-0 ml-2">{formatListedTime(item.createdAt)}</span>
                         </div>
 
-                        {/* Category-specific spec badges */}
-                        {(item.year ||
-                          item.brand ||
-                          item.mileage != null ||
-                          item.specifications?.titleStatus ||
-                          item.specifications?.authenticated ||
-                          item.specifications?.graded ||
-                          item.specifications?.listingType) && (
+                        {/* Config-driven category-specific spec badges */}
+                        {config.cardBadges &&
+                          config.cardBadges.length > 0 &&
+                          (() => {
+                            const COLOR_CLASSES: Record<string, string> = {
+                              green: "border-emerald-500/30 text-emerald-300",
+                              yellow: "border-yellow-500/30 text-yellow-300",
+                              red: "border-red-500/30 text-red-300",
+                              orange: "border-orange-500/30 text-orange-300",
+                              sky: "border-sky-500/30 text-sky-300",
+                              purple: "border-purple-500/30 text-purple-300",
+                            };
+                            const badges = config.cardBadges!.flatMap((b, idx) => {
+                              const raw = b.isTopLevel
+                                ? (item as any)[b.specKey]
+                                : item.specifications?.[b.specKey];
+                              if (raw == null || raw === "") return [];
+                              // trueValue mode
+                              if (b.trueValue !== undefined) {
+                                if (String(raw) !== b.trueValue) return [];
+                                return [
+                                  <Badge
+                                    key={idx}
+                                    variant="outline"
+                                    className={`text-[10px] ${
+                                      b.colorMap?.[raw]
+                                        ? (COLOR_CLASSES[b.colorMap[raw]] ??
+                                          "border-white/10 text-white/60")
+                                        : "border-emerald-500/30 text-emerald-300"
+                                    }`}
+                                  >
+                                    {b.trueLabel ?? b.label}
+                                  </Badge>,
+                                ];
+                              }
+                              // valueMap mode
+                              const display = b.valueMap?.[String(raw)] ?? String(raw);
+                              const colorKey = b.colorMap?.[String(raw)];
+                              const colorClass = colorKey
+                                ? (COLOR_CLASSES[colorKey] ?? "border-white/10 text-white/60")
+                                : "border-white/10 text-white/60";
+                              const text = b.suffix
+                                ? `${typeof raw === "number" ? raw.toLocaleString() : display}${b.suffix}`
+                                : display;
+                              return [
+                                <Badge
+                                  key={idx}
+                                  variant="outline"
+                                  className={`text-[10px] ${colorClass}`}
+                                >
+                                  {text}
+                                </Badge>,
+                              ];
+                            });
+                            if (badges.length === 0) return null;
+                            return <div className="flex flex-wrap gap-1 mb-2">{badges}</div>;
+                          })()}
+                        {/* Set / Collection badge (always shown when present) */}
+                        {item.specifications?.listingType && (
                           <div className="flex flex-wrap gap-1 mb-2">
-                            {/* Vehicles: year · make · mileage · title status */}
-                            {item.year && (
-                              <Badge
-                                variant="outline"
-                                className="border-white/10 text-[10px] text-white/60"
-                              >
-                                {item.year}
-                              </Badge>
-                            )}
-                            {item.brand && (
-                              <Badge
-                                variant="outline"
-                                className="border-white/10 text-[10px] text-white/60"
-                              >
-                                {item.brand}
-                              </Badge>
-                            )}
-                            {item.mileage != null && (
-                              <Badge
-                                variant="outline"
-                                className="border-white/10 text-[10px] text-white/60"
-                              >
-                                {item.mileage.toLocaleString()} mi
-                              </Badge>
-                            )}
-                            {item.specifications?.titleStatus && (
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] ${
-                                  item.specifications.titleStatus === "clean"
-                                    ? "border-emerald-500/30 text-emerald-300"
-                                    : item.specifications.titleStatus === "rebuilt"
-                                      ? "border-yellow-500/30 text-yellow-300"
-                                      : "border-red-500/30 text-red-300"
-                                }`}
-                              >
-                                {item.specifications.titleStatus.charAt(0).toUpperCase() +
-                                  item.specifications.titleStatus.slice(1)}{" "}
-                                title
-                              </Badge>
-                            )}
-                            {/* Collectibles: authenticated · graded */}
-                            {item.specifications?.authenticated === "yes" && (
-                              <Badge
-                                variant="outline"
-                                className="border-emerald-500/30 text-[10px] text-emerald-300"
-                              >
-                                Authenticated
-                              </Badge>
-                            )}
-                            {item.specifications?.graded === "yes" && (
-                              <Badge
-                                variant="outline"
-                                className="border-sky-500/30 text-[10px] text-sky-300"
-                              >
-                                {item.specifications?.grade
-                                  ? `Grade: ${item.specifications.grade}`
-                                  : "Graded"}
-                              </Badge>
-                            )}
-                            {/* Set / Collection */}
-                            {item.specifications?.listingType && (
-                              <Badge
-                                variant="outline"
-                                className="border-purple-500/30 text-[10px] text-purple-300"
-                              >
-                                {item.specifications.listingType === "collection"
-                                  ? "Collection"
-                                  : "Set"}
-                                {Array.isArray(item.specifications?.setItems)
-                                  ? ` · ${item.specifications.setItems.length} items`
-                                  : ""}
-                              </Badge>
-                            )}
+                            <Badge
+                              variant="outline"
+                              className="border-purple-500/30 text-[10px] text-purple-300"
+                            >
+                              {item.specifications.listingType === "collection"
+                                ? "Collection"
+                                : "Set"}
+                              {Array.isArray(item.specifications?.setItems)
+                                ? ` · ${item.specifications.setItems.length} items`
+                                : ""}
+                            </Badge>
                           </div>
                         )}
 
