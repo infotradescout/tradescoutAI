@@ -7,21 +7,32 @@ import { adminAuditLog } from "../../shared/schema";
  */
 const _memoryLog: Record<string, any>[] = [];
 
-// Lazily resolved DB reference — avoids crashing when DB is not configured (e.g. unit tests)
-let _db: any = null;
-let _dbResolved = false;
+// Lazily resolved DB reference — avoids crashing when DB is not configured (e.g. unit tests).
+// Uses a shared Promise so concurrent callers don't trigger multiple resolution attempts.
+// Dynamic import() is required here because db.ts contains a top-level await, which
+// esbuild (ESM format) forbids inside synchronous require() calls.
+let _dbPromise: Promise<any> | null = null;
 
-function getDb(): any {
-  if (_dbResolved) return _db;
-  _dbResolved = true;
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mod = require("../db") as { db?: unknown };
-    _db = mod.db ?? null;
-  } catch {
-    _db = null;
-  }
-  return _db;
+async function getDb(): Promise<any> {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = (async () => {
+    try {
+      const mod = await import("../db.js");
+      const candidate = (mod as any).db ?? null;
+      if (!candidate) return null;
+      // db.ts exports a throwing Proxy when no DB URL is configured.
+      // Probe a harmless property to detect the Proxy before returning.
+      try {
+        void candidate.select;
+      } catch {
+        return null;
+      }
+      return candidate;
+    } catch {
+      return null;
+    }
+  })();
+  return _dbPromise;
 }
 
 /**
@@ -55,7 +66,7 @@ export async function logAdminAction(event: {
     timestamp: new Date().toISOString(),
   };
 
-  const db = getDb();
+  const db = await getDb();
   if (db) {
     try {
       await db.insert(adminAuditLog).values({
@@ -80,7 +91,7 @@ export async function logAdminAction(event: {
  * compatibility with callers that access fields like `entry.action`, etc.
  */
 export async function getAdminAuditLog(limit = 100): Promise<Record<string, any>[]> {
-  const db = getDb();
+  const db = await getDb();
   if (db) {
     try {
       const rows = await db
@@ -115,7 +126,7 @@ export async function clearAdminAuditLog(): Promise<void> {
   // Always clear the in-memory store
   _memoryLog.length = 0;
 
-  const db = getDb();
+  const db = await getDb();
   if (db) {
     try {
       await db.delete(adminAuditLog);
