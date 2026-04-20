@@ -4196,6 +4196,28 @@ export const scoutMemory = pgTable(
   ]
 );
 
+// Admin audit log: persistent record of all admin actions (impersonation, role changes, etc.)
+export const adminAuditLog = pgTable(
+  "admin_audit_log",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    type: varchar("type", { length: 80 }).notNull(),
+    adminId: varchar("admin_id").references(() => users.id, { onDelete: "set null" }),
+    targetUserId: varchar("target_user_id").references(() => users.id, { onDelete: "set null" }),
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_admin_audit_log_admin").on(table.adminId, table.createdAt),
+    index("idx_admin_audit_log_target").on(table.targetUserId, table.createdAt),
+    index("idx_admin_audit_log_type").on(table.type, table.createdAt),
+  ]
+);
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertAdminAuditLog = typeof adminAuditLog.$inferInsert;
+
 // Mission Control action log: one-fix decisions
 export const missionControlActions = pgTable(
   "mission_control_actions",

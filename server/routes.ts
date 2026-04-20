@@ -181,6 +181,8 @@ import {
   homeProjectPlans,
   propertyPrograms,
   propertyHomefaxSnapshots,
+  commercialProjectBids,
+  commercialProjects,
 } from "../shared/schema";
 
 function sanitizeContractorPublic<T extends Record<string, any>>(
@@ -10510,8 +10512,56 @@ export async function registerRoutes(app: any) {
     isContractor,
     async (_req: any, res: any) => {
       try {
-        // Project-level analytics will be wired to real project tables; for now return an empty list.
-        res.json({ projects: [] });
+        const userId = (_req as any).user?.id;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        // Resolve contractorId for this user
+        const contractorRow = await db.query.contractors.findFirst({
+          where: eq(contractors.userId, userId),
+          columns: { id: true },
+        });
+        if (!contractorRow) return res.json({ projects: [] });
+
+        // Fetch all bids by this contractor, joined to project metadata
+        const bids = await db
+          .select({
+            bidId: commercialProjectBids.id,
+            projectId: commercialProjectBids.projectId,
+            bidAmount: commercialProjectBids.amount,
+            bidStatus: commercialProjectBids.status,
+            timelineDays: commercialProjectBids.timelineDays,
+            bidCreatedAt: commercialProjectBids.createdAt,
+            projectTitle: commercialProjects.title,
+            projectSlug: commercialProjects.slug,
+            projectStatus: commercialProjects.status,
+            budgetMin: commercialProjects.budgetMin,
+            budgetMax: commercialProjects.budgetMax,
+            bidDueAt: commercialProjects.bidDueAt,
+            winningBidId: commercialProjects.winningBidId,
+          })
+          .from(commercialProjectBids)
+          .innerJoin(commercialProjects, eq(commercialProjectBids.projectId, commercialProjects.id))
+          .where(eq(commercialProjectBids.contractorId, contractorRow.id))
+          .orderBy(desc(commercialProjectBids.createdAt))
+          .limit(50);
+
+        const projects = bids.map((b) => ({
+          bidId: b.bidId,
+          projectId: b.projectId,
+          projectTitle: b.projectTitle,
+          projectSlug: b.projectSlug,
+          projectStatus: b.projectStatus,
+          bidAmount: b.bidAmount ? Number(b.bidAmount) : null,
+          bidStatus: b.bidStatus,
+          timelineDays: b.timelineDays,
+          isWinner: b.winningBidId === b.bidId,
+          budgetMin: b.budgetMin ? Number(b.budgetMin) : null,
+          budgetMax: b.budgetMax ? Number(b.budgetMax) : null,
+          bidDueAt: b.bidDueAt,
+          bidCreatedAt: b.bidCreatedAt,
+        }));
+
+        res.json({ projects });
       } catch (error: any) {
         console.error("Error fetching pro analytics projects:", error);
         res.status(500).json({ message: "Failed to fetch analytics projects" });

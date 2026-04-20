@@ -15,7 +15,7 @@
  */
 
 import { db } from "../db";
-import { sql, eq, and } from "drizzle-orm";
+import { sql, eq, and, desc } from "drizzle-orm";
 import { scoutMemory } from "../../shared/schema";
 
 /**
@@ -265,9 +265,46 @@ export class ScoutMemoryService {
     userId: string,
     scenario: string
   ): Promise<LearningPointMemory[]> {
-    // This would query the database for learning points applicable to the scenario
-    // For now, returning empty array as placeholder
-    return [];
+    try {
+      // Fetch all learning points for this user, most recent first
+      const rows = await db
+        .select()
+        .from(scoutMemory)
+        .where(
+          and(eq(scoutMemory.userId, userId), eq(scoutMemory.type, MemoryEntryType.LEARNING_POINT))
+        )
+        .orderBy(desc(scoutMemory.createdAt))
+        .limit(100);
+
+      const now = new Date();
+      const results: LearningPointMemory[] = [];
+
+      for (const row of rows) {
+        // Skip expired entries
+        if (row.ttlSeconds && row.createdAt) {
+          const expiresAt = new Date(row.createdAt);
+          expiresAt.setSeconds(expiresAt.getSeconds() + row.ttlSeconds);
+          if (expiresAt < now) continue;
+        }
+
+        const point = row.value as LearningPointMemory;
+
+        // Include if applicable_scenarios overlaps with the requested scenario
+        const scenarios: string[] = Array.isArray(point.applicable_scenarios)
+          ? point.applicable_scenarios
+          : [];
+        const isRelevant =
+          scenarios.length === 0 ||
+          scenarios.some((s) => s === scenario || scenario.includes(s) || s.includes(scenario));
+
+        if (isRelevant) results.push(point);
+      }
+
+      return results;
+    } catch (error) {
+      console.error("[Scout Memory] Error fetching learning points:", error);
+      return [];
+    }
   }
 
   /**
@@ -300,9 +337,37 @@ export class ScoutMemoryService {
    * Get recent proactive suggestions
    */
   static async getRecentSuggestions(userId: string, limit: number = 5): Promise<any[]> {
-    // This would query the database for recent suggestions
-    // For now, returning empty array as placeholder
-    return [];
+    try {
+      const rows = await db
+        .select()
+        .from(scoutMemory)
+        .where(
+          and(
+            eq(scoutMemory.userId, userId),
+            eq(scoutMemory.type, MemoryEntryType.PROACTIVE_SUGGESTION)
+          )
+        )
+        .orderBy(desc(scoutMemory.createdAt))
+        .limit(limit);
+
+      const now = new Date();
+      const results: any[] = [];
+
+      for (const row of rows) {
+        // Skip expired entries (suggestions default to 1 hour TTL)
+        if (row.ttlSeconds && row.createdAt) {
+          const expiresAt = new Date(row.createdAt);
+          expiresAt.setSeconds(expiresAt.getSeconds() + row.ttlSeconds);
+          if (expiresAt < now) continue;
+        }
+        results.push(row.value);
+      }
+
+      return results;
+    } catch (error) {
+      console.error("[Scout Memory] Error fetching recent suggestions:", error);
+      return [];
+    }
   }
 
   /**

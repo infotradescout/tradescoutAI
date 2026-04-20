@@ -25,8 +25,17 @@ export async function endImpersonation(adminId: string) {
   return true;
 }
 
-export async function logImpersonationEvent(event: any) {
-  // Log to DB or audit log
-  // For now, just a stub
-  console.log("Impersonation event:", event);
+export async function logImpersonationEvent(event: {
+  adminId?: string;
+  targetUserId?: string;
+  action?: string;
+  [key: string]: any;
+}): Promise<void> {
+  const { adminId, targetUserId, action, ...rest } = event;
+  await logAdminAction({
+    type: action ? `impersonation_${action}` : "impersonation_event",
+    adminId,
+    targetUserId,
+    ...rest,
+  });
 }
