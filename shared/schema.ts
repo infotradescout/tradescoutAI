@@ -3715,16 +3715,15 @@ export const workRequests = pgTable("work_requests", {
 
   // Source surface that originated the request
   source: varchar("source", {
-    enum: ["tasks", "community", "scout"],
+    enum: ["tasks", "community", "scout", "direct_connect"],
   }).default("tasks"),
   sourceRefId: varchar("source_ref_id"), // e.g. community post id, scout thread id
 
   // Lifecycle status
   status: varchar("status", {
-    enum: ["draft", "open", "routed", "in_progress", "completed", "cancelled"],
+    enum: ["draft", "open", "routed", "in_progress", "pending_outcome", "completed", "cancelled"],
   }).default("draft"),
 
-  // Visibility and competition controls
   visibility: varchar("visibility", {
     enum: ["public", "community", "private"],
   }).default("community"),
@@ -3811,6 +3810,12 @@ export const workRequestAssignments = pgTable("work_request_assignments", {
     responseRate?: number;
   }>(),
 
+  // Structured accept response stored at accept time for requester visibility
+  responseSummary: jsonb("response_summary").$type<{
+    availabilityWindow?: string;
+    priceBand?: "budget" | "standard" | "premium" | "custom_quote";
+    scopeNote?: string;
+  }>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

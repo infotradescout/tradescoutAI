@@ -1538,7 +1538,14 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const nowMs = Date.now();
         const maxAgeMs = 120 * 24 * 60 * 60 * 1000; // keep requests current by default (120 days)
-        const validStatuses = new Set(["open", "routed", "in_progress", "completed", "cancelled"]);
+        const validStatuses = new Set([
+          "open",
+          "routed",
+          "in_progress",
+          "pending_outcome",
+          "completed",
+          "cancelled",
+        ]);
         const filteredRequests = requests.filter((row: any) => {
           const normalizedStatus = String(row.status || "").toLowerCase();
           if (!validStatuses.has(normalizedStatus)) return false;
@@ -1712,6 +1719,7 @@ export function registerDirectConnectRoutes(app: Express) {
             attachmentCount: getAttachmentCount(r),
             dcSuggestedCount: suggestedCount,
             dcAcceptedAssignmentId: accepted?.id ?? null,
+            dcAcceptedResponseSummary: (accepted as any)?.responseSummary ?? null,
             dcConversationThreadId: conversationThreadId,
             dcLastEventAt: lastEventByRequest.get(String(r.id))?.toISOString() ?? null,
             dcMiniLandingUrl: String((r as any).shareToken || "").trim()
@@ -3081,7 +3089,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const contractor = await storage.getContractorByUserId(String(userId));
 
         // Helper to build provider inbox items from a set of assignments
-        const buildProviderInboxItems = async (assignments: any[]): Promise<any[]> => {
+        const buildProviderInboxItems = async (
+          assignments: any[],
+          providerUserId?: string
+        ): Promise<any[]> => {
           if (!assignments.length) return [];
           const workRequestIds = assignments.map((a: any) => a.workRequestId);
           const requests = await db
@@ -3089,6 +3100,48 @@ export function registerDirectConnectRoutes(app: Express) {
             .from(workRequests)
             .where(inArray(workRequests.id, workRequestIds));
           const requestById = new Map(requests.map((r: any) => [r.id, r]));
+          // Resolve conversation threads for accepted assignments.
+          // Business/worker providers are stored in conversations using userId as contractorId.
+          const conversationByHomeowner = new Map<string, string>();
+          if (providerUserId) {
+            const acceptedAssignments = assignments.filter((a: any) => a.status === "accepted");
+            if (acceptedAssignments.length) {
+              const homeownerIds = Array.from(
+                new Set(
+                  acceptedAssignments
+                    .map((a: any) => {
+                      const req = requestById.get(a.workRequestId) as any;
+                      return req?.createdByUserId ? String(req.createdByUserId) : null;
+                    })
+                    .filter((id): id is string => Boolean(id))
+                )
+              );
+              if (homeownerIds.length) {
+                try {
+                  const convRows = await db
+                    .select()
+                    .from(conversations)
+                    .where(
+                      and(
+                        eq(conversations.contractorId, providerUserId),
+                        inArray(conversations.homeownerId, homeownerIds)
+                      )
+                    )
+                    .orderBy(desc(conversations.createdAt));
+                  for (const convo of convRows as any[]) {
+                    const homeownerId = String((convo as any).homeownerId || "");
+                    if (!homeownerId || conversationByHomeowner.has(homeownerId)) continue;
+                    conversationByHomeowner.set(homeownerId, String((convo as any).id));
+                  }
+                } catch (e) {
+                  console.warn(
+                    "[direct-connect] Failed to resolve conversation threads for business/worker inbox",
+                    e
+                  );
+                }
+              }
+            }
+          }
           return assignments.map((a: any) => ({
             assignment: a,
             request: (() => {
@@ -3105,7 +3158,12 @@ export function registerDirectConnectRoutes(app: Express) {
                 attachmentCount: getAttachmentCount(requestRow),
               };
             })(),
-            conversationThreadId: null,
+            conversationThreadId: (() => {
+              if (!providerUserId) return null;
+              const reqRow = requestById.get(a.workRequestId) as any;
+              if (!reqRow?.createdByUserId) return null;
+              return conversationByHomeowner.get(String(reqRow.createdByUserId)) || null;
+            })(),
           }));
         };
 
@@ -3189,7 +3247,7 @@ export function registerDirectConnectRoutes(app: Express) {
             .where(eq((workRequestAssignments as any).responderUserId, String(userId)))
             .orderBy(desc(workRequestAssignments.createdAt));
           if (bizAssignments.length) {
-            const bizItems = await buildProviderInboxItems(bizAssignments);
+            const bizItems = await buildProviderInboxItems(bizAssignments, String(userId));
             inboxItems.push(...bizItems);
           }
         } catch (e) {
@@ -3219,7 +3277,7 @@ export function registerDirectConnectRoutes(app: Express) {
               )
               .orderBy(desc(workRequestAssignments.createdAt));
             if (workerAssignments.length) {
-              const workerItems = await buildProviderInboxItems(workerAssignments);
+              const workerItems = await buildProviderInboxItems(workerAssignments, String(userId));
               inboxItems.push(...workerItems);
             }
           }
@@ -3440,6 +3498,7 @@ export function registerDirectConnectRoutes(app: Express) {
               .update(workRequestAssignments)
               .set({
                 status: "accepted",
+                responseSummary: responseSummary as any,
                 updatedAt: now,
               })
               .where(eq(workRequestAssignments.id, assignment.id))

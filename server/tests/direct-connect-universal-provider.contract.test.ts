@@ -119,7 +119,7 @@ describe("DC universal provider — inbox endpoint", () => {
     const inboxIndex = dc.indexOf("/api/direct-connect/inbox");
     expect(inboxIndex).toBeGreaterThan(-1);
     // The inbox section spans ~5000 chars; business provider block is within it
-    const inboxSection = dc.slice(inboxIndex, inboxIndex + 5000);
+    const inboxSection = dc.slice(inboxIndex, inboxIndex + 8000);
     expect(inboxSection).toContain("responderUserId");
     // The comment explaining why contractor profile is not required for business providers
     expect(inboxSection).toContain("Business provider inbox");

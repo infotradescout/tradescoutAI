@@ -243,6 +243,11 @@ type DirectConnectRequest = {
   attachmentCount?: number | null;
   dcSuggestedCount?: number | null;
   dcAcceptedAssignmentId?: string | null;
+  dcAcceptedResponseSummary?: {
+    availabilityWindow?: string;
+    priceBand?: "budget" | "standard" | "premium" | "custom_quote";
+    scopeNote?: string;
+  } | null;
   dcConversationThreadId?: string | null;
   dcLastEventAt?: string | null;
   dcMiniLandingUrl?: string | null;
@@ -2306,6 +2311,46 @@ function MyDirectConnectRequests() {
 
               {isExpanded && (
                 <div className="grid gap-2 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-sm text-[color:var(--text-secondary)] md:grid-cols-2">
+                  {(stage === "active_conversation" ||
+                    stage === "pending_outcome" ||
+                    stage === "completed") &&
+                    r.dcAcceptedResponseSummary && (
+                      <div className="md:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
+                          Provider Response
+                        </p>
+                        {r.dcAcceptedResponseSummary.availabilityWindow && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                              Availability
+                            </p>
+                            <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
+                              {r.dcAcceptedResponseSummary.availabilityWindow}
+                            </p>
+                          </div>
+                        )}
+                        {r.dcAcceptedResponseSummary.priceBand && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                              Price Band
+                            </p>
+                            <p className="mt-0.5 text-sm text-[color:var(--text-primary)] capitalize">
+                              {r.dcAcceptedResponseSummary.priceBand.replace("_", " ")}
+                            </p>
+                          </div>
+                        )}
+                        {r.dcAcceptedResponseSummary.scopeNote && (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                              Scope Note
+                            </p>
+                            <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
+                              {r.dcAcceptedResponseSummary.scopeNote}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
                       Status

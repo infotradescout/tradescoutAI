@@ -645,6 +645,20 @@
       "when": 1777100000000,
       "tag": "0088_admin_audit_log",
       "breakpoints": false
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1745100000000,
+      "tag": "0089_work_requests_enum_extensions",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1745100060000,
+      "tag": "0090_work_request_assignments_response_summary",
+      "breakpoints": true
     }
   ]
 }
