@@ -4500,9 +4500,11 @@ export const conversations = pgTable("conversations", {
   homeownerId: varchar("homeowner_id")
     .notNull()
     .references(() => users.id),
-  contractorId: varchar("contractor_id")
-    .notNull()
-    .references(() => contractors.id),
+  // contractorId is kept as the conversation participant key for backward compat.
+  // For contractor-profile providers this is the contractors.id.
+  // For business/worker providers this is the provider's userId (no FK to contractors).
+  // The FK to contractors was removed in migration 0087 to support universal provider conversations.
+  contractorId: varchar("contractor_id").notNull(),
   leadId: varchar("lead_id").references(() => leads.id),
   status: varchar("status", { enum: ["active", "closed", "archived"] }).default("active"),
   lastMessageAt: timestamp("last_message_at").defaultNow(),

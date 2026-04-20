@@ -1596,19 +1596,33 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        const acceptedAssignments = (assignments as any[]).filter(
+        // Accepted contractor assignments (contractorId set)
+        const acceptedContractorAssignments = (assignments as any[]).filter(
           (x: any) => x.status === "accepted" && x.contractorId
         );
         const acceptedContractorIds = Array.from(
           new Set(
-            acceptedAssignments
+            acceptedContractorAssignments
               .map((x: any) => String(x.contractorId))
               .filter((id: string) => id.length > 0)
           )
         );
-
+        // Accepted business/worker assignments (responderUserId set, no contractorId).
+        // The respond endpoint stores these conversations using userId as the contractorId key.
+        const acceptedResponderAssignments = (assignments as any[]).filter(
+          (x: any) => x.status === "accepted" && !x.contractorId && (x as any).responderUserId
+        );
+        const acceptedResponderUserIds = Array.from(
+          new Set(
+            acceptedResponderAssignments
+              .map((x: any) => String((x as any).responderUserId))
+              .filter((id: string) => id.length > 0)
+          )
+        );
+        // Combine all provider keys to query conversations in one pass.
+        const allProviderKeys = [...acceptedContractorIds, ...acceptedResponderUserIds];
         let conversationsForAccepted: any[] = [];
-        if (acceptedContractorIds.length > 0) {
+        if (allProviderKeys.length > 0) {
           try {
             conversationsForAccepted = await db
               .select()
@@ -1616,7 +1630,7 @@ export function registerDirectConnectRoutes(app: Express) {
               .where(
                 and(
                   eq(conversations.homeownerId, String(userId)),
-                  inArray(conversations.contractorId, acceptedContractorIds)
+                  inArray(conversations.contractorId, allProviderKeys)
                 )
               )
               .orderBy(desc(conversations.createdAt));
@@ -1632,14 +1646,13 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           }
         }
-
+        // Single map keyed by contractorId (which is also userId for business/worker providers).
         const conversationByContractorId = new Map<string, string>();
         for (const convo of conversationsForAccepted as any[]) {
           const contractorId = String((convo as any).contractorId || "");
           if (!contractorId || conversationByContractorId.has(contractorId)) continue;
           conversationByContractorId.set(contractorId, String((convo as any).id));
         }
-
         let events: any[] = [];
         try {
           events = await db
@@ -1683,11 +1696,15 @@ export function registerDirectConnectRoutes(app: Express) {
             (x: any) => x.status === "suggested" || x.status === "invited"
           ).length;
           const accepted = a.find((x: any) => x.status === "accepted");
-          const acceptedContractorId = accepted?.contractorId
+          // Resolve conversation key: contractor profile ID for contractors,
+          // responderUserId for business/worker providers (stored as contractorId in conversations).
+          const acceptedProviderKey = accepted?.contractorId
             ? String(accepted.contractorId)
-            : null;
-          const conversationThreadId = acceptedContractorId
-            ? conversationByContractorId.get(acceptedContractorId) || null
+            : accepted && (accepted as any).responderUserId
+              ? String((accepted as any).responderUserId)
+              : null;
+          const conversationThreadId = acceptedProviderKey
+            ? conversationByContractorId.get(acceptedProviderKey) || null
             : null;
 
           return {
@@ -2246,6 +2263,21 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         });
 
+        // Outcome feedback: user completed a DC engagement (positive confidence signal)
+        try {
+          const scope = "direct_connect";
+          const outcomeEvent = {
+            userId: String(userId),
+            contextType: "direct_connect" as const,
+            contextId: requestId,
+            action: "completed" as const,
+            scope,
+          };
+          await recordOutcomeEvent(outcomeEvent);
+          await updateUserConfidenceStateFromOutcome(String(userId), outcomeEvent, scope);
+        } catch (e) {
+          console.warn("[direct-connect] Failed to record outcome event for completion", e);
+        }
         res.status(200).json({ status: "completed" });
       } catch (error: any) {
         console.error("Error completing direct connect request:", error);

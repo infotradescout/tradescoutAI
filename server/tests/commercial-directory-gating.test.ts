@@ -2,6 +2,17 @@ import { beforeAll, describe, expect, it } from "vitest";
 import request from "supertest";
 import { createApp } from "../app";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Commercial directory gating tests
+//
+// Behaviour as of commit a9f6482b ("Open commercial browse flow before
+// verification"):
+//   • The project board (GET /api/commercial-directory/projects) is open to
+//     ALL authenticated users — no contractor status required.
+//   • Bid submission (POST /api/commercial-directory/projects/:id/bids) still
+//     requires verified contractor status and returns 403 for everyone else.
+// ─────────────────────────────────────────────────────────────────────────────
+
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 
 if (!hasTestDb) {
@@ -17,7 +28,7 @@ if (!hasTestDb) {
   });
 
   describe("Commercial directory gating", () => {
-    it("blocks non-contractor users from open project board and bid submission", async () => {
+    it("allows any authenticated user to browse the project board", async () => {
       const agent = request.agent(app);
       const email = `test+${crypto.randomUUID()}@tradescout.test`;
       const password = `P@ssw0rd-${crypto.randomUUID()}`;
@@ -28,18 +39,38 @@ if (!hasTestDb) {
         .send({
           email,
           password,
-          firstName: "Gate",
+          firstName: "Browse",
           lastName: "Check",
-          phone: "(555) 000-0000",
+          phone: "(555) 000-0001",
           acceptTerms: true,
           userTypes: ["homeowner"],
         });
-
       expect(registerRes.status).toBe(200);
 
+      // Board is open — non-contractors should get 200 (possibly empty array)
       const boardRes = await agent.get("/api/commercial-directory/projects");
-      expect(boardRes.status).toBe(403);
-      expect(String(boardRes.body?.message || "")).toContain("requires verified contractor status");
+      expect(boardRes.status).toBe(200);
+      expect(Array.isArray(boardRes.body)).toBe(true);
+    });
+
+    it("blocks non-contractor users from submitting bids", async () => {
+      const agent = request.agent(app);
+      const email = `test+${crypto.randomUUID()}@tradescout.test`;
+      const password = `P@ssw0rd-${crypto.randomUUID()}`;
+
+      const registerRes = await agent
+        .post("/api/auth/register")
+        .set("Content-Type", "application/json")
+        .send({
+          email,
+          password,
+          firstName: "Bid",
+          lastName: "Gate",
+          phone: "(555) 000-0002",
+          acceptTerms: true,
+          userTypes: ["homeowner"],
+        });
+      expect(registerRes.status).toBe(200);
 
       const bidRes = await agent
         .post("/api/commercial-directory/projects/fake-project-id/bids")

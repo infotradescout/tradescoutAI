@@ -209,6 +209,10 @@ type DirectConnectInboxItem = {
     } | null;
     createdAt: string;
     updatedAt: string;
+    // Universal provider fields — present on business/worker assignments
+    contractorId?: string | null;
+    responderUserId?: string | null;
+    workerId?: string | null;
   };
   request: {
     id: string;
@@ -1570,12 +1574,36 @@ function DirectConnectInbox() {
                     {request?.description || "Request details."}
                   </p>
                 </div>
-                <Badge
-                  variant="outline"
-                  className={cn("uppercase text-[10px]", statusTone(status))}
-                >
-                  {status.replace("_", " ")}
-                </Badge>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className={cn("uppercase text-[10px]", statusTone(status))}
+                  >
+                    {status.replace("_", " ")}
+                  </Badge>
+                  {(() => {
+                    const a = assignment as any;
+                    if (a.workerId)
+                      return (
+                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
+                          Worker
+                        </Badge>
+                      );
+                    if (a.responderUserId && !a.contractorId)
+                      return (
+                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
+                          Business
+                        </Badge>
+                      );
+                    if (a.contractorId)
+                      return (
+                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
+                          Contractor
+                        </Badge>
+                      );
+                    return null;
+                  })()}
+                </div>
               </div>
 
               <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
