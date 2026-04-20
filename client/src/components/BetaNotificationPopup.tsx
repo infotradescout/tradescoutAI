@@ -7,7 +7,7 @@
 // ============================================================
 import React, { useState, useEffect } from "react";
 import { safeStorage } from "../utils/safeStorage";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Rocket, Users, ShieldAlert, ExternalLink } from "lucide-react";
 import { PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
