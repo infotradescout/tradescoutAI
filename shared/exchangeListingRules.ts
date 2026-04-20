@@ -517,19 +517,38 @@ export const SELL_CATEGORY_FIELDS: Record<
 };
 
 const PHOTO_MINIMUMS: Partial<Record<ExchangeCategorySlug, number>> = {
-  vehicles: 4,
-  construction: 4,
-  tools: 3,
-  electronics: 3,
-  jewelry: 3,
-  collectibles: 3,
-  furniture: 3,
-  farm: 4,
-  "business-equipment": 3,
-  sports: 3,
-  "local-food": 2,
-  other: 3,
+  "real-estate": 5,
+  vehicles: 3,
+  construction: 3,
+  tools: 2,
+  electronics: 2,
+  jewelry: 2,
+  collectibles: 2,
+  furniture: 2,
+  farm: 3,
+  "business-equipment": 2,
+  sports: 2,
+  "local-food": 1,
+  other: 2,
 };
+
+/**
+ * Maximum number of photos per listing.
+ * - real-estate: no cap (undefined)
+ * - vehicles: 10
+ * - all others: 5
+ */
+const PHOTO_MAXIMUMS: Partial<Record<ExchangeCategorySlug, number>> = {
+  vehicles: 10,
+  // real-estate intentionally omitted → no cap
+};
+const DEFAULT_PHOTO_MAX = 5;
+
+export function getExchangePhotoMaximum(category: string | null | undefined): number | undefined {
+  const slug = String(category || "") as ExchangeCategorySlug;
+  if (slug === "real-estate") return undefined; // no max
+  return PHOTO_MAXIMUMS[slug] ?? DEFAULT_PHOTO_MAX;
+}
 
 export function getExchangeCategorySlugFromMarketplaceCategoryName(
   name: string | null | undefined
@@ -553,7 +572,11 @@ export function getExchangePhotoMinimum(category: string | null | undefined): nu
 
 export function getExchangePhotoHint(category: string | null | undefined): string {
   const minimum = getExchangePhotoMinimum(category);
-  return minimum > 0 ? `Upload photos (min ${minimum}, max 8)` : "Upload photos (max 8)";
+  const maximum = getExchangePhotoMaximum(category);
+  const maxLabel = maximum !== undefined ? `max ${maximum}` : "no max";
+  return minimum > 0
+    ? `Upload photos (min ${minimum}, ${maxLabel})`
+    : `Upload photos (${maxLabel})`;
 }
 
 export function getRequiredExchangeFieldKeys(category: string | null | undefined): string[] {

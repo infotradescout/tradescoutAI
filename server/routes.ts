@@ -11164,6 +11164,13 @@ export async function registerRoutes(app: any) {
         sortBy: req.query.sort as any,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
         offset: req.query.offset ? Number(req.query.offset) : undefined,
+        // Category-specific extra filters
+        yearMin: req.query.yearMin ? Number(req.query.yearMin) : undefined,
+        yearMax: req.query.yearMax ? Number(req.query.yearMax) : undefined,
+        mileageMax: req.query.mileageMax ? Number(req.query.mileageMax) : undefined,
+        titleStatus: req.query.titleStatus ? String(req.query.titleStatus) : undefined,
+        authenticated: req.query.authenticated ? String(req.query.authenticated) : undefined,
+        graded: req.query.graded ? String(req.query.graded) : undefined,
       });
 
       const sellerIds = Array.from(
@@ -11249,6 +11256,12 @@ export async function registerRoutes(app: any) {
                 : Number.isFinite(Number(listing.shippingCost))
                   ? Number(listing.shippingCost)
                   : null,
+            // Category-specific spec fields
+            year: listing.year != null ? Number(listing.year) : undefined,
+            mileage: listing.mileage != null ? Number(listing.mileage) : undefined,
+            brand: listing.brand ? String(listing.brand) : undefined,
+            model: listing.model ? String(listing.model) : undefined,
+            specifications: listing.specifications ?? undefined,
           };
         });
 

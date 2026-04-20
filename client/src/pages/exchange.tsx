@@ -83,6 +83,7 @@ import {
   SELL_CATEGORY_FIELDS as SHARED_SELL_CATEGORY_FIELDS,
   SELL_CATEGORY_FLOWS as SHARED_SELL_CATEGORY_FLOWS,
   getExchangePhotoHint,
+  getExchangePhotoMaximum,
   getRequiredExchangeFieldKeys,
   validateExchangeCategoryListing,
 } from "@shared/exchangeListingRules";
@@ -437,6 +438,18 @@ export default function Exchange() {
   const [sellCategorySlug, setSellCategorySlug] = useState<ExchangeCategorySlug | "">("");
   const [sellSpecs, setSellSpecs] = useState<Record<string, string>>({});
   const [vehicleVinDecodePending, setVehicleVinDecodePending] = useState(false);
+
+  // Set / Collection mode (Tools + Collectibles)
+  type SetItem = { name: string; description: string; price: string; imageUrl: string };
+  const [isSetMode, setIsSetMode] = useState(false);
+  const [setItems, setSetItems] = useState<SetItem[]>([]);
+  const [setItemUploadingIdx, setSetItemUploadingIdx] = useState<number | null>(null);
+  const isSetCategory = sellCategorySlug === "tools" || sellCategorySlug === "collectibles";
+  const addSetItem = () =>
+    setSetItems((prev) => [...prev, { name: "", description: "", price: "", imageUrl: "" }]);
+  const removeSetItem = (idx: number) => setSetItems((prev) => prev.filter((_, i) => i !== idx));
+  const updateSetItem = (idx: number, patch: Partial<SetItem>) =>
+    setSetItems((prev) => prev.map((item, i) => (i === idx ? { ...item, ...patch } : item)));
   const [hasScoutDraft, setHasScoutDraft] = useState(false);
   const selectedSellFlow =
     sellCategorySlug !== "" ? SHARED_SELL_CATEGORY_FLOWS[sellCategorySlug] : null;
@@ -1936,6 +1949,8 @@ export default function Exchange() {
                             return;
                           setSellCategorySlug(value as ExchangeCategorySlug);
                           setSellSpecs({});
+                          setIsSetMode(false);
+                          setSetItems([]);
                         }}
                       >
                         <SelectTrigger className="bg-white/10 border-white/15 text-white">
@@ -2046,6 +2061,156 @@ export default function Exchange() {
                       ))}
                   </div>
 
+                  {/* ── Set / Collection mode toggle (Tools + Collectibles only) ── */}
+                  {isSetCategory && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Label className="text-white">
+                          {sellCategorySlug === "collectibles"
+                            ? "Collection?"
+                            : "Selling as a set?"}
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSetMode((prev) => !prev);
+                            setSetItems([]);
+                          }}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            isSetMode ? "bg-ts-orange" : "bg-white/20"
+                          }`}
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                              isSetMode ? "translate-x-6" : "translate-x-1"
+                            }`}
+                          />
+                        </button>
+                        <span className="text-xs text-white/50">
+                          {isSetMode
+                            ? sellCategorySlug === "collectibles"
+                              ? "Listing as a collection — enter each item below"
+                              : "Listing as a set — enter each item below"
+                            : sellCategorySlug === "collectibles"
+                              ? "Single item"
+                              : "Single item / bundle"}
+                        </span>
+                      </div>
+
+                      {isSetMode && (
+                        <div className="space-y-3">
+                          <p className="text-xs text-white/50">
+                            Add each item in the{" "}
+                            {sellCategorySlug === "collectibles" ? "collection" : "set"} (min 3).
+                            Each item needs 1 photo. Individual prices are optional — leave blank if
+                            selling as a unit only.
+                          </p>
+
+                          {setItems.map((item, idx) => (
+                            <div
+                              key={idx}
+                              className="rounded-lg border border-white/10 bg-white/5 p-3 space-y-2"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-white/70">
+                                  Item {idx + 1}
+                                </span>
+                                {setItems.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => removeSetItem(idx)}
+                                    className="text-xs text-red-400 hover:text-red-300"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </div>
+
+                              <Input
+                                placeholder="Item name (required)"
+                                className="bg-white/10 border-white/15 text-white text-sm"
+                                value={item.name}
+                                onChange={(e) => updateSetItem(idx, { name: e.target.value })}
+                              />
+                              <Input
+                                placeholder="Brief description (optional)"
+                                className="bg-white/10 border-white/15 text-white text-sm"
+                                value={item.description}
+                                onChange={(e) =>
+                                  updateSetItem(idx, { description: e.target.value })
+                                }
+                              />
+                              <Input
+                                type="number"
+                                placeholder="Individual price (optional, USD)"
+                                className="bg-white/10 border-white/15 text-white text-sm"
+                                value={item.price}
+                                onChange={(e) => updateSetItem(idx, { price: e.target.value })}
+                              />
+
+                              {/* Per-item photo */}
+                              {item.imageUrl ? (
+                                <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-white/10">
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={item.name || `Item ${idx + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => updateSetItem(idx, { imageUrl: "" })}
+                                    className="absolute top-1 right-1 bg-black/60 rounded-full p-1 text-xs text-white"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ) : (
+                                <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/15 text-xs text-white/70 hover:bg-white/10 cursor-pointer">
+                                  <UploadIcon className="h-3 w-3" />
+                                  {setItemUploadingIdx === idx ? "Uploading..." : "Add photo"}
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    disabled={setItemUploadingIdx !== null}
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      setSetItemUploadingIdx(idx);
+                                      try {
+                                        const { publicUrl } = await uploadObject(file);
+                                        updateSetItem(idx, { imageUrl: publicUrl });
+                                      } catch {
+                                        toast({
+                                          title: "Upload failed",
+                                          description: "Could not upload photo. Try again.",
+                                          variant: "destructive",
+                                        });
+                                      } finally {
+                                        setSetItemUploadingIdx(null);
+                                        e.target.value = "";
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
+                          ))}
+
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="border-white/15 text-white/80 hover:bg-white/10"
+                            onClick={addSetItem}
+                          >
+                            + Add item
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="description" className="text-white">
@@ -2062,7 +2227,6 @@ export default function Exchange() {
                         onChange={(e) => setSellDescription(e.target.value)}
                       />
                     </div>
-
                     <div>
                       <Label htmlFor="location" className="text-white">
                         Location
@@ -2075,67 +2239,80 @@ export default function Exchange() {
                         onChange={(e) => setSellLocation(e.target.value)}
                       />
                     </div>
-
-                    <div>
-                      <Label className="text-white">Images</Label>
-                      <div className="border-2 border-dashed border-white/15 rounded-lg p-4 text-center space-y-4">
-                        <div className="flex flex-col items-center justify-center gap-3">
-                          <Plus className="h-10 w-10 text-white/60" />
-                          <p className="text-white/60">{getExchangePhotoHint(sellCategorySlug)}</p>
-                          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-sm text-white/70 hover:bg-white/10 cursor-pointer">
-                            <UploadIcon className="h-4 w-4" />
-                            <span>Choose Files</span>
-                            <input
-                              type="file"
-                              multiple
-                              accept="image/*"
-                              className="hidden"
-                              onChange={async (e) => {
-                                const files = Array.from(e.target.files || []).slice(
-                                  0,
-                                  8 - sellImages.length
-                                );
-                                const uploaded: string[] = [];
-                                for (const file of files) {
-                                  try {
-                                    const { publicUrl } = await uploadObject(file);
-                                    uploaded.push(publicUrl);
-                                  } catch (err) {
-                                    console.error("Image upload failed", err);
+                    {/* In set mode, photos are per-item — hide the global photo uploader */}
+                    {!isSetMode && (
+                      <div>
+                        <Label className="text-white">Images</Label>
+                        <div className="border-2 border-dashed border-white/15 rounded-lg p-4 text-center space-y-4">
+                          <div className="flex flex-col items-center justify-center gap-3">
+                            <Plus className="h-10 w-10 text-white/60" />
+                            <p className="text-white/60">
+                              {getExchangePhotoHint(sellCategorySlug)}
+                            </p>
+                            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/15 text-sm text-white/70 hover:bg-white/10 cursor-pointer">
+                              <UploadIcon className="h-4 w-4" />
+                              <span>Choose Files</span>
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  const photoMax = getExchangePhotoMaximum(sellCategorySlug);
+                                  const remaining =
+                                    photoMax !== undefined ? photoMax - sellImages.length : 999;
+                                  const files = Array.from(e.target.files || []).slice(
+                                    0,
+                                    remaining
+                                  );
+                                  const uploaded: string[] = [];
+                                  for (const file of files) {
+                                    try {
+                                      const { publicUrl } = await uploadObject(file);
+                                      uploaded.push(publicUrl);
+                                    } catch (err) {
+                                      console.error("Image upload failed", err);
+                                    }
                                   }
-                                }
-                                if (uploaded.length) {
-                                  setSellImages((prev) => [...prev, ...uploaded].slice(0, 8));
-                                }
-                                e.target.value = "";
-                              }}
-                            />
-                          </label>
-                        </div>
-
-                        {sellImages.length > 0 && (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
-                            {sellImages.map((url, idx) => (
-                              <div
-                                key={url + idx}
-                                className="relative group rounded-lg overflow-hidden border border-white/10"
-                              >
-                                <img src={url} alt="Listing" className="w-full h-24 object-cover" />
-                                <button
-                                  type="button"
-                                  className="absolute top-1 right-1 bg-black/60 rounded-full p-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={() =>
-                                    setSellImages((prev) => prev.filter((_, i) => i !== idx))
+                                  if (uploaded.length) {
+                                    const cap = photoMax !== undefined ? photoMax : 999;
+                                    setSellImages((prev) => [...prev, ...uploaded].slice(0, cap));
                                   }
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
+                                  e.target.value = "";
+                                }}
+                              />
+                            </label>
                           </div>
-                        )}
+
+                          {sellImages.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
+                              {sellImages.map((url, idx) => (
+                                <div
+                                  key={url + idx}
+                                  className="relative group rounded-lg overflow-hidden border border-white/10"
+                                >
+                                  <img
+                                    src={url}
+                                    alt="Listing"
+                                    className="w-full h-24 object-cover"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="absolute top-1 right-1 bg-black/60 rounded-full p-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() =>
+                                      setSellImages((prev) => prev.filter((_, i) => i !== idx))
+                                    }
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}{" "}
+                    {/* end !isSetMode photo block */}
                   </div>
                 </div>
 
@@ -2238,16 +2415,48 @@ export default function Exchange() {
                         });
                         return;
                       }
+                      // Set/Collection validation
+                      if (isSetMode) {
+                        if (setItems.length < 3) {
+                          toast({
+                            title: "Add at least 3 items",
+                            description: `A ${sellCategorySlug === "collectibles" ? "collection" : "set"} requires a minimum of 3 items.`,
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        const missingName = setItems.findIndex((it) => !it.name.trim());
+                        if (missingName !== -1) {
+                          toast({
+                            title: `Item ${missingName + 1} needs a name`,
+                            description: "Every item in the set must have a name.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        const missingPhoto = setItems.findIndex((it) => !it.imageUrl);
+                        if (missingPhoto !== -1) {
+                          toast({
+                            title: `Item ${missingPhoto + 1} needs a photo`,
+                            description: "Each item in the set requires 1 photo.",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                      }
+
                       const categoryValidation =
                         activePortal === "rental-property"
                           ? sellImages.length < 3
                             ? { message: "Add at least 3 photos for a rental property listing." }
                             : null
-                          : validateExchangeCategoryListing({
-                              category: sellCategorySlug,
-                              imageCount: sellImages.length,
-                              specs: sellSpecs,
-                            });
+                          : isSetMode
+                            ? null // set mode validation handled above
+                            : validateExchangeCategoryListing({
+                                category: sellCategorySlug,
+                                imageCount: sellImages.length,
+                                specs: sellSpecs,
+                              });
                       if (categoryValidation) {
                         toast({
                           title: "Complete category details",
@@ -2336,6 +2545,25 @@ export default function Exchange() {
 
                       if (sellLocation.trim()) {
                         body.city = sellLocation.trim();
+                      }
+
+                      // Set / Collection mode: embed items in specifications and use item photos as listing images
+                      if (isSetMode && setItems.length >= 3) {
+                        const listingType =
+                          sellCategorySlug === "collectibles" ? "collection" : "set";
+                        const mappedItems = setItems.map((it) => ({
+                          name: it.name.trim(),
+                          description: it.description.trim() || undefined,
+                          price: it.price ? Number(it.price) || undefined : undefined,
+                          imageUrl: it.imageUrl,
+                        }));
+                        body.specifications = {
+                          ...(body.specifications || {}),
+                          listingType,
+                          setItems: mappedItems,
+                        };
+                        // Use item images as the listing's image array (one per item)
+                        body.images = mappedItems.map((it) => it.imageUrl);
                       }
 
                       createListingMutation.mutate(body);

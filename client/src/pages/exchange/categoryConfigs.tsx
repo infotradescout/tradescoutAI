@@ -77,6 +77,31 @@ export const CATEGORY_CONFIGS: Record<string, CategoryConfig> = {
           { value: "lien", label: "Lien" },
         ],
       },
+      {
+        key: "yearMin",
+        label: "Year (From)",
+        options: [
+          { value: "", label: "Any Year" },
+          { value: "2020", label: "2020+" },
+          { value: "2015", label: "2015+" },
+          { value: "2010", label: "2010+" },
+          { value: "2005", label: "2005+" },
+          { value: "2000", label: "2000+" },
+          { value: "1990", label: "1990+" },
+        ],
+      },
+      {
+        key: "mileageMax",
+        label: "Max Mileage",
+        options: [
+          { value: "", label: "Any Mileage" },
+          { value: "30000", label: "Under 30K" },
+          { value: "60000", label: "Under 60K" },
+          { value: "100000", label: "Under 100K" },
+          { value: "150000", label: "Under 150K" },
+          { value: "200000", label: "Under 200K" },
+        ],
+      },
     ],
   },
 

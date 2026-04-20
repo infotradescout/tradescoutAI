@@ -955,6 +955,9 @@ export interface IStorage {
     categoryId?: string;
     county?: string;
     state?: string;
+    preferredCountyFips?: string;
+    preferredCountyName?: string;
+    preferredStateCode?: string;
     priceMin?: number;
     priceMax?: number;
     condition?: string;
@@ -962,6 +965,20 @@ export interface IStorage {
     sortBy?: "price_asc" | "price_desc" | "date_desc" | "date_asc";
     limit?: number;
     offset?: number;
+    status?: string;
+    sellerId?: string;
+    /** Vehicles: min year (inclusive) */
+    yearMin?: number;
+    /** Vehicles: max year (inclusive) */
+    yearMax?: number;
+    /** Vehicles: max mileage (inclusive) */
+    mileageMax?: number;
+    /** Vehicles: title status stored in specifications JSONB */
+    titleStatus?: string;
+    /** Collectibles: authenticated flag stored in specifications JSONB */
+    authenticated?: string;
+    /** Collectibles: graded flag stored in specifications JSONB */
+    graded?: string;
   }): Promise<MarketplaceListing[]>;
   getMarketplaceListing(id: string): Promise<MarketplaceListing | undefined>;
   getMarketplaceListingBySlug(slug: string): Promise<MarketplaceListing | undefined>;
@@ -5284,8 +5301,30 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    // ── Category-specific spec filters ────────────────────────────────────
+    if (filters.yearMin !== undefined) {
+      conditions.push(sql`${marketplaceListings.year} >= ${filters.yearMin}`);
+    }
+    if (filters.yearMax !== undefined) {
+      conditions.push(sql`${marketplaceListings.year} <= ${filters.yearMax}`);
+    }
+    if (filters.mileageMax !== undefined) {
+      conditions.push(sql`${marketplaceListings.mileage} <= ${filters.mileageMax}`);
+    }
+    if (filters.titleStatus && String(filters.titleStatus).trim()) {
+      conditions.push(
+        sql`${marketplaceListings.specifications}->>'titleStatus' = ${filters.titleStatus}`
+      );
+    }
+    if (filters.authenticated && String(filters.authenticated).trim()) {
+      conditions.push(
+        sql`${marketplaceListings.specifications}->>'authenticated' = ${filters.authenticated}`
+      );
+    }
+    if (filters.graded && String(filters.graded).trim()) {
+      conditions.push(sql`${marketplaceListings.specifications}->>'graded' = ${filters.graded}`);
+    }
     const whereClause: SQL = and(...conditions) ?? sql`true`;
-
     const orderByClause = (() => {
       switch (filters.sortBy) {
         case "price_asc":

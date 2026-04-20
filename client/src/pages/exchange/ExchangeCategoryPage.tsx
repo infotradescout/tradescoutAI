@@ -67,6 +67,12 @@ type ExchangeItem = {
   favorites: number;
   isLocalPickupOnly: boolean;
   shippingCost: number | null;
+  // Category-specific spec fields
+  year?: number;
+  mileage?: number;
+  brand?: string;
+  model?: string;
+  specifications?: Record<string, any>;
 };
 
 type SearchScope = "local" | "state" | "nationwide";
@@ -187,6 +193,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
     else if (searchScope === "state" && stateCode) p.set("filterState", stateCode);
     if (stateCode) p.set("stateCode", stateCode);
     if (countyFips) p.set("countyFips", countyFips);
+    // Pass extra filter values as server-side query params
+    for (const [key, val] of Object.entries(extraFilterValues)) {
+      if (val) p.set(key, val);
+    }
     return p.toString();
   }, [
     searchQuery,
@@ -197,6 +207,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
     countyFips,
     stateCode,
     config.slug,
+    extraFilterValues,
   ]);
 
   const { data: items = [], isLoading } = useQuery<ExchangeItem[]>({
@@ -208,18 +219,8 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
     },
   });
 
-  // Apply extra filters client-side (they are metadata fields stored in listing attributes)
-  const filteredItems = useMemo(() => {
-    let result = items;
-    for (const [key, val] of Object.entries(extraFilterValues)) {
-      if (!val) continue;
-      result = result.filter((item) => {
-        const attrs = (item as any).attributes || {};
-        return String(attrs[key] || "").toLowerCase() === val.toLowerCase();
-      });
-    }
-    return result;
-  }, [items, extraFilterValues]);
+  // filteredItems = items (all filtering is now server-side)
+  const filteredItems = items;
 
   // ── Contact mutation ───────────────────────────────────────────────────────
   const sendInquiryMutation = useMutation({
@@ -574,21 +575,26 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         item.featured ? "ring-1 ring-ts-orange/40" : ""
                       }`}
                     >
-                      {/* Image */}
-                      {item.images.length > 0 ? (
-                        <div className="aspect-video bg-black/40 overflow-hidden">
-                          <img
-                            src={item.images[0]}
-                            alt={item.title}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        </div>
-                      ) : (
-                        <div className="aspect-video bg-white/5 flex items-center justify-center">
-                          <IconComponent className="h-10 w-10 text-white/20" />
-                        </div>
-                      )}
+                      {/* Image — click to open detail page */}
+                      <div
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/exchange/${config.slug}/${item.id}`)}
+                      >
+                        {item.images.length > 0 ? (
+                          <div className="aspect-video bg-black/40 overflow-hidden">
+                            <img
+                              src={item.images[0]}
+                              alt={item.title}
+                              className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+                              loading="lazy"
+                            />
+                          </div>
+                        ) : (
+                          <div className="aspect-video bg-white/5 flex items-center justify-center">
+                            <IconComponent className="h-10 w-10 text-white/20" />
+                          </div>
+                        )}
+                      </div>
 
                       <CardContent className="p-3">
                         {/* Featured badge */}
@@ -600,7 +606,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
 
                         {/* Title + price */}
                         <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <h3 className="text-sm font-semibold text-white line-clamp-2 leading-snug flex-1">
+                          <h3
+                            className="text-sm font-semibold text-white line-clamp-2 leading-snug flex-1 cursor-pointer hover:text-ts-orange transition-colors"
+                            onClick={() => navigate(`/exchange/${config.slug}/${item.id}`)}
+                          >
                             {item.title}
                           </h3>
                           <span className="text-sm font-bold text-ts-orange shrink-0">
@@ -616,6 +625,92 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                           </span>
                           <span className="shrink-0 ml-2">{formatListedTime(item.createdAt)}</span>
                         </div>
+
+                        {/* Category-specific spec badges */}
+                        {(item.year ||
+                          item.brand ||
+                          item.mileage != null ||
+                          item.specifications?.titleStatus ||
+                          item.specifications?.authenticated ||
+                          item.specifications?.graded ||
+                          item.specifications?.listingType) && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {/* Vehicles: year · make · mileage · title status */}
+                            {item.year && (
+                              <Badge
+                                variant="outline"
+                                className="border-white/10 text-[10px] text-white/60"
+                              >
+                                {item.year}
+                              </Badge>
+                            )}
+                            {item.brand && (
+                              <Badge
+                                variant="outline"
+                                className="border-white/10 text-[10px] text-white/60"
+                              >
+                                {item.brand}
+                              </Badge>
+                            )}
+                            {item.mileage != null && (
+                              <Badge
+                                variant="outline"
+                                className="border-white/10 text-[10px] text-white/60"
+                              >
+                                {item.mileage.toLocaleString()} mi
+                              </Badge>
+                            )}
+                            {item.specifications?.titleStatus && (
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] ${
+                                  item.specifications.titleStatus === "clean"
+                                    ? "border-emerald-500/30 text-emerald-300"
+                                    : item.specifications.titleStatus === "rebuilt"
+                                      ? "border-yellow-500/30 text-yellow-300"
+                                      : "border-red-500/30 text-red-300"
+                                }`}
+                              >
+                                {item.specifications.titleStatus.charAt(0).toUpperCase() +
+                                  item.specifications.titleStatus.slice(1)}{" "}
+                                title
+                              </Badge>
+                            )}
+                            {/* Collectibles: authenticated · graded */}
+                            {item.specifications?.authenticated === "yes" && (
+                              <Badge
+                                variant="outline"
+                                className="border-emerald-500/30 text-[10px] text-emerald-300"
+                              >
+                                Authenticated
+                              </Badge>
+                            )}
+                            {item.specifications?.graded === "yes" && (
+                              <Badge
+                                variant="outline"
+                                className="border-sky-500/30 text-[10px] text-sky-300"
+                              >
+                                {item.specifications?.grade
+                                  ? `Grade: ${item.specifications.grade}`
+                                  : "Graded"}
+                              </Badge>
+                            )}
+                            {/* Set / Collection */}
+                            {item.specifications?.listingType && (
+                              <Badge
+                                variant="outline"
+                                className="border-purple-500/30 text-[10px] text-purple-300"
+                              >
+                                {item.specifications.listingType === "collection"
+                                  ? "Collection"
+                                  : "Set"}
+                                {Array.isArray(item.specifications?.setItems)
+                                  ? ` · ${item.specifications.setItems.length} items`
+                                  : ""}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
 
                         {/* Shipping badge */}
                         <div className="mb-2">
@@ -686,17 +781,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             <Button
                               size="sm"
                               className="h-7 px-2.5 bg-ts-orange hover:bg-ts-orange-dark text-[11px]"
-                              onClick={() => {
-                                if (!isAuthenticated) {
-                                  navigate("/pre-scout-setup?mode=signin");
-                                  return;
-                                }
-                                setContactItem(item);
-                                setInquiryMessage(`Hi, I'm interested in "${item.title}".`);
-                              }}
+                              onClick={() => navigate(`/exchange/${config.slug}/${item.id}`)}
                             >
                               <MessageSquare className="h-3 w-3 mr-1" />
-                              Inquire
+                              View
                             </Button>
                           </div>
                         </div>

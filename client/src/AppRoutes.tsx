@@ -351,6 +351,7 @@ const ExchangeCategoryLocalFood = React.lazy(
   () => import("./pages/exchange/ExchangeLocalFoodPage")
 );
 const ExchangeCategoryOther = React.lazy(() => import("./pages/exchange/ExchangeOtherPage"));
+const ExchangeListingDetail = React.lazy(() => import("./pages/exchange/ExchangeListingDetail"));
 const MarketplaceListing = React.lazy(() => import("./pages/marketplace-listing"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
@@ -993,6 +994,11 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProgressiveFeatureGate>
               </Route>
               {/* Per-category Exchange pages */}
+              <Route path="/exchange/:category/:listingId">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeListingDetail} />
+                </ProgressiveFeatureGate>
+              </Route>
               <Route path="/exchange/business">
                 <ProgressiveFeatureGate featureId="exchange">
                   <LazyPage Component={ExchangeCategoryBusiness} />
