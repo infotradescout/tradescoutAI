@@ -670,10 +670,787 @@ export function getRequiredExchangeFieldKeys(category: string | null | undefined
   return fields.filter((field) => field.required !== false).map((field) => field.key);
 }
 
+// ---------------------------------------------------------------------------
+// PROHIBITED ITEMS POLICY
+// ---------------------------------------------------------------------------
+
+/**
+ * Items that are never allowed on the TradeScout Exchange, regardless of
+ * category. These are checked server-side on every listing create/update
+ * and surfaced in the client sell flow.
+ */
+export const EXCHANGE_PROHIBITED_KEYWORDS: string[] = [
+  // Alcohol
+  "alcohol",
+  "beer",
+  "wine",
+  "liquor",
+  "spirits",
+  "whiskey",
+  "whisky",
+  "bourbon",
+  "vodka",
+  "gin",
+  "rum",
+  "tequila",
+  "brandy",
+  "champagne",
+  "mead",
+  "cider",
+  "homebrew",
+  "moonshine",
+  // Animals / livestock (live)
+  "live animal",
+  "live animals",
+  "puppy",
+  "puppies",
+  "kitten",
+  "kittens",
+  "dog for sale",
+  "cat for sale",
+  "livestock",
+  "cattle",
+  "horses for sale",
+  "exotic animal",
+  "exotic bird",
+  "reptile for sale",
+  // Firearms & weapons
+  "firearm",
+  "handgun",
+  "pistol",
+  "revolver",
+  "rifle",
+  "shotgun",
+  "assault rifle",
+  "machine gun",
+  "silencer",
+  "suppressor",
+  "ghost gun",
+  "80% lower",
+  "unregistered",
+  // Controlled substances / drugs
+  "marijuana",
+  "cannabis",
+  "weed",
+  "thc",
+  "cbd oil for sale",
+  "cocaine",
+  "heroin",
+  "methamphetamine",
+  "fentanyl",
+  "opioid",
+  "prescription drugs",
+  "controlled substance",
+  // Tobacco / vaping
+  "cigarettes",
+  "cigars",
+  "tobacco",
+  "vape",
+  "e-cigarette",
+  "juul",
+  "nicotine",
+  // Adult / explicit content
+  "adult content",
+  "explicit",
+  "pornography",
+  "escort",
+  "sexual services",
+  // Counterfeit / stolen
+  "counterfeit",
+  "replica watch",
+  "fake",
+  "stolen",
+  "no title",
+];
+
+/**
+ * Human-readable policy statement shown to sellers in the UI.
+ */
+export const EXCHANGE_PROHIBITED_POLICY_NOTICE =
+  "TradeScout does not allow the sale of alcohol, live animals, firearms, " +
+  "controlled substances, tobacco/vaping products, adult content, or " +
+  "counterfeit/stolen goods. Listings that include these items will be " +
+  "removed and the account may be suspended.";
+
+/**
+ * Returns the first prohibited keyword found in the given text fields,
+ * or null if none are found.
+ */
+export function findProhibitedKeyword(fields: Array<string | null | undefined>): string | null {
+  const combined = fields.map((f) => String(f || "").toLowerCase()).join(" ");
+  for (const kw of EXCHANGE_PROHIBITED_KEYWORDS) {
+    // Word-boundary match: the keyword must appear as a standalone word/phrase
+    const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(?<![a-z0-9])${escaped}(?![a-z0-9])`, "i");
+    if (re.test(combined)) return kw;
+  }
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// COTTAGE FOOD LAW — STATE-LEVEL PRODUCT ELIGIBILITY
+// ---------------------------------------------------------------------------
+
+/**
+ * State-level cottage food law data.
+ * Source: National Conference of State Legislatures + state ag dept summaries.
+ * Each entry describes what a home-based food producer MAY sell without a
+ * commercial kitchen license in that state.
+ *
+ * `allowedProducts`: broad product categories permitted under cottage law.
+ * `prohibitedProducts`: items explicitly excluded even in permissive states.
+ * `requiresLabeling`: whether state requires a cottage food label.
+ * `saleLimitUSD`: annual gross sales cap (null = no cap or not specified).
+ * `directSaleOnly`: whether sales must be direct to consumer (no online shipping).
+ * `notes`: plain-language summary of key restrictions.
+ */
+export type CottageFoodStateRule = {
+  allowedProducts: string[];
+  prohibitedProducts: string[];
+  requiresLabeling: boolean;
+  saleLimitUSD: number | null;
+  directSaleOnly: boolean;
+  notes: string;
+};
+
+export const COTTAGE_FOOD_RULES_BY_STATE: Record<string, CottageFoodStateRule> = {
+  AL: {
+    allowedProducts: [
+      "baked goods",
+      "candy",
+      "jams",
+      "jellies",
+      "honey",
+      "dried herbs",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "eggs", "canned goods", "refrigerated items", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Alabama allows non-potentially-hazardous foods sold direct to consumer.",
+  },
+  AK: {
+    allowedProducts: ["baked goods", "jams", "jellies", "candy", "dried goods", "honey"],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 25000,
+    directSaleOnly: false,
+    notes: "Alaska permits online sales with shipping within the state.",
+  },
+  AZ: {
+    allowedProducts: [
+      "baked goods",
+      "candy",
+      "jams",
+      "jellies",
+      "honey",
+      "dried herbs",
+      "roasted nuts",
+      "tortillas",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Arizona has broad cottage food law with no sales cap.",
+  },
+  AR: {
+    allowedProducts: ["baked goods", "candy", "jams", "jellies", "honey", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Arkansas requires direct-to-consumer sales only.",
+  },
+  CA: {
+    allowedProducts: [
+      "baked goods",
+      "candy",
+      "jams",
+      "jellies",
+      "honey",
+      "dried herbs",
+      "roasted nuts",
+      "granola",
+      "dried pasta",
+      "chocolate",
+      "fruit butters",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol", "raw sprouts"],
+    requiresLabeling: true,
+    saleLimitUSD: 75000,
+    directSaleOnly: false,
+    notes:
+      "California AB 1144 (2022) allows online sales and third-party platforms up to $75K/year.",
+  },
+  CO: {
+    allowedProducts: [
+      "baked goods",
+      "candy",
+      "jams",
+      "jellies",
+      "honey",
+      "dried herbs",
+      "roasted nuts",
+      "granola",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Colorado allows online sales with no sales cap.",
+  },
+  CT: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 25000,
+    directSaleOnly: true,
+    notes: "Connecticut requires direct-to-consumer sales only.",
+  },
+  DE: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Delaware cottage food is limited to non-potentially-hazardous foods.",
+  },
+  FL: {
+    allowedProducts: [
+      "baked goods",
+      "candy",
+      "jams",
+      "jellies",
+      "honey",
+      "dried herbs",
+      "roasted nuts",
+      "granola",
+      "fruit pies",
+      "canned high-acid foods",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 50000,
+    directSaleOnly: false,
+    notes: "Florida allows online sales and third-party platforms up to $50K/year.",
+  },
+  GA: {
+    allowedProducts: ["baked goods", "candy", "jams", "jellies", "honey", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Georgia requires direct-to-consumer sales only.",
+  },
+  HI: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Hawaii cottage food is limited to non-potentially-hazardous foods sold direct.",
+  },
+  ID: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Idaho allows online sales with no sales cap.",
+  },
+  IL: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried herbs",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 25000,
+    directSaleOnly: false,
+    notes: "Illinois allows online sales up to $25K/year.",
+  },
+  IN: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Indiana requires direct-to-consumer sales only.",
+  },
+  IA: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Iowa allows online sales with no sales cap.",
+  },
+  KS: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 50000,
+    directSaleOnly: false,
+    notes: "Kansas allows online sales up to $50K/year.",
+  },
+  KY: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried herbs"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Kentucky requires direct-to-consumer sales only.",
+  },
+  LA: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "pralines",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Louisiana allows online sales with no sales cap.",
+  },
+  ME: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Maine requires direct-to-consumer sales only.",
+  },
+  MD: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Maryland requires direct-to-consumer sales only.",
+  },
+  MA: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Massachusetts requires direct-to-consumer sales only.",
+  },
+  MI: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 25000,
+    directSaleOnly: false,
+    notes: "Michigan allows online sales up to $25K/year.",
+  },
+  MN: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods", "granola"],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 78000,
+    directSaleOnly: false,
+    notes: "Minnesota allows online sales up to $78K/year.",
+  },
+  MS: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Mississippi requires direct-to-consumer sales only.",
+  },
+  MO: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Missouri requires direct-to-consumer sales only.",
+  },
+  MT: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Montana allows online sales with no sales cap.",
+  },
+  NE: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Nebraska requires direct-to-consumer sales only.",
+  },
+  NV: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Nevada requires direct-to-consumer sales only.",
+  },
+  NH: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "New Hampshire requires direct-to-consumer sales only.",
+  },
+  NJ: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "New Jersey requires direct-to-consumer sales only.",
+  },
+  NM: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+      "tortillas",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "New Mexico allows online sales with no sales cap.",
+  },
+  NY: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "New York requires direct-to-consumer sales only.",
+  },
+  NC: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "North Carolina requires direct-to-consumer sales only.",
+  },
+  ND: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "North Dakota allows online sales with no sales cap.",
+  },
+  OH: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Ohio requires direct-to-consumer sales only.",
+  },
+  OK: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Oklahoma allows online sales with no sales cap.",
+  },
+  OR: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "granola",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 20000,
+    directSaleOnly: false,
+    notes: "Oregon allows online sales up to $20K/year.",
+  },
+  PA: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Pennsylvania requires direct-to-consumer sales only.",
+  },
+  RI: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Rhode Island requires direct-to-consumer sales only.",
+  },
+  SC: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "South Carolina requires direct-to-consumer sales only.",
+  },
+  SD: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "South Dakota allows online sales with no sales cap.",
+  },
+  TN: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Tennessee requires direct-to-consumer sales only.",
+  },
+  TX: {
+    allowedProducts: [
+      "baked goods",
+      "candy",
+      "jams",
+      "jellies",
+      "honey",
+      "dried herbs",
+      "roasted nuts",
+      "granola",
+      "popcorn",
+      "dried pasta",
+      "tortillas",
+      "fruit pies",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 50000,
+    directSaleOnly: false,
+    notes: "Texas Cottage Food Law allows online sales and third-party platforms up to $50K/year.",
+  },
+  UT: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Utah allows online sales with no sales cap.",
+  },
+  VT: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "maple products",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Vermont requires direct-to-consumer sales only.",
+  },
+  VA: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Virginia requires direct-to-consumer sales only.",
+  },
+  WA: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: 25000,
+    directSaleOnly: false,
+    notes: "Washington allows online sales up to $25K/year.",
+  },
+  WV: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "West Virginia requires direct-to-consumer sales only.",
+  },
+  WI: {
+    allowedProducts: ["baked goods", "jams", "jellies", "honey", "candy", "dried goods"],
+    prohibitedProducts: ["meat", "dairy", "canned goods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: true,
+    notes: "Wisconsin requires direct-to-consumer sales only.",
+  },
+  WY: {
+    allowedProducts: [
+      "baked goods",
+      "jams",
+      "jellies",
+      "honey",
+      "candy",
+      "dried goods",
+      "roasted nuts",
+    ],
+    prohibitedProducts: ["meat", "dairy", "canned low-acid foods", "alcohol"],
+    requiresLabeling: true,
+    saleLimitUSD: null,
+    directSaleOnly: false,
+    notes: "Wyoming allows online sales with no sales cap.",
+  },
+};
+
+/**
+ * Returns the cottage food rules for a given US state abbreviation,
+ * or null if the state is not found.
+ */
+export function getCottageFoodRules(
+  stateAbbr: string | null | undefined
+): CottageFoodStateRule | null {
+  const key = String(stateAbbr || "")
+    .toUpperCase()
+    .trim();
+  return COTTAGE_FOOD_RULES_BY_STATE[key] || null;
+}
+
+/**
+ * Checks whether a product description is likely allowed under the
+ * cottage food law for the given state.
+ * Returns an error message if not allowed, or null if OK.
+ */
+export function validateCottageFoodProduct(
+  stateAbbr: string | null | undefined,
+  productDescription: string | null | undefined
+): string | null {
+  const rules = getCottageFoodRules(stateAbbr);
+  if (!rules) {
+    // Unknown state — warn but don't block
+    return null;
+  }
+  const desc = String(productDescription || "").toLowerCase();
+  for (const prohibited of rules.prohibitedProducts) {
+    if (desc.includes(prohibited.toLowerCase())) {
+      return (
+        `"${prohibited}" is not permitted under ${stateAbbr} cottage food law. ` +
+        `Allowed products include: ${rules.allowedProducts.slice(0, 5).join(", ")}. ` +
+        rules.notes
+      );
+    }
+  }
+  return null;
+}
+
 export type ExchangeCategoryValidationInput = {
   category: string | null | undefined;
   imageCount: number;
   specs?: Record<string, unknown> | null;
+  /** Seller's US state abbreviation (e.g. "TX") — required for local-food listings */
+  sellerState?: string | null;
+  /** Listing title — checked for prohibited keywords */
+  title?: string | null;
+  /** Listing description — checked for prohibited keywords */
+  description?: string | null;
 };
 
 export type ExchangeCategoryValidationResult = {
@@ -688,6 +1465,74 @@ export function validateExchangeCategoryListing(
   const specs = (input.specs || {}) as Record<string, unknown>;
   const imageCount = Number.isFinite(input.imageCount) ? Number(input.imageCount) : 0;
   const photoMinimum = getExchangePhotoMinimum(category);
+
+  // --- Prohibited items check (runs first, blocks all categories) ---
+  const prohibitedKw = findProhibitedKeyword([
+    input.title,
+    input.description,
+    String(specs.ingredients || ""),
+    String(specs.provenance || ""),
+  ]);
+  if (prohibitedKw) {
+    return {
+      message:
+        `This listing contains a prohibited term ("${prohibitedKw}"). ` +
+        EXCHANGE_PROHIBITED_POLICY_NOTICE,
+      reasonCode: "PROHIBITED_ITEM",
+    };
+  }
+
+  // --- Cottage food law check (local-food category only) ---
+  if (category === "local-food") {
+    const sellerState = String(input.sellerState || "")
+      .toUpperCase()
+      .trim();
+    if (!sellerState) {
+      return {
+        message:
+          "Local Food listings require your state to verify cottage food law eligibility. " +
+          "Please update your profile with your state before listing.",
+        reasonCode: "LOCAL_FOOD_STATE_REQUIRED",
+      };
+    }
+    const rules = getCottageFoodRules(sellerState);
+    if (!rules) {
+      return {
+        message:
+          `Cottage food law data is not available for state "${sellerState}". ` +
+          "Please contact support to verify your eligibility before listing.",
+        reasonCode: "LOCAL_FOOD_STATE_UNKNOWN",
+      };
+    }
+    // Seller must attest compliance
+    if (!specs.cottageFoodAttestation) {
+      return {
+        message: `You must confirm that your product complies with ${sellerState} cottage food law before listing.`,
+        reasonCode: "LOCAL_FOOD_ATTESTATION_REQUIRED",
+      };
+    }
+    // Check product description against prohibited products for this state
+    const productErr = validateCottageFoodProduct(
+      sellerState,
+      String(input.description || specs.ingredients || "")
+    );
+    if (productErr) {
+      return { message: productErr, reasonCode: "LOCAL_FOOD_PRODUCT_NOT_ALLOWED" };
+    }
+    // Warn if state requires direct sale only (online platform may not be allowed)
+    if (rules.directSaleOnly) {
+      // We allow the listing but the description must note pickup/local delivery only
+      const fulfillment = String(specs.pickupOrDelivery || "").toLowerCase();
+      if (!fulfillment || fulfillment === "shipping") {
+        return {
+          message:
+            `${sellerState} cottage food law requires direct-to-consumer sales only. ` +
+            "Your listing must use local pickup or local delivery as the fulfillment method.",
+          reasonCode: "LOCAL_FOOD_DIRECT_SALE_REQUIRED",
+        };
+      }
+    }
+  }
 
   if (photoMinimum > 0 && imageCount < photoMinimum) {
     return {

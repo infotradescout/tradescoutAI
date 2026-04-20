@@ -668,6 +668,9 @@ export interface IStorage {
   listTradePartnerCountiesForSitemap(args?: {
     limit?: number;
   }): Promise<Array<{ countySlug: string; updatedAt: Date | null; allowedCategories: string[] }>>;
+  listActiveExchangeListingsForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ id: string; categoryName: string; updatedAt: Date | null }>>;
   searchProfilesPublic(args: { query: string; limit?: number }): Promise<
     Array<{
       id: string;
@@ -2423,6 +2426,12 @@ export class DatabaseStorage implements IStorage {
     limit?: number;
   }): Promise<Array<{ countySlug: string; updatedAt: Date | null; allowedCategories: string[] }>> {
     return this.sitemapRepository.listTradePartnerCountiesForSitemap(args);
+  }
+
+  async listActiveExchangeListingsForSitemap(args?: {
+    limit?: number;
+  }): Promise<Array<{ id: string; categoryName: string; updatedAt: Date | null }>> {
+    return this.sitemapRepository.listActiveExchangeListingsForSitemap(args);
   }
 
   async searchProfilesPublic(args: { query: string; limit?: number }): Promise<

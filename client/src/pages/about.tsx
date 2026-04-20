@@ -133,8 +133,8 @@ const About = memo(function About() {
   return (
     <>
       <SEOHelmet
-        title="About TradeScout – Trust-First Local Matching"
-        description="TradeScout connects residents, pros, and community leaders while supporting local projects and the skilled trades. Learn about our mission, values, and community impact."
+        title="About TradeScout – The Trusted Local Business Directory"
+        description="TradeScout connects residents with trusted local businesses, from restaurants and retail to home services. Learn about our mission, values, and community impact."
         canonical="https://www.thetradescout.com/about"
       />
       <div className="text-white font-body">
@@ -149,24 +149,24 @@ const About = memo(function About() {
             >
               <Shield className="w-4 h-4 text-ts-orange" />
               <span className="text-sm font-medium text-ts-orange">About TradeScout</span>
-            </motion.div>
+            </motion.div>{" "}
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
               className="font-display text-4xl md:text-6xl font-extrabold text-white leading-tight tracking-tight mb-4"
             >
-              Building America's <span className="text-ts-orange">Home Improvement Future</span>
+              Building America's <span className="text-ts-orange">Local Business Future</span>
             </motion.h1>
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-lg text-white/70 max-w-2xl mx-auto mb-6 leading-relaxed"
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="text-xl md:text-2xl text-white/80 max-w-3xl mx-auto leading-relaxed"
             >
-              TradeScout connects residents, pros, and community leaders while supporting local
-              projects and the skilled trades through our partnership with the Mike Rowe Works
-              Foundation.
+              We're on a mission to bring trust, transparency, and quality back to local business
+              discovery—from restaurants and retail to home services—while supporting the
+              communities we live in.
             </motion.p>
             <motion.div
               initial={{ opacity: 0, y: 20 }}

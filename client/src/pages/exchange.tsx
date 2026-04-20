@@ -86,6 +86,8 @@ import {
   getExchangePhotoMaximum,
   getRequiredExchangeFieldKeys,
   validateExchangeCategoryListing,
+  EXCHANGE_PROHIBITED_POLICY_NOTICE,
+  getCottageFoodRules,
 } from "@shared/exchangeListingRules";
 
 interface ExchangeItem {
@@ -450,6 +452,7 @@ export default function Exchange() {
   const removeSetItem = (idx: number) => setSetItems((prev) => prev.filter((_, i) => i !== idx));
   const updateSetItem = (idx: number, patch: Partial<SetItem>) =>
     setSetItems((prev) => prev.map((item, i) => (i === idx ? { ...item, ...patch } : item)));
+  const [cottageFoodAttestation, setCottageFoodAttestation] = useState(false);
   const [hasScoutDraft, setHasScoutDraft] = useState(false);
   const selectedSellFlow =
     sellCategorySlug !== "" ? SHARED_SELL_CATEGORY_FLOWS[sellCategorySlug] : null;
@@ -1951,6 +1954,7 @@ export default function Exchange() {
                           setSellSpecs({});
                           setIsSetMode(false);
                           setSetItems([]);
+                          setCottageFoodAttestation(false);
                         }}
                       >
                         <SelectTrigger className="bg-white/10 border-white/15 text-white">
@@ -2060,6 +2064,84 @@ export default function Exchange() {
                         </div>
                       ))}
                   </div>
+
+                  {/* ── Prohibited items policy notice ── */}
+                  <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+                    <span className="font-semibold text-amber-300">Policy reminder: </span>
+                    {EXCHANGE_PROHIBITED_POLICY_NOTICE}
+                  </div>
+
+                  {/* ── Cottage food law attestation (Local Food only) ── */}
+                  {sellCategorySlug === "local-food" &&
+                    (() => {
+                      const rules = getCottageFoodRules(
+                        (user as any)?.state || (user as any)?.stateAbbr || null
+                      );
+                      const stateCode = String(
+                        (user as any)?.state || (user as any)?.stateAbbr || ""
+                      )
+                        .toUpperCase()
+                        .trim();
+                      return (
+                        <div className="rounded-lg border border-blue-500/40 bg-blue-500/10 p-4 space-y-3">
+                          <p className="text-sm font-semibold text-blue-200">
+                            Cottage Food Law Compliance
+                          </p>
+                          {!stateCode ? (
+                            <p className="text-xs text-red-300">
+                              Your profile does not have a state on file. Please update your profile
+                              with your state before listing Local Food items.
+                            </p>
+                          ) : !rules ? (
+                            <p className="text-xs text-red-300">
+                              Cottage food law data is not available for state "{stateCode}".
+                              Contact support to verify your eligibility.
+                            </p>
+                          ) : (
+                            <>
+                              <p className="text-xs text-blue-100">
+                                <span className="font-semibold">{stateCode} cottage food law</span>{" "}
+                                — {rules.notes}
+                              </p>
+                              <p className="text-xs text-blue-100">
+                                <span className="font-semibold">Allowed products:</span>{" "}
+                                {rules.allowedProducts.join(", ")}.
+                              </p>
+                              {rules.saleLimitUSD && (
+                                <p className="text-xs text-amber-200">
+                                  Annual sales cap: ${rules.saleLimitUSD.toLocaleString()}
+                                </p>
+                              )}
+                              {rules.directSaleOnly && (
+                                <p className="text-xs text-amber-200">
+                                  Direct-to-consumer sales only — your listing fulfillment must be
+                                  local pickup or local delivery.
+                                </p>
+                              )}
+                              <label className="flex items-start gap-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={cottageFoodAttestation}
+                                  onChange={(e) => {
+                                    setCottageFoodAttestation(e.target.checked);
+                                    setSellSpecs((prev) => ({
+                                      ...prev,
+                                      cottageFoodAttestation: e.target.checked ? "true" : "",
+                                    }));
+                                  }}
+                                  className="mt-0.5 h-4 w-4 accent-blue-400"
+                                />
+                                <span className="text-xs text-blue-100">
+                                  I confirm that my product complies with {stateCode} cottage food
+                                  law, that I am legally permitted to sell it in my state, and that
+                                  my listing includes the required cottage food label information.
+                                </span>
+                              </label>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                   {/* ── Set / Collection mode toggle (Tools + Collectibles only) ── */}
                   {isSetCategory && (

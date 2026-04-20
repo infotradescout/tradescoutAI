@@ -253,5 +253,34 @@ export async function buildPublicExchangeHtml(opts: ExchangeHtmlOptions): Promis
     },
   });
 
+  // BreadcrumbList JSON-LD for per-category pages
+  if (slug && slug in EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME) {
+    const catName = EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME[slug];
+    html = injectJsonLd(html, {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: origin,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Exchange",
+          item: `${origin}/exchange`,
+        },
+        {
+          "@type": "ListItem",
+          position: 3,
+          name: catName,
+          item: canonical,
+        },
+      ],
+    });
+  }
+
   return html;
 }

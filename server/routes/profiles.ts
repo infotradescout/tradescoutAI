@@ -17,6 +17,21 @@ const CORE_STATIC_PATHS = [
   "/community",
   "/community-feed",
   "/exchange",
+  "/exchange/vehicles",
+  "/exchange/business",
+  "/exchange/real-estate",
+  "/exchange/construction",
+  "/exchange/tools",
+  "/exchange/furniture",
+  "/exchange/farm",
+  "/exchange/business-equipment",
+  "/exchange/electronics",
+  "/exchange/sports",
+  "/exchange/collectibles",
+  "/exchange/jewelry",
+  "/exchange/metals",
+  "/exchange/local-food",
+  "/exchange/other",
   "/trade-deals",
   "/contractors/apply",
   "/groups",
@@ -645,6 +660,7 @@ router.get("/robots.txt", async (req, res) => {
       "Allow: /tradepartners/",
       "Allow: /homescout/",
       "Allow: /homescout/listings/",
+      "Allow: /exchange/",
       "Allow: /llms.txt",
       "Disallow: /api/",
       "Disallow: /admin/",
@@ -740,6 +756,10 @@ router.get("/sitemap.xml", async (req, res) => {
   </sitemap>
   <sitemap>
     <loc>${baseUrl}/sitemap-recent-activity.xml</loc>
+    <lastmod>${today}</lastmod>
+  </sitemap>
+  <sitemap>
+    <loc>${baseUrl}/sitemap-exchange-listings.xml</loc>
     <lastmod>${today}</lastmod>
   </sitemap>
 </sitemapindex>`;
@@ -1719,6 +1739,57 @@ router.get("/sitemap-tradepartners.xml", async (req, res) => {
     res.send(buildUrlSet(urls));
   } catch (error: any) {
     console.error("Error generating Trade Partner sitemap:", error);
+    sendSitemapFallback(res);
+  }
+});
+
+router.get("/sitemap-exchange-listings.xml", async (req, res) => {
+  try {
+    const baseUrl = getCanonicalBaseUrl(req);
+    const today = getTodayYmd();
+    let listings: Array<{ id: string; categoryName: string; updatedAt: Date | null }> = [];
+    try {
+      const maybeListings = await storage.listActiveExchangeListingsForSitemap();
+      listings = Array.isArray(maybeListings) ? maybeListings : [];
+    } catch (error) {
+      console.warn("Exchange listings sitemap fallback: failed to load listings", error);
+      listings = [];
+    }
+
+    // Build a categoryName → slug lookup using the shared mapping
+    const { getExchangeCategorySlugFromMarketplaceCategoryName } =
+      await import("../../shared/exchangeListingRules");
+
+    const urls = listings
+      .filter((listing) => listing && typeof listing === "object")
+      .map((listing) => {
+        const id = String(listing.id || "").trim();
+        if (!id) return null;
+        const categorySlug =
+          getExchangeCategorySlugFromMarketplaceCategoryName(listing.categoryName) ||
+          slugifyCategory(listing.categoryName) ||
+          "other";
+        return {
+          loc: `${baseUrl}/exchange/${encodeURIComponent(categorySlug)}/${encodeURIComponent(id)}`,
+          lastmod: toYmd(listing.updatedAt, today),
+          changefreq: "weekly",
+          priority: "0.7",
+        };
+      });
+
+    res.type("application/xml");
+    res.send(
+      buildUrlSet(
+        urls.filter(
+          (
+            entry
+          ): entry is { loc: string; lastmod: string; changefreq: string; priority: string } =>
+            Boolean(entry)
+        )
+      )
+    );
+  } catch (error: any) {
+    console.error("Error generating Exchange listings sitemap:", error);
     sendSitemapFallback(res);
   }
 });

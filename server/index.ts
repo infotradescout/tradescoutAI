@@ -56,6 +56,7 @@ import {
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
+import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
@@ -1535,6 +1536,49 @@ app.use(landingContractHeaders);
                 } catch (err) {
                   console.error("Error rendering shared work request HTML:", err);
                   res.status(500).send("Failed to render shared request");
+                }
+              });
+
+              // Exchange listing detail pages: server-rendered HTML with full JSON-LD for SEO
+              // MUST be registered BEFORE /exchange/:category to avoid param conflicts
+              app.get("/exchange/:category/:listingId", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) return res.status(404).send("Application files not found");
+
+                  const origin = resolvePublicOrigin(req);
+                  const categoryParam = String(req.params.category || "");
+                  const listingId = String(req.params.listingId || "");
+
+                  const html = await buildPublicExchangeListingHtml({
+                    origin,
+                    templateHtml,
+                    categoryParam,
+                    listingId,
+                  });
+
+                  if (!html) {
+                    // Listing not found — fall through to SPA (React will show 404)
+                    res.setHeader("Cache-Control", "no-store");
+                    return res.sendFile(indexPath);
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=120, stale-while-revalidate=3600"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering exchange listing HTML:", err);
+                  // Fall through to SPA on error
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  if (fs.existsSync(indexPath)) {
+                    res.setHeader("Cache-Control", "no-store");
+                    res.sendFile(indexPath);
+                  } else {
+                    res.status(500).send("Failed to render exchange listing page");
+                  }
                 }
               });
 

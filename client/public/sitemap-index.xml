@@ -48,4 +48,8 @@
     <loc>https://www.thetradescout.com/sitemap-recent-activity.xml</loc>
     <lastmod>2026-04-19</lastmod>
   </sitemap>
+  <sitemap>
+    <loc>https://www.thetradescout.com/sitemap-exchange-listings.xml</loc>
+    <lastmod>2026-04-20</lastmod>
+  </sitemap>
 </sitemapindex>

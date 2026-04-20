@@ -19207,12 +19207,26 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       );
       const exchangeCategorySlug = getExchangeCategorySlugFromMarketplaceCategoryName(categoryName);
       if (exchangeCategorySlug && exchangeCategorySlug !== "metals") {
+        // Resolve seller's state for cottage food law check
+        let sellerStateForValidation: string | null = null;
+        try {
+          const sellerProfile = await storage.getUserById(String(user?.id || ""));
+          sellerStateForValidation =
+            String((sellerProfile as any)?.state || "")
+              .toUpperCase()
+              .trim() || null;
+        } catch {
+          // non-fatal — validation will surface a state-required error for local-food
+        }
         const categoryValidation = validateExchangeCategoryListing({
           category: exchangeCategorySlug,
           imageCount: Array.isArray((validatedData as any)?.images)
             ? (validatedData as any).images.length
             : 0,
           specs: ((validatedData as any)?.specifications || null) as Record<string, unknown> | null,
+          title: String((validatedData as any)?.title || ""),
+          description: String((validatedData as any)?.description || ""),
+          sellerState: sellerStateForValidation,
         });
         if (categoryValidation) {
           return res.status(400).json(categoryValidation);
@@ -19382,6 +19396,43 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           listingId: duplicateListing.id,
           reasonCode: "DUPLICATE_MARKETPLACE_LISTING",
         });
+      }
+
+      // Prohibited items + cottage food validation on update
+      const updateCategoryId = String(updates.categoryId || existingListing.categoryId || "");
+      const updateCategoryName = await getMarketplaceCategoryNameById(updateCategoryId);
+      const updateExchangeSlug =
+        getExchangeCategorySlugFromMarketplaceCategoryName(updateCategoryName);
+      if (updateExchangeSlug && updateExchangeSlug !== "metals") {
+        let sellerStateForUpdate: string | null = null;
+        try {
+          const sellerProfile = await storage.getUserById(String(user?.id || ""));
+          sellerStateForUpdate =
+            String((sellerProfile as any)?.state || "")
+              .toUpperCase()
+              .trim() || null;
+        } catch {
+          /* non-fatal */
+        }
+        const updateValidation = validateExchangeCategoryListing({
+          category: updateExchangeSlug,
+          imageCount: Array.isArray((updates as any)?.images)
+            ? (updates as any).images.length
+            : Array.isArray((existingListing as any)?.images)
+              ? (existingListing as any).images.length
+              : 0,
+          specs: ((updates as any)?.specifications ||
+            (existingListing as any)?.specifications ||
+            null) as Record<string, unknown> | null,
+          title: String((updates as any)?.title || (existingListing as any)?.title || ""),
+          description: String(
+            (updates as any)?.description || (existingListing as any)?.description || ""
+          ),
+          sellerState: sellerStateForUpdate,
+        });
+        if (updateValidation) {
+          return res.status(400).json(updateValidation);
+        }
       }
 
       const listing = await storage.updateMarketplaceListing(id, updates);

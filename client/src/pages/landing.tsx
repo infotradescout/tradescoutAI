@@ -1020,10 +1020,12 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
         <div className="border-t border-white/5 pt-5 space-y-1">
           {/* Scout is the operating layer for local interaction */}
           <p className="text-xs text-white/20 text-center">
-            The local operating system for community interaction. Trust-first local action powered by Scout.
+            The local operating system for community interaction. Trust-first local action powered
+            by Scout.
           </p>
           <p className="text-xs text-white/15 text-center">
-            TradeScout is not a lead funnel. Scout runs the local operating flow from discovery to governed action.
+            TradeScout is not a lead funnel. Scout runs the local operating flow from discovery to
+            governed action.
           </p>
           <p className="text-xs text-white/30 text-center">
             &copy; 2026 TradeScout. All rights reserved.
@@ -1094,7 +1096,7 @@ export default function Home() {
           variant.key === "local-operating-system"
             ? "TradeScout | The Local Operating System for Community Interaction"
             : canonicalLandingPath === "/landing"
-              ? "TradeScout | Find Trusted Local Help Faster"
+              ? "TradeScout | Find Any Local Business Near You"
               : `${variant.displayName} | TradeScout`
         }
         description={variant.subhead}

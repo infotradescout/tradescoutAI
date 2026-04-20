@@ -60,11 +60,11 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
   const title = formatTradeScoutTitle(
     displayVariant
       ? `${displayVariant} | TradeScout`
-      : "TradeScout | The Local Operating System for Community Interaction"
+      : "TradeScout | Find Any Local Business Near You"
   );
   const description = displayVariant
     ? `TradeScout for ${displayVariant}. Scout coordinates discovery, trust, intent, decision, and contact so local work moves forward without lead spam, pay-to-play ranking, or platform confusion.`
-    : "Scout coordinates discovery, trust, intent, decision, and contact so local work moves forward without lead spam, pay-to-play ranking, or platform confusion.";
+    : "The trusted local business directory. Find any local business near you, from restaurants and retail to home services. Scout coordinates discovery, trust, and contact without lead spam or pay-to-play ranking.";
 
   return {
     title,
@@ -73,11 +73,14 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
     imageUrl: `${opts.origin}/tradescout-social-preview.png?v=10`,
     keywords: [
       "TradeScout",
-      "local operating system",
-      "community interaction",
-      "trusted contractors",
+      "local business directory",
+      "find local businesses",
+      "trusted local businesses",
+      "restaurants near me",
+      "retail near me",
+      "home services",
       "direct connect",
-      "local decisions",
+      "community interaction",
       displayVariant,
     ]
       .map((value) => String(value || "").trim())
@@ -93,9 +96,9 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
   const summary = `
 <main data-seo-landing="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
-    <h1>The Local Operating System for Community Interaction</h1>
+    <h1>Find Any Local Business Near You</h1>
     <p>${escapeHtml(meta.description)}</p>
-    <p>TradeScout is not a lead funnel. Scout runs the local operating flow from discovery to governed action.</p>
+    <p>TradeScout is a trusted local business directory, not a lead funnel. Scout runs the local operating flow from discovery to governed action for all types of businesses.</p>
     <h2>How TradeScout works</h2>
     <ol>
       <li>Ask Scout what you need.</li>
@@ -191,10 +194,19 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     url: meta.canonical,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${opts.origin}/contractors/board?search={search_term_string}`,
+      target: `${opts.origin}/scout?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   });
-
+  html = injectJsonLd(html, {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "TradeScout",
+    url: opts.origin,
+    logo: `${opts.origin}/tradescout-logo.jpg`,
+    description:
+      "The trusted local business directory. Find any local business near you, from restaurants and retail to home services.",
+    sameAs: ["https://www.thetradescout.com"],
+  });
   return html;
 }

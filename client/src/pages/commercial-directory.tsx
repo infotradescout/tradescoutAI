@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Wallet,
 } from "lucide-react";
+import { SEOHelmet } from "@/components/SEOHelmet";
 
 type BoardProject = {
   project: {
@@ -282,6 +283,12 @@ export default function CommercialDirectoryPage() {
 
   return (
     <div className="relative max-w-7xl mx-auto px-4 py-4 md:py-6 space-y-4 md:space-y-6">
+      <SEOHelmet
+        title="Commercial Opportunity Exchange | TradeScout"
+        description="TradeScout's commercial opportunity exchange connects verified local businesses with county-scoped commercial projects deployed by our developer partners."
+        canonical="https://www.thetradescout.com/commercial-directory"
+        noIndex={true}
+      />
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_20%,rgba(56,189,248,0.14),transparent_40%),radial-gradient(circle_at_85%_0%,rgba(16,185,129,0.12),transparent_32%)]" />
 
       <div className="rounded-2xl md:rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900 via-slate-950 to-cyan-950 p-4 md:p-7 shadow-[0_25px_80px_rgba(2,6,23,0.6)]">
@@ -291,7 +298,7 @@ export default function CommercialDirectoryPage() {
         <h1 className="text-2xl md:text-4xl font-semibold mt-2 md:mt-3 leading-tight">
           Commercial Opportunities
         </h1>
-        <div className="mt-3 md:mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 text-xs sm:text-sm">
+        <div className="mt-4 md:mt-5 grid grid-cols-1 sm:grid-cols-3 gap-2 md:gap-3 text-xs sm:text-sm">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-3">
             <Building2 className="h-4 w-4 text-cyan-200" />
             <div>County-scoped opportunities</div>

@@ -13,6 +13,7 @@ Allow: /best/
 Allow: /tradepartners/
 Allow: /homescout/
 Allow: /homescout/listings/
+Allow: /exchange/
 Allow: /llms.txt
 
 Disallow: /admin/
