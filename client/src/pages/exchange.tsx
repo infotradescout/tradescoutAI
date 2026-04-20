@@ -828,6 +828,23 @@ export default function Exchange() {
   const getCategoryHref = (categoryId: string) => {
     if (categoryId === "metals") return "/exchange/metals";
     if (categoryId === "real-estate") return "/homescout-listings";
+    // All other categories now have dedicated pages
+    const dedicatedSlugs = [
+      "business",
+      "vehicles",
+      "construction",
+      "tools",
+      "furniture",
+      "farm",
+      "business-equipment",
+      "electronics",
+      "sports",
+      "collectibles",
+      "jewelry",
+      "local-food",
+      "other",
+    ];
+    if (dedicatedSlugs.includes(categoryId)) return `/exchange/${encodeURIComponent(categoryId)}`;
     return `/exchange?tab=browse&category=${encodeURIComponent(categoryId)}`;
   };
 

@@ -325,6 +325,32 @@ const Exchange = React.lazy(() => import("./pages/exchange"));
 const MetalsExchange = React.lazy(() => import("./pages/exchange-metals"));
 const ExchangeRentalProperty = React.lazy(() => import("./pages/exchange-rental-property"));
 const ExchangeRentalEquipment = React.lazy(() => import("./pages/exchange-rental-equipment"));
+// Per-category Exchange pages
+const ExchangeCategoryBusiness = React.lazy(() => import("./pages/exchange/ExchangeBusinessPage"));
+const ExchangeCategoryVehicles = React.lazy(() => import("./pages/exchange/ExchangeVehiclesPage"));
+const ExchangeCategoryConstruction = React.lazy(
+  () => import("./pages/exchange/ExchangeConstructionPage")
+);
+const ExchangeCategoryTools = React.lazy(() => import("./pages/exchange/ExchangeToolsPage"));
+const ExchangeCategoryFurniture = React.lazy(
+  () => import("./pages/exchange/ExchangeFurniturePage")
+);
+const ExchangeCategoryFarm = React.lazy(() => import("./pages/exchange/ExchangeFarmPage"));
+const ExchangeCategoryBusinessEquipment = React.lazy(
+  () => import("./pages/exchange/ExchangeBusinessEquipmentPage")
+);
+const ExchangeCategoryElectronics = React.lazy(
+  () => import("./pages/exchange/ExchangeElectronicsPage")
+);
+const ExchangeCategorySports = React.lazy(() => import("./pages/exchange/ExchangeSportsPage"));
+const ExchangeCategoryCollectibles = React.lazy(
+  () => import("./pages/exchange/ExchangeCollectiblesPage")
+);
+const ExchangeCategoryJewelry = React.lazy(() => import("./pages/exchange/ExchangeJewelryPage"));
+const ExchangeCategoryLocalFood = React.lazy(
+  () => import("./pages/exchange/ExchangeLocalFoodPage")
+);
+const ExchangeCategoryOther = React.lazy(() => import("./pages/exchange/ExchangeOtherPage"));
 const MarketplaceListing = React.lazy(() => import("./pages/marketplace-listing"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
@@ -964,6 +990,72 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/exchange/rental-equipment">
                 <ProgressiveFeatureGate featureId="exchange">
                   <LazyPage Component={ExchangeRentalEquipment} />
+                </ProgressiveFeatureGate>
+              </Route>
+              {/* Per-category Exchange pages */}
+              <Route path="/exchange/business">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryBusiness} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/vehicles">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryVehicles} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/construction">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryConstruction} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/tools">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryTools} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/furniture">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryFurniture} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/farm">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryFarm} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/business-equipment">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryBusinessEquipment} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/electronics">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryElectronics} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/sports">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategorySports} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/collectibles">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryCollectibles} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/jewelry">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryJewelry} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/local-food">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryLocalFood} />
+                </ProgressiveFeatureGate>
+              </Route>
+              <Route path="/exchange/other">
+                <ProgressiveFeatureGate featureId="exchange">
+                  <LazyPage Component={ExchangeCategoryOther} />
                 </ProgressiveFeatureGate>
               </Route>
               <Route path="/exchange">

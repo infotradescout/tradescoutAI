@@ -55,6 +55,7 @@ import {
   buildPublicDatasetsTradesHtml,
 } from "./publicDatasetsHtml";
 import { buildPublicLandingHtml } from "./publicLandingHtml";
+import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
@@ -1534,6 +1535,39 @@ app.use(landingContractHeaders);
                 } catch (err) {
                   console.error("Error rendering shared work request HTML:", err);
                   res.status(500).send("Failed to render shared request");
+                }
+              });
+
+              // Exchange pages: inject correct OG tags per category/item/promo
+              app.get(["/exchange", "/exchange/:category"], async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) return res.status(404).send("Application files not found");
+                  const origin = resolvePublicOrigin(req);
+                  const categorySlug =
+                    typeof req.params.category === "string" ? req.params.category : null;
+                  const html = await buildPublicExchangeHtml({
+                    origin,
+                    templateHtml,
+                    requestUrl: req.originalUrl || req.path,
+                    categorySlug,
+                  });
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=120, stale-while-revalidate=3600"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering exchange HTML:", err);
+                  // Fall through to SPA on error
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  if (fs.existsSync(indexPath)) {
+                    res.setHeader("Cache-Control", "no-store");
+                    res.sendFile(indexPath);
+                  } else {
+                    res.status(500).send("Failed to render exchange page");
+                  }
                 }
               });
 
