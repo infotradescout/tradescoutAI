@@ -416,6 +416,8 @@ import {
   lte,
   notInArray,
   exists,
+  count,
+  sum,
   type SQL,
 } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm/utils";
@@ -1550,6 +1552,43 @@ export interface IStorage {
   saveBusinessProfile(
     profile: import("../shared/businessProfile").BusinessProfile
   ): Promise<import("../shared/businessProfile").BusinessProfile>;
+
+  // HOA operations
+  recordHoaFeeCollection(params: {
+    hoaId: string;
+    residentId: string;
+    amount: number;
+    description?: string;
+    collectedByUserId: string;
+    paymentMethod?: string;
+    externalRef?: string;
+  }): Promise<{
+    id: string;
+    hoaId: string;
+    residentId: string;
+    amount: string;
+    description: string;
+    collectedByUserId: string;
+    paymentMethod: string;
+    externalRef: string | null;
+    createdAt: Date;
+  }>;
+  createHOABoardTransferVote(params: {
+    hoaId: string;
+    initiatedByUserId: string;
+    targetRole: "president" | "vice_president";
+    nomineeUserId: string;
+    reason: string;
+    durationHours: number;
+  }): Promise<{ voteId: string }>;
+  leaveHOA(userId: string, hoaId: string): Promise<void>;
+  leaveHOAWithReason(params: {
+    userId: string;
+    hoaId: string;
+    reason: string;
+    membershipRole?: string | null;
+    actorUserId?: string | null;
+  }): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -11714,22 +11753,70 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(affiliateTracking.createdAt))
       .limit(20);
 
-    // Monthly stats (placeholder for now)
+    // Real monthly stats: aggregate affiliateTracking rows for the current calendar month
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    const [monthlyRow] = await db
+      .select({
+        clicks: sql<number>`count(*) filter (where ${affiliateTracking.action} = 'click')`,
+        referrals: sql<number>`count(*) filter (where ${affiliateTracking.action} = 'signup')`,
+        conversions: sql<number>`count(*) filter (where ${affiliateTracking.action} = 'conversion')`,
+        earnings: sum(affiliateTracking.commissionEarned),
+      })
+      .from(affiliateTracking)
+      .where(
+        and(
+          eq(affiliateTracking.affiliateCode, affiliateCode),
+          gte(affiliateTracking.createdAt, monthStart)
+        )
+      );
+
+    const monthlyClicks = Number(monthlyRow?.clicks ?? 0);
+    const monthlyReferrals = Number(monthlyRow?.referrals ?? 0);
+    const monthlyEarnings = Number(monthlyRow?.earnings ?? 0);
+    const monthlyConversions = Number(monthlyRow?.conversions ?? 0);
+
     const monthlyStats = {
-      clicks: affiliate.clicksGenerated,
-      referrals: affiliate.totalReferrals,
-      earnings: affiliate.totalEarnings,
-      conversionRate:
-        affiliate.totalReferrals > 0
-          ? (affiliate.successfulReferrals / affiliate.totalReferrals) * 100
-          : 0,
+      clicks: monthlyClicks,
+      referrals: monthlyReferrals,
+      conversions: monthlyConversions,
+      earnings: monthlyEarnings,
+      conversionRate: monthlyClicks > 0 ? (monthlyConversions / monthlyClicks) * 100 : 0,
     };
+
+    // Top performing source URLs by total commission earned (last 90 days)
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    const topLinks = await db
+      .select({
+        sourceUrl: affiliateTracking.sourceUrl,
+        clicks: sql<number>`count(*) filter (where ${affiliateTracking.action} = 'click')`,
+        conversions: sql<number>`count(*) filter (where ${affiliateTracking.action} = 'conversion')`,
+        totalCommission: sum(affiliateTracking.commissionEarned),
+      })
+      .from(affiliateTracking)
+      .where(
+        and(
+          eq(affiliateTracking.affiliateCode, affiliateCode),
+          gte(affiliateTracking.createdAt, ninetyDaysAgo),
+          isNotNull(affiliateTracking.sourceUrl)
+        )
+      )
+      .groupBy(affiliateTracking.sourceUrl)
+      .orderBy(desc(sum(affiliateTracking.commissionEarned)))
+      .limit(5);
 
     return {
       affiliate,
       recentActivity,
       monthlyStats,
-      topPerformingLinks: [], // To be implemented
+      topPerformingLinks: topLinks.map((l) => ({
+        sourceUrl: l.sourceUrl,
+        clicks: Number(l.clicks),
+        conversions: Number(l.conversions),
+        totalCommission: Number(l.totalCommission ?? 0),
+      })),
     };
   }
 

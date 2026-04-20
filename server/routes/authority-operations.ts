@@ -1,9 +1,9 @@
 import { Router, type Request, type Response } from "express";
 import { randomUUID } from "crypto";
 import { db } from "../db";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, count, eq, gte, lt, sql } from "drizzle-orm";
 import { isAuthenticated, requireRole } from "../auth";
-import { scoutOutcomeEvents, siteSettings } from "../../shared/schema";
+import { decisionCards, scoutOutcomeEvents, siteSettings } from "../../shared/schema";
 import { getAuthorityConfigAuditSnapshot, reloadAuthorityConfig } from "../utils/authorityConfig";
 import {
   getAuthorityPhaseGateState,
@@ -82,26 +82,71 @@ router.get(
   requireRole(["super_admin", "ops_admin"]),
   async (_req: Request, res: Response) => {
     try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+      // Total cards shown (all time)
+      const [totalRow] = await db.select({ total: count() }).from(decisionCards);
+      const totalShown = Number(totalRow?.total ?? 0);
+
+      // Guidance distribution by intent
+      const intentRows = await db
+        .select({
+          intent: decisionCards.intent,
+          cnt: count(),
+        })
+        .from(decisionCards)
+        .groupBy(decisionCards.intent);
+
+      const guidanceDistribution: Record<string, number> = { COMPLY: 0, DEFER: 0, BLOCK: 0 };
+      for (const row of intentRows) {
+        const key = (row.intent ?? "").toUpperCase();
+        if (key in guidanceDistribution) {
+          guidanceDistribution[key] = Number(row.cnt);
+        }
+      }
+
+      // 7-day trend: cards shown in last 7 days vs prior 7 days
+      const [recent7Row] = await db
+        .select({ cnt: count() })
+        .from(decisionCards)
+        .where(gte(decisionCards.createdAt, sevenDaysAgo));
+      const [prior7Row] = await db
+        .select({ cnt: count() })
+        .from(decisionCards)
+        .where(
+          and(
+            gte(decisionCards.createdAt, fourteenDaysAgo),
+            lt(decisionCards.createdAt, sevenDaysAgo)
+          )
+        );
+
+      const recent7 = Number(recent7Row?.cnt ?? 0);
+      const prior7 = Number(prior7Row?.cnt ?? 0);
+      const shown7dChange = prior7 > 0 ? Math.round(((recent7 - prior7) / prior7) * 100) : 0;
+
+      // Completion rate (cards with decidedAt set)
+      const [decidedRow] = await db
+        .select({ cnt: count() })
+        .from(decisionCards)
+        .where(sql`${decisionCards.decidedAt} is not null`);
+      const decidedCount = Number(decidedRow?.cnt ?? 0);
+      const completionRate = totalShown > 0 ? decidedCount / totalShown : 0;
+
       return res.json({
-        available: false,
-        totalShown: 0,
-        guidanceDistribution: {
-          COMPLY: 0,
-          DEFER: 0,
-          BLOCK: 0,
-        },
-        choiceSplit: {
-          contact_now: 0,
-          ask_scout: 0,
-          proceed_anyway: 0,
-          cancel: 0,
-          understand_risk: 0,
-        },
+        available: true,
+        totalShown,
+        decidedCount,
+        completionRate,
+        guidanceDistribution,
+        // choiceSplit requires a decisionCardEvents table (not yet implemented)
+        choiceSplit: null,
         trend: {
-          shown_7d_change: 0,
-          choice_7d_deltas: {},
+          shown_7d: recent7,
+          shown_prior_7d: prior7,
+          shown_7d_change,
         },
-        message: "Decision card analytics are not yet available",
       });
     } catch (error) {
       console.error("Error fetching decision card metrics:", error);

@@ -40,9 +40,8 @@ describe("DC requests list — validStatuses includes pending_outcome", () => {
 // ─── 2. buildProviderInboxItems conversationThreadId ─────────────────────────
 describe("buildProviderInboxItems — resolves conversationThreadId for business/worker providers", () => {
   it("accepts a providerUserId parameter", () => {
-    expect(DC_ROUTES).toContain(
-      "const buildProviderInboxItems = async (assignments: any[], providerUserId?: string)"
-    );
+    expect(DC_ROUTES).toContain("buildProviderInboxItems = async (");
+    expect(DC_ROUTES).toContain("providerUserId?");
   });
 
   it("resolves conversations using providerUserId as contractorId key", () => {

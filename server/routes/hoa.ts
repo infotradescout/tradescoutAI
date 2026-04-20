@@ -171,12 +171,7 @@ export async function initiateBoardTransferVote(req: Request, res: Response) {
       return res.status(400).json({ message: "Nominee must be a current HOA member" });
     }
 
-    const create = (storage as any).createHOABoardTransferVote;
-    if (typeof create !== "function") {
-      return res.status(501).json({ message: "Board transfer votes are not implemented" });
-    }
-
-    const result = await create.call(storage, {
+    const result = await storage.createHOABoardTransferVote({
       hoaId,
       initiatedByUserId: userId,
       targetRole,
@@ -260,12 +255,7 @@ export async function collectHOAFee(req: Request, res: Response) {
       return res.status(403).json({ message: "Insufficient permissions to collect fees" });
     }
 
-    const recordHoaFeeCollection = (storage as any).recordHoaFeeCollection;
-    if (typeof recordHoaFeeCollection !== "function") {
-      return res.status(501).json({ message: "HOA fee ledger collection is not implemented" });
-    }
-
-    const feePayment = await recordHoaFeeCollection.call(storage, {
+    const feePayment = await storage.recordHoaFeeCollection({
       hoaId,
       residentId,
       amount: amountNumber,
@@ -445,23 +435,13 @@ export async function leaveHOA(req: Request, res: Response) {
       });
     }
 
-    const leaveWithReason = (storage as any).leaveHOAWithReason;
-    if (typeof leaveWithReason === "function") {
-      await leaveWithReason.call(storage, {
-        userId,
-        hoaId,
-        reason: normalizedReason,
-        membershipRole: membership.role,
-        actorUserId: userId,
-      });
-    } else {
-      const leave = (storage as any).leaveHOA;
-      if (typeof leave !== "function") {
-        return res.status(501).json({ message: "HOA leave is not implemented" });
-      }
-
-      await leave.call(storage, userId, hoaId);
-    }
+    await storage.leaveHOAWithReason({
+      userId,
+      hoaId,
+      reason: normalizedReason,
+      membershipRole: membership.role,
+      actorUserId: userId,
+    });
 
     await storage.logEvent("hoa.membership_left", {
       userId,
