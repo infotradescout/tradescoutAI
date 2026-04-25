@@ -12,6 +12,7 @@ import {
   CheckCircle,
   Shield,
   ExternalLink,
+  Users,
 } from "lucide-react";
 import type { Contractor } from "@shared/schema";
 
@@ -53,6 +54,12 @@ export default function ContractorCard({
             ? Number((contractor as any).cvsScore)
             : null;
   const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
+  const connectionRecommendationCountRaw = (contractor as any).connectionRecommendationCount;
+  const connectionRecommendationCount =
+    typeof connectionRecommendationCountRaw === "number" &&
+    Number.isFinite(connectionRecommendationCountRaw)
+      ? Math.max(0, Math.trunc(connectionRecommendationCountRaw))
+      : null;
 
   return (
     <Card className="ts-card" data-testid={`contractor-card`}>
@@ -88,6 +95,14 @@ export default function ContractorCard({
             >
               ({contractor.totalRecommendations || 0} total)
             </span>
+            {connectionRecommendationCount !== null && (
+              <span
+                className={`flex items-center gap-1 text-blue-300 ${compact ? "text-xs" : "text-sm"}`}
+              >
+                <Users className={`${compact ? "h-3 w-3" : "h-4 w-4"}`} />
+                {connectionRecommendationCount} from your connections
+              </span>
+            )}
           </div>
         </div>
 

@@ -195,6 +195,83 @@ function sanitizeContractorPublic<T extends Record<string, any>>(
   return rest;
 }
 
+async function getViewerConnectionIds(viewerUserId: string): Promise<string[]> {
+  if (!viewerUserId) return [];
+
+  const [followerRows, followingRows] = await Promise.all([
+    db
+      .select({ userId: userFollows.followerId })
+      .from(userFollows)
+      .where(eq(userFollows.followingId, viewerUserId)),
+    db
+      .select({ userId: userFollows.followingId })
+      .from(userFollows)
+      .where(eq(userFollows.followerId, viewerUserId)),
+  ]);
+
+  return Array.from(
+    new Set(
+      [...followerRows, ...followingRows]
+        .map((row: any) => String(row?.userId || "").trim())
+        .filter((id) => id.length > 0 && id !== viewerUserId)
+    )
+  );
+}
+
+async function attachConnectionRecommendationCounts<T extends { id: string }>(
+  contractorRows: T[],
+  viewerUserId: string | null
+): Promise<Array<T & { connectionRecommendationCount: number | null }>> {
+  if (!Array.isArray(contractorRows) || contractorRows.length === 0) {
+    return [];
+  }
+
+  if (!viewerUserId) {
+    return contractorRows.map((row) => ({ ...row, connectionRecommendationCount: null }));
+  }
+
+  const connectionIds = await getViewerConnectionIds(viewerUserId);
+  if (connectionIds.length === 0) {
+    return contractorRows.map((row) => ({ ...row, connectionRecommendationCount: 0 }));
+  }
+
+  const contractorIds = Array.from(
+    new Set(contractorRows.map((row) => String(row?.id || "").trim()).filter((id) => id.length > 0))
+  );
+  if (contractorIds.length === 0) {
+    return contractorRows.map((row) => ({ ...row, connectionRecommendationCount: 0 }));
+  }
+
+  const connectionRecommendationRows = await db
+    .select({
+      contractorId: recommendations.contractorId,
+      connectionRecommendationCount: sql<number>`count(distinct ${recommendations.userId})::int`,
+    })
+    .from(recommendations)
+    .where(
+      and(
+        inArray(recommendations.contractorId, contractorIds),
+        inArray(recommendations.userId, connectionIds),
+        eq(recommendations.recommendationType, "positive"),
+        eq(recommendations.isPublic, true),
+        eq(recommendations.moderationStatus, "approved")
+      )
+    )
+    .groupBy(recommendations.contractorId);
+
+  const countByContractorId = new Map<string, number>(
+    connectionRecommendationRows.map((row: any) => [
+      String(row.contractorId),
+      Number(row.connectionRecommendationCount || 0),
+    ])
+  );
+
+  return contractorRows.map((row) => ({
+    ...row,
+    connectionRecommendationCount: countByContractorId.get(String(row.id)) ?? 0,
+  }));
+}
+
 function sanitizeHomeScoutPublicListing<T extends Record<string, any>>(
   listing: T
 ): Omit<T, "sellerUserId" | "agentUserId" | "contactUserId"> {
@@ -7162,7 +7239,11 @@ export async function registerRoutes(app: any) {
       }
 
       const contractors = await storage.getContractors(filters);
-      res.json(contractors.map(sanitizeContractorPublic));
+      const sanitized = contractors.map(sanitizeContractorPublic);
+      const viewerUserId =
+        ((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim() || null;
+      const enriched = await attachConnectionRecommendationCounts(sanitized, viewerUserId);
+      res.json(enriched);
     } catch (error: any) {
       console.error("Error fetching contractors:", error);
       res.status(500).json({ message: "Failed to fetch contractors" });
@@ -7210,7 +7291,11 @@ export async function registerRoutes(app: any) {
       }
 
       const contractors = await storage.getContractors(filters);
-      res.json(contractors.map(sanitizeContractorPublic));
+      const sanitized = contractors.map(sanitizeContractorPublic);
+      const viewerUserId =
+        ((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim() || null;
+      const enriched = await attachConnectionRecommendationCounts(sanitized, viewerUserId);
+      res.json(enriched);
     } catch (error: any) {
       console.error("Error searching contractors:", error);
       res.status(500).json({ message: "Failed to search contractors" });
@@ -7440,7 +7525,13 @@ export async function registerRoutes(app: any) {
       });
 
       const limited = enriched.slice(0, filters.limit || 3);
-      res.json(limited);
+      const viewerUserId =
+        ((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim() || null;
+      const withConnectionCounts = await attachConnectionRecommendationCounts(
+        limited,
+        viewerUserId
+      );
+      res.json(withConnectionCounts);
     } catch (error: any) {
       console.error("Error fetching top contractors:", error);
       res.status(500).json({ message: "Failed to fetch top contractors" });
@@ -7479,9 +7570,15 @@ export async function registerRoutes(app: any) {
       // Get recommendations and ratings
       const recommendations = await storage.getRecommendations(contractor.id);
       const ratings = await storage.getContractorRatings(contractor.id);
+      const viewerUserId =
+        ((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim() || null;
+      const [contractorWithConnectionCount] = await attachConnectionRecommendationCounts(
+        [sanitizeContractorPublic(contractor)],
+        viewerUserId
+      );
 
       res.json({
-        contractor: sanitizeContractorPublic(contractor),
+        contractor: contractorWithConnectionCount,
         recommendations,
         ratingSummary: ratings,
       });

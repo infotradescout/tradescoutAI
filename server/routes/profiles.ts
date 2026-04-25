@@ -6,7 +6,8 @@ import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryS
 import { db } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
-import { sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { contractors, profiles, recommendations } from "../../shared/schema";
 
 const router = Router();
 
@@ -600,6 +601,93 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     seoMeta: profile.seoMeta,
   });
 
+  let recommendationsDirectory: Array<{
+    id: string;
+    createdAt: string | null;
+    recommendationType: "positive" | "negative";
+    comment: string;
+    projectType: string | null;
+    contractor: {
+      id: string;
+      companyName: string;
+      slug: string;
+    };
+  }> = [];
+  let recommendationDirectorySummary = {
+    total: 0,
+    positive: 0,
+    negative: 0,
+  };
+
+  try {
+    const [owner] = await db
+      .select({ ownerUserId: profiles.ownerUserId })
+      .from(profiles)
+      .where(eq(profiles.id, profile.id))
+      .limit(1);
+
+    const ownerUserId = String(owner?.ownerUserId || "").trim();
+    if (ownerUserId) {
+      const rows = await db
+        .select({
+          id: recommendations.id,
+          createdAt: recommendations.createdAt,
+          recommendationType: recommendations.recommendationType,
+          comment: recommendations.comment,
+          projectType: recommendations.projectType,
+          contractorId: contractors.id,
+          contractorCompanyName: contractors.companyName,
+          contractorSlug: contractors.slug,
+        })
+        .from(recommendations)
+        .innerJoin(contractors, eq(recommendations.contractorId, contractors.id))
+        .where(
+          and(
+            eq(recommendations.userId, ownerUserId),
+            eq(recommendations.isPublic, true),
+            eq(recommendations.moderationStatus, "approved")
+          )
+        )
+        .orderBy(desc(recommendations.createdAt))
+        .limit(100);
+
+      recommendationsDirectory = rows
+        .filter((row) => {
+          const type = String(row.recommendationType || "").toLowerCase();
+          return type === "positive" || type === "negative";
+        })
+        .map((row) => ({
+          id: String(row.id),
+          createdAt: row.createdAt ? new Date(row.createdAt).toISOString() : null,
+          recommendationType: String(row.recommendationType).toLowerCase() as
+            | "positive"
+            | "negative",
+          comment: String(row.comment || ""),
+          projectType: row.projectType ? String(row.projectType) : null,
+          contractor: {
+            id: String(row.contractorId),
+            companyName: String(row.contractorCompanyName || "Service provider"),
+            slug: String(row.contractorSlug || ""),
+          },
+        }));
+
+      recommendationDirectorySummary = recommendationsDirectory.reduce(
+        (summary, row) => {
+          summary.total += 1;
+          if (row.recommendationType === "positive") summary.positive += 1;
+          if (row.recommendationType === "negative") summary.negative += 1;
+          return summary;
+        },
+        { total: 0, positive: 0, negative: 0 }
+      );
+    }
+  } catch (error) {
+    console.error("[profiles] Failed loading public recommendation directory:", {
+      slug,
+      error,
+    });
+  }
+
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   return res.json({
     profile: {
@@ -620,6 +708,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       },
     },
     business: safeBusiness,
+    recommendationsDirectory,
+    recommendationDirectorySummary,
   });
 };
 

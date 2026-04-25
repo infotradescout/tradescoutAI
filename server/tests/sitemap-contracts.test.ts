@@ -20,6 +20,7 @@ const expectedSitemapLocs = [
   "https://www.thetradescout.com/sitemap-directory-trade-cities.xml",
   "https://www.thetradescout.com/sitemap-best-pages.xml",
   "https://www.thetradescout.com/sitemap-recent-activity.xml",
+  "https://www.thetradescout.com/sitemap-exchange-listings.xml",
 ];
 
 const expectedStaticPublicRoutes = [

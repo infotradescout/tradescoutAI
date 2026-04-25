@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { share } from "@/utils/share";
 import { useToast } from "@/hooks/use-toast";
@@ -54,7 +55,10 @@ export default function DirectConnectSharePage() {
     return `${data.tradeLabel} scope in ${data.locationLabel}. Join and verify to unlock request access.`;
   }, [data]);
 
-  const addressVerified = Boolean((user as any)?.addressVerified);
+  const addressVerified = Boolean(user?.addressVerified);
+  const hasVerificationBypass = Boolean(user?.verificationBypass?.active);
+  const isAdminLike = hasAdminUiAccess(user);
+  const canUnlockSharedRequest = addressVerified || hasVerificationBypass || isAdminLike;
   const joinHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(`/r/${shareToken}`)}`;
   const verifyHref = `/verification?next=${encodeURIComponent(`/r/${shareToken}`)}`;
   const openHref = `/direct-connect?shared=${encodeURIComponent(shareToken)}`;
@@ -88,7 +92,10 @@ export default function DirectConnectSharePage() {
     }
   };
 
-  const errorStatus = Number((error as any)?.status || 0);
+  const errorStatus =
+    typeof error === "object" && error && "status" in error
+      ? Number((error as { status?: number }).status || 0)
+      : 0;
   const isClosedOrMissing = isError && (errorStatus === 404 || errorStatus === 410 || !errorStatus);
 
   return (
@@ -150,8 +157,9 @@ export default function DirectConnectSharePage() {
                 {data?.scopeSummary || "Project scope is available after loading."}
               </p>
               <div className="rounded-md border border-[color:var(--border-subtle)] p-3 text-xs text-[color:var(--text-secondary)]">
-                Contact details and claim controls stay hidden on shared previews. Join TradeScout
-                and complete verification to continue.
+                {canUnlockSharedRequest
+                  ? "Shared previews keep contact details and claim controls hidden. Open this request in Direct Connect for full action tools."
+                  : "Contact details and claim controls stay hidden on shared previews. Join TradeScout and complete verification to continue."}
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -183,14 +191,14 @@ export default function DirectConnectSharePage() {
                   </Button>
                 </a>
               )}
-              {isAuthenticated && !addressVerified && (
+              {isAuthenticated && !canUnlockSharedRequest && (
                 <a href={verifyHref}>
                   <Button className="bg-ts-orange text-text-black hover:bg-ts-orange/90">
                     Verify to unlock
                   </Button>
                 </a>
               )}
-              {isAuthenticated && addressVerified && (
+              {isAuthenticated && canUnlockSharedRequest && (
                 <a href={openHref}>
                   <Button className="bg-ts-orange text-text-black hover:bg-ts-orange/90">
                     Open in Direct Connect
