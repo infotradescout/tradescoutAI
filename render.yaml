@@ -16,9 +16,23 @@ services:
         value: "0"
       - key: PORT
         value: "10000"
+      - key: SCHEDULER_ENABLED
+        value: "true"
+      - key: SCHEDULER_LEADER_ONLY
+        value: "true"
+      - key: SCHEDULER_LEADER_LOCK_ID
+        value: "72418031"
+      - key: TRADESCOUT_EXTERNAL_FETCH_TIMEOUT_MS
+        value: "8000"
+      - key: TRADESCOUT_EXTERNAL_FETCH_RETRIES
+        value: "2"
+      - key: TRADESCOUT_EXTERNAL_FETCH_BACKOFF_MS
+        value: "250"
       - key: SCOUT_RECOMMENDATIONS_ENABLED
         value: "true"
       - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
         sync: false
       - key: SESSION_SECRET
         sync: false

@@ -1,3 +1,5 @@
+import { fetchWithBudget } from "../utils/fetchWithBudget";
+
 type ExternalImportProvider = "google_maps_places" | "facebook_graph_pages";
 
 type ExternalImportRow = {
@@ -93,6 +95,23 @@ function parseLatLng(input: string): { lat: number; lng: number } | null {
   return { lat, lng };
 }
 
+function fetchBudgetConfig(): { timeoutMs: number; retries: number; backoffMs: number } {
+  const timeoutMs = Math.max(
+    500,
+    Number.parseInt(process.env.TRADESCOUT_EXTERNAL_FETCH_TIMEOUT_MS || "8000", 10) || 8000
+  );
+  const retries = Math.max(
+    0,
+    Number.parseInt(process.env.TRADESCOUT_EXTERNAL_FETCH_RETRIES || "2", 10) || 2
+  );
+  const backoffMs = Math.max(
+    0,
+    Number.parseInt(process.env.TRADESCOUT_EXTERNAL_FETCH_BACKOFF_MS || "250", 10) || 250
+  );
+
+  return { timeoutMs, retries, backoffMs };
+}
+
 async function fetchGooglePlacesRows(
   input: ExternalBusinessSearchInput
 ): Promise<{ rows: ExternalImportRow[]; warnings: string[] }> {
@@ -130,16 +149,22 @@ async function fetchGooglePlacesRows(
     body.regionCode = stateCode;
   }
 
-  const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask":
-        "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.types,places.addressComponents",
+  const budget = fetchBudgetConfig();
+  const res = await fetchWithBudget(
+    "https://places.googleapis.com/v1/places:searchText",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
+        "User-Agent": "tradescout-external-import/1.0",
+        "X-Goog-FieldMask":
+          "places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.websiteUri,places.primaryTypeDisplayName,places.types,places.addressComponents",
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    budget
+  );
 
   if (!res.ok) {
     const errText = await res.text();
@@ -225,7 +250,17 @@ async function fetchFacebookPagesRows(
     access_token: token,
   });
 
-  const res = await fetch(`https://graph.facebook.com/v19.0/search?${params.toString()}`);
+  const budget = fetchBudgetConfig();
+  const res = await fetchWithBudget(
+    `https://graph.facebook.com/v19.0/search?${params.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        "User-Agent": "tradescout-external-import/1.0",
+      },
+    },
+    budget
+  );
   if (!res.ok) {
     const errText = await res.text();
     throw new Error(`Facebook Graph request failed (${res.status}): ${errText || "unknown error"}`);

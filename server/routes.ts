@@ -5276,7 +5276,7 @@ export async function registerRoutes(app: any) {
   );
 
   // PHASE 3d-A: AI inference for Scout claim suggestion
-  app.post("/api/ai/inference", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/ai/inference", isAuthenticated, aiLimiter, async (req: Request, res: Response) => {
     try {
       const { systemPrompt, userPrompt, temperature, maxTokens, model } = req.body;
 

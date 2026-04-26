@@ -13,6 +13,10 @@ import { createInvoicingDocumentsRouter } from "./invoicingDocumentsRouter";
 import { db, pool } from "./db";
 import { notificationService } from "./notification-service";
 import { startCrawlerScheduler } from "./services/crawlerScheduler";
+import {
+  acquireSchedulerLeadership,
+  releaseSchedulerLeadership,
+} from "./services/schedulerLeadership";
 import { initializeMessagingService } from "./messaging-service";
 import { storage } from "./storage";
 import {
@@ -62,6 +66,7 @@ import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { closeRedisClient } from "./utils/redisClient";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -121,20 +126,27 @@ process.on("uncaughtException", (error) => {
 });
 
 let isShuttingDown = false;
-const shutdown = (signal: string) => {
+const shutdown = async (signal: string) => {
   if (isShuttingDown) return;
   isShuttingDown = true;
   logger.info(`[lifecycle] Received ${signal}; shutting down gracefully`);
   try {
+    await releaseSchedulerLeadership();
+    await closeRedisClient();
     void pool.end();
   } catch (err) {
     console.error("Error closing database pool during shutdown:", err);
+  } finally {
+    process.exit(0);
   }
-  process.exit(0);
 };
 
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => {
+  void shutdown("SIGINT");
+});
+process.on("SIGTERM", () => {
+  void shutdown("SIGTERM");
+});
 
 const requiredEnv = ["DATABASE_URL", "SESSION_SECRET"];
 for (const key of requiredEnv) {
@@ -618,27 +630,45 @@ app.use(landingContractHeaders);
     initializeMessagingService(server);
     console.log("[Messaging] Socket.io service initialized");
 
-    // Start the crawler scheduler for auto-caching
-    // Controlled by SCHEDULER_ENABLED env flag (default: false)
-    if (process.env.SCHEDULER_ENABLED === "true") {
-      console.log("[Scheduler] Enabling background jobs...");
-      startCrawlerScheduler();
+    const schedulerEnabled = process.env.SCHEDULER_ENABLED === "true";
+    const schedulerLeaderOnly = process.env.SCHEDULER_LEADER_ONLY === "true";
+    let backgroundJobsEnabled = false;
+
+    if (schedulerEnabled) {
+      if (schedulerLeaderOnly) {
+        const hasLeadership = await acquireSchedulerLeadership();
+        if (hasLeadership) {
+          console.log("[Scheduler] Leader lock acquired, background jobs enabled");
+          startCrawlerScheduler();
+          backgroundJobsEnabled = true;
+        } else {
+          console.log(
+            "[Scheduler] Leader lock not acquired, background jobs disabled on this instance"
+          );
+        }
+      } else {
+        console.log("[Scheduler] Enabling background jobs...");
+        startCrawlerScheduler();
+        backgroundJobsEnabled = true;
+      }
     } else {
       console.log("[Scheduler] Background jobs disabled (SCHEDULER_ENABLED != true)");
     }
 
-    // Start birthday notification processing - runs daily at 9 AM
-    setInterval(async () => {
-      const now = new Date();
-      if (now.getHours() === 9 && now.getMinutes() === 0) {
-        try {
-          await notificationService.processBirthdayNotifications();
-          console.log("Daily birthday notifications processed");
-        } catch (error) {
-          console.error("Error processing birthday notifications:", error);
+    if (backgroundJobsEnabled) {
+      // Run birthday notifications only on the elected scheduler instance.
+      setInterval(async () => {
+        const now = new Date();
+        if (now.getHours() === 9 && now.getMinutes() === 0) {
+          try {
+            await notificationService.processBirthdayNotifications();
+            console.log("Daily birthday notifications processed");
+          } catch (error) {
+            console.error("Error processing birthday notifications:", error);
+          }
         }
-      }
-    }, 60000); // Check every minute
+      }, 60000); // Check every minute
+    }
 
     if (process.env.SENTRY_DSN) {
       app.use(Sentry.Handlers.errorHandler());

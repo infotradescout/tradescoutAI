@@ -41,6 +41,10 @@ function validateStartupEnv(): void {
       STRIPE_WEBHOOK_SECRET: z.string().trim().optional(),
       SENTRY_DSN: z.string().trim().optional(),
       TRADESCOUT_GOOGLE_MAPS_API_KEY: z.string().trim().optional(),
+      REDIS_URL: z.string().trim().url().optional(),
+      TRADESCOUT_EXTERNAL_FETCH_TIMEOUT_MS: z.string().trim().optional(),
+      TRADESCOUT_EXTERNAL_FETCH_RETRIES: z.string().trim().optional(),
+      TRADESCOUT_EXTERNAL_FETCH_BACKOFF_MS: z.string().trim().optional(),
       GOOGLE_SOLAR_API_KEY: z.string().trim().optional(),
       PRINTFUL_API_KEY: z.string().trim().optional(),
 

@@ -1,5 +1,7 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { Server as HTTPServer } from "http";
+import { createAdapter } from "@socket.io/redis-adapter";
+import { createClient, type RedisClientType } from "redis";
 import { db } from "./db";
 import { conversations, messages, users } from "@shared/schema";
 import { eq, and, or, desc } from "drizzle-orm";
@@ -114,6 +116,8 @@ export class MessagingService {
   private io: SocketIOServer;
   private connectedUsers: Map<string, ConnectedUser> = new Map();
   private messageQueue: Map<string, any[]> = new Map();
+  private redisPubClient: RedisClientType | null = null;
+  private redisSubClient: RedisClientType | null = null;
 
   constructor(httpServer: HTTPServer) {
     this.io = new SocketIOServer(httpServer, {
@@ -132,6 +136,33 @@ export class MessagingService {
 
     this.setupMiddleware();
     this.setupEventHandlers();
+    void this.attachRedisAdapter();
+  }
+
+  private async attachRedisAdapter() {
+    const redisUrl = String(process.env.REDIS_URL || "").trim();
+    if (!redisUrl) {
+      return;
+    }
+
+    try {
+      const pubClient = createClient({ url: redisUrl });
+      const subClient = pubClient.duplicate();
+
+      await pubClient.connect();
+      await subClient.connect();
+
+      this.io.adapter(createAdapter(pubClient, subClient));
+      this.redisPubClient = pubClient;
+      this.redisSubClient = subClient;
+
+      console.log("[Messaging] Redis adapter enabled for multi-instance fanout");
+    } catch (error) {
+      console.warn(
+        "[Messaging] Redis adapter setup failed; continuing with single-instance adapter",
+        error
+      );
+    }
   }
 
   private setupMiddleware() {

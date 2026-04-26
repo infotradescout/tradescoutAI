@@ -33,6 +33,10 @@ Required environment variables (observed in code)
   - `TRADESCOUT_GOOGLE_MAPS_API_KEY` - canonical browser-safe Maps key exposed through `/api/public-config`.
   - `VITE_GOOGLE_MAPS_MAP_ID` - optional Google Maps map style ID.
   - `SCHEDULER_ENABLED` - set `true` to enable background scheduler (`server/index.ts`).
+  - `SCHEDULER_LEADER_ONLY` - set `true` to ensure only one instance runs scheduler/background jobs.
+  - `SCHEDULER_LEADER_LOCK_ID` - optional advisory lock id used for scheduler leader election.
+  - `REDIS_URL` - optional Redis for cross-instance anti-scrape counters and Socket.IO fanout.
+  - `TRADESCOUT_EXTERNAL_FETCH_TIMEOUT_MS`, `TRADESCOUT_EXTERNAL_FETCH_RETRIES`, `TRADESCOUT_EXTERNAL_FETCH_BACKOFF_MS` - external API timeout/retry budget for import integrations.
   - `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD`, `MASTER_ADMIN_FIRST_NAME`, `MASTER_ADMIN_LAST_NAME` - bootstrap master admin on startup (`server/index.ts`).
   - Replit OIDC auth variables were removed with the legacy `server/replitAuth.ts` module. Use `server/auth.ts` providers (local/Facebook/Google) instead.
 
@@ -74,6 +78,8 @@ Production hardening checklist (TradeScout)
 - Maps frontend build env:
   - Set `TRADESCOUT_GOOGLE_MAPS_API_KEY`.
   - Optional: set `VITE_GOOGLE_MAPS_MAP_ID` when using Advanced Markers/custom styling.
+- Surge validation gates:
+  - Run `npm run gate:surge` against your target `BASE_URL` to enforce scale-readiness plus public/search/maps load scenarios.
 
 Solar v1 (Provider Workbench First)
 - Intended belief:
