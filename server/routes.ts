@@ -15919,6 +15919,57 @@ export async function registerRoutes(app: any) {
   };
 
   app.post(
+    "/api/admin/businesses/import/external-search",
+    isAuthenticated,
+    isAdmin,
+    async (req: any, res: any) => {
+      try {
+        const body = (req.body && typeof req.body === "object" ? req.body : {}) as any;
+        const query = String(body.query || "").trim();
+        const provider = String(body.provider || "").trim();
+
+        if (!query) {
+          return res.status(400).json({ message: "query is required" });
+        }
+        if (!provider) {
+          return res.status(400).json({ message: "provider is required" });
+        }
+
+        const { searchTradeScoutExternalBusinesses } =
+          await import("./services/tradeScoutExternalBusinessImportService");
+
+        const result = await searchTradeScoutExternalBusinesses({
+          provider: provider as any,
+          query,
+          limit: Number(body.limit),
+          location: typeof body.location === "string" ? body.location : "",
+          defaultCountyFips:
+            typeof body.defaultCountyFips === "string" ? body.defaultCountyFips : "",
+          defaultStateCode: typeof body.defaultStateCode === "string" ? body.defaultStateCode : "",
+          facebookAccessToken:
+            typeof body.facebookAccessToken === "string" ? body.facebookAccessToken : "",
+        });
+
+        return res.json({
+          provider: result.provider,
+          totals: {
+            rows: result.rows.length,
+          },
+          headers: result.headers,
+          rows: result.rows,
+          warnings: result.warnings,
+          csv: result.generatedCsv,
+        });
+      } catch (error: any) {
+        console.error("Error running external business search import", error);
+        return res.status(400).json({
+          message: error?.message || "Failed external import search",
+        });
+      }
+    }
+  );
+
+  app.post(
     "/api/admin/businesses/import",
     isAuthenticated,
     isAdmin,
