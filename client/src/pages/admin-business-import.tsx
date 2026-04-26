@@ -99,6 +99,16 @@ type ImportedDirectoryUserCandidate = {
   ownedBusinessSlug?: string | null;
 };
 
+type ExternalImportProvider = "google_maps_places" | "facebook_graph_pages";
+
+type ExternalImportPreview = {
+  provider: ExternalImportProvider;
+  totals?: { rows?: number };
+  warnings?: string[];
+  csv: string;
+  rows?: Array<Record<string, string>>;
+};
+
 // Large imports are uploaded in multiple requests to avoid per-request payload limits (413).
 // There is no cap on total rows; we just split into parts.
 //
@@ -175,6 +185,13 @@ export default function AdminBusinessImport() {
     null
   );
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [externalProvider, setExternalProvider] =
+    useState<ExternalImportProvider>("google_maps_places");
+  const [externalQuery, setExternalQuery] = useState("");
+  const [externalLocation, setExternalLocation] = useState("");
+  const [externalLimit, setExternalLimit] = useState("25");
+  const [externalFacebookToken, setExternalFacebookToken] = useState("");
+  const [externalPreview, setExternalPreview] = useState<ExternalImportPreview | null>(null);
 
   const {
     data: batchData,
@@ -525,6 +542,63 @@ export default function AdminBusinessImport() {
     },
   });
 
+  const externalSearchMutation = useMutation({
+    mutationFn: async () => {
+      if (!externalQuery.trim()) {
+        throw new Error("External query is required.");
+      }
+      const parsedLimit = Number.parseInt(externalLimit, 10);
+      return (await apiRequest("/api/admin/businesses/import/external-search", {
+        method: "POST",
+        timeoutMs: 60_000,
+        body: {
+          provider: externalProvider,
+          query: externalQuery.trim(),
+          location: externalLocation.trim(),
+          limit: Number.isFinite(parsedLimit) ? parsedLimit : 25,
+          defaultCountyFips: defaultCountyFips.trim(),
+          defaultStateCode: defaultStateCode.trim(),
+          facebookAccessToken: externalFacebookToken.trim(),
+        },
+      })) as ExternalImportPreview;
+    },
+    onSuccess: (data) => {
+      setExternalPreview(data);
+      toast({
+        title: "External preview ready",
+        description: `Fetched ${data?.totals?.rows ?? 0} candidate businesses from ${data.provider}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "External search failed",
+        description: formatUserFacingErrorMessage(error, "Failed to fetch external businesses"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const useExternalPreviewAsImportPayload = () => {
+    const csv = externalPreview?.csv || "";
+    if (!csv.trim()) {
+      toast({
+        title: "No preview loaded",
+        description: "Run external search first, then load results into import payload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadFile(null);
+    setLoadedFileMeta(null);
+    setContent(csv);
+    setSource(externalProvider);
+    toast({
+      title: "Preview loaded",
+      description: "External results were loaded into the import payload editor.",
+    });
+  };
+
   const onFileSelected = async (file: File | null) => {
     if (!file) return;
     const name = String(file.name || "").toLowerCase();
@@ -645,6 +719,106 @@ export default function AdminBusinessImport() {
                 className="bg-black/30 border-[color:var(--border-subtle)]"
               />
             </div>
+          </div>
+
+          <div className="rounded-xl border border-[color:var(--border-subtle)] bg-black/30 p-4 space-y-3">
+            <div>
+              <div className="text-sm font-semibold text-white">
+                External Source Import (TradeScout)
+              </div>
+              <div className="text-xs text-[color:var(--text-secondary)]">
+                Fetch candidate businesses from Google Maps Places or Facebook Graph, review them,
+                then load as CSV into this admin import flow.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-white/60">Provider</label>
+                <select
+                  value={externalProvider}
+                  onChange={(e) => setExternalProvider(e.target.value as ExternalImportProvider)}
+                  className="w-full h-10 rounded-md border border-[color:var(--border-subtle)] bg-black/30 px-3 text-sm text-white"
+                >
+                  <option value="google_maps_places">Google Maps Places</option>
+                  <option value="facebook_graph_pages">Facebook Graph Pages</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Query</label>
+                <Input
+                  value={externalQuery}
+                  onChange={(e) => setExternalQuery(e.target.value)}
+                  placeholder="e.g., plumbers in houston"
+                  className="bg-black/30 border-[color:var(--border-subtle)]"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Location bias (lat,lng optional)</label>
+                <Input
+                  value={externalLocation}
+                  onChange={(e) => setExternalLocation(e.target.value)}
+                  placeholder="e.g., 29.7604,-95.3698"
+                  className="bg-black/30 border-[color:var(--border-subtle)]"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/60">Result limit (1-100)</label>
+                <Input
+                  value={externalLimit}
+                  onChange={(e) => setExternalLimit(e.target.value)}
+                  placeholder="25"
+                  className="bg-black/30 border-[color:var(--border-subtle)]"
+                />
+              </div>
+              {externalProvider === "facebook_graph_pages" ? (
+                <div className="md:col-span-2">
+                  <label className="text-xs text-white/60">Facebook access token (optional)</label>
+                  <Input
+                    value={externalFacebookToken}
+                    onChange={(e) => setExternalFacebookToken(e.target.value)}
+                    placeholder="If empty, server uses TRADESCOUT_FACEBOOK_GRAPH_TOKEN"
+                    className="bg-black/30 border-[color:var(--border-subtle)]"
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-[color:var(--border-subtle)]"
+                onClick={() => externalSearchMutation.mutate()}
+                disabled={externalSearchMutation.isPending}
+              >
+                {externalSearchMutation.isPending ? "Fetching..." : "Fetch external preview"}
+              </Button>
+              <Button
+                type="button"
+                className="bg-ts-orange text-black hover:bg-ts-orange-dark"
+                onClick={useExternalPreviewAsImportPayload}
+                disabled={!externalPreview?.csv}
+              >
+                Load preview into import payload
+              </Button>
+            </div>
+
+            {externalPreview ? (
+              <div className="rounded border border-[color:var(--border-subtle)] bg-black/20 p-3 text-xs text-white/70 space-y-2">
+                <div>
+                  Provider: <span className="text-white/90">{externalPreview.provider}</span> -
+                  Rows: <span className="text-white/90">{externalPreview?.totals?.rows ?? 0}</span>
+                </div>
+                {externalPreview.warnings && externalPreview.warnings.length > 0 ? (
+                  <div className="text-ts-orange">{externalPreview.warnings.join(" | ")}</div>
+                ) : null}
+                <div>
+                  CSV is generated with TradeScout admin import headers and does not auto-publish
+                  contact access.
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-col md:flex-row gap-3 md:items-center">

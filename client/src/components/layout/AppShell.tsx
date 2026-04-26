@@ -369,6 +369,7 @@ export function AppShell({ children, footer }: AppShellProps) {
 
   const mobileSimplificationEnabled =
     String(import.meta.env.VITE_MOBILE_SIMPLIFICATION_V1 ?? "true") === "true";
+  const minimalUiEnabled = String(import.meta.env.VITE_UI_MINIMAL_V1 ?? "true") === "true";
   const isMobileSimplified =
     mobileSimplificationEnabled && isMobile && !isAuthOrSetupSurface && !isAdminSurface;
 
@@ -461,6 +462,20 @@ export function AppShell({ children, footer }: AppShellProps) {
       document.body.classList.remove("ts-mobile-simplified");
     };
   }, [isMobileSimplified]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    if (minimalUiEnabled) {
+      document.body.classList.add("ts-ui-minimal");
+    } else {
+      document.body.classList.remove("ts-ui-minimal");
+    }
+
+    return () => {
+      document.body.classList.remove("ts-ui-minimal");
+    };
+  }, [minimalUiEnabled]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -635,7 +650,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       {/* TOP APP NAV HEADER (MOBILE/COMPACT) */}
       {!isAdminSurface && isMobile ? (
         <header
-          className="fixed top-0 inset-x-0 z-50 flex items-center px-3 md:hidden"
+          className="ts-shell-header-mobile fixed top-0 inset-x-0 z-50 flex items-center px-3 md:hidden"
           style={{
             height: "calc(48px + env(safe-area-inset-top))",
             paddingTop: "env(safe-area-inset-top)",
@@ -685,7 +700,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={handleInstallAction}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                 style={{
                   borderColor: "var(--border-primary)",
                   backgroundColor: "var(--charcoal-900)",
@@ -704,7 +719,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => navigate("/admin")}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                  className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
                     backgroundColor: "var(--charcoal-900)",
@@ -719,7 +734,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <button
                 type="button"
                 onClick={() => setIsToolsOpen(true)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl border transition hover:opacity-90 focus:outline-none"
+                className="ts-shell-icon-btn inline-flex h-9 w-9 items-center justify-center rounded-xl border transition hover:opacity-90 focus:outline-none"
                 style={{
                   borderColor: "color-mix(in oklab, var(--border-primary) 85%, transparent)",
                   backgroundColor:
@@ -734,7 +749,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         </header>
       ) : !isAdminSurface ? (
         <header
-          className={`fixed top-0 inset-x-0 z-40 glass-header flex items-center h-[56px] px-3 sm:px-4 border-b ${
+          className={`ts-shell-header fixed top-0 inset-x-0 z-40 glass-header flex items-center h-[56px] px-3 sm:px-4 border-b ${
             handedness === "left" ? "flex-row-reverse justify-between" : "justify-between"
           }`}
           style={{ backgroundColor: "var(--charcoal-950)", borderColor: "var(--border-primary)" }}
@@ -754,9 +769,11 @@ export function AppShell({ children, footer }: AppShellProps) {
               >
                 TRADESCOUT
               </span>
-              <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                Connection without compromise
-              </span>
+              {!minimalUiEnabled ? (
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  Connection without compromise
+                </span>
+              ) : null}
             </div>
           </Link>
 
@@ -792,7 +809,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   <button
                     type="button"
                     onClick={handleInstallAction}
-                    className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                    className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                     aria-label={canPromptInstall ? "Install TradeScout app" : "Install TradeScout"}
                     title="Install TradeScout"
                   >
@@ -808,7 +825,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   onClick={() =>
                     navigate(contactRequestCount > 0 ? "/messages?tab=requests" : "/messages")
                   }
-                  className="relative inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                  className="ts-shell-icon-btn relative inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                   aria-label="Messages and helpers"
                 >
                   <MessageCircle
@@ -829,7 +846,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   <button
                     type="button"
                     onClick={() => navigate("/notifications")}
-                    className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                    className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                     aria-label="Notifications"
                   >
                     <Bell className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
@@ -840,7 +857,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   <button
                     type="button"
                     onClick={() => navigate("/admin")}
-                    className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                    className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                     aria-label="Open admin controls"
                     title="Admin"
                   >
@@ -852,7 +869,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => setIsToolsOpen(true)}
-                  className="inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
+                  className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                   aria-label="Open profile & tools panel"
                 >
                   <Menu className="h-4 w-4" style={{ color: "var(--theme-accent-primary)" }} />
@@ -868,6 +885,7 @@ export function AppShell({ children, footer }: AppShellProps) {
       <main
         id="app-scroll-root"
         className={`
+          ts-shell-main
           absolute
           left-0
           right-0
@@ -891,7 +909,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         <div className={`app-page ${isAuthSurface ? "app-page--auth" : ""}`}>
           {!isAuthOrSetupSurface && surfaceOrientation && !isMobile && (
             <section className="mx-auto mb-3 max-w-6xl px-3 pt-3 sm:px-4 md:px-6">
-              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
+              <div className="ts-shell-orientation rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>

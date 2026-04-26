@@ -16,9 +16,23 @@ services:
         value: "0"
       - key: PORT
         value: "10000"
+      - key: SCHEDULER_ENABLED
+        value: "true"
+      - key: SCHEDULER_LEADER_ONLY
+        value: "true"
+      - key: SCHEDULER_LEADER_LOCK_ID
+        value: "72418031"
+      - key: TRADESCOUT_EXTERNAL_FETCH_TIMEOUT_MS
+        value: "8000"
+      - key: TRADESCOUT_EXTERNAL_FETCH_RETRIES
+        value: "2"
+      - key: TRADESCOUT_EXTERNAL_FETCH_BACKOFF_MS
+        value: "250"
       - key: SCOUT_RECOMMENDATIONS_ENABLED
         value: "true"
       - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
         sync: false
       - key: SESSION_SECRET
         sync: false
@@ -52,7 +66,7 @@ services:
         sync: false
       - key: VITE_API_BASE_URL
         sync: false
-      - key: VITE_GOOGLE_MAPS_WEB_API_KEY
+      - key: TRADESCOUT_GOOGLE_MAPS_API_KEY
         sync: false
       - key: VITE_GOOGLE_MAPS_MAP_ID
         sync: false

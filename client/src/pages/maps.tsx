@@ -356,15 +356,6 @@ export default function MapsPage() {
   };
 
   useEffect(() => {
-    const fromVite = String(
-      import.meta.env.VITE_GOOGLE_MAPS_WEB_API_KEY || import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ""
-    ).trim();
-    if (fromVite) {
-      setMapsApiKey(fromVite);
-      setMapsConfigResolved(true);
-      return;
-    }
-
     let cancelled = false;
     fetchPublicConfigWithFallback()
       .then((payload: any) => {

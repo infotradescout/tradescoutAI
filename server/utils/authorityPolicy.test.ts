@@ -125,6 +125,18 @@ describe("authorityPolicy", () => {
     expect(resolution.reason).toBe("admin_flag");
   });
 
+  it("resolves privileged bypass from legacy admin-like role tokens", () => {
+    const resolution = resolvePrivilegedVerificationBypass({
+      role: "admin",
+      email: "user@example.com",
+      isAdmin: false,
+      isSuperAdmin: false,
+    });
+    expect(resolution.active).toBe(true);
+    expect(resolution.reason).toBe("admin_flag");
+    expect(resolution.matchedRoles).toContain("admin");
+  });
+
   it("returns inactive bypass when no privileged signal is present", () =>
     withEnv(
       {

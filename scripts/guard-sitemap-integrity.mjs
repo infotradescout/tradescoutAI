@@ -26,7 +26,27 @@ if (matches.length === 0) {
   fail("Sitemap index has no loc entries");
 }
 
-const missing = matches.filter((name) => !existsSync(path.join(PUBLIC_DIR, name)));
+const runtimeGenerated = new Set([
+  "sitemap-core.xml",
+  "sitemap-u-profiles.xml",
+  "sitemap-business-profiles.xml",
+  "sitemap-directory-businesses.xml",
+  "sitemap-homescout-counties.xml",
+  "sitemap-homescout-listings.xml",
+  "sitemap-tradepartners.xml",
+  "sitemap-directory-counties.xml",
+  "sitemap-directory-trade-navigation.xml",
+  "sitemap-directory-trades.xml",
+  "sitemap-directory-cities.xml",
+  "sitemap-directory-trade-cities.xml",
+  "sitemap-best-pages.xml",
+  "sitemap-recent-activity.xml",
+  "sitemap-exchange-listings.xml",
+]);
+
+const missing = matches.filter(
+  (name) => !runtimeGenerated.has(name) && !existsSync(path.join(PUBLIC_DIR, name))
+);
 if (missing.length > 0) {
   fail(`Index references missing sitemap files: ${missing.join(", ")}`);
 }

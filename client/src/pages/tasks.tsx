@@ -33,6 +33,7 @@ type TopContractor = {
   businessName: string | null;
   reviewCount: number | null;
   recommendationCount: number | null;
+  connectionRecommendationCount?: number | null;
   county: string | null;
   state: string | null;
   presenceLabel: string;
@@ -1239,6 +1240,13 @@ export default function TasksHub({
                                                     recommendations
                                                   </div>
                                                 )}
+                                              {typeof provider.connectionRecommendationCount ===
+                                                "number" && (
+                                                <div className="text-[11px] text-blue-200 mt-0.5">
+                                                  {provider.connectionRecommendationCount} from your
+                                                  connections
+                                                </div>
+                                              )}
                                             </div>
                                           </label>
                                         );

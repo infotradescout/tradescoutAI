@@ -55,6 +55,17 @@ async function run() {
       { method: "GET", path: "/api/contractors/search?trade=general&county=Test&state=TS&limit=20" },
       { method: "GET", path: "/api/marketplace/search?query=test&location=TS&limit=20" },
     ],
+    maps: [
+      {
+        method: "GET",
+        path: "/api/map/entities?bbox=-97.30,32.70,-96.50,33.10&types=provider,business&limit=200",
+      },
+      {
+        method: "GET",
+        path: "/api/map/providers?bbox=-97.30,32.70,-96.50,33.10&verified=true&limit=200",
+      },
+      { method: "GET", path: "/api/public-config" },
+    ],
   };
 
   const requests = endpointsByScenario[scenario];

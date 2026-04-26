@@ -8,7 +8,7 @@
  */
 
 import { writeFileSync } from 'fs';
-import { readdirSync, readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -18,7 +18,22 @@ const __dirname = dirname(__filename);
 const PRODUCTION_URL = 'https://www.thetradescout.com';
 const OUTPUT_PATH = resolve(__dirname, '../client/public/sitemap.xml');
 const OUTPUT_INDEX_PATH = resolve(__dirname, '../client/public/sitemap-index.xml');
-const PUBLIC_DIR = resolve(__dirname, '../client/public');
+
+const SUBMITTED_SITEMAP_TARGETS = [
+  '/sitemap-core.xml',
+  '/sitemap-profiles.xml',
+  '/sitemap-homescout-counties.xml',
+  '/sitemap-homescout-listings.xml',
+  '/sitemap-tradepartners.xml',
+  '/sitemap-directory-counties.xml',
+  '/sitemap-directory-trade-navigation.xml',
+  '/sitemap-directory-trades.xml',
+  '/sitemap-directory-cities.xml',
+  '/sitemap-directory-trade-cities.xml',
+  '/sitemap-best-pages.xml',
+  '/sitemap-recent-activity.xml',
+  '/sitemap-exchange-listings.xml',
+];
 
 // Canonical public routes only.
 // Keep this list focused on high-intent, index-worthy pages.
@@ -52,6 +67,7 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/groups', priority: 0.7, changefreq: 'daily' },
   { path: '/county-directory', priority: 0.7, changefreq: 'weekly' },
   { path: '/county-hub', priority: 0.7, changefreq: 'weekly' },
+  { path: '/maps', priority: 0.7, changefreq: 'weekly' },
   { path: '/help', priority: 0.8, changefreq: 'weekly' },
   { path: '/help/how-tradescout-works', priority: 0.8, changefreq: 'weekly' },
   { path: '/how-it-works', priority: 0.9, changefreq: 'weekly' },
@@ -83,6 +99,11 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/resource-center', priority: 0.7, changefreq: 'weekly' },
   { path: '/membership-portal', priority: 0.6, changefreq: 'weekly' },
   { path: '/training-center', priority: 0.6, changefreq: 'weekly' },
+  { path: '/trade', priority: 0.8, changefreq: 'daily' },
+  { path: '/datasets', priority: 0.7, changefreq: 'weekly' },
+  { path: '/datasets/trades', priority: 0.7, changefreq: 'weekly' },
+  { path: '/datasets/counties', priority: 0.7, changefreq: 'weekly' },
+  { path: '/datasets/cities', priority: 0.7, changefreq: 'weekly' },
   { path: '/affiliate', priority: 0.6, changefreq: 'monthly' },
   { path: '/tradepartners/cumulus-media', priority: 0.8, changefreq: 'weekly' },
   { path: '/tradepartners/cumulus-media/mobile-county-al', priority: 0.8, changefreq: 'weekly' },
@@ -119,15 +140,6 @@ function extractExistingLastmodByLoc() {
   return map;
 }
 
-function getIndexTargets() {
-  const files = readdirSync(PUBLIC_DIR)
-    .filter((name) => name.startsWith('sitemap-') && name.endsWith('.xml'))
-    .filter((name) => name !== 'sitemap-index.xml')
-    .sort((a, b) => a.localeCompare(b, 'en'));
-
-  return files.map((name) => `/${name}`);
-}
-
 function generateSitemap() {
   const today = new Date().toISOString().split('T')[0];
   const existingLastmodByLoc = extractExistingLastmodByLoc();
@@ -141,7 +153,7 @@ function generateSitemap() {
   const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"\n        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9\n        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">\n\n${urls}\n\n</urlset>`;
 
   writeFileSync(OUTPUT_PATH, sitemap, 'utf-8');
-  const indexTargets = getIndexTargets().map(
+  const indexTargets = SUBMITTED_SITEMAP_TARGETS.map(
     (targetPath) => `  <sitemap>\n    <loc>${PRODUCTION_URL}${targetPath}</loc>\n    <lastmod>${today}</lastmod>\n  </sitemap>`
   ).join('\n');
   const sitemapIndex = `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${indexTargets}\n</sitemapindex>`;

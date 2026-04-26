@@ -41,6 +41,7 @@ type Contractor = {
   rating?: number;
   reviewCount?: number;
   recommendationCount?: number;
+  connectionRecommendationCount?: number | null;
   trades?: string[];
   location?: string;
   county?: string;
@@ -312,6 +313,11 @@ const FindContractors = memo(function FindContractors({
                       {contractor.recommendationCount ?? contractor.reviewCount ?? 0} recs
                     </span>
                   </div>
+                  {typeof contractor.connectionRecommendationCount === "number" && (
+                    <div className="text-xs text-blue-200">
+                      {contractor.connectionRecommendationCount} from your connections
+                    </div>
+                  )}
                   {contractor.licenseNumber && (
                     <Badge variant="outline" className="border-emerald-500/40 text-emerald-100">
                       Licensed

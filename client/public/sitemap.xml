@@ -44,7 +44,97 @@
     <loc>https://www.thetradescout.com/exchange</loc>
     <lastmod>2026-04-17</lastmod>
     <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/vehicles</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/business</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/real-estate</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/construction</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/tools</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/furniture</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/farm</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/business-equipment</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/electronics</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/sports</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/collectibles</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/jewelry</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/metals</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/local-food</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/exchange/other</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.thetradescout.com/vehicle-marketplace</loc>
@@ -85,6 +175,12 @@
   <url>
     <loc>https://www.thetradescout.com/county-hub</loc>
     <lastmod>2026-04-17</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/maps</loc>
+    <lastmod>2026-04-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -273,6 +369,36 @@
     <lastmod>2026-04-17</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/trade</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/datasets</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/datasets/trades</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/datasets/counties</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.thetradescout.com/datasets/cities</loc>
+    <lastmod>2026-04-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://www.thetradescout.com/affiliate</loc>

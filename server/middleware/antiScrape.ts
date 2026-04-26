@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { getRedisClient, isRedisConfigured } from "../utils/redisClient";
 
 // Simple in-memory anti-scraping guard. For production, back with Redis.
 const WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -45,7 +46,35 @@ const getKey = (req: Request): string => {
   return `${ip}|${ua}`;
 };
 
-export function antiScrapeShield(req: Request, res: Response, next: NextFunction) {
+async function incrementRedisCounters(
+  key: string
+): Promise<{ windowHits: number; burstHits: number } | null> {
+  if (!isRedisConfigured()) return null;
+
+  const client = await getRedisClient();
+  if (!client) return null;
+
+  const windowKey = `antiscrape:window:${key}`;
+  const burstKey = `antiscrape:burst:${key}`;
+
+  try {
+    const windowHits = await client.incr(windowKey);
+    if (windowHits === 1) {
+      await client.pExpire(windowKey, WINDOW_MS);
+    }
+
+    const burstHits = await client.incr(burstKey);
+    if (burstHits === 1) {
+      await client.pExpire(burstKey, BURST_WINDOW_MS);
+    }
+
+    return { windowHits, burstHits };
+  } catch {
+    return null;
+  }
+}
+
+export async function antiScrapeShield(req: Request, res: Response, next: NextFunction) {
   const now = Date.now();
   const ua = req.get("user-agent") || "";
   const path = req.path || req.originalUrl || "";
@@ -113,13 +142,22 @@ export function antiScrapeShield(req: Request, res: Response, next: NextFunction
   }
 
   const key = getKey(req);
-  const bucket = buckets.get(key) || { hits: [] };
-  cleanBucket(bucket, now);
-  bucket.hits.push(now);
-  buckets.set(key, bucket);
+  const distributedCounters = await incrementRedisCounters(key);
 
-  const windowHits = bucket.hits.length;
-  const burstHits = bucket.hits.filter((ts) => now - ts <= BURST_WINDOW_MS).length;
+  let windowHits = 0;
+  let burstHits = 0;
+
+  if (distributedCounters) {
+    windowHits = distributedCounters.windowHits;
+    burstHits = distributedCounters.burstHits;
+  } else {
+    const bucket = buckets.get(key) || { hits: [] };
+    cleanBucket(bucket, now);
+    bucket.hits.push(now);
+    buckets.set(key, bucket);
+    windowHits = bucket.hits.length;
+    burstHits = bucket.hits.filter((ts) => now - ts <= BURST_WINDOW_MS).length;
+  }
 
   const windowLimit = isSensitivePath(path) ? Math.floor(MAX_WINDOW_HITS / 3) : MAX_WINDOW_HITS;
   const burstLimit = isSensitivePath(path) ? Math.floor(MAX_BURST_HITS / 2) : MAX_BURST_HITS;

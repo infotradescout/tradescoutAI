@@ -6,7 +6,15 @@ import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { useAuth } from "@/hooks/useAuth";
-import { MessageCircle, ShieldCheck, Calendar, Clock3, DollarSign } from "lucide-react";
+import {
+  MessageCircle,
+  ShieldCheck,
+  Calendar,
+  Clock3,
+  DollarSign,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 import { Page } from "@/components/layout/PagePrimitives";
 
 type ProfileSections = {
@@ -69,6 +77,23 @@ type PublicBusinessSubset = {
 type PublicProfileResponse = {
   profile: PublicProfile;
   business: PublicBusinessSubset;
+  recommendationsDirectory?: Array<{
+    id: string;
+    createdAt: string | null;
+    recommendationType: "positive" | "negative";
+    comment: string;
+    projectType: string | null;
+    contractor: {
+      id: string;
+      companyName: string;
+      slug: string;
+    };
+  }>;
+  recommendationDirectorySummary?: {
+    total: number;
+    positive: number;
+    negative: number;
+  };
 };
 
 export default function ProfileSiteView() {
@@ -141,6 +166,16 @@ export default function ProfileSiteView() {
   }
 
   const { profile, business } = data;
+  const recommendationsDirectory = Array.isArray(data.recommendationsDirectory)
+    ? data.recommendationsDirectory
+    : [];
+  const recommendationDirectorySummary = data.recommendationDirectorySummary || {
+    total: recommendationsDirectory.length,
+    positive: recommendationsDirectory.filter((row) => row.recommendationType === "positive")
+      .length,
+    negative: recommendationsDirectory.filter((row) => row.recommendationType === "negative")
+      .length,
+  };
   const profileSections = profile.profileSections || {};
   const showContactCard = profileSections.contactCard !== false;
   const booking = profile.profileBooking || {};
@@ -352,6 +387,71 @@ export default function ProfileSiteView() {
                       <Badge key={area} className="bg-white/10 text-white/80">
                         {area}
                       </Badge>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {profileSections.reviews !== false && recommendationsDirectory.length > 0 ? (
+                <section id="recommendations-directory" className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-white font-semibold text-lg">Recommendations Directory</h2>
+                    <div className="text-xs text-white/70">
+                      {recommendationDirectorySummary.positive} positive,{" "}
+                      {recommendationDirectorySummary.negative} negative (
+                      {recommendationDirectorySummary.total} total)
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/60">
+                    Share this section using this profile URL. Recommendations are public,
+                    moderated, and tied to verified TradeScout activity.
+                  </p>
+                  <div className="space-y-3">
+                    {recommendationsDirectory.slice(0, 24).map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-2"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            {entry.recommendationType === "positive" ? (
+                              <Badge className="bg-emerald-600/80 text-white">
+                                <ThumbsUp className="mr-1 h-3.5 w-3.5" />
+                                Recommends
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-red-600/80 text-white">
+                                <ThumbsDown className="mr-1 h-3.5 w-3.5" />
+                                Does not recommend
+                              </Badge>
+                            )}
+                            {entry.projectType ? (
+                              <Badge className="bg-white/10 text-white/80">
+                                {entry.projectType}
+                              </Badge>
+                            ) : null}
+                          </div>
+                          <div className="text-xs text-white/60">
+                            {entry.createdAt
+                              ? new Date(entry.createdAt).toLocaleDateString()
+                              : "Date unavailable"}
+                          </div>
+                        </div>
+                        <p className="text-sm text-white/80">{entry.comment}</p>
+                        {entry.contractor?.slug ? (
+                          <Link href={`/contractors/${encodeURIComponent(entry.contractor.slug)}`}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-white/20 text-white"
+                            >
+                              {entry.contractor.companyName}
+                            </Button>
+                          </Link>
+                        ) : (
+                          <p className="text-xs text-white/60">{entry.contractor.companyName}</p>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </section>

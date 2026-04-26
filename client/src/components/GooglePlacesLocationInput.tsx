@@ -51,15 +51,8 @@ const SCRIPT_ID = "ts-google-places-script";
 const PLACES_LOADED_EVENT = "ts:google-places-loaded";
 const PLACES_ERROR_EVENT = "ts:google-places-error";
 
-/** Resolve the Maps API key from Vite env vars or the /api/public-config endpoint */
+/** Resolve the Maps API key from the /api/public-config endpoint */
 async function resolveMapsApiKey(): Promise<string> {
-  const fromVite = String(
-    (import.meta as any).env?.VITE_GOOGLE_MAPS_WEB_API_KEY ||
-      (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY ||
-      ""
-  ).trim();
-  if (fromVite) return fromVite;
-
   try {
     const res = await fetch(`/api/public-config?_=${Date.now()}`, {
       credentials: "include",
@@ -127,7 +120,9 @@ function parsePlaceComponents(place: google.maps.places.PlaceResult): PlaceResul
       stateCode = component.short_name; // e.g. "TX"
     } else if (types.includes("administrative_area_level_2")) {
       // Strip trailing " County" / " Parish" etc. for a clean name
-      countyName = component.long_name.replace(/\s+(County|Parish|Borough|Census Area|Municipality|District)$/i, "").trim();
+      countyName = component.long_name
+        .replace(/\s+(County|Parish|Borough|Census Area|Municipality|District)$/i, "")
+        .trim();
     }
   }
 
@@ -229,7 +224,10 @@ export function GooglePlacesLocationInput({
     status === "loading" ? (
       <Loader2 className="h-4 w-4 animate-spin text-white/40" />
     ) : status === "error" ? (
-      <AlertCircle className="h-4 w-4 text-amber-400" title="Google Places unavailable — type your city manually" />
+      <AlertCircle
+        className="h-4 w-4 text-amber-400"
+        title="Google Places unavailable — type your city manually"
+      />
     ) : (
       <MapPin className="h-4 w-4 text-white/40" />
     );

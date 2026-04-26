@@ -60,6 +60,11 @@ export function isPrivilegedAliasEmail(email: unknown): boolean {
   return getPrivilegedAliasEmails().has(normalized);
 }
 
+function isLegacyAdminLikeRole(role: string): boolean {
+  if (!role) return false;
+  return role === "moderator" || role.includes("admin");
+}
+
 export function resolvePrivilegedVerificationBypass(user: any): PrivilegedBypassResolution {
   if (!user) {
     return {
@@ -92,6 +97,16 @@ export function resolvePrivilegedVerificationBypass(user: any): PrivilegedBypass
         matchedEmail: String(email).trim().toLowerCase(),
       };
     }
+  }
+
+  const legacyAdminLikeRoles = roles.filter((role) => isLegacyAdminLikeRole(role));
+  if (legacyAdminLikeRoles.length > 0) {
+    return {
+      active: true,
+      reason: "admin_flag",
+      matchedRoles: legacyAdminLikeRoles,
+      matchedEmail: null,
+    };
   }
 
   if (user?.isAdmin === true || user?.isSuperAdmin === true) {

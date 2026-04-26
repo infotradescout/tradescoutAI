@@ -53,15 +53,8 @@ interface Props {
 const SCRIPT_ID = "ts-google-places-script";
 const PLACES_LOADED_EVENT = "ts:google-places-loaded";
 
-/** Resolve the Maps API key from Vite env vars or the /api/public-config endpoint */
+/** Resolve the Maps API key from the /api/public-config endpoint */
 async function resolveMapsApiKey(): Promise<string> {
-  const fromVite = String(
-    (import.meta as any).env?.VITE_GOOGLE_MAPS_WEB_API_KEY ||
-      (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY ||
-      ""
-  ).trim();
-  if (fromVite) return fromVite;
-
   try {
     const res = await fetch(`/api/public-config?_=${Date.now()}`, {
       credentials: "include",
@@ -82,7 +75,10 @@ function loadGooglePlacesScript(apiKey: string): Promise<void> {
   const existing = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
   if (existing) {
     return new Promise<void>((resolve, reject) => {
-      if (window.google?.maps?.places) { resolve(); return; }
+      if (window.google?.maps?.places) {
+        resolve();
+        return;
+      }
       existing.addEventListener("load", () => resolve(), { once: true });
       existing.addEventListener("error", () => reject(new Error("Script failed")), { once: true });
     });
@@ -205,7 +201,9 @@ export function GooglePlacesBusinessInput({
     if (window.google?.maps?.places) {
       initAutocomplete();
     } else {
-      const onLoaded = () => { if (!cancelled) initAutocomplete(); };
+      const onLoaded = () => {
+        if (!cancelled) initAutocomplete();
+      };
       window.addEventListener(PLACES_LOADED_EVENT, onLoaded, { once: true });
       init();
       return () => {
@@ -214,7 +212,9 @@ export function GooglePlacesBusinessInput({
       };
     }
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [initAutocomplete]);
 
   useEffect(() => {
