@@ -116,8 +116,10 @@ export function SuperAdminLeftNav({
   );
 
   return (
-    <aside className={density === "compact" ? "w-64 shrink-0" : "w-[18rem] shrink-0"}>
-      <div className="rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(15,23,42,0.86))] p-3 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
+    <aside
+      className={`ts-admin-left-nav ${density === "compact" ? "w-64 shrink-0" : "w-[18rem] shrink-0"}`}
+    >
+      <div className="ts-admin-left-nav-card rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(15,23,42,0.86))] p-3 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
         <div className="border-b border-slate-800 pb-3">
           <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
             Admin navigation

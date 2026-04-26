@@ -31,13 +31,13 @@ export function AdminHeader({
             : "Focused admin tool for platform management.";
 
   return (
-    <header className="rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.82))] px-4 py-4 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
+    <header className="ts-admin-header rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.82))] px-4 py-4 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <button
             type="button"
             onClick={onToggleNav}
-            className="mt-0.5 inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-scout-500/60"
+            className="ts-admin-action-btn mt-0.5 inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-scout-500/60"
             aria-label={isNavOpen ? "Hide admin navigation" : "Show admin navigation"}
           >
             <Menu className="mr-1 h-4 w-4" />
@@ -46,11 +46,11 @@ export function AdminHeader({
 
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
+              <span className="ts-admin-pill inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-200">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Admin OS
               </span>
-              <span className="rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">
+              <span className="ts-admin-pill rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">
                 {path}
               </span>
             </div>
@@ -73,7 +73,7 @@ export function AdminHeader({
             <button
               type="button"
               onClick={onToggleDensity}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800"
+              className="ts-admin-action-btn inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800"
               aria-label={
                 density === "compact"
                   ? "Switch to comfortable density"
@@ -86,7 +86,7 @@ export function AdminHeader({
           )}
           <a
             href="/admin/live-stream"
-            className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-100 hover:bg-cyan-500/15"
+            className="ts-admin-action-btn inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-xs font-medium text-cyan-100 hover:bg-cyan-500/15"
           >
             Telemetry Center
             <ArrowUpRight className="ml-1 h-4 w-4" />

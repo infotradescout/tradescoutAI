@@ -110,8 +110,8 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
     <div
       className={
         density === "compact"
-          ? "min-h-full bg-slate-950 py-3 pb-[calc(84px+env(safe-area-inset-bottom))] md:pb-3"
-          : "min-h-full bg-slate-950 py-6 pb-[calc(86px+env(safe-area-inset-bottom))] md:pb-6"
+          ? "ts-admin-shell min-h-full bg-slate-950 py-3 pb-[calc(84px+env(safe-area-inset-bottom))] md:pb-3"
+          : "ts-admin-shell min-h-full bg-slate-950 py-6 pb-[calc(86px+env(safe-area-inset-bottom))] md:pb-6"
       }
       style={{
         backgroundImage:
@@ -145,8 +145,8 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
           <div
             className={
               density === "compact"
-                ? "flex-1 overflow-auto rounded-[22px] border border-slate-800 bg-[linear-gradient(180deg,rgba(10,15,28,0.94),rgba(15,23,42,0.78))] p-3 shadow-[0_24px_70px_rgba(2,6,23,0.34)]"
-                : "flex-1 overflow-auto rounded-[26px] border border-slate-800 bg-[linear-gradient(180deg,rgba(10,15,28,0.94),rgba(15,23,42,0.78))] p-4 shadow-[0_24px_70px_rgba(2,6,23,0.34)]"
+                ? "ts-admin-content-card flex-1 overflow-auto rounded-[22px] border border-slate-800 bg-[linear-gradient(180deg,rgba(10,15,28,0.94),rgba(15,23,42,0.78))] p-3 shadow-[0_24px_70px_rgba(2,6,23,0.34)]"
+                : "ts-admin-content-card flex-1 overflow-auto rounded-[26px] border border-slate-800 bg-[linear-gradient(180deg,rgba(10,15,28,0.94),rgba(15,23,42,0.78))] p-4 shadow-[0_24px_70px_rgba(2,6,23,0.34)]"
             }
           >
             {children}
@@ -155,7 +155,7 @@ export function SuperAdminOSLayout({ children }: SuperAdminOSLayoutProps) {
       </div>
 
       <nav
-        className="fixed inset-x-3 bottom-3 z-40 rounded-2xl border border-slate-700/80 bg-slate-950/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_20px_50px_rgba(2,6,23,0.45)] backdrop-blur md:hidden"
+        className="ts-admin-mobile-nav fixed inset-x-3 bottom-3 z-40 rounded-2xl border border-slate-700/80 bg-slate-950/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_20px_50px_rgba(2,6,23,0.45)] backdrop-blur md:hidden"
         aria-label="Admin OS bottom navigation"
       >
         <div className="grid grid-cols-4 gap-1">

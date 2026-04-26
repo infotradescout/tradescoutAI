@@ -203,6 +203,45 @@ body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-item:hover .ts-bottom-nav-icon 
   background: color-mix(in oklab, var(--surface-card) 78%, transparent) !important;
 }
 
+body.ts-ui-minimal .ts-admin-shell {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+body.ts-ui-minimal .ts-admin-header,
+body.ts-ui-minimal .ts-admin-left-nav-card,
+body.ts-ui-minimal .ts-admin-content-card,
+body.ts-ui-minimal .ts-admin-mobile-nav {
+  border-color: color-mix(in oklab, var(--border-primary) 74%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-card) 92%, transparent) !important;
+  backdrop-filter: blur(12px) saturate(106%);
+}
+
+body.ts-ui-minimal .ts-admin-header {
+  box-shadow: 0 14px 34px color-mix(in oklab, black 22%, transparent) !important;
+}
+
+body.ts-ui-minimal .ts-admin-content-card {
+  box-shadow: 0 16px 36px color-mix(in oklab, black 24%, transparent) !important;
+}
+
+body.ts-ui-minimal .ts-admin-pill {
+  border-color: color-mix(in oklab, var(--border-primary) 76%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-intermediate) 88%, transparent) !important;
+  color: color-mix(in oklab, var(--text-secondary) 90%, white 10%) !important;
+}
+
+body.ts-ui-minimal .ts-admin-action-btn {
+  border-color: color-mix(in oklab, var(--border-primary) 76%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-intermediate) 86%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+body.ts-ui-minimal .ts-admin-action-btn:hover {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 45%, var(--border-primary)) !important;
+  background: color-mix(in oklab, var(--surface-intermediate) 96%, transparent) !important;
+}
+
 /* stylelint-disable */
 @tailwind base;
 @tailwind components;
