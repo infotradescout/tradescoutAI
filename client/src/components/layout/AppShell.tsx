@@ -673,7 +673,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => navigate("/pre-scout-setup?mode=create")}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                  className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
                     backgroundColor: "var(--charcoal-900)",
@@ -685,7 +685,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() => navigate("/pre-scout-setup?mode=signin")}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
+                  className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
                     backgroundColor: "var(--charcoal-900)",

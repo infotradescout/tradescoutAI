@@ -139,8 +139,10 @@ body.ts-ui-minimal {
 
 body.ts-ui-minimal .app-shell .ts-shell-header,
 body.ts-ui-minimal .app-shell .ts-shell-header-mobile {
-  backdrop-filter: blur(12px) saturate(104%);
-  background: color-mix(in oklab, var(--surface-frame) 94%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(110%);
+  background: color-mix(in oklab, var(--surface-frame) 90%, transparent) !important;
+  border-bottom-color: color-mix(in oklab, var(--border-primary) 72%, transparent) !important;
+  box-shadow: 0 8px 22px color-mix(in oklab, black 20%, transparent);
 }
 
 body.ts-ui-minimal .app-shell .ts-shell-main {
@@ -156,7 +158,7 @@ body.ts-ui-minimal .app-shell .ts-shell-orientation {
 
 body.ts-ui-minimal .app-shell .ts-shell-icon-btn {
   border: 1px solid color-mix(in oklab, var(--border-primary) 80%, transparent);
-  border-radius: 0.7rem;
+  border-radius: 0.65rem;
   background: color-mix(in oklab, var(--surface-intermediate) 88%, transparent);
 }
 
@@ -167,6 +169,38 @@ body.ts-ui-minimal .app-shell .ts-shell-icon-btn:hover {
 
 body.ts-ui-minimal .app-shell .app-page {
   letter-spacing: 0.002em;
+}
+
+body.ts-ui-minimal .ts-bottom-nav {
+  background: transparent !important;
+  border-top-color: transparent !important;
+}
+
+body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-inner {
+  max-width: min(980px, calc(100% - 12px));
+  margin: 0 auto 4px;
+  border: 1px solid color-mix(in oklab, var(--border-primary) 76%, transparent);
+  border-radius: 14px 14px 0 0;
+  background: color-mix(in oklab, var(--surface-frame) 92%, transparent);
+  backdrop-filter: blur(16px) saturate(110%);
+  box-shadow: 0 -10px 28px color-mix(in oklab, black 22%, transparent);
+}
+
+body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-item {
+  border-radius: 10px;
+}
+
+body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-item:active {
+  transform: translateY(1px);
+}
+
+body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-icon {
+  border: 1px solid transparent;
+}
+
+body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-item:hover .ts-bottom-nav-icon {
+  border-color: color-mix(in oklab, var(--border-primary) 70%, transparent);
+  background: color-mix(in oklab, var(--surface-card) 78%, transparent) !important;
 }
 
 /* stylelint-disable */
