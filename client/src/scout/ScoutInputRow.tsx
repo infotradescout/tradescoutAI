@@ -35,7 +35,7 @@ export function ScoutInputRow({
   const visiblePrompts = showAllPrompts ? promptList : promptList.slice(0, 1);
 
   return (
-    <div className="space-y-2.5">
+    <div className="scout-input-row space-y-3">
       <div className="flex flex-col gap-2 px-1">
         <div className="flex flex-wrap items-center gap-1.5">
           {heroLocationLabel && (
@@ -97,7 +97,7 @@ export function ScoutInputRow({
               type="button"
               onClick={() => onSend(prompt)}
               disabled={isBusy}
-              className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
+              className="scout-quick-prompt inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
               style={{
                 borderColor: "var(--border-subtle)",
                 backgroundColor:
@@ -114,7 +114,7 @@ export function ScoutInputRow({
               type="button"
               onClick={() => setShowAllPrompts((v) => !v)}
               disabled={isBusy}
-              className="inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default sm:hidden"
+              className="scout-quick-prompt inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default sm:hidden"
               style={{
                 borderColor: "var(--border-subtle)",
                 backgroundColor: "transparent",

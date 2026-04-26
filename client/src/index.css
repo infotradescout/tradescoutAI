@@ -2430,6 +2430,74 @@ body {
   margin-top: auto;
 }
 
+.scout-shell-refined .scout-mobile-panel {
+  border-radius: 1rem;
+  border-color: color-mix(in oklab, var(--border-primary) 74%, transparent);
+  background: color-mix(in oklab, var(--surface-card) 94%, transparent);
+  box-shadow:
+    0 14px 34px color-mix(in oklab, black 24%, transparent),
+    inset 0 1px 0 color-mix(in oklab, white 4%, transparent);
+}
+
+.scout-shell-refined .scout-header-refined {
+  padding: 0.4rem 0.45rem 0.2rem;
+}
+
+.scout-shell-refined .scout-header-refined h1 {
+  text-wrap: balance;
+}
+
+.scout-shell-refined .scout-composer-refined {
+  border-radius: 0.9rem;
+  border-color: color-mix(in oklab, var(--border-primary) 76%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-card) 96%, transparent) !important;
+  padding: 0.55rem 0.5rem 0.65rem !important;
+}
+
+.scout-shell-refined .scout-step-card {
+  border-radius: 0.8rem;
+  border-color: color-mix(in oklab, var(--border-primary) 72%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-intermediate) 92%, transparent) !important;
+}
+
+.scout-shell-refined .scout-input-refined {
+  border-radius: 0.85rem;
+  border-color: color-mix(in oklab, var(--border-primary) 76%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-card) 94%, transparent) !important;
+}
+
+.scout-shell-refined .scout-input-refined textarea {
+  border-radius: 0.75rem;
+}
+
+.scout-shell-refined .scout-quick-prompt {
+  border-color: color-mix(in oklab, var(--border-primary) 72%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-intermediate) 92%, transparent) !important;
+  color: var(--text-primary) !important;
+  font-weight: 500;
+  padding: 0.36rem 0.72rem !important;
+}
+
+.scout-shell-refined .scout-quick-prompt:hover {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 45%, var(--border-primary)) !important;
+  background: color-mix(in oklab, var(--surface-intermediate) 98%, transparent) !important;
+}
+
+@media (max-width: 768px) {
+  .scout-shell-refined .scout-message {
+    border-radius: 12px;
+    padding: 11px 12px;
+  }
+
+  .scout-shell-refined .scout-message.user {
+    border-radius: 13px 13px 8px 13px;
+  }
+
+  .scout-shell-refined .scout-message.assistant {
+    border-radius: 13px 13px 13px 8px;
+  }
+}
+
 /* Scout action buttons - quiet, minimal */
 .scout-action-button {
   background: color-mix(in oklab, var(--surface-intermediate) 90%, transparent);

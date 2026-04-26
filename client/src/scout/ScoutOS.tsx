@@ -2809,11 +2809,11 @@ export default function ScoutOS() {
   );
 
   return (
-    <div className="scout-shell flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
+    <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
-            isMobile ? "px-2 pt-1 pb-12" : "max-w-6xl px-4 pt-3 pb-8"
+            isMobile ? "px-3 pt-2.5 pb-12" : "max-w-6xl px-4 pt-3 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
             paddingBottom: isMobile ? "calc(3.9rem + env(safe-area-inset-bottom))" : undefined,
@@ -2823,12 +2823,12 @@ export default function ScoutOS() {
           <div
             className={
               isMobile
-                ? "max-w-xl mx-auto w-full flex flex-col min-h-0"
+                ? "max-w-[32rem] mx-auto w-full flex flex-col min-h-0"
                 : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
             }
           >
             <div
-              className={`scout-panel w-full flex flex-col min-h-0 max-w-3xl rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
+              className={`scout-panel scout-mobile-panel w-full flex flex-col min-h-0 max-w-3xl rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
                 isMobile ? "" : "flex-1"
               }`}
             >
@@ -2985,7 +2985,7 @@ export default function ScoutOS() {
               )}
 
               <div
-                className="scout-composer-dock mt-1.5 order-2 z-10 rounded-lg border px-1.5 py-1.5"
+                className="scout-composer-dock scout-composer-refined mt-1.5 order-2 z-10 rounded-lg border px-1.5 py-1.5"
                 style={{
                   borderColor: "var(--border-subtle)",
                   backgroundColor: "color-mix(in oklab, var(--surface-card) 93%, transparent)",
@@ -2994,7 +2994,7 @@ export default function ScoutOS() {
               >
                 {isMobile && (
                   <div
-                    className="mb-2 rounded-md border px-2.5 py-2"
+                    className="scout-step-card mb-2 rounded-md border px-2.5 py-2"
                     style={{
                       borderColor: "var(--border-subtle)",
                       backgroundColor:

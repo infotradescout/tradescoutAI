@@ -200,7 +200,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
 
   return (
     <div
-      className="space-y-2 scout-input rounded-xl p-2 md:p-3"
+      className="space-y-2.5 scout-input scout-input-refined rounded-xl p-2.5 md:p-3"
       style={{
         border: "1px solid var(--border-subtle)",
         background: "color-mix(in oklab, var(--surface-card) 90%, transparent)",
@@ -213,7 +213,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         disabled={disabled}
         placeholder={placeholder}
         rows={3}
-        className="w-full min-h-[92px] resize-none rounded-lg px-3 py-2.5 text-[14px] leading-relaxed transition-colors focus:outline-none placeholder:text-[color:var(--text-secondary)]"
+        className="w-full min-h-[110px] resize-none rounded-xl px-3.5 py-3 text-[15px] leading-relaxed transition-colors focus:outline-none placeholder:text-[color:var(--text-secondary)]"
         style={{
           border: "1px solid var(--border-subtle)",
           background: "color-mix(in oklab, var(--surface-intermediate) 92%, transparent)",
@@ -227,7 +227,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           type="button"
           onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed sm:w-auto sm:py-1.5"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:w-auto sm:py-2"
           style={{
             borderColor: isButtonDisabled ? "var(--border-subtle)" : "var(--theme-accent-primary)",
             backgroundColor: isButtonDisabled

@@ -17,10 +17,10 @@ export function ScoutHeader({
   const communityText = hasSpecificLocation && cityOnly ? cityOnly : "your area";
 
   return (
-    <header className="scout-header space-y-2 text-center md:text-left">
+    <header className="scout-header scout-header-refined space-y-2.5 text-center md:text-left">
       <div className="scout-header-eyebrow hidden md:block">TradeScout • Ask Scout</div>
       <h1
-        className="text-xl md:text-2xl font-medium tracking-tight"
+        className="text-[1.5rem] md:text-2xl font-semibold tracking-tight leading-[1.15]"
         style={{ color: "var(--text-primary)" }}
       >
         {hasSpecificLocation && communityText
@@ -29,7 +29,7 @@ export function ScoutHeader({
       </h1>
       {!isAuthenticated && (
         <p
-          className="text-[12px] md:text-[13px] max-w-md mx-auto md:mx-0"
+          className="text-[12px] md:text-[13px] max-w-md mx-auto md:mx-0 leading-relaxed"
           style={{ color: "var(--text-muted)" }}
         >
           {isFirstGuestVisit
