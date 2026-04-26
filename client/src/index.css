@@ -312,12 +312,29 @@ html {
 }
 
 /* Global surface cleanup: suppress white utility border outlines. */
-[class*="border-white/"] {
+[class*="border-white"] {
   border-color: transparent !important;
 }
 
-[class*="border-white/"][class*="border-b"] {
+[class*="border-white"][class*="border-b"] {
   border-bottom-color: transparent !important;
+}
+
+/* Global button language: borderless controls with contrast-based separation. */
+.app-root button,
+.app-root .button,
+.app-root [role="button"],
+.app-root a[role="button"] {
+  border-color: transparent !important;
+  border-width: 0 !important;
+}
+
+.app-root button:focus-visible,
+.app-root .button:focus-visible,
+.app-root [role="button"]:focus-visible,
+.app-root a[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 30%, transparent);
 }
 @layer base {
   :root {
