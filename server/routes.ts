@@ -28100,13 +28100,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.setHeader("Pragma", "no-cache");
 
-    const googleMapsApiKey = String(
-      process.env.GOOGLE_MAPS_API_KEY ||
-        process.env.PUBLIC_GOOGLE_MAPS_API_KEY ||
-        process.env.VITE_GOOGLE_MAPS_WEB_API_KEY ||
-        process.env.VITE_GOOGLE_MAPS_API_KEY ||
-        ""
-    ).trim();
+    const googleMapsApiKey = String(process.env.TRADESCOUT_GOOGLE_MAPS_API_KEY || "").trim();
 
     res.json({ googleMapsApiKey });
   });

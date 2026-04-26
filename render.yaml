@@ -52,7 +52,7 @@ services:
         sync: false
       - key: VITE_API_BASE_URL
         sync: false
-      - key: VITE_GOOGLE_MAPS_WEB_API_KEY
+      - key: TRADESCOUT_GOOGLE_MAPS_API_KEY
         sync: false
       - key: VITE_GOOGLE_MAPS_MAP_ID
         sync: false

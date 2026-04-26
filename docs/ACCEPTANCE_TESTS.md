@@ -39,7 +39,7 @@ Expected: awareness-only promo payload and request-first CTA.
 Prereq:
 - `FEATURE_MAPS_V1=true`
 - `VITE_FEATURE_MAPS_V1=true`
-- `VITE_GOOGLE_MAPS_WEB_API_KEY` (or `VITE_GOOGLE_MAPS_API_KEY`) set
+- `TRADESCOUT_GOOGLE_MAPS_API_KEY` set
 - Optional: `VITE_GOOGLE_MAPS_MAP_ID` set
 
 1. Open `/maps`.

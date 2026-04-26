@@ -30,7 +30,7 @@ Required environment variables (observed in code)
   - `UPLOAD_DIR` - directory for uploaded files (server uses `./public/uploads` by default).
   - `CORS_ALLOWED_ORIGINS` - optional CORS override.
   - `VITE_API_BASE_URL` - preferred explicit frontend API origin (falls back to `VITE_API_URL`).
-  - `VITE_GOOGLE_MAPS_WEB_API_KEY` - preferred frontend browser Maps key (fallback to `VITE_GOOGLE_MAPS_API_KEY`).
+  - `TRADESCOUT_GOOGLE_MAPS_API_KEY` - canonical browser-safe Maps key exposed through `/api/public-config`.
   - `VITE_GOOGLE_MAPS_MAP_ID` - optional Google Maps map style ID.
   - `SCHEDULER_ENABLED` - set `true` to enable background scheduler (`server/index.ts`).
   - `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD`, `MASTER_ADMIN_FIRST_NAME`, `MASTER_ADMIN_LAST_NAME` - bootstrap master admin on startup (`server/index.ts`).
@@ -72,7 +72,7 @@ Production hardening checklist (TradeScout)
 - Websocket origin in production:
   - Client websocket initialization should target the same resolved API origin as HTTP API traffic in production.
 - Maps frontend build env:
-  - Set `VITE_GOOGLE_MAPS_WEB_API_KEY`.
+  - Set `TRADESCOUT_GOOGLE_MAPS_API_KEY`.
   - Optional: set `VITE_GOOGLE_MAPS_MAP_ID` when using Advanced Markers/custom styling.
 
 Solar v1 (Provider Workbench First)

@@ -40,7 +40,7 @@ function validateStartupEnv(): void {
       STRIPE_SECRET_KEY: z.string().trim().optional(),
       STRIPE_WEBHOOK_SECRET: z.string().trim().optional(),
       SENTRY_DSN: z.string().trim().optional(),
-      GOOGLE_MAPS_API_KEY: z.string().trim().optional(),
+      TRADESCOUT_GOOGLE_MAPS_API_KEY: z.string().trim().optional(),
       GOOGLE_SOLAR_API_KEY: z.string().trim().optional(),
       PRINTFUL_API_KEY: z.string().trim().optional(),
 
