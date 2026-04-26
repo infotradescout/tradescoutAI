@@ -227,7 +227,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           type="button"
           onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:w-auto sm:py-2"
+          className="scout-send-btn inline-flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:w-auto sm:py-2"
           style={{
             borderColor: isButtonDisabled ? "var(--border-subtle)" : "var(--theme-accent-primary)",
             backgroundColor: isButtonDisabled
