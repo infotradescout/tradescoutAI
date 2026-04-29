@@ -171,8 +171,8 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
     <nav
       className={`sticky top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? "bg-transparent backdrop-blur-xl border-b border-white/10" : "bg-transparent"}`}
     >
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
-        <div className="flex items-center justify-between h-12 lg:h-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-14 lg:h-16">
           <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
             <TradeScoutLogo size="sm" className="lg:w-10 lg:h-10" />
             <span className="font-display font-bold text-lg lg:text-xl text-white tracking-tight">
@@ -266,12 +266,12 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
   return (
     <section
       ref={heroRef}
-      className="relative min-h-[34vh] md:min-h-[40vh] lg:min-h-[46vh] flex items-start overflow-hidden"
+      className="relative min-h-[56vh] md:min-h-[64vh] lg:min-h-[72vh] flex items-center overflow-hidden"
     >
       <motion.div
         // eslint-disable-next-line no-restricted-syntax -- framer-motion transform props (non-color styles)
         style={{ y: heroY, opacity: heroOpacity }}
-        className="relative z-10 max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 pt-3 pb-4 md:pt-4 md:pb-5 lg:pt-5 lg:pb-6 w-full"
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 md:pt-16 md:pb-14 lg:pt-20 lg:pb-16 w-full"
       >
         <div className="w-full md:max-w-2xl">
           {variant.showBadge !== false && (
@@ -290,7 +290,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="font-display text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-white leading-[1.08] tracking-tight mb-2"
+            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.02] tracking-tight mb-4"
           >
             {variant.headlineLines.map((line, index) => {
               const isAccent = index === 1 || (variant.headlineLines.length === 1 && index === 0);
@@ -307,7 +307,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-sm sm:text-base text-white/70 max-w-none md:max-w-xl mb-2.5 leading-relaxed"
+            className="text-base sm:text-lg text-white/80 max-w-none md:max-w-2xl mb-6 leading-relaxed"
           >
             {variant.subhead}
           </motion.p>
@@ -316,7 +316,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex flex-col sm:flex-row gap-2.5"
+            className="flex flex-col sm:flex-row gap-3"
           >
             <a
               href={variant.primaryCta.href}
@@ -328,7 +328,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
                 })
               }
             >
-              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-sm sm:text-base px-5 h-11 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02] w-full sm:w-auto">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-sm sm:text-base px-6 h-12 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02] w-full sm:w-auto">
                 {variant.primaryCta.label}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -340,7 +340,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
                   elem?.scrollIntoView({ behavior: "smooth" });
                 }}
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-5 h-11 rounded-lg w-full sm:w-auto bg-transparent"
+                className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-6 h-12 rounded-lg w-full sm:w-auto bg-transparent"
               >
                 {variant.secondaryCta.label}
               </Button>
@@ -357,7 +357,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
               >
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-5 h-11 rounded-lg w-full sm:w-auto bg-transparent"
+                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-6 h-12 rounded-lg w-full sm:w-auto bg-transparent"
                 >
                   {variant.secondaryCta.label}
                 </Button>
@@ -369,7 +369,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.8 }}
-            className="mt-2 text-xs text-white/45"
+            className="mt-4 text-xs text-white/50"
           >
             No account required to start. Save progress later if you want to.
           </motion.p>
@@ -400,16 +400,16 @@ function StatsBar() {
   ];
 
   return (
-    <section className="relative z-10 bg-transparent border-y border-white/10">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 lg:py-3">
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 md:gap-3">
+    <section className="relative z-10 bg-transparent border-y border-white/10 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 lg:py-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
           {stats.map((stat, i) => (
             <Reveal key={i} delay={i * 0.1}>
-              <div className="text-center">
-                <div className="font-display text-xl sm:text-2xl font-extrabold text-ts-orange mb-0.5">
+              <div className="text-center rounded-xl border border-white/10 bg-white/[0.03] py-4 px-3">
+                <div className="font-display text-3xl sm:text-4xl font-extrabold text-ts-orange mb-1">
                   {stat.display ?? <AnimatedCounter target={stat.value} suffix={stat.suffix} />}
                 </div>
-                <div className="text-[11px] sm:text-xs text-white/60 font-medium">{stat.label}</div>
+                <div className="text-xs sm:text-sm text-white/65 font-medium">{stat.label}</div>
               </div>
             </Reveal>
           ))}
@@ -442,23 +442,23 @@ function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      className="relative scroll-mt-20 py-4 md:py-6 bg-transparent overflow-hidden"
+      className="relative scroll-mt-20 py-14 md:py-20 bg-transparent overflow-hidden"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-3">
+        <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
             <Zap className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">The Process</span>
           </div>
-          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
             How TradeScout Works
           </h2>
-          <p className="text-sm text-white/60 max-w-2xl mx-auto">
+          <p className="text-base text-white/70 max-w-2xl mx-auto">
             Tell Scout what you need and get a clear next step without digging through directories.
           </p>
         </Reveal>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-2.5 md:gap-3">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {steps.map((step) => {
             const Icon = step.icon;
             return (
@@ -466,13 +466,13 @@ function HowItWorksSection() {
                 key={step.title}
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 hover:border-ts-orange/30 transition-colors shadow-[0_18px_52px_rgba(0,0,0,0.36)]"
+                className="bg-tsCard border border-white/10 rounded-2xl p-5 md:p-6 hover:border-ts-orange/30 transition-colors shadow-[0_18px_52px_rgba(0,0,0,0.36)]"
               >
-                <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center mb-2">
+                <div className="w-10 h-10 bg-ts-orange/20 rounded-xl flex items-center justify-center mb-3">
                   <Icon className="w-4 h-4 text-ts-orange" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-1.5">{step.title}</h3>
-                <p className="text-xs text-white/60 leading-relaxed">{step.desc}</p>
+                <h3 className="text-lg font-bold text-white mb-2">{step.title}</h3>
+                <p className="text-sm text-white/70 leading-relaxed">{step.desc}</p>
               </motion.div>
             );
           })}
@@ -497,19 +497,19 @@ function TrustSection({ variant }: { variant: ReturnType<typeof useLandingVarian
   ];
 
   return (
-    <section id="trust" className="relative scroll-mt-20 py-4 md:py-6 bg-transparent">
+    <section id="trust" className="relative scroll-mt-20 py-14 md:py-20 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-center">
           <Reveal>
             <div>
               <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
                 <Shield className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Trust Score</span>
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+              <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
                 Trust, Not Payment
               </h2>
-              <p className="text-sm text-white/60 mb-3">
+              <p className="text-base text-white/70 mb-5">
                 Every business has a Trust Score based on verified identity, active credentials,
                 work history, community recommendations, and dispute resolution. You can quickly see
                 why someone is a strong fit before you reach out.
@@ -578,10 +578,10 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
   return (
     <section
       id="direct-connect"
-      className="relative scroll-mt-20 py-4 md:py-6 bg-transparent overflow-hidden"
+      className="relative scroll-mt-20 py-14 md:py-20 bg-transparent overflow-hidden"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-4 lg:gap-6 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 items-center">
           <Reveal delay={0.2}>
             <img
               src={variant.images.craft}
@@ -596,12 +596,12 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
                 <Handshake className="w-4 h-4 text-ts-orange" />
                 <span className="text-sm font-medium text-ts-orange">Direct Connection</span>
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+              <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
                 Less noise.
                 <br />
                 Better matches.
               </h2>
-              <p className="text-sm text-white/60 mb-3">
+              <p className="text-base text-white/70 mb-5">
                 Scout helps you review focused local options first, then open contact only when you
                 are ready.
               </p>
@@ -636,31 +636,33 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
 // ---- For Contractors Section ----
 function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <section id="audience" className="relative scroll-mt-20 py-4 md:py-6 bg-transparent">
+    <section id="audience" className="relative scroll-mt-20 py-14 md:py-20 bg-transparent">
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-3">
+        <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
             <Briefcase className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">
               {variant.audience.sectionLabel}
             </span>
           </div>
-          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
             {variant.audience.sectionTitle}
           </h2>
-          <p className="text-sm text-white/60 max-w-2xl mx-auto">{variant.audience.sectionDesc}</p>
+          <p className="text-base text-white/70 max-w-2xl mx-auto">
+            {variant.audience.sectionDesc}
+          </p>
         </Reveal>
 
-        <div className="grid md:grid-cols-2 gap-2.5 md:gap-3">
+        <div className="grid md:grid-cols-2 gap-4 md:gap-5">
           {variant.audience.cards.map((card, i) => (
             <Reveal key={i} delay={i * 0.1}>
               <motion.div
                 whileHover={{ y: -4 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 hover:border-ts-orange/30 transition-colors shadow-[0_18px_52px_rgba(0,0,0,0.36)]"
+                className="bg-tsCard border border-white/10 rounded-2xl p-5 md:p-6 hover:border-ts-orange/30 transition-colors shadow-[0_18px_52px_rgba(0,0,0,0.36)]"
               >
-                <h3 className="font-display text-base font-bold text-white mb-1.5">{card.title}</h3>
-                <p className="text-xs text-white/60 leading-relaxed">{card.desc}</p>
+                <h3 className="font-display text-lg font-bold text-white mb-2">{card.title}</h3>
+                <p className="text-sm text-white/70 leading-relaxed">{card.desc}</p>
               </motion.div>
             </Reveal>
           ))}
@@ -681,18 +683,18 @@ function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative scroll-mt-20 py-4 md:py-6 bg-transparent overflow-hidden"
+      className="relative scroll-mt-20 py-14 md:py-20 bg-transparent overflow-hidden"
     >
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-3">
+        <Reveal className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
             <Sparkles className="w-4 h-4 text-ts-orange" />
             <span className="text-sm font-medium text-ts-orange">What To Expect</span>
           </div>
-          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
             Faster path. Less noise.
           </h2>
-          <p className="text-sm text-white/60 max-w-2xl mx-auto">
+          <p className="text-base text-white/70 max-w-2xl mx-auto">
             Start here if you want a simple local decision flow from question to contact.
           </p>
           <p className="text-xs text-white/50 max-w-2xl mx-auto mt-1.5">
@@ -700,7 +702,7 @@ function PricingSection() {
           </p>
         </Reveal>
 
-        <Reveal className="bg-tsCard border border-white/10 rounded-xl p-3 md:p-4 shadow-[0_18px_52px_rgba(0,0,0,0.36)] mb-3">
+        <Reveal className="bg-tsCard border border-white/10 rounded-2xl p-5 md:p-6 shadow-[0_18px_52px_rgba(0,0,0,0.36)] mb-5">
           <h3 className="font-display text-lg font-bold text-white mb-2.5">Before You Start</h3>
           <ul className="space-y-1.5">
             {quickStart.map((step, i) => (
@@ -752,13 +754,13 @@ function FAQSection() {
   ];
 
   return (
-    <section id="faq" className="relative py-4 md:py-6 bg-transparent">
+    <section id="faq" className="relative py-14 md:py-20 bg-transparent">
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Reveal className="text-center mb-3">
-          <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
+        <Reveal className="text-center mb-10">
+          <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
             Frequently Asked Questions
           </h2>
-          <p className="text-sm text-white/60">
+          <p className="text-base text-white/70">
             Quick answers on cost, matching, trust score, and what to do if your first matches are
             off.
           </p>
@@ -790,7 +792,7 @@ function FAQSection() {
 // ---- CTA Section ----
 function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <section id="get-started" className="relative py-4 md:py-6 bg-transparent overflow-hidden">
+    <section id="get-started" className="relative py-14 md:py-20 bg-transparent overflow-hidden">
       <div className="relative z-10 max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <Reveal>
           <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-3">
@@ -798,7 +800,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             <span className="text-sm font-medium text-ts-orange">{variant.cta.label}</span>
           </div>
 
-          <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-tight mb-3">
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight mb-4">
             {variant.cta.titleLines.map((line, idx) => (
               <span key={idx}>
                 {idx === 1 ? <span className="text-gradient-orange">{line}</span> : line}
@@ -807,7 +809,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
             ))}
           </h2>
 
-          <p className="text-sm text-white/60 mb-3 max-w-xl mx-auto">{variant.cta.desc}</p>
+          <p className="text-base text-white/70 mb-5 max-w-xl mx-auto">{variant.cta.desc}</p>
 
           <div className="flex flex-col sm:flex-row gap-2.5 justify-center">
             <a
@@ -820,7 +822,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
                 })
               }
             >
-              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-sm sm:text-base px-7 h-11 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
+              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-sm sm:text-base px-8 h-12 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02]">
                 {variant.cta.primaryLabel}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -838,7 +840,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
               >
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-7 h-11 rounded-lg bg-transparent"
+                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-8 h-12 rounded-lg bg-transparent"
                 >
                   {variant.cta.secondaryLabel}
                 </Button>
@@ -856,7 +858,7 @@ function CTASection({ variant }: { variant: ReturnType<typeof useLandingVariant>
 // ---- Footer ----
 function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) {
   return (
-    <footer className="bg-transparent border-t border-white/10 pt-5 pb-8 sm:pb-5">
+    <footer className="bg-transparent border-t border-white/10 pt-10 pb-10 sm:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           <div>
@@ -1089,7 +1091,12 @@ export default function Home() {
   }, [trackedVariant.key]);
 
   return (
-    <div className="flex flex-col bg-transparent text-white font-body">
+    <div className="relative flex flex-col bg-[#07111d] text-white font-body overflow-x-clip">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-24 -left-20 h-[24rem] w-[24rem] rounded-full bg-ts-orange/14 blur-3xl" />
+        <div className="absolute top-[26rem] -right-24 h-[26rem] w-[26rem] rounded-full bg-cyan-400/10 blur-3xl" />
+        <div className="absolute inset-0 opacity-[0.18] [background:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.08)_1px,transparent_0)] [background-size:22px_22px]" />
+      </div>
       {/* Scout is the operating layer for local interaction */}
       <SEOHelmet
         title={
@@ -1104,7 +1111,7 @@ export default function Home() {
         noIndex={!shouldIndexLandingPage}
       />
       <Navbar variant={trackedVariant} />
-      <main>
+      <main className="relative z-10">
         <HeroSection variant={trackedVariant} />
         <StatsBar />
         <HowItWorksSection />
