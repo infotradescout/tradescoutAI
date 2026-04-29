@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Link } from "wouter";
+import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PRIMARY_TRADE_SLUGS, getTradeBySlug } from "@shared/tradeSeo";
@@ -20,27 +21,42 @@ const TradeDirectoryPage = memo(function TradeDirectoryPage() {
         canonical="https://www.thetradescout.com/trade"
       />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="bg-white/5 border-white/10">
-          <CardHeader>
-            <CardTitle className="text-3xl text-white">Trades Directory</CardTitle>
-            <p className="text-white/60">
+      <div className="bg-tsBg text-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-8 max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-sm font-medium text-ts-orange">
+              <Search className="h-4 w-4" />
+              Browse by trade first
+            </div>
+            <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">Trades Directory</h1>
+            <p className="text-lg leading-relaxed text-white/70">
               Select a trade, pick your market, and narrow from there by city or neighborhood.{" "}
               {localBrowseCopy()}
             </p>
-          </CardHeader>
-          <CardContent className="p-6 pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {items.map((trade) => (
-                <Link key={trade.slug} href={`/trade/${encodeURIComponent(trade.slug)}`}>
-                  <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                    {trade.name}
-                  </a>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card className="border-white/10 bg-white/[0.04] shadow-[0_22px_70px_rgba(0,0,0,0.32)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl text-white">
+                <ShieldCheck className="h-5 w-5 text-ts-orange" />
+                Start with the work category
+              </CardTitle>
+              <p className="text-white/60">Browse locally before any contact decision opens.</p>
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {items.map((trade) => (
+                  <Link key={trade.slug} href={`/trade/${encodeURIComponent(trade.slug)}`}>
+                    <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
+                      <span>{trade.name}</span>
+                      <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                    </a>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </>
   );

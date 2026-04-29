@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Link, useParams } from "wouter";
+import { ArrowRight, MapPinned, ShieldCheck } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStateByCode, getCountiesByState } from "@shared/states-counties";
@@ -63,39 +64,56 @@ const TradeStatePage = memo(function TradeStatePage() {
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
       />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="bg-white/5 border-white/10">
-          <CardHeader>
-            <CardTitle className="text-3xl text-white">
+      <div className="bg-tsBg text-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-8 max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-sm font-medium text-ts-orange">
+              <MapPinned className="h-4 w-4" />
+              County-contained routing
+            </div>
+            <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
               {trade.name} in {state.name}
-            </CardTitle>
-            <p className="text-white/60">
+            </h1>
+            <p className="text-lg leading-relaxed text-white/70">
               Pick the local market you want to start in, then narrow by city or neighborhood.{" "}
               {localBrowseCopy()}
             </p>
-          </CardHeader>
-          <CardContent className="p-6 pt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {counties.map((county) => {
-                const countySlug = nameToSlug(
-                  county.name.replace(/\s+County$/i, "").trim() || county.name
-                );
-                return (
-                  <Link
-                    key={county.fipsCode}
-                    href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
-                      state.code.toLowerCase()
-                    )}/${encodeURIComponent(countySlug)}`}
-                  >
-                    <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                      {toLocalMarketLabel(stripCountySuffix(county.name), state.code)}
-                    </a>
-                  </Link>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card className="border-white/10 bg-white/[0.04] shadow-[0_22px_70px_rgba(0,0,0,0.32)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl text-white">
+                <ShieldCheck className="h-5 w-5 text-ts-orange" />
+                Select a county
+              </CardTitle>
+              <p className="text-white/60">Choose the market before comparing businesses.</p>
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {counties.map((county) => {
+                  const countySlug = nameToSlug(
+                    county.name.replace(/\s+County$/i, "").trim() || county.name
+                  );
+                  return (
+                    <Link
+                      key={county.fipsCode}
+                      href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
+                        state.code.toLowerCase()
+                      )}/${encodeURIComponent(countySlug)}`}
+                    >
+                      <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
+                        <span>
+                          {toLocalMarketLabel(stripCountySuffix(county.name), state.code)}
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                      </a>
+                    </Link>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </>
   );

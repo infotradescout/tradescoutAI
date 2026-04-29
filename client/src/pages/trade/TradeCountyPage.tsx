@@ -2,6 +2,7 @@ import type { FormEvent } from "react";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Building2, MapPinned, Search, ShieldCheck } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -172,117 +173,144 @@ const TradeCountyPage = memo(function TradeCountyPage() {
         noIndex={shouldNoIndex}
       />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            {trade.name} in {marketLabel}
-          </h1>
-          <p className="text-white/60">
-            Start with the local market, then narrow by city or neighborhood. {localBrowseCopy()}
-          </p>
-        </div>
+      <div className="bg-tsBg text-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-8 max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-sm font-medium text-ts-orange">
+              <MapPinned className="h-4 w-4" />
+              County market
+            </div>
+            <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
+              {trade.name} in {marketLabel}
+            </h1>
+            <p className="text-lg leading-relaxed text-white/70">
+              Start with the local market, then narrow by city or neighborhood. {localBrowseCopy()}
+            </p>
+          </div>
 
-        <Card className="bg-white/5 border-white/10 mb-6">
-          <CardContent className="p-4">
-            <form className="flex gap-2" onSubmit={onSearch}>
-              <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder={`Search ${trade.name} in ${stripCountySuffix(county.name)}...`}
-              />
-              <Input
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="City (optional)"
-              />
-              <Button type="submit" variant="secondary">
-                Search
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {isLoading ? (
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-6 text-white/70">Loading directory…</CardContent>
-          </Card>
-        ) : isError ? (
-          <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-6 space-y-4">
-              <p className="text-red-700">Failed to load directory.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={() => void refetch()}>
-                  Try again
+          <Card className="mb-6 border-white/10 bg-white/[0.04] shadow-[0_22px_70px_rgba(0,0,0,0.32)]">
+            <CardContent className="p-4">
+              <form className="grid gap-3 md:grid-cols-[1fr_0.75fr_auto]" onSubmit={onSearch}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-white/45" />
+                  <Input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder={`Search ${trade.name} in ${stripCountySuffix(county.name)}...`}
+                    className="border-white/10 bg-tsBg/70 pl-10 text-white placeholder:text-white/35"
+                  />
+                </div>
+                <Input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="City (optional)"
+                  className="border-white/10 bg-tsBg/70 text-white placeholder:text-white/35"
+                />
+                <Button type="submit" variant="secondary" className="gap-2">
+                  <Search className="h-4 w-4" />
+                  Search
                 </Button>
-                <Link href={stateRoute}>
-                  <a className="inline-flex items-center rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-50">
-                    Browse state markets
-                  </a>
-                </Link>
-              </div>
+              </form>
             </CardContent>
           </Card>
-        ) : items.length === 0 ? (
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-6 space-y-4">
-              <p className="text-white/80">
-                No {trade.name.toLowerCase()} listings matched this exact filter yet.
-              </p>
-              <p className="text-sm text-white/60">
-                Keep moving: expand to state markets, reset the city filter, or ask Scout to route
-                this request.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {city.trim() ? (
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setCity("");
-                      setOffset(0);
-                    }}
-                  >
-                    Clear city filter
-                  </Button>
-                ) : null}
-                <Link href={stateRoute}>
-                  <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
-                    Browse {state.name}
-                  </a>
-                </Link>
-                <Link href={scoutEstimateHref}>
-                  <a className="inline-flex items-center rounded-md bg-ts-orange px-4 py-2 text-sm font-medium text-white hover:bg-ts-orange-dark">
-                    Ask Scout for help
-                  </a>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {items.map((biz) => (
-              <Card key={biz.id} className="bg-white/5 border-white/10">
-                <CardHeader className="py-4">
-                  <CardTitle className="text-white text-lg flex items-center justify-between gap-2">
-                    <Link href={`/business/${encodeURIComponent(biz.slug)}`}>
-                      <a className="hover:underline">{biz.name}</a>
-                    </Link>
-                    <Badge variant={biz.claimStatus === "claimed" ? "default" : "secondary"}>
-                      {biz.claimStatus === "claimed" ? "Claimed" : "Unclaimed"}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        )}
 
-        {items.length === limit ? (
-          <div className="mt-6 flex justify-center">
-            <Button variant="secondary" onClick={() => setOffset((v) => v + limit)}>
-              Load more
-            </Button>
-          </div>
-        ) : null}
+          {isLoading ? (
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-6 text-white/70">Loading directory…</CardContent>
+            </Card>
+          ) : isError ? (
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-6 space-y-4">
+                <p className="text-red-700">Failed to load directory.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => void refetch()}>
+                    Try again
+                  </Button>
+                  <Link href={stateRoute}>
+                    <a className="inline-flex items-center rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-50">
+                      Browse state markets
+                    </a>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ) : items.length === 0 ? (
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-6 space-y-4">
+                <p className="text-white/80">
+                  No {trade.name.toLowerCase()} listings matched this exact filter yet.
+                </p>
+                <p className="text-sm text-white/60">
+                  Keep moving: expand to state markets, reset the city filter, or ask Scout to route
+                  this request.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {city.trim() ? (
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setCity("");
+                        setOffset(0);
+                      }}
+                    >
+                      Clear city filter
+                    </Button>
+                  ) : null}
+                  <Link href={stateRoute}>
+                    <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
+                      Browse {state.name}
+                    </a>
+                  </Link>
+                  <Link href={scoutEstimateHref}>
+                    <a className="inline-flex items-center rounded-md bg-ts-orange px-4 py-2 text-sm font-medium text-white hover:bg-ts-orange-dark">
+                      Ask Scout for help
+                    </a>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {items.map((biz) => (
+                <Card
+                  key={biz.id}
+                  className="border-white/10 bg-white/[0.04] transition hover:border-ts-orange/35 hover:bg-white/[0.07]"
+                >
+                  <CardHeader className="py-4">
+                    <CardTitle className="flex items-center justify-between gap-3 text-lg text-white">
+                      <Link href={`/business/${encodeURIComponent(biz.slug)}`}>
+                        <a className="group flex min-w-0 items-center gap-3 hover:text-ts-orange">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ts-orange/15 text-ts-orange">
+                            <Building2 className="h-4 w-4" />
+                          </span>
+                          <span className="truncate">{biz.name}</span>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-white/30 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                        </a>
+                      </Link>
+                      <Badge
+                        variant={biz.claimStatus === "claimed" ? "default" : "secondary"}
+                        className="shrink-0"
+                      >
+                        {biz.claimStatus === "claimed" ? (
+                          <ShieldCheck className="mr-1 h-3 w-3" />
+                        ) : null}
+                        {biz.claimStatus === "claimed" ? "Claimed" : "Unclaimed"}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {items.length === limit ? (
+            <div className="mt-6 flex justify-center">
+              <Button variant="secondary" onClick={() => setOffset((v) => v + limit)}>
+                Load more
+              </Button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </>
   );

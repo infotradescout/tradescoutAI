@@ -1,5 +1,6 @@
 import { memo, useMemo } from "react";
 import { Link, useParams } from "wouter";
+import { ArrowRight, MapPinned, ShieldCheck } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
@@ -53,32 +54,47 @@ const TradeOverviewPage = memo(function TradeOverviewPage() {
         structuredData={createBreadcrumbStructuredData(breadcrumbs)}
       />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Card className="bg-white/5 border-white/10">
-          <CardHeader>
-            <CardTitle className="text-3xl text-white">{trade.name}</CardTitle>
-            <p className="text-white/60">
+      <div className="bg-tsBg text-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-8 max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-sm font-medium text-ts-orange">
+              <MapPinned className="h-4 w-4" />
+              State routing
+            </div>
+            <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">{trade.name}</h1>
+            <p className="text-lg leading-relaxed text-white/70">
               Choose a state to browse county directories. Listings may be unclaimed; verification
               is shown on each business page.
             </p>
-          </CardHeader>
-          <CardContent className="p-6 pt-0">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {US_STATES_COUNTIES.map((state) => (
-                <Link
-                  key={state.code}
-                  href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
-                    state.code.toLowerCase()
-                  )}`}
-                >
-                  <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                    {state.name}
-                  </a>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+
+          <Card className="border-white/10 bg-white/[0.04] shadow-[0_22px_70px_rgba(0,0,0,0.32)]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl text-white">
+                <ShieldCheck className="h-5 w-5 text-ts-orange" />
+                Select a state
+              </CardTitle>
+              <p className="text-white/60">Open the local market before any contact path opens.</p>
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {US_STATES_COUNTIES.map((state) => (
+                  <Link
+                    key={state.code}
+                    href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
+                      state.code.toLowerCase()
+                    )}`}
+                  >
+                    <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
+                      <span>{state.name}</span>
+                      <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                    </a>
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </>
   );

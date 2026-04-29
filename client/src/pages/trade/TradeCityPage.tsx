@@ -1,6 +1,7 @@
 import { memo, useMemo } from "react";
 import { Link, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, Building2, MapPinned } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -114,89 +115,101 @@ const TradeCityPage = memo(function TradeCityPage() {
         noIndex={shouldNoIndex}
       />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="mb-6">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            {trade.name} in {displayCity}, {state}
-          </h1>
-          <p className="text-white/60">
-            City pages route into county directories (keeps counties as operational containers).
-          </p>
-        </div>
+      <div className="bg-tsBg text-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-8 max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-sm font-medium text-ts-orange">
+              <MapPinned className="h-4 w-4" />
+              City-to-county route
+            </div>
+            <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
+              {trade.name} in {displayCity}, {state}
+            </h1>
+            <p className="text-lg leading-relaxed text-white/70">
+              City pages route into county directories (keeps counties as operational containers).
+            </p>
+          </div>
 
-        {isLoading ? (
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-6 text-white/70">Loading trade-city coverage…</CardContent>
-          </Card>
-        ) : isError ? (
-          <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-6 space-y-4">
-              <p className="text-red-700">Failed to load coverage.</p>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" onClick={() => void refetch()}>
-                  Try again
-                </Button>
-                <Link href={stateRoute}>
-                  <a className="inline-flex items-center rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-50">
-                    Browse state markets
-                  </a>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : counties.length === 0 ? (
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-6 space-y-4">
-              <p className="text-white/80">No county coverage matched this city page yet.</p>
-              <p className="text-sm text-white/60">
-                Keep moving: open the state market, browse county directory, or ask Scout to route
-                your request.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <Link href={stateRoute}>
-                  <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
-                    Browse {state}
-                  </a>
-                </Link>
-                <Link href="/county-directory">
-                  <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
-                    Open county directory
-                  </a>
-                </Link>
-                <Link href={scoutEstimateHref}>
-                  <a className="inline-flex items-center rounded-md bg-ts-orange px-4 py-2 text-sm font-medium text-white hover:bg-ts-orange-dark">
-                    Ask Scout for help
-                  </a>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="bg-white/5 border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white text-2xl">Counties</CardTitle>
-              <p className="text-white/60 text-sm">
-                Choose a county to browse listings filtered to this city.
-              </p>
-            </CardHeader>
-            <CardContent className="p-6 pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {counties.map((c) => (
-                  <Link
-                    key={c.countyFips}
-                    href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
-                      state.toLowerCase()
-                    )}/${encodeURIComponent(c.countySlug)}?city=${encodeURIComponent(city)}`}
-                  >
-                    <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                      {c.countyName} ({c.businessCount.toLocaleString()})
+          {isLoading ? (
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-6 text-white/70">Loading trade-city coverage…</CardContent>
+            </Card>
+          ) : isError ? (
+            <Card className="bg-red-50 border-red-200">
+              <CardContent className="p-6 space-y-4">
+                <p className="text-red-700">Failed to load coverage.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => void refetch()}>
+                    Try again
+                  </Button>
+                  <Link href={stateRoute}>
+                    <a className="inline-flex items-center rounded-md border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-900 hover:bg-red-50">
+                      Browse state markets
                     </a>
                   </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : counties.length === 0 ? (
+            <Card className="bg-white/5 border-white/10">
+              <CardContent className="p-6 space-y-4">
+                <p className="text-white/80">No county coverage matched this city page yet.</p>
+                <p className="text-sm text-white/60">
+                  Keep moving: open the state market, browse county directory, or ask Scout to route
+                  your request.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Link href={stateRoute}>
+                    <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
+                      Browse {state}
+                    </a>
+                  </Link>
+                  <Link href="/county-directory">
+                    <a className="inline-flex items-center rounded-md border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/15">
+                      Open county directory
+                    </a>
+                  </Link>
+                  <Link href={scoutEstimateHref}>
+                    <a className="inline-flex items-center rounded-md bg-ts-orange px-4 py-2 text-sm font-medium text-white hover:bg-ts-orange-dark">
+                      Ask Scout for help
+                    </a>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-white/10 bg-white/[0.04] shadow-[0_22px_70px_rgba(0,0,0,0.32)]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl text-white">
+                  <Building2 className="h-5 w-5 text-ts-orange" />
+                  Counties
+                </CardTitle>
+                <p className="text-white/60 text-sm">
+                  Choose a county to browse listings filtered to this city.
+                </p>
+              </CardHeader>
+              <CardContent className="p-6 pt-0">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {counties.map((c) => (
+                    <Link
+                      key={c.countyFips}
+                      href={`/trade/${encodeURIComponent(trade.canonicalSlug)}/${encodeURIComponent(
+                        state.toLowerCase()
+                      )}/${encodeURIComponent(c.countySlug)}?city=${encodeURIComponent(city)}`}
+                    >
+                      <a className="group flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-white transition hover:border-ts-orange/40 hover:bg-white/[0.08]">
+                        <span>
+                          {c.countyName} ({c.businessCount.toLocaleString()})
+                        </span>
+                        <ArrowRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                      </a>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     </>
   );
