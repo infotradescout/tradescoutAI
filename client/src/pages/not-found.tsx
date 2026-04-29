@@ -56,7 +56,7 @@ export default function NotFound() {
                 <ArrowRight className="w-3.5 h-3.5 text-white/30 ml-auto group-hover:text-ts-orange transition-colors" />
               </a>
             </Link>
-            <Link href="/how-it-works">
+            <Link href="/help/how-tradescout-works">
               <a className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors group">
                 <div className="w-8 h-8 bg-ts-orange/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   <HelpCircle className="w-4 h-4 text-ts-orange" />
