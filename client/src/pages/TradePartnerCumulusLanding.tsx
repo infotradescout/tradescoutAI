@@ -217,7 +217,7 @@ const BENEFITS = [
   "Real audience targeting using identity-backed and behavioral signals, not anonymous cookie-only audiences.",
   "One of the largest audio and digital media footprints in the U.S. with Westwood One network reach.",
   "Creative support and campaign messaging help from experienced Cumulus teams.",
-  "Geo-targeted planning built for local visibility, leads, and measurable business response.",
+  "Geo-targeted planning built for local visibility, qualified intent, and measurable business response.",
 ];
 
 const CHANNELS = [
@@ -851,7 +851,6 @@ export default function TradePartnerCumulusLanding() {
     Array.isArray(campaignConfig?.benefits) && campaignConfig.benefits.length > 0
       ? campaignConfig.benefits
       : BENEFITS;
-  const campaignHeroHeadline = campaignConfig?.heroHeadline?.trim() || "TradeScout x Cumulus Media";
   const campaignHeroSubhead = campaignConfig?.heroSubhead?.trim() || "";
   const campaignFocusNote = campaignConfig?.focusNote?.trim() || "";
   const campaignCoverageScope = campaignConfig?.coverageScope || "national";
