@@ -1,19 +1,6 @@
 import { memo, useState } from "react";
-import {
-  BookOpen,
-  Video,
-  Download,
-  FileText,
-  Users,
-  Star,
-  Search,
-  Filter,
-  Play,
-  Eye,
-  Clock,
-} from "lucide-react";
+import { BookOpen, Video, Download, FileText, Search, Play, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,9 +28,6 @@ const ResourceCenter = memo(function ResourceCenter() {
       description:
         "Decision-focused checklist for residential electrical work before contact, quote, and execution.",
       author: "TradeScout Safety Team",
-      rating: 4.9,
-      views: 15420,
-      downloads: 3240,
       duration: "45 min read",
       level: "Beginner",
       tags: ["electrical", "safety", "residential"],
@@ -58,10 +42,7 @@ const ResourceCenter = memo(function ResourceCenter() {
       category: "education",
       description:
         "Scenario-based video series for diagnosing failures and planning corrective action.",
-      author: "Master Plumber Mike Johnson",
-      rating: 4.8,
-      views: 8760,
-      downloads: 0,
+      author: "TradeScout Field Review",
       duration: "2h 30min",
       level: "Advanced",
       tags: ["plumbing", "techniques", "masterclass"],
@@ -77,9 +58,6 @@ const ResourceCenter = memo(function ResourceCenter() {
       category: "business",
       description: "Simple reference map for license and insurance requirements by state.",
       author: "TradeScout Legal Team",
-      rating: 4.7,
-      views: 12350,
-      downloads: 5670,
       duration: "Reference",
       level: "All Levels",
       tags: ["licensing", "business", "legal"],
@@ -94,10 +72,7 @@ const ResourceCenter = memo(function ResourceCenter() {
       type: "guide",
       category: "business",
       description: "Simple message patterns that keep projects moving.",
-      author: "Business Development Team",
-      rating: 4.6,
-      views: 9870,
-      downloads: 2890,
+      author: "TradeScout Operations Team",
       duration: "30 min read",
       level: "Intermediate",
       tags: ["communication", "customer service", "business"],
@@ -110,11 +85,8 @@ const ResourceCenter = memo(function ResourceCenter() {
       title: "OSHA Safety Standards Field Workshop",
       type: "video",
       category: "safety",
-      description: "Interactive workshop covering OSHA safety standards for construction workers",
-      author: "OSHA Certified Instructors",
-      rating: 4.9,
-      views: 6540,
-      downloads: 0,
+      description: "Field workshop covering OSHA safety standards for construction workers",
+      author: "TradeScout Safety Review",
       duration: "1h 45min",
       level: "All Levels",
       tags: ["OSHA", "safety", "construction"],
@@ -128,11 +100,8 @@ const ResourceCenter = memo(function ResourceCenter() {
       title: "Project Estimation and Scope Template Pack",
       type: "template",
       category: "business",
-      description: "Professional templates for creating accurate project estimates and quotes",
+      description: "Reference templates for clearer project estimates and scope decisions",
       author: "TradeScout Tools Team",
-      rating: 4.5,
-      views: 11230,
-      downloads: 7890,
       duration: "Template Pack",
       level: "All Levels",
       tags: ["estimation", "templates", "pricing"],
@@ -168,6 +137,18 @@ const ResourceCenter = memo(function ResourceCenter() {
     }
   };
 
+  const query = searchQuery.trim().toLowerCase();
+  const filteredResources = resources.filter((resource) => {
+    const matchesQuery =
+      !query ||
+      resource.title.toLowerCase().includes(query) ||
+      resource.description.toLowerCase().includes(query) ||
+      resource.tags.some((tag) => tag.toLowerCase().includes(query));
+    const matchesCategory = category === "all" || resource.category === category;
+    const matchesType = resourceType === "all" || resource.type === resourceType;
+    return matchesQuery && matchesCategory && matchesType;
+  });
+
   return (
     <>
       <SEOHelmet
@@ -188,7 +169,7 @@ const ResourceCenter = memo(function ResourceCenter() {
           {/* Search and Filters */}
           <Card className="bg-card border-border mb-8">
             <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -224,16 +205,11 @@ const ResourceCenter = memo(function ResourceCenter() {
                     <SelectItem value="template">Templates</SelectItem>
                   </SelectContent>
                 </Select>
-
-                <Button className="bg-primary hover:bg-primary/90 flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Advanced Filters
-                </Button>
               </div>
 
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground text-sm">
-                  {resources.length} resources found
+                  {filteredResources.length} resources matched
                 </span>
               </div>
             </CardContent>
@@ -242,14 +218,14 @@ const ResourceCenter = memo(function ResourceCenter() {
           {/* Featured Resources */}
           <Card className="bg-card border-border mb-8">
             <CardHeader>
-              <CardTitle className="text-foreground">Featured Resources</CardTitle>
+              <CardTitle className="text-foreground">Priority References</CardTitle>
               <p className="text-muted-foreground">
-                Essential learning materials for trade professionals
+                Decision support materials selected for safety, clarity, and local work planning
               </p>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {resources
+                {filteredResources
                   .filter((resource) => resource.featured)
                   .map((resource) => (
                     <div
@@ -287,34 +263,29 @@ const ResourceCenter = memo(function ResourceCenter() {
 
                         <div className="flex items-center gap-2 mb-3">
                           <Badge className={getLevelColor(resource.level)}>{resource.level}</Badge>
-                          <div className="flex items-center gap-1 text-yellow-600 text-sm">
-                            <Star className="h-3 w-3 fill-current" />
-                            {resource.rating}
-                          </div>
                         </div>
 
                         <div className="flex justify-between items-center text-sm text-muted-foreground mb-3">
-                          <span>{resource.duration}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
-                              {resource.views.toLocaleString()}
-                            </span>
-                            {resource.downloads > 0 && (
-                              <span className="flex items-center gap-1">
-                                <Download className="h-3 w-3" />
-                                {resource.downloads.toLocaleString()}
-                              </span>
-                            )}
-                          </div>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {resource.duration}
+                          </span>
+                          <span>
+                            Reviewed {new Date(resource.lastUpdated).toLocaleDateString()}
+                          </span>
                         </div>
 
-                        <Button className="w-full bg-primary hover:bg-primary/90">
-                          {resource.type === "video" ? "Watch Now" : "Access Resource"}
-                        </Button>
+                        <div className="rounded-md border border-border bg-background px-3 py-2 text-center text-sm text-muted-foreground">
+                          Reference summary
+                        </div>
                       </div>
                     </div>
                   ))}
+                {filteredResources.filter((resource) => resource.featured).length === 0 ? (
+                  <div className="rounded-lg border border-border bg-muted p-6 text-sm text-muted-foreground md:col-span-3">
+                    No priority references match the current filters.
+                  </div>
+                ) : null}
               </div>
             </CardContent>
           </Card>
@@ -334,7 +305,7 @@ const ResourceCenter = memo(function ResourceCenter() {
 
             <TabsContent value="grid">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {resources.map((resource) => (
+                {filteredResources.map((resource) => (
                   <Card
                     key={resource.id}
                     className="bg-card border-border hover:bg-muted/50 transition-colors"
@@ -370,20 +341,12 @@ const ResourceCenter = memo(function ResourceCenter() {
 
                       <div className="flex items-center gap-2 mb-4">
                         <Badge className={getLevelColor(resource.level)}>{resource.level}</Badge>
-                        <div className="flex items-center gap-1 text-yellow-600 text-sm">
-                          <Star className="h-3 w-3 fill-current" />
-                          {resource.rating}
-                        </div>
                       </div>
 
                       <div className="flex justify-between items-center text-sm text-muted-foreground mb-4">
                         <span className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {resource.duration}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="h-3 w-3" />
-                          {resource.views.toLocaleString()}
                         </span>
                       </div>
 
@@ -394,18 +357,25 @@ const ResourceCenter = memo(function ResourceCenter() {
                         </p>
                       </div>
 
-                      <Button className="w-full bg-primary hover:bg-primary/90">
-                        {resource.type === "video" ? "Watch Now" : "Access Resource"}
-                      </Button>
+                      <div className="rounded-md border border-border bg-background px-3 py-2 text-center text-sm text-muted-foreground">
+                        Reference summary
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
+                {filteredResources.length === 0 ? (
+                  <Card className="bg-card border-border md:col-span-2 lg:col-span-3">
+                    <CardContent className="p-6 text-sm text-muted-foreground">
+                      No resources match the current filters.
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
             </TabsContent>
 
             <TabsContent value="list">
               <div className="space-y-4">
-                {resources.map((resource) => (
+                {filteredResources.map((resource) => (
                   <Card key={resource.id} className="bg-card border-border">
                     <CardContent className="p-6">
                       <div className="flex gap-6">
@@ -434,16 +404,8 @@ const ResourceCenter = memo(function ResourceCenter() {
                             <Badge className={getLevelColor(resource.level)}>
                               {resource.level}
                             </Badge>
-                            <div className="flex items-center gap-1 text-yellow-600 text-sm">
-                              <Star className="h-3 w-3 fill-current" />
-                              {resource.rating}
-                            </div>
                             <span className="text-muted-foreground text-sm">
                               {resource.duration}
-                            </span>
-                            <span className="text-muted-foreground text-sm flex items-center gap-1">
-                              <Eye className="h-3 w-3" />
-                              {resource.views.toLocaleString()} views
                             </span>
                           </div>
 
@@ -454,15 +416,22 @@ const ResourceCenter = memo(function ResourceCenter() {
                                 Updated {new Date(resource.lastUpdated).toLocaleDateString()}
                               </p>
                             </div>
-                            <Button className="bg-primary hover:bg-primary/90">
-                              {resource.type === "video" ? "Watch Now" : "Access Resource"}
-                            </Button>
+                            <div className="rounded-md border border-border bg-background px-3 py-2 text-sm text-muted-foreground">
+                              Reference summary
+                            </div>
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
+                {filteredResources.length === 0 ? (
+                  <Card className="bg-card border-border">
+                    <CardContent className="p-6 text-sm text-muted-foreground">
+                      No resources match the current filters.
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
             </TabsContent>
           </Tabs>
