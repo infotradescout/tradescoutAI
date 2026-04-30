@@ -49,13 +49,16 @@ import { callExternalActions } from "../services/externalActionsClient";
 import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver";
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
 import { COMMUNITY_TONE } from "../../shared/communityLanguage";
+import { CURRENT_PROFILE_VERSION } from "../../shared/profile";
 import { db, pool } from "../db";
 import {
   leads,
+  workRequestAssignments,
+  workRequests,
   scoutInteractionFailureReasonEnum,
   type InsertScoutInteraction,
 } from "../../shared/schema";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { createHash } from "crypto";
 import { govern } from "../scout/governor";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
@@ -88,6 +91,7 @@ import {
   shapeDealsForScout,
   type SourceConfidenceBand,
 } from "../scout/scoutDeterministicHelpers";
+import { assessEnhancedV4ProxyResponse } from "../scout/scoutEnhancedV4Fallback";
 import { buildDecisionPipelineBehaviorResponse } from "../scout/scoutBehaviorHandlers";
 import { maybeHandleHomeProjectRouting } from "../scout/scoutHomeProjectRouting";
 import { applyCommunityBehaviorOwnership } from "../scout/scoutCommunityBehaviorOwner";
@@ -97,6 +101,22 @@ import {
 } from "../scout/scoutMarketplaceBehaviorOwner";
 import { applyProviderBehaviorOwnership } from "../scout/scoutProviderBehaviorOwner";
 import { applySupportBehaviorOwnership } from "../scout/scoutSupportBehaviorOwner";
+import { buildAuthRequiredScoutResponse } from "../scout/scoutAuthRequiredResponse";
+import {
+  buildScoutProfileUpdateResponse,
+  inferScoutProfileUpdateDraft,
+  sanitizeScoutProfileUpdatePayload,
+} from "../scout/scoutProfileUpdateAssistant";
+import {
+  projectRequesterDirectConnectReadiness,
+  projectResponderDirectConnectReadiness,
+  resolveLiveReadiness,
+  type DirectConnectReadinessItem,
+} from "../../shared/liveReadiness";
+import {
+  buildScoutLiveReadinessResponse,
+  isLiveReadinessQuestion,
+} from "../scout/scoutLiveReadinessResponse";
 import type { SituationAnalysisInput } from "../services/scoutSituationAnalyzer";
 import ScoutTrustIntegration, { type ScoutTrustContext } from "../services/scoutTrustIntegration";
 import ScoutObjectiveOnboarding from "../services/scoutObjectiveOnboarding";
@@ -120,6 +140,72 @@ import {
 } from "../utils/onboardingService";
 
 const router = Router();
+
+async function loadLiveReadinessDirectConnectItems(
+  userId: string
+): Promise<DirectConnectReadinessItem[]> {
+  const requesterRows = await db
+    .select({
+      id: workRequests.id,
+      status: workRequests.status,
+    })
+    .from(workRequests)
+    .where(and(eq(workRequests.createdByUserId, userId), eq(workRequests.source, "direct_connect")))
+    .orderBy(desc(workRequests.updatedAt))
+    .limit(5);
+
+  const requestIds = requesterRows.map((row) => String(row.id));
+  const requesterAssignments = requestIds.length
+    ? await db
+        .select({
+          workRequestId: workRequestAssignments.workRequestId,
+          id: workRequestAssignments.id,
+          status: workRequestAssignments.status,
+        })
+        .from(workRequestAssignments)
+        .where(inArray(workRequestAssignments.workRequestId, requestIds))
+    : [];
+
+  const assignmentsByRequest = new Map<string, typeof requesterAssignments>();
+  for (const assignment of requesterAssignments) {
+    const key = String(assignment.workRequestId);
+    const existing = assignmentsByRequest.get(key) || [];
+    existing.push(assignment);
+    assignmentsByRequest.set(key, existing);
+  }
+
+  const requesterItems = requesterRows.map((requestRow) => {
+    const assignments = assignmentsByRequest.get(String(requestRow.id)) || [];
+    const suggestedCount = assignments.filter(
+      (assignment) => assignment.status === "suggested" || assignment.status === "invited"
+    ).length;
+    const accepted = assignments.find((assignment) => assignment.status === "accepted");
+    return projectRequesterDirectConnectReadiness({
+      status: requestRow.status,
+      dcSuggestedCount: suggestedCount,
+      dcAcceptedAssignmentId: accepted?.id ?? null,
+      dcConversationThreadId: null,
+    });
+  });
+
+  const responderAssignments = await db
+    .select({
+      status: workRequestAssignments.status,
+    })
+    .from(workRequestAssignments)
+    .where(eq(workRequestAssignments.responderUserId, userId))
+    .orderBy(desc(workRequestAssignments.updatedAt))
+    .limit(5);
+
+  const responderItems = responderAssignments.map((assignment) =>
+    projectResponderDirectConnectReadiness({
+      assignment: { status: assignment.status },
+      conversationThreadId: null,
+    })
+  );
+
+  return [...requesterItems, ...responderItems];
+}
 
 const SCOUT_CORS_ALLOWED_ORIGINS = new Set(
   [
@@ -2469,6 +2555,78 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
+    if (isLiveReadinessQuestion(normalizedMessage)) {
+      const userId = (requestUser as any)?.id || (requestUser as any)?.claims?.sub;
+      const directConnectItems = userId ? await loadLiveReadinessDirectConnectItems(userId) : [];
+      const readiness = resolveLiveReadiness({
+        user: requestUser as any,
+        directConnectItems,
+      });
+      const response = buildScoutLiveReadinessResponse(readiness);
+
+      await syncObjectiveBestEffort({ intent: "live_readiness_next_step" });
+      scoutTurnTelemetry.provider = "governor";
+      scoutTurnTelemetry.sourceUsed = "live_readiness_resolver";
+      scoutTurnTelemetry.fallbackUsed = false;
+      return res.json({
+        ...response,
+        knowledge: {
+          layer: 0,
+          sources: ["Live readiness resolver", "Direct Connect readiness projection"],
+          confidence: "high",
+        },
+        llmProvider: "governor",
+        promptVersion: loadSystemPrompt().version,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    const profileUpdateDraft = inferScoutProfileUpdateDraft(normalizedMessage);
+    if (profileUpdateDraft) {
+      const userId = (requestUser as any)?.id || (requestUser as any)?.claims?.sub;
+      if (!userId) {
+        const gated = buildAuthRequiredScoutResponse({
+          type: "blocked",
+          reason: "auth_required",
+          requiresAuth: true,
+          metadata: { redirect: "/pre-scout-setup?mode=create" },
+        }) as ScoutResponse;
+
+        await syncObjectiveBestEffort({ intent: "auth_required" });
+        scoutTurnTelemetry.provider = "governor";
+        scoutTurnTelemetry.sourceUsed = "decision_pipeline_profile_update_auth";
+        scoutTurnTelemetry.failureClass = "auth_required";
+        return res.json({
+          ...gated,
+          knowledge: {
+            layer: 0,
+            sources: ["Decision pipeline profile update auth preflight"],
+            confidence: "high",
+          },
+          llmProvider: "governor",
+          promptVersion: loadSystemPrompt().version,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const response = buildScoutProfileUpdateResponse(profileUpdateDraft);
+      await syncObjectiveBestEffort({ intent: "profile_update" });
+      scoutTurnTelemetry.provider = "governor";
+      scoutTurnTelemetry.sourceUsed = "decision_pipeline_profile_update";
+      scoutTurnTelemetry.fallbackUsed = false;
+      return res.json({
+        ...response,
+        knowledge: {
+          layer: 0,
+          sources: ["Decision pipeline profile update assistant"],
+          confidence: response.metadata.confidenceBand || "medium",
+        },
+        llmProvider: "governor",
+        promptVersion: loadSystemPrompt().version,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const {
       history = [],
       countyCode,
@@ -2548,46 +2706,31 @@ router.post("/", async (req: Request, res: Response) => {
             body: text?.slice?.(0, 500) ?? "",
           });
         } else {
-          const enhancedConfidenceRaw =
-            json?.synthesized_response?.confidence ?? json?.reflection?.confidence;
-          const enhancedConfidence = inferSourceConfidenceBand(enhancedConfidenceRaw);
-          const enhancedMessage =
-            String(json?.synthesized_response?.message || json?.message || "").trim() ||
-            "Scout is online.";
+          const enhancedDecision = assessEnhancedV4ProxyResponse(json);
 
           if (scoutInteractionLog) {
-            scoutInteractionLog.scoutConfidence = confidenceToScore(enhancedConfidenceRaw);
+            scoutInteractionLog.scoutConfidence = confidenceToScore(enhancedDecision.rawConfidence);
           }
 
-          if (enhancedConfidence !== "high") {
-            sourceAudit = {
-              sourceUsed: "classic_knowledge_pipeline",
-              attemptedSource: "enhanced_v4",
-              fallbackUsed: true,
-              degradationReason: "enhanced_confidence_gate",
-              confidenceBand: enhancedConfidence,
-            };
+          if (!enhancedDecision.useEnhancedResponse) {
+            sourceAudit = enhancedDecision.sourceAudit;
             console.warn("[Scout] Enhanced v4 confidence below gate, falling back to classic", {
-              confidence: enhancedConfidence,
+              confidence: enhancedDecision.sourceAudit.confidenceBand,
             });
           } else {
-            sourceAudit = {
-              sourceUsed: "enhanced_v4",
-              fallbackUsed: false,
-              confidenceBand: enhancedConfidence,
-            };
+            sourceAudit = enhancedDecision.sourceAudit;
             scoutTurnTelemetry.provider = "enhanced_v4";
             scoutTurnTelemetry.sourceUsed = "enhanced_v4";
             scoutTurnTelemetry.fallbackUsed = false;
 
             return res.json({
-              message: enhancedMessage,
+              message: enhancedDecision.message,
               actions: [],
               actionResults: [],
               metadata: {
                 sourceUsed: "enhanced_v4",
                 fallbackUsed: false,
-                confidenceBand: enhancedConfidence,
+                confidenceBand: enhancedDecision.sourceAudit.confidenceBand,
               },
               knowledge: {
                 layer: 1,
@@ -2940,33 +3083,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Decision pipeline-driven auth preflight for business actions.
     if (scaffoldDecision.type === "blocked" && scaffoldDecision.reason === "auth_required") {
-      const redirect =
-        typeof scaffoldDecision.metadata?.redirect === "string"
-          ? scaffoldDecision.metadata.redirect
-          : "/pre-scout-setup?mode=create";
-
-      const gated: ScoutResponse = {
-        message: trimResponseToScreenFit(
-          "To continue with this request, you'll need a TradeScout account. Create an account and Scout will resume from this step."
-        ),
-        suggestedActions: ["Create account now", "Learn how TradeScout works", "Continue as guest"],
-        actions: [
-          {
-            type: "NAVIGATE",
-            label: "Create account",
-            to: redirect,
-            path: redirect,
-            primary: true as any,
-          },
-        ],
-        sponsored: null,
-        metadata: {
-          intent: "auth_required",
-          scaffoldDecision: scaffoldDecision.type,
-          scaffoldReason: scaffoldDecision.reason,
-          redirect,
-        },
-      };
+      const gated = buildAuthRequiredScoutResponse(scaffoldDecision) as ScoutResponse;
 
       await syncObjectiveBestEffort({ intent: "auth_required" });
       scoutTurnTelemetry.provider = "governor";
@@ -4956,7 +5073,7 @@ router.post("/trust/enrich-routing", async (req: Request, res: Response) => {
 router.post("/execute-action", async (req: Request, res: Response) => {
   try {
     const { action, guardContext: clientGuardContext } = req.body;
-    const userId = (req as any).user?.id;
+    const userId = (req as any).user?.id || (req as any).user?.claims?.sub;
 
     const actionTelemetry = resolveOutcomeActionTelemetry(action);
 
@@ -5022,8 +5139,44 @@ router.post("/execute-action", async (req: Request, res: Response) => {
 
     // Execute action through guard
     const result = await runScoutAction(action, guardContext, async (act) => {
-      // Placeholder executor—real implementations would dispatch to
-      // specific action handlers (invoice, community post, etc.)
+      if (act.type === "SAVE_PROFILE") {
+        if (!userId) {
+          throw new Error("Authentication required to update profile");
+        }
+
+        const { profilePatch, preferencesPatch } = sanitizeScoutProfileUpdatePayload(act.payload);
+        const currentUser = await storage.getUser(userId);
+        if (!currentUser) {
+          throw new Error("User not found");
+        }
+
+        const hasProfilePatch = Object.keys(profilePatch).length > 0;
+        const hasPreferencesPatch = Object.keys(preferencesPatch).length > 0;
+        if (!hasProfilePatch && !hasPreferencesPatch) {
+          throw new Error("No allowed profile fields provided");
+        }
+
+        const user = await storage.updateUser(userId, {
+          ...profilePatch,
+          ...(hasPreferencesPatch
+            ? { preferences: { ...(currentUser.preferences || {}), ...preferencesPatch } }
+            : {}),
+          profileVersion: CURRENT_PROFILE_VERSION,
+          updatedAt: new Date(),
+        });
+
+        return {
+          executed: true,
+          action: act.type,
+          updatedFields: [
+            ...Object.keys(profilePatch),
+            ...Object.keys(preferencesPatch).map((key) => `preferences.${key}`),
+          ],
+          userId: user.id,
+        };
+      }
+
+      // Placeholder executor—real implementations dispatch to specific handlers.
       console.log("[Scout Action] Executing:", { type: act.type, target: act.target });
       return { executed: true, action: act.type };
     });

@@ -28,6 +28,51 @@
       "authoritySide": "client",
       "precedence": 100,
       "requiresAuth": false,
+      "messageContract": "local-shortcut",
+      "actionContract": "explicit-navigation-or-explainer",
+      "id": "client.sync-local-intents",
+      "surface": "client",
+      "label": "SYNC LOCAL INTENTS (explicit nav, routing explainer, messaging locked)",
+      "tests": [
+        "client/src/scout/localIntents.test.ts",
+        "client/src/scout/messageBuilders.test.ts",
+        "client/src/scout/scout-authority-routing.contract.test.ts"
+      ],
+      "targetBelief": "Scout can answer known navigation and gate-explanation questions immediately.",
+      "targetBehavior": "User follows clear local UI shortcuts without waiting on server synthesis.",
+      "psychologicalPrinciples": [
+        "responsiveness",
+        "clarity"
+      ],
+      "riskPrevented": "Avoidable latency or confusion for stable client-only explanations."
+    },
+    {
+      "owner": "scout-core",
+      "authoritySide": "client",
+      "precedence": 90,
+      "requiresAuth": false,
+      "messageContract": "local-profile-lookup",
+      "actionContract": "public-profile-navigation",
+      "id": "client.async-profile-lookup-intent",
+      "surface": "client",
+      "label": "ASYNC LOCAL INTENT: Profile lookup",
+      "tests": [
+        "client/src/scout/scout-authority-routing.contract.test.ts",
+        "client/src/scout/scout.eval.test.ts"
+      ],
+      "targetBelief": "Public profile lookup remains discovery-only.",
+      "targetBehavior": "User opens a visible profile without assuming contact access or platform power.",
+      "psychologicalPrinciples": [
+        "bounded-discovery",
+        "trust-legibility"
+      ],
+      "riskPrevented": "Profile visibility being mistaken for contact permission or ungated access."
+    },
+    {
+      "owner": "scout-core",
+      "authoritySide": "client",
+      "precedence": 100,
+      "requiresAuth": false,
       "messageContract": "default",
       "actionContract": "default",
       "id": "client.explanation-why-not-moving",
@@ -462,7 +507,8 @@
       "label": "Handle auth-required intent",
       "tests": [
         "server/tests/scout-policy.test.ts",
-        "server/tests/scoutDeterministicIntent.test.ts"
+        "server/tests/scoutDeterministicIntent.test.ts",
+        "server/tests/scout-auth-required-intent-contract.test.ts"
       ],
       "targetBelief": "Protected actions require authentication consistently.",
       "targetBehavior": "User authenticates before proceeding with gated intents.",
@@ -471,6 +517,52 @@
         "rule-legibility"
       ],
       "riskPrevented": "Unauthorized action expectations and gate bypass attempts."
+    },
+    {
+      "owner": "scout-core",
+      "authoritySide": "server",
+      "precedence": 100,
+      "requiresAuth": false,
+      "messageContract": "enhanced-v4-confidence-gate",
+      "actionContract": "classic-fallback-on-low-confidence",
+      "id": "server.enhanced-v4-confidence-fallback",
+      "surface": "server",
+      "label": "Enhanced-v4 confidence fallback contract",
+      "tests": [
+        "server/tests/scout-enhanced-v4-confidence-fallback.test.ts",
+        "server/tests/scout-enhanced-v4-route-registration.contract.test.ts"
+      ],
+      "targetBelief": "Enhanced Scout only answers directly when confidence is high.",
+      "targetBehavior": "User receives classic Scout continuity when agent-council confidence is uncertain.",
+      "psychologicalPrinciples": [
+        "confidence calibration",
+        "graceful degradation"
+      ],
+      "riskPrevented": "Low-confidence enhanced responses bypassing stable Scout contracts."
+    },
+    {
+      "owner": "scout-core",
+      "authoritySide": "server",
+      "precedence": 100,
+      "requiresAuth": true,
+      "messageContract": "profile-update-draft",
+      "actionContract": "user-approved-save-profile",
+      "id": "server.scout-profile-update-assistant",
+      "surface": "server",
+      "label": "Scout profile update assistant",
+      "tests": [
+        "server/tests/scout-profile-update-assistant.test.ts",
+        "server/tests/unifiedScoutRouter.test.ts",
+        "client/src/scout/ScoutActionRouter.test.ts",
+        "client/src/scout/scout.eval.test.ts"
+      ],
+      "targetBelief": "Scout can help edit profile details without replacing manual onboarding.",
+      "targetBehavior": "User asks Scout for a profile change, reviews the drafted update, then explicitly saves it.",
+      "psychologicalPrinciples": [
+        "user control",
+        "progressive assistance"
+      ],
+      "riskPrevented": "Silent profile mutation, trust-field bypass, or Scout becoming mandatory onboarding."
     }
   ]
 }

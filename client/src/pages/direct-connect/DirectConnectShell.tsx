@@ -26,6 +26,10 @@ import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { trackShellEvent } from "@/lib/analytics";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import {
+  getDirectConnectInboxNextStepCopy,
+  getDirectConnectNextStepCopy,
+} from "./directConnectReadiness";
+import {
   SEOHelmet,
   createBreadcrumbStructuredData,
   createServiceStructuredData,
@@ -1563,6 +1567,13 @@ function DirectConnectInbox() {
           availabilityWindow.trim().length >= 3 &&
           scopeNote.trim().length >= 10 &&
           ["budget", "standard", "premium", "custom_quote"].includes(priceBand);
+        const inboxNextStepCopy = getDirectConnectInboxNextStepCopy({
+          assignmentStatus: status,
+          requestStatus: request?.status ?? null,
+          conversationThreadId: item.conversationThreadId ?? null,
+          actionableAssignment,
+          isStructuredReplyOpen,
+        });
 
         return (
           <Card
@@ -1573,13 +1584,16 @@ function DirectConnectInbox() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1 space-y-1">
                   <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                    {canRespond ? "New reply" : "Saved request"}
+                    {inboxNextStepCopy.label}
                   </p>
                   <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
                     {request?.title || "New opportunity"}
                   </h3>
                   <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
                     {request?.description || "Request details."}
+                  </p>
+                  <p className="text-[11px] text-[color:var(--text-secondary)]/90">
+                    {inboxNextStepCopy.summary}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
@@ -1778,7 +1792,7 @@ function DirectConnectInbox() {
                       setStructuredReplyOpenId(null);
                     }}
                   >
-                    Accept
+                    {inboxNextStepCopy.actionHint}
                   </Button>
                 )}
 
@@ -1797,7 +1811,7 @@ function DirectConnectInbox() {
                       : "/messages?tab=requests";
                   }}
                 >
-                  Ask follow-up
+                  {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Review request"}
                 </Button>
 
                 <Button
@@ -2161,6 +2175,7 @@ function MyDirectConnectRequests() {
         const canMarkComplete = stage === "pending_outcome" || stage === "active_conversation";
         const canReopen = stage === "cancelled";
         const canShare = stage !== "cancelled" && stage !== "completed";
+        const nextStepCopy = getDirectConnectNextStepCopy(r);
         const isExpanded = expandedRequestId === r.id;
         const isMobileActionOpen = mobileActionRequestId === r.id;
         const timelineStamp = r.dcLastEventAt || r.createdAt;
@@ -2176,6 +2191,19 @@ function MyDirectConnectRequests() {
         ].filter(Boolean);
 
         const handleOpenRequest = async () => {
+          void trackShellEvent({
+            type: "scout_query",
+            payload: {
+              event: "direct_connect_next_step_card_opened",
+              requestId: r.id,
+              stage,
+              label: nextStepCopy.label,
+              actionHint: nextStepCopy.actionHint,
+              contactUnlocked: nextStepCopy.contactUnlocked,
+              ts: new Date().toISOString(),
+            },
+          });
+
           if (canShare) {
             try {
               let shareUrl = String(r.dcMiniLandingUrl || "").trim();
@@ -2220,7 +2248,7 @@ function MyDirectConnectRequests() {
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                        {getRequestStageLabel(stage)}
+                        {nextStepCopy.label}
                       </p>
                       {timelineStamp && (
                         <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
@@ -2240,13 +2268,7 @@ function MyDirectConnectRequests() {
                         {interpreted.secondaryPhrase}
                       </p>
                     )}
-                    <p className="text-[11px] text-ts-orange/90">
-                      {canShare
-                        ? "Tap to open mini landing page"
-                        : canMessage
-                          ? "Tap to open messages"
-                          : "Tap to open details"}
-                    </p>
+                    <p className="text-[11px] text-ts-orange/90">{nextStepCopy.actionHint}</p>
                   </div>
                   <Badge
                     variant="outline"
@@ -2283,7 +2305,7 @@ function MyDirectConnectRequests() {
                       What happens now
                     </p>
                     <p className="mt-1 text-sm text-[color:var(--text-primary)]">
-                      {getRequestStageSummary(stage)}
+                      {nextStepCopy.summary}
                     </p>
                   </div>
                   <Button

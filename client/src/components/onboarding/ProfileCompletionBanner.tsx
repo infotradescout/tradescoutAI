@@ -5,70 +5,96 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, ShieldCheck, Building2, Sparkles } from "lucide-react";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
-import { hasCompletedSetup } from "@/lib/setupState";
 import { isBusinessUser, BUSINESS_LANDING } from "@/lib/postOnboardingRoute";
+import { trackShellEvent } from "@/lib/analytics";
+import { resolveLiveReadiness } from "@shared/liveReadiness";
 
-type BannerMode = "local_setup" | "onboarding" | "business_setup" | "skipped_intent";
+export type BannerMode =
+  | "local_setup"
+  | "profile_basics"
+  | "onboarding"
+  | "verification"
+  | "business_setup"
+  | "skipped_intent";
+
+export function resolveProfileCompletionBannerMode(params: {
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  user: any;
+  path: string;
+  skippedIntentDismissed: boolean;
+}): BannerMode | null {
+  const { isLoading, isAuthenticated, user, path, skippedIntentDismissed } = params;
+
+  if (isLoading) return null;
+  if (!isAuthenticated || !user) return null;
+  if (hasAdminUiAccess(user)) return null;
+
+  const isSetupRoute =
+    path.startsWith("/pre-scout-setup") ||
+    path.startsWith("/onboarding/profile") ||
+    path.startsWith("/onboarding/intent") ||
+    path.startsWith("/offer-services") ||
+    path.startsWith("/profile-settings") ||
+    path.startsWith("/settings") ||
+    path.startsWith("/profile") ||
+    path.startsWith("/profile-setup") ||
+    path.startsWith("/identity-verification") ||
+    path.startsWith("/address-verification") ||
+    path.startsWith("/license-verification") ||
+    path.startsWith("/insurance-verification");
+  if (isSetupRoute) return null;
+
+  const businessUser = isBusinessUser(user);
+  const readiness = resolveLiveReadiness({
+    user: {
+      ...(user as any),
+      userIntent: businessUser ? "business" : (user as any).userIntent,
+    },
+  });
+
+  if (readiness.state === "needs_local_setup") return "local_setup";
+  if (readiness.state === "needs_profile_basics") return "profile_basics";
+  if (readiness.state === "needs_intent_confirmation") return "onboarding";
+  if (readiness.state === "needs_verification") {
+    return businessUser ? "business_setup" : "verification";
+  }
+
+  const skippedAt = (user as any)?.preferences?.onboardingSkippedAt;
+  if (skippedAt && !skippedIntentDismissed) return "skipped_intent";
+
+  return null;
+}
 
 export default function ProfileCompletionBanner() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [location, setLocation] = useLocation();
 
   const mode: BannerMode | null = useMemo(() => {
-    if (isLoading) return null;
-    if (!isAuthenticated || !user) return null;
-    if (hasAdminUiAccess(user)) return null;
-
     const path = String(location || "");
-    const isSetupRoute =
-      path.startsWith("/pre-scout-setup") ||
-      path.startsWith("/onboarding/profile") ||
-      path.startsWith("/onboarding/intent") ||
-      path.startsWith("/offer-services") ||
-      path.startsWith("/profile-settings") ||
-      path.startsWith("/settings") ||
-      path.startsWith("/profile") ||
-      path.startsWith("/profile-setup") ||
-      path.startsWith("/identity-verification") ||
-      path.startsWith("/address-verification") ||
-      path.startsWith("/license-verification") ||
-      path.startsWith("/insurance-verification");
-    if (isSetupRoute) return null;
+    const sessionKey = "ts_skipped_intent_nudge_dismissed";
+    const skippedIntentDismissed =
+      typeof sessionStorage !== "undefined" && Boolean(sessionStorage.getItem(sessionKey));
 
-    if (!hasCompletedSetup(user as any)) return "local_setup";
-
-    const onboardingCompleted = (user as any).onboardingCompleted === true;
-    if (!onboardingCompleted) {
-      // Business users who haven't completed onboarding get nudged to their hub
-      if (isBusinessUser(user)) return "business_setup";
-      return "onboarding";
-    }
-
-    // Business users who completed onboarding but are not yet verified
-    if (
-      isBusinessUser(user) &&
-      user.verifiedBadge !== true &&
-      user.verificationStatus !== "approved"
-    ) {
-      return "business_setup";
-    }
-
-    // Users who skipped the intent step get a gentle nudge to complete it.
-    // We check preferences.onboardingSkippedAt and only show this once per
-    // session (controlled by sessionStorage) to avoid being annoying.
-    const skippedAt = (user as any)?.preferences?.onboardingSkippedAt;
-    if (skippedAt) {
-      const sessionKey = "ts_skipped_intent_nudge_dismissed";
-      const dismissed = typeof sessionStorage !== "undefined" && sessionStorage.getItem(sessionKey);
-      if (!dismissed) return "skipped_intent";
-    }
-
-    return null;
+    return resolveProfileCompletionBannerMode({
+      isLoading,
+      isAuthenticated,
+      user,
+      path,
+      skippedIntentDismissed,
+    });
   }, [isAuthenticated, isLoading, location, user]);
 
   if (!mode) return null;
 
-  type ModeConfig = { icon: React.ElementType; iconColor: string; title: string; description: string; cta: string; onClick: () => void };
+  type ModeConfig = {
+    icon: React.ElementType;
+    iconColor: string;
+    title: string;
+    description: string;
+    cta: string;
+    onClick: () => void;
+  };
   const config: Record<BannerMode, ModeConfig> = {
     local_setup: {
       icon: ShieldCheck,
@@ -86,7 +112,8 @@ export default function ProfileCompletionBanner() {
       icon: ShieldCheck,
       iconColor: "text-ts-orange",
       title: "Confirm your focus (1 minute)",
-      description: "This is essential. Confirm what you're here to do so matches and next steps fit your needs.",
+      description:
+        "This is essential. Confirm what you're here to do so matches and next steps fit your needs.",
       cta: "Confirm with Scout",
       onClick: () => {
         const current = String(location || "/");
@@ -94,11 +121,34 @@ export default function ProfileCompletionBanner() {
         setLocation(`/onboarding/profile?next=${next}&source=profile_completion_banner`);
       },
     },
+    profile_basics: {
+      icon: ShieldCheck,
+      iconColor: "text-ts-orange",
+      title: "Complete profile basics",
+      description:
+        "Add your core identity and local details so Scout can guide the next valid step.",
+      cta: "Complete profile",
+      onClick: () => {
+        const current = String(location || "/");
+        const next = encodeURIComponent(current.startsWith("/") ? current : "/");
+        setLocation(`/onboarding/profile?next=${next}&source=profile_completion_banner`);
+      },
+    },
+    verification: {
+      icon: ShieldCheck,
+      iconColor: "text-ts-orange",
+      title: "Complete verification",
+      description:
+        "Verification keeps live profile readiness separate from simply filling out fields.",
+      cta: "Review verification",
+      onClick: () => setLocation("/profile-settings"),
+    },
     business_setup: {
       icon: Building2,
       iconColor: "text-ts-orange",
       title: "Get your verified badge",
-      description: "Complete your business profile and verification to unlock your verified badge and start receiving jobs.",
+      description:
+        "Complete your business profile and verification so Scout can treat your profile as ready.",
       cta: "Set up business profile",
       onClick: () => setLocation(BUSINESS_LANDING),
     },
@@ -117,7 +167,28 @@ export default function ProfileCompletionBanner() {
   };
   const { icon: Icon, iconColor, title, description, cta, onClick } = config[mode];
 
+  const trackBannerEvent = (
+    event: "profile_readiness_banner_clicked" | "profile_readiness_banner_dismissed"
+  ) => {
+    void trackShellEvent({
+      type: "scout_query",
+      payload: {
+        event,
+        mode,
+        route: String(location || "/"),
+        cta,
+        ts: new Date().toISOString(),
+      },
+    });
+  };
+
+  const handleCtaClick = () => {
+    trackBannerEvent("profile_readiness_banner_clicked");
+    onClick();
+  };
+
   const handleDismissSkippedNudge = () => {
+    trackBannerEvent("profile_readiness_banner_dismissed");
     if (typeof sessionStorage !== "undefined") {
       sessionStorage.setItem("ts_skipped_intent_nudge_dismissed", "1");
     }
@@ -148,7 +219,7 @@ export default function ProfileCompletionBanner() {
                   Not now
                 </Button>
               )}
-              <Button onClick={onClick}>
+              <Button onClick={handleCtaClick}>
                 {cta}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>

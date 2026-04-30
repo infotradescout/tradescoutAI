@@ -126,4 +126,29 @@ describe("ScoutActionRouter structured prefill routing", () => {
     expect(params.get("prefill")).toContain("Need roofer recommendation");
     expect(params.get("prefill")).toContain("Who has had a good experience in Orange County?");
   });
+
+  it("lets SAVE_PROFILE complete through the server guard without local navigation", async () => {
+    mockGuardAllowsActions();
+    const { helpers, navigate, prefillInput } = makeHelpers();
+
+    const action: ScoutAction = {
+      type: "SAVE_PROFILE",
+      label: "Save profile update",
+      payload: {
+        profilePatch: { firstName: "Jane" },
+      },
+    };
+
+    await executeScoutActions([action], helpers);
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/scout/execute-action",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.stringContaining("SAVE_PROFILE"),
+      })
+    );
+    expect(navigate).not.toHaveBeenCalled();
+    expect(prefillInput).not.toHaveBeenCalled();
+  });
 });

@@ -19,6 +19,7 @@ const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set<ScoutActionType>([
   "START_COMMUNITY_VAULT_DONATION",
   "START_PLATFORM_SUPPORT",
   "SEND_ADMIN_BROADCAST",
+  "SAVE_PROFILE",
 ]);
 
 // Routes that can be navigated to (allowlist for internal routes)
@@ -36,6 +37,7 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/leaderboard",
   "/settings",
   "/profile",
+  "/profile-settings",
   "/connections",
   "/messages",
   "/notifications",
@@ -161,6 +163,26 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
       !action.payload.message.trim()
     ) {
       console.warn("[Scout] SEND_ADMIN_BROADCAST missing title or message", action);
+      return null;
+    }
+  }
+
+  if (action.type === "SAVE_PROFILE") {
+    const profilePatch = action.payload?.profilePatch;
+    const preferencesPatch = action.payload?.preferencesPatch;
+    const hasProfilePatch =
+      profilePatch &&
+      typeof profilePatch === "object" &&
+      !Array.isArray(profilePatch) &&
+      Object.keys(profilePatch).length > 0;
+    const hasPreferencesPatch =
+      preferencesPatch &&
+      typeof preferencesPatch === "object" &&
+      !Array.isArray(preferencesPatch) &&
+      Object.keys(preferencesPatch).length > 0;
+
+    if (!hasProfilePatch && !hasPreferencesPatch) {
+      console.warn("[Scout] SAVE_PROFILE missing profile/preferences patch", action);
       return null;
     }
   }

@@ -101,6 +101,11 @@ describe("Scout Tool Evals", () => {
         },
         { type: "ASK_SCOUT", label: "Ask", payload: { prompt: "Help me" } },
         { type: "OPEN_FLOATING_NOTE", label: "Note", payload: { noteId: "quick" } },
+        {
+          type: "SAVE_PROFILE",
+          label: "Save profile update",
+          payload: { profilePatch: { firstName: "Jane" } },
+        },
         { type: "NOOP", label: "Cancel" },
       ];
 

@@ -35,6 +35,17 @@ describe("UnifiedScoutRouter", () => {
       expect(result.metadata?.requiresAuth).toBe(true);
     });
 
+    it("allows profile saves only for authenticated users", () => {
+      const action = {
+        type: "SAVE_PROFILE" as const,
+        payload: { profilePatch: { firstName: "Jane" } },
+      };
+
+      expect(UnifiedScoutRouter.validateAction(action, guest).valid).toBe(false);
+      expect(UnifiedScoutRouter.validateAction(action, guest).metadata?.requiresAuth).toBe(true);
+      expect(UnifiedScoutRouter.validateAction(action, homeowner).valid).toBe(true);
+    });
+
     it("blocks admin broadcast for non-admin roles", () => {
       const result = UnifiedScoutRouter.validateAction(
         { type: "SEND_ADMIN_BROADCAST", payload: { title: "x", message: "y" } },

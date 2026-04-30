@@ -27,7 +27,7 @@ export interface UnifiedScoutUserContext {
 
 export interface ScoutActionDefinition {
   type: ScoutActionType;
-  category: "navigation" | "ui" | "tool" | "payment" | "admin" | "noop";
+  category: "navigation" | "ui" | "tool" | "payment" | "admin" | "profile" | "noop";
   requiresAuth: boolean;
   isSensitive: boolean;
   allowedRoles: string[];
@@ -187,6 +187,15 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
     allowedRoles: ADMINISH_ROLES,
     policyChecks: ["admin_only"],
     description: "Send platform-wide broadcast",
+  },
+  SAVE_PROFILE: {
+    type: "SAVE_PROFILE",
+    category: "profile",
+    requiresAuth: true,
+    isSensitive: true,
+    allowedRoles: [],
+    policyChecks: ["self_only", "allowed_profile_fields"],
+    description: "Save a user-approved profile update for the current account",
   },
   OPEN_FLOATING_NOTE: {
     type: "OPEN_FLOATING_NOTE",

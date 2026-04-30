@@ -234,6 +234,9 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
       }
       return;
 
+    case "SAVE_PROFILE":
+      return;
+
     case "ASK_SCOUT":
       if (action.prompt && helpers.askScout) {
         helpers.askScout(action.prompt);

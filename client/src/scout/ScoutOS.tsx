@@ -74,16 +74,14 @@ import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { hasCompletedSetup } from "@/lib/setupState";
+import {
+  LIVE_READINESS_QUICK_START_PROMPT,
+  SCOUT_QUICK_START_PROMPTS,
+} from "./scoutQuickStartPrompts";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
 // Must match the key used by ScoutInput so the demo only runs once per session.
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
-const SCOUT_QUICK_START_PROMPTS = [
-  "Help me find the right local help",
-  "Help me figure out cost and timing",
-  "Do I need permits for this?",
-  "Show me what's happening nearby",
-] as const;
 
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
 const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
@@ -1378,6 +1376,17 @@ export default function ScoutOS() {
         // ==================================================================
         const lowerMsg = value.toLowerCase();
         const normalized = lowerMsg.replace(/[^a-z0-9\s]/gi, " ");
+        if (value.trim().toLowerCase() === LIVE_READINESS_QUICK_START_PROMPT.toLowerCase()) {
+          void trackShellEvent({
+            type: "scout_query",
+            payload: {
+              event: "scout_live_readiness_prompt_submitted",
+              source: "quick_start_or_exact_prompt",
+              path: location,
+              ts: new Date().toISOString(),
+            },
+          });
+        }
 
         // ------------------------------------------------------------------
         // SYNC LOCAL INTENTS (explicit nav, routing explainer, messaging locked)
@@ -2417,13 +2426,23 @@ export default function ScoutOS() {
             void handleSend(prompt);
           },
         });
+
+        if (action.type === "SAVE_PROFILE") {
+          const ack: ScoutMessage = {
+            id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            role: "assistant",
+            content: "Saved. Your profile has been updated.",
+            timestamp: new Date().toISOString(),
+          };
+          applyServerResponse(ack, []);
+        }
       } catch (err: any) {
         setError(formatUserFacingErrorMessage(err, "Action failed to execute."));
       } finally {
         setStatus("idle");
       }
     },
-    [location, maybeOpenWorkAreaForRoute, navigate, handleSend, setError]
+    [location, maybeOpenWorkAreaForRoute, navigate, handleSend, setError, applyServerResponse]
   );
 
   const handleOverride = useCallback(
