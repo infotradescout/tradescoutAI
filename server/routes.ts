@@ -27296,6 +27296,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use("/api/admin/prompt-admin", promptAdminRouter);
 
   // Register AI Scout routes (with assistant alias for backward compatibility)
+  const scoutEnhancedV4Router = (await import("./routes/scout-enhanced-v4")).default;
+  app.use("/api/scout-enhanced-v4", scoutEnhancedV4Router);
   app.use("/", scoutNormalizeRouter);
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
