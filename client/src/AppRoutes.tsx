@@ -30,8 +30,30 @@ export function userNeedsOnboarding(user: unknown): boolean {
   return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;
 }
 
+export function userHasProfileBasics(user: unknown): boolean {
+  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
+  if (!record) return false;
+
+  const firstName = typeof record.firstName === "string" ? record.firstName.trim() : "";
+  const lastName = typeof record.lastName === "string" ? record.lastName.trim() : "";
+  const stateCode =
+    typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
+  const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
+
+  return (
+    firstName.length > 0 &&
+    lastName.length > 0 &&
+    stateCode.length === 2 &&
+    /^\d{5}$/.test(countyFips)
+  );
+}
+
+export function getOnboardingEntryRoute(user: unknown): string {
+  return userHasProfileBasics(user) ? "/onboarding/intent" : "/onboarding/profile";
+}
+
 export function getPostLandingRoute(user: unknown): string {
-  if (userNeedsOnboarding(user)) return "/onboarding/profile";
+  if (userNeedsOnboarding(user)) return getOnboardingEntryRoute(user);
 
   const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
   const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;
@@ -135,7 +157,8 @@ const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() 
       storeOnboardingNext(fullPath);
     }
     const next = encodeURIComponent(fullPath);
-    const target = `/onboarding/profile?next=${next}`;
+    const entryRoute = getOnboardingEntryRoute(user);
+    const target = `${entryRoute}?next=${next}`;
     if (raw !== target) {
       navigate(target);
     }

@@ -88,6 +88,11 @@ export default function PreScoutSetup() {
   const currentProfileVersion: number =
     typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
   const onboardingCompleted = anyUser.onboardingCompleted === true;
+  const hasAccountName =
+    typeof anyUser.firstName === "string" &&
+    anyUser.firstName.trim().length > 0 &&
+    typeof anyUser.lastName === "string" &&
+    anyUser.lastName.trim().length > 0;
   const hasCanonicalLocation =
     typeof anyUser.stateCode === "string" &&
     anyUser.stateCode.length === 2 &&
@@ -366,7 +371,8 @@ export default function PreScoutSetup() {
 
     const next = postSetupNext;
     if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
-      navigate(`/onboarding/profile?next=${encodeURIComponent(next)}`);
+      const onboardingEntry = hasAccountName ? "/onboarding/intent" : "/onboarding/profile";
+      navigate(`${onboardingEntry}?next=${encodeURIComponent(next)}`);
       return;
     }
 
@@ -374,6 +380,7 @@ export default function PreScoutSetup() {
   }, [
     isAuthenticated,
     isAdminDestination,
+    hasAccountName,
     hasCanonicalLocation,
     currentProfileVersion,
     onboardingCompleted,
@@ -735,10 +742,11 @@ export default function PreScoutSetup() {
         return;
       }
 
-      // After local setup, continue into the profile normalization flow so the user
-      // finishes the full signup path (name + location get committed to the account).
-      if (currentProfileVersion < CURRENT_PROFILE_VERSION) {
-        navigate(`/onboarding/profile?next=${encodeURIComponent(postSetupNext)}`);
+      // After local setup, continue into the guided start choice. If account identity
+      // is incomplete, route through profile normalization first.
+      if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
+        const onboardingEntry = hasAccountName ? "/onboarding/intent" : "/onboarding/profile";
+        navigate(`${onboardingEntry}?next=${encodeURIComponent(postSetupNext)}`);
         return;
       }
 
@@ -1249,13 +1257,9 @@ export default function PreScoutSetup() {
                       {countyInferenceStatus === "loading" && (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       )}
-                      {countyInferenceStatus === "inferred" && (
-                        <CheckCircle2 className="h-3 w-3" />
-                      )}
+                      {countyInferenceStatus === "inferred" && <CheckCircle2 className="h-3 w-3" />}
                       {(countyInferenceStatus === "ambiguous" ||
-                        countyInferenceStatus === "error") && (
-                        <AlertTriangle className="h-3 w-3" />
-                      )}
+                        countyInferenceStatus === "error") && <AlertTriangle className="h-3 w-3" />}
                       <span>
                         {countyInferenceStatus === "loading"
                           ? "Detecting county…"
