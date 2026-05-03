@@ -27,10 +27,34 @@ async function runWithInput(command, args, env = process.env, input = "") {
     stdio: ["pipe", "inherit", "inherit"],
     env,
   });
-  child.stdin.end(input);
+
+  child.stdin.on("error", () => {});
+  let inputTimer;
+  if (input) {
+    const writeInput = () => {
+      try {
+        if (child.stdin.writable) child.stdin.write(input);
+      } catch {
+        // The process may exit while a prompt tick is in flight.
+      }
+    };
+    writeInput();
+    inputTimer = setInterval(writeInput, 1000);
+  }
+
   return await new Promise((resolve, reject) => {
-    child.once("error", reject);
-    child.once("exit", (code) => resolve(code ?? 1));
+    const cleanup = () => {
+      if (inputTimer) clearInterval(inputTimer);
+      if (!child.stdin.destroyed) child.stdin.end();
+    };
+    child.once("error", (error) => {
+      cleanup();
+      reject(error);
+    });
+    child.once("exit", (code) => {
+      cleanup();
+      resolve(code ?? 1);
+    });
   });
 }
 
@@ -296,28 +320,30 @@ async function ensureCriticalSchema() {
       ON trust_snapshots (user_id, county_fips)
     `);
 
-    await client.query(`
-      CREATE TABLE IF NOT EXISTS employment_post_applications (
-        id varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-        post_id varchar NOT NULL REFERENCES employment_posts(id) ON DELETE CASCADE,
-        applicant_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        message text,
-        status varchar(32) NOT NULL DEFAULT 'pending',
-        created_at timestamp NOT NULL DEFAULT now(),
-        updated_at timestamp NOT NULL DEFAULT now(),
-        UNIQUE (post_id, applicant_user_id)
-      )
-    `);
+    if (await tableExists(client, "employment_posts")) {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS employment_post_applications (
+          id varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+          post_id varchar NOT NULL REFERENCES employment_posts(id) ON DELETE CASCADE,
+          applicant_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          message text,
+          status varchar(32) NOT NULL DEFAULT 'pending',
+          created_at timestamp NOT NULL DEFAULT now(),
+          updated_at timestamp NOT NULL DEFAULT now(),
+          UNIQUE (post_id, applicant_user_id)
+        )
+      `);
 
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_epa_post_id
-      ON employment_post_applications(post_id, created_at DESC)
-    `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_epa_post_id
+        ON employment_post_applications(post_id, created_at DESC)
+      `);
 
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS idx_epa_applicant
-      ON employment_post_applications(applicant_user_id, created_at DESC)
-    `);
+      await client.query(`
+        CREATE INDEX IF NOT EXISTS idx_epa_applicant
+        ON employment_post_applications(applicant_user_id, created_at DESC)
+      `);
+    }
 
     // SEO discovery "new & true only" scaffolding (publication rules + prune log + safe public activity).
     await client.query(`
