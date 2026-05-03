@@ -20,6 +20,7 @@ import {
   Sparkles,
   Shield,
   Building,
+  UserCircle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -39,6 +40,7 @@ import { useLocationUpgrade } from "@/hooks/useLocationUpgrade";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
 import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "@/lib/progressiveFeatureUnlocks";
+import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 
 export type NavItem = {
@@ -172,7 +174,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   return null;
 }
 
-// SITE FEATURES ONLY – this is the scrollable bottom bar
+// SITE FEATURES ONLY.
 // Direct Connect is the primary coordination hub; contractors/helpers
 // are still available as subordinate surfaces but are not top-level nav.
 const buildFeatureNav = (opts?: {
@@ -277,7 +279,7 @@ const buildFeatureNav = (opts?: {
 };
 
 function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; primary: NavItem[] } {
-  const desiredPrimaryLabels = ["Scout", "Direct Connect", "Community"];
+  const desiredPrimaryLabels = ["Direct Connect", "Community", "Scout"];
   const byLabel = new globalThis.Map(items.map((item) => [item.label, item]));
   const primary = desiredPrimaryLabels
     .map((label) => byLabel.get(label))
@@ -290,6 +292,51 @@ function buildMobileSimplifiedNav(items: NavItem[]): { ordered: NavItem[]; prima
     ordered: [...primary, ...overflow],
     primary,
   };
+}
+
+function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[] {
+  const byHref = new globalThis.Map(items.map((item) => [item.href, item]));
+  const communityHref = ROUTES.COMMUNITY ?? "/community";
+  const scout = byHref.get("/scout");
+  const request = byHref.get("/direct-connect");
+  const community = byHref.get(communityHref);
+  const updatesHref = "/direct-connect/engagements";
+  const pinnedHrefs = new Set(["/direct-connect", updatesHref, communityHref, "/scout"]);
+
+  const primary: NavItem[] = [
+    request
+      ? { ...request, label: "Request", description: "Post what you need." }
+      : {
+          label: "Request",
+          href: "/direct-connect",
+          icon: (
+            <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
+          ),
+        },
+    {
+      label: "Updates",
+      href: updatesHref,
+      icon: <MessageCircle className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      badge: contactRequestCount > 0 ? String(Math.min(contactRequestCount, 9)) : undefined,
+      description: "Track requests and replies.",
+    },
+    community
+      ? { ...community, label: "Community", description: "Read local activity." }
+      : {
+          label: "Community",
+          href: communityHref,
+          icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+        },
+    scout
+      ? { ...scout, label: "Scout", description: "Ask Scout what to do next." }
+      : {
+          label: "Scout",
+          href: "/scout",
+          icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+        },
+  ];
+
+  return [...primary, ...items.filter((item) => !pinnedHrefs.has(item.href))];
 }
 
 export function AppShell({ children, footer }: AppShellProps) {
@@ -341,6 +388,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           .toLowerCase()
       : "";
   const isSuperAdmin = (user as any)?.isSuperAdmin === true || isSuperAdminLike(role);
+  const mobileBrandHref = isSuperAdmin ? "/admin" : isLoggedIn ? DEFAULT_LANDING : "/";
   const hasAdminAccess = hasAdminUiAccess(user);
   const verificationBypass = user?.verificationBypass;
   const hasAdminAliasBypass =
@@ -386,11 +434,22 @@ export function AppShell({ children, footer }: AppShellProps) {
     }
     return buildMobileSimplifiedNav(featureNav);
   }, [featureNav, isMobileSimplified]);
+  const mobileFlowNav = useMemo(
+    () => buildMobileFlowNav(featureNav, contactRequestCount),
+    [featureNav, contactRequestCount]
+  );
 
-  const mobileOverflowNav = useMemo(() => {
-    const primaryHrefs = new Set(mobileNav.primary.map((item) => item.href));
-    return mobileNav.ordered.filter((item) => !primaryHrefs.has(item.href));
-  }, [mobileNav]);
+  const desktopPrimaryNav = useMemo(() => {
+    const primaryHrefs = new Set([
+      "/scout",
+      "/direct-connect",
+      "/commercial-directory",
+      ROUTES.COMMUNITY ?? "/community",
+      "/share",
+    ]);
+
+    return featureNav.filter((item) => primaryHrefs.has(item.href));
+  }, [featureNav]);
 
   const topRightUnlockableItems = useMemo(() => {
     const unlockableHrefs = new Set<string>([
@@ -425,8 +484,14 @@ export function AppShell({ children, footer }: AppShellProps) {
   } as const;
 
   const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
+  const showSurfaceOrientation =
+    String(import.meta.env.VITE_SURFACE_ORIENTATION_V1 ?? "false") === "true";
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
+  const currentPath = location.split("?")[0].split("#")[0];
+  const pinRightToolsEnabled =
+    String(import.meta.env.VITE_PIN_RIGHT_TOOLS_V1 ?? "false") === "true";
   const shouldPinRightTools =
+    pinRightToolsEnabled &&
     !isMobile &&
     !isAdminSurface &&
     !isAuthOrSetupSurface &&
@@ -565,7 +630,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   useEffect(() => {
     const root = document.documentElement;
     const topNavHeight = isMobile ? "calc(48px + env(safe-area-inset-top))" : "56px";
-    const bottomNavHeight = isMobile ? "calc(62px + env(safe-area-inset-bottom))" : "68px";
+    const bottomNavHeight = isMobile ? "calc(62px + env(safe-area-inset-bottom))" : "0px";
 
     root.style.setProperty("--top-nav-h", topNavHeight);
     root.style.setProperty("--bottom-nav-h", bottomNavHeight);
@@ -658,7 +723,7 @@ export function AppShell({ children, footer }: AppShellProps) {
             borderBottom: "1px solid var(--border-primary)",
           }}
         >
-          <Link href={isSuperAdmin ? "/admin" : "/"} className="flex items-center cursor-pointer">
+          <Link href={mobileBrandHref} className="flex items-center cursor-pointer">
             <TradeScoutLogo size="sm" />
             <span
               className="ml-2 text-xs font-semibold tracking-wide"
@@ -740,9 +805,9 @@ export function AppShell({ children, footer }: AppShellProps) {
                   backgroundColor:
                     "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
                 }}
-                aria-label="Open profile & tools panel"
+                aria-label="Open account and tools"
               >
-                <Menu className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
+                <UserCircle className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
               </button>
             )}
           </div>
@@ -757,7 +822,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           {/* Brand */}
           <Link
             href="/"
-            className={`flex items-center gap-3 cursor-pointer ${
+            className={`flex shrink-0 items-center gap-3 cursor-pointer ${
               handedness === "left" ? "justify-end" : ""
             }`}
           >
@@ -776,6 +841,43 @@ export function AppShell({ children, footer }: AppShellProps) {
               ) : null}
             </div>
           </Link>
+
+          {showFeatureNav && desktopPrimaryNav.length > 0 && (
+            <nav
+              aria-label="Primary"
+              className="ts-desktop-primary-nav hidden min-w-0 flex-1 items-center justify-center gap-1 px-3 lg:flex"
+            >
+              {desktopPrimaryNav.map((item) => {
+                const hrefPath = item.href.split("?")[0].split("#")[0];
+                const isActive = currentPath === hrefPath || currentPath.startsWith(hrefPath + "/");
+
+                return (
+                  <Link
+                    key={`desktop-nav-${item.href}`}
+                    href={item.href}
+                    data-active={isActive ? "true" : "false"}
+                    className="ts-desktop-nav-item inline-flex h-9 min-w-0 max-w-[148px] items-center gap-2 rounded-md border px-3 text-xs font-medium no-underline transition-colors"
+                    style={{
+                      borderColor: isActive
+                        ? "color-mix(in oklab, var(--theme-accent-primary) 44%, transparent)"
+                        : "transparent",
+                      backgroundColor: isActive
+                        ? "color-mix(in oklab, var(--theme-accent-primary) 12%, var(--charcoal-950))"
+                        : "transparent",
+                      color: isActive ? "var(--theme-accent-primary)" : "var(--text-secondary)",
+                    }}
+                  >
+                    {item.icon ? (
+                      <span className="ts-desktop-nav-icon inline-flex h-4 w-4 shrink-0 items-center justify-center">
+                        {item.icon}
+                      </span>
+                    ) : null}
+                    <span className="truncate">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          )}
 
           {/* Right side: auth CTA + icons */}
           <div className="flex items-center gap-2 shrink-0">
@@ -895,7 +997,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         `}
         style={{
           top: isAdminSurface ? 0 : "var(--top-nav-h)",
-          bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0,
+          bottom: showFeatureNav && isMobile ? "var(--bottom-nav-h)" : 0,
           paddingRight: shouldPinRightTools
             ? isRightToolsCollapsed
               ? RIGHT_TOOLS_COLLAPSED_W
@@ -907,7 +1009,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         }}
       >
         <div className={`app-page ${isAuthSurface ? "app-page--auth" : ""}`}>
-          {!isAuthOrSetupSurface && surfaceOrientation && !isMobile && (
+          {showSurfaceOrientation && !isAuthOrSetupSurface && surfaceOrientation && !isMobile && (
             <section className="mx-auto mb-3 max-w-6xl px-3 pt-3 sm:px-4 md:px-6">
               <div className="ts-shell-orientation rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
                 <div className="flex items-start justify-between gap-3">
@@ -935,7 +1037,8 @@ export function AppShell({ children, footer }: AppShellProps) {
               </div>
             </section>
           )}
-          {!isAuthOrSetupSurface &&
+          {showSurfaceOrientation &&
+            !isAuthOrSetupSurface &&
             surfaceOrientation &&
             isMobile &&
             !isScoutSurface &&
@@ -956,13 +1059,13 @@ export function AppShell({ children, footer }: AppShellProps) {
         </div>
       </main>
 
-      {/* USER-SPECIFIC PAGES LIVE HERE (desktop) - FIXED alongside bottom nav */}
+      {/* Optional desktop tools rail; disabled by default to preserve page width. */}
       {shouldPinRightTools && (
         <aside
           className="fixed z-40"
           style={{
             top: isAdminSurface ? 0 : "var(--top-nav-h)",
-            bottom: "var(--bottom-nav-h)",
+            bottom: 0,
             right: 0,
             width: isRightToolsCollapsed ? RIGHT_TOOLS_COLLAPSED_W : "var(--right-nav-w)",
             background: "var(--surface-intermediate)",
@@ -977,49 +1080,42 @@ export function AppShell({ children, footer }: AppShellProps) {
         </aside>
       )}
 
-      {/* Scout-only: keep the chat surface clean; open the tools panel only on demand. */}
-      {!isMobile &&
-        isToolsOpen &&
-        !isAuthOrSetupSurface &&
-        (isScoutSurface || isSettingsSurface) && (
-          <div
-            className="fixed inset-0 z-50 flex"
-            style={{ top: "var(--top-nav-h)", bottom: showFeatureNav ? "var(--bottom-nav-h)" : 0 }}
+      {/* Desktop tools stay on demand so pages keep their full working width. */}
+      {!isMobile && isToolsOpen && !isAuthOrSetupSurface && (
+        <div className="fixed inset-0 z-50 flex" style={{ top: "var(--top-nav-h)", bottom: 0 }}>
+          <button
+            type="button"
+            aria-label="Close tools panel"
+            className="flex-1 bg-black/40"
+            onClick={() => setIsToolsOpen(false)}
+          />
+          <aside
+            className="h-full"
+            style={{
+              width: "var(--right-nav-w)",
+              background: "var(--surface-intermediate)",
+              color: "var(--text-primary)",
+            }}
           >
-            <button
-              type="button"
-              aria-label="Close tools panel"
-              className="flex-1 bg-black/40"
-              onClick={() => setIsToolsOpen(false)}
+            <RightToolsPanel
+              contactRequestCount={contactRequestCount}
+              onNavigate={() => setIsToolsOpen(false)}
             />
-            <aside
-              className="h-full"
-              style={{
-                width: "var(--right-nav-w)",
-                background: "var(--surface-intermediate)",
-                color: "var(--text-primary)",
-              }}
-            >
-              <RightToolsPanel
-                contactRequestCount={contactRequestCount}
-                onNavigate={() => setIsToolsOpen(false)}
-              />
-            </aside>
-          </div>
-        )}
+          </aside>
+        </div>
+      )}
 
-      {/* BOTTOM BAR: SCROLLABLE SITE FEATURE NAV (mobile + desktop) */}
-      {showFeatureNav && (
+      {/* MOBILE FEATURE NAV */}
+      {showFeatureNav && isMobile && (
         <div style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 1000 }}>
           <MobileAppBar
-            items={isMobileSimplified ? mobileNav.ordered : featureNav}
-            primaryLimit={5}
+            items={isMobileSimplified ? mobileFlowNav : mobileNav.ordered}
+            primaryLimit={isMobileSimplified ? 4 : 5}
           />
         </div>
       )}
 
-      {/* Desktop-only legal footer sits below the bottom nav so the
-          site still feels app-like while keeping legal links visible. */}
+      {/* Desktop-only legal footer, used by standalone content pages when supplied. */}
       {!isMobile && footer && (
         <div
           className="border-t"

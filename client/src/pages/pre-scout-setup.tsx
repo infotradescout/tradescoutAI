@@ -26,18 +26,20 @@ import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine
 import { trackShellEvent } from "@/lib/analytics";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { resolveDirectConnectLandingRoute } from "@/lib/postOnboardingRoute";
 
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
 
 function sanitizePostSetupNext(next: string) {
-  if (!next.startsWith("/")) return "/scout";
+  const setupLanding = resolveDirectConnectLandingRoute({ entry: "setup" });
+  if (!next.startsWith("/")) return setupLanding;
   if (
     next.startsWith("/login") ||
     next.startsWith("/create-account") ||
     next.startsWith("/pre-scout-setup")
   ) {
-    return "/scout";
+    return setupLanding;
   }
   return next;
 }

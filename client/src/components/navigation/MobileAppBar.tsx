@@ -16,8 +16,24 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
 
   const pathOnly = location.split("?")[0].split("#")[0];
 
-  const isItemActive = (item: NavItem) =>
-    pathOnly === item.href || pathOnly.startsWith(item.href + "/");
+  const doesItemMatch = (item: NavItem) => {
+    if (item.href === "/direct-connect/engagements") {
+      return (
+        pathOnly === item.href ||
+        pathOnly.startsWith(item.href + "/") ||
+        pathOnly === "/direct-connect/inbox" ||
+        pathOnly.startsWith("/direct-connect/inbox/")
+      );
+    }
+
+    return pathOnly === item.href || pathOnly.startsWith(item.href + "/");
+  };
+  const activeHref = useMemo(() => {
+    return items
+      .filter((item) => doesItemMatch(item))
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  }, [items, pathOnly]);
+  const isItemActive = (item: NavItem) => item.href === activeHref;
 
   const { primaryItems, overflowItems } = useMemo(() => {
     const limit = Math.max(1, primaryLimit);
@@ -151,7 +167,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                         key={`overflow-${item.href}`}
                         href={item.href}
                         onClick={() => setIsMoreOpen(false)}
-                        className="flex w-full items-start gap-2.5 rounded-xl border px-3 py-3 text-sm transition-colors"
+                        className="flex w-full items-center gap-2.5 rounded-xl border px-3 py-3 text-sm transition-colors"
                         style={{
                           borderColor: active
                             ? "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)"
@@ -164,7 +180,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                       >
                         {item.icon && (
                           <span
-                            className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center"
+                            className="inline-flex h-5 w-5 shrink-0 items-center"
                             style={{ opacity: 0.9 }}
                           >
                             {item.icon}
@@ -172,12 +188,6 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                         )}
                         <span className="min-w-0">
                           <span className="block truncate text-sm font-medium">{item.label}</span>
-                          <span
-                            className="mt-0.5 block text-xs leading-relaxed"
-                            style={{ color: "var(--text-secondary)" }}
-                          >
-                            {item.description ?? "Open feature"}
-                          </span>
                         </span>
                       </Link>
                     );

@@ -23,7 +23,7 @@ import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
-import { trackShellEvent } from "@/lib/analytics";
+import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import {
   getDirectConnectInboxNextStepCopy,
@@ -48,12 +48,20 @@ import {
   Paperclip,
   ImagePlus,
   FolderKanban,
-  ArrowRight,
   Clock3,
 } from "lucide-react";
 
 const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"] as const;
 type Section = (typeof SECTIONS)[number];
+
+const DIRECT_CONNECT_TABS: Section[] = [
+  "post",
+  "pros",
+  "board",
+  "employment",
+  "engagements",
+  "inbox",
+];
 
 const SECTION_LABELS: Record<Section, string> = {
   post: "New Request",
@@ -64,33 +72,16 @@ const SECTION_LABELS: Record<Section, string> = {
   engagements: "My Requests",
 };
 
-type FlowMode = "start" | "manage";
-
-const FLOW_MODE_META: Record<
-  FlowMode,
-  {
-    title: string;
-    description: string;
-    target: Section;
-    sections: Section[];
-    icon: ReactNode;
-  }
-> = {
-  start: {
-    title: "Post a request",
-    description: "Describe what you need so matched local businesses can review and reply.",
-    target: "post",
-    sections: ["post", "pros", "board", "employment"],
-    icon: <ClipboardPlus className="h-5 w-5" />,
-  },
-  manage: {
-    title: "Manage requests",
-    description: "See what is open, who replied, and what needs your next action.",
-    target: "engagements",
-    sections: ["engagements", "inbox"],
-    icon: <FolderKanban className="h-5 w-5" />,
-  },
+const SECTION_SHORT_LABELS: Record<Section, string> = {
+  post: "Request",
+  board: "Local",
+  employment: "Jobs",
+  inbox: "Replies",
+  pros: "Directory",
+  engagements: "Requests",
 };
+
+type FlowMode = "start" | "manage";
 
 const SECTION_META: Record<
   Section,
@@ -167,8 +158,23 @@ const SECTION_GROUPS: Array<{ title: string; sections: Section[]; icon?: ReactNo
   },
 ];
 
+function getPathOnly(path: string): string {
+  return path.split("?")[0].split("#")[0];
+}
+
+function getDirectConnectEntry(path: string): string | null {
+  const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
+  if (!query) return null;
+  return new URLSearchParams(query).get("entry");
+}
+
+function shouldResolveDirectConnectEntry(entry: string | null): entry is string {
+  return Boolean(entry && ["default", "auth", "setup", "onboarding", "intent"].includes(entry));
+}
+
 function getSectionFromPath(path: string): Section {
-  const match = path.match(/^\/direct-connect(?:\/(.+))?/);
+  const pathOnly = getPathOnly(path);
+  const match = pathOnly.match(/^\/direct-connect(?:\/(.+))?/);
   const raw = match?.[1]?.split("/")[0] ?? "";
   if (!raw) return "post";
   if (SECTIONS.includes(raw as Section)) return raw as Section;
@@ -599,6 +605,7 @@ function DirectConnectRequestComposer({
   const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(2);
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
+  const requestStartedRef = useRef(false);
 
   const replaceAttachments = (next: DraftAttachment[]) => {
     attachmentsRef.current = next;
@@ -716,6 +723,21 @@ function DirectConnectRequestComposer({
 
   const activeRequestMeta = requestTypeMeta[requestType];
 
+  const markRequestStarted = (
+    field: "type" | "title" | "description" | "attachment" | "budget"
+  ) => {
+    if (requestStartedRef.current) return;
+    requestStartedRef.current = true;
+    void trackShellEvent({
+      type: "direct_connect_request_started",
+      category: activeRequestMeta.category,
+      field,
+      source: prefillSource || null,
+      deviceType: getDeviceType(),
+      ts: new Date().toISOString(),
+    });
+  };
+
   const { data: localDirectoryCandidates = [], isLoading: isDirectoryLoading } = useQuery<
     DirectoryCandidate[]
   >({
@@ -821,6 +843,17 @@ function DirectConnectRequestComposer({
           directTargets: selectedCount,
         },
       });
+      void trackShellEvent({
+        type: "direct_connect_request_submitted",
+        category: activeRequestMeta.category,
+        hasBudget: Boolean(budgetMin.trim() || budgetMax.trim()),
+        attachmentCount,
+        dispatchMode: variables?.dispatchMode || "auto_route",
+        dispatchCount: variables?.dispatchCount || null,
+        directTargets: selectedCount,
+        deviceType: getDeviceType(),
+        ts: new Date().toISOString(),
+      });
       toast({
         title: "Request sent",
         description: "Your request is live.",
@@ -835,6 +868,7 @@ function DirectConnectRequestComposer({
       setDispatchCount(2);
       setDirectorySearch("");
       setSelectedContractorIds([]);
+      requestStartedRef.current = false;
       clearAttachments();
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
@@ -932,7 +966,7 @@ function DirectConnectRequestComposer({
 
   return (
     <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-      <CardHeader className="pb-2">
+      <CardHeader className="hidden pb-2 md:block">
         <CardTitle className="text-base">New request</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -951,7 +985,10 @@ function DirectConnectRequestComposer({
           <label className="text-xs text-[color:var(--text-secondary)]">What do you need?</label>
           <select
             value={requestType}
-            onChange={(event) => setRequestType(event.target.value as keyof typeof requestTypeMeta)}
+            onChange={(event) => {
+              markRequestStarted("type");
+              setRequestType(event.target.value as keyof typeof requestTypeMeta);
+            }}
             className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
           >
             {requestTypeOrder.map((key) => (
@@ -965,7 +1002,10 @@ function DirectConnectRequestComposer({
           <label className="text-xs text-[color:var(--text-secondary)]">Title</label>
           <Input
             value={title}
-            onChange={(event) => setTitle(event.target.value)}
+            onChange={(event) => {
+              markRequestStarted("title");
+              setTitle(event.target.value);
+            }}
             placeholder={activeRequestMeta.titlePlaceholder}
             className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
           />
@@ -974,7 +1014,10 @@ function DirectConnectRequestComposer({
           <label className="text-xs text-[color:var(--text-secondary)]">Scope</label>
           <Textarea
             value={description}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={(event) => {
+              markRequestStarted("description");
+              setDescription(event.target.value);
+            }}
             placeholder={activeRequestMeta.descriptionPlaceholder}
             rows={3}
             className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
@@ -998,7 +1041,10 @@ function DirectConnectRequestComposer({
               accept="image/*"
               multiple
               className="hidden"
-              onChange={handleAttachmentSelect}
+              onChange={(event) => {
+                markRequestStarted("attachment");
+                handleAttachmentSelect(event);
+              }}
             />
           </label>
           {attachments.length > 0 && (
@@ -1043,7 +1089,10 @@ function DirectConnectRequestComposer({
                 </label>
                 <Input
                   value={budgetMin}
-                  onChange={(event) => setBudgetMin(event.target.value)}
+                  onChange={(event) => {
+                    markRequestStarted("budget");
+                    setBudgetMin(event.target.value);
+                  }}
                   inputMode="numeric"
                   placeholder={activeRequestMeta.budgetPlaceholderMin}
                   className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
@@ -1055,7 +1104,10 @@ function DirectConnectRequestComposer({
                 </label>
                 <Input
                   value={budgetMax}
-                  onChange={(event) => setBudgetMax(event.target.value)}
+                  onChange={(event) => {
+                    markRequestStarted("budget");
+                    setBudgetMax(event.target.value);
+                  }}
                   inputMode="numeric"
                   placeholder={activeRequestMeta.budgetPlaceholderMax}
                   className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
@@ -2841,6 +2893,8 @@ function MyDirectConnectRequests() {
 export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const pathOnly = useMemo(() => getPathOnly(location), [location]);
+  const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
   const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
 
@@ -2869,11 +2923,31 @@ export default function DirectConnectShell() {
     return `/create-account?source=pensacola-direct-connect&county=${PENSACOLA_COUNTY_CODE}&next=${nextPath}`;
   }, [location]);
 
+  useEffect(() => {
+    void trackShellEvent({
+      type: "direct_connect_landed",
+      section: activeSection,
+      entry: directConnectEntry,
+      deviceType: getDeviceType(),
+      isAuthenticated,
+      hasCountyFips: Boolean(defaultCountyFips || (user as any)?.countyFips),
+      ts: new Date().toISOString(),
+    });
+  }, [activeSection, defaultCountyFips, directConnectEntry, isAuthenticated, user]);
+
   const navigateSection = (section: Section) => {
+    void trackShellEvent({
+      type: "direct_connect_tab_selected",
+      fromSection: activeSection,
+      toSection: section,
+      entry: directConnectEntry,
+      deviceType: getDeviceType(),
+      ts: new Date().toISOString(),
+    });
     navigate(buildHref(section));
   };
 
-  const { data: inboxData } = useQuery<DirectConnectInboxItem[]>({
+  const { data: inboxData, isLoading: isInboxCountLoading } = useQuery<DirectConnectInboxItem[]>({
     queryKey: ["/api/direct-connect/inbox", "count"],
     queryFn: async () => {
       const res = await fetch("/api/direct-connect/inbox");
@@ -2883,15 +2957,17 @@ export default function DirectConnectShell() {
     enabled: isAuthenticated,
   });
 
-  const { data: requestsData } = useQuery<DirectConnectRequest[]>({
-    queryKey: ["/api/direct-connect/requests", "count"],
-    queryFn: async () => {
-      const res = await fetch("/api/direct-connect/requests");
-      if (!res.ok) return [];
-      return res.json();
-    },
-    enabled: isAuthenticated,
-  });
+  const { data: requestsData, isLoading: isRequestCountLoading } = useQuery<DirectConnectRequest[]>(
+    {
+      queryKey: ["/api/direct-connect/requests", "count"],
+      queryFn: async () => {
+        const res = await fetch("/api/direct-connect/requests");
+        if (!res.ok) return [];
+        return res.json();
+      },
+      enabled: isAuthenticated,
+    }
+  );
 
   const navCounts: Partial<Record<Section, number>> = useMemo(
     () => ({
@@ -2909,13 +2985,51 @@ export default function DirectConnectShell() {
     [requestsData]
   );
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (pathOnly !== "/direct-connect") return;
+    if (!shouldResolveDirectConnectEntry(directConnectEntry)) return;
+    if (isInboxCountLoading || isRequestCountLoading) return;
+
+    const replyCount = navCounts.inbox ?? 0;
+    const openRequestCount = navCounts.engagements ?? 0;
+    const targetSection: Section =
+      replyCount > 0 ? "inbox" : openRequestCount > 0 ? "engagements" : "post";
+    const reason =
+      targetSection === "inbox"
+        ? "replies"
+        : targetSection === "engagements"
+          ? "open_requests"
+          : "new_request";
+
+    void trackShellEvent({
+      type: "direct_connect_entry_resolved",
+      entry: directConnectEntry,
+      fromSection: activeSection,
+      toSection: targetSection,
+      reason,
+      deviceType: getDeviceType(),
+      replyCount,
+      openRequestCount,
+      ts: new Date().toISOString(),
+    });
+
+    if (targetSection !== activeSection) {
+      navigate(buildHref(targetSection));
+    }
+  }, [
+    activeSection,
+    directConnectEntry,
+    isAuthenticated,
+    isInboxCountLoading,
+    isRequestCountLoading,
+    navCounts.engagements,
+    navCounts.inbox,
+    navigate,
+    pathOnly,
+  ]);
   const sectionMeta = SECTION_META[activeSection];
-  const activeModeMeta = FLOW_MODE_META[activeFlowMode];
-  const activeModeSections = activeModeMeta.sections;
-  const modeActionSections = useMemo(() => {
-    const withoutActive = activeModeSections.filter((section) => section !== activeSection);
-    return withoutActive.length > 0 ? withoutActive : activeModeSections;
-  }, [activeModeSections, activeSection]);
+  const mobileTitle = activeSection === "post" ? "Post a request" : sectionMeta.title;
 
   let centerContent: ReactNode = null;
   switch (activeSection) {
@@ -2958,61 +3072,33 @@ export default function DirectConnectShell() {
         canonical="https://www.thetradescout.com/direct-connect"
         structuredData={DIRECT_CONNECT_STRUCTURED_DATA}
       />
-      <div className="mx-auto w-full max-w-6xl space-y-2 px-2.5 py-3 sm:space-y-3 sm:px-3 sm:py-4 md:space-y-4 md:px-6 md:py-6">
-        {/* Header Section */}
-        <div className="space-y-2 md:space-y-3">
-          <div className="space-y-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-[color:var(--text-primary)]">
-              Direct Connect
-            </h1>
-            <p className="hidden md:block text-sm text-[color:var(--text-secondary)]">
-              Post a request, get replies, and track updates in one place.
-            </p>
-          </div>
-          {!isAuthenticated && isPensacolaLaunchPath ? (
-            <div className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 px-3 py-2.5 md:px-4 md:py-3">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <p className="text-xs md:text-sm text-[color:var(--text-primary)]">
-                  Pensacola launch flow: create your free account to save this request path and keep
-                  replies in one place.
-                </p>
-                <Button
-                  size="sm"
-                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90 w-fit"
-                  onClick={() => navigate(createPensacolaAccountHref)}
-                >
-                  Create account to continue
-                </Button>
-              </div>
-            </div>
-          ) : null}
+      <div className="mx-auto w-full max-w-6xl space-y-3 px-2.5 py-3 sm:px-3 sm:py-4 md:space-y-4 md:px-6 md:py-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
+            <span className="md:hidden">{mobileTitle}</span>
+            <span className="hidden md:inline">Direct Connect</span>
+          </h1>
 
-          {/* Status Pills */}
-          <div
-            className={cn(
-              "hidden md:flex md:flex-wrap md:gap-2",
-              activeSection === "post" ? "md:hidden lg:flex" : ""
-            )}
-          >
+          <div className="hidden flex-wrap justify-end gap-2 md:flex">
             {activeFlowMode === "manage" ? (
               <>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <Zap className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Live · open</span>
+                  <span className="text-[color:var(--text-secondary)]">Open</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {requestSummary.readyToSend}
                   </span>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Waiting on pros</span>
+                  <span className="text-[color:var(--text-secondary)]">Waiting</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {requestSummary.waitingOnPros}
                   </span>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <MessageCircle className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">In conversation</span>
+                  <span className="text-[color:var(--text-secondary)]">Conversation</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {requestSummary.inConversation}
                   </span>
@@ -3020,16 +3106,16 @@ export default function DirectConnectShell() {
               </>
             ) : (
               <>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
                   <span className="text-[color:var(--text-secondary)]">Replies</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {navCounts.inbox || 0}
                   </span>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-sm">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <TrendingUp className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Open requests</span>
+                  <span className="text-[color:var(--text-secondary)]">Requests</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {navCounts.engagements || 0}
                   </span>
@@ -3039,127 +3125,57 @@ export default function DirectConnectShell() {
           </div>
         </div>
 
-        <div className="hidden md:grid md:grid-cols-2 gap-3">
-          {(
-            Object.entries(FLOW_MODE_META) as Array<[FlowMode, (typeof FLOW_MODE_META)[FlowMode]]>
-          ).map(([mode, meta]) => {
-            const active = mode === activeFlowMode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => navigateSection(meta.target)}
-                className={cn(
-                  "rounded-3xl border p-4 text-left transition-all duration-300",
-                  active
-                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
-                    : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] hover:border-[color:var(--theme-accent-primary)]/50"
-                )}
+        {!isAuthenticated && isPensacolaLaunchPath ? (
+          <div className="rounded-lg border border-ts-orange/35 bg-ts-orange/10 px-3 py-2.5 md:px-4 md:py-3">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <p className="text-xs text-[color:var(--text-primary)] md:text-sm">
+                Create your free account to save this request path and keep replies in one place.
+              </p>
+              <Button
+                size="sm"
+                className="w-fit bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                onClick={() => navigate(createPensacolaAccountHref)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-2">
-                    <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--theme-accent-primary)]">
-                      {meta.icon}
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">
-                        {meta.title}
-                      </h2>
-                      <p className="mt-1 text-sm text-[color:var(--text-secondary)]">
-                        {meta.description}
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight className="mt-1 h-4 w-4 text-[color:var(--text-secondary)]" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        <Card className="border-0 bg-transparent shadow-none md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-card)] md:shadow-sm">
-          <CardContent className="space-y-2 p-0 md:space-y-3 md:p-4">
-            <div
-              className={cn(
-                "hidden md:flex md:flex-row md:items-center md:justify-between md:gap-2"
-              )}
-            >
-              <div>
-                <p className="hidden md:block text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                  {activeFlowMode === "start" ? "Create mode" : "Follow-up mode"}
-                </p>
-                <p className="mt-1 text-sm text-[color:var(--text-primary)]">
-                  {activeModeMeta.description}
-                </p>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-[color:var(--text-secondary)]">
-                <FolderKanban className="h-3.5 w-3.5" />
-                {activeFlowMode === "start"
-                  ? "Every request you send appears in My Requests right away."
-                  : "Follow-up mode keeps request updates and replies together."}
-              </div>
+                Create account
+              </Button>
             </div>
+          </div>
+        ) : null}
 
-            <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap md:flex md:flex-wrap md:gap-2 md:overflow-visible md:whitespace-normal">
-              {modeActionSections.map((section) => {
-                const active = section === activeSection;
-                const count = navCounts[section] ?? 0;
-                return (
-                  <button
-                    key={section}
-                    type="button"
-                    onClick={() => navigateSection(section)}
-                    className={cn(
-                      "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2 py-1.5 text-xs transition-colors md:gap-2 md:rounded-full md:px-3 md:py-2 md:text-sm",
-                      active
-                        ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
-                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
-                    )}
-                  >
-                    <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5 md:[&>svg]:h-5 md:[&>svg]:w-5">
-                      {SECTION_ICONS[section]}
-                    </span>
-                    <span>{SECTION_LABELS[section]}</span>
-                    {count > 0 && (
-                      <Badge variant="secondary" className="hidden text-[10px] md:inline-flex">
-                        {count}
-                      </Badge>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="min-w-0 space-y-4">
-          <Card
-            className={cn(
-              "hidden md:block border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
-            )}
-          >
-            <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between md:p-5">
-              <div>
-                <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">
-                  {sectionMeta.title}
-                </h2>
-                <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                  {sectionMeta.description}
-                </p>
-              </div>
-              {sectionMeta.actionTarget !== activeSection && (
-                <Button
-                  size="sm"
-                  onClick={() => navigateSection(sectionMeta.actionTarget)}
-                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90 whitespace-nowrap"
+        <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-1.5">
+          <div className="grid grid-cols-3 gap-1 md:flex md:items-center md:gap-1.5">
+            {DIRECT_CONNECT_TABS.map((section) => {
+              const active = section === activeSection;
+              const count = navCounts[section] ?? 0;
+              return (
+                <button
+                  key={section}
+                  type="button"
+                  onClick={() => navigateSection(section)}
+                  className={cn(
+                    "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-xs font-medium transition-colors md:flex-1 md:gap-2 md:px-3 md:text-sm",
+                    active
+                      ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
+                      : "border-transparent bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                  )}
                 >
-                  {sectionMeta.actionLabel}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-          {centerContent}
+                  <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5 md:[&>svg]:h-4 md:[&>svg]:w-4">
+                    {SECTION_ICONS[section]}
+                  </span>
+                  <span className="truncate md:hidden">{SECTION_SHORT_LABELS[section]}</span>
+                  <span className="hidden truncate md:inline">{SECTION_LABELS[section]}</span>
+                  {count > 0 && (
+                    <Badge variant="secondary" className="hidden text-[10px] md:inline-flex">
+                      {count}
+                    </Badge>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
+
+        <div className="min-w-0 space-y-4">{centerContent}</div>
       </div>
     </div>
   );

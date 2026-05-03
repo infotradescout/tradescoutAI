@@ -16,7 +16,7 @@ export const ROUTES = {
   PRICING: "/pricing",
 
   // Protected routes (require auth)
-  DASHBOARD: "/scout",
+  DASHBOARD: "/direct-connect",
   PROFILE: "/profile",
   CONVERSATIONS: "/conversations",
   SETTINGS: "/settings",

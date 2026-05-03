@@ -18,7 +18,11 @@ import { inferCountyForCityState } from "@/lib/countyInference";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
-import { storeOnboardingNext, isSafeNextPath } from "@/lib/postOnboardingRoute";
+import {
+  resolveDirectConnectLandingRoute,
+  storeOnboardingNext,
+  isSafeNextPath,
+} from "@/lib/postOnboardingRoute";
 import { trackShellEvent } from "@/lib/analytics";
 
 function sanitizeNext(next: string) {
@@ -37,9 +41,7 @@ function sanitizeNext(next: string) {
 function buildIntentRoute(next: string) {
   // Persist the deep-link so it survives the intent step
   if (next) storeOnboardingNext(next);
-  return next
-    ? `/onboarding/intent?next=${encodeURIComponent(next)}`
-    : "/onboarding/intent";
+  return next ? `/onboarding/intent?next=${encodeURIComponent(next)}` : "/onboarding/intent";
 }
 
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
@@ -58,7 +60,8 @@ export default function OnboardingProfile() {
 
   const nextParam = (search.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
-  const postProfileNext = sanitizeNext(safeNext);
+  const postProfileNext =
+    sanitizeNext(safeNext) || resolveDirectConnectLandingRoute({ entry: "onboarding" });
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -66,8 +69,7 @@ export default function OnboardingProfile() {
   const [countyFips, setCountyFips] = useState("");
   const [countyName, setCountyName] = useState<string | undefined>(undefined);
   const [city, setCity] = useState("");
-  const [countyInferenceStatus, setCountyInferenceStatus] =
-    useState<CountyInferenceStatus>("idle");
+  const [countyInferenceStatus, setCountyInferenceStatus] = useState<CountyInferenceStatus>("idle");
   const [countyInferenceNote, setCountyInferenceNote] = useState("");
   // Track whether the location was resolved via Google Places (vs. manual typing)
   const [locationSource, setLocationSource] = useState<"places" | "manual" | "none">("none");
@@ -310,7 +312,7 @@ export default function OnboardingProfile() {
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
-            onClick={() => navigate("/scout")}
+            onClick={() => navigate(resolveDirectConnectLandingRoute({ entry: "onboarding" }))}
             className="px-0 text-white/60 hover:text-white hover:bg-transparent"
           >
             Back

@@ -74,9 +74,7 @@ export default function OnboardingIntent() {
       void trackShellEvent({
         type: "onboarding_completed",
         presenceType: userIsBusiness ? "represent_business" : "personal",
-        draftPromoted: Boolean(
-          (user as any)?.preferences?.provisional?.promotedAt
-        ),
+        draftPromoted: Boolean((user as any)?.preferences?.provisional?.promotedAt),
         destination,
         ts: new Date().toISOString(),
       });
@@ -117,9 +115,7 @@ export default function OnboardingIntent() {
       void trackShellEvent({
         type: "onboarding_completed",
         presenceType: userIsBusiness ? "represent_business" : "personal",
-        draftPromoted: Boolean(
-          (user as any)?.preferences?.provisional?.promotedAt
-        ),
+        draftPromoted: Boolean((user as any)?.preferences?.provisional?.promotedAt),
         destination,
         ts: new Date().toISOString(),
       });
@@ -261,9 +257,9 @@ export default function OnboardingIntent() {
               >
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="h-4 w-4 text-ts-orange" />
-                  <span className="font-medium text-white">Scout</span>
+                  <span className="font-medium text-white">Scout Assist</span>
                 </div>
-                <p className="mt-1 text-xs text-white/65">Ask Scout what to do next.</p>
+                <p className="mt-1 text-xs text-white/65">Start in Direct Connect with help.</p>
               </button>
             </div>
 

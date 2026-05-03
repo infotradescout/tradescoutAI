@@ -39,11 +39,21 @@ const SAFE_NEXT_PREFIXES = [
   "/settings",
 ];
 
+export type DirectConnectEntry = "default" | "auth" | "setup" | "onboarding" | "intent";
+
+/** Canonical Direct Connect home surface. */
+export const DIRECT_CONNECT_HOME = "/direct-connect";
+
 /** Default landing surface for regular (non-business) users. */
-export const DEFAULT_LANDING = "/direct-connect";
+export const DEFAULT_LANDING = `${DIRECT_CONNECT_HOME}?entry=default`;
 
 /** Default landing surface for business / service-provider users. */
 export const BUSINESS_LANDING = "/offer-services";
+
+function withDirectConnectEntry(path: string, entry: DirectConnectEntry = "default"): string {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}entry=${entry}`;
+}
 
 /**
  * Returns true if the given path is a safe, trusted internal destination.
@@ -52,7 +62,9 @@ export function isSafeNextPath(path: string): boolean {
   if (!path || !path.startsWith("/")) return false;
   // Reject anything that looks like a protocol or double-slash (open redirect)
   if (/^\/\/|:\/\//.test(path)) return false;
-  return SAFE_NEXT_PREFIXES.some((prefix) => path === prefix || path.startsWith(prefix + "/") || path.startsWith(prefix + "?"));
+  return SAFE_NEXT_PREFIXES.some(
+    (prefix) => path === prefix || path.startsWith(prefix + "/") || path.startsWith(prefix + "?")
+  );
 }
 
 /**
@@ -123,8 +135,19 @@ export function resolvePostOnboardingRoute(options: {
   user?: Record<string, any> | null;
   presenceType?: string | null;
   chosenIntent?: string | null;
+  entry?: DirectConnectEntry;
+  hasOpenDirectConnectRequests?: boolean;
+  hasDirectConnectReplies?: boolean;
 }): string {
-  const { nextParam, user, presenceType, chosenIntent } = options;
+  const {
+    nextParam,
+    user,
+    presenceType,
+    chosenIntent,
+    entry = "onboarding",
+    hasOpenDirectConnectRequests,
+    hasDirectConnectReplies,
+  } = options;
 
   // 1. Honour an explicit, safe deep-link
   const trimmedNext = (nextParam || "").trim();
@@ -135,10 +158,14 @@ export function resolvePostOnboardingRoute(options: {
   // 2. If the user explicitly chose an intent on the intent screen, respect it
   //    (but still override with the business landing if they chose "business")
   const INTENT_ROUTES: Record<string, string> = {
-    community: "/community-feed",
-    services: "/direct-connect",
+    community: withDirectConnectEntry("/direct-connect/board", entry),
+    services: resolveDirectConnectLandingRoute({
+      entry,
+      hasOpenRequests: hasOpenDirectConnectRequests,
+      hasReplies: hasDirectConnectReplies,
+    }),
     business: BUSINESS_LANDING,
-    tools: "/scout",
+    tools: withDirectConnectEntry("/direct-connect", entry),
   };
   if (chosenIntent && INTENT_ROUTES[chosenIntent]) {
     return INTENT_ROUTES[chosenIntent];
@@ -150,7 +177,31 @@ export function resolvePostOnboardingRoute(options: {
   }
 
   // 4. Default: Direct Connect
-  return DEFAULT_LANDING;
+  return resolveDirectConnectLandingRoute({
+    entry,
+    hasOpenRequests: hasOpenDirectConnectRequests,
+    hasReplies: hasDirectConnectReplies,
+  });
+}
+
+export function resolveDirectConnectLandingRoute(
+  options: {
+    entry?: DirectConnectEntry;
+    hasOpenRequests?: boolean | null;
+    hasReplies?: boolean | null;
+  } = {}
+): string {
+  const { entry = "default", hasOpenRequests, hasReplies } = options;
+
+  if (hasReplies) {
+    return withDirectConnectEntry("/direct-connect/inbox", entry);
+  }
+
+  if (hasOpenRequests) {
+    return withDirectConnectEntry("/direct-connect/engagements", entry);
+  }
+
+  return withDirectConnectEntry(DIRECT_CONNECT_HOME, entry);
 }
 
 // ─── Session-storage helpers for deep-link preservation ──────────────────────

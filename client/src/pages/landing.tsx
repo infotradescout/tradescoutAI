@@ -266,14 +266,14 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
   return (
     <section
       ref={heroRef}
-      className="relative min-h-[56vh] md:min-h-[64vh] lg:min-h-[72vh] flex items-center overflow-hidden"
+      className="ts-landing-hero relative flex min-h-[56vh] items-center overflow-hidden md:min-h-[64vh] lg:min-h-[70vh]"
     >
       <motion.div
         // eslint-disable-next-line no-restricted-syntax -- framer-motion transform props (non-color styles)
         style={{ y: heroY, opacity: heroOpacity }}
-        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12 md:pt-16 md:pb-14 lg:pt-20 lg:pb-16 w-full"
+        className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-10 sm:px-6 md:pb-14 md:pt-14 lg:px-8 lg:pb-16 lg:pt-16"
       >
-        <div className="w-full md:max-w-2xl">
+        <div className="w-full md:max-w-3xl">
           {variant.showBadge !== false && (
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -290,7 +290,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.3 }}
-            className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-[1.02] tracking-tight mb-4"
+            className="font-display mb-4 max-w-3xl text-[2rem] font-extrabold leading-[1.02] text-white [text-wrap:balance] sm:text-4xl md:text-5xl lg:text-[4.25rem]"
           >
             {variant.headlineLines.map((line, index) => {
               const isAccent = index === 1 || (variant.headlineLines.length === 1 && index === 0);
@@ -307,7 +307,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="text-base sm:text-lg text-white/80 max-w-none md:max-w-2xl mb-6 leading-relaxed"
+            className="mb-6 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg"
           >
             {variant.subhead}
           </motion.p>
@@ -328,7 +328,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
                 })
               }
             >
-              <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white font-bold text-sm sm:text-base px-6 h-12 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:shadow-ts-orange/40 hover:scale-[1.02] w-full sm:w-auto">
+              <Button className="h-12 w-full bg-ts-orange px-6 text-sm font-bold text-white shadow-xl shadow-ts-orange/20 transition-all hover:bg-ts-orange-dark hover:shadow-ts-orange/30 sm:w-auto sm:text-base">
                 {variant.primaryCta.label}
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -340,7 +340,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
                   elem?.scrollIntoView({ behavior: "smooth" });
                 }}
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-6 h-12 rounded-lg w-full sm:w-auto bg-transparent"
+                className="h-12 w-full bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 sm:w-auto sm:text-base"
               >
                 {variant.secondaryCta.label}
               </Button>
@@ -357,7 +357,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
               >
                 <Button
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10 font-semibold text-sm sm:text-base px-6 h-12 rounded-lg w-full sm:w-auto bg-transparent"
+                  className="h-12 w-full bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 sm:w-auto sm:text-base"
                 >
                   {variant.secondaryCta.label}
                 </Button>
@@ -1091,12 +1091,8 @@ export default function Home() {
   }, [trackedVariant.key]);
 
   return (
-    <div className="relative flex flex-col bg-[#07111d] text-white font-body overflow-x-clip">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -left-20 h-[24rem] w-[24rem] rounded-full bg-ts-orange/14 blur-3xl" />
-        <div className="absolute top-[26rem] -right-24 h-[26rem] w-[26rem] rounded-full bg-cyan-400/10 blur-3xl" />
-        <div className="absolute inset-0 opacity-[0.18] [background:radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.08)_1px,transparent_0)] [background-size:22px_22px]" />
-      </div>
+    <div className="ts-landing relative flex flex-col overflow-x-clip text-white font-body">
+      <div aria-hidden className="ts-landing__field pointer-events-none absolute inset-0" />
       {/* Scout is the operating layer for local interaction */}
       <SEOHelmet
         title={

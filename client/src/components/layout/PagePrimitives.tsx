@@ -23,8 +23,12 @@ export function Section({
       {(title || subtitle || actions) && (
         <div className="ts-page-section-header flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            {title && <h2 className="text-xl font-semibold text-white">{title}</h2>}
-            {subtitle && <p className="text-sm text-white/60 mt-1">{subtitle}</p>}
+            {title && (
+              <h2 className="text-lg font-semibold text-[color:var(--text-primary)]">{title}</h2>
+            )}
+            {subtitle && (
+              <p className="mt-1 text-sm text-[color:var(--text-secondary)]">{subtitle}</p>
+            )}
           </div>
           {actions}
         </div>
@@ -38,7 +42,7 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return (
     <div
       className={cn(
-        "ts-page-card card-interactive rounded-2xl border border-white/10 bg-tsCard/80 shadow-xl shadow-black/25",
+        "ts-page-card card-interactive rounded-lg border border-[color:var(--surface-card-border)] bg-[color:var(--surface-card)] shadow-[var(--surface-card-shadow)]",
         className
       )}
     >

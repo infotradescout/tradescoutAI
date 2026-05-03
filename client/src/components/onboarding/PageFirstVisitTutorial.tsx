@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
+import { X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type TutorialContent = {
   title: string;
@@ -596,9 +596,20 @@ export default function PageFirstVisitTutorial() {
       return;
     }
 
+    const query = typeof window.location?.search === "string" ? window.location.search : "";
+    const params = new URLSearchParams(query);
+    const guideRequested = params.get("guide") === "1" || params.get("help") === "1";
+    const autoStartEnabled =
+      String(import.meta.env.VITE_PAGE_GUIDES_AUTOSTART ?? "false") === "true";
+
+    if (!autoStartEnabled && !guideRequested) {
+      setOpen(false);
+      return;
+    }
+
     const never = readTutorialNever(storageKeys.never);
     const seenVersion = readTutorialSeenVersion(storageKeys.seen);
-    if (never || seenVersion === TUTORIAL_VERSION) {
+    if (!guideRequested && (never || seenVersion === TUTORIAL_VERSION)) {
       setOpen(false);
       return;
     }
@@ -617,41 +628,52 @@ export default function PageFirstVisitTutorial() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-3 z-[1000] px-3 sm:bottom-4 sm:px-4">
-      <div className="mx-auto max-w-xl">
-        <Card className="border border-white/10 bg-tsCard/95 shadow-[0_18px_52px_rgba(0,0,0,0.45)] backdrop-blur">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-white">{tutorial.title}</CardTitle>
-            <p className="text-sm text-white/70">{tutorial.description}</p>
-          </CardHeader>
+    <div className="fixed right-3 top-[calc(var(--top-nav-h)+0.75rem)] z-[1000] w-[calc(100%-1.5rem)] max-w-md sm:right-4 sm:top-[calc(var(--top-nav-h)+1rem)]">
+      <div className="ts-page-guide rounded-lg border p-3 backdrop-blur">
+        <div className="flex items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+              {tutorial.title}
+            </p>
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-[color:var(--text-secondary)]">
+              {tutorial.description}
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close page guide"
+            onClick={handleClose}
+            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[color:var(--text-secondary)] transition hover:text-[color:var(--text-primary)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-          <CardContent className="space-y-3">
-            <div className="space-y-1.5">
-              {tutorial.bullets.map((item) => (
-                <p key={item} className="text-sm text-white/80">
-                  • {item}
-                </p>
-              ))}
-            </div>
+        <div className="mt-2 hidden gap-1.5 sm:grid">
+          {tutorial.bullets.slice(0, 2).map((item) => (
+            <p key={item} className="truncate text-[11px] text-[color:var(--text-tertiary)]">
+              {item}
+            </p>
+          ))}
+        </div>
 
-            <label className="flex items-center gap-2 pt-0.5 text-sm text-white/80">
-              <Checkbox
-                checked={neverShowAgain}
-                onCheckedChange={(checked) => setNeverShowAgain(checked === true)}
-              />
-              Never show this page guide again
-            </label>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <label className="flex min-w-0 items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
+            <Checkbox
+              checked={neverShowAgain}
+              onCheckedChange={(checked) => setNeverShowAgain(checked === true)}
+            />
+            <span className="truncate">Do not show again</span>
+          </label>
 
-            <div className="flex justify-end">
-              <Button
-                onClick={handleClose}
-                className="bg-ts-orange text-white hover:bg-ts-orange-dark"
-              >
-                {tutorial.primaryAction}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <Button
+            onClick={handleClose}
+            size="sm"
+            className="bg-ts-orange text-white hover:bg-ts-orange-dark"
+          >
+            {tutorial.primaryAction}
+          </Button>
+        </div>
       </div>
     </div>
   );

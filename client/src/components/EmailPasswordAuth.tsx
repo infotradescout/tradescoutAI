@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { isSuperAdminLike } from "@/lib/roleChecks";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { resolveDirectConnectLandingRoute } from "@/lib/postOnboardingRoute";
 
 export function EmailPasswordAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +65,9 @@ export function EmailPasswordAuth() {
         window.location.href = safeNext;
         return;
       }
-      window.location.href = isSuperAdmin ? "/admin" : "/scout";
+      window.location.href = isSuperAdmin
+        ? "/admin"
+        : resolveDirectConnectLandingRoute({ entry: "auth" });
     } catch (error) {
       console.error("Authentication error:", error);
       const anyErr: any = error as any;

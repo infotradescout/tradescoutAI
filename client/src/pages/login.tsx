@@ -7,6 +7,7 @@ import { Home } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { buildApiUrl } from "@/lib/apiBaseUrl";
 import { isSuperAdminLike } from "@/lib/roleChecks";
+import { resolveDirectConnectLandingRoute } from "@/lib/postOnboardingRoute";
 
 export default function Login() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -28,7 +29,9 @@ export default function Login() {
       }
       const role = String((user as any)?.role || "");
       const isSuperAdmin = isSuperAdminLike(role) || (user as any)?.isSuperAdmin === true;
-      window.location.href = isSuperAdmin ? "/admin" : "/scout";
+      window.location.href = isSuperAdmin
+        ? "/admin"
+        : resolveDirectConnectLandingRoute({ entry: "auth" });
     }
   }, [isAuthenticated, user, safeNext]);
 

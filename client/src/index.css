@@ -59,7 +59,10 @@ body.ts-mobile-simplified .app-page [class*="bg-tsSurface"] {
 body.ts-mobile-simplified .app-page .card-enhanced,
 body.ts-mobile-simplified .app-page .card-interactive,
 body.ts-mobile-simplified .app-page .theme-card-hover {
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
 }
 
 body.ts-mobile-simplified .app-page .card-enhanced:active,
@@ -238,7 +241,11 @@ body.ts-ui-minimal .ts-admin-action-btn {
 }
 
 body.ts-ui-minimal .ts-admin-action-btn:hover {
-  border-color: color-mix(in oklab, var(--theme-accent-primary) 45%, var(--border-primary)) !important;
+  border-color: color-mix(
+    in oklab,
+    var(--theme-accent-primary) 45%,
+    var(--border-primary)
+  ) !important;
   background: color-mix(in oklab, var(--surface-intermediate) 96%, transparent) !important;
 }
 
@@ -348,6 +355,9 @@ html {
     --top-nav-h: 48px;
     --bottom-nav-h: 62px;
     --right-nav-w: 320px;
+    --ts-radius-card: 8px;
+    --ts-radius-control: 8px;
+    --ts-radius-panel: 10px;
 
     /* Charcoal foundations (mapped to theme tokens) */
     --charcoal-950: color-mix(in oklab, var(--ts-bg, #0b0f14) 92%, #000 8%);
@@ -362,6 +372,7 @@ html {
 
     /* APPLICATION SURFACES */
     /* Canvas is provided by TradeScoutBackground; keep app shell transparent */
+    --surface-base: transparent;
     --surface-app-bg: transparent;
     --surface-card: color-mix(
       in oklab,
@@ -376,9 +387,14 @@ html {
     --surface-input: var(--ts-input-bg, #1b2332); /* Inputs */
 
     /* INTERACTION STATES */
+    --border-primary: var(--ts-border-subtle, rgba(255, 255, 255, 0.1));
+    --border-secondary: color-mix(in oklab, var(--border-primary) 68%, transparent);
     --border-subtle: var(--ts-border-subtle, rgba(255, 255, 255, 0.06));
     --border-active: var(--ts-border-strong, rgba(255, 255, 255, 0.12));
     --border-focus: var(--ts-border-strong, rgba(255, 255, 255, 0.18));
+    --bg-tertiary: var(--surface-intermediate);
+    --bg-quaternary: color-mix(in oklab, var(--surface-intermediate) 92%, white 8%);
+    --orange-primary: var(--ts-accent, #f97316);
 
     /* SURFACE DEPTH (always-on card/panel separation) */
     /* Keep surfaces to 2-3 visual layers: base + border + shadow. */
@@ -398,11 +414,10 @@ html {
       var(--theme-accent-primary) 34%,
       var(--ts-border-strong, rgba(255, 255, 255, 0.16))
     );
-    --surface-card-shadow:
-      0 12px 28px color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-alpha)) 88%, transparent);
-    --surface-card-shadow-hover:
-      0 16px 34px
-        color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-hover-alpha)) 88%, transparent);
+    --surface-card-shadow: 0 10px 24px
+      color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-alpha)) 78%, transparent);
+    --surface-card-shadow-hover: 0 12px 28px
+      color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-hover-alpha)) 78%, transparent);
 
     /* TEXT HIERARCHY */
     --text-primary: var(--ts-text, rgba(255, 255, 255, 0.95));
@@ -412,6 +427,7 @@ html {
       var(--ts-text, rgba(255, 255, 255, 0.95)) 55%,
       transparent
     );
+    --text-muted: var(--text-tertiary);
 
     /* ACCENT (Scout only) */
     /* Keep fallback orange to avoid any blue cast if theme tokens fail to load. */
@@ -611,8 +627,11 @@ html {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background:
-    color-mix(in oklab, var(--surface-intermediate) 96%, rgba(255, 255, 255, 0.016)) !important;
+  background: color-mix(
+    in oklab,
+    var(--surface-intermediate) 96%,
+    rgba(255, 255, 255, 0.016)
+  ) !important;
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   pointer-events: none;
@@ -2891,6 +2910,148 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .ts-accent-btn {
 body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in oklab, var(--border-active) 80%, transparent) transparent;
+}
+
+/* Product cohesion pass: shared geometry, calmer surfaces, and one TradeScout backdrop language. */
+.ts-landing {
+  min-height: 100%;
+  background: transparent;
+}
+
+.ts-landing__field {
+  bottom: auto !important;
+  z-index: 0;
+  min-height: 640px;
+  height: 74vh;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(7, 9, 11, 0.98) 0%,
+      rgba(7, 9, 11, 0.82) 48%,
+      rgba(7, 9, 11, 0.68) 100%
+    ),
+    url("/landing/hero.jpg");
+  background-position:
+    0 0,
+    center top;
+  background-repeat: no-repeat;
+  background-size: auto, cover;
+  opacity: 0.78;
+  filter: saturate(0.84);
+}
+
+.ts-landing > *:not(.ts-landing__field) {
+  position: relative;
+  z-index: 1;
+}
+
+.ts-landing::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.18), transparent 30%, rgba(0, 0, 0, 0.42));
+}
+
+.ts-landing .rounded-2xl,
+.ts-landing .rounded-xl,
+.ts-authenticated-app .app-page .rounded-2xl,
+.ts-authenticated-app .app-page .rounded-xl {
+  border-radius: var(--ts-radius-card) !important;
+}
+
+.ts-authenticated-app .app-page [class*="shadow-"] {
+  box-shadow: var(--surface-card-shadow) !important;
+}
+
+.ts-desktop-primary-nav {
+  max-width: min(720px, calc(100vw - 520px));
+}
+
+.ts-desktop-nav-item:hover {
+  border-color: color-mix(in oklab, var(--border-primary) 78%, transparent) !important;
+  background: color-mix(in oklab, var(--surface-intermediate) 72%, transparent) !important;
+  color: var(--text-primary) !important;
+}
+
+.ts-desktop-nav-icon svg {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+.ts-desktop-nav-item[data-active="false"] .ts-desktop-nav-icon svg {
+  color: var(--text-secondary) !important;
+}
+
+@media (max-width: 1180px) {
+  .ts-desktop-primary-nav {
+    max-width: min(580px, calc(100vw - 460px));
+  }
+
+  .ts-desktop-nav-item {
+    max-width: 124px;
+    padding-right: 0.625rem;
+    padding-left: 0.625rem;
+  }
+}
+
+.ts-landing nav,
+.ts-shell-header,
+.ts-shell-header-mobile,
+.ts-bottom-nav-inner,
+.ts-shell-orientation,
+.ts-page-guide {
+  border-color: color-mix(in oklab, var(--border-primary) 72%, transparent) !important;
+}
+
+.ts-shell-orientation,
+.ts-page-guide {
+  border-radius: var(--ts-radius-card) !important;
+  background: color-mix(in oklab, var(--surface-card) 92%, transparent) !important;
+  box-shadow: var(--surface-card-shadow);
+}
+
+.ts-page-guide {
+  border: 1px solid color-mix(in oklab, var(--border-primary) 72%, transparent);
+}
+
+.ts-shell-icon-btn,
+.ts-bottom-nav-item,
+.ts-bottom-nav-icon {
+  border-radius: var(--ts-radius-control) !important;
+}
+
+.ts-page-section,
+.ts-page-card,
+.theme-card,
+.theme-card-hover,
+.bg-tsCard,
+.bg-tsSurface,
+.bg-tsCardMuted,
+.bg-tsSurface-strong {
+  border-radius: var(--ts-radius-card) !important;
+}
+
+@media (max-width: 640px) {
+  .ts-landing__field {
+    min-height: 600px;
+    height: 72vh;
+    background-image:
+      linear-gradient(180deg, rgba(7, 9, 11, 0.9) 0%, rgba(7, 9, 11, 0.62) 100%),
+      url("/landing/hero.jpg");
+    background-position:
+      0 0,
+      center top;
+    background-size: auto, cover;
+    opacity: 0.68;
+  }
+
+  .ts-landing .text-gradient-orange {
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: var(--theme-accent-primary);
+  }
 }
 
 /* Deployment trigger: Mon Feb 23 12:50:43 EST 2026 */

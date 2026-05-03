@@ -30,7 +30,7 @@ type NavLinkProps = {
   onNavigate?: (href: string) => void;
 };
 
-const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge, onNavigate }) => {
+const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, badge, onNavigate }) => {
   const [location] = useLocation();
   const pathOnly = location.split("?")[0].split("#")[0];
   const hrefPath = href.split("?")[0].split("#")[0];
@@ -50,9 +50,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge
         backgroundColor: isActive
           ? "color-mix(in oklab, var(--theme-accent-primary) 10%, var(--surface-card))"
           : "transparent",
-        borderLeft: isActive
-          ? "2px solid var(--theme-accent-primary)"
-          : "2px solid transparent",
+        borderLeft: isActive ? "2px solid var(--theme-accent-primary)" : "2px solid transparent",
       }}
     >
       {/* Icon */}
@@ -68,7 +66,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge
         {icon}
       </span>
 
-      {/* Label + description */}
+      {/* Label */}
       <div className="min-w-0 flex-1">
         <div
           className="text-[0.8rem] font-medium leading-tight"
@@ -76,14 +74,6 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge
         >
           {label}
         </div>
-        {description && (
-          <div
-            className="mt-0.5 truncate text-[0.68rem] leading-snug"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {description}
-          </div>
-        )}
       </div>
 
       {/* Badge / chevron */}
@@ -103,13 +93,7 @@ const NavLink: React.FC<NavLinkProps> = ({ href, icon, label, description, badge
 };
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
-function PanelSection({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function PanelSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <div
@@ -248,7 +232,6 @@ export function RightToolsPanel({
 
       {/* ── Scrollable nav body ── */}
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-3">
-
         {/* Profile & account */}
         <PanelSection label="Profile">
           <NavLink
@@ -470,7 +453,11 @@ export function RightToolsPanel({
             </button>
           )}
         </div>
-        {footer && <div className="mt-2" style={{ color: "var(--text-secondary)" }}>{footer}</div>}
+        {footer && (
+          <div className="mt-2" style={{ color: "var(--text-secondary)" }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -540,7 +527,7 @@ function EmbeddedNotesWorkspace() {
             borderColor: "var(--border-primary)",
             backgroundColor: "color-mix(in oklab, var(--surface-card) 70%, transparent)",
             color: "var(--text-primary)",
-            // @ts-ignore
+            // @ts-expect-error CSS custom property is valid here.
             "--tw-ring-color": "var(--theme-accent-primary)",
           }}
           rows={3}

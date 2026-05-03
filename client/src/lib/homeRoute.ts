@@ -1,3 +1,5 @@
+import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
+
 export type DefaultHomePage =
   | "llm"
   | "marketplace"
@@ -13,16 +15,16 @@ export type DefaultHomePage =
  * route users into the modern Exchange surface.
  */
 export function resolveDefaultHomeRoute(page?: DefaultHomePage | null): string {
-  if (!page) return "/scout";
+  if (!page) return DEFAULT_LANDING;
 
   const map: Record<DefaultHomePage, string> = {
     llm: "/scout",
     marketplace: "/exchange",
     "contractor-board": "/contractors/board",
-    dashboard: "/scout",
+    dashboard: DEFAULT_LANDING,
     profile: "/profile",
     community: "/community-feed",
   };
 
-  return map[page] ?? "/scout";
+  return map[page] ?? DEFAULT_LANDING;
 }

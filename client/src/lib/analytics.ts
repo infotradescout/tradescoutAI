@@ -117,7 +117,7 @@ export type ShellEvent =
       presenceType: "personal" | "represent_business" | null;
       hasBusinessName: boolean;
       hasCountyFips: boolean;
-      locationSource: "places" | "manual" | null;
+      locationSource: "places" | "manual" | "none" | null;
       ts: string;
     }
   | {
@@ -148,6 +148,54 @@ export type ShellEvent =
       presenceType: "personal" | "represent_business" | null;
       draftPromoted: boolean;
       destination: string;
+      ts: string;
+    }
+  // ── Direct Connect funnel events ────────────────────────────────────────
+  | {
+      type: "direct_connect_landed";
+      section: string;
+      entry: string | null;
+      deviceType: DeviceType;
+      isAuthenticated: boolean;
+      hasCountyFips: boolean;
+      ts: string;
+    }
+  | {
+      type: "direct_connect_entry_resolved";
+      entry: string;
+      fromSection: string;
+      toSection: string;
+      reason: "replies" | "open_requests" | "new_request";
+      deviceType: DeviceType;
+      replyCount: number;
+      openRequestCount: number;
+      ts: string;
+    }
+  | {
+      type: "direct_connect_tab_selected";
+      fromSection: string;
+      toSection: string;
+      entry: string | null;
+      deviceType: DeviceType;
+      ts: string;
+    }
+  | {
+      type: "direct_connect_request_started";
+      category: string;
+      field: "type" | "title" | "description" | "attachment" | "budget";
+      source?: string | null;
+      deviceType: DeviceType;
+      ts: string;
+    }
+  | {
+      type: "direct_connect_request_submitted";
+      category: string;
+      hasBudget: boolean;
+      attachmentCount: number;
+      dispatchMode: string;
+      dispatchCount?: number | null;
+      directTargets: number;
+      deviceType: DeviceType;
       ts: string;
     };
 

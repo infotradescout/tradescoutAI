@@ -41,13 +41,9 @@ const DEFAULT_VARIANT: LandingVariant = {
   showBadge: false,
   headlineMode: "inline",
   headlineNoBreakAfterIndices: [2],
-  headlineLines: [
-    "Localized Connection Tools",
-    "That Strengthen Relationships",
-    "Between Small Businesses And Their Community",
-  ],
+  headlineLines: ["Trusted Local Help", "Routed by Scout"],
   subhead:
-    "Get trusted local options, fewer dead ends, and clearer next steps for your project or business.",
+    "Tell Scout what you need, review clearer local options, and open contact only when the fit looks right.",
   primaryCta: { label: "Ask Scout", href: "/scout" },
   secondaryCta: { label: "Create Account", href: "/pre-scout-setup?mode=create" },
   navLinks: [
