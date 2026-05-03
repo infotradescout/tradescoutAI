@@ -40,7 +40,7 @@
     "verify:shells": "node scripts/verify-shell-architecture.js",
     "verify:no-vite": "node scripts/verify-no-vite-in-dist.mjs",
     "db:push": "drizzle-kit push",
-    "db:push:test": "node scripts/bootstrap-test-db.mjs --full-sync",
+    "db:push:test": "node scripts/bootstrap-test-db.mjs",
     "db:bootstrap:test": "node scripts/bootstrap-test-db.mjs",
     "db:migrate": "node scripts/db-migrate-safe.mjs",
     "db:apply:sql": "node scripts/apply-sql-migration.mjs",

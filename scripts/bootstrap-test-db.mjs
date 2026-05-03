@@ -819,7 +819,7 @@ async function main() {
         "npx",
         ["drizzle-kit", "push", "--force"],
         env,
-        "\n".repeat(20)
+        "\r"
       );
       if (pushCode !== 0) {
         console.error("[bootstrap-test-db] drizzle-kit push failed.");
