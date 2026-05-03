@@ -21,7 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Building2, MapPin, Globe, Edit, MessageSquare, Loader2, Shield } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Building2,
+  BriefcaseBusiness,
+  CheckCircle2,
+  Edit,
+  Globe,
+  Loader2,
+  MapPin,
+  MessageSquare,
+  Shield,
+  ShieldCheck,
+} from "lucide-react";
 import type { BusinessProfile } from "@/../../shared/businessProfile";
 import type { MarketplaceListing } from "@shared/schema";
 import { recordActivity } from "@/agent/activity";
@@ -121,17 +134,23 @@ export default function BusinessProfileView() {
           const directoryData: any = await directoryRes.json();
           const counties = Array.isArray(directoryData?.counties) ? directoryData.counties : [];
           const primaryCounty = counties[0] || null;
+          const publicProfile = directoryData?.profile || {};
+          const publicServices = Array.isArray(publicProfile?.services)
+            ? publicProfile.services.filter((item: any) => typeof item === "string")
+            : [];
 
           const directoryProfile: BusinessProfile = {
             id: String(directoryData?.id || ""),
             userId: null as any,
             slug: String(directoryData?.slug || slug),
             name: String(directoryData?.name || slug),
-            description: directoryData?.profile?.description ?? null,
+            headline: publicProfile?.tagline || publicProfile?.category || null,
+            description: publicProfile?.description ?? null,
+            services: publicServices,
             countyFips: primaryCounty?.fips || null,
             countyName: primaryCounty?.name || null,
-            city: null,
-            stateCode: primaryCounty?.stateCode || null,
+            city: publicProfile?.city || null,
+            stateCode: publicProfile?.stateCode || primaryCounty?.stateCode || null,
             serviceAreas: counties.map((c: any) => String(c?.name || "")).filter(Boolean),
             // Prevent contact bypass for directory shells; contact stays Scout-gated.
             website: null,
@@ -238,9 +257,22 @@ export default function BusinessProfileView() {
 
   const businessProfile = profile;
   const hasDescription = profile.description && profile.description.trim().length > 0;
-  const hasHeadline = Boolean(profile.headline && String(profile.headline).trim().length > 0);
   const hasServiceAreas = profile.serviceAreas && profile.serviceAreas.length > 0;
   const serviceList = Array.isArray(profile.services) ? profile.services.filter(Boolean) : [];
+  const localArea =
+    stripCountySuffix(profile.countyName) || profile.city || profile.stateCode || "this market";
+  const locationLabel = [
+    profile.city,
+    profile.countyName ? stripCountySuffix(profile.countyName) || profile.countyName : null,
+    profile.stateCode,
+  ]
+    .filter(Boolean)
+    .join(", ");
+  const primaryServiceLabelRaw = String(serviceList[0] || profile.headline || "Local business");
+  const primaryServiceLabel =
+    primaryServiceLabelRaw.length > 44
+      ? `${primaryServiceLabelRaw.slice(0, 41).trim()}...`
+      : primaryServiceLabelRaw;
   const visibleSections = {
     about: profile.profileSections?.about !== false,
     rolesAndBadges: profile.profileSections?.rolesAndBadges !== false,
@@ -262,16 +294,16 @@ export default function BusinessProfileView() {
   const businessPromise =
     profile.headline ||
     (serviceList.length > 0
-      ? `${profile.name} helps with ${serviceList.slice(0, 3).join(", ")} in ${stripCountySuffix(profile.countyName) || profile.city || "your local market"} and nearby neighborhoods.`
+      ? `${serviceList.slice(0, 2).join(" + ")} in ${localArea}.`
       : profile.description
-        ? `${profile.name} serves ${stripCountySuffix(profile.countyName) || profile.city || "your local market"} through TradeScout.`
-        : `${profile.name} is building a trusted public business page on TradeScout.`);
+        ? `${profile.name} serves ${localArea}.`
+        : `${profile.name} is building its TradeScout profile in ${localArea}.`);
   const serviceSummaryText =
     serviceList.length > 0
-      ? serviceList.slice(0, 5).join(" • ")
+      ? serviceList.slice(0, 5).join(" / ")
       : profile.description
-        ? "Business details, trust signals, and contact options are available through this page."
-        : "Services, trust details, and contact options will keep improving as this business builds out its TradeScout presence.";
+        ? "Profile details and contact options are available here."
+        : "Services and profile details can be added after this business is claimed.";
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
   const rawCvs =
@@ -302,27 +334,27 @@ export default function BusinessProfileView() {
     return "Verification Pending";
   })();
   const trustHighlights = [
+    profileSource === "directory" && directoryClaimStatus === "unclaimed" ? "Claimable" : null,
     verificationLabel,
-    addressVerified ? "Address verified" : "Address verification pending",
+    addressVerified ? "Address checked" : "Address pending",
     bookingConfig?.enabled ? "Booking available" : null,
-    profile.customDomainVerification?.state === "verified"
-      ? "Custom domain connected"
-      : "Custom domain ready",
+    profile.customDomainVerification?.state === "verified" ? "Domain connected" : null,
   ].filter(Boolean) as string[];
   const trustProofItems = [
-    verificationLabel,
+    `Profile status: ${verificationLabel}.`,
     addressVerified
-      ? "Address has been verified on TradeScout."
-      : "Address verification can improve trust on this page.",
+      ? "Address verification is complete."
+      : "Address verification is still pending.",
     profile.customDomainVerification?.state === "verified"
-      ? "This business page is live on a connected custom domain."
-      : "This business page can be connected to a custom domain.",
+      ? "A custom domain is connected."
+      : "Custom domain can be added by the owner.",
     listings.length > 0
       ? `${listings.length} active listing${listings.length === 1 ? "" : "s"} published.`
-      : "Listings can appear here as this business adds offers.",
+      : "No active listings yet.",
   ];
 
   function renderContentBlock(block: any, idx: number) {
+    const profile = businessProfile;
     const type = String(block?.type || "text").toLowerCase();
     const key = block?.id || `${type}-${idx}`;
 
@@ -406,8 +438,7 @@ export default function BusinessProfileView() {
                 setLocation(`/direct-connect?${params.toString()}`);
               }}
             >
-              {block?.ctaLabel || profile.ctaConfig?.primary?.label ||
-                "Contact via TradeScout"}
+              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
             </Button>
           </CardContent>
         </Card>
@@ -510,7 +541,7 @@ export default function BusinessProfileView() {
   });
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4">
+    <div className="mx-auto max-w-6xl px-4 py-5 text-white sm:py-8">
       {/* SEO Metadata */}
       <SEOHelmet
         title={pageTitle}
@@ -519,180 +550,247 @@ export default function BusinessProfileView() {
         ogType="profile"
         structuredData={structuredData}
       />
-      {/* Header Card */}
-      <Card className="mb-6 overflow-hidden border-2" style={themeStyle}>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4">
-            <div className="flex-1">
-              <CardTitle
-                className="text-3xl mb-2 flex items-center gap-2"
-                data-testid="bp-headline"
-              >
-                <Building2 className="h-8 w-8" />
-                {profile.name}
-              </CardTitle>
-              {hasHeadline ? (
-                <p className="text-base sm:text-lg text-muted-foreground mb-3">
-                  {profile.headline}
-                </p>
+
+      <section
+        className="mb-4 overflow-hidden rounded-lg border border-white/10 bg-[#0b0f14] shadow-[0_18px_60px_rgba(0,0,0,0.35)]"
+        style={themeStyle}
+      >
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-w-0 p-5 sm:p-7">
+            <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+              {showUnclaimedBadge ? <Badge variant="secondary">Unclaimed</Badge> : null}
+              <Badge className={verificationTone}>
+                <Shield className="h-3 w-3 mr-1" />
+                {verificationLabel}
+              </Badge>
+              <Badge variant="outline" className="border-white/15 bg-white/5 text-white">
+                {primaryServiceLabel}
+              </Badge>
+            </div>
+
+            <h1
+              className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-5xl"
+              data-testid="bp-headline"
+            >
+              {profile.name}
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
+              {businessPromise}
+            </p>
+
+            <div className="mt-5 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+              {locationLabel ? (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-ts-orange" />
+                  <span>
+                    {profile.city && profile.stateCode ? (
+                      <>
+                        <a
+                          href={`/city/${profile.stateCode.toLowerCase()}/${slugifyCity(profile.city)}`}
+                          className="text-white hover:text-ts-orange"
+                        >
+                          {profile.city}
+                        </a>
+                        {profile.countyName ? ", " : ""}
+                      </>
+                    ) : null}
+                    {profile.countyName && profile.stateCode ? (
+                      <a
+                        href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, "-")}`}
+                        className="text-white hover:text-ts-orange"
+                      >
+                        {stripCountySuffix(profile.countyName) || profile.countyName},{" "}
+                        {profile.stateCode}
+                      </a>
+                    ) : (
+                      locationLabel
+                    )}
+                  </span>
+                </div>
               ) : null}
 
-              {/* Location */}
-              <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                <MapPin className="h-4 w-4" />
-                <span>
-                  {profile.city && profile.stateCode ? (
-                    <>
-                      <a
-                        href={`/city/${profile.stateCode.toLowerCase()}/${slugifyCity(profile.city)}`}
-                        className="text-primary hover:underline"
-                      >
-                        {profile.city}
-                      </a>
-                      {", "}
-                    </>
-                  ) : profile.city ? (
-                    `${profile.city}, `
-                  ) : null}
-                  {profile.countyName && profile.stateCode ? (
-                    <a
-                      href={`/county/${profile.stateCode.toLowerCase()}/${profile.countyName.toLowerCase().replace(/\s+/g, "-")}`}
-                      className="text-primary hover:underline"
-                    >
-                      {profile.countyName}, {profile.stateCode}
-                    </a>
-                  ) : (
-                    profile.countyName && `${profile.countyName}, ${profile.stateCode}`
-                  )}
-                </span>
-              </div>
-
-              {/* Website */}
-              {profile.website && (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Globe className="h-4 w-4" />
+              {profile.website ? (
+                <div className="flex min-w-0 items-center gap-2">
+                  <Globe className="h-4 w-4 shrink-0 text-ts-orange" />
                   <a
                     href={profile.website}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:underline"
+                    className="truncate text-white hover:text-ts-orange"
                   >
                     {profile.website.replace(/^https?:\/\//, "")}
                   </a>
                 </div>
-              )}
+              ) : null}
+            </div>
 
-              <div className="mt-4 rounded-lg border bg-background/40 p-4">
-                <p className="text-sm sm:text-base font-medium">{businessPromise}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{serviceSummaryText}</p>
-              </div>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                {showUnclaimedBadge ? <Badge variant="secondary">Unclaimed</Badge> : null}
-                <Badge className={verificationTone}>
-                  <Shield className="h-3 w-3 mr-1" />
-                  {verificationLabel}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {trustHighlights.slice(0, 4).map((item) => (
+                <Badge key={item} variant="secondary" className="bg-white/8 text-white">
+                  {item}
                 </Badge>
-                {canShowDecisionSignals ? (
-                  <>
-                    <Badge variant="outline" className="border-[color:var(--border-subtle)]">
-                      {addressVerified ? "Address Verified" : "Address Verification Required"}
-                    </Badge>
-                    <Badge variant="outline" className="border-[color:var(--border-subtle)]">
-                      {cvsScore !== null
-                        ? `${trustScoreLabel()} ${Math.round(cvsScore)}`
-                        : `${trustScoreLabel()} available`}
-                    </Badge>
-                  </>
-                ) : (
-                  <Badge variant="outline" className="border-[color:var(--border-subtle)]">
-                    Member details available
-                  </Badge>
-                )}
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                {trustHighlights.map((item) => (
-                  <Badge key={item} variant="secondary">
-                    {item}
-                  </Badge>
-                ))}
-              </div>
+              ))}
             </div>
-
-            {/* Owner-only: Edit button */}
-            {isOwner ? (
-              <Button
-                variant="outline"
-                size="sm"
-                data-testid="bp-edit"
-                onClick={() => setLocation(`/business/${slug}/edit`)}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Business Page
-              </Button>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-2">
-                {!isAuthenticated ? (
-                  <Button variant="secondary" size="sm" onClick={() => setLocation("/auth")}>
-                    View member details
-                  </Button>
-                ) : null}
-                {showClaimCta ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setLocation(
-                        `/claim-my-business?businessId=${encodeURIComponent(
-                          String(directoryBusinessId)
-                        )}`
-                      )
-                    }
-                  >
-                    <Shield className="h-4 w-4 mr-2" />
-                    Claim This Business
-                  </Button>
-                ) : null}
-                {showSuggestCta ? (
-                  <Button variant="outline" size="sm" onClick={() => setSuggestOpen(true)}>
-                    <MessageSquare className="h-4 w-4 mr-2" />
-                    Suggest Edit
-                  </Button>
-                ) : null}
-              </div>
-            )}
           </div>
-        </CardHeader>
 
-        <CardContent>
-          {/* Description */}
-          {hasDescription ? (
-            <p className="text-base leading-relaxed" data-testid="bp-mission" data-description={profile.description}>
-              <span data-testid="bp-description">{profile.description}</span>
-            </p>
-          ) : (
-            <div className="rounded-lg border bg-background/40 p-5 text-sm text-muted-foreground">
-              {isOwner ? (
-                <>
-                  <p className="mb-3">
-                    This public business page is already live. Add a short description to make your
-                    website feel even more complete.
-                  </p>
-                  <Button variant="outline" onClick={() => setLocation(`/business/${slug}/edit`)}>
-                    Add Business Description
-                  </Button>
-                </>
-              ) : (
-                <p>
-                  This business is using TradeScout as a public business page. More about the
-                  business will appear here as the page is updated.
+          <aside className="border-t border-white/10 bg-white/[0.03] p-5 lg:border-l lg:border-t-0">
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/48">
+                  Next step
+                </div>
+                <div className="mt-1 text-lg font-semibold text-white">Direct Connect</div>
+                <p className="mt-1 text-sm leading-6 text-white/62">
+                  Send the request with context. Contact opens after the fit is confirmed.
                 </p>
+              </div>
+
+              {isOwner ? (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  data-testid="bp-edit"
+                  onClick={() => setLocation(`/business/${slug}/edit`)}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Business Page
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    className="w-full"
+                    data-testid="bp-contact-cta"
+                    onClick={() => {
+                      const params = new URLSearchParams({
+                        prefill_businessName: profile.name,
+                        prefill_businessSlug: profile.slug,
+                        prefill_countyFips: profile.countyFips || "",
+                      });
+                      setLocation(`/direct-connect?${params.toString()}`);
+                    }}
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
+                    <ArrowRight className="h-4 w-4 ml-auto" />
+                  </Button>
+
+                  {profileSource === "directory" && directoryBusinessId ? (
+                    <Button
+                      className="w-full"
+                      variant="outline"
+                      disabled={!user || !viewerVerified || callBusy}
+                      onClick={() => {
+                        if (!user) {
+                          toast({
+                            title: "Sign in required",
+                            description: "Please sign in to initiate contact.",
+                            variant: "destructive",
+                          });
+                          setLocation(
+                            `/login?next=${encodeURIComponent(window.location.pathname)}`
+                          );
+                          return;
+                        }
+                        if (!viewerVerified) {
+                          toast({
+                            title: "Verification required",
+                            description: "Verify your address before initiating contact.",
+                            variant: "destructive",
+                          });
+                          setLocation("/account?tab=verification");
+                          return;
+                        }
+                        setShowCallDecisionCard(true);
+                      }}
+                    >
+                      <ShieldCheck className="h-4 w-4 mr-2" />
+                      Call after decision card
+                    </Button>
+                  ) : null}
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                    {!isAuthenticated ? (
+                      <Button variant="secondary" onClick={() => setLocation("/auth")}>
+                        <BadgeCheck className="h-4 w-4 mr-2" />
+                        View member details
+                      </Button>
+                    ) : null}
+                    {showClaimCta ? (
+                      <Button
+                        variant="outline"
+                        onClick={() =>
+                          setLocation(
+                            `/claim-my-business?businessId=${encodeURIComponent(
+                              String(directoryBusinessId)
+                            )}`
+                          )
+                        }
+                      >
+                        <Shield className="h-4 w-4 mr-2" />
+                        Claim This Business
+                      </Button>
+                    ) : null}
+                    {showSuggestCta ? (
+                      <Button variant="outline" onClick={() => setSuggestOpen(true)}>
+                        <MessageSquare className="h-4 w-4 mr-2" />
+                        Suggest Edit
+                      </Button>
+                    ) : null}
+                  </div>
+                </>
               )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </aside>
+        </div>
+      </section>
+
+      <div className="mb-5 grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <BriefcaseBusiness className="mb-3 h-5 w-5 text-ts-orange" />
+          <div className="text-sm font-semibold text-white">Focus</div>
+          <div className="mt-1 text-sm leading-6 text-white/62">{serviceSummaryText}</div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <CheckCircle2 className="mb-3 h-5 w-5 text-ts-orange" />
+          <div className="text-sm font-semibold text-white">Trust path</div>
+          <div className="mt-1 text-sm leading-6 text-white/62">
+            {canShowDecisionSignals && cvsScore !== null
+              ? `${trustScoreLabel()} ${Math.round(cvsScore)}`
+              : verificationLabel}
+          </div>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <MapPin className="mb-3 h-5 w-5 text-ts-orange" />
+          <div className="text-sm font-semibold text-white">Area</div>
+          <div className="mt-1 text-sm leading-6 text-white/62">
+            {locationLabel || "Local service area"}
+          </div>
+        </div>
+      </div>
+
+      {hasDescription ? (
+        <div className="mb-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <p
+            className="text-base leading-relaxed text-white/76"
+            data-testid="bp-mission"
+            data-description={profile.description}
+          >
+            <span data-testid="bp-description">{profile.description}</span>
+          </p>
+        </div>
+      ) : isOwner ? (
+        <div className="mb-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+          <div className="text-sm font-semibold text-white">Add a short profile intro</div>
+          <Button
+            className="mt-3"
+            variant="outline"
+            onClick={() => setLocation(`/business/${slug}/edit`)}
+          >
+            Add Business Description
+          </Button>
+        </div>
+      ) : null}
 
       {/* Service Areas */}
       {hasServiceAreas && (
@@ -840,25 +938,23 @@ export default function BusinessProfileView() {
         <Card className="mb-6 border-dashed" style={themeStyle}>
           <CardContent className="pt-6 grid gap-4 md:grid-cols-3">
             <div>
-              <div className="text-sm font-medium">Website-ready by default</div>
+              <div className="text-sm font-medium">Public profile</div>
               <div className="text-sm text-muted-foreground mt-1">
-                This TradeScout page is designed to work as a real public website, even without
-                manual customization.
+                Name, location, services, listings, and profile details live in one place.
               </div>
             </div>
             <div>
-              <div className="text-sm font-medium">Domain-ready</div>
+              <div className="text-sm font-medium">Domain</div>
               <div className="text-sm text-muted-foreground mt-1">
                 {profile.customDomainVerification?.state === "verified"
-                  ? "A custom domain is already connected to this business page."
-                  : "Attach a custom domain anytime and send people straight here."}
+                  ? "Connected."
+                  : "Ready when the owner connects one."}
               </div>
             </div>
             <div>
-              <div className="text-sm font-medium">TradeScout-powered contact</div>
+              <div className="text-sm font-medium">Contact</div>
               <div className="text-sm text-muted-foreground mt-1">
-                Requests and replies stay inside TradeScout instead of dumping out your raw contact
-                details.
+                Direct Connect keeps the request, decision card, and reply path together.
               </div>
             </div>
           </CardContent>
@@ -920,13 +1016,10 @@ export default function BusinessProfileView() {
             <div className="text-center max-w-2xl mx-auto">
               <h3 className="text-xl font-semibold mb-2">Start with {profile.name}</h3>
               <p className="text-muted-foreground mb-2">
-                Use TradeScout to request a quote, wait for acceptance, and keep the conversation in
-                one place.
+                Send the job context through Direct Connect. The contact step stays gated until the
+                fit is confirmed.
               </p>
-              <p className="text-sm text-muted-foreground mb-4">
-                This page is built to work as a shareable public website and can be connected to a
-                custom domain.
-              </p>
+              <p className="text-sm text-muted-foreground mb-4">{locationLabel || localArea}</p>
               <div className="flex flex-col items-center gap-2">
                 <Button
                   size="lg"

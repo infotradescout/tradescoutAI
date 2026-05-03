@@ -277,6 +277,8 @@ router.get("/api/public/businesses/:slug", async (req, res) => {
       description: profileData.description,
       category: profileData.category,
       services: profileData.services,
+      city: typeof profileData.city === "string" ? profileData.city : null,
+      stateCode: typeof profileData.stateCode === "string" ? profileData.stateCode : null,
     };
 
     res.json({

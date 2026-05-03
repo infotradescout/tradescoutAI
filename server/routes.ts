@@ -18108,6 +18108,27 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   }
 
+  function getClaimEmailDomain(email: string): string {
+    const at = email.lastIndexOf("@");
+    return at >= 0
+      ? email
+          .slice(at + 1)
+          .trim()
+          .toLowerCase()
+      : "";
+  }
+
+  function normalizeClaimCountyName(value: unknown): string {
+    return typeof value === "string"
+      ? value
+          .trim()
+          .toLowerCase()
+          .replace(/\s+(county|parish|borough|census area|municipality|district)$/i, "")
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim()
+      : "";
+  }
+
   // Public: Resolve a claimable directory business by slug (used for claim links).
   app.get("/api/business-claim/resolve", async (req: Request, res: Response) => {
     try {
@@ -18153,13 +18174,41 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.post("/api/business-claim/find-or-create", async (req: Request, res: Response) => {
     try {
       const body = (req.body ?? {}) as any;
-      const name = typeof body.name === "string" ? body.name.trim() : "";
-      const stateCode =
-        typeof body.stateCode === "string" ? body.stateCode.trim().toUpperCase() : "";
-      const countyFips = typeof body.countyFips === "string" ? body.countyFips.trim() : "";
+      const cleanString = (value: unknown, max = 500): string =>
+        typeof value === "string" ? value.trim().slice(0, max) : "";
+
+      const rawGooglePlace =
+        body.googlePlace && typeof body.googlePlace === "object" ? body.googlePlace : {};
+      const googlePlace = {
+        businessName: cleanString(
+          rawGooglePlace.businessName ?? rawGooglePlace.name ?? body.name,
+          160
+        ),
+        placeId: cleanString(rawGooglePlace.placeId ?? rawGooglePlace.place_id, 256),
+        address: cleanString(rawGooglePlace.address ?? rawGooglePlace.formatted_address, 500),
+        city: cleanString(rawGooglePlace.city, 120),
+        stateCode: cleanString(rawGooglePlace.stateCode, 2).toUpperCase(),
+        countyName: cleanString(rawGooglePlace.countyName, 160),
+        phone: cleanString(rawGooglePlace.phone ?? rawGooglePlace.formatted_phone_number, 80),
+        website: cleanString(rawGooglePlace.website, 500),
+        lat:
+          typeof rawGooglePlace.lat === "number" && Number.isFinite(rawGooglePlace.lat)
+            ? rawGooglePlace.lat
+            : null,
+        lng:
+          typeof rawGooglePlace.lng === "number" && Number.isFinite(rawGooglePlace.lng)
+            ? rawGooglePlace.lng
+            : null,
+      };
+
+      const name = cleanString(body.name, 160) || googlePlace.businessName;
+      const stateCode = (cleanString(body.stateCode, 2) || googlePlace.stateCode).toUpperCase();
+      const requestedCountyFips = cleanString(body.countyFips, 5);
       const email = normalizeClaimEmail(body.email);
-      const phone = normalizeClaimPhone(body.phone);
-      const websiteDomain = normalizeClaimWebsiteDomain(body.website);
+      const rawPhone = cleanString(body.phone, 80) || googlePlace.phone;
+      const rawWebsite = cleanString(body.website, 500) || googlePlace.website;
+      const phone = normalizeClaimPhone(rawPhone);
+      const websiteDomain = normalizeClaimWebsiteDomain(rawWebsite);
       const category = typeof body.category === "string" ? body.category.trim().slice(0, 120) : "";
       const type = typeof body.type === "string" ? body.type.trim() : "contractor";
       const roleContext =
@@ -18171,25 +18220,60 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       if (!/^[A-Z]{2}$/.test(stateCode)) {
         return res.status(400).json({ message: "stateCode is required (2-letter code)" });
       }
-      if (!/^\d{5}$/.test(countyFips)) {
-        return res.status(400).json({ message: "countyFips is required (5-digit FIPS)" });
+
+      let countyRows: Array<{
+        id: string;
+        fips: string;
+        stateCode: string;
+        name: string;
+      }> = [];
+
+      if (/^\d{5}$/.test(requestedCountyFips)) {
+        countyRows = await db
+          .select({
+            id: counties.id,
+            fips: counties.fips,
+            stateCode: counties.stateCode,
+            name: counties.name,
+          })
+          .from(counties)
+          .where(and(eq(counties.fips, requestedCountyFips), eq(counties.stateCode, stateCode)))
+          .limit(1);
       }
 
-      const countyRows = await db
-        .select({
-          id: counties.id,
-          fips: counties.fips,
-          stateCode: counties.stateCode,
-          name: counties.name,
-        })
-        .from(counties)
-        .where(and(eq(counties.fips, countyFips), eq(counties.stateCode, stateCode)))
-        .limit(1);
+      if (!countyRows[0] && googlePlace.countyName) {
+        const normalizedPlaceCounty = normalizeClaimCountyName(googlePlace.countyName);
+        if (normalizedPlaceCounty) {
+          const stateCountyRows = await db
+            .select({
+              id: counties.id,
+              fips: counties.fips,
+              stateCode: counties.stateCode,
+              name: counties.name,
+            })
+            .from(counties)
+            .where(eq(counties.stateCode, stateCode));
+
+          const matchedCounty = stateCountyRows.find((row) => {
+            const normalizedRowCounty = normalizeClaimCountyName(row.name);
+            return (
+              normalizedRowCounty === normalizedPlaceCounty ||
+              normalizedRowCounty.includes(normalizedPlaceCounty)
+            );
+          });
+          countyRows = matchedCounty ? [matchedCounty] : [];
+        }
+      }
+
+      if (!countyRows[0]) {
+        return res.status(400).json({
+          message:
+            "countyFips is required (5-digit FIPS) unless the Google Maps listing includes a county",
+        });
+      }
 
       const county = countyRows[0];
-      if (!county) {
-        return res.status(400).json({ message: "Unknown county for stateCode/countyFips" });
-      }
+      const countyFips = county.fips;
 
       // Dedupe: try strong keys first, then fall back to name+county.
       const existingResult = (await db.execute(sql`
@@ -18219,6 +18303,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             ${email ? sql`lower(coalesce(b.profile_data->>'email','')) = ${email}` : sql`false`}
             or ${phone ? sql`regexp_replace(coalesce(b.profile_data->>'phone',''), '\\D','','g') = ${phone}` : sql`false`}
             or ${websiteDomain ? sql`lower(coalesce(b.profile_data->>'website','')) like ${`%${websiteDomain}%`}` : sql`false`}
+            or ${
+              googlePlace.placeId
+                ? sql`
+              coalesce(b.profile_data -> 'importExtras' ->> 'google_place_id', '') = ${googlePlace.placeId}
+              or coalesce(b.profile_data -> 'importExtras' ->> 'place_id', '') = ${googlePlace.placeId}
+              or coalesce(b.profile_data -> 'importExtras' ->> 'external_id', '') = ${googlePlace.placeId}
+            `
+                : sql`false`
+            }
             or (lower(b.name) = ${name.toLowerCase()} and co.fips = ${countyFips} and co.state_code = ${stateCode})
           )
         group by b.id, b.name, b.slug, b.type, b.status
@@ -18230,6 +18323,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       if (existing) {
         return res.json({ created: false, business: existing });
       }
+
+      const importExtras: Record<string, string> = {
+        ...(googlePlace.placeId ? { google_place_id: googlePlace.placeId } : {}),
+        ...(googlePlace.businessName ? { google_place_name: googlePlace.businessName } : {}),
+        ...(googlePlace.address ? { google_place_address: googlePlace.address } : {}),
+        ...(googlePlace.city ? { google_place_city: googlePlace.city } : {}),
+        ...(googlePlace.stateCode ? { google_place_state_code: googlePlace.stateCode } : {}),
+        ...(googlePlace.countyName ? { google_place_county_name: googlePlace.countyName } : {}),
+        ...(googlePlace.phone ? { google_place_phone: googlePlace.phone } : {}),
+        ...(googlePlace.website ? { google_place_website: googlePlace.website } : {}),
+        ...(googlePlace.lat !== null ? { google_place_lat: String(googlePlace.lat) } : {}),
+        ...(googlePlace.lng !== null ? { google_place_lng: String(googlePlace.lng) } : {}),
+        ...(googlePlace.placeId ? { google_place_source: "places_autocomplete" } : {}),
+      };
 
       const created = await storage.createUnclaimedBusiness({
         name,
@@ -18244,12 +18351,14 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           ...(category ? { category } : {}),
           ...(email ? { email } : {}),
           ...(phone ? { phone } : {}),
-          ...(body.website && typeof body.website === "string"
-            ? { website: body.website.trim() }
-            : {}),
+          ...(rawWebsite ? { website: rawWebsite } : {}),
+          ...(googlePlace.address ? { address: googlePlace.address } : {}),
+          ...(googlePlace.city ? { city: googlePlace.city } : {}),
+          ...(stateCode ? { stateCode } : {}),
+          ...(Object.keys(importExtras).length > 0 ? { importExtras } : {}),
           contactPreference: "message",
         } as any,
-        sources: ["lazy_seed"],
+        sources: googlePlace.placeId ? ["lazy_seed", "google_maps_places"] : ["lazy_seed"],
         countyIds: [county.id],
       } as any);
 
@@ -18307,16 +18416,23 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       const signupEmail = normalizeClaimEmail((user as any).email);
       const signupPhone = normalizeClaimPhone((user as any).phone);
+      const signupEmailDomain = getClaimEmailDomain(signupEmail);
       const bizEmail = normalizeClaimEmail(biz.profileData?.email);
       const bizPhone = normalizeClaimPhone(biz.profileData?.phone);
+      const bizWebsiteDomain = normalizeClaimWebsiteDomain(biz.profileData?.website);
 
       const verifiedByEmail = Boolean(bizEmail) && bizEmail === signupEmail;
       const verifiedByPhone =
         Boolean(bizPhone) && bizPhone.length >= 10 && bizPhone === signupPhone;
+      const verifiedByWebsite =
+        Boolean(bizWebsiteDomain) &&
+        Boolean(signupEmailDomain) &&
+        bizWebsiteDomain === signupEmailDomain;
 
-      if (!verifiedByEmail && !verifiedByPhone) {
+      if (!verifiedByEmail && !verifiedByPhone && !verifiedByWebsite) {
         return res.status(403).json({
-          message: "Claim requires verification. Email/phone did not match the business on file.",
+          message:
+            "Claim requires verification. Email, phone, or website domain did not match the business on file.",
           code: "CLAIM_NOT_VERIFIED",
         });
       }
