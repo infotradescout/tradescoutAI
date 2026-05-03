@@ -4,11 +4,14 @@ import {
   MessageCircle,
   Bell,
   Users,
+  Settings,
   ShoppingBag,
   Trophy,
   Heart,
   Compass,
   Map,
+  ChevronDown,
+  ChevronUp,
   Menu,
   UserPlus,
   LogIn,
@@ -21,6 +24,8 @@ import {
   Shield,
   Building,
   UserCircle,
+  BadgeCheck,
+  LockKeyhole,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHandedness } from "@/hooks/useHandedness";
@@ -346,6 +351,7 @@ export function AppShell({ children, footer }: AppShellProps) {
   const isImpersonating = user?.isImpersonating || user?.impersonating;
   const isMobile = useIsMobile();
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const [isMobileUnlockablesOpen, setIsMobileUnlockablesOpen] = useState(false);
   const RIGHT_TOOLS_COLLAPSED_KEY = "ts:rightToolsCollapsed";
   const RIGHT_TOOLS_COLLAPSED_W = "56px";
   const [isRightToolsCollapsed, setIsRightToolsCollapsed] = useState(false);
@@ -483,6 +489,64 @@ export function AppShell({ children, footer }: AppShellProps) {
     color: "var(--theme-accent-primary)",
   } as const;
 
+  const mobileDrawerIconStyle = { color: "var(--theme-accent-primary)" } as const;
+
+  const navigateFromMobileTools = (href: string) => {
+    setIsToolsOpen(false);
+    navigate(href);
+  };
+
+  const handleMobileUnlockablesToggle = () => {
+    setIsMobileUnlockablesOpen((open) => {
+      const nextOpen = !open;
+      if (nextOpen && typeof window !== "undefined") {
+        window.setTimeout(() => {
+          document
+            .getElementById("mobile-unlockable-links")
+            ?.scrollIntoView({ block: "nearest", behavior: "auto" });
+        }, 0);
+      }
+      return nextOpen;
+    });
+  };
+
+  const renderMobileDrawerAction = ({
+    href,
+    icon,
+    label,
+    badge,
+  }: {
+    href: string;
+    icon: ReactNode;
+    label: string;
+    badge?: string | number;
+  }) => (
+    <button
+      key={href}
+      type="button"
+      onClick={() => navigateFromMobileTools(href)}
+      className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-medium"
+      style={mobileActionButtonStyle}
+    >
+      <span className="inline-flex min-w-0 items-center gap-2.5">
+        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center">{icon}</span>
+        <span className="truncate">{label}</span>
+      </span>
+      {badge != null ? (
+        <span
+          className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          style={{
+            border: "1px solid color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
+            backgroundColor: "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+            color: "var(--theme-text-primary)",
+          }}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
+
   const showFeatureNav = !isAuthOrSetupSurface && !isAdminSurface;
   const showSurfaceOrientation =
     String(import.meta.env.VITE_SURFACE_ORIENTATION_V1 ?? "false") === "true";
@@ -575,6 +639,10 @@ export function AppShell({ children, footer }: AppShellProps) {
   useEffect(() => {
     setIsToolsOpen(false);
   }, [location]);
+
+  useEffect(() => {
+    if (!isToolsOpen) setIsMobileUnlockablesOpen(false);
+  }, [isToolsOpen]);
 
   const toggleRightToolsCollapsed = () => {
     setIsRightToolsCollapsed((prev) => {
@@ -1201,7 +1269,7 @@ export function AppShell({ children, footer }: AppShellProps) {
           >
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                Quick actions
+                Account
               </h2>
               <button
                 type="button"
@@ -1247,93 +1315,115 @@ export function AppShell({ children, footer }: AppShellProps) {
                 </button>
               </div>
             ) : (
-              <div
-                className="grid grid-cols-1 gap-2 rounded-2xl p-3"
-                style={mobileSurfaceCardStyle}
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsToolsOpen(false);
-                    navigate(contactRequestCount > 0 ? "/messages?tab=requests" : "/messages");
-                  }}
-                  className="inline-flex h-11 w-full items-center justify-between rounded-lg border px-3 text-sm font-medium"
-                  style={mobileActionButtonStyle}
+              <div className="space-y-3">
+                <div
+                  className="grid grid-cols-1 gap-2 rounded-lg p-3"
+                  style={mobileSurfaceCardStyle}
                 >
-                  <span>Messages</span>
-                  {contactRequestCount > 0 ? (
-                    <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                      style={{
-                        border:
-                          "1px solid color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
-                        backgroundColor:
-                          "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
-                        color: "var(--theme-text-primary)",
-                      }}
-                    >
-                      {contactRequestCount > 9 ? "9+" : contactRequestCount}
-                    </span>
-                  ) : null}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsToolsOpen(false);
-                    navigate("/profile");
-                  }}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={mobileActionButtonStyle}
+                  {renderMobileDrawerAction({
+                    href: contactRequestCount > 0 ? "/messages?tab=requests" : "/messages",
+                    icon: <MessageCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Messages",
+                    ...(contactRequestCount > 0
+                      ? { badge: contactRequestCount > 9 ? "9+" : contactRequestCount }
+                      : {}),
+                  })}
+                  {renderMobileDrawerAction({
+                    href: "/profile",
+                    icon: <UserCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Profile",
+                  })}
+                  {renderMobileDrawerAction({
+                    href: "/profile-settings",
+                    icon: <UserCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Profile settings",
+                  })}
+                  {renderMobileDrawerAction({
+                    href: "/settings",
+                    icon: <Settings className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Settings",
+                  })}
+                </div>
+
+                <div
+                  className="grid grid-cols-1 gap-2 rounded-lg p-3"
+                  style={mobileSurfaceCardStyle}
                 >
-                  Profile
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsToolsOpen(false);
-                    navigate("/settings");
-                  }}
-                  className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
-                  style={mobileActionButtonStyle}
-                >
-                  Settings
-                </button>
+                  {renderMobileDrawerAction({
+                    href: "/settings?tab=roles",
+                    icon: <Users className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Permissions & roles",
+                  })}
+                  {renderMobileDrawerAction({
+                    href: "/verification",
+                    icon: <BadgeCheck className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Verification",
+                  })}
+                  {renderMobileDrawerAction({
+                    href: "/notifications",
+                    icon: <Bell className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Notifications",
+                  })}
+                  {renderMobileDrawerAction({
+                    href: "/settings?tab=privacy",
+                    icon: <Shield className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Privacy",
+                  })}
+                  {renderMobileDrawerAction({
+                    href: "/settings?tab=security",
+                    icon: <LockKeyhole className="h-4 w-4" style={mobileDrawerIconStyle} />,
+                    label: "Security",
+                  })}
+                </div>
               </div>
             )}
 
             {topRightUnlockableItems.length > 0 && (
-              <>
-                <h3
-                  className="mt-5 mb-2 text-xs font-semibold uppercase tracking-[0.18em]"
-                  style={{ color: "var(--text-secondary)" }}
+              <div className="mt-3 rounded-lg p-3" style={mobileSurfaceCardStyle}>
+                <button
+                  type="button"
+                  aria-expanded={isMobileUnlockablesOpen}
+                  onClick={handleMobileUnlockablesToggle}
+                  className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm font-semibold"
+                  style={mobileActionButtonStyle}
                 >
-                  Unlockable features
-                </h3>
-                <div
-                  className="grid grid-cols-1 gap-2 rounded-2xl p-3"
-                  style={mobileSurfaceCardStyle}
-                >
-                  {topRightUnlockableItems.map((item) => (
-                    <button
-                      key={`mobile-overflow-${item.href}`}
-                      type="button"
-                      onClick={() => {
-                        setIsToolsOpen(false);
-                        navigate(item.href);
+                  <span className="inline-flex min-w-0 items-center gap-2.5">
+                    <Sparkles className="h-4 w-4 shrink-0" style={mobileDrawerIconStyle} />
+                    <span className="truncate">Unlockable features</span>
+                  </span>
+                  <span className="inline-flex shrink-0 items-center gap-2">
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                      style={{
+                        backgroundColor:
+                          "color-mix(in oklab, var(--theme-accent-primary) 12%, transparent)",
+                        color: "var(--theme-accent-primary)",
                       }}
-                      className="inline-flex h-11 w-full items-center justify-between rounded-lg border px-3 text-sm font-medium"
-                      style={mobileActionButtonStyle}
                     >
-                      <span className="inline-flex items-center gap-2">
-                        {item.icon ? (
-                          <span className="inline-flex h-4 w-4 items-center">{item.icon}</span>
-                        ) : null}
-                        <span>{item.label}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </>
+                      {topRightUnlockableItems.length}
+                    </span>
+                    {isMobileUnlockablesOpen ? (
+                      <ChevronUp className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" style={{ color: "var(--text-secondary)" }} />
+                    )}
+                  </span>
+                </button>
+
+                {isMobileUnlockablesOpen && (
+                  <div id="mobile-unlockable-links" className="mt-2 grid grid-cols-1 gap-2">
+                    {topRightUnlockableItems.map((item) =>
+                      renderMobileDrawerAction({
+                        href: item.href,
+                        icon: item.icon ?? (
+                          <Sparkles className="h-4 w-4" style={mobileDrawerIconStyle} />
+                        ),
+                        label: item.label,
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             <div
