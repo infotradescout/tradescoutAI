@@ -71,6 +71,22 @@ async function queryIfTableExists(client, tableName, sql) {
   }
 }
 
+async function withBootstrapLock(task) {
+  const client = new Client({ connectionString: testDatabaseUrl });
+  await client.connect();
+  try {
+    console.log("[bootstrap-test-db] Waiting for test DB bootstrap lock...");
+    await client.query("SELECT pg_advisory_lock(hashtext('tradescout_test_db_bootstrap'))");
+    console.log("[bootstrap-test-db] Test DB bootstrap lock acquired.");
+    return await task();
+  } finally {
+    await client
+      .query("SELECT pg_advisory_unlock(hashtext('tradescout_test_db_bootstrap'))")
+      .catch(() => {});
+    await client.end();
+  }
+}
+
 async function ensureCriticalSchema() {
   const client = new Client({ connectionString: testDatabaseUrl });
   await client.connect();
@@ -797,20 +813,22 @@ async function main() {
   const env = { ...process.env, DATABASE_URL: testDatabaseUrl, TEST_DATABASE_URL: testDatabaseUrl };
   const fullSync = process.argv.includes("--full-sync");
 
-  if (fullSync) {
-    const pushCode = await runWithInput(
-      "npx",
-      ["drizzle-kit", "push", "--force"],
-      env,
-      "\n".repeat(20)
-    );
-    if (pushCode !== 0) {
-      console.error("[bootstrap-test-db] drizzle-kit push failed.");
-      process.exit(pushCode);
+  await withBootstrapLock(async () => {
+    if (fullSync) {
+      const pushCode = await runWithInput(
+        "npx",
+        ["drizzle-kit", "push", "--force"],
+        env,
+        "\n".repeat(20)
+      );
+      if (pushCode !== 0) {
+        console.error("[bootstrap-test-db] drizzle-kit push failed.");
+        process.exit(pushCode);
+      }
     }
-  }
 
-  await ensureCriticalSchema();
+    await ensureCriticalSchema();
+  });
   console.log("[bootstrap-test-db] Test DB schema is ready.");
 }
 
