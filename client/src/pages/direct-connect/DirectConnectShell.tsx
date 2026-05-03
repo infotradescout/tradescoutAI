@@ -95,7 +95,7 @@ const SECTION_META: Record<
   post: {
     title: "New request",
     description: "Tell people what you need, add photos if you have them, and send your request.",
-    actionLabel: "Track my requests",
+    actionLabel: "Manage requests",
     actionTarget: "engagements",
   },
   board: {
@@ -124,8 +124,7 @@ const SECTION_META: Record<
   },
   engagements: {
     title: "My requests",
-    description:
-      "See what still needs your action, what is already out with businesses, and what is in conversation.",
+    description: "Follow-up mode keeps request updates and replies together.",
     actionLabel: "See replies",
     actionTarget: "inbox",
   },
@@ -1863,7 +1862,7 @@ function DirectConnectInbox() {
                       : "/messages?tab=requests";
                   }}
                 >
-                  {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Review request"}
+                  {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Ask follow-up"}
                 </Button>
 
                 <Button

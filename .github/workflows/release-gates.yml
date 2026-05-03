@@ -12,8 +12,8 @@ jobs:
       NODE_ENV: production
       REQUIRE_PROD_BYPASS_OFF: "true"
       TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
-      E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
-      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+      E2E_EMAIL: ${{ secrets.E2E_EMAIL || secrets.MASTER_ADMIN_EMAIL }}
+      E2E_PASSWORD: ${{ secrets.E2E_PASSWORD || secrets.MASTER_ADMIN_PASSWORD }}
       MASTER_ADMIN_EMAIL: ${{ secrets.MASTER_ADMIN_EMAIL }}
       MASTER_ADMIN_PASSWORD: ${{ secrets.MASTER_ADMIN_PASSWORD }}
 

@@ -137,6 +137,81 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE observation_subject_type AS ENUM (
+          'property',
+          'business',
+          'road',
+          'area',
+          'org',
+          'person_unknown',
+          'other'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE observation_source_type AS ENUM (
+          'permit',
+          'inspection',
+          'enforcement',
+          'agenda',
+          'ordinance',
+          'sensor',
+          'listing',
+          'other'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE observation_confidence AS ENUM ('official', 'inferred');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS observations (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        occurred_at timestamp NOT NULL,
+        county_fips varchar(5) NOT NULL REFERENCES counties(fips),
+        state_code varchar(2) NOT NULL REFERENCES states(code),
+        city varchar(120),
+        geo_json jsonb,
+        subject_type observation_subject_type NOT NULL,
+        subject_ref varchar(255),
+        action_type varchar(64) NOT NULL,
+        source_type observation_source_type NOT NULL,
+        source_ref varchar(255) NOT NULL,
+        attributes_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+        confidence observation_confidence NOT NULL DEFAULT 'official',
+        created_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_observations_county_occurred
+      ON observations (county_fips, occurred_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_observations_source_occurred
+      ON observations (source_type, occurred_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_observations_action_occurred
+      ON observations (action_type, occurred_at)
+    `);
+
+    await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq_observations_source_ref
       ON observations (source_type, source_ref)
     `);
