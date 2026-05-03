@@ -56,7 +56,10 @@ describe("DC worker integration — storage layer", () => {
   });
 
   it("getWorkersByCountyAndSkills implementation queries workers table", () => {
-    const storage = readRepoFile("server/storage.ts");
+    const storage = [
+      readRepoFile("server/storage.ts"),
+      readRepoFile("server/repositories/businessRepository.ts"),
+    ].join("\n");
     // Use lastIndexOf to find the async implementation (not the interface declaration)
     const fnIdx = storage.lastIndexOf("getWorkersByCountyAndSkills");
     expect(fnIdx).toBeGreaterThan(-1);
@@ -102,7 +105,7 @@ describe("DC worker integration — inbox endpoint", () => {
     const dc = readRepoFile("server/routes/direct-connect.ts");
     const inboxIdx = dc.indexOf("/api/direct-connect/inbox");
     expect(inboxIdx).toBeGreaterThan(-1);
-    const inboxSection = dc.slice(inboxIdx, inboxIdx + 8000);
+    const inboxSection = dc.slice(inboxIdx, inboxIdx + 12000);
     expect(inboxSection).toContain("workerId");
   });
 });

@@ -224,10 +224,9 @@ export function GooglePlacesLocationInput({
     status === "loading" ? (
       <Loader2 className="h-4 w-4 animate-spin text-white/40" />
     ) : status === "error" ? (
-      <AlertCircle
-        className="h-4 w-4 text-amber-400"
-        title="Google Places unavailable — type your city manually"
-      />
+      <span title="Google Places unavailable - type your city manually">
+        <AlertCircle className="h-4 w-4 text-amber-400" />
+      </span>
     ) : (
       <MapPin className="h-4 w-4 text-white/40" />
     );

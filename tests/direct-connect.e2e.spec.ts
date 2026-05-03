@@ -62,8 +62,10 @@ test.describe("Direct Connect", () => {
     const titleText = `Kitchen faucet repair request ${Date.now()}`;
     const descriptionText = `Need a local pro to inspect and repair a leaking kitchen faucet this week.`;
 
-    await page.getByPlaceholder(/I need help with/i).fill(titleText);
-    await page.getByPlaceholder(/What needs to be done, when you need it/i).fill(descriptionText);
+    await page.getByPlaceholder(/Need help with|I need help with/i).fill(titleText);
+    await page
+      .getByPlaceholder(/Describe what needs to be done|What needs to be done, when you need it/i)
+      .fill(descriptionText);
 
     const sendButton = page.getByRole("button", { name: /Send request/i });
     await expect(sendButton).toBeEnabled();
@@ -81,6 +83,9 @@ test.describe("Direct Connect", () => {
     });
 
     await sendButton.click();
+    await expect(page.getByText(/Choose who gets this request/i)).toBeVisible();
+
+    await page.getByRole("button", { name: /Let Scout decide/i }).click();
     const createResponse = await createResponsePromise;
     const createdPayload = (await createResponse.json().catch(() => null)) as any;
     const createdId = createdPayload?.id ? String(createdPayload.id) : null;

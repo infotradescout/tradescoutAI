@@ -152,6 +152,16 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE work_request_assignments
+      ADD COLUMN IF NOT EXISTS responder_user_id varchar REFERENCES users(id) ON DELETE SET NULL
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_wra_responder_user_id
+      ON work_request_assignments(responder_user_id)
+    `);
+
+    await client.query(`
       ALTER TABLE home_scout_listings
       ADD COLUMN IF NOT EXISTS listing_author_type varchar(16) NOT NULL DEFAULT 'owner'
     `);
@@ -164,6 +174,49 @@ async function ensureCriticalSchema() {
     await client.query(`
       ALTER TABLE businesses
       ADD COLUMN IF NOT EXISTS sources jsonb NOT NULL DEFAULT '[]'::jsonb
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS trust_snapshots (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar NOT NULL REFERENCES users(id) ON DELETE cascade,
+        county_fips varchar(5) NOT NULL,
+        cvs_score numeric(5,2) NOT NULL,
+        verification_status varchar,
+        license_status varchar,
+        insurance_status varchar,
+        risk_flags text[],
+        computed_at timestamp DEFAULT now(),
+        version integer DEFAULT 1
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_trust_snapshots_user_county
+      ON trust_snapshots (user_id, county_fips)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS employment_post_applications (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+        post_id varchar NOT NULL REFERENCES employment_posts(id) ON DELETE CASCADE,
+        applicant_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        message text,
+        status varchar(32) NOT NULL DEFAULT 'pending',
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now(),
+        UNIQUE (post_id, applicant_user_id)
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_epa_post_id
+      ON employment_post_applications(post_id, created_at DESC)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_epa_applicant
+      ON employment_post_applications(applicant_user_id, created_at DESC)
     `);
 
     // SEO discovery "new & true only" scaffolding (publication rules + prune log + safe public activity).

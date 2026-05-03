@@ -22,7 +22,7 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "ignoreDeprecations": "5.0",
-    "types": ["node", "vite/client"],
+    "types": ["node", "vite/client", "google.maps"],
     "paths": {
       "@/*": ["./client/src/*"],
       "@shared/*": ["./shared/*"],

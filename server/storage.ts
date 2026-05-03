@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Storage layer interfaces with dynamic JSON blobs + 3rd-party SDKs; incremental hardening tracked separately. */
 import {
   users,
-  businesses,
-  businessCounties,
   profiles,
   contractors,
   recommendations,
@@ -392,11 +390,12 @@ import {
   type CountyNote,
   type InsertCountyNote,
   employmentPostApplications,
-  workers,
 } from "@shared/schema";
 import { db, pool as neonPool } from "./db";
 import { UserSecurityRepository } from "./repositories/userSecurityRepository";
 import { SitemapRepository } from "./repositories/sitemapRepository";
+import { BusinessRepository, type PublicBusinessRecord } from "./repositories/businessRepository";
+import { ProfileRepository, type PublicProfileRecord } from "./repositories/profileRepository";
 import {
   eq,
   and,
@@ -422,7 +421,6 @@ import {
 } from "drizzle-orm";
 import { getTableColumns } from "drizzle-orm/utils";
 import bcrypt from "bcrypt";
-import { randomUUID } from "crypto";
 import { applyPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import { computeAllocationShares } from "./utils/communityCauseAllocation";
 import { ensureSuperAdminConnectionForUser } from "./utils/superAdminConnection";
@@ -488,36 +486,6 @@ type AffiliateCommission = {
 type InsertAffiliateCommission = Omit<AffiliateCommission, "id" | "createdAt"> & {
   id?: string;
   createdAt?: Date;
-};
-
-type PublicProfileRecord = {
-  id: string;
-  slug: string;
-  displayName: string;
-  headline: string | null;
-  roleContext: string;
-  contentBlocks: any;
-  ctaConfig: any;
-  seoMeta: any;
-  businessId: string | null;
-  profileSections: any | null;
-  profileBooking: any | null;
-  ownerFirstName: string | null;
-  ownerLastName: string | null;
-  ownerProfileImageUrl: string | null;
-  ownerCity: string | null;
-  ownerState: string | null;
-  ownerRoles: string[] | null;
-  servicesDescription: string | null;
-};
-
-type PublicBusinessRecord = {
-  id: string;
-  name: string;
-  categories: string[];
-  serviceAreas: string[];
-  contactEmail?: string;
-  contactPhone?: string;
 };
 
 export interface IStorage {
@@ -1660,6 +1628,8 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   private readonly userSecurityRepository = new UserSecurityRepository();
   private readonly sitemapRepository = new SitemapRepository();
+  private readonly businessRepository = new BusinessRepository();
+  private readonly profileRepository = new ProfileRepository();
 
   private normalizeLegacyAdminUser(user: User | undefined): User | undefined {
     if (!user) return user;
@@ -1694,214 +1664,27 @@ export class DatabaseStorage implements IStorage {
     string,
     { expiresAt: number; rows: (County & { state?: { name: string; code: string } })[] }
   >();
-  private slugify(input: string): string {
-    return String(input)
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "")
-      .slice(0, 80);
-  }
-
-  private isMissingPublicDiscoveryEnabledColumn(error: any): boolean {
-    const code = String(error?.code || "").trim();
-    const message = String(error?.message || "")
-      .trim()
-      .toLowerCase();
-    return (
-      code === "42703" &&
-      (message.includes("public_discovery_enabled") ||
-        message.includes("businesses.public_discovery_enabled"))
-    );
-  }
-
-  private async generateUniqueBusinessSlug(base: string): Promise<string> {
-    const baseSlug = this.slugify(base);
-    if (!baseSlug) return randomUUID();
-
-    const existing = await db
-      .select({ slug: businesses.slug })
-      .from(businesses)
-      .where(like(businesses.slug, `${baseSlug}%`));
-
-    const existingSet = new Set(existing.map((r) => r.slug));
-    if (!existingSet.has(baseSlug)) return baseSlug;
-
-    for (let i = 2; i <= 200; i++) {
-      const candidate = `${baseSlug}-${i}`;
-      if (!existingSet.has(candidate)) return candidate;
-    }
-    return `${baseSlug}-${randomUUID().slice(0, 8)}`;
-  }
-
-  private async generateUniqueProfileSlug(base: string): Promise<string> {
-    const baseSlug = this.slugify(base);
-    if (!baseSlug) return randomUUID();
-
-    const existing = await db
-      .select({ slug: profiles.slug })
-      .from(profiles)
-      .where(like(profiles.slug, `${baseSlug}%`));
-
-    const existingSet = new Set(existing.map((r) => r.slug));
-    if (!existingSet.has(baseSlug)) return baseSlug;
-
-    for (let i = 2; i <= 200; i++) {
-      const candidate = `${baseSlug}-${i}`;
-      if (!existingSet.has(candidate)) return candidate;
-    }
-    return `${baseSlug}-${randomUUID().slice(0, 8)}`;
-  }
-
   async listBusinessesByOwner(ownerUserId: string): Promise<Business[]> {
-    try {
-      return await db
-        .select()
-        .from(businesses)
-        .where(eq(businesses.ownerUserId, ownerUserId))
-        .orderBy(desc(businesses.updatedAt));
-    } catch (error: any) {
-      const isMissingDiscoveryColumn = this.isMissingPublicDiscoveryEnabledColumn(error);
-      if (!isMissingDiscoveryColumn) throw error;
-
-      const fallback = (await db.execute(sql`
-        select
-          b.id,
-          b.name,
-          b.slug,
-          b.type,
-          b.owner_user_id as "ownerUserId",
-          b.role_context as "roleContext",
-          b.profile_data as "profileData",
-          b.claim_status as "claimStatus",
-          true as "publicDiscoveryEnabled",
-          b.sources,
-          b.status,
-          b.created_at as "createdAt",
-          b.updated_at as "updatedAt"
-        from businesses b
-        where b.owner_user_id = ${ownerUserId}
-        order by b.updated_at desc
-      `)) as any;
-
-      return Array.isArray(fallback?.rows) ? (fallback.rows as Business[]) : [];
-    }
+    return this.businessRepository.listBusinessesByOwner(ownerUserId);
   }
 
   async getBusinessByIdForOwner(
     ownerUserId: string,
     businessId: string
   ): Promise<Business | undefined> {
-    try {
-      const rows = await db
-        .select()
-        .from(businesses)
-        .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
-        .limit(1);
-      return rows[0];
-    } catch (error: any) {
-      const isMissingDiscoveryColumn = this.isMissingPublicDiscoveryEnabledColumn(error);
-      if (!isMissingDiscoveryColumn) throw error;
-
-      const fallback = (await db.execute(sql`
-        select
-          b.id,
-          b.name,
-          b.slug,
-          b.type,
-          b.owner_user_id as "ownerUserId",
-          b.role_context as "roleContext",
-          b.profile_data as "profileData",
-          b.claim_status as "claimStatus",
-          true as "publicDiscoveryEnabled",
-          b.sources,
-          b.status,
-          b.created_at as "createdAt",
-          b.updated_at as "updatedAt"
-        from businesses b
-        where b.id = ${businessId}
-          and b.owner_user_id = ${ownerUserId}
-        limit 1
-      `)) as any;
-      return Array.isArray(fallback?.rows) ? (fallback.rows[0] as Business | undefined) : undefined;
-    }
+    return this.businessRepository.getBusinessByIdForOwner(ownerUserId, businessId);
   }
 
   async getBusinessBySlugPublic(slug: string): Promise<Business | undefined> {
-    try {
-      const rows = await db
-        .select()
-        .from(businesses)
-        .where(and(eq(businesses.slug, slug), ne(businesses.status, "suspended" as any)))
-        .limit(1);
-      return rows[0];
-    } catch (error: any) {
-      const isMissingDiscoveryColumn = this.isMissingPublicDiscoveryEnabledColumn(error);
-      if (!isMissingDiscoveryColumn) throw error;
-
-      const fallback = (await db.execute(sql`
-        select
-          b.id,
-          b.name,
-          b.slug,
-          b.type,
-          b.owner_user_id as "ownerUserId",
-          b.role_context as "roleContext",
-          b.profile_data as "profileData",
-          b.claim_status as "claimStatus",
-          true as "publicDiscoveryEnabled",
-          b.sources,
-          b.status,
-          b.created_at as "createdAt",
-          b.updated_at as "updatedAt"
-        from businesses b
-        where b.slug = ${slug}
-          and b.status <> 'suspended'
-        limit 1
-      `)) as any;
-      return Array.isArray(fallback?.rows) ? (fallback.rows[0] as Business | undefined) : undefined;
-    }
+    return this.businessRepository.getBusinessBySlugPublic(slug);
   }
 
   async getBusinessPublicById(businessId: string): Promise<PublicBusinessRecord | undefined> {
-    const businessRows = await db
-      .select({
-        id: businesses.id,
-        name: businesses.name,
-        profileData: businesses.profileData,
-      })
-      .from(businesses)
-      .where(and(eq(businesses.id, businessId), ne(businesses.status, "suspended" as any)))
-      .limit(1);
-
-    const business = businessRows[0];
-    if (!business) return undefined;
-
-    const countyRows = await db
-      .select({ countyId: businessCounties.countyId })
-      .from(businessCounties)
-      .where(eq(businessCounties.businessId, businessId));
-
-    const categories = business.profileData?.category ? [business.profileData.category] : [];
-    const contactEmail = business.profileData?.email || undefined;
-    const contactPhone = business.profileData?.phone || undefined;
-
-    return {
-      id: business.id,
-      name: business.name,
-      categories,
-      serviceAreas: countyRows.map((r) => r.countyId),
-      ...(contactEmail ? { contactEmail } : {}),
-      ...(contactPhone ? { contactPhone } : {}),
-    };
+    return this.businessRepository.getBusinessPublicById(businessId);
   }
 
   async getBusinessCountyIds(businessId: string): Promise<string[]> {
-    const rows = await db
-      .select({ countyId: businessCounties.countyId })
-      .from(businessCounties)
-      .where(eq(businessCounties.businessId, businessId));
-    return rows.map((r) => r.countyId);
+    return this.businessRepository.getBusinessCountyIds(businessId);
   }
 
   async getProvidersByCountyAndCategory(args: {
@@ -1917,69 +1700,12 @@ export class DatabaseStorage implements IStorage {
       slug: string;
     }>
   > {
-    const limit = Math.min(50, Math.max(1, Number(args.limit ?? 15) || 15));
-    const predicates: any[] = [
-      eq(businesses.status, "active" as any),
-      exists(
-        db
-          .select({ one: sql`1` })
-          .from(businessCounties)
-          .where(
-            and(
-              eq(businessCounties.businessId, businesses.id),
-              eq(businessCounties.countyId, args.countyId)
-            )
-          )
-          .limit(1)
-      ),
-    ];
-    if (args.roleContexts?.length) {
-      predicates.push(inArray(businesses.roleContext as any, args.roleContexts as any));
-    }
-    const rows = await db
-      .select({
-        businessId: businesses.id,
-        ownerUserId: businesses.ownerUserId,
-        name: businesses.name,
-        roleContext: businesses.roleContext,
-        slug: businesses.slug,
-      })
-      .from(businesses)
-      .where(and(...predicates))
-      .limit(limit);
-    return rows as Array<{
-      businessId: string;
-      ownerUserId: string | null;
-      name: string;
-      roleContext: string;
-      slug: string;
-    }>;
+    // businesses + countyId query lives in BusinessRepository.
+    return this.businessRepository.getProvidersByCountyAndCategory(args);
   }
 
   async getActiveBusinessForUser(userId: string): Promise<Business | undefined> {
-    // First try the user's activeBusinessId
-    const user = await this.getUser(userId);
-    if ((user as any)?.activeBusinessId) {
-      const [biz] = await db
-        .select()
-        .from(businesses)
-        .where(
-          and(
-            eq(businesses.id, String((user as any).activeBusinessId)),
-            eq(businesses.ownerUserId, userId)
-          )
-        )
-        .limit(1);
-      if (biz) return biz as Business;
-    }
-    // Fallback: first active business owned by this user
-    const [biz] = await db
-      .select()
-      .from(businesses)
-      .where(and(eq(businesses.ownerUserId, userId), eq(businesses.status, "active" as any)))
-      .orderBy(asc(businesses.createdAt))
-      .limit(1);
-    return biz as Business | undefined;
+    return this.businessRepository.getActiveBusinessForUser(userId);
   }
 
   async getWorkersByCountyAndSkills(args: {
@@ -1997,64 +1723,8 @@ export class DatabaseStorage implements IStorage {
       isAvailable: boolean;
     }>
   > {
-    const { countyFips, skills, limit = 10 } = args;
-    // Join workers with users to filter by the user's home countyFips
-    const rows = await db
-      .select({
-        workerId: workers.id,
-        userId: workers.userId,
-        firstName: workers.firstName,
-        lastName: workers.lastName,
-        skills: workers.skills,
-        hourlyRate: workers.hourlyRate,
-        isAvailable: workers.isAvailable,
-      })
-      .from(workers)
-      .innerJoin(users, eq(workers.userId, users.id))
-      .where(
-        and(
-          eq(workers.isActive, true),
-          eq(workers.isAvailable, true),
-          eq((users as any).countyFips, countyFips)
-        )
-      )
-      .limit(limit * 3); // over-fetch so we can filter by skills
-
-    if (!skills || skills.length === 0) {
-      return rows.slice(0, limit).map((r) => ({
-        ...r,
-        skills: (r.skills as string[]) ?? [],
-        hourlyRate: r.hourlyRate ? String(r.hourlyRate) : null,
-      }));
-    }
-
-    // Filter to workers who have at least one matching skill
-    const lowerSkills = skills.map((s) => s.toLowerCase());
-    const matched = rows.filter((r) => {
-      const wSkills = ((r.skills as string[]) ?? []).map((s) => s.toLowerCase());
-      return wSkills.some((s) => lowerSkills.includes(s));
-    });
-    return matched.slice(0, limit).map((r) => ({
-      ...r,
-      skills: (r.skills as string[]) ?? [],
-      hourlyRate: r.hourlyRate ? String(r.hourlyRate) : null,
-    }));
-  }
-
-  private async replaceBusinessCounties(businessId: string, countyIds: string[]): Promise<void> {
-    const normalized = Array.from(
-      new Set((countyIds || []).filter(Boolean).map((c) => String(c).trim()))
-    );
-
-    await db.delete(businessCounties).where(eq(businessCounties.businessId, businessId));
-
-    if (normalized.length === 0) return;
-    await db.insert(businessCounties).values(
-      normalized.map((countyId) => ({
-        businessId,
-        countyId,
-      }))
-    );
+    // workers query lives in BusinessRepository.
+    return this.businessRepository.getWorkersByCountyAndSkills(args);
   }
 
   async createBusinessForOwner(
@@ -2063,43 +1733,7 @@ export class DatabaseStorage implements IStorage {
       countyIds?: string[];
     }
   ): Promise<Business> {
-    const slug = await this.generateUniqueBusinessSlug(data.slug || data.name);
-    const countyIds = data.countyIds || [];
-    const nextSources = Array.isArray((data as any).sources)
-      ? Array.from(new Set(((data as any).sources as string[]).filter(Boolean)))
-      : [];
-
-    const created = await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(businesses)
-        .values({
-          ...data,
-          ownerUserId,
-          slug,
-          claimStatus: "claimed",
-          sources: nextSources,
-        } as any)
-        .returning();
-
-      const business = inserted[0];
-      if (!business) throw new Error("Failed to create business");
-
-      if (countyIds.length > 0) {
-        await tx.delete(businessCounties).where(eq(businessCounties.businessId, business.id));
-        await tx.insert(businessCounties).values(
-          Array.from(new Set(countyIds.filter(Boolean).map((c) => String(c).trim()))).map(
-            (countyId) => ({
-              businessId: business.id,
-              countyId,
-            })
-          )
-        );
-      }
-
-      return business as Business;
-    });
-
-    return created;
+    return this.businessRepository.createBusinessForOwner(ownerUserId, data);
   }
 
   async createUnclaimedBusiness(
@@ -2107,132 +1741,11 @@ export class DatabaseStorage implements IStorage {
       countyIds?: string[];
     }
   ): Promise<Business> {
-    const slug = await this.generateUniqueBusinessSlug(data.slug || data.name);
-    const countyIds = data.countyIds || [];
-    const nextSources = Array.isArray((data as any).sources)
-      ? Array.from(new Set(((data as any).sources as string[]).filter(Boolean)))
-      : [];
-
-    const created = await db.transaction(async (tx) => {
-      const inserted = await tx
-        .insert(businesses)
-        .values({
-          ...data,
-          ownerUserId: null,
-          slug,
-          claimStatus: "unclaimed",
-          sources: nextSources,
-        } as any)
-        .returning();
-
-      const business = inserted[0];
-      if (!business) throw new Error("Failed to create business");
-
-      if (countyIds.length > 0) {
-        await tx.delete(businessCounties).where(eq(businessCounties.businessId, business.id));
-        await tx.insert(businessCounties).values(
-          Array.from(new Set(countyIds.filter(Boolean).map((c) => String(c).trim()))).map(
-            (countyId) => ({
-              businessId: business.id,
-              countyId,
-            })
-          )
-        );
-      }
-
-      return business as Business;
-    });
-
-    return created;
+    return this.businessRepository.createUnclaimedBusiness(data);
   }
 
   async claimUnclaimedBusinessForUser(businessId: string, userId: string): Promise<Business> {
-    const claimed = await db.transaction(async (tx) => {
-      const rows = await tx
-        .update(businesses)
-        .set({ ownerUserId: userId, claimStatus: "claimed", updatedAt: new Date() } as any)
-        .where(and(eq(businesses.id, businessId), isNull(businesses.ownerUserId)))
-        .returning();
-
-      const business = rows[0];
-      if (!business) throw new Error("Business is not claimable");
-
-      // If this unclaimed directory listing was preseeded with license verification signals,
-      // convert them into the user's verification ledger at claim-time (user-based table).
-      try {
-        const profileData: any = (business as any).profileData || {};
-        const importExtras: any =
-          profileData && typeof profileData === "object" ? (profileData as any).importExtras : null;
-
-        const licenseStatus = String(
-          importExtras?.license_status ?? importExtras?.licenseStatus ?? ""
-        )
-          .trim()
-          .toLowerCase();
-
-        if (licenseStatus) {
-          const jurisdiction = String(
-            importExtras?.license_jurisdiction ?? importExtras?.licenseJurisdiction ?? ""
-          ).trim();
-          const licenseNumber = String(
-            importExtras?.license_number ?? importExtras?.licenseNumber ?? ""
-          ).trim();
-          const verifiedAtRaw = String(
-            importExtras?.license_verified_at ?? importExtras?.licenseVerifiedAt ?? ""
-          ).trim();
-          const expiresAtRaw = String(
-            importExtras?.license_expires_at ?? importExtras?.licenseExpiresAt ?? ""
-          ).trim();
-          const source = String(importExtras?.license_source ?? importExtras?.licenseSource ?? "")
-            .trim()
-            .slice(0, 64);
-
-          const verifiedAt = verifiedAtRaw ? new Date(verifiedAtRaw) : null;
-          const expiresAt = expiresAtRaw ? new Date(expiresAtRaw) : null;
-          const verifiedAtSafe =
-            verifiedAt && Number.isFinite(verifiedAt.getTime()) ? verifiedAt : null;
-          const expiresAtSafe =
-            expiresAt && Number.isFinite(expiresAt.getTime()) ? expiresAt : null;
-
-          // Idempotency: if claim is retried, don't duplicate the import-derived verification.
-          const existing = await tx.execute(sql`
-            SELECT 1
-            FROM business_verifications
-            WHERE provider_user_id = ${userId}
-              AND verification_type = 'license'
-              AND (metadata ->> 'importBusinessId') = ${business.id}
-            LIMIT 1
-          `);
-
-          if ((existing as any)?.rows?.length === 0) {
-            await tx.insert(businessVerifications).values({
-              providerUserId: userId,
-              verificationType: "license",
-              jurisdiction: jurisdiction || null,
-              status: licenseStatus.slice(0, 32),
-              verifiedAt: verifiedAtSafe,
-              expiresAt: expiresAtSafe,
-              source: source || "preseed_import",
-              metadata: {
-                importBusinessId: business.id,
-                importBusinessSlug: (business as any).slug,
-                importBusinessName: (business as any).name,
-                licenseNumber: licenseNumber || null,
-                licenseJurisdiction: jurisdiction || null,
-                licenseVerifiedAtRaw: verifiedAtRaw || null,
-                licenseExpiresAtRaw: expiresAtRaw || null,
-              },
-            } as any);
-          }
-        }
-      } catch (err) {
-        console.warn("[claim-business] failed to convert imported license extras:", err);
-      }
-
-      return business as Business;
-    });
-
-    return claimed;
+    return this.businessRepository.claimUnclaimedBusinessForUser(businessId, userId);
   }
 
   async updateBusinessForOwner(
@@ -2242,131 +1755,30 @@ export class DatabaseStorage implements IStorage {
       countyIds?: string[];
     }
   ): Promise<Business> {
-    const existing = await this.getBusinessByIdForOwner(ownerUserId, businessId);
-    if (!existing) throw new Error("Business not found");
-
-    const countyIds = updates.countyIds;
-    const { countyIds: _ignored, ...businessUpdates } = updates as any;
-    void _ignored;
-
-    const nextSlug = businessUpdates.slug
-      ? await this.generateUniqueBusinessSlug(businessUpdates.slug)
-      : undefined;
-
-    const updated = await db.transaction(async (tx) => {
-      const rows = await tx
-        .update(businesses)
-        .set({
-          ...businessUpdates,
-          ...(nextSlug ? { slug: nextSlug } : {}),
-          updatedAt: new Date(),
-        })
-        .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
-        .returning();
-
-      const business = rows[0];
-      if (!business) throw new Error("Business not found");
-
-      if (Array.isArray(countyIds)) {
-        await tx.delete(businessCounties).where(eq(businessCounties.businessId, businessId));
-        const normalized = Array.from(
-          new Set(countyIds.filter(Boolean).map((c) => String(c).trim()))
-        );
-        if (normalized.length > 0) {
-          await tx.insert(businessCounties).values(
-            normalized.map((countyId) => ({
-              businessId,
-              countyId,
-            }))
-          );
-        }
-      }
-
-      return business as Business;
-    });
-
-    return updated;
+    return this.businessRepository.updateBusinessForOwner(ownerUserId, businessId, updates);
   }
 
   async softDeleteBusinessForOwner(ownerUserId: string, businessId: string): Promise<Business> {
-    const existing = await this.getBusinessByIdForOwner(ownerUserId, businessId);
-    if (!existing) throw new Error("Business not found");
-
-    const rows = await db
-      .update(businesses)
-      .set({ status: "suspended" as any, updatedAt: new Date() })
-      .where(and(eq(businesses.id, businessId), eq(businesses.ownerUserId, ownerUserId)))
-      .returning();
-
-    const business = rows[0];
-    if (!business) throw new Error("Business not found");
-    return business;
+    return this.businessRepository.softDeleteBusinessForOwner(ownerUserId, businessId);
   }
 
   async setUserActiveBusiness(userId: string, businessId: string | null): Promise<User> {
-    const rows = await db
-      .update(users)
-      .set({ activeBusinessId: businessId, updatedAt: new Date() } as any)
-      .where(eq(users.id, userId))
-      .returning();
-    const user = rows[0];
-    if (!user) throw new Error("User not found");
-    return user;
+    return this.businessRepository.setUserActiveBusiness(userId, businessId);
   }
 
   async listProfilesByOwner(ownerUserId: string): Promise<Profile[]> {
-    return db
-      .select()
-      .from(profiles)
-      .where(eq(profiles.ownerUserId, ownerUserId))
-      .orderBy(desc(profiles.updatedAt));
+    return this.profileRepository.listProfilesByOwner(ownerUserId);
   }
 
   async getProfileByIdForOwner(
     ownerUserId: string,
     profileId: string
   ): Promise<Profile | undefined> {
-    const rows = await db
-      .select()
-      .from(profiles)
-      .where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, ownerUserId)))
-      .limit(1);
-    return rows[0];
+    return this.profileRepository.getProfileByIdForOwner(ownerUserId, profileId);
   }
 
   async getProfileBySlugPublic(slug: string): Promise<PublicProfileRecord | undefined> {
-    const rows = await db
-      .select({
-        id: profiles.id,
-        slug: profiles.slug,
-        displayName: profiles.displayName,
-        headline: profiles.headline,
-        roleContext: profiles.roleContext,
-        contentBlocks: profiles.contentBlocks,
-        ctaConfig: profiles.ctaConfig,
-        seoMeta: profiles.seoMeta,
-        businessId: profiles.businessId,
-        profileSections: sql`(${users.preferences} -> 'profileSections')`,
-        profileBooking: sql`(${users.preferences} -> 'profileBooking')`,
-        ownerFirstName: users.firstName,
-        ownerLastName: users.lastName,
-        ownerProfileImageUrl: users.profileImageUrl,
-        ownerCity: users.city,
-        ownerState: users.state,
-        ownerRoles: users.roles,
-        servicesDescription: sql<string | null>`(${users.preferences} ->> 'servicesDescription')`,
-      })
-      .from(profiles)
-      .innerJoin(users, eq(profiles.ownerUserId, users.id))
-      .where(
-        and(
-          eq(profiles.slug, slug),
-          eq(profiles.status, "published" as any),
-          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
-        )
-      )
-      .limit(1);
-    return rows[0];
+    return this.profileRepository.getProfileBySlugPublic(slug);
   }
 
   async listPublicProfilesForSitemap(): Promise<Array<{ slug: string; updatedAt: Date | null }>> {
@@ -2443,51 +1855,14 @@ export class DatabaseStorage implements IStorage {
       roleContext: any;
     }>
   > {
-    const raw = (args.query || "").trim();
-    if (!raw) return [];
-
-    const limit = Math.max(1, Math.min(20, Number(args.limit ?? 8) || 8));
-    const needle = `%${raw.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
-
-    const rows = await db
-      .select({
-        id: profiles.id,
-        slug: profiles.slug,
-        displayName: profiles.displayName,
-        headline: profiles.headline,
-        roleContext: profiles.roleContext,
-      })
-      .from(profiles)
-      .innerJoin(users, eq(profiles.ownerUserId, users.id))
-      .where(
-        and(
-          eq(profiles.status, "published" as any),
-          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
-          sql`(${profiles.displayName} ILIKE ${needle} OR ${profiles.slug} ILIKE ${needle})`
-        )
-      )
-      .orderBy(desc(profiles.updatedAt))
-      .limit(limit);
-
-    return rows;
+    return this.profileRepository.searchProfilesPublic(args);
   }
 
   async createProfileForOwner(
     ownerUserId: string,
     data: Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">
   ): Promise<Profile> {
-    const slug = await this.generateUniqueProfileSlug(data.slug || data.displayName);
-    const inserted = await db
-      .insert(profiles)
-      .values({
-        ...data,
-        ownerUserId,
-        slug,
-      } as any)
-      .returning();
-    const profile = inserted[0];
-    if (!profile) throw new Error("Failed to create profile");
-    return profile as Profile;
+    return this.profileRepository.createProfileForOwner(ownerUserId, data);
   }
 
   async updateProfileForOwner(
@@ -2495,43 +1870,15 @@ export class DatabaseStorage implements IStorage {
     profileId: string,
     updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
   ): Promise<Profile> {
-    const existing = await this.getProfileByIdForOwner(ownerUserId, profileId);
-    if (!existing) throw new Error("Profile not found");
-
-    const nextSlug = updates.slug ? await this.generateUniqueProfileSlug(updates.slug) : undefined;
-
-    const rows = await db
-      .update(profiles)
-      .set({
-        ...updates,
-        ...(nextSlug ? { slug: nextSlug } : {}),
-        updatedAt: new Date(),
-      } as any)
-      .where(and(eq(profiles.id, profileId), eq(profiles.ownerUserId, ownerUserId)))
-      .returning();
-
-    const profile = rows[0];
-    if (!profile) throw new Error("Profile not found");
-    return profile as Profile;
+    return this.profileRepository.updateProfileForOwner(ownerUserId, profileId, updates);
   }
 
   async setUserActiveProfile(userId: string, profileId: string | null): Promise<User> {
-    const rows = await db
-      .update(users)
-      .set({ activeProfileId: profileId, updatedAt: new Date() } as any)
-      .where(eq(users.id, userId))
-      .returning();
-    const user = rows[0];
-    if (!user) throw new Error("User not found");
-    return user;
+    return this.profileRepository.setUserActiveProfile(userId, profileId);
   }
 
   async getProfileOwnerUserId(profileId: string): Promise<string | null> {
-    const [row] = await db
-      .select({ ownerUserId: profiles.ownerUserId })
-      .from(profiles)
-      .where(eq(profiles.id, profileId));
-    return row?.ownerUserId ?? null;
+    return this.profileRepository.getProfileOwnerUserId(profileId);
   }
 
   async createProfileBookingRequest(

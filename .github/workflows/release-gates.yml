@@ -30,7 +30,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --include=dev
 
       - name: HTTP semantics guard (4xx vs 5xx)
         run: npm run audit:http-semantics

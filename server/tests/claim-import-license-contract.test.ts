@@ -7,7 +7,9 @@ function read(path: string) {
 
 describe("Preseeded Business Claim Contracts", () => {
   it("converts imported license extras into user verifications on claim", () => {
-    const src = read("server/storage.ts");
+    const src = [read("server/storage.ts"), read("server/repositories/businessRepository.ts")].join(
+      "\n"
+    );
 
     // Ensure the claim path contains logic to convert business.profileData.importExtras.* into
     // business_verifications rows for the claiming user (user-based table).

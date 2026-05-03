@@ -47,7 +47,7 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
   }
 
   const authRequiredPattern =
-    /(offer services|provider standing|run a promotion|post to community|community announcement|community builder donation|support ticket|my dashboard|my listings|publish)/i;
+    /(offer services|provider standing|run a promotion|post(?: this)?(?:\s+\w+){0,4}\s+community|community feed|community announcement|community builder donation|support ticket|my dashboard|my listings|publish(?: it| this)?)/i;
   if (!request.isAuthenticated && authRequiredPattern.test(raw)) {
     return {
       type: "blocked",

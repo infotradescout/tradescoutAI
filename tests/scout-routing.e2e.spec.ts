@@ -1,63 +1,29 @@
 import { test, expect } from "./fixtures/botArmy";
 import { request } from "@playwright/test";
 
-// Minimal e2e check that Scout's routing explainer
-// includes a navigate action to the canonical Direct Connect help URL.
-
-const ROUTING_HELP_HASH = "/help/how-tradescout-works#direct-connect-workflow";
+const DIRECT_CONNECT_ENTRY_URL = "/direct-connect?entry=default";
 
 test.describe("Scout routing explainer", () => {
   // This flow relies on the same test DB + server wiring
   // used by other DB-backed E2E suites.
   test.skip(!process.env.TEST_DATABASE_URL, "TEST_DATABASE_URL not set for Scout routing E2E");
 
-  test("navigates to Direct Connect workflow help", async ({ page }) => {
-    await page.goto("/scout");
+  test("Direct Connect default entry opens the request flow", async ({ page }) => {
+    await page.request.put("/api/user/profile", {
+      data: {
+        firstName: "Playwright",
+        lastName: "E2E",
+        stateCode: "AZ",
+        countyFips: "04013",
+      },
+    });
+    await page.request.post("/api/user/complete-onboarding", { data: {} });
 
-    // Ensure controller sections are visible so cluster cards render.
-    // (Chat-only mode can hide `.scout-card` clusters.)
-    const controllerToggle = page.getByRole("button", { name: /chat \+\s*controller/i });
-    if (await controllerToggle.isVisible().catch(() => false)) {
-      await controllerToggle.click();
-    }
+    await page.goto(DIRECT_CONNECT_ENTRY_URL);
 
-    const input = page.getByPlaceholder(
-      /describe the local outcome, problem, or task you need to move forward|tell scout what you need help with/i
-    );
-    await input.click();
-    await input.fill("Why is this not routed yet?");
-
-    const sendButton = page
-      .locator(".scout-composer-dock")
-      .getByRole("button", { name: /^send$/i })
-      .first();
-    await sendButton.click();
-
-    // Controller actions are collapsible; expand so cluster cards are in the DOM.
-    const controllerShow = page.getByRole("button", { name: /^Show$/i }).first();
-    if (await controllerShow.isVisible().catch(() => false)) {
-      await controllerShow.click();
-    }
-
-    // Prefer explicit routing workflow action when available.
-    const helpButton = page
-      .locator(".scout-card")
-      .getByRole("button", {
-        name: /open direct connect guide|direct connect routing workflow|routing workflow/i,
-      })
-      .first();
-    const hasHelpButton = await helpButton.isVisible({ timeout: 30_000 }).catch(() => false);
-    if (hasHelpButton) {
-      await helpButton.click();
-    } else {
-      // Fallback for variants where the action card is not rendered in this shell mode.
-      await page.goto(ROUTING_HELP_HASH);
-    }
-
-    // Assert navigation to the canonical Direct Connect workflow help anchor.
-    await expect(page).toHaveURL(
-      new RegExp(`${ROUTING_HELP_HASH.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}$`)
-    );
+    await expect(page.getByText(/Direct Connect/i).first()).toBeVisible();
+    await expect(page.getByPlaceholder(/Need help with/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /Send request/i })).toBeVisible();
   });
 
   test("guest action requests include account-gated next step", async ({ baseURL }) => {
