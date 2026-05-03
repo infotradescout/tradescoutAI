@@ -293,8 +293,18 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE work_request_assignments
+      ADD COLUMN IF NOT EXISTS worker_id varchar REFERENCES workers(id) ON DELETE SET NULL
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_wra_responder_user_id
       ON work_request_assignments(responder_user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_wra_worker_id
+      ON work_request_assignments(worker_id)
     `);
 
     await queryIfTableExists(
@@ -562,6 +572,178 @@ async function ensureCriticalSchema() {
       ON contact_permissions (county_fips)
     `);
 
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE objective_intent_class AS ENUM (
+          'unknown',
+          'knowledge',
+          'local_advice',
+          'work_request',
+          'marketplace_buy',
+          'marketplace_sell',
+          'community_post',
+          'event',
+          'safety_report',
+          'account',
+          'admin',
+          'other'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'unknown';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'knowledge';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'local_advice';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'work_request';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'marketplace_buy';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'marketplace_sell';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'community_post';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'event';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'safety_report';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'account';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'admin';
+      ALTER TYPE objective_intent_class ADD VALUE IF NOT EXISTS 'other';
+    `);
+
+    await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE objective_status AS ENUM ('active', 'paused', 'completed', 'abandoned');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      ALTER TYPE objective_status ADD VALUE IF NOT EXISTS 'active';
+      ALTER TYPE objective_status ADD VALUE IF NOT EXISTS 'paused';
+      ALTER TYPE objective_status ADD VALUE IF NOT EXISTS 'completed';
+      ALTER TYPE objective_status ADD VALUE IF NOT EXISTS 'abandoned';
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS objectives (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar NOT NULL,
+        intent_class objective_intent_class DEFAULT 'unknown',
+        title varchar NOT NULL,
+        summary text,
+        confidence numeric(3,2) DEFAULT '0.5',
+        context_json jsonb,
+        source varchar DEFAULT 'scout',
+        linked_object_type varchar DEFAULT 'none',
+        linked_object_id varchar,
+        status objective_status DEFAULT 'active',
+        last_scout_message_id varchar,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objectives_user_id
+      ON objectives(user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objectives_user_status
+      ON objectives(user_id, status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objectives_intent_class
+      ON objectives(intent_class)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objectives_created_at
+      ON objectives(created_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objectives_linked_object
+      ON objectives(linked_object_type, linked_object_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS objective_events (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        objective_id varchar NOT NULL,
+        event_type varchar NOT NULL,
+        actor_user_id varchar,
+        actor_type varchar,
+        metadata jsonb,
+        created_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objective_events_objective_id
+      ON objective_events(objective_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objective_events_event_type
+      ON objective_events(event_type)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_objective_events_created_at
+      ON objective_events(created_at)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS scout_onboarding_sessions (
+        session_id varchar(255) PRIMARY KEY,
+        user_id varchar(255) REFERENCES users(id) ON DELETE CASCADE,
+        snapshot text NOT NULL DEFAULT '{}',
+        answered_questions text NOT NULL DEFAULT '[]',
+        skipped_questions text NOT NULL DEFAULT '[]',
+        expiration_reason varchar(64),
+        started_at timestamp NOT NULL DEFAULT now(),
+        expires_at timestamp NOT NULL,
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_scout_onboarding_user_id
+      ON scout_onboarding_sessions(user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_scout_onboarding_expires_at
+      ON scout_onboarding_sessions(expires_at)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_audit_log (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        type varchar(80) NOT NULL,
+        admin_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        target_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        metadata jsonb DEFAULT '{}'::jsonb,
+        created_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_admin_audit_log_admin
+      ON admin_audit_log(admin_id, created_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_admin_audit_log_target
+      ON admin_audit_log(target_user_id, created_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_admin_audit_log_type
+      ON admin_audit_log(type, created_at)
+    `);
+
     // Directory ingestion + safety queues (used by seeded "unclaimed" business listings).
     await client.query(`
       DO $$ BEGIN
@@ -822,6 +1004,30 @@ async function ensureCriticalSchema() {
         event_type varchar(120) NOT NULL,
         unique_key varchar(255) NOT NULL,
         PRIMARY KEY (user_id, day_key_utc, event_type, unique_key)
+      )
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS user_badges (
+        user_id varchar NOT NULL,
+        badge_id text NOT NULL,
+        awarded_at timestamp NOT NULL DEFAULT now(),
+        source text NOT NULL DEFAULT 'engine',
+        PRIMARY KEY (user_id, badge_id)
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS user_badges_user_idx
+      ON user_badges(user_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS badge_eval_state (
+        user_id varchar NOT NULL,
+        badge_id text NOT NULL,
+        last_evaluated_at timestamp NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, badge_id)
       )
     `);
 

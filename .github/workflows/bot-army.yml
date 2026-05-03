@@ -87,15 +87,39 @@ jobs:
         env:
           NODE_ENV: test
 
+      - name: Write Bot Army env
+        shell: bash
+        env:
+          AGENT_IDENTITY_EMAIL: ${{ secrets.AGENT_IDENTITY_EMAIL }}
+          AGENT_IDENTITY_SECRET: ${{ secrets.AGENT_IDENTITY_SECRET }}
+          AGENT_SCOPE_SLUG: ${{ secrets.AGENT_SCOPE_SLUG }}
+        run: |
+          set -euo pipefail
+          agent_email="${AGENT_IDENTITY_EMAIL:-${E2E_EMAIL:-$MASTER_ADMIN_EMAIL}}"
+          agent_secret="${AGENT_IDENTITY_SECRET:-${E2E_PASSWORD:-$MASTER_ADMIN_PASSWORD}}"
+          agent_slug="${AGENT_SCOPE_SLUG:-}"
+          if [ -z "$agent_slug" ]; then
+            agent_slug="$(AGENT_EMAIL="$agent_email" node --input-type=module -e 'import { createHash } from "crypto"; const email = String(process.env.AGENT_EMAIL || "test.agent@tradescout.local"); const local = email.split("@")[0].replace(/[^a-z0-9]+/gi, "-").replace(/^-+|-+$/g, "").toLowerCase().slice(0, 24); const digest = createHash("sha1").update(email.toLowerCase()).digest("hex").slice(0, 8); console.log(`${local || "e2e-user"}-${digest}`);')"
+          fi
+          cat > tests/.env <<EOF
+          BASE_URL=http://localhost:5000
+          AGENT_IDENTITY_EMAIL=$agent_email
+          AGENT_IDENTITY_SECRET=$agent_secret
+          AGENT_TYPE=bot_operator
+          AGENT_CLAIMS=post,observe,seed
+          AGENT_SCOPE_SLUG=$agent_slug
+          DEBUG=false
+          TEST_SEED=12345
+          EOF
+
       - name: Run Bot Army tests
         run: npm run test:e2e
         env:
           BASE_URL: http://localhost:5000
-          AGENT_IDENTITY_EMAIL: ${{ secrets.AGENT_IDENTITY_EMAIL }}
-          AGENT_IDENTITY_SECRET: ${{ secrets.AGENT_IDENTITY_SECRET }}
+          AGENT_IDENTITY_EMAIL: ${{ secrets.AGENT_IDENTITY_EMAIL || secrets.E2E_EMAIL || secrets.MASTER_ADMIN_EMAIL }}
+          AGENT_IDENTITY_SECRET: ${{ secrets.AGENT_IDENTITY_SECRET || secrets.E2E_PASSWORD || secrets.MASTER_ADMIN_PASSWORD }}
           AGENT_TYPE: bot_operator
           AGENT_CLAIMS: post,observe,seed
-          AGENT_SCOPE_SLUG: ${{ secrets.AGENT_SCOPE_SLUG }}
           DEBUG: false
           CI: true
 

@@ -18,14 +18,14 @@ describe("Scout entry framing contracts", () => {
 
   it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
-    const osSource = read("client/src/scout/ScoutOS.tsx");
+    const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
     expect(inputSource).toContain("What do you need help with today?");
     expect(inputSource).toContain("Your area:");
     expect(inputSource).toContain("Use current location");
-    expect(osSource).toContain("Help me find the right local help");
-    expect(osSource).toContain("Help me figure out cost and timing");
-    expect(osSource).toContain("Start here first.");
+    expect(promptsSource).toContain("Help me find the right local help");
+    expect(promptsSource).toContain("Help me figure out cost and timing");
+    expect(promptsSource).toContain("What's my next step?");
   });
 
   it("thread and quick-start actions avoid internal controller framing", () => {

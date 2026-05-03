@@ -1,6 +1,6 @@
 import { hashPassword } from "../server/auth";
 import { db } from "../server/db";
-import { users } from "../shared/schema";
+import { businessCounties, businesses, counties, users } from "../shared/schema";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { eq } from "drizzle-orm";
 import { createHash } from "crypto";
@@ -25,8 +25,80 @@ function buildE2EProfileDraft() {
     stateCode: "AZ",
     city: "Phoenix",
     website: "https://example.com",
+    services: ["Direct Connect test routing", "Local repair coordination"],
     serviceAreas: [{ countyFips: "04013" }],
+    visibility: "public",
   };
+}
+
+async function upsertE2EBusiness(
+  userId: string,
+  businessSlug: string,
+  profileDraft: ReturnType<typeof buildE2EProfileDraft>
+) {
+  const [business] = await db
+    .insert(businesses)
+    .values({
+      name: profileDraft.businessName,
+      slug: businessSlug,
+      type: "contractor",
+      ownerUserId: userId,
+      roleContext: "business_owner",
+      profileData: {
+        tagline: "Seed profile for TradeScout regression checks.",
+        description: profileDraft.description,
+        category: "home-services",
+        services: profileDraft.services,
+        website: profileDraft.website,
+        city: profileDraft.city,
+        stateCode: profileDraft.stateCode,
+      },
+      claimStatus: "claimed",
+      publicDiscoveryEnabled: true,
+      sources: ["e2e_seed"],
+      status: "active",
+    })
+    .onConflictDoUpdate({
+      target: businesses.slug,
+      set: {
+        name: profileDraft.businessName,
+        ownerUserId: userId,
+        profileData: {
+          tagline: "Seed profile for TradeScout regression checks.",
+          description: profileDraft.description,
+          category: "home-services",
+          services: profileDraft.services,
+          website: profileDraft.website,
+          city: profileDraft.city,
+          stateCode: profileDraft.stateCode,
+        },
+        claimStatus: "claimed",
+        publicDiscoveryEnabled: true,
+        sources: ["e2e_seed"],
+        status: "active",
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ id: businesses.id });
+
+  const businessId = business?.id;
+  if (!businessId) return;
+
+  const [county] = await db
+    .select({ id: counties.id })
+    .from(counties)
+    .where(eq(counties.fips, profileDraft.countyFips))
+    .limit(1);
+
+  if (!county?.id) return;
+
+  await db
+    .insert(businessCounties)
+    .values({
+      businessId,
+      countyId: county.id,
+    })
+    .onConflictDoNothing();
 }
 
 async function main() {
@@ -72,6 +144,7 @@ async function main() {
         },
       })
       .where(eq(users.email, email));
+    await upsertE2EBusiness(existing[0].id, businessSlug, profileDraft);
     console.log(`[seed-e2e-user] Updated user ${email} with business profile '${businessSlug}'.`);
     return;
   }
@@ -79,32 +152,39 @@ async function main() {
   const password = await hashPassword(plaintext);
 
   // Create user with business profile data for E2E tests
-  await db.insert(users).values({
-    email,
-    password,
-    businessSlug,
-    firstName: "Test",
-    lastName: "Business",
-    role: "business_owner",
-    activeRole: "business_owner",
-    onboardingCompleted: true,
-    profileVersion: CURRENT_PROFILE_VERSION,
-    city: "Phoenix",
-    stateCode: "AZ",
-    countyFips: "04013",
-    locationCommitted: true,
-    emailVerified: true,
-    addressVerified: true,
-    preferences: {
-      provisional: {
-        profileDraft: {
-          ...profileDraft,
+  const [createdUser] = await db
+    .insert(users)
+    .values({
+      email,
+      password,
+      businessSlug,
+      firstName: "Test",
+      lastName: "Business",
+      role: "business_owner",
+      activeRole: "business_owner",
+      onboardingCompleted: true,
+      profileVersion: CURRENT_PROFILE_VERSION,
+      city: "Phoenix",
+      stateCode: "AZ",
+      countyFips: "04013",
+      locationCommitted: true,
+      emailVerified: true,
+      addressVerified: true,
+      preferences: {
+        provisional: {
+          profileDraft: {
+            ...profileDraft,
+          },
         },
       },
-    },
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning({ id: users.id });
+
+  if (createdUser?.id) {
+    await upsertE2EBusiness(createdUser.id, businessSlug, profileDraft);
+  }
 
   console.log(
     `[seed-e2e-user] Seeded user ${email} for E2E login with business profile '${businessSlug}'.`
