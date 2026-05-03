@@ -497,8 +497,69 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE contact_permission_status AS ENUM (
+          'pending',
+          'accepted',
+          'declined',
+          'blocked'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS contact_permissions (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        requester_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        target_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status contact_permission_status DEFAULT 'pending',
+        last_request_type varchar,
+        last_request_preview text,
+        last_request_notification_id varchar,
+        authority_gate varchar(30),
+        source_decision_card_id varchar,
+        source_scout_recommendation_id varchar,
+        intent varchar,
+        decision_scope text,
+        confidence_score numeric(4,3),
+        risk_flags text[],
+        county_fips varchar(5),
+        requester_trust_snapshot_id varchar,
+        target_trust_snapshot_id varchar,
+        responded_at timestamp,
+        responded_by varchar REFERENCES users(id),
+        response_reason text,
+        cooldown_until timestamp,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS uidx_contact_permissions_pair
       ON contact_permissions (requester_id, target_user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_contact_permissions_target
+      ON contact_permissions (target_user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_contact_permissions_requester
+      ON contact_permissions (requester_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_contact_permissions_status
+      ON contact_permissions (status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_contact_permissions_county
+      ON contact_permissions (county_fips)
     `);
 
     // Directory ingestion + safety queues (used by seeded "unclaimed" business listings).
