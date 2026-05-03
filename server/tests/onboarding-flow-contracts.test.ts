@@ -45,8 +45,9 @@ describe("onboarding flow contracts", () => {
       "return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;"
     );
     expect(appRoutesSource).toContain(
-      'if (userNeedsOnboarding(user)) return "/onboarding/profile";'
+      "if (userNeedsOnboarding(user)) return getOnboardingEntryRoute(user);"
     );
+    expect(appRoutesSource).toContain('return userHasProfileBasics(user) ? "/onboarding/intent"');
     expect(appRoutesSource).toContain("<AuthenticatedOnboardingGate />");
     // Deep-link preservation must be wired into the gate
     expect(appRoutesSource).toContain("storeOnboardingNext");

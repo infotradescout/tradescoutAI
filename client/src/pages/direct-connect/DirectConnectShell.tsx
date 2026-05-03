@@ -3132,6 +3132,7 @@ export default function DirectConnectShell() {
               </p>
               <Button
                 size="sm"
+                aria-label="Pensacola launch flow account setup"
                 className="w-fit bg-ts-orange text-text-black hover:bg-ts-orange/90"
                 onClick={() => navigate(createPensacolaAccountHref)}
               >

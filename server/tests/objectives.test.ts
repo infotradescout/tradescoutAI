@@ -12,8 +12,13 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "vitest";
-import { objectives, objectiveEvents } from "../../shared/schema";
-import { eq, like } from "drizzle-orm";
+import {
+  communityPosts,
+  marketplaceListings,
+  objectives,
+  objectiveEvents,
+} from "../../shared/schema";
+import { eq, inArray, like } from "drizzle-orm";
 import {
   classifyUserIntent,
   detectTopicShift,
@@ -23,6 +28,7 @@ import {
   maybePromoteToWorkRequest,
   syncObjectiveFromScoutMessage,
 } from "../scout/objectivesService";
+import { createAuthedAgent } from "./helpers/testAuth";
 
 const TEST_USER_ID = "test-user-" + Date.now();
 const TEST_COUNTY_FIPS = "12345";
@@ -759,7 +765,9 @@ describeWithDb("Objectives Layer - Phase 1", () => {
  */
 const describePhase2 = hasTestDb ? describe : describe.skip;
 describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", () => {
-  const P2_USER = "test-user-phase2-" + Date.now();
+  const p2ObjectiveIds: string[] = [];
+  const p2CommunityPostIds: string[] = [];
+  const p2MarketplaceListingIds: string[] = [];
   let dbRef!: (typeof import("../db"))["db"];
 
   beforeAll(async () => {
@@ -768,15 +776,27 @@ describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", (
   });
 
   afterAll(async () => {
-    await dbRef.delete(objectives).where(like(objectives.userId, `${P2_USER}%`));
+    if (p2MarketplaceListingIds.length > 0) {
+      await dbRef
+        .delete(marketplaceListings)
+        .where(inArray(marketplaceListings.id, p2MarketplaceListingIds));
+    }
+
+    if (p2CommunityPostIds.length > 0) {
+      await dbRef.delete(communityPosts).where(inArray(communityPosts.id, p2CommunityPostIds));
+    }
+
+    if (p2ObjectiveIds.length > 0) {
+      await dbRef.delete(objectives).where(inArray(objectives.id, p2ObjectiveIds));
+    }
   });
 
   test("promotes community_post intent to draft post", async () => {
-    const { communityPosts } = await import("../../shared/schema");
+    const { agent, user } = await createAuthedAgent({ role: "homeowner" });
     const [obj] = await dbRef
       .insert(objectives)
       .values({
-        userId: P2_USER,
+        userId: user.id,
         title: "Looking for contractor recommendations",
         summary: "Anyone know a good roofer in the area?",
         intentClass: "community_post",
@@ -786,22 +806,18 @@ describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", (
       })
       .returning();
     expect(obj.id).toBeTruthy();
+    p2ObjectiveIds.push(obj.id);
 
-    const { createApp } = await import("../app");
-    const request = (await import("supertest")).default;
-    const app = await createApp();
-    const res = await (request(app) as any)
-      .post(`/api/objectives/${obj.id}/promote`)
-      .set("x-test-user-id", P2_USER)
-      .send({
-        targetObjectType: "communityPost",
-        countyFips: TEST_COUNTY_FIPS,
-        stateCode: TEST_STATE_CODE,
-      });
+    const res = await agent.post(`/api/objectives/${obj.id}/promote`).send({
+      targetObjectType: "communityPost",
+      countyFips: TEST_COUNTY_FIPS,
+      stateCode: TEST_STATE_CODE,
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.communityPostId).toBeTruthy();
+    p2CommunityPostIds.push(res.body.communityPostId);
 
     const updated = await dbRef
       .select()
@@ -817,15 +833,15 @@ describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", (
       .from(communityPosts)
       .where(eq(communityPosts.id, res.body.communityPostId));
     expect(post.isPublished).toBe(false);
-    expect(post.authorId).toBe(P2_USER);
-  });
+    expect(post.authorId).toBe(user.id);
+  }, 15000);
 
   test("promotes marketplace_sell intent to draft listing", async () => {
-    const { marketplaceListings } = await import("../../shared/schema");
+    const { agent, user } = await createAuthedAgent({ role: "homeowner" });
     const [obj] = await dbRef
       .insert(objectives)
       .values({
-        userId: P2_USER,
+        userId: user.id,
         title: "Selling my old ladder",
         summary: "8ft fibreglass ladder, good condition",
         intentClass: "marketplace_sell",
@@ -835,24 +851,20 @@ describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", (
       })
       .returning();
     expect(obj.id).toBeTruthy();
+    p2ObjectiveIds.push(obj.id);
 
-    const { createApp } = await import("../app");
-    const request = (await import("supertest")).default;
-    const app = await createApp();
-    const res = await (request(app) as any)
-      .post(`/api/objectives/${obj.id}/promote`)
-      .set("x-test-user-id", P2_USER)
-      .send({
-        targetObjectType: "marketplaceListing",
-        price: 75,
-        condition: "good",
-        county: "Orange County",
-        state: "FL",
-      });
+    const res = await agent.post(`/api/objectives/${obj.id}/promote`).send({
+      targetObjectType: "marketplaceListing",
+      price: 75,
+      condition: "good",
+      county: "Orange County",
+      state: "FL",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.marketplaceListingId).toBeTruthy();
+    p2MarketplaceListingIds.push(res.body.marketplaceListingId);
 
     const updated = await dbRef
       .select()
@@ -868,14 +880,15 @@ describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", (
       .from(marketplaceListings)
       .where(eq(marketplaceListings.id, res.body.marketplaceListingId));
     expect(listing.status).toBe("draft");
-    expect(listing.sellerId).toBe(P2_USER);
-  });
+    expect(listing.sellerId).toBe(user.id);
+  }, 15000);
 
   test("marketplace_buy intent creates browse routing URL", async () => {
+    const { agent, user } = await createAuthedAgent({ role: "homeowner" });
     const [obj] = await dbRef
       .insert(objectives)
       .values({
-        userId: P2_USER,
+        userId: user.id,
         title: "Looking for a used truck",
         summary: "Need a reliable pickup truck under $15k",
         intentClass: "marketplace_buy",
@@ -885,14 +898,11 @@ describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", (
       })
       .returning();
     expect(obj.id).toBeTruthy();
+    p2ObjectiveIds.push(obj.id);
 
-    const { createApp } = await import("../app");
-    const request = (await import("supertest")).default;
-    const app = await createApp();
-    const res = await (request(app) as any)
-      .post(`/api/objectives/${obj.id}/promote`)
-      .set("x-test-user-id", P2_USER)
-      .send({ targetObjectType: "none" });
+    const res = await agent.post(`/api/objectives/${obj.id}/promote`).send({
+      targetObjectType: "none",
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
@@ -906,5 +916,5 @@ describePhase2("Objectives Layer - Phase 2 (Promotion to other object types)", (
       .where(eq(objectives.id, obj.id))
       .then((r) => r[0]);
     expect(updated.status).toBe("completed");
-  });
+  }, 15000);
 });

@@ -6,6 +6,8 @@ import { adminAuditLog } from "../../shared/schema";
  * without a real Postgres connection). The DB path is always attempted first.
  */
 const _memoryLog: Record<string, any>[] = [];
+const mirrorAuditMemory =
+  process.env.NODE_ENV === "test" || process.env.RUN_INTEGRATION_TESTS === "true";
 
 // Lazily resolved DB reference — avoids crashing when DB is not configured (e.g. unit tests).
 // Uses a shared Promise so concurrent callers don't trigger multiple resolution attempts.
@@ -55,7 +57,13 @@ export async function logAdminAction(event: {
   // Resolve canonical field names from aliases
   const resolvedType = event.type || event.action || "unknown";
   const resolvedAdminId = event.adminId || event.actorId || null;
-  const resolvedTargetUserId = event.targetUserId || event.targetId || null;
+  const targetType = String(event.targetType || "").toLowerCase();
+  const targetIdIsUser =
+    !targetType ||
+    targetType === "user" ||
+    targetType === "target_user" ||
+    targetType.endsWith("_user");
+  const resolvedTargetUserId = event.targetUserId || (targetIdIsUser ? event.targetId : null);
 
   // The full event is stored in metadata so getAdminAuditLog can flatten it back
   const entry: Record<string, any> = {
@@ -75,6 +83,9 @@ export async function logAdminAction(event: {
         targetUserId: resolvedTargetUserId,
         metadata: entry,
       });
+      if (mirrorAuditMemory) {
+        _memoryLog.push(entry);
+      }
       return;
     } catch (error) {
       console.error("[AdminAuditLog] DB insert failed, falling back to memory:", error);
@@ -91,6 +102,7 @@ export async function logAdminAction(event: {
  * compatibility with callers that access fields like `entry.action`, etc.
  */
 export async function getAdminAuditLog(limit = 100): Promise<Record<string, any>[]> {
+  const memoryRows = [..._memoryLog].reverse();
   const db = await getDb();
   if (db) {
     try {
@@ -100,15 +112,21 @@ export async function getAdminAuditLog(limit = 100): Promise<Record<string, any>
         .orderBy(desc(adminAuditLog.createdAt))
         .limit(limit);
 
+      const dbRows = rows.map((row: any) => ({
+        ...((row.metadata as Record<string, any>) ?? {}),
+        id: row.id,
+        type: row.type,
+        adminId: row.adminId,
+        targetUserId: row.targetUserId,
+        createdAt: row.createdAt,
+      }));
+
+      if (mirrorAuditMemory && memoryRows.length > 0) {
+        return [...memoryRows, ...dbRows].slice(0, limit);
+      }
+
       if (rows.length > 0) {
-        return rows.map((row: any) => ({
-          ...((row.metadata as Record<string, any>) ?? {}),
-          id: row.id,
-          type: row.type,
-          adminId: row.adminId,
-          targetUserId: row.targetUserId,
-          createdAt: row.createdAt,
-        }));
+        return dbRows;
       }
     } catch (error) {
       console.error("[AdminAuditLog] DB query failed, falling back to memory:", error);
@@ -116,7 +134,7 @@ export async function getAdminAuditLog(limit = 100): Promise<Record<string, any>
   }
 
   // In-memory fallback
-  return [..._memoryLog].reverse().slice(0, limit);
+  return memoryRows.slice(0, limit);
 }
 
 /**

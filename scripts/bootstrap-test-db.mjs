@@ -298,6 +298,16 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE work_request_assignments
+      ADD COLUMN IF NOT EXISTS score_snapshot jsonb
+    `);
+
+    await client.query(`
+      ALTER TABLE work_request_assignments
+      ADD COLUMN IF NOT EXISTS response_summary jsonb
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_wra_responder_user_id
       ON work_request_assignments(responder_user_id)
     `);
@@ -307,14 +317,319 @@ async function ensureCriticalSchema() {
       ON work_request_assignments(worker_id)
     `);
 
-    await queryIfTableExists(
-      client,
-      "home_scout_listings",
-      `
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_listings (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        source_key varchar(64) NOT NULL DEFAULT 'manual',
+        source_listing_id varchar(128),
+        dedupe_key varchar(160),
+        status varchar(32) NOT NULL DEFAULT 'pending_review',
+        approved_at timestamp,
+        approved_by_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        title varchar(200) NOT NULL,
+        description text,
+        price numeric(12, 2) NOT NULL,
+        price_previous numeric(12, 2),
+        price_changed_at timestamp,
+        listed_at timestamp,
+        off_market_at timestamp,
+        external_url varchar(500),
+        source_updated_at timestamp,
+        observed_at timestamp,
+        last_seen_at timestamp,
+        dom_days integer,
+        property_type varchar(32) NOT NULL DEFAULT 'house',
+        beds integer,
+        baths numeric(4, 1),
+        sqft integer,
+        lot_sqft integer,
+        year_built integer,
+        features jsonb,
+        county_fips varchar(5) NOT NULL REFERENCES counties(fips),
+        state_code varchar(2) NOT NULL REFERENCES states(code),
+        city varchar(100),
+        zip_code varchar(10),
+        address_1 varchar(255),
+        address_2 varchar(255),
+        address_visibility varchar(16) NOT NULL DEFAULT 'exact',
+        latitude numeric(9, 6),
+        longitude numeric(9, 6),
+        photos jsonb NOT NULL DEFAULT '[]'::jsonb,
+        seller_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        agent_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        contact_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        listing_author_type varchar(16) NOT NULL DEFAULT 'owner',
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
       ALTER TABLE home_scout_listings
-      ADD COLUMN IF NOT EXISTS listing_author_type varchar(16) NOT NULL DEFAULT 'owner'
-    `
-    );
+      ADD COLUMN IF NOT EXISTS source_key varchar(64) NOT NULL DEFAULT 'manual',
+      ADD COLUMN IF NOT EXISTS source_listing_id varchar(128),
+      ADD COLUMN IF NOT EXISTS dedupe_key varchar(160),
+      ADD COLUMN IF NOT EXISTS status varchar(32) NOT NULL DEFAULT 'pending_review',
+      ADD COLUMN IF NOT EXISTS approved_at timestamp,
+      ADD COLUMN IF NOT EXISTS approved_by_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS title varchar(200),
+      ADD COLUMN IF NOT EXISTS description text,
+      ADD COLUMN IF NOT EXISTS price numeric(12, 2),
+      ADD COLUMN IF NOT EXISTS price_previous numeric(12, 2),
+      ADD COLUMN IF NOT EXISTS price_changed_at timestamp,
+      ADD COLUMN IF NOT EXISTS listed_at timestamp,
+      ADD COLUMN IF NOT EXISTS off_market_at timestamp,
+      ADD COLUMN IF NOT EXISTS external_url varchar(500),
+      ADD COLUMN IF NOT EXISTS source_updated_at timestamp,
+      ADD COLUMN IF NOT EXISTS observed_at timestamp,
+      ADD COLUMN IF NOT EXISTS last_seen_at timestamp,
+      ADD COLUMN IF NOT EXISTS dom_days integer,
+      ADD COLUMN IF NOT EXISTS property_type varchar(32) NOT NULL DEFAULT 'house',
+      ADD COLUMN IF NOT EXISTS beds integer,
+      ADD COLUMN IF NOT EXISTS baths numeric(4, 1),
+      ADD COLUMN IF NOT EXISTS sqft integer,
+      ADD COLUMN IF NOT EXISTS lot_sqft integer,
+      ADD COLUMN IF NOT EXISTS year_built integer,
+      ADD COLUMN IF NOT EXISTS features jsonb,
+      ADD COLUMN IF NOT EXISTS county_fips varchar(5) REFERENCES counties(fips),
+      ADD COLUMN IF NOT EXISTS state_code varchar(2) REFERENCES states(code),
+      ADD COLUMN IF NOT EXISTS city varchar(100),
+      ADD COLUMN IF NOT EXISTS zip_code varchar(10),
+      ADD COLUMN IF NOT EXISTS address_1 varchar(255),
+      ADD COLUMN IF NOT EXISTS address_2 varchar(255),
+      ADD COLUMN IF NOT EXISTS address_visibility varchar(16) NOT NULL DEFAULT 'exact',
+      ADD COLUMN IF NOT EXISTS latitude numeric(9, 6),
+      ADD COLUMN IF NOT EXISTS longitude numeric(9, 6),
+      ADD COLUMN IF NOT EXISTS photos jsonb NOT NULL DEFAULT '[]'::jsonb,
+      ADD COLUMN IF NOT EXISTS seller_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS agent_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS contact_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS listing_author_type varchar(16) NOT NULL DEFAULT 'owner',
+      ADD COLUMN IF NOT EXISTS created_at timestamp NOT NULL DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS updated_at timestamp NOT NULL DEFAULT now()
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_county_status
+      ON home_scout_listings(county_fips, status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_county_price
+      ON home_scout_listings(county_fips, status, price)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_county_listed_at
+      ON home_scout_listings(county_fips, status, listed_at)
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_homescout_source_listing
+      ON home_scout_listings(source_key, source_listing_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_sources (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        source_key varchar(64) NOT NULL,
+        source_type varchar(32) NOT NULL,
+        enabled boolean NOT NULL DEFAULT true,
+        config jsonb NOT NULL DEFAULT '{}'::jsonb,
+        last_run_at timestamp,
+        last_success_at timestamp,
+        last_error text,
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_homescout_sources_source_key
+      ON home_scout_sources(source_key)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_ingest_runs (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        source_id varchar NOT NULL REFERENCES home_scout_sources(id) ON DELETE CASCADE,
+        status varchar(16) NOT NULL DEFAULT 'running',
+        stats jsonb NOT NULL DEFAULT '{}'::jsonb,
+        started_at timestamp NOT NULL DEFAULT now(),
+        finished_at timestamp,
+        error text
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_ingest_runs_source_started
+      ON home_scout_ingest_runs(source_id, started_at)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_listing_events (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        listing_id varchar NOT NULL REFERENCES home_scout_listings(id) ON DELETE CASCADE,
+        event_type varchar(32) NOT NULL,
+        observed_at timestamp NOT NULL DEFAULT now(),
+        payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_listing_events_listing_time
+      ON home_scout_listing_events(listing_id, observed_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_listing_events_type_time
+      ON home_scout_listing_events(event_type, observed_at)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_market_buckets (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        county_fips varchar(5) NOT NULL REFERENCES counties(fips),
+        state_code varchar(2) NOT NULL REFERENCES states(code),
+        property_type varchar(32) NOT NULL,
+        beds_bucket integer,
+        active_count integer NOT NULL DEFAULT 0,
+        median_price numeric(12, 2),
+        median_price_per_sqft numeric(12, 2),
+        median_dom_days integer,
+        price_drop_count_7d integer NOT NULL DEFAULT 0,
+        computed_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_homescout_market_bucket
+      ON home_scout_market_buckets(county_fips, state_code, property_type, beds_bucket)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_market_bucket_county_type
+      ON home_scout_market_buckets(county_fips, state_code, property_type)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_listing_reports (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        listing_id varchar NOT NULL REFERENCES home_scout_listings(id) ON DELETE CASCADE,
+        reporter_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        reason varchar(64) NOT NULL,
+        message text,
+        status varchar(16) NOT NULL DEFAULT 'open',
+        created_at timestamp NOT NULL DEFAULT now(),
+        closed_at timestamp,
+        closed_by_user_id varchar REFERENCES users(id) ON DELETE SET NULL
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_reports_listing
+      ON home_scout_listing_reports(listing_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_reports_status_created
+      ON home_scout_listing_reports(status, created_at)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_inspection_requests (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        listing_id varchar NOT NULL REFERENCES home_scout_listings(id) ON DELETE CASCADE,
+        requester_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status varchar(16) NOT NULL DEFAULT 'open',
+        request_message text NOT NULL,
+        preferred_window varchar(120),
+        fulfilled_at timestamp,
+        cancelled_at timestamp,
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_requests_listing_status
+      ON home_scout_inspection_requests(listing_id, status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_requests_requester
+      ON home_scout_inspection_requests(requester_user_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_inspection_reports (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        listing_id varchar NOT NULL REFERENCES home_scout_listings(id) ON DELETE CASCADE,
+        submitted_by_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+        report_type varchar(32) NOT NULL DEFAULT 'other',
+        inspection_date date,
+        inspector_name varchar(140),
+        inspector_company varchar(140),
+        inspector_license varchar(80),
+        summary text,
+        highlights jsonb NOT NULL DEFAULT '[]'::jsonb,
+        report_url varchar(500) NOT NULL,
+        source_request_id varchar REFERENCES home_scout_inspection_requests(id) ON DELETE SET NULL,
+        visibility varchar(16) NOT NULL DEFAULT 'public',
+        status varchar(16) NOT NULL DEFAULT 'published',
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_reports_listing_visibility
+      ON home_scout_inspection_reports(listing_id, visibility, status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_reports_submitter
+      ON home_scout_inspection_reports(submitted_by_user_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_scout_inspection_service_requests (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        report_id varchar NOT NULL REFERENCES home_scout_inspection_reports(id) ON DELETE CASCADE,
+        listing_id varchar NOT NULL REFERENCES home_scout_listings(id) ON DELETE CASCADE,
+        requester_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        county_fips varchar(5) NOT NULL REFERENCES counties(fips),
+        state_code varchar(2) NOT NULL REFERENCES states(code),
+        service_category varchar(64) NOT NULL,
+        service_description text NOT NULL,
+        status varchar(16) NOT NULL DEFAULT 'open',
+        work_request_id varchar REFERENCES work_requests(id) ON DELETE SET NULL,
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_service_requests_report
+      ON home_scout_inspection_service_requests(report_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_service_requests_requester
+      ON home_scout_inspection_service_requests(requester_user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_service_requests_status
+      ON home_scout_inspection_service_requests(status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_homescout_inspection_service_requests_county
+      ON home_scout_inspection_service_requests(county_fips, state_code)
+    `);
 
     await client.query(`
       ALTER TABLE businesses
