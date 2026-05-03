@@ -1,9 +1,8 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
 import dotenv from "dotenv";
 import pg from "pg";
-import { runCommand } from "./lib/subprocess.mjs";
+import { spawnCommand } from "./lib/subprocess.mjs";
 
 const { Client } = pg;
 
@@ -22,8 +21,30 @@ if (!testDatabaseUrl) {
   process.exit(2);
 }
 
-function run(command, args, env = process.env) {
-  return runCommand(command, args, { cwd: repoRoot, stdio: "inherit", env });
+async function runWithInput(command, args, env = process.env, input = "") {
+  const child = await spawnCommand(command, args, {
+    cwd: repoRoot,
+    stdio: ["pipe", "inherit", "inherit"],
+    env,
+  });
+  child.stdin.end(input);
+  return await new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("exit", (code) => resolve(code ?? 1));
+  });
+}
+
+async function tableExists(client, tableName) {
+  const result = await client.query("SELECT to_regclass($1) AS table_name", [
+    `public.${tableName}`,
+  ]);
+  return Boolean(result.rows[0]?.table_name);
+}
+
+async function queryIfTableExists(client, tableName, sql) {
+  if (await tableExists(client, tableName)) {
+    await client.query(sql);
+  }
 }
 
 async function ensureCriticalSchema() {
@@ -236,10 +257,14 @@ async function ensureCriticalSchema() {
       ON work_request_assignments(responder_user_id)
     `);
 
-    await client.query(`
+    await queryIfTableExists(
+      client,
+      "home_scout_listings",
+      `
       ALTER TABLE home_scout_listings
       ADD COLUMN IF NOT EXISTS listing_author_type varchar(16) NOT NULL DEFAULT 'owner'
-    `);
+    `
+    );
 
     await client.query(`
       ALTER TABLE businesses
@@ -747,7 +772,12 @@ async function main() {
   const fullSync = process.argv.includes("--full-sync");
 
   if (fullSync) {
-    const pushCode = await run("npx", ["drizzle-kit", "push", "--force"], env);
+    const pushCode = await runWithInput(
+      "npx",
+      ["drizzle-kit", "push", "--force"],
+      env,
+      "\n".repeat(20)
+    );
     if (pushCode !== 0) {
       console.error("[bootstrap-test-db] drizzle-kit push failed.");
       process.exit(pushCode);
