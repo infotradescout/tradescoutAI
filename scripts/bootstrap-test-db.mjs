@@ -74,15 +74,25 @@ async function queryIfTableExists(client, tableName, sql) {
 async function withBootstrapLock(task) {
   const client = new Client({ connectionString: testDatabaseUrl });
   await client.connect();
+  let transactionOpen = false;
   try {
     console.log("[bootstrap-test-db] Waiting for test DB bootstrap lock...");
-    await client.query("SELECT pg_advisory_lock(hashtext('tradescout_test_db_bootstrap'))");
+    await client.query("BEGIN");
+    transactionOpen = true;
+    await client.query(`
+      SELECT pg_advisory_xact_lock(hashtext('tradescout_test_db_bootstrap_v2'))
+    `);
     console.log("[bootstrap-test-db] Test DB bootstrap lock acquired.");
-    return await task();
+    const result = await task();
+    await client.query("COMMIT");
+    transactionOpen = false;
+    return result;
+  } catch (error) {
+    if (transactionOpen) {
+      await client.query("ROLLBACK").catch(() => {});
+    }
+    throw error;
   } finally {
-    await client
-      .query("SELECT pg_advisory_unlock(hashtext('tradescout_test_db_bootstrap'))")
-      .catch(() => {});
     await client.end();
   }
 }
