@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { db } from "../db";
 import { conversations, messages, users, contractors } from "@shared/schema";
 import { storage } from "../storage";
@@ -8,41 +8,40 @@ const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasTestDb ? describe : describe.skip;
 
 describeDb("messages API helpers", () => {
-  const userAId = "msg-user-a";
-  const contractorUserId = "msg-contractor-user";
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const userAId = `msg-user-a-${runId}`;
+  const contractorUserId = `msg-contractor-user-${runId}`;
+  const contractorSlug = `test-contractor-msg-${runId}`;
+  const seededConversationId = `test-conv-${runId}`;
   let contractorId: string;
   let conversationId: string;
 
-  beforeAll(async () => {
-    // Clean old data
-    await db.delete(messages).where(inArray(messages.conversationId, ["test-conv-1"]));
-    await db
-      .delete(conversations)
-      .where(inArray(conversations.id, ["test-conv-1"]));
+  async function cleanupFixtures() {
+    await db.delete(messages).where(inArray(messages.conversationId, [seededConversationId]));
+    await db.delete(conversations).where(inArray(conversations.id, [seededConversationId]));
 
-    await db
-      .delete(users)
-      .where(inArray(users.id, [userAId, contractorUserId]));
+    await db.delete(contractors).where(eq(contractors.slug, contractorSlug as any));
+
+    await db.delete(users).where(inArray(users.id, [userAId, contractorUserId]));
+  }
+
+  beforeAll(async () => {
+    await cleanupFixtures();
 
     // Seed users
     await db.insert(users).values({
       id: userAId,
-      email: "msg-a@example.com",
+      email: `msg-a-${runId}@example.com`,
       firstName: "Msg",
       lastName: "A",
     } as any);
 
     await db.insert(users).values({
       id: contractorUserId,
-      email: "msg-b@example.com",
+      email: `msg-b-${runId}@example.com`,
       firstName: "Msg",
       lastName: "B",
     } as any);
-
-    // Clean any prior contractors with the same slug to avoid unique constraint violations
-    await db
-      .delete(contractors)
-      .where(eq(contractors.slug, "test-contractor-msg" as any));
 
     // Seed contractor with a unique slug
     const [contractor] = await db
@@ -50,8 +49,8 @@ describeDb("messages API helpers", () => {
       .values({
         userId: contractorUserId,
         companyName: "Test Contractor",
-        slug: "test-contractor-msg",
-        email: "contractor@example.com",
+        slug: contractorSlug,
+        email: `contractor-${runId}@example.com`,
       } as any)
       .returning();
 
@@ -61,7 +60,7 @@ describeDb("messages API helpers", () => {
     const [conv] = await db
       .insert(conversations)
       .values({
-        id: "test-conv-1",
+        id: seededConversationId,
         homeownerId: userAId,
         contractorId,
         status: "active",
@@ -94,6 +93,10 @@ describeDb("messages API helpers", () => {
         messageType: "text",
       } as any,
     ]);
+  });
+
+  afterAll(async () => {
+    await cleanupFixtures();
   });
 
   it("getThreadsForUser returns thread with correct unreadCount", async () => {

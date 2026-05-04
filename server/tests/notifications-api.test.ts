@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { db } from "../db";
 import {
   users,
@@ -17,53 +17,48 @@ const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasTestDb ? describe : describe.skip;
 
 describeDb("notifications summary helpers", () => {
-  const userId = "notif-user-1";
-  const contractorUserId = "notif-contractor-user";
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const userId = `notif-user-1-${runId}`;
+  const contractorUserId = `notif-contractor-user-${runId}`;
+  const contractorSlug = `notif-contractor-${runId}`;
+  const seededConversationId = `notif-conv-${runId}`;
+  const hoaName = `Notif Test HOA ${runId}`;
+  const voteTitle = `Notif Test Vote ${runId}`;
   let contractorId: string;
   let conversationId: string;
   let hoaId: string;
   let voteId: string;
 
+  async function cleanupFixtures() {
+    await db.delete(messages).where(inArray(messages.conversationId, [seededConversationId]));
+    await db.delete(conversations).where(inArray(conversations.id, [seededConversationId]));
+
+    await db.delete(hoaVoteResponses).where(eq(hoaVoteResponses.userId, userId));
+    await db.delete(hoaVotes).where(eq(hoaVotes.title, voteTitle));
+    await db.delete(hoaMembers).where(eq(hoaMembers.userId, userId));
+    if (hoaId) {
+      await db.delete(homeownerAssociations).where(eq(homeownerAssociations.id, hoaId));
+    }
+    await db.delete(homeownerAssociations).where(eq(homeownerAssociations.name, hoaName));
+
+    await db.delete(contractors).where(eq(contractors.slug, contractorSlug));
+    await db.delete(users).where(inArray(users.id, [userId, contractorUserId]));
+  }
+
   beforeAll(async () => {
-    // Clean up any prior runs
-    await db
-      .delete(messages)
-      .where(inArray(messages.conversationId, ["notif-conv-1"]));
-    await db
-      .delete(conversations)
-      .where(inArray(conversations.id, ["notif-conv-1"]));
-
-    await db
-      .delete(hoaVoteResponses)
-      .where(eq(hoaVoteResponses.userId, userId));
-    await db
-      .delete(hoaVotes)
-      .where(eq(hoaVotes.title, "Notif Test Vote"));
-    await db
-      .delete(hoaMembers)
-      .where(eq(hoaMembers.userId, userId));
-    await db
-      .delete(homeownerAssociations)
-      .where(eq(homeownerAssociations.name, "Notif Test HOA"));
-
-    await db
-      .delete(contractors)
-      .where(eq(contractors.slug, "notif-contractor"));
-    await db
-      .delete(users)
-      .where(inArray(users.id, [userId, contractorUserId]));
+    await cleanupFixtures();
 
     // Seed users
     await db.insert(users).values({
       id: userId,
-      email: "notif-user@example.com",
+      email: `notif-user-${runId}@example.com`,
       firstName: "Notif",
       lastName: "User",
     } as any);
 
     await db.insert(users).values({
       id: contractorUserId,
-      email: "notif-contractor@example.com",
+      email: `notif-contractor-${runId}@example.com`,
       firstName: "Notif",
       lastName: "Contractor",
     } as any);
@@ -74,8 +69,8 @@ describeDb("notifications summary helpers", () => {
       .values({
         userId: contractorUserId,
         companyName: "Notif Contractor",
-        slug: "notif-contractor",
-        email: "notif-contractor@example.com",
+        slug: contractorSlug,
+        email: `notif-contractor-${runId}@example.com`,
       } as any)
       .returning();
 
@@ -85,7 +80,7 @@ describeDb("notifications summary helpers", () => {
     const [conv] = await db
       .insert(conversations)
       .values({
-        id: "notif-conv-1",
+        id: seededConversationId,
         homeownerId: userId,
         contractorId,
         status: "active",
@@ -115,7 +110,7 @@ describeDb("notifications summary helpers", () => {
     const [hoa] = await db
       .insert(homeownerAssociations)
       .values({
-        name: "Notif Test HOA",
+        name: hoaName,
         address: "1 Test St",
         city: "Notif City",
         state: "TX",
@@ -137,7 +132,7 @@ describeDb("notifications summary helpers", () => {
       .insert(hoaVotes)
       .values({
         hoaId,
-        title: "Notif Test Vote",
+        title: voteTitle,
         description: "Vote for notifications summary test",
         voteType: "rule_change",
         createdBy: userId,
@@ -149,6 +144,10 @@ describeDb("notifications summary helpers", () => {
       .returning();
 
     voteId = vote.id;
+  });
+
+  afterAll(async () => {
+    await cleanupFixtures();
   });
 
   it("aggregates unreadThreads and openHoaVotes", async () => {

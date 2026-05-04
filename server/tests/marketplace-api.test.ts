@@ -1,10 +1,6 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { db } from "../db";
-import {
-  users,
-  marketplaceCategories,
-  marketplaceListings,
-} from "@shared/schema";
+import { users, marketplaceCategories, marketplaceListings } from "@shared/schema";
 import { storage } from "../storage";
 import { and, eq, inArray } from "drizzle-orm";
 
@@ -12,40 +8,41 @@ const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasTestDb ? describe : describe.skip;
 
 describeDb("marketplace storage helpers", () => {
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   const stateCode = "TX";
-  const countyX = "Test County X";
-  const countyY = "Test County Y";
+  const countyX = `Test County X ${runId}`;
+  const countyY = `Test County Y ${runId}`;
+  const categoryName = `Test Tools ${runId}`;
 
-  const userXId = "marketplace-user-x";
-  const userYId = "marketplace-user-y";
+  const userXId = `marketplace-user-x-${runId}`;
+  const userYId = `marketplace-user-y-${runId}`;
 
   let toolsCategoryId: string;
   let listingXId: string;
   let listingYId: string;
 
-  beforeAll(async () => {
-    // Clean any prior test data
+  async function cleanupFixtures() {
     await db
       .delete(marketplaceListings)
       .where(
         and(
           inArray(marketplaceListings.county, [countyX, countyY]),
-          eq(marketplaceListings.state, stateCode),
-        ),
+          eq(marketplaceListings.state, stateCode)
+        )
       );
 
-    await db
-      .delete(marketplaceCategories)
-      .where(inArray(marketplaceCategories.name, ["Test Tools", "Test Misc"]));
+    await db.delete(marketplaceCategories).where(eq(marketplaceCategories.name, categoryName));
 
-    await db
-      .delete(users)
-      .where(inArray(users.id, [userXId, userYId]));
+    await db.delete(users).where(inArray(users.id, [userXId, userYId]));
+  }
+
+  beforeAll(async () => {
+    await cleanupFixtures();
 
     // Seed users
     await db.insert(users).values({
       id: userXId,
-      email: "market-x@example.com",
+      email: `market-x-${runId}@example.com`,
       firstName: "Market",
       lastName: "UserX",
       state: stateCode,
@@ -54,7 +51,7 @@ describeDb("marketplace storage helpers", () => {
 
     await db.insert(users).values({
       id: userYId,
-      email: "market-y@example.com",
+      email: `market-y-${runId}@example.com`,
       firstName: "Market",
       lastName: "UserY",
       state: stateCode,
@@ -65,7 +62,7 @@ describeDb("marketplace storage helpers", () => {
     const [category] = await db
       .insert(marketplaceCategories)
       .values({
-        name: "Test Tools",
+        name: categoryName,
         description: "Test category for marketplace-api tests",
         iconName: "tools",
       } as any)
@@ -104,6 +101,10 @@ describeDb("marketplace storage helpers", () => {
 
     listingXId = createdX.id;
     listingYId = createdY.id;
+  });
+
+  afterAll(async () => {
+    await cleanupFixtures();
   });
 
   it("filters getMarketplaceListings by state and county", async () => {
