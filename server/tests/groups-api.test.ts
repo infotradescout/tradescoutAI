@@ -10,15 +10,17 @@ const describeDb = hasTestDb ? describe : describe.skip;
 const HOOK_TIMEOUT_MS = 30_000;
 
 describeDb("community groups scoping and membership", () => {
-  const countyAFips = "03101";
-  const countyBFips = "03202";
-  const canonicalStateCode = "ZG";
-  const canonicalCountyFips = "97301";
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const stateLetter = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  const countyAFips = String(31000 + Math.floor(Math.random() * 999)).padStart(5, "0");
+  const countyBFips = String(32000 + Math.floor(Math.random() * 999)).padStart(5, "0");
+  const canonicalStateCode = `Z${stateLetter}`;
+  const canonicalCountyFips = String(97000 + Math.floor(Math.random() * 999)).padStart(5, "0");
   const stateCode = "TX";
 
-  const userAId = "groups-test-user-a";
-  const userBId = "groups-test-user-b";
-  const userCanonicalId = "groups-test-user-canonical";
+  const userAId = `groups-test-user-a-${runId}`;
+  const userBId = `groups-test-user-b-${runId}`;
+  const userCanonicalId = `groups-test-user-canonical-${runId}`;
 
   let groupAId: string;
   let groupBId: string;
@@ -39,8 +41,7 @@ describeDb("community groups scoping and membership", () => {
     return { response: response as any, result };
   };
 
-  beforeAll(async () => {
-    // Clean up any prior test data
+  async function cleanupFixtures() {
     await db
       .delete(groupMembers)
       .where(inArray(groupMembers.userId, [userAId, userBId, userCanonicalId]));
@@ -49,28 +50,35 @@ describeDb("community groups scoping and membership", () => {
       .delete(communityGroups)
       .where(inArray(communityGroups.countyFips, [countyAFips, countyBFips, canonicalCountyFips]));
 
-    await db.delete(users).where(inArray(users.id, [userAId, userBId, userCanonicalId]));
-
     await db.delete(counties).where(eq(counties.fips, canonicalCountyFips));
-    await db.delete(states).where(eq(states.code, canonicalStateCode));
+  }
 
-    await db.insert(states).values({
-      id: "groups-test-state-zg",
-      name: "Groups Test State",
-      code: canonicalStateCode,
-    });
+  beforeAll(async () => {
+    await cleanupFixtures();
 
-    await db.insert(counties).values({
-      id: "groups-test-county-zg-97301",
-      name: "Canon County",
-      fips: canonicalCountyFips,
-      stateCode: canonicalStateCode,
-    });
+    await db
+      .insert(states)
+      .values({
+        id: `groups-test-state-${runId}`,
+        name: `Groups Test State ${runId}`,
+        code: canonicalStateCode,
+      })
+      .onConflictDoNothing({ target: states.code });
+
+    await db
+      .insert(counties)
+      .values({
+        id: `groups-test-county-${runId}`,
+        name: `Canon County ${runId}`,
+        fips: canonicalCountyFips,
+        stateCode: canonicalStateCode,
+      })
+      .onConflictDoNothing({ target: counties.fips });
 
     // Seed users
     await db.insert(users).values({
       id: userAId,
-      email: "groups-a@example.com",
+      email: `groups-a-${runId}@example.com`,
       firstName: "Groups",
       lastName: "A",
       state: stateCode,
@@ -79,7 +87,7 @@ describeDb("community groups scoping and membership", () => {
 
     await db.insert(users).values({
       id: userBId,
-      email: "groups-b@example.com",
+      email: `groups-b-${runId}@example.com`,
       firstName: "Groups",
       lastName: "B",
       state: stateCode,
@@ -88,7 +96,7 @@ describeDb("community groups scoping and membership", () => {
 
     await db.insert(users).values({
       id: userCanonicalId,
-      email: "groups-canonical@example.com",
+      email: `groups-canonical-${runId}@example.com`,
       firstName: "Canon",
       lastName: "User",
       state: canonicalStateCode,
@@ -103,7 +111,7 @@ describeDb("community groups scoping and membership", () => {
       .values({
         name: "County A Homeowners",
         description: "A group for County A homeowners",
-        slug: "county-a-homeowners-test",
+        slug: `county-a-homeowners-test-${runId}`,
         groupType: "auto_county" as any,
         scope: "county" as any,
         stateCode,
@@ -116,7 +124,7 @@ describeDb("community groups scoping and membership", () => {
       .values({
         name: "County B Homeowners",
         description: "A group for County B homeowners",
-        slug: "county-b-homeowners-test",
+        slug: `county-b-homeowners-test-${runId}`,
         groupType: "auto_county" as any,
         scope: "county" as any,
         stateCode,
@@ -129,18 +137,7 @@ describeDb("community groups scoping and membership", () => {
   }, HOOK_TIMEOUT_MS);
 
   afterAll(async () => {
-    await db
-      .delete(groupMembers)
-      .where(inArray(groupMembers.userId, [userAId, userBId, userCanonicalId]));
-
-    await db
-      .delete(communityGroups)
-      .where(inArray(communityGroups.countyFips, [countyAFips, countyBFips, canonicalCountyFips]));
-
-    await db.delete(users).where(inArray(users.id, [userAId, userBId, userCanonicalId]));
-
-    await db.delete(counties).where(eq(counties.fips, canonicalCountyFips));
-    await db.delete(states).where(eq(states.code, canonicalStateCode));
+    await cleanupFixtures();
   }, HOOK_TIMEOUT_MS);
 
   it("returns only groups for the requested county", async () => {
