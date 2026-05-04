@@ -125,16 +125,30 @@ export default function ClaimMyBusinessPage() {
 
   const selectedBusinessId = initialBusinessId || resolved?.id || "";
 
-  const runSearch = async () => {
-    if (q.trim().length < 2) {
+  const searchClaimableBusinesses = async (override?: {
+    q?: string;
+    stateCode?: string;
+    countyFips?: string;
+    place?: BusinessPlaceResult | null;
+  }) => {
+    const searchText = (override?.q ?? q).trim();
+    const searchState = (override?.stateCode ?? stateCode).trim().toUpperCase();
+    const searchCounty = (override?.countyFips ?? countyFips).trim();
+    const place = override?.place ?? selectedPlace;
+    const hasMapsSignals = Boolean(place?.placeId || place?.phone || place?.website);
+
+    if (searchText.length < 2 && !hasMapsSignals) {
       toast({ title: "Type at least 2 characters", description: "Search by business name." });
       return;
     }
     setSearching(true);
     try {
-      const sp = new URLSearchParams({ q: q.trim(), limit: "10" });
-      if (stateCode) sp.set("stateCode", stateCode);
-      if (countyFips) sp.set("countyFips", countyFips);
+      const sp = new URLSearchParams({ q: searchText, limit: "10" });
+      if (searchState) sp.set("stateCode", searchState);
+      if (searchCounty) sp.set("countyFips", searchCounty);
+      if (place?.placeId) sp.set("placeId", place.placeId);
+      if (place?.phone) sp.set("phone", place.phone);
+      if (place?.website) sp.set("website", place.website);
       const res = await fetch(`/api/business-claim/search?${sp.toString()}`);
       const data = res.ok ? await res.json() : null;
       setItems(Array.isArray(data?.items) ? (data.items as ClaimSearchItem[]) : []);
@@ -144,6 +158,8 @@ export default function ClaimMyBusinessPage() {
       setSearching(false);
     }
   };
+
+  const runSearch = async () => searchClaimableBusinesses();
 
   const startSignupWithClaim = (businessId: string) => {
     const sp = new URLSearchParams();
@@ -361,6 +377,12 @@ export default function ClaimMyBusinessPage() {
                   if (nextState) setStateCode(nextState);
                   const nextCountyFips = findCountyFipsFromPlace(place);
                   if (nextCountyFips) setCountyFips(nextCountyFips);
+                  void searchClaimableBusinesses({
+                    q: nextName || q,
+                    stateCode: nextState || stateCode,
+                    countyFips: nextCountyFips || countyFips,
+                    place,
+                  });
                 }}
               />
               <p className="text-xs text-white/55">
@@ -417,7 +439,7 @@ export default function ClaimMyBusinessPage() {
 
             <div className="space-y-1.5">
               <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                TradeScout match search
+                TradeScout match
               </Label>
               <div className="flex gap-2">
                 <Input
@@ -428,17 +450,21 @@ export default function ClaimMyBusinessPage() {
                 />
                 <Button onClick={runSearch} disabled={searching}>
                   <Search className="h-4 w-4 mr-2" />
-                  {searching ? "Searching…" : "Search"}
+                  {searching ? "Checking…" : "Check"}
                 </Button>
               </div>
               <p className="text-xs text-white/60">
-                If you don’t see your business, you can create a listing and claim it.
+                Maps place ID, phone, website, and name are checked against claimable TradeScout
+                records.
               </p>
             </div>
           </div>
 
           {items.length > 0 ? (
             <div className="space-y-2">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                {selectedPlace ? "Maps match found" : "Claimable matches"}
+              </div>
               {items.map((item) => (
                 <div
                   key={item.id}
@@ -480,14 +506,16 @@ export default function ClaimMyBusinessPage() {
             <div className="min-w-0">
               <div className="font-semibold text-white flex items-center gap-2">
                 <Search className="h-4 w-4 text-ts-orange" />
-                Not listed?
+                {items.length > 0 ? "Use the selected match" : "No TradeScout match yet"}
               </div>
               <div className="text-xs text-white/60">
-                Create a claimable shell now. You can fill details and verification after claiming.
+                {selectedPlace
+                  ? "Create a claimable shell from the Maps listing, then verify ownership."
+                  : "Select the Google Maps listing first so TradeScout can carry the place ID into the claim."}
               </div>
             </div>
-            <Button onClick={createAndClaim} disabled={creating}>
-              {creating ? "Checking…" : "Continue with Maps match"}
+            <Button onClick={createAndClaim} disabled={creating || !selectedPlace}>
+              {creating ? "Checking…" : "Create from Maps"}
             </Button>
           </div>
 

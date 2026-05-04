@@ -158,12 +158,17 @@ export function registerBusinessClaimRoutes(app: Express) {
         typeof req.query.countyFips === "string" ? req.query.countyFips.trim() : "";
       const stateCode =
         typeof req.query.stateCode === "string" ? req.query.stateCode.trim().toUpperCase() : "";
+      const placeId = cleanString(req.query.placeId, 256);
+      const phone = normalizeClaimPhone(req.query.phone);
+      const websiteDomain = normalizeClaimWebsiteDomain(req.query.website);
       const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 10;
       const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(25, limitRaw)) : 10;
+      const hasMapsSignals = Boolean(placeId || phone || websiteDomain);
 
-      if (q.length < 2) return res.json({ items: [] });
+      if (q.length < 2 && !hasMapsSignals) return res.json({ items: [] });
 
       const likeQ = `%${q.toLowerCase()}%`;
+      const websiteLike = `%${websiteDomain}%`;
       const rowsResult = (await db.execute(sql`
         select
           b.id,
@@ -187,7 +192,34 @@ export function registerBusinessClaimRoutes(app: Express) {
         where b.status <> 'suspended'
           and b.owner_user_id is null
           and b.claim_status = 'unclaimed'
-          and (lower(b.name) like ${likeQ} or lower(b.slug) like ${likeQ})
+          and (
+            ${q.length >= 2 ? sql`lower(b.name) like ${likeQ} or lower(b.slug) like ${likeQ}` : sql`false`}
+            or ${
+              placeId
+                ? sql`
+                  coalesce(b.profile_data -> 'importExtras' ->> 'google_place_id', '') = ${placeId}
+                  or coalesce(b.profile_data -> 'importExtras' ->> 'place_id', '') = ${placeId}
+                  or coalesce(b.profile_data -> 'importExtras' ->> 'external_id', '') = ${placeId}
+                `
+                : sql`false`
+            }
+            or ${
+              phone
+                ? sql`
+                  regexp_replace(coalesce(b.profile_data->>'phone',''), '\\D','','g') = ${phone}
+                  or regexp_replace(coalesce(b.profile_data -> 'importExtras' ->> 'google_place_phone',''), '\\D','','g') = ${phone}
+                `
+                : sql`false`
+            }
+            or ${
+              websiteDomain
+                ? sql`
+                  lower(coalesce(b.profile_data->>'website','')) like ${websiteLike}
+                  or lower(coalesce(b.profile_data -> 'importExtras' ->> 'google_place_website','')) like ${websiteLike}
+                `
+                : sql`false`
+            }
+          )
           ${countyFips ? sql`and co.fips = ${countyFips}` : sql``}
           ${stateCode ? sql`and co.state_code = ${stateCode}` : sql``}
         group by b.id, b.name, b.slug, b.type, b.status

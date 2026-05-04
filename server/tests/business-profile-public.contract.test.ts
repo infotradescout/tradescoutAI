@@ -34,6 +34,8 @@ describe("business profile public contracts", () => {
     expect(source).toContain("renderContentBlock(block, idx)");
     expect(source).toContain("Claim with Google Maps");
     expect(source).toContain('claimParams.set("businessId"');
+    expect(source).toContain("bp-direct-connect-flow");
+    expect(source).toContain("showListingsSection");
   });
 
   it("business claim flow resolves profile context and starts from Google Maps", () => {
@@ -42,9 +44,18 @@ describe("business profile public contracts", () => {
 
     expect(routeSource).toContain("slug or businessId is required");
     expect(routeSource).toContain("businessId");
+    expect(routeSource).toContain("placeId");
+    expect(routeSource).toContain("google_place_id");
+    expect(routeSource).toContain("google_place_phone");
+    expect(routeSource).toContain("google_place_website");
     expect(pageSource).toContain("Claim from Google Maps");
     expect(pageSource).toContain("GooglePlacesBusinessInput");
-    expect(pageSource).toContain("Continue with Maps match");
+    expect(pageSource).toContain("searchClaimableBusinesses");
+    expect(pageSource).toContain('sp.set("placeId"');
+    expect(pageSource).toContain('sp.set("phone"');
+    expect(pageSource).toContain('sp.set("website"');
+    expect(pageSource).toContain("Maps match found");
+    expect(pageSource).toContain("Create from Maps");
     expect(pageSource).toContain("applyResolvedBusiness");
   });
 

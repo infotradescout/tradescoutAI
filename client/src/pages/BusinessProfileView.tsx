@@ -52,7 +52,7 @@ import { SEOHelmet, createLocalBusinessStructuredData } from "@/components/SEOHe
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "@/components/community/DecisionCard";
 import { apiRequest } from "@/lib/queryClient";
-import { matchFlowCopy, stripCountySuffix, trustScoreLabel } from "@/lib/userFacingCopy";
+import { matchFlowCopy, stripCountySuffix } from "@/lib/userFacingCopy";
 
 /**
  * PublicBusinessProfileView
@@ -307,21 +307,8 @@ export default function BusinessProfileView() {
       : profile.description
         ? `${profile.name} serves ${localArea}.`
         : `${profile.name} is building its TradeScout profile in ${localArea}.`);
-  const serviceSummaryText =
-    serviceList.length > 0
-      ? serviceList.slice(0, 5).join(" / ")
-      : profile.description
-        ? "Profile details and contact options are available here."
-        : "Services and profile details can be added after this business is claimed.";
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
-  const rawCvs =
-    typeof profile.cvsScore === "number"
-      ? profile.cvsScore
-      : typeof profile.cvsScore === "string" && profile.cvsScore.trim().length > 0
-        ? Number(profile.cvsScore)
-        : null;
-  const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
   const verificationTone = (() => {
     if (verificationStatus === "approved") return "bg-emerald-600 text-white";
     if (verificationStatus === "under_review" || verificationStatus === "pending") {
@@ -361,6 +348,7 @@ export default function BusinessProfileView() {
       ? `${listings.length} active listing${listings.length === 1 ? "" : "s"} published.`
       : "No active listings yet.",
   ];
+  const showListingsSection = listingsLoading || Boolean(listingsError) || listings.length > 0;
 
   function renderContentBlock(block: any, idx: number) {
     const profile = businessProfile;
@@ -519,8 +507,6 @@ export default function BusinessProfileView() {
   } as React.CSSProperties;
   // Decision-layer visibility: internal scoring and detailed trust signals should not be public/crawler-visible.
   // Keep discovery signals public (location, trade/category, unclaimed/claimed, basic verification label).
-  const canShowDecisionSignals = Boolean(isAuthenticated);
-
   // SEO metadata
   const pageTitle =
     profile.seoMeta?.title ||
@@ -553,6 +539,23 @@ export default function BusinessProfileView() {
   if (profile.stateCode) claimParams.set("stateCode", profile.stateCode);
   const claimUrl = `/claim-my-business?${claimParams.toString()}`;
   const handleDirectConnect = () => setLocation(directConnectUrl);
+  const contactFlow = [
+    {
+      label: "Request",
+      value: "Describe the work once.",
+      icon: MessageSquare,
+    },
+    {
+      label: "Fit",
+      value: "Keep the business and county context together.",
+      icon: CheckCircle2,
+    },
+    {
+      label: "Contact",
+      value: "Open contact only after the path is confirmed.",
+      icon: ShieldCheck,
+    },
+  ];
   const profilePulse = [
     {
       label: "Work",
@@ -792,31 +795,24 @@ export default function BusinessProfileView() {
         </div>
       </section>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-3">
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-          <BriefcaseBusiness className="mb-3 h-5 w-5 text-ts-orange" />
-          <div className="text-sm font-semibold text-white">Focus</div>
-          <div className="mt-1 text-sm leading-6 text-white/62">{serviceSummaryText}</div>
-        </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-          <CheckCircle2 className="mb-3 h-5 w-5 text-ts-orange" />
-          <div className="text-sm font-semibold text-white">Trust path</div>
-          <div className="mt-1 text-sm leading-6 text-white/62">
-            {canShowDecisionSignals && cvsScore !== null
-              ? `${trustScoreLabel()} ${Math.round(cvsScore)}`
-              : verificationLabel}
+      <div
+        className="mb-5 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 sm:grid-cols-3"
+        data-testid="bp-direct-connect-flow"
+      >
+        {contactFlow.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="flex gap-3 rounded-md bg-black/20 p-3">
+            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ts-orange" />
+            <div className="min-w-0">
+              <div className="text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
+                {label}
+              </div>
+              <div className="mt-1 text-sm leading-5 text-white/76">{value}</div>
+            </div>
           </div>
-        </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
-          <MapPin className="mb-3 h-5 w-5 text-ts-orange" />
-          <div className="text-sm font-semibold text-white">Area</div>
-          <div className="mt-1 text-sm leading-6 text-white/62">
-            {locationLabel || "Local service area"}
-          </div>
-        </div>
+        ))}
       </div>
 
-      {hasDescription ? (
+      {hasDescription && !visibleSections.about ? (
         <div className="mb-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
           <p
             className="text-base leading-relaxed text-white/76"
@@ -858,87 +854,85 @@ export default function BusinessProfileView() {
       )}
 
       {/* Active Listings (seller catalog) */}
-      <Card className="mb-6" data-testid="bp-active-listings">
-        <CardHeader>
-          <CardTitle className="text-xl">Active Listings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {listingsLoading && (
-            <div className="text-sm text-muted-foreground">Loading listings…</div>
-          )}
+      {showListingsSection ? (
+        <Card className="mb-6" data-testid="bp-active-listings">
+          <CardHeader>
+            <CardTitle className="text-xl">Active Listings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {listingsLoading && (
+              <div className="text-sm text-muted-foreground">Loading listings…</div>
+            )}
 
-          {!listingsLoading && listingsError && (
-            <div className="text-sm text-muted-foreground">{listingsError}</div>
-          )}
+            {!listingsLoading && listingsError && (
+              <div className="text-sm text-muted-foreground">{listingsError}</div>
+            )}
 
-          {!listingsLoading && !listingsError && listings.length === 0 && (
-            <div className="text-sm text-muted-foreground">No active listings.</div>
-          )}
+            {!listingsLoading && !listingsError && listings.length > 0 && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {listings.map((listing) => {
+                  const images = (listing as any).images as string[] | undefined;
+                  const primaryIndex = (listing as any).primaryImageIndex as number | undefined;
+                  const thumbnailUrl = images?.length
+                    ? (images[primaryIndex ?? 0] ?? images[0])
+                    : null;
 
-          {!listingsLoading && !listingsError && listings.length > 0 && (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {listings.map((listing) => {
-                const images = (listing as any).images as string[] | undefined;
-                const primaryIndex = (listing as any).primaryImageIndex as number | undefined;
-                const thumbnailUrl = images?.length
-                  ? (images[primaryIndex ?? 0] ?? images[0])
-                  : null;
+                  const categoryName = (listing as any).categoryName as string | undefined;
+                  const createdAt = listing.createdAt
+                    ? new Date(listing.createdAt as any).toLocaleDateString()
+                    : null;
 
-                const categoryName = (listing as any).categoryName as string | undefined;
-                const createdAt = listing.createdAt
-                  ? new Date(listing.createdAt as any).toLocaleDateString()
-                  : null;
-
-                return (
-                  <article
-                    key={listing.id}
-                    className="flex gap-3 rounded-xl border border-border bg-background/40 p-4 shadow-sm"
-                    data-testid="bp-listing-card"
-                  >
-                    {thumbnailUrl && (
-                      <div className="h-14 w-14 flex-none overflow-hidden rounded-md bg-muted">
-                        <img
-                          src={thumbnailUrl}
-                          alt={listing.title}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold">{listing.title}</div>
-                          {listing.description && (
-                            <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                              {listing.description}
-                            </div>
-                          )}
+                  return (
+                    <article
+                      key={listing.id}
+                      className="flex gap-3 rounded-xl border border-border bg-background/40 p-4 shadow-sm"
+                      data-testid="bp-listing-card"
+                    >
+                      {thumbnailUrl && (
+                        <div className="h-14 w-14 flex-none overflow-hidden rounded-md bg-muted">
+                          <img
+                            src={thumbnailUrl}
+                            alt={listing.title}
+                            className="h-full w-full object-cover"
+                          />
                         </div>
-                        <div className="shrink-0 text-sm font-semibold">
-                          ${formatListingPrice(listing.price)}
+                      )}
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">{listing.title}</div>
+                            {listing.description && (
+                              <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                {listing.description}
+                              </div>
+                            )}
+                          </div>
+                          <div className="shrink-0 text-sm font-semibold">
+                            ${formatListingPrice(listing.price)}
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>
+                            {listing.state}
+                            {listing.county ? ` / ${listing.county}` : ""}
+                          </span>
+                          {categoryName ? <span>• {categoryName}</span> : null}
+                          {createdAt ? <span>• {createdAt}</span> : null}
+                        </div>
+                        <div className="mt-3 text-xs font-medium text-primary">
+                          Listed on this business page
                         </div>
                       </div>
-
-                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span>
-                          {listing.state}
-                          {listing.county ? ` / ${listing.county}` : ""}
-                        </span>
-                        {categoryName ? <span>• {categoryName}</span> : null}
-                        {createdAt ? <span>• {createdAt}</span> : null}
-                      </div>
-                      <div className="mt-3 text-xs font-medium text-primary">
-                        Listed on this business page
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Separator className="my-6" />
 
@@ -968,8 +962,12 @@ export default function BusinessProfileView() {
             <CardTitle>About</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-              {profile.description}
+            <p
+              className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground"
+              data-testid="bp-mission"
+              data-description={profile.description}
+            >
+              <span data-testid="bp-description">{profile.description}</span>
             </p>
           </CardContent>
         </Card>
