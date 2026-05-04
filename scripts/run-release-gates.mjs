@@ -70,6 +70,7 @@ function runPlaywright(baseUrl) {
       ...process.env,
       BASE_URL: baseUrl,
       E2E_BASE_URL: baseUrl,
+      RELEASE_GATES: "true",
     },
   });
 }

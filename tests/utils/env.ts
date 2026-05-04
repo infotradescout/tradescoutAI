@@ -3,19 +3,20 @@
  * Ensures all required vars are present and readable
  */
 
-import * as dotenv from 'dotenv';
-import * as path from 'path';
-import * as fs from 'fs';
-import { fileURLToPath } from 'url';
+import * as dotenv from "dotenv";
+import * as path from "path";
+import * as fs from "fs";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const envFile = path.join(__dirname, '..', '.env');
-const envExampleFile = path.join(__dirname, '..', '.env.example');
+const envFile = path.join(__dirname, "..", ".env");
+const isReleaseGateRun = process.env.RELEASE_GATES === "true";
 
 if (!fs.existsSync(envFile)) {
-  console.error(`
+  if (!isReleaseGateRun) {
+    console.error(`
 ❌ Missing .env file at ${envFile}
 
 Please copy .env.example to .env and fill in the required values:
@@ -33,24 +34,22 @@ Optional variables:
   TEST_INVOICE_RECIPIENT_EMAIL - Email for invoicing tests
   TEST_INVOICE_RECIPIENT_NAME  - Name for invoicing tests
   `);
-  process.exit(1);
+    process.exit(1);
+  }
+} else {
+  dotenv.config({ path: envFile });
 }
 
-dotenv.config({ path: envFile });
+const REQUIRED_VARS = isReleaseGateRun
+  ? ["BASE_URL"]
+  : ["BASE_URL", "AGENT_IDENTITY_EMAIL", "AGENT_IDENTITY_SECRET", "AGENT_SCOPE_SLUG"];
 
-const REQUIRED_VARS = [
-  'BASE_URL',
-  'AGENT_IDENTITY_EMAIL',
-  'AGENT_IDENTITY_SECRET',
-  'AGENT_SCOPE_SLUG',
-];
-
-const missingVars = REQUIRED_VARS.filter(v => !process.env[v]);
+const missingVars = REQUIRED_VARS.filter((v) => !process.env[v]);
 
 if (missingVars.length > 0) {
   console.error(`
 ❌ Missing required environment variables:
-${missingVars.map(v => `  - ${v}`).join('\n')}
+${missingVars.map((v) => `  - ${v}`).join("\n")}
 
 Please set these in tests/.env
   `);
@@ -58,15 +57,15 @@ Please set these in tests/.env
 }
 
 export const env = {
-  BASE_URL: process.env.BASE_URL || 'http://localhost:5000',
-  AGENT_IDENTITY_EMAIL: process.env.AGENT_IDENTITY_EMAIL || '',
-  AGENT_IDENTITY_SECRET: process.env.AGENT_IDENTITY_SECRET || '',
-  AGENT_SCOPE_SLUG: process.env.AGENT_SCOPE_SLUG || '',
-  AGENT_TYPE: process.env.AGENT_TYPE || 'bot_operator',
-  AGENT_CLAIMS: process.env.AGENT_CLAIMS || 'post,observe,seed',
-  TEST_INVOICE_RECIPIENT_EMAIL: process.env.TEST_INVOICE_RECIPIENT_EMAIL || 'invoice@example.com',
-  TEST_INVOICE_RECIPIENT_NAME: process.env.TEST_INVOICE_RECIPIENT_NAME || 'Test Client',
-  DEBUG: process.env.DEBUG === 'true',
+  BASE_URL: process.env.BASE_URL || "http://localhost:5000",
+  AGENT_IDENTITY_EMAIL: process.env.AGENT_IDENTITY_EMAIL || "",
+  AGENT_IDENTITY_SECRET: process.env.AGENT_IDENTITY_SECRET || "",
+  AGENT_SCOPE_SLUG: process.env.AGENT_SCOPE_SLUG || "",
+  AGENT_TYPE: process.env.AGENT_TYPE || "bot_operator",
+  AGENT_CLAIMS: process.env.AGENT_CLAIMS || "post,observe,seed",
+  TEST_INVOICE_RECIPIENT_EMAIL: process.env.TEST_INVOICE_RECIPIENT_EMAIL || "invoice@example.com",
+  TEST_INVOICE_RECIPIENT_NAME: process.env.TEST_INVOICE_RECIPIENT_NAME || "Test Client",
+  DEBUG: process.env.DEBUG === "true",
   TEST_SEED: process.env.TEST_SEED ? parseInt(process.env.TEST_SEED, 10) : undefined,
 };
 
@@ -78,4 +77,4 @@ try {
   process.exit(1);
 }
 
-console.log('✅ Environment variables loaded successfully');
+console.log("✅ Environment variables loaded successfully");
