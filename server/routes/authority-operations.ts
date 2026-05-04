@@ -124,7 +124,7 @@ router.get(
 
       const recent7 = Number(recent7Row?.cnt ?? 0);
       const prior7 = Number(prior7Row?.cnt ?? 0);
-      const shown7dChange = prior7 > 0 ? Math.round(((recent7 - prior7) / prior7) * 100) : 0;
+      const shown_7d_change = prior7 > 0 ? Math.round(((recent7 - prior7) / prior7) * 100) : 0;
 
       // Completion rate (cards with decidedAt set)
       const [decidedRow] = await db

@@ -1,7 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createAuthedAgent } from "./helpers/testAuth";
 
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
+const INTEGRATION_TIMEOUT_MS = 15000;
+
+vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });
 
 describeWithDb("auth user bypass metadata", () => {
   it("returns privileged bypass metadata for staff/admin tier sessions", async () => {

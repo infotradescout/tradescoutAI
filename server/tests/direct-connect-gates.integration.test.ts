@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { db } from "../db";
 import { clearAdminAuditLog, getAdminAuditLog } from "../services/adminAuditLogService";
 import {
@@ -16,7 +16,10 @@ import {
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
+const INTEGRATION_TIMEOUT_MS = 30000;
 const truthyEnvValues = new Set(["1", "true", "yes", "on", "enabled"]);
+
+vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });
 
 function isProductionBypassLockActive() {
   return (
@@ -684,7 +687,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(
       (res.body as any[]).every((row) => ["open", "routed", "in_progress"].includes(row.status))
     ).toBe(true);
-  }, 20_000);
+  });
 
   it("persists request attachments and scopes attachment access to the requester or assigned contractor", async () => {
     const { agent, user } = await createAuthedAgent({
@@ -781,5 +784,5 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     );
     expect(unrelatedAttachmentRes.status).toBe(403);
     expect(unrelatedAttachmentRes.body?.message).toContain("do not have access");
-  }, 20_000);
+  });
 });

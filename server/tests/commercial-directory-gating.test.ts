@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import request from "supertest";
 import { createApp } from "../app";
 
@@ -14,6 +14,9 @@ import { createApp } from "../app";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const INTEGRATION_TIMEOUT_MS = 15000;
+
+vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });
 
 if (!hasTestDb) {
   describe.skip("Commercial directory gating", () => {

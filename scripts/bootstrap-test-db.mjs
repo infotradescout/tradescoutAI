@@ -239,6 +239,19 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      DO $$ BEGIN
+        CREATE TYPE observation_health_status AS ENUM (
+          'healthy',
+          'degraded',
+          'failing',
+          'idle'
+        );
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
+    await client.query(`
       CREATE TABLE IF NOT EXISTS observations (
         id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
         occurred_at timestamp NOT NULL,
@@ -275,6 +288,37 @@ async function ensureCriticalSchema() {
     await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS uq_observations_source_ref
       ON observations (source_type, source_ref)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS observation_sources (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        source_type observation_source_type NOT NULL,
+        county_fips varchar(5) NOT NULL REFERENCES counties(fips),
+        state_code varchar(2) NOT NULL REFERENCES states(code),
+        last_success_at timestamp,
+        last_run_at timestamp,
+        cursor_json jsonb,
+        health_status observation_health_status NOT NULL DEFAULT 'idle',
+        error_message text,
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_observation_sources_type_county
+      ON observation_sources (source_type, county_fips)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_observation_sources_health
+      ON observation_sources (health_status)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_observation_sources_county
+      ON observation_sources (county_fips)
     `);
 
     await client.query(`
@@ -629,6 +673,91 @@ async function ensureCriticalSchema() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_homescout_inspection_service_requests_county
       ON home_scout_inspection_service_requests(county_fips, state_code)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS commercial_projects (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        created_by_user_id varchar NOT NULL REFERENCES users(id),
+        county_fips varchar(5) NOT NULL REFERENCES counties(fips),
+        state_code varchar(2) NOT NULL REFERENCES states(code),
+        title varchar(220) NOT NULL,
+        slug varchar(260) NOT NULL UNIQUE,
+        summary text NOT NULL,
+        scope_of_work text NOT NULL,
+        requirements text NOT NULL,
+        budget_min numeric(14, 2),
+        budget_max numeric(14, 2),
+        bid_due_at timestamp,
+        project_start_at timestamp,
+        status varchar(24) NOT NULL DEFAULT 'open',
+        winning_bid_id varchar,
+        campaign_enabled boolean NOT NULL DEFAULT false,
+        campaign_headline varchar(220),
+        campaign_body text,
+        hero_image_url varchar(500),
+        published_at timestamp,
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_commercial_projects_county_status
+      ON commercial_projects(county_fips, status, created_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_commercial_projects_slug
+      ON commercial_projects(slug)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS commercial_project_documents (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id varchar NOT NULL REFERENCES commercial_projects(id) ON DELETE CASCADE,
+        uploaded_by_user_id varchar NOT NULL REFERENCES users(id),
+        file_name varchar(255) NOT NULL,
+        file_url varchar(600) NOT NULL,
+        mime_type varchar(120),
+        file_size_bytes integer,
+        created_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_commercial_project_documents_project
+      ON commercial_project_documents(project_id, created_at)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS commercial_project_bids (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        project_id varchar NOT NULL REFERENCES commercial_projects(id) ON DELETE CASCADE,
+        contractor_id varchar NOT NULL REFERENCES contractors(id),
+        bidder_user_id varchar NOT NULL REFERENCES users(id),
+        amount numeric(14, 2) NOT NULL,
+        timeline_days integer,
+        proposal text NOT NULL,
+        status varchar(24) NOT NULL DEFAULT 'submitted',
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_commercial_project_bid_per_contractor
+      ON commercial_project_bids(project_id, contractor_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_commercial_project_bids_project_status
+      ON commercial_project_bids(project_id, status, created_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_commercial_project_bids_bidder
+      ON commercial_project_bids(bidder_user_id, created_at)
     `);
 
     await client.query(`

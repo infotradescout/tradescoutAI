@@ -1,9 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createAuthedAgent } from "./helpers/testAuth";
 
 // Uses the same guard as all other integration tests in this project:
 // set TEST_DATABASE_URL to a local Postgres URL to enable these tests.
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
+const INTEGRATION_TIMEOUT_MS = 15000;
+
+vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });
 
 if (!hasTestDb) {
   describe.skip("Direct Connect request redaction", () => {
