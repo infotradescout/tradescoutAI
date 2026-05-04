@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import crypto from "crypto";
 import PDFDocument from "pdfkit";
-import type { Pool } from "@neondatabase/serverless";
+import type { Pool } from "pg";
 import { isAuthenticated } from "./auth";
 import { storage } from "./storage";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";

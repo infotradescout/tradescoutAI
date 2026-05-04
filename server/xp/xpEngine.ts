@@ -1,4 +1,4 @@
-import type { Pool } from "@neondatabase/serverless";
+import type { Pool } from "pg";
 import type { LoggedEvent } from "./eventTypes";
 import { xpRules, getDayKeyUtc } from "./xpRules";
 
@@ -15,12 +15,9 @@ function safeUserIdFromEvent(e: LoggedEvent): string | null {
 
   if (
     target &&
-    [
-      "post.saved",
-      "reaction.marked_helpful",
-      "user.thanked",
-      "user.profile_viewed",
-    ].includes(String(e.eventType))
+    ["post.saved", "reaction.marked_helpful", "user.thanked", "user.profile_viewed"].includes(
+      String(e.eventType)
+    )
   ) {
     return target;
   }
@@ -38,15 +35,9 @@ function isDuplicateKeyUniqueToEventType(eventType: string): boolean {
   ].includes(eventType);
 }
 
-export async function processXpForEvent(
-  deps: XpEngineDeps,
-  event: LoggedEvent,
-): Promise<number> {
+export async function processXpForEvent(deps: XpEngineDeps, event: LoggedEvent): Promise<number> {
   if (process.env.XP_ENGINE_DISABLED === "true") return 0;
-  if (
-    event.eventType === "xp.applied" ||
-    event.eventType === "badge.awarded"
-  ) {
+  if (event.eventType === "xp.applied" || event.eventType === "badge.awarded") {
     return 0;
   }
 
@@ -57,8 +48,7 @@ export async function processXpForEvent(
   if (!userId) return 0;
 
   const eventData = event.data ?? {};
-  const createdAt =
-    event.createdAt instanceof Date ? event.createdAt : new Date(event.createdAt);
+  const createdAt = event.createdAt instanceof Date ? event.createdAt : new Date(event.createdAt);
   const dayKey = getDayKeyUtc(createdAt);
   const capKey = rule.capKey(eventData);
 
@@ -68,7 +58,7 @@ export async function processXpForEvent(
       String(event.eventType),
       userId,
       dayKey,
-      eventData,
+      eventData
     );
     if (!inserted) return 0;
   }
@@ -78,10 +68,7 @@ export async function processXpForEvent(
 
   const dailyCount = await incrementDailyCount(deps.pool, userId, dayKey, capKey);
 
-  const grant = Math.max(
-    0,
-    Math.floor(rule.applyCap(base, dailyCount - 1, eventData)),
-  );
+  const grant = Math.max(0, Math.floor(rule.applyCap(base, dailyCount - 1, eventData)));
   if (grant <= 0) return 0;
 
   await applyXp(deps.pool, userId, grant, String(event.eventType), event.id, dayKey);
@@ -103,7 +90,7 @@ async function incrementDailyCount(
   pool: Pool,
   userId: string,
   dayKeyUtc: string,
-  capKey: string,
+  capKey: string
 ): Promise<number> {
   const { rows } = await pool.query(
     `
@@ -113,7 +100,7 @@ async function incrementDailyCount(
     DO UPDATE SET count = xp_daily_counters.count + 1
     RETURNING count;
     `,
-    [userId, dayKeyUtc, capKey],
+    [userId, dayKeyUtc, capKey]
   );
   return Number(rows?.[0]?.count ?? 0);
 }
@@ -124,7 +111,7 @@ async function applyXp(
   delta: number,
   reason: string,
   sourceEventId: string,
-  dayKeyUtc: string,
+  dayKeyUtc: string
 ): Promise<void> {
   await pool.query("BEGIN");
   try {
@@ -133,7 +120,7 @@ async function applyXp(
       INSERT INTO xp_ledger (user_id, delta, reason, source_event_id, day_key_utc)
       VALUES ($1, $2, $3, $4, $5);
       `,
-      [userId, delta, reason, sourceEventId, dayKeyUtc],
+      [userId, delta, reason, sourceEventId, dayKeyUtc]
     );
 
     await pool.query(
@@ -143,7 +130,7 @@ async function applyXp(
       ON CONFLICT (user_id)
       DO UPDATE SET xp_total = user_xp.xp_total + EXCLUDED.xp_total, updated_at = now();
       `,
-      [userId, delta],
+      [userId, delta]
     );
 
     await pool.query("COMMIT");
@@ -158,7 +145,7 @@ async function tryInsertUnique(
   eventType: string,
   creditedUserId: string,
   dayKeyUtc: string,
-  d: any,
+  d: any
 ): Promise<boolean> {
   let uniqueKey = "";
 
@@ -176,10 +163,7 @@ async function tryInsertUnique(
     const postId = String(d?.postId ?? "");
     if (!saver || !postId) return false;
     uniqueKey = `post:${postId}:saver:${saver}`;
-  } else if (
-    eventType === "reaction.marked_helpful" ||
-    eventType === "user.thanked"
-  ) {
+  } else if (eventType === "reaction.marked_helpful" || eventType === "user.thanked") {
     const actor = String(d?.userId ?? "");
     if (!actor) return false;
     uniqueKey = `actor:${actor}`;
@@ -198,7 +182,7 @@ async function tryInsertUnique(
     ON CONFLICT (user_id, day_key_utc, event_type, unique_key)
     DO NOTHING;
     `,
-    [creditedUserId, dayKeyUtc, eventType, uniqueKey],
+    [creditedUserId, dayKeyUtc, eventType, uniqueKey]
   );
 
   return res.rowCount === 1;

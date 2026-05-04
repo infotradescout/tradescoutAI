@@ -336,17 +336,17 @@ export default function ExchangeSellerDashboard() {
   // ── Data fetching ────────────────────────────────────────────────────────
   const { data: listings = [], isLoading: listingsLoading } = useQuery<Listing[]>({
     queryKey: ["/api/marketplace/my-listings"],
-    queryFn: () => apiRequest("GET", "/api/marketplace/my-listings").then((r) => r.json()),
+    queryFn: () => apiRequest("GET", "/api/marketplace/my-listings"),
   });
 
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<Inquiry[]>({
     queryKey: ["/api/marketplace/inquiries/received"],
-    queryFn: () => apiRequest("GET", "/api/marketplace/inquiries/received").then((r) => r.json()),
+    queryFn: () => apiRequest("GET", "/api/marketplace/inquiries/received"),
   });
 
   const { data: conversations = [], isLoading: convsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/marketplace/conversations"],
-    queryFn: () => apiRequest("GET", "/api/marketplace/conversations").then((r) => r.json()),
+    queryFn: () => apiRequest("GET", "/api/marketplace/conversations"),
   });
 
   // Enrich inquiries with listing titles
@@ -359,7 +359,7 @@ export default function ExchangeSellerDashboard() {
   // ── Mark sold mutation ───────────────────────────────────────────────────
   const markSoldMutation = useMutation({
     mutationFn: (listingId: string) =>
-      apiRequest("POST", `/api/marketplace/listings/${listingId}/mark-sold`).then((r) => r.json()),
+      apiRequest("POST", `/api/marketplace/listings/${listingId}/mark-sold`),
     onSuccess: () => {
       toast({
         title: "Listing marked as sold",
@@ -371,7 +371,7 @@ export default function ExchangeSellerDashboard() {
     onError: (err: any) => {
       toast({
         title: "Failed to mark as sold",
-        description: formatUserFacingErrorMessage(err),
+        description: formatUserFacingErrorMessage(err, "Could not mark this listing as sold."),
         variant: "destructive",
       });
     },

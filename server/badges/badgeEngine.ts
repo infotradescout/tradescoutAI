@@ -1,4 +1,4 @@
-import type { Pool } from "@neondatabase/serverless";
+import type { Pool } from "pg";
 import type { LoggedEvent } from "../xp/eventTypes";
 import { EventTypes } from "../xp/eventTypes";
 import { Badges } from "./badgeRegistry";
@@ -11,11 +11,9 @@ type Deps = {
 function getCreditedUserIdForBadge(event: LoggedEvent): string | null {
   const d = event.data ?? {};
   if (
-    [
-      EventTypes.POST_SAVED,
-      EventTypes.REACTION_MARKED_HELPFUL,
-      EventTypes.USER_THANKED,
-    ].includes(String(event.eventType) as any)
+    [EventTypes.POST_SAVED, EventTypes.REACTION_MARKED_HELPFUL, EventTypes.USER_THANKED].includes(
+      String(event.eventType) as any
+    )
   ) {
     return typeof d.targetUserId === "string" ? d.targetUserId : null;
   }
@@ -27,7 +25,7 @@ function getCreditedUserIdForBadge(event: LoggedEvent): string | null {
 async function hasBadge(pool: Pool, userId: string, badgeId: string): Promise<boolean> {
   const r = await pool.query(
     `SELECT 1 FROM user_badges WHERE user_id = $1 AND badge_id = $2 LIMIT 1`,
-    [userId, badgeId],
+    [userId, badgeId]
   );
   return (r.rowCount ?? 0) > 0;
 }
@@ -39,7 +37,7 @@ async function awardBadge(pool: Pool, userId: string, badgeId: string): Promise<
     VALUES ($1, $2)
     ON CONFLICT (user_id, badge_id) DO NOTHING;
     `,
-    [userId, badgeId],
+    [userId, badgeId]
   );
   return r.rowCount === 1;
 }
@@ -48,7 +46,7 @@ async function grantBadgeXp(
   pool: Pool,
   userId: string,
   badgeId: string,
-  delta: number,
+  delta: number
 ): Promise<void> {
   await pool.query("BEGIN");
   try {
@@ -57,7 +55,7 @@ async function grantBadgeXp(
       INSERT INTO xp_ledger (user_id, delta, reason, source_event_id, day_key_utc)
       VALUES ($1, $2, $3, NULL, to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD'));
       `,
-      [userId, delta, `badge:${badgeId}`],
+      [userId, delta, `badge:${badgeId}`]
     );
 
     await pool.query(
@@ -67,7 +65,7 @@ async function grantBadgeXp(
       ON CONFLICT (user_id)
       DO UPDATE SET xp_total = user_xp.xp_total + EXCLUDED.xp_total, updated_at = now();
       `,
-      [userId, delta],
+      [userId, delta]
     );
 
     await pool.query("COMMIT");
@@ -77,15 +75,9 @@ async function grantBadgeXp(
   }
 }
 
-export async function evaluateBadgesForEvent(
-  deps: Deps,
-  event: LoggedEvent,
-): Promise<string[]> {
+export async function evaluateBadgesForEvent(deps: Deps, event: LoggedEvent): Promise<string[]> {
   if (process.env.BADGE_ENGINE_DISABLED === "true") return [];
-  if (
-    event.eventType === "xp.applied" ||
-    event.eventType === "badge.awarded"
-  ) {
+  if (event.eventType === "xp.applied" || event.eventType === "badge.awarded") {
     return [];
   }
 
@@ -210,7 +202,7 @@ async function checkExplorer(pool: Pool, userId: string): Promise<boolean> {
       COUNT(DISTINCT scope_type) AS unique_types
     FROM scoped;
     `,
-    [userId],
+    [userId]
   );
 
   const uniqueScopes = Number(r.rows?.[0]?.unique_scopes ?? 0);
@@ -237,7 +229,7 @@ async function checkConversationalist(pool: Pool, userId: string): Promise<boole
       COUNT(DISTINCT d) AS active_days
     FROM c;
     `,
-    [userId],
+    [userId]
   );
 
   const comments = Number(r.rows?.[0]?.comment_count ?? 0);
@@ -260,7 +252,7 @@ async function checkHelper(pool: Pool, userId: string): Promise<boolean> {
     )
     SELECT COUNT(*) AS actors FROM signals;
     `,
-    [userId],
+    [userId]
   );
   const actors = Number(r.rows?.[0]?.actors ?? 0);
   return actors >= 3;
@@ -290,7 +282,7 @@ async function checkLocal(pool: Pool, userId: string): Promise<boolean> {
     )
     SELECT interactions, days FROM best;
     `,
-    [userId],
+    [userId]
   );
 
   const interactions = Number(r.rows?.[0]?.interactions ?? 0);
@@ -307,7 +299,7 @@ async function checkRegular(pool: Pool, userId: string): Promise<boolean> {
       AND event_type = 'user.session_started'
       AND created_at >= now() - INTERVAL '365 days';
     `,
-    [userId],
+    [userId]
   );
   const weeks = Number(r.rows?.[0]?.weeks ?? 0);
   return weeks >= 5;
@@ -322,7 +314,7 @@ async function checkRecordKeeper(pool: Pool, userId: string): Promise<boolean> {
       AND event_type = 'finance.document_created'
       AND created_at >= now() - INTERVAL '365 days';
     `,
-    [userId],
+    [userId]
   );
   const c = Number(r.rows?.[0]?.c ?? 0);
   return c >= 3;
@@ -343,7 +335,7 @@ async function checkOrganizer(pool: Pool, userId: string): Promise<boolean> {
       COUNT(DISTINCT d) AS days
     FROM e;
     `,
-    [userId],
+    [userId]
   );
   const types = Number(r.rows?.[0]?.types ?? 0);
   const days = Number(r.rows?.[0]?.days ?? 0);
@@ -359,7 +351,7 @@ async function checkConnector(pool: Pool, userId: string): Promise<boolean> {
       AND event_type = 'connection.confirmed'
       AND created_at >= now() - INTERVAL '365 days';
     `,
-    [userId],
+    [userId]
   );
   const c = Number(r.rows?.[0]?.c ?? 0);
   return c >= 2;
@@ -386,7 +378,7 @@ async function checkLurker(pool: Pool, userId: string): Promise<boolean> {
            (SELECT days FROM views) AS days,
            (SELECT c FROM contrib) AS contrib;
     `,
-    [userId],
+    [userId]
   );
 
   const views = Number(r.rows?.[0]?.views ?? 0);
@@ -405,7 +397,7 @@ async function checkNightOwl(pool: Pool, userId: string): Promise<boolean> {
       AND event_type = 'activity.night_time'
       AND created_at >= now() - INTERVAL '365 days';
     `,
-    [userId],
+    [userId]
   );
 
   const c = Number(r.rows?.[0]?.c ?? 0);
@@ -422,7 +414,7 @@ async function checkBetaExplorer(pool: Pool, userId: string): Promise<boolean> {
       AND event_type = 'beta_feature.used'
       AND created_at >= now() - INTERVAL '365 days';
     `,
-    [userId],
+    [userId]
   );
 
   const features = Number(r.rows?.[0]?.features ?? 0);

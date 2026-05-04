@@ -74,6 +74,7 @@ import type { Objective } from "@shared/types/objective";
 import { trackDemandEvent } from "@/lib/demandEngine";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { hasCompletedSetup } from "@/lib/setupState";
+import { trackShellEvent } from "@/lib/analytics";
 import {
   LIVE_READINESS_QUICK_START_PROMPT,
   SCOUT_QUICK_START_PROMPTS,
@@ -1928,7 +1929,7 @@ export default function ScoutOS() {
             navTo.startsWith("/direct-connect/pros") &&
             (res.metadata?.behaviorKey === "home_project_routing" ||
               String(res.metadata?.sourceUsed || "").includes("home_project") ||
-              res.llmProvider === "deterministic");
+              res.metadata?.llmProvider === "deterministic");
 
           if (isDeterministicDirectoryRoute && navTo) {
             queueAutoRoute({

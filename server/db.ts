@@ -12,12 +12,16 @@ neonConfig.webSocketConstructor = ws;
 const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST_WORKER_ID);
 
 const connectionString = isTestEnv ? process.env.TEST_DATABASE_URL : process.env.DATABASE_URL;
+const connectionStringForCheck = connectionString ?? "";
 const useLocalNodePg =
   Boolean(connectionString) &&
-  /^(postgres|postgresql):\/\//i.test(connectionString) &&
-  /(localhost|127\.0\.0\.1)/i.test(connectionString);
+  /^(postgres|postgresql):\/\//i.test(connectionStringForCheck) &&
+  /(localhost|127\.0\.0\.1)/i.test(connectionStringForCheck);
 
-let pool: Pool | NodePgPool;
+// The app uses the pg-compatible Pool surface everywhere. Neon implements that
+// runtime contract, but its published type is not assignment-compatible with
+// node-postgres, so we normalize the exported boundary to the node-postgres type.
+let pool: NodePgPool;
 let db: any;
 
 if (!connectionString) {
@@ -38,12 +42,14 @@ if (!connectionString) {
     }
   );
 
-  pool = disabled as unknown as Pool;
-  db = disabled as unknown as DbType;
+  pool = disabled as unknown as NodePgPool;
+  db = disabled;
 } else {
+  const resolvedConnectionString = connectionString;
+
   if (useLocalNodePg) {
     const localPool = new NodePgPool({
-      connectionString,
+      connectionString: resolvedConnectionString,
       max: Number(process.env.PG_POOL_MAX || 20),
       idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
       connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
@@ -52,12 +58,12 @@ if (!connectionString) {
     db = drizzleNodePg({ client: localPool, schema });
   } else {
     const neonPool = new Pool({
-      connectionString,
+      connectionString: resolvedConnectionString,
       max: Number(process.env.PG_POOL_MAX || 20),
       idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
       connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
     });
-    pool = neonPool;
+    pool = neonPool as unknown as NodePgPool;
     db = drizzle({ client: neonPool, schema });
   }
 

@@ -349,7 +349,7 @@ export default function TasksHub({
     onError: (error: any) => {
       toast({
         title: "Could not express interest",
-        description: formatUserFacingErrorMessage(error),
+        description: formatUserFacingErrorMessage(error, "Could not express interest right now."),
         variant: "destructive",
       });
     },

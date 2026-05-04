@@ -225,7 +225,7 @@ function normalizeTradeOptions(payload: unknown): TradeOption[] {
       name: String(item?.name ?? item?.slug ?? "").trim(),
       slug: String(item?.slug ?? item?.id ?? "").trim(),
     }))
-    .filter((item) => item.slug.length > 0 && item.name.length > 0);
+    .filter((item: TradeOption) => item.slug.length > 0 && item.name.length > 0);
 }
 
 const FALLBACK_TRADE_OPTIONS: TradeOption[] = COMPREHENSIVE_TRADES.filter(
@@ -523,6 +523,13 @@ export default function MapsPage() {
     [points]
   );
 
+  const trades = useMemo(() => {
+    const normalized = normalizeTradeOptions(tradesData)
+      .filter((item) => typeof item.slug === "string" && item.slug.trim().length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return normalized.length > 0 ? normalized : FALLBACK_TRADE_OPTIONS;
+  }, [tradesData]);
+
   const tradeNameBySlug = useMemo(() => {
     const index = new Map<string, string>();
     for (const item of trades) {
@@ -566,13 +573,6 @@ export default function MapsPage() {
 
     return sorted;
   }, [points, searchText, sortMode]);
-
-  const trades = useMemo(() => {
-    const normalized = normalizeTradeOptions(tradesData)
-      .filter((item) => typeof item.slug === "string" && item.slug.trim().length > 0)
-      .sort((a, b) => a.name.localeCompare(b.name));
-    return normalized.length > 0 ? normalized : FALLBACK_TRADE_OPTIONS;
-  }, [tradesData]);
 
   useEffect(() => {
     if (!trade) return;

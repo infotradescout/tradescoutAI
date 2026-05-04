@@ -4,6 +4,7 @@
     "node_modules",
     "build",
     "dist",
+    "server/_archive/**/*",
     "**/*.test.ts",
     "server/tests/**/*"
   ],

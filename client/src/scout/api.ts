@@ -140,6 +140,8 @@ export interface ScoutBackendResponse {
       | "enhanced_proxy_error"
       | "route_exception";
     confidenceBand?: "low" | "medium" | "high" | "unknown";
+    behaviorKey?: string;
+    llmProvider?: string;
     resolvedContext?: {
       stage?: string;
       blockingReason?: string | null;

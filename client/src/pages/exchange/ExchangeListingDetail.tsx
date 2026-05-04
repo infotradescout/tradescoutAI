@@ -235,7 +235,11 @@ export default function ExchangeListingDetail() {
       setInquiryOffer("");
     },
     onError: (err: any) => {
-      toast({ title: "Failed to send", description: err.message, variant: "destructive" });
+      toast({
+        title: "Failed to send",
+        description: formatUserFacingErrorMessage(err, "Failed to send inquiry"),
+        variant: "destructive",
+      });
     },
   });
 

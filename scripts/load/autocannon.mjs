@@ -87,9 +87,10 @@ async function run() {
 
   // Make this usable in CI or local gates.
   const maxErrorPct = numberEnv("MAX_ERROR_PCT", 1);
-  const errorPct = result.errors + result.timeouts > 0
-    ? ((result.errors + result.timeouts) / Math.max(1, result.requests.sent)) * 100
-    : 0;
+  const non2xx = Number(result.non2xx || 0);
+  const failedResponses = Number(result.errors || 0) + Number(result.timeouts || 0) + non2xx;
+  const errorPct =
+    failedResponses > 0 ? (failedResponses / Math.max(1, result.requests.sent)) * 100 : 0;
 
   // Print a concise summary; autocannon's default output is a bit noisy for logs.
   // See raw numbers in result if needed.
@@ -105,6 +106,8 @@ async function run() {
         completed: result.requests.completed,
         errors: result.errors,
         timeouts: result.timeouts,
+        non2xx,
+        statusCodeStats: result.statusCodeStats,
         errorPct: Number(errorPct.toFixed(3)),
         p99Ms: result.latency?.p99,
         rpsAvg: result.requests?.average,
