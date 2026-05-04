@@ -7,6 +7,7 @@ import { createGroup, ensureCountyGroupMembershipForUser } from "../routes/group
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasTestDb ? describe : describe.skip;
+const HOOK_TIMEOUT_MS = 30_000;
 
 describeDb("community groups scoping and membership", () => {
   const countyAFips = "03101";
@@ -125,7 +126,7 @@ describeDb("community groups scoping and membership", () => {
 
     groupAId = groupA.id;
     groupBId = groupB.id;
-  });
+  }, HOOK_TIMEOUT_MS);
 
   afterAll(async () => {
     await db
@@ -140,7 +141,7 @@ describeDb("community groups scoping and membership", () => {
 
     await db.delete(counties).where(eq(counties.fips, canonicalCountyFips));
     await db.delete(states).where(eq(states.code, canonicalStateCode));
-  });
+  }, HOOK_TIMEOUT_MS);
 
   it("returns only groups for the requested county", async () => {
     const groupsForA = await storage.getGroups({
