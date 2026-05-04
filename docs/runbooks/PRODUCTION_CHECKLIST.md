@@ -32,6 +32,7 @@ Ensure the following environment variables are set in the production environment
 | `SCOUT_OPENAI_MAX_OUTPUT_TOKENS` | No | Caps Scout OpenAI output; default `700` for structured synthesis |
 | `SCOUT_DEFAULT_ENGINE` | No | Default `classic`; set `v4` only when intentionally testing Enhanced v4 |
 | `SCOUT_ENHANCED_ENABLED` | No | Default `false`; set `true` with `SCOUT_DEFAULT_ENGINE=v4` to opt into Enhanced v4 |
+| `BING_INDEXNOW_KEY` / `INDEXNOW_KEY` | Recommended | Enables `/indexnow-key.txt` ownership proof for Bing/IndexNow URL submission |
 | `GEMINI_API_KEY` | No | Gemini fallback and legacy enhanced Scout routes |
 | `GOOGLE_PROJECT_ID` / `GOOGLE_VERTEX_LOCATION` | No | Vertex Gemini fallback provider |
 

@@ -10,8 +10,14 @@ const read = (relativePath: string) => {
 describe("app shell SEO contracts", () => {
   it("does not hard-code the homepage canonical in the client shell", () => {
     const source = read("client/index.html");
+    const facebookVerificationToken = "3umc5qk60l8zgvcpmmokpa6ovp5dlk";
+    const facebookVerificationFile = read("client/public/3umc5qk60l8zgvcpmmokpa6ovp5dlk.html");
 
     expect(source).not.toContain('<link rel="canonical" href="https://www.thetradescout.com/" />');
     expect(source).toContain('<meta name="robots" content="index, follow" />');
+    expect(source).toContain(
+      `<meta name="facebook-domain-verification" content="${facebookVerificationToken}" />`
+    );
+    expect(facebookVerificationFile).toBe(facebookVerificationToken);
   });
 });

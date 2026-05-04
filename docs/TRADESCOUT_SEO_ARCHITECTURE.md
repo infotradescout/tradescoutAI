@@ -12,11 +12,14 @@ TradeScout exposes a **crawlable discovery layer** while keeping routing, trust 
 - `/best/*` (verified-only “best” scopes; transparent definition)
 - `/datasets/*` (HTML dataset pages)
 - `/sitemap*.xml`, `/robots.txt`, `/llms.txt`
+- `/indexnow-key.txt` when `BING_INDEXNOW_KEY` or `INDEXNOW_KEY` is configured
 
-**Meta AI / social AI discovery**
-- `robots.txt` includes explicit groups for `facebookexternalhit`, `Facebot`, `meta-externalagent`, and `meta-externalfetcher`.
+**AI/search discovery**
+- `robots.txt` includes explicit groups for Meta crawlers (`facebookexternalhit`, `Facebot`, `meta-externalagent`, `meta-externalfetcher`), Bing/Microsoft legacy discovery (`bingbot`, `msnbot`), DuckDuckGo (`DuckDuckBot`, `DuckAssistBot`), Apple (`Applebot`, `Applebot-Extended`), Yandex (`YandexBot`), Yahoo (`Slurp`), OpenAI search/training/user fetchers (`OAI-SearchBot`, `GPTBot`, `ChatGPT-User`), and Perplexity (`PerplexityBot`).
 - These agents may crawl the same public discovery layer as other crawlers, but remain blocked from `/api/*`, `/admin/*`, `/dashboard/*`, `/scout/*`, `/messages/*`, `/settings/*`, and `/auth/*`.
 - `/llms.txt` lists the best AI-answer targets and restates contact-gating constraints so AI summaries do not imply contact access.
+- Bing is the priority non-Google setup target because Bing Webmaster Tools plus IndexNow can speed discovery for Bing and participating downstream search engines.
+- TradeScout serves the IndexNow ownership key at `/indexnow-key.txt`; submit URLs with `keyLocation=https://www.thetradescout.com/indexnow-key.txt`.
 
 **Private (never crawlable)**
 - `/api/*` (robots disallowed; JSON used by SPA)
@@ -116,18 +119,25 @@ Jobs run only when `SCHEDULER_ENABLED=true`.
    - Open `/robots.txt` and confirm:
      - Allows `/business/`, `/trade/`, `/city/`, `/county/`, `/datasets/`, `/best/`
      - Disallows `/api/`, `/admin/`, `/dashboard/`, `/scout/`
+      - Includes explicit Bing, DuckDuckGo, Apple, Yahoo, Meta, OpenAI, and Perplexity crawler groups
 
 3) **Sitemaps are pruned**
    - Open `/sitemap.xml` and confirm it references sub-sitemaps.
    - Open `/sitemap-directory-businesses-0.xml` and confirm it contains only public discovery listings.
 
-4) **Stale business removal**
+4) **Bing / IndexNow**
+   - Generate an IndexNow key in Bing Webmaster Tools.
+   - Set `BING_INDEXNOW_KEY` or `INDEXNOW_KEY` in production.
+   - Confirm `https://www.thetradescout.com/indexnow-key.txt` returns only the key.
+   - Submit changed URLs with `keyLocation=https://www.thetradescout.com/indexnow-key.txt`.
+
+5) **Stale business removal**
    - Pick a business slug and set `updated_at` to older than its tier threshold.
    - Run the prune job (or wait for scheduler).
    - Verify:
      - The business disappears from `/sitemap-directory-businesses-*.xml`
      - `/business/:slug` renders `noindex,nofollow` and “inactive/out of date”
 
-5) **No PII leakage**
+6) **No PII leakage**
    - Confirm public SSR pages do not show phone/email.
    - Confirm public “recent” pages show only `ts_public_activity.public_text` and activity labels (no addresses, no contact).

@@ -10,6 +10,7 @@ const read = (relativePath: string) => {
 describe("crawler telemetry contracts", () => {
   it("persists crawler request events through a dedicated service", () => {
     const source = read("server/services/crawlerTelemetryService.ts");
+    const requestActorSource = read("server/utils/requestActor.ts");
 
     expect(source).toContain("CREATE TABLE IF NOT EXISTS crawler_request_events");
     expect(source).toContain("source_surface");
@@ -28,6 +29,10 @@ describe("crawler telemetry contracts", () => {
     expect(source).toContain("resolveCountyFips");
     expect(source).toContain("refreshBotObservationDailyAggregate");
     expect(source).toContain("getBotCrawlAggregateSignals");
+    expect(requestActorSource).toContain("OAI-SearchBot");
+    expect(requestActorSource).toContain("DuckAssistBot");
+    expect(requestActorSource).toContain("Applebot-Extended");
+    expect(requestActorSource).toContain("PerplexityBot");
   });
 
   it("wires crawler request persistence into live request handling", () => {

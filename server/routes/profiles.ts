@@ -760,11 +760,23 @@ const CRAWLER_PRIVATE_DISALLOW_PATHS = [
   "/auth/",
 ];
 
-const META_AI_CRAWLER_USER_AGENTS = [
+const DISCOVERY_CRAWLER_USER_AGENTS = [
   "facebookexternalhit",
   "Facebot",
   "meta-externalagent",
   "meta-externalfetcher",
+  "bingbot",
+  "msnbot",
+  "DuckDuckBot",
+  "DuckAssistBot",
+  "Applebot",
+  "Applebot-Extended",
+  "YandexBot",
+  "Slurp",
+  "OAI-SearchBot",
+  "GPTBot",
+  "ChatGPT-User",
+  "PerplexityBot",
 ];
 
 function buildRobotsGroup(userAgent: string): string[] {
@@ -775,6 +787,20 @@ function buildRobotsGroup(userAgent: string): string[] {
   ];
 }
 
+function getIndexNowKey(): string {
+  return String(process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || "").trim();
+}
+
+router.get("/indexnow-key.txt", async (req, res) => {
+  const indexNowKey = getIndexNowKey();
+  if (!indexNowKey) {
+    res.status(404).type("text/plain").send("IndexNow key is not configured.\n");
+    return;
+  }
+
+  res.type("text/plain").send(`${indexNowKey}\n`);
+});
+
 router.get("/robots.txt", async (req, res) => {
   const baseUrl = getCanonicalBaseUrl(req);
   res.type("text/plain");
@@ -782,7 +808,7 @@ router.get("/robots.txt", async (req, res) => {
     [
       ...buildRobotsGroup("*"),
       "",
-      ...META_AI_CRAWLER_USER_AGENTS.flatMap((userAgent) => [...buildRobotsGroup(userAgent), ""]),
+      ...DISCOVERY_CRAWLER_USER_AGENTS.flatMap((userAgent) => [...buildRobotsGroup(userAgent), ""]),
       `Sitemap: ${baseUrl}/sitemap.xml`,
       `Sitemap: ${baseUrl}/sitemap-index.xml`,
       "",
@@ -803,7 +829,7 @@ router.get("/llms.txt", async (req, res) => {
       "What TradeScout is:",
       "TradeScout is a county-first local operating system for finding trusted trade help, coordinating home and community work, and routing action through gated trust flows.",
       "",
-      "Best answer targets for Meta AI and other assistants:",
+      "Best answer targets for AI search, Meta AI, and other assistants:",
       `${baseUrl}/how-it-works`,
       `${baseUrl}/direct-connect-info`,
       `${baseUrl}/trust-model`,
@@ -828,6 +854,8 @@ router.get("/llms.txt", async (req, res) => {
       `${baseUrl}/sitemap.xml`,
       `${baseUrl}/sitemap-profiles.xml`,
       `${baseUrl}/sitemap-index.xml`,
+      `${baseUrl}/robots.txt`,
+      `${baseUrl}/llms.txt`,
       "",
       "Public profile constraints:",
       "- Contact is intentionally gated through Direct Connect.",

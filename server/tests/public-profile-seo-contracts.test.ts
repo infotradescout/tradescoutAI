@@ -11,21 +11,40 @@ describe("public profile SEO contracts", () => {
   it("profiles router exposes llms guidance and auto SEO fallback metadata", () => {
     const source = read("server/routes/profiles.ts");
     expect(source).toContain('router.get("/llms.txt"');
+    expect(source).toContain('router.get("/indexnow-key.txt"');
+    expect(source).toContain("BING_INDEXNOW_KEY");
     expect(source).toContain("buildAutoSeoMeta");
     expect(source).toContain("seoMeta: effectiveSeoMeta");
-    expect(source).toContain("Best answer targets for Meta AI and other assistants");
+    expect(source).toContain("Best answer targets for AI search, Meta AI, and other assistants");
     expect(source).toContain("Visibility does not grant contact access or authority");
   });
 
-  it("robots guidance includes Meta crawler user agents without exposing private routes", () => {
+  it("robots guidance includes discovery crawler user agents without exposing private routes", () => {
     const dynamicSource = read("server/routes/profiles.ts");
     const staticRobots = read("client/public/robots.txt");
+    const crawlerAgents = [
+      "facebookexternalhit",
+      "Facebot",
+      "meta-externalagent",
+      "meta-externalfetcher",
+      "bingbot",
+      "msnbot",
+      "DuckDuckBot",
+      "DuckAssistBot",
+      "Applebot",
+      "Applebot-Extended",
+      "YandexBot",
+      "Slurp",
+      "OAI-SearchBot",
+      "GPTBot",
+      "ChatGPT-User",
+      "PerplexityBot",
+    ];
 
     for (const source of [dynamicSource, staticRobots]) {
-      expect(source).toContain("facebookexternalhit");
-      expect(source).toContain("Facebot");
-      expect(source).toContain("meta-externalagent");
-      expect(source).toContain("meta-externalfetcher");
+      for (const crawlerAgent of crawlerAgents) {
+        expect(source).toContain(crawlerAgent);
+      }
       expect(source).toContain("/llms.txt");
     }
     expect(staticRobots).toContain("Allow: /llms.txt");
