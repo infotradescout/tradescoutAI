@@ -16,6 +16,20 @@ import {
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
+const truthyEnvValues = new Set(["1", "true", "yes", "on", "enabled"]);
+
+function isProductionBypassLockActive() {
+  return (
+    String(process.env.NODE_ENV || "")
+      .trim()
+      .toLowerCase() === "production" ||
+    truthyEnvValues.has(
+      String(process.env.REQUIRE_PROD_BYPASS_OFF || "")
+        .trim()
+        .toLowerCase()
+    )
+  );
+}
 
 describeWithDb("direct-connect gate integration (no mocks)", () => {
   it("creates non-targeted direct connect requests as live (routed) on submit", async () => {
@@ -165,7 +179,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     }
   });
 
-  it("allows unverified homeowner request creation when direct-connect demo bypass is enabled", async () => {
+  it("handles unverified homeowner request creation under direct-connect demo bypass policy", async () => {
     const previous = process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
     process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "true";
     await clearAdminAuditLog();
@@ -185,6 +199,23 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
         description: "Need help replacing a bathroom vanity and faucet.",
         category: "service_request",
       });
+
+      if (isProductionBypassLockActive()) {
+        expect(res.status).toBe(428);
+        const auditLog = await getAdminAuditLog(20);
+        const denialAudit = auditLog.find(
+          (entry: any) =>
+            entry?.action === "direct_connect_verification_bypass_denied" &&
+            entry?.operation === "create" &&
+            String(entry?.actorUserId || "") === String(user.id)
+        );
+        expect(denialAudit).toBeTruthy();
+        expect(String((denialAudit as any)?.bypassSource || "")).toBe("environment");
+        expect(String((denialAudit as any)?.bypassDeniedReason || "")).toBe(
+          "environment_disabled_in_production"
+        );
+        return;
+      }
 
       expect(res.status).toBe(201);
       const createdId = String(res.body?.id || "");
@@ -327,7 +358,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(assignments).toHaveLength(0);
   });
 
-  it("routes requests even when trade has verification requirements if demo bypass is enabled", async () => {
+  it("handles verification-gated routing under direct-connect demo bypass policy", async () => {
     const previous = process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED;
     process.env.DIRECT_CONNECT_ALLOW_UNVERIFIED = "true";
 
@@ -429,6 +460,19 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       const res = await agent.post(`/api/direct-connect/requests/${requestRow.id}/route`).send({});
 
       expect(res.status).toBe(200);
+      if (isProductionBypassLockActive()) {
+        expect(res.body?.routed).toBe(false);
+        expect(Array.isArray(res.body?.assignments)).toBe(true);
+        expect(res.body.assignments).toHaveLength(0);
+
+        const assignments = await db
+          .select()
+          .from(workRequestAssignments)
+          .where(eq(workRequestAssignments.workRequestId, requestRow.id));
+        expect(assignments).toHaveLength(0);
+        return;
+      }
+
       expect(res.body?.routed).toBe(true);
       expect(Array.isArray(res.body?.assignments)).toBe(true);
       expect(res.body.assignments.length).toBeGreaterThan(0);
