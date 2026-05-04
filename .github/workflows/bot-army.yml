@@ -167,7 +167,7 @@ jobs:
         uses: dorny/test-reporter@v1
         with:
           name: Playwright Test Results
-          path: '.playwright/test-results/**/*.json'
+          path: '.playwright/test-results/junit.xml'
           reporter: 'java-junit'
           fail-on-error: false
 
