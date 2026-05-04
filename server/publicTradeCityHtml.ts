@@ -83,6 +83,14 @@ function buildMeta(args: {
   };
 }
 
+function buildTradeCityDiscoveryNote(args: { tradeName: string; city: string; stateCode: string }) {
+  return [
+    `TradeScout organizes ${args.tradeName} discovery for ${args.city}, ${args.stateCode} around public business coverage, county routing, and protected contact rules.`,
+    "The page is meant for comparing local availability before any Direct Connect request.",
+    "Visibility does not grant contact access; contact still moves through intent, decision, and protected contact steps.",
+  ].join(" ");
+}
+
 function applyMeta(templateHtml: string, meta: ReturnType<typeof buildMeta>) {
   let html = templateHtml;
   html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
@@ -193,7 +201,7 @@ export async function buildPublicTradeCityHtml(
     stateCode.toLowerCase()
   )}/city/${encodeURIComponent(citySlug)}`;
   const title = `${match.trade.name} in ${displayCity}, ${stateCode}`;
-  const description = `Find ${match.trade.name} contractors in ${displayCity}, ${stateCode}. Compare counties and local business availability on TradeScout.`;
+  const description = `Find ${match.trade.name} contractors in ${displayCity}, ${stateCode} on TradeScout. Compare county coverage, crawlable public business signals, and protected Direct Connect paths.`;
 
   const meta = buildMeta({
     origin: opts.origin,
@@ -208,6 +216,16 @@ export async function buildPublicTradeCityHtml(
   <article>
     <h1>${escapeHtml(match.trade.name)} in ${escapeHtml(displayCity)}, ${escapeHtml(stateCode)}</h1>
     <p>${escapeHtml(description)}</p>
+    <section aria-label="TradeScout city discovery context">
+      <h2>Local discovery context</h2>
+      <p>${escapeHtml(
+        buildTradeCityDiscoveryNote({
+          tradeName: match.trade.name,
+          city: displayCity,
+          stateCode,
+        })
+      )}</p>
+    </section>
     <p><a href="/trade/${encodeURIComponent(canonicalTradeSlug)}">All states</a></p>
     <h2>Counties</h2>
     <ul>

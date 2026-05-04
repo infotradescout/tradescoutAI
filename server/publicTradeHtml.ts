@@ -115,6 +115,19 @@ function buildTradeMeta(args: {
   };
 }
 
+function buildTradeDiscoveryNote(args: {
+  tradeName: string;
+  placeName: string;
+  scope: "state" | "county" | "city" | "national";
+}) {
+  const place = args.scope === "national" ? "available counties and states" : args.placeName.trim();
+  return [
+    `TradeScout organizes ${args.tradeName} discovery around local operating areas, publication status, and crawlable public business information.`,
+    `Use this page to compare ${args.tradeName} coverage for ${place}, then continue through Direct Connect when contact is appropriate.`,
+    "Visibility never grants direct contact access; requests stay gated through intent, decision, and protected contact steps.",
+  ].join(" ");
+}
+
 function applyMeta(templateHtml: string, meta: ReturnType<typeof buildTradeMeta>) {
   let html = templateHtml;
   html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
@@ -185,7 +198,7 @@ export async function buildPublicTradeOverviewHtml(
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
   const title = formatTradeScoutTitle(`Find ${match.trade.name} Contractors by State`);
-  const description = `Find ${match.trade.name} contractors by state and county. Compare local coverage and connect through TradeScout Direct Connect.`;
+  const description = `Find ${match.trade.name} contractors by state and county on TradeScout. Compare local coverage, review crawlable public business information, and continue through Direct Connect when contact is appropriate.`;
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath: `/trade/${encodeURIComponent(canonicalSlug)}`,
@@ -206,6 +219,13 @@ export async function buildPublicTradeOverviewHtml(
   <article>
     <h1>${escapeHtml(match.trade.name)}</h1>
     <p>${escapeHtml(description)}</p>
+    <p>${escapeHtml(
+      buildTradeDiscoveryNote({
+        tradeName: match.trade.name,
+        placeName: "",
+        scope: "national",
+      })
+    )}</p>
     <h2>Browse by state</h2>
     <ul>
       ${US_STATES_COUNTIES.map((s) => {
@@ -252,7 +272,7 @@ export async function buildPublicTradeDirectoryHtml(
 
   const title = formatTradeScoutTitle("Find Contractors by Trade");
   const description =
-    "Browse contractor trades, then drill into states and counties to find local businesses on TradeScout.";
+    "Browse contractor trades on TradeScout, then drill into states and counties to compare crawlable local business coverage before protected Direct Connect contact.";
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath: `/trade`,
@@ -266,6 +286,7 @@ export async function buildPublicTradeDirectoryHtml(
   <article>
     <h1>Trades Directory</h1>
     <p>${escapeHtml(description)}</p>
+    <p>TradeScout keeps discovery separate from access: public visibility helps people compare local options, while contact still moves through intent, decision, and protected Direct Connect steps.</p>
     <ul>
       ${items
         .slice(0, 200)
@@ -308,7 +329,7 @@ export async function buildPublicTradeStateHtml(
 
   const canonicalSlug = normalizeTradeSlug(match.canonicalSlug);
   const title = formatTradeScoutTitle(`${match.trade.name} Contractors in ${state.name}`);
-  const description = `Find ${match.trade.name} contractors in ${state.name}, then narrow by county to compare local options on TradeScout.`;
+  const description = `Find ${match.trade.name} contractors in ${state.name} on TradeScout. Narrow by county to compare local coverage, public business signals, and protected Direct Connect paths.`;
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath: `/trade/${encodeURIComponent(canonicalSlug)}/${encodeURIComponent(stateCode.toLowerCase())}`,
@@ -322,6 +343,13 @@ export async function buildPublicTradeStateHtml(
   <article>
     <h1>${escapeHtml(match.trade.name)} in ${escapeHtml(state.name)}</h1>
     <p>${escapeHtml(description)}</p>
+    <p>${escapeHtml(
+      buildTradeDiscoveryNote({
+        tradeName: match.trade.name,
+        placeName: state.name,
+        scope: "state",
+      })
+    )}</p>
     <p><a href="/trade/${encodeURIComponent(canonicalSlug)}">All states</a></p>
     <h2>Counties</h2>
     <ul>
@@ -388,7 +416,7 @@ export async function buildPublicTradeCountyHtml(
   )}/${encodeURIComponent(countySlug)}`;
 
   const title = formatTradeScoutTitle(`${match.trade.name} in ${county.name}, ${stateCode}`);
-  const description = `Find ${match.trade.name} contractors serving ${county.name}, ${stateCode}. Review local businesses and connect through TradeScout Direct Connect.`;
+  const description = `Find ${match.trade.name} contractors serving ${county.name}, ${stateCode} on TradeScout. Review crawlable local business coverage, county context, and protected Direct Connect paths.`;
   const meta = buildTradeMeta({
     origin: args.origin,
     canonicalPath,
@@ -526,6 +554,21 @@ export async function buildPublicTradeCountyHtml(
   <article>
     <h1>${escapeHtml(match.trade.name)} in ${escapeHtml(county.name)}, ${escapeHtml(stateCode)}</h1>
     <p>${escapeHtml(description)}</p>
+    <section aria-label="TradeScout local discovery context">
+      <h2>Local discovery context</h2>
+      <p>${escapeHtml(
+        buildTradeDiscoveryNote({
+          tradeName: match.trade.name,
+          placeName: `${county.name}, ${stateCode}`,
+          scope: "county",
+        })
+      )}</p>
+      <ul>
+        <li>County container: ${escapeHtml(county.name)}, ${escapeHtml(state.name)}</li>
+        <li>Trade category: ${escapeHtml(match.trade.name)}</li>
+        <li>Contact rule: Direct Connect protects intent, decision, and contact flow.</li>
+      </ul>
+    </section>
     <p>
       <a href="/trade/${encodeURIComponent(canonicalSlug)}">All states</a>
       &nbsp;•&nbsp;

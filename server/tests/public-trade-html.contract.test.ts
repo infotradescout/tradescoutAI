@@ -30,4 +30,18 @@ describe("public trade SEO fallback contracts", () => {
     expect(bestSource).toContain("Best trade county query failed; serving page without listings");
     expect(bestSource).toContain('isMissingColumnError(error, "public_discovery_enabled")');
   });
+
+  it("trade directory pages expose AI-readable discovery and contact-gating context", () => {
+    const tradeSource = read("server/publicTradeHtml.ts");
+    const citySource = read("server/publicTradeCityHtml.ts");
+
+    expect(tradeSource).toContain("buildTradeDiscoveryNote");
+    expect(tradeSource).toContain("Visibility never grants direct contact access");
+    expect(tradeSource).toContain("Local discovery context");
+    expect(tradeSource).toContain("protected Direct Connect paths");
+
+    expect(citySource).toContain("buildTradeCityDiscoveryNote");
+    expect(citySource).toContain("Visibility does not grant contact access");
+    expect(citySource).toContain("protected Direct Connect paths");
+  });
 });
