@@ -32,6 +32,20 @@ describe("business profile public contracts", () => {
     expect(source).toContain("block?.ctaLabel || profile.ctaConfig?.primary?.label");
     expect(source).toContain("block?.secondaryBody");
     expect(source).toContain("renderContentBlock(block, idx)");
+    expect(source).toContain("Claim with Google Maps");
+    expect(source).toContain('claimParams.set("businessId"');
+  });
+
+  it("business claim flow resolves profile context and starts from Google Maps", () => {
+    const routeSource = read("server/routes/business-claim.ts");
+    const pageSource = read("client/src/pages/claim-my-business.tsx");
+
+    expect(routeSource).toContain("slug or businessId is required");
+    expect(routeSource).toContain("businessId");
+    expect(pageSource).toContain("Claim from Google Maps");
+    expect(pageSource).toContain("GooglePlacesBusinessInput");
+    expect(pageSource).toContain("Continue with Maps match");
+    expect(pageSource).toContain("applyResolvedBusiness");
   });
 
   it("business SSR html includes typed block summaries and richer metadata", () => {

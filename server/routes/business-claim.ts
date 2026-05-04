@@ -205,7 +205,11 @@ export function registerBusinessClaimRoutes(app: Express) {
   app.get("/api/business-claim/resolve", async (req: Request, res: Response) => {
     try {
       const slug = typeof req.query.slug === "string" ? req.query.slug.trim() : "";
-      if (!slug) return res.status(400).json({ message: "slug is required" });
+      const businessId =
+        typeof req.query.businessId === "string" ? req.query.businessId.trim() : "";
+      if (!slug && !businessId) {
+        return res.status(400).json({ message: "slug or businessId is required" });
+      }
 
       const rowsResult = (await db.execute(sql`
         select
@@ -227,7 +231,7 @@ export function registerBusinessClaimRoutes(app: Express) {
         from businesses b
         left join business_counties bc on bc.business_id = b.id
         left join counties co on co.id = bc.county_id
-        where b.slug = ${slug}
+        where ${businessId ? sql`b.id = ${businessId}` : sql`b.slug = ${slug}`}
           and b.status <> 'suspended'
         group by b.id, b.name, b.slug, b.type, b.status
         limit 1

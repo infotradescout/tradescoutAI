@@ -1042,6 +1042,19 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE decision_cards
+      ADD COLUMN IF NOT EXISTS user_id varchar,
+      ADD COLUMN IF NOT EXISTS status varchar NOT NULL DEFAULT 'active',
+      ADD COLUMN IF NOT EXISTS intent varchar NOT NULL DEFAULT 'hire',
+      ADD COLUMN IF NOT EXISTS decision_scope text,
+      ADD COLUMN IF NOT EXISTS title varchar,
+      ADD COLUMN IF NOT EXISTS description text,
+      ADD COLUMN IF NOT EXISTS created_at timestamp DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS decided_at timestamp
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_decision_cards_user
       ON decision_cards(user_id)
     `);
@@ -1072,6 +1085,24 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE marketplace_conversations
+      ALTER COLUMN listing_id DROP NOT NULL,
+      ADD COLUMN IF NOT EXISTS intent varchar,
+      ADD COLUMN IF NOT EXISTS authority_gate varchar,
+      ADD COLUMN IF NOT EXISTS source_decision_card_id varchar,
+      ADD COLUMN IF NOT EXISTS source_scout_recommendation_id varchar,
+      ADD COLUMN IF NOT EXISTS confidence_score numeric(3,2),
+      ADD COLUMN IF NOT EXISTS decision_scope text,
+      ADD COLUMN IF NOT EXISTS created_at timestamp DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now()
+    `);
+
+    await client.query(`
+      ALTER TABLE marketplace_conversations
+      DROP CONSTRAINT IF EXISTS marketplace_conversations_listing_id_marketplace_listings_id_fk
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_marketplace_conversations_buyer
       ON marketplace_conversations(buyer_id)
     `);
@@ -1079,6 +1110,16 @@ async function ensureCriticalSchema() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_marketplace_conversations_seller
       ON marketplace_conversations(seller_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_marketplace_conversations_intent
+      ON marketplace_conversations(intent)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_marketplace_conversations_authority_gate
+      ON marketplace_conversations(authority_gate)
     `);
 
     await client.query(`

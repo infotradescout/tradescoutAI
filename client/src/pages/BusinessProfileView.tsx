@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Dialog,
@@ -27,11 +33,14 @@ import {
   Building2,
   BriefcaseBusiness,
   CheckCircle2,
+  Compass,
   Edit,
+  FileCheck2,
   Globe,
   Loader2,
   MapPin,
   MessageSquare,
+  Search,
   Shield,
   ShieldCheck,
 } from "lucide-react";
@@ -438,7 +447,7 @@ export default function BusinessProfileView() {
                 setLocation(`/direct-connect?${params.toString()}`);
               }}
             >
-              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
+              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Start Direct Connect"}
             </Button>
           </CardContent>
         </Card>
@@ -529,6 +538,41 @@ export default function BusinessProfileView() {
   const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
   const showUnclaimedBadge = profileSource === "directory" && directoryClaimStatus === "unclaimed";
   const showSuggestCta = profileSource === "directory" && Boolean(directoryBusinessId);
+  const directConnectParams = new URLSearchParams({
+    prefill_businessName: profile.name,
+    prefill_businessSlug: profile.slug,
+    prefill_countyFips: profile.countyFips || "",
+  });
+  const directConnectUrl = `/direct-connect?${directConnectParams.toString()}`;
+  const claimParams = new URLSearchParams({
+    slug: profile.slug,
+    q: profile.name,
+  });
+  if (directoryBusinessId) claimParams.set("businessId", String(directoryBusinessId));
+  if (profile.countyFips) claimParams.set("countyFips", profile.countyFips);
+  if (profile.stateCode) claimParams.set("stateCode", profile.stateCode);
+  const claimUrl = `/claim-my-business?${claimParams.toString()}`;
+  const handleDirectConnect = () => setLocation(directConnectUrl);
+  const profilePulse = [
+    {
+      label: "Work",
+      value:
+        serviceList.length > 0
+          ? `${serviceList.length} service${serviceList.length === 1 ? "" : "s"}`
+          : "Needs details",
+      icon: BriefcaseBusiness,
+    },
+    {
+      label: "Area",
+      value: locationLabel || localArea,
+      icon: Compass,
+    },
+    {
+      label: "Status",
+      value: showUnclaimedBadge ? "Claimable" : verificationLabel,
+      icon: FileCheck2,
+    },
+  ];
   const structuredData = createLocalBusinessStructuredData({
     slug: profile.slug,
     name: profile.name,
@@ -635,14 +679,16 @@ export default function BusinessProfileView() {
           </div>
 
           <aside className="border-t border-white/10 bg-white/[0.03] p-5 lg:border-l lg:border-t-0">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/48">
-                  Next step
+                  Lead action
                 </div>
-                <div className="mt-1 text-lg font-semibold text-white">Direct Connect</div>
+                <div className="mt-1 text-lg font-semibold text-white">
+                  {showClaimCta ? "Claim or connect" : "Direct Connect"}
+                </div>
                 <p className="mt-1 text-sm leading-6 text-white/62">
-                  Send the request with context. Contact opens after the fit is confirmed.
+                  Direct Connect keeps job context, fit review, and contact in one flow.
                 </p>
               </div>
 
@@ -661,19 +707,23 @@ export default function BusinessProfileView() {
                   <Button
                     className="w-full"
                     data-testid="bp-contact-cta"
-                    onClick={() => {
-                      const params = new URLSearchParams({
-                        prefill_businessName: profile.name,
-                        prefill_businessSlug: profile.slug,
-                        prefill_countyFips: profile.countyFips || "",
-                      });
-                      setLocation(`/direct-connect?${params.toString()}`);
-                    }}
+                    onClick={handleDirectConnect}
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    {profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
+                    {profile.ctaConfig?.primary?.label || "Start Direct Connect"}
                     <ArrowRight className="h-4 w-4 ml-auto" />
                   </Button>
+
+                  {showClaimCta ? (
+                    <Button
+                      className="w-full border-ts-orange/40 bg-ts-orange/10 text-ts-orange hover:bg-ts-orange/15"
+                      variant="outline"
+                      onClick={() => setLocation(claimUrl)}
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      Claim with Google Maps
+                    </Button>
+                  ) : null}
 
                   {profileSource === "directory" && directoryBusinessId ? (
                     <Button
@@ -716,21 +766,6 @@ export default function BusinessProfileView() {
                         View member details
                       </Button>
                     ) : null}
-                    {showClaimCta ? (
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setLocation(
-                            `/claim-my-business?businessId=${encodeURIComponent(
-                              String(directoryBusinessId)
-                            )}`
-                          )
-                        }
-                      >
-                        <Shield className="h-4 w-4 mr-2" />
-                        Claim This Business
-                      </Button>
-                    ) : null}
                     {showSuggestCta ? (
                       <Button variant="outline" onClick={() => setSuggestOpen(true)}>
                         <MessageSquare className="h-4 w-4 mr-2" />
@@ -740,6 +775,18 @@ export default function BusinessProfileView() {
                   </div>
                 </>
               )}
+
+              <div className="grid grid-cols-3 gap-2">
+                {profilePulse.map(({ label, value, icon: Icon }) => (
+                  <div key={label} className="min-w-0 rounded-md bg-black/25 p-2">
+                    <Icon className="mb-1 h-4 w-4 text-ts-orange" />
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/44">
+                      {label}
+                    </div>
+                    <div className="truncate text-xs font-medium text-white">{value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </aside>
         </div>
@@ -961,21 +1008,25 @@ export default function BusinessProfileView() {
         </Card>
       ) : null}
 
-      <Card className="mb-6" style={themeStyle}>
-        <CardHeader>
-          <CardTitle>Trust & Page Signals</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-2">
-          {trustProofItems.map((item) => (
-            <div
-              key={item}
-              className="rounded-lg border bg-background/40 p-4 text-sm text-muted-foreground"
-            >
-              {item}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <Accordion
+        type="single"
+        collapsible
+        className="mb-6 rounded-lg border border-white/10 bg-white/[0.03] px-4"
+        style={themeStyle}
+      >
+        <AccordionItem value="trust" className="border-white/10">
+          <AccordionTrigger className="text-left text-sm font-semibold text-white hover:no-underline">
+            Trust and page signals
+          </AccordionTrigger>
+          <AccordionContent className="grid gap-3 md:grid-cols-2">
+            {trustProofItems.map((item) => (
+              <div key={item} className="rounded-lg border border-white/10 bg-black/20 p-3">
+                {item}
+              </div>
+            ))}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       {bookingConfig?.enabled ? (
         <Card className="mb-6" style={themeStyle}>
@@ -1021,22 +1072,9 @@ export default function BusinessProfileView() {
               </p>
               <p className="text-sm text-muted-foreground mb-4">{locationLabel || localArea}</p>
               <div className="flex flex-col items-center gap-2">
-                <Button
-                  size="lg"
-                  data-testid="bp-contact-cta"
-                  onClick={() => {
-                    // Route to Direct Connect with business context
-                    // wouter doesn't support state, so we pass via query params
-                    const params = new URLSearchParams({
-                      prefill_businessName: profile.name,
-                      prefill_businessSlug: profile.slug,
-                      prefill_countyFips: profile.countyFips || "",
-                    });
-                    setLocation(`/direct-connect?${params.toString()}`);
-                  }}
-                >
+                <Button size="lg" data-testid="bp-contact-cta" onClick={handleDirectConnect}>
                   <MessageSquare className="h-5 w-5 mr-2" />
-                  {profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
+                  {profile.ctaConfig?.primary?.label || "Start Direct Connect"}
                 </Button>
 
                 {/* Directory-only: verified users can call after Decision Card confirmation */}

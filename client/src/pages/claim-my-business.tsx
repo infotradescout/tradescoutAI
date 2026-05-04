@@ -13,7 +13,17 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { US_STATES_COUNTIES } from "@shared/states-counties";
-import { Building2, ArrowRight, Search, ShieldCheck, MapPin, Globe2, Phone } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  ClipboardCheck,
+  Globe2,
+  MapPin,
+  Phone,
+  Search,
+  ShieldCheck,
+} from "lucide-react";
 
 type CountyLite = { fips: string; stateCode: string; name: string };
 type ClaimSearchItem = {
@@ -83,17 +93,30 @@ export default function ClaimMyBusinessPage() {
   const [creating, setCreating] = useState(false);
   const [claiming, setClaiming] = useState(false);
 
+  const applyResolvedBusiness = (biz: ClaimSearchItem) => {
+    setResolved(biz);
+    if (!q.trim() && biz.name) setQ(biz.name);
+
+    const firstCounty = Array.isArray(biz.counties) ? biz.counties[0] : null;
+    if (!stateCode && firstCounty?.stateCode) setStateCode(firstCounty.stateCode);
+    if (!countyFips && firstCounty?.fips) setCountyFips(firstCounty.fips);
+  };
+
   useEffect(() => {
     const slug = initialSlug;
-    if (!slug || initialBusinessId) return;
+    const businessId = initialBusinessId;
+    if (!slug && !businessId) return;
 
     setResolving(true);
-    fetch(`/api/business-claim/resolve?slug=${encodeURIComponent(slug)}`)
+    const sp = new URLSearchParams();
+    if (businessId) sp.set("businessId", businessId);
+    else sp.set("slug", slug);
+    fetch(`/api/business-claim/resolve?${sp.toString()}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         const biz = data?.business;
         if (biz?.id && biz?.slug) {
-          setResolved(biz as ClaimSearchItem);
+          applyResolvedBusiness(biz as ClaimSearchItem);
         }
       })
       .catch(() => null)
@@ -215,10 +238,16 @@ export default function ClaimMyBusinessPage() {
       const biz = result?.business as ClaimSearchItem | undefined;
       if (!biz?.id) throw new Error("Failed to create business shell");
       toast({
-        title: result?.created ? "Created" : "Already listed",
-        description: "Continue to claim this business.",
+        title: result?.created ? "Created from Maps" : "Matched in TradeScout",
+        description: isAuthenticated
+          ? "Now verifying your account against the business."
+          : "Continue account setup to claim it.",
       });
-      startSignupWithClaim(biz.id);
+      if (isAuthenticated) {
+        await claimNow(biz.id);
+      } else {
+        startSignupWithClaim(biz.id);
+      }
     } catch (e: any) {
       toast({
         title: "Create failed",
@@ -243,27 +272,45 @@ export default function ClaimMyBusinessPage() {
             <div>
               <CardTitle className="flex items-center gap-2 text-2xl text-white">
                 <Building2 className="h-6 w-6 text-ts-orange" />
-                Claim your business
+                Claim from Google Maps
               </CardTitle>
               <CardDescription className="mt-2 max-w-2xl text-sm text-white/62">
-                Start from the Google Maps listing, then TradeScout creates or matches the claimable
-                profile. Ownership still requires account verification before anything is attached.
+                Select the Maps listing, match it to TradeScout, then verify ownership before the
+                business attaches to your account.
               </CardDescription>
             </div>
             <div className="rounded-lg border border-ts-orange/30 bg-ts-orange/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-ts-orange">
-              Maps lookup first
+              Maps-first claim
             </div>
           </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-3">
+            {[
+              { label: "1", title: "Find on Maps", icon: Search },
+              { label: "2", title: "Match profile", icon: ClipboardCheck },
+              { label: "3", title: "Verify owner", icon: ShieldCheck },
+            ].map(({ label, title, icon: Icon }) => (
+              <div key={label} className="flex items-center gap-3 rounded-lg bg-white/[0.04] p-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ts-orange/15 text-xs font-bold text-ts-orange">
+                  {label}
+                </div>
+                <div className="min-w-0">
+                  <Icon className="mb-1 h-4 w-4 text-ts-orange" />
+                  <div className="truncate text-sm font-semibold text-white">{title}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Resolve view (from /business/:slug) */}
-          {initialSlug && !initialBusinessId ? (
+          {initialSlug || initialBusinessId ? (
             <div className="rounded-xl border border-white/10 bg-black/25 p-3">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-xs uppercase tracking-[0.14em] text-white/60">
-                    From business profile
+                    From public profile
                   </div>
                   <div className="mt-1 font-semibold text-white truncate">
                     {resolved?.name || initialSlug}
@@ -287,7 +334,7 @@ export default function ClaimMyBusinessPage() {
                     else startSignupWithClaim(id);
                   }}
                 >
-                  <ShieldCheck className="h-4 w-4 mr-2" />
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
                   {isAuthenticated ? (claiming ? "Claiming…" : "Claim now") : "Continue"}
                 </Button>
               </div>
@@ -440,7 +487,7 @@ export default function ClaimMyBusinessPage() {
               </div>
             </div>
             <Button onClick={createAndClaim} disabled={creating}>
-              {creating ? "Creating…" : "Create + claim"}
+              {creating ? "Checking…" : "Continue with Maps match"}
             </Button>
           </div>
 
