@@ -789,19 +789,29 @@ function buildRobotsGroup(userAgent: string): string[] {
 
 function getIndexNowKey(): string {
   return String(
-    process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || "804ab104bac2473e8396bcc4d1112c2d"
+    process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || "c41a532d2d0f4e5ca37a53bd3d138495"
   ).trim();
 }
 
-router.get(["/indexnow-key.txt", "/804ab104bac2473e8396bcc4d1112c2d.txt"], async (req, res) => {
-  const indexNowKey = getIndexNowKey();
-  if (!indexNowKey) {
-    res.status(404).type("text/plain").send("IndexNow key is not configured.\n");
-    return;
-  }
+router.get(
+  [
+    "/indexnow-key.txt",
+    "/804ab104bac2473e8396bcc4d1112c2d.txt",
+    "/c41a532d2d0f4e5ca37a53bd3d138495.txt",
+  ],
+  async (req, res) => {
+    const indexNowKey =
+      req.path === "/804ab104bac2473e8396bcc4d1112c2d.txt"
+        ? "804ab104bac2473e8396bcc4d1112c2d"
+        : getIndexNowKey();
+    if (!indexNowKey) {
+      res.status(404).type("text/plain").send("IndexNow key is not configured.\n");
+      return;
+    }
 
-  res.type("text/plain").send(`${indexNowKey}\n`);
-});
+    res.type("text/plain").send(`${indexNowKey}\n`);
+  }
+);
 
 router.get("/robots.txt", async (req, res) => {
   const baseUrl = getCanonicalBaseUrl(req);
