@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { counties, observationSources, observations, states } from "@shared/schema";
+import {
+  counties,
+  homeScoutListings,
+  homeScoutMarketBuckets,
+  observationSources,
+  observations,
+  states,
+} from "@shared/schema";
 
 const RUN_ID = `obs-${Date.now()}`;
 const TEST_STATE_ID = `${RUN_ID}-state`;
@@ -40,6 +47,10 @@ describeWithDb("Canonical Observation Spine (Phase 0A)", () => {
   });
 
   afterAll(async () => {
+    await db
+      .delete(homeScoutMarketBuckets)
+      .where(eq(homeScoutMarketBuckets.countyFips, TEST_COUNTY_FIPS));
+    await db.delete(homeScoutListings).where(eq(homeScoutListings.countyFips, TEST_COUNTY_FIPS));
     await db.delete(observationSources).where(eq(observationSources.countyFips, TEST_COUNTY_FIPS));
     await db.delete(observations).where(eq(observations.countyFips, TEST_COUNTY_FIPS));
     await db.delete(counties).where(eq(counties.fips, TEST_COUNTY_FIPS));
