@@ -13,6 +13,7 @@ import { eq, inArray, and } from "drizzle-orm";
 
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasTestDb ? describe : describe.skip;
+const HOOK_TIMEOUT_MS = 30_000;
 
 describeDb("HOA API helpers", () => {
   const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -34,7 +35,6 @@ describeDb("HOA API helpers", () => {
       await db.delete(homeownerAssociations).where(eq(homeownerAssociations.id, hoaId));
     }
     await db.delete(homeownerAssociations).where(eq(homeownerAssociations.name, hoaName));
-    await db.delete(users).where(inArray(users.id, [memberUserId, nonMemberUserId]));
   }
 
   beforeAll(async () => {
@@ -95,11 +95,11 @@ describeDb("HOA API helpers", () => {
       .returning();
 
     voteId = vote.id;
-  });
+  }, HOOK_TIMEOUT_MS);
 
   afterAll(async () => {
     await cleanupFixtures();
-  });
+  }, HOOK_TIMEOUT_MS);
 
   it("getHoaForUser returns memberships for member user", async () => {
     const memberships = await (storage as any).getHoaForUser(memberUserId);

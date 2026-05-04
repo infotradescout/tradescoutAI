@@ -52,25 +52,29 @@ export async function ensureSuperAdminConnectionForUser(
 
     await db.execute(sql`
       insert into user_follows (follower_id, following_id)
-      select ${superAdminUserId}, u.id
-      from users u
+      select su.id, u.id
+      from users su
+      join users u on u.id <> su.id
       where u.id <> ${superAdminUserId}
+        and su.id = ${superAdminUserId}
         and not exists (
           select 1 from user_follows f
-          where f.follower_id = ${superAdminUserId}
+          where f.follower_id = su.id
             and f.following_id = u.id
         )
     `);
 
     await db.execute(sql`
       insert into user_follows (follower_id, following_id)
-      select u.id, ${superAdminUserId}
-      from users u
+      select u.id, su.id
+      from users su
+      join users u on u.id <> su.id
       where u.id <> ${superAdminUserId}
+        and su.id = ${superAdminUserId}
         and not exists (
           select 1 from user_follows f
           where f.follower_id = u.id
-            and f.following_id = ${superAdminUserId}
+            and f.following_id = su.id
         )
     `);
 
@@ -88,18 +92,20 @@ export async function ensureSuperAdminConnectionForUser(
         updated_at
       )
       select
-        ${superAdminUserId},
+        su.id,
         u.id,
         'accepted',
         ${SUPER_ADMIN_AUTHORITY_GATE},
         'platform_support',
         'Platform support connection',
         now(),
-        ${superAdminUserId},
+        su.id,
         ${SUPER_ADMIN_RESPONSE_REASON},
         now()
-      from users u
+      from users su
+      join users u on u.id <> su.id
       where u.id <> ${superAdminUserId}
+        and su.id = ${superAdminUserId}
       on conflict (requester_id, target_user_id)
       do update set
         status = 'accepted',
@@ -127,17 +133,19 @@ export async function ensureSuperAdminConnectionForUser(
       )
       select
         u.id,
-        ${superAdminUserId},
+        su.id,
         'accepted',
         ${SUPER_ADMIN_AUTHORITY_GATE},
         'platform_support',
         'Platform support connection',
         now(),
-        ${superAdminUserId},
+        su.id,
         ${SUPER_ADMIN_RESPONSE_REASON},
         now()
-      from users u
+      from users su
+      join users u on u.id <> su.id
       where u.id <> ${superAdminUserId}
+        and su.id = ${superAdminUserId}
       on conflict (requester_id, target_user_id)
       do update set
         status = 'accepted',
@@ -156,23 +164,29 @@ export async function ensureSuperAdminConnectionForUser(
 
   await db.execute(sql`
     insert into user_follows (follower_id, following_id)
-    select ${normalizedUserId}, ${superAdminUserId}
-    where not exists (
+    select u.id, su.id
+    from users u
+    join users su on su.id = ${superAdminUserId}
+    where u.id = ${normalizedUserId}
+      and not exists (
       select 1
       from user_follows
-      where follower_id = ${normalizedUserId}
-        and following_id = ${superAdminUserId}
+      where follower_id = u.id
+        and following_id = su.id
     )
   `);
 
   await db.execute(sql`
     insert into user_follows (follower_id, following_id)
-    select ${superAdminUserId}, ${normalizedUserId}
-    where not exists (
+    select su.id, u.id
+    from users u
+    join users su on su.id = ${superAdminUserId}
+    where u.id = ${normalizedUserId}
+      and not exists (
       select 1
       from user_follows
-      where follower_id = ${superAdminUserId}
-        and following_id = ${normalizedUserId}
+      where follower_id = su.id
+        and following_id = u.id
     )
   `);
 
@@ -189,18 +203,20 @@ export async function ensureSuperAdminConnectionForUser(
       response_reason,
       updated_at
     )
-    values (
-      ${normalizedUserId},
-      ${superAdminUserId},
+    select
+      u.id,
+      su.id,
       'accepted',
       ${SUPER_ADMIN_AUTHORITY_GATE},
       'platform_support',
       'Platform support connection',
       now(),
-      ${superAdminUserId},
+      su.id,
       ${SUPER_ADMIN_RESPONSE_REASON},
       now()
-    )
+    from users u
+    join users su on su.id = ${superAdminUserId}
+    where u.id = ${normalizedUserId}
     on conflict (requester_id, target_user_id)
     do update set
       status = 'accepted',
