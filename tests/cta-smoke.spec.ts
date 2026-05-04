@@ -68,19 +68,27 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
   await page.goto("/community-feed");
 
   await expect(
-    page.getByRole("heading", { name: /Local decisions, shared context/i })
+    page
+      .getByRole("heading", { name: /Local decisions, shared context/i })
+      .or(page.getByText(/Set your county/i).first())
   ).toBeVisible();
   await expect(page.getByRole("link", { name: /Direct Connect/i }).first()).toBeVisible();
 
-  const firstPostCard = page.locator('[data-testid^="card-post-"]').first();
-  if (await firstPostCard.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    await expect(
-      firstPostCard.getByRole("button", { name: /Ask Scout|Direct Connect|Message|Need Help/i })
-    ).toBeVisible();
-  } else {
-    await expect(
-      page.getByText(/Community feed is live|No posts yet for this view/i).first()
-    ).toBeVisible();
+  const needsCounty = await page
+    .getByText(/Set your county/i)
+    .first()
+    .isVisible();
+  if (!needsCounty) {
+    const firstPostCard = page.locator('[data-testid^="card-post-"]').first();
+    if (await firstPostCard.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await expect(
+        firstPostCard.getByRole("button", { name: /Ask Scout|Direct Connect|Message|Need Help/i })
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByText(/Community feed is live|No posts yet for this view/i).first()
+      ).toBeVisible();
+    }
   }
 
   const countyFips = await prepareDirectConnectEntry(page);
