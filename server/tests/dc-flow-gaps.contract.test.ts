@@ -57,8 +57,8 @@ describe("Complete endpoint — recordOutcomeEvent on DC completion", () => {
   it("passes the correct outcome type to recordOutcomeEvent", () => {
     const completeIdx = DC_ROUTES.indexOf("/api/direct-connect/requests/:id/complete");
     const completeBlock = DC_ROUTES.slice(completeIdx, completeIdx + 4000);
-    // Should record a "completed" action outcome
-    expect(completeBlock).toContain('action: "completed" as const');
+    // Should record a positive completion outcome that matches the persisted enum.
+    expect(completeBlock).toContain('action: "completed_flow" as const');
   });
 
   it("wraps recordOutcomeEvent in a try/catch so completion is not blocked", () => {

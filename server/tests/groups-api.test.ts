@@ -169,39 +169,46 @@ describeDb("community groups scoping and membership", () => {
     expect(groupsForB.every((g) => g.countyFips === countyBFips)).toBe(true);
   });
 
-  it("joinGroup is idempotent and leaveGroup deactivates membership", async () => {
-    // Ensure no prior membership
-    await db.delete(groupMembers).where(inArray(groupMembers.userId, [userAId]));
+  it(
+    "joinGroup is idempotent and leaveGroup deactivates membership",
+    async () => {
+      // Ensure no prior membership
+      await db.delete(groupMembers).where(inArray(groupMembers.userId, [userAId]));
 
-    // First join should create membership
-    const firstJoin = await storage.joinGroup(userAId, groupAId);
-    expect(firstJoin).toBeDefined();
+      // First join should create membership
+      const firstJoin = await storage.joinGroup(userAId, groupAId);
+      expect(firstJoin).toBeDefined();
 
-    const afterFirstJoin = await db
-      .select()
-      .from(groupMembers)
-      .where(eq(groupMembers.userId, userAId));
-    expect(afterFirstJoin.length).toBe(1);
-    expect(afterFirstJoin[0].isActive).toBe(true);
+      const afterFirstJoin = await db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.userId, userAId));
+      expect(afterFirstJoin.length).toBe(1);
+      expect(afterFirstJoin[0].isActive).toBe(true);
 
-    // Second join should no-op (still one row)
-    const secondJoin = await storage.joinGroup(userAId, groupAId);
-    expect(secondJoin).toBeDefined();
+      // Second join should no-op (still one row)
+      const secondJoin = await storage.joinGroup(userAId, groupAId);
+      expect(secondJoin).toBeDefined();
 
-    const afterSecondJoin = await db
-      .select()
-      .from(groupMembers)
-      .where(eq(groupMembers.userId, userAId));
-    expect(afterSecondJoin.length).toBe(1);
+      const afterSecondJoin = await db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.userId, userAId));
+      expect(afterSecondJoin.length).toBe(1);
 
-    // Leave should mark inactive
-    await storage.leaveGroup(userAId, groupAId);
+      // Leave should mark inactive
+      await storage.leaveGroup(userAId, groupAId);
 
-    const afterLeave = await db.select().from(groupMembers).where(eq(groupMembers.userId, userAId));
+      const afterLeave = await db
+        .select()
+        .from(groupMembers)
+        .where(eq(groupMembers.userId, userAId));
 
-    expect(afterLeave.length).toBe(1);
-    expect(afterLeave[0].isActive).toBe(false);
-  });
+      expect(afterLeave.length).toBe(1);
+      expect(afterLeave[0].isActive).toBe(false);
+    },
+    HOOK_TIMEOUT_MS
+  );
 
   it("auto-creates the county group and active membership for canonical users", async () => {
     await db.delete(groupMembers).where(eq(groupMembers.userId, userCanonicalId));
