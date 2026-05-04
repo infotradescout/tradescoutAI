@@ -777,6 +777,11 @@ async function ensureCriticalSchema() {
 
     await client.query(`
       ALTER TABLE businesses
+      ALTER COLUMN owner_user_id DROP NOT NULL
+    `);
+
+    await client.query(`
+      ALTER TABLE businesses
       ADD COLUMN IF NOT EXISTS sources jsonb NOT NULL DEFAULT '[]'::jsonb
     `);
 
@@ -1002,6 +1007,29 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE contact_permissions
+      ADD COLUMN IF NOT EXISTS last_request_type varchar,
+      ADD COLUMN IF NOT EXISTS last_request_preview text,
+      ADD COLUMN IF NOT EXISTS last_request_notification_id varchar,
+      ADD COLUMN IF NOT EXISTS authority_gate varchar(30),
+      ADD COLUMN IF NOT EXISTS source_decision_card_id varchar,
+      ADD COLUMN IF NOT EXISTS source_scout_recommendation_id varchar,
+      ADD COLUMN IF NOT EXISTS intent varchar,
+      ADD COLUMN IF NOT EXISTS decision_scope text,
+      ADD COLUMN IF NOT EXISTS confidence_score numeric(4,3),
+      ADD COLUMN IF NOT EXISTS risk_flags text[],
+      ADD COLUMN IF NOT EXISTS county_fips varchar(5),
+      ADD COLUMN IF NOT EXISTS requester_trust_snapshot_id varchar,
+      ADD COLUMN IF NOT EXISTS target_trust_snapshot_id varchar,
+      ADD COLUMN IF NOT EXISTS responded_at timestamp,
+      ADD COLUMN IF NOT EXISTS responded_by varchar REFERENCES users(id),
+      ADD COLUMN IF NOT EXISTS response_reason text,
+      ADD COLUMN IF NOT EXISTS cooldown_until timestamp,
+      ADD COLUMN IF NOT EXISTS created_at timestamp DEFAULT now(),
+      ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now()
+    `);
+
+    await client.query(`
       CREATE UNIQUE INDEX IF NOT EXISTS uidx_contact_permissions_pair
       ON contact_permissions (requester_id, target_user_id)
     `);
@@ -1024,6 +1052,62 @@ async function ensureCriticalSchema() {
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_contact_permissions_county
       ON contact_permissions (county_fips)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS contact_permission_events (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        contact_permission_id varchar REFERENCES contact_permissions(id) ON DELETE cascade,
+        requester_id varchar NOT NULL REFERENCES users(id) ON DELETE cascade,
+        target_user_id varchar NOT NULL REFERENCES users(id) ON DELETE cascade,
+        actor_id varchar REFERENCES users(id),
+        event_type varchar NOT NULL,
+        from_status contact_permission_status,
+        to_status contact_permission_status,
+        reason_code varchar,
+        metadata jsonb,
+        authority_gate varchar(30),
+        source_decision_card_id varchar,
+        source_scout_recommendation_id varchar,
+        intent varchar,
+        decision_scope text,
+        confidence_score numeric(4,3),
+        risk_flags text[],
+        county_fips varchar(5),
+        created_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      ALTER TABLE contact_permission_events
+      ADD COLUMN IF NOT EXISTS contact_permission_id varchar REFERENCES contact_permissions(id) ON DELETE cascade,
+      ADD COLUMN IF NOT EXISTS requester_id varchar REFERENCES users(id) ON DELETE cascade,
+      ADD COLUMN IF NOT EXISTS target_user_id varchar REFERENCES users(id) ON DELETE cascade,
+      ADD COLUMN IF NOT EXISTS actor_id varchar REFERENCES users(id),
+      ADD COLUMN IF NOT EXISTS event_type varchar,
+      ADD COLUMN IF NOT EXISTS from_status contact_permission_status,
+      ADD COLUMN IF NOT EXISTS to_status contact_permission_status,
+      ADD COLUMN IF NOT EXISTS reason_code varchar,
+      ADD COLUMN IF NOT EXISTS metadata jsonb,
+      ADD COLUMN IF NOT EXISTS authority_gate varchar(30),
+      ADD COLUMN IF NOT EXISTS source_decision_card_id varchar,
+      ADD COLUMN IF NOT EXISTS source_scout_recommendation_id varchar,
+      ADD COLUMN IF NOT EXISTS intent varchar,
+      ADD COLUMN IF NOT EXISTS decision_scope text,
+      ADD COLUMN IF NOT EXISTS confidence_score numeric(4,3),
+      ADD COLUMN IF NOT EXISTS risk_flags text[],
+      ADD COLUMN IF NOT EXISTS county_fips varchar(5),
+      ADD COLUMN IF NOT EXISTS created_at timestamp DEFAULT now()
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_contact_permission_events_pair
+      ON contact_permission_events (requester_id, target_user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_contact_permission_events_contact
+      ON contact_permission_events (contact_permission_id)
     `);
 
     await client.query(`
