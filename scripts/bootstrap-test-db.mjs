@@ -1027,6 +1027,61 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS decision_cards (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        status varchar NOT NULL DEFAULT 'active',
+        intent varchar NOT NULL,
+        decision_scope text,
+        title varchar,
+        description text,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now(),
+        decided_at timestamp
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_decision_cards_user
+      ON decision_cards(user_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS marketplace_conversations (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        listing_id varchar NOT NULL,
+        buyer_id varchar NOT NULL REFERENCES users(id),
+        seller_id varchar NOT NULL REFERENCES users(id),
+        status varchar DEFAULT 'active',
+        last_message_at timestamp DEFAULT now(),
+        buyer_rating integer,
+        seller_rating integer,
+        buyer_feedback text,
+        seller_feedback text,
+        is_read_by_buyer boolean DEFAULT false,
+        is_read_by_seller boolean DEFAULT false,
+        intent varchar,
+        authority_gate varchar,
+        source_decision_card_id varchar,
+        source_scout_recommendation_id varchar,
+        confidence_score numeric(3,2),
+        decision_scope text,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_marketplace_conversations_buyer
+      ON marketplace_conversations(buyer_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_marketplace_conversations_seller
+      ON marketplace_conversations(seller_id)
+    `);
+
+    await client.query(`
       DO $$ BEGIN
         CREATE TYPE objective_intent_class AS ENUM (
           'unknown',

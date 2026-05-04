@@ -18,6 +18,7 @@ describe("direct-connect gate regressions", () => {
     expect(routeFile).toContain(
       "gatedContractors = baseContractors.filter((c: any) => compliantIds.includes(c.id));"
     );
+    expect(routeFile).toContain("businessCandidates = [];");
 
     // Regression guard: this previously caused fail-open behavior.
     expect(routeFile).not.toContain("if (compliantIds.length > 0)");

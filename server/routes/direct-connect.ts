@@ -697,38 +697,39 @@ export function registerDirectConnectRoutes(app: Express) {
     }
 
     // Compliance gate: only apply if this trade has explicit requirements.
-    // Must fail closed when no contractor satisfies required verification.
+    // Must fail closed when no provider satisfies required verification.
     let gatedContractors = baseContractors;
     const requirements = tradeRecord?.id
       ? await storage.getTradeRequirementsByTradeId(tradeRecord.id)
       : null;
-    if (!expandReach && requirements && !bypassVerificationGate) {
+    const hasExplicitRequirements = hasExplicitTradeRequirements(requirements);
+    if (!expandReach && requirements && hasExplicitRequirements && !bypassVerificationGate) {
       const requiresLicense = requirements.requiresLicense ?? false;
       const requiresInsurance = requirements.requiresInsurance ?? false;
       const requiresEin = requirements.requiresEin ?? false;
-      const hasExplicitRequirements = requiresLicense || requiresInsurance || requiresEin;
+      const userIds = baseContractors
+        .map((c: any) => c.userId as string | undefined)
+        .filter((id): id is string => Boolean(id));
+      const compliance =
+        userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
 
-      if (hasExplicitRequirements) {
-        const userIds = baseContractors
-          .map((c: any) => c.userId as string | undefined)
-          .filter((id): id is string => Boolean(id));
-        const compliance =
-          userIds.length > 0 ? await storage.getUserVerificationSummary(userIds) : {};
+      const compliantIds = baseContractors
+        .filter((c: any) => {
+          if (!c.userId) return false;
+          const summary = compliance[c.userId];
+          if (!summary) return false;
+          if (requiresLicense && !summary.hasLicense) return false;
+          if (requiresInsurance && !summary.hasInsurance) return false;
+          if (requiresEin && !summary.hasEin) return false;
+          return true;
+        })
+        .map((c: any) => c.id as string);
 
-        const compliantIds = baseContractors
-          .filter((c: any) => {
-            if (!c.userId) return false;
-            const summary = compliance[c.userId];
-            if (!summary) return false;
-            if (requiresLicense && !summary.hasLicense) return false;
-            if (requiresInsurance && !summary.hasInsurance) return false;
-            if (requiresEin && !summary.hasEin) return false;
-            return true;
-          })
-          .map((c: any) => c.id as string);
+      gatedContractors = baseContractors.filter((c: any) => compliantIds.includes(c.id));
+    }
 
-        gatedContractors = baseContractors.filter((c: any) => compliantIds.includes(c.id));
-      }
+    if (hasExplicitRequirements && !bypassVerificationGate && !isOpenCategory) {
+      businessCandidates = [];
     }
 
     // For open-category requests, businesses alone are sufficient — don't require contractors.

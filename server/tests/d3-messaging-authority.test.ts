@@ -12,7 +12,7 @@
  * 6. Confidence Blocking Tests (<30% confidence blocked)
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { db } from "../../src/db/drizzle-mock";
 import { users, marketplaceConversations, decisionCards, contactPermissions } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -23,7 +23,10 @@ import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 // set TEST_DATABASE_URL to a local Postgres URL to enable these tests.
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeIntegration = hasTestDb ? describe : describe.skip;
+const INTEGRATION_TIMEOUT_MS = 30000;
 let currentAgent: any = null;
+
+vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });
 
 async function createTestUser(overrides = {}) {
   const role = ((overrides as any).role ?? "homeowner") as any;
