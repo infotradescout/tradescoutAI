@@ -40,6 +40,12 @@ async function resolveBaseUrl() {
     return preferred;
   }
 
+  // In CI, Playwright owns server startup through playwright.config.ts webServer.
+  // Do not fail the gate before Playwright has a chance to boot the app.
+  if (process.env.CI === "true") {
+    return preferred;
+  }
+
   // Only scan fallback local ports when BASE_URL/E2E_BASE_URL was not explicitly provided.
   if (explicitBaseUrl) {
     return null;
