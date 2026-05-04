@@ -113,6 +113,7 @@ jobs:
           EOF
 
       - name: Run Bot Army tests
+        id: bot-army-tests
         if: github.event_name != 'schedule'
         run: >
           npx playwright test
@@ -132,6 +133,7 @@ jobs:
           CI: true
 
       - name: Run Bot Army full sweep
+        id: bot-army-full-sweep
         if: github.event_name == 'schedule'
         run: npm run test:e2e
         env:
@@ -164,12 +166,14 @@ jobs:
 
       - name: Publish test results
         if: always()
+        continue-on-error: true
         uses: dorny/test-reporter@v1
         with:
           name: Playwright Test Results
           path: '.playwright/test-results/junit.xml'
           reporter: 'java-junit'
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && always()
@@ -187,7 +191,7 @@ jobs:
             });
 
       - name: Fail if tests failed
-        if: failure()
+        if: steps.bot-army-tests.outcome == 'failure' || steps.bot-army-full-sweep.outcome == 'failure'
         run: |
           echo "Bot Army tests failed. Check artifacts for details."
           exit 1
