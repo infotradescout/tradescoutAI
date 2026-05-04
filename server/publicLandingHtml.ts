@@ -64,7 +64,7 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
   );
   const description = displayVariant
     ? `TradeScout for ${displayVariant}. Scout coordinates discovery, trust, intent, decision, and contact so local work moves forward without lead spam, pay-to-play ranking, or platform confusion.`
-    : "The trusted local business directory. Find any local business near you, from restaurants and retail to home services. Scout coordinates discovery, trust, and contact without lead spam or pay-to-play ranking.";
+    : "Find trusted local businesses near you. Scout coordinates discovery, trust, and contact without lead spam, pay-to-play ranking, or platform confusion.";
 
   return {
     title,
