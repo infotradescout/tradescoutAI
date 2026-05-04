@@ -9,6 +9,7 @@ import { communityCauses, communityCauseVotes, profiles, users } from "@shared/s
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const shouldRunIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
 const describeDb = hasTestDb && shouldRunIntegration ? describe : describe.skip;
+const HOOK_TIMEOUT_MS = 30_000;
 
 describeDb("community causes route integration", () => {
   const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -129,11 +130,11 @@ describeDb("community causes route integration", () => {
         { causeId: causeIds[1], userId: voterIds[1] } as any,
         { causeId: causeIds[2], userId: voterIds[2] } as any,
       ]);
-  });
+  }, HOOK_TIMEOUT_MS);
 
   afterAll(async () => {
     await cleanupFixtures();
-  });
+  }, HOOK_TIMEOUT_MS);
 
   it("returns profile causes with allocation shares summing to exactly 100.00", async () => {
     const app = express();

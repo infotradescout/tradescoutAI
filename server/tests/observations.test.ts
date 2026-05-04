@@ -9,10 +9,11 @@ import {
   states,
 } from "@shared/schema";
 
-const RUN_ID = `obs-${Date.now()}`;
+const RUN_SUFFIX = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+const RUN_ID = `obs-${RUN_SUFFIX}`;
 const TEST_STATE_ID = `${RUN_ID}-state`;
-const TEST_STATE_CODE = "ZZ";
-const TEST_COUNTY_FIPS = "99001";
+const TEST_STATE_CODE = `Z${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+const TEST_COUNTY_FIPS = String(90000 + Math.floor(Math.random() * 9999)).padStart(5, "0");
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeWithDb = hasTestDb ? describe : describe.skip;
 let db!: (typeof import("../db"))["db"];
@@ -54,7 +55,6 @@ describeWithDb("Canonical Observation Spine (Phase 0A)", () => {
     await db.delete(observationSources).where(eq(observationSources.countyFips, TEST_COUNTY_FIPS));
     await db.delete(observations).where(eq(observations.countyFips, TEST_COUNTY_FIPS));
     await db.delete(counties).where(eq(counties.fips, TEST_COUNTY_FIPS));
-    await db.delete(states).where(eq(states.code, TEST_STATE_CODE));
   });
 
   test("inserts canonical observations", async () => {
