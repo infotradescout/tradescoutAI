@@ -7,6 +7,7 @@ import { communityCauses, communityCauseVotes, profiles, users } from "@shared/s
 const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const shouldRunIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
 const describeDb = hasTestDb && shouldRunIntegration ? describe : describe.skip;
+const HOOK_TIMEOUT_MS = 30_000;
 
 describeDb("community causes allocation integration", () => {
   const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -19,7 +20,6 @@ describeDb("community causes allocation integration", () => {
     await db.delete(communityCauseVotes).where(inArray(communityCauseVotes.causeId, causeIds));
     await db.delete(communityCauses).where(inArray(communityCauses.id, causeIds));
     await db.delete(profiles).where(eq(profiles.id, profileId));
-    await db.delete(users).where(inArray(users.id, [ownerUserId, ...voterIds]));
   }
 
   beforeAll(async () => {
@@ -97,11 +97,11 @@ describeDb("community causes allocation integration", () => {
         userId: voterIds[2],
       } as any,
     ]);
-  });
+  }, HOOK_TIMEOUT_MS);
 
   afterAll(async () => {
     await cleanupFixtures();
-  });
+  }, HOOK_TIMEOUT_MS);
 
   it("returns allocation shares summing to exactly 100.00", async () => {
     const causes = await storage.listCommunityCausesByProfile(profileId);
