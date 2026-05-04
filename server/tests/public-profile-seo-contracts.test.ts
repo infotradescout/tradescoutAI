@@ -11,7 +11,8 @@ describe("public profile SEO contracts", () => {
   it("profiles router exposes llms guidance and auto SEO fallback metadata", () => {
     const source = read("server/routes/profiles.ts");
     expect(source).toContain('router.get("/llms.txt"');
-    expect(source).toContain('router.get("/indexnow-key.txt"');
+    expect(source).toContain('"/indexnow-key.txt"');
+    expect(source).toContain("/804ab104bac2473e8396bcc4d1112c2d.txt");
     expect(source).toContain("BING_INDEXNOW_KEY");
     expect(source).toContain("buildAutoSeoMeta");
     expect(source).toContain("seoMeta: effectiveSeoMeta");

@@ -788,10 +788,12 @@ function buildRobotsGroup(userAgent: string): string[] {
 }
 
 function getIndexNowKey(): string {
-  return String(process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || "").trim();
+  return String(
+    process.env.INDEXNOW_KEY || process.env.BING_INDEXNOW_KEY || "804ab104bac2473e8396bcc4d1112c2d"
+  ).trim();
 }
 
-router.get("/indexnow-key.txt", async (req, res) => {
+router.get(["/indexnow-key.txt", "/804ab104bac2473e8396bcc4d1112c2d.txt"], async (req, res) => {
   const indexNowKey = getIndexNowKey();
   if (!indexNowKey) {
     res.status(404).type("text/plain").send("IndexNow key is not configured.\n");
