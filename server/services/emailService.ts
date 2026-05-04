@@ -108,7 +108,7 @@ class EmailService {
     }
 
     if (this.provider === "sendgrid") {
-      const content = [];
+      const content: Array<{ type: "text/html" | "text/plain"; value: string }> = [];
       if (params.html) content.push({ type: "text/html", value: params.html });
       if (params.text) content.push({ type: "text/plain", value: params.text });
 

@@ -29,6 +29,14 @@ function numberEnv(name, fallback) {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function virtualUserIp(index) {
+  const normalized = Math.max(0, index);
+  const thirdOctet = Math.floor(normalized / 254) % 255;
+  const fourthOctet = (normalized % 254) + 1;
+  // RFC 2544 benchmarking range; never a routable client address.
+  return `198.18.${thirdOctet}.${fourthOctet}`;
+}
+
 async function run() {
   const baseUrl = getBaseUrl();
   const scenario = getScenario();
@@ -45,6 +53,7 @@ async function run() {
   const duration = numberEnv("DURATION_SEC", 20);
   const connections = numberEnv("CONNECTIONS", 25);
   const pipelining = numberEnv("PIPELINING", 1);
+  const virtualUsers = Math.max(1, numberEnv("VIRTUAL_USERS", Math.max(1000, connections * 20)));
 
   const endpointsByScenario = {
     public: [
@@ -73,12 +82,28 @@ async function run() {
     throw new Error(`Unknown SCENARIO '${scenario}'. Use: ${Object.keys(endpointsByScenario).join(", ")}`);
   }
 
+  let issuedRequests = 0;
+  const requestsWithVirtualUsers = requests.map((request) => ({
+    ...request,
+    setupRequest: (req) => {
+      const ip = virtualUserIp(issuedRequests++ % virtualUsers);
+      return {
+        ...req,
+        headers: {
+          ...req.headers,
+          "X-Forwarded-For": ip,
+          "X-Real-IP": ip,
+        },
+      };
+    },
+  }));
+
   const result = await autocannon({
     url: baseUrl,
     connections,
     duration,
     pipelining,
-    requests,
+    requests: requestsWithVirtualUsers,
     headers: {
       Accept: "application/json",
       "User-Agent": "tradescout-loadtest/autocannon",
@@ -102,6 +127,7 @@ async function run() {
         durationSec: duration,
         connections,
         pipelining,
+        virtualUsers,
         sent: result.requests.sent,
         completed: result.requests.completed,
         errors: result.errors,

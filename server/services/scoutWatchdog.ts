@@ -363,7 +363,13 @@ export class ScoutWatchdog {
     affected_component: string;
     timestamp: number;
   }> {
-    const alerts = [];
+    const alerts: Array<{
+      alert_id: string;
+      severity: string;
+      description: string;
+      affected_component: string;
+      timestamp: number;
+    }> = [];
 
     for (const report of this.healthHistory) {
       for (const anomaly of report.anomalies_detected) {

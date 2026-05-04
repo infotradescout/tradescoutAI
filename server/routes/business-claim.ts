@@ -63,8 +63,13 @@ function cleanString(value: unknown, max = 500): string {
 
 const getGeneralSetting = async <T>(key: string, fallback: T): Promise<T> => {
   try {
-    const value = await storage.getSetting(key);
-    return (value ?? fallback) as T;
+    const settings = await storage.getSiteSettings("general");
+    const match = settings.find(
+      (setting: any) => setting.key === key && setting.isActive !== false
+    );
+    return (
+      match && typeof (match as any).value !== "undefined" ? (match as any).value : fallback
+    ) as T;
   } catch {
     return fallback;
   }

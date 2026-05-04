@@ -3,7 +3,12 @@ import { z } from "zod";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
-import { propertyLifecycleEvents, propertyParticipants, propertyPrograms, userHomes } from "@shared/schema";
+import {
+  propertyLifecycleEvents,
+  propertyParticipants,
+  propertyPrograms,
+  userHomes,
+} from "@shared/schema";
 import {
   addPropertyLifecycleEvent,
   createPropertyProgram,
@@ -22,7 +27,11 @@ function getUserId(req: any): string {
 
 const createPropertyProgramSchema = z.object({
   mode: z.enum(["build", "existing"]).default("existing"),
-  countyFips: z.string().trim().regex(/^[0-9]{5}$/).optional(),
+  countyFips: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{5}$/)
+    .optional(),
   stateCode: z.string().trim().length(2).optional(),
   status: z.enum(["draft", "active", "paused", "completed"]).optional(),
   addressJson: z.record(z.any()).optional(),
@@ -55,10 +64,12 @@ router.get("/api/property-programs", isAuthenticated, async (req: any, res) => {
     const participantRows = await db
       .select({ propertyProgramId: propertyParticipants.propertyProgramId })
       .from(propertyParticipants)
-      .where(and(eq(propertyParticipants.userId, userId), eq(propertyParticipants.status, "active")))
+      .where(
+        and(eq(propertyParticipants.userId, userId), eq(propertyParticipants.status, "active"))
+      )
       .limit(500);
 
-    const ids = Array.from(
+    const ids: string[] = Array.from(
       new Set(participantRows.map((r) => String(r.propertyProgramId)).filter(Boolean))
     );
 
@@ -105,7 +116,7 @@ router.post("/api/property-programs", isAuthenticated, async (req: any, res) => 
       countyFips = countyFips || String((home as any).countyFips || "");
       stateCode = stateCode || String((home as any).stateCode || "");
       propertyType = propertyType || ((home as any).propertyType ?? null);
-      yearBuilt = yearBuilt ?? ((home as any).yearBuilt ?? null);
+      yearBuilt = yearBuilt ?? (home as any).yearBuilt ?? null;
       addressJson = {
         ...(addressJson || {}),
         address1: (home as any).address1 ?? null,
@@ -159,8 +170,10 @@ router.get("/api/property-programs/:id", isAuthenticated, async (req: any, res) 
     const program = await requirePropertyProgramAccess({ propertyProgramId: id, userId });
     return res.json({ program });
   } catch (err: any) {
-    if (String(err?.message || "").includes("Not allowed")) return res.status(403).json({ message: "Not allowed" });
-    if (String(err?.message || "").includes("not found")) return res.status(404).json({ message: "Not found" });
+    if (String(err?.message || "").includes("Not allowed"))
+      return res.status(403).json({ message: "Not allowed" });
+    if (String(err?.message || "").includes("not found"))
+      return res.status(404).json({ message: "Not found" });
     console.error("[property-programs] get failed:", err);
     return res.status(500).json({ message: "Failed to load property program" });
   }
@@ -185,8 +198,10 @@ router.get("/api/property-programs/:id/events", isAuthenticated, async (req: any
 
     return res.json({ events });
   } catch (err: any) {
-    if (String(err?.message || "").includes("Not allowed")) return res.status(403).json({ message: "Not allowed" });
-    if (String(err?.message || "").includes("not found")) return res.status(404).json({ message: "Not found" });
+    if (String(err?.message || "").includes("Not allowed"))
+      return res.status(403).json({ message: "Not allowed" });
+    if (String(err?.message || "").includes("not found"))
+      return res.status(404).json({ message: "Not found" });
     console.error("[property-programs] events list failed:", err);
     return res.status(500).json({ message: "Failed to load events" });
   }
@@ -227,8 +242,10 @@ router.post("/api/property-programs/:id/events", isAuthenticated, async (req: an
     return res.status(201).json({ event: created });
   } catch (err: any) {
     if (err?.name === "ZodError") return res.status(400).json({ message: "Invalid payload" });
-    if (String(err?.message || "").includes("Not allowed")) return res.status(403).json({ message: "Not allowed" });
-    if (String(err?.message || "").includes("not found")) return res.status(404).json({ message: "Not found" });
+    if (String(err?.message || "").includes("Not allowed"))
+      return res.status(403).json({ message: "Not allowed" });
+    if (String(err?.message || "").includes("not found"))
+      return res.status(404).json({ message: "Not found" });
     console.error("[property-programs] event create failed:", err);
     return res.status(500).json({ message: "Failed to create event" });
   }
@@ -245,12 +262,15 @@ router.get("/api/property-programs/:id/homefax", isAuthenticated, async (req: an
     await requirePropertyProgramAccess({ propertyProgramId: id, userId });
 
     const existing = await getLatestPropertyHomefaxSnapshot({ propertyProgramId: id });
-    const snapshot = existing || (await recomputePropertyHomefaxSnapshot({ propertyProgramId: id }));
+    const snapshot =
+      existing || (await recomputePropertyHomefaxSnapshot({ propertyProgramId: id }));
 
     return res.json({ snapshot });
   } catch (err: any) {
-    if (String(err?.message || "").includes("Not allowed")) return res.status(403).json({ message: "Not allowed" });
-    if (String(err?.message || "").includes("not found")) return res.status(404).json({ message: "Not found" });
+    if (String(err?.message || "").includes("Not allowed"))
+      return res.status(403).json({ message: "Not allowed" });
+    if (String(err?.message || "").includes("not found"))
+      return res.status(404).json({ message: "Not found" });
     console.error("[property-programs] homefax failed:", err);
     return res.status(500).json({ message: "Failed to load homefax snapshot" });
   }
@@ -272,12 +292,13 @@ router.get("/api/property-programs/:id/readiness", isAuthenticated, async (req: 
 
     return res.json({ snapshot });
   } catch (err: any) {
-    if (String(err?.message || "").includes("Not allowed")) return res.status(403).json({ message: "Not allowed" });
-    if (String(err?.message || "").includes("not found")) return res.status(404).json({ message: "Not found" });
+    if (String(err?.message || "").includes("Not allowed"))
+      return res.status(403).json({ message: "Not allowed" });
+    if (String(err?.message || "").includes("not found"))
+      return res.status(404).json({ message: "Not found" });
     console.error("[property-programs] readiness failed:", err);
     return res.status(500).json({ message: "Failed to load readiness snapshot" });
   }
 });
 
 export const propertyProgramsRouter = router;
-

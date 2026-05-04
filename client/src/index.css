@@ -142,10 +142,27 @@ body.ts-ui-minimal {
 
 body.ts-ui-minimal .app-shell .ts-shell-header,
 body.ts-ui-minimal .app-shell .ts-shell-header-mobile {
-  backdrop-filter: blur(16px) saturate(110%);
+  position: relative;
+  overflow: hidden;
   background: color-mix(in oklab, var(--surface-frame) 90%, transparent) !important;
   border-bottom-color: color-mix(in oklab, var(--border-primary) 72%, transparent) !important;
   box-shadow: 0 8px 22px color-mix(in oklab, black 20%, transparent);
+}
+
+body.ts-ui-minimal .app-shell .ts-shell-header::before,
+body.ts-ui-minimal .app-shell .ts-shell-header-mobile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  backdrop-filter: blur(16px) saturate(110%);
+}
+
+body.ts-ui-minimal .app-shell .ts-shell-header > *,
+body.ts-ui-minimal .app-shell .ts-shell-header-mobile > * {
+  position: relative;
+  z-index: 1;
 }
 
 body.ts-ui-minimal .app-shell .ts-shell-main {
@@ -180,13 +197,28 @@ body.ts-ui-minimal .ts-bottom-nav {
 }
 
 body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-inner {
+  position: relative;
+  overflow: hidden;
   max-width: min(980px, calc(100% - 12px));
   margin: 0 auto 4px;
   border: 1px solid color-mix(in oklab, var(--border-primary) 76%, transparent);
   border-radius: 14px 14px 0 0;
   background: color-mix(in oklab, var(--surface-frame) 92%, transparent);
-  backdrop-filter: blur(16px) saturate(110%);
   box-shadow: 0 -10px 28px color-mix(in oklab, black 22%, transparent);
+}
+
+body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  backdrop-filter: blur(16px) saturate(110%);
+}
+
+body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-inner > * {
+  position: relative;
+  z-index: 1;
 }
 
 body.ts-ui-minimal .ts-bottom-nav .ts-bottom-nav-item {
@@ -215,9 +247,30 @@ body.ts-ui-minimal .ts-admin-header,
 body.ts-ui-minimal .ts-admin-left-nav-card,
 body.ts-ui-minimal .ts-admin-content-card,
 body.ts-ui-minimal .ts-admin-mobile-nav {
+  position: relative;
+  overflow: hidden;
   border-color: color-mix(in oklab, var(--border-primary) 74%, transparent) !important;
   background: color-mix(in oklab, var(--surface-card) 92%, transparent) !important;
+}
+
+body.ts-ui-minimal .ts-admin-header::before,
+body.ts-ui-minimal .ts-admin-left-nav-card::before,
+body.ts-ui-minimal .ts-admin-content-card::before,
+body.ts-ui-minimal .ts-admin-mobile-nav::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   backdrop-filter: blur(12px) saturate(106%);
+}
+
+body.ts-ui-minimal .ts-admin-header > *,
+body.ts-ui-minimal .ts-admin-left-nav-card > *,
+body.ts-ui-minimal .ts-admin-content-card > *,
+body.ts-ui-minimal .ts-admin-mobile-nav > * {
+  position: relative;
+  z-index: 1;
 }
 
 body.ts-ui-minimal .ts-admin-header {

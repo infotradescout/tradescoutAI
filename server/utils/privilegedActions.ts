@@ -87,10 +87,11 @@ export async function auditPrivilegedAction(event: {
 }) {
   await logAdminAction({
     ...event,
+    actorId: event.actorId ?? undefined,
     actorRole: event.actorRole || null,
     actorRoles: Array.isArray(event.actorRoles) ? event.actorRoles : [],
     targetType: event.targetType || null,
-    targetId: event.targetId || null,
+    targetId: event.targetId ?? undefined,
     resolutionSource: event.resolutionSource || null,
     reason: event.reason || null,
     lookupInput: event.lookupInput || null,

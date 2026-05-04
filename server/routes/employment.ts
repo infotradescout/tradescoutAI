@@ -1,6 +1,6 @@
 import type { Express, Request } from "express";
 import { z } from "zod";
-import { and, desc, eq, ilike, or } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { isAuthenticated } from "../auth";
 import { db } from "../db";
 import {
@@ -318,7 +318,7 @@ export function registerEmploymentRoutes(app: Express) {
               status: employmentPostApplications.status,
               createdAt: employmentPostApplications.createdAt,
               updatedAt: employmentPostApplications.updatedAt,
-              applicantName: users.fullName,
+              applicantName: sql<string>`trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, ''))`,
               applicantEmail: users.email,
             })
             .from(employmentPostApplications)
@@ -359,15 +359,19 @@ export function registerEmploymentRoutes(app: Express) {
           id: employmentPostApplications.id,
           postId: employmentPostApplications.postId,
           status: employmentPostApplications.status,
-          coverLetter: employmentPostApplications.coverLetter,
+          coverLetter: employmentPostApplications.message,
           createdAt: employmentPostApplications.createdAt,
           updatedAt: employmentPostApplications.updatedAt,
           post: {
             title: employmentPosts.title,
-            description: employmentPosts.description,
-            location: employmentPosts.location,
-            payRate: employmentPosts.payRate,
-            businessName: employmentPosts.businessName,
+            description: employmentPosts.body,
+            location: employmentPosts.city,
+            payRate: sql<string | null>`case
+              when ${employmentPosts.payMin} is not null or ${employmentPosts.payMax} is not null
+              then concat_ws(' - ', ${employmentPosts.payMin}, ${employmentPosts.payMax}) || coalesce(' / ' || ${employmentPosts.payUnit}, '')
+              else null
+            end`,
+            businessName: sql<string | null>`null`,
             status: employmentPosts.status,
           },
         })

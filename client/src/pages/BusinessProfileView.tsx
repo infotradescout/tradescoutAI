@@ -599,7 +599,7 @@ export default function BusinessProfileView() {
       />
 
       <section
-        className="mb-4 overflow-hidden rounded-lg border border-white/10 bg-[#0b0f14] shadow-[0_18px_60px_rgba(0,0,0,0.35)]"
+        className="mb-4 overflow-hidden rounded-lg border border-white/10 bg-tsCard shadow-[0_18px_60px_rgba(0,0,0,0.35)]"
         style={themeStyle}
       >
         <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">

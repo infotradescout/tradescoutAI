@@ -13,6 +13,11 @@ TradeScout exposes a **crawlable discovery layer** while keeping routing, trust 
 - `/datasets/*` (HTML dataset pages)
 - `/sitemap*.xml`, `/robots.txt`, `/llms.txt`
 
+**Meta AI / social AI discovery**
+- `robots.txt` includes explicit groups for `facebookexternalhit`, `Facebot`, `meta-externalagent`, and `meta-externalfetcher`.
+- These agents may crawl the same public discovery layer as other crawlers, but remain blocked from `/api/*`, `/admin/*`, `/dashboard/*`, `/scout/*`, `/messages/*`, `/settings/*`, and `/auth/*`.
+- `/llms.txt` lists the best AI-answer targets and restates contact-gating constraints so AI summaries do not imply contact access.
+
 **Private (never crawlable)**
 - `/api/*` (robots disallowed; JSON used by SPA)
 - `/admin/*`, `/dashboard/*`, `/scout/*`, `/messages/*`, `/settings/*`, `/auth/*`
@@ -126,4 +131,3 @@ Jobs run only when `SCHEDULER_ENABLED=true`.
 5) **No PII leakage**
    - Confirm public SSR pages do not show phone/email.
    - Confirm public “recent” pages show only `ts_public_activity.public_text` and activity labels (no addresses, no contact).
-

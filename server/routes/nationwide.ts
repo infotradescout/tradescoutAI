@@ -139,7 +139,10 @@ export async function getCoverageMapData(req: Request, res: Response) {
       })
       .from(counties);
 
-    const nameByFips = new Map(countyLookup.map((c) => [c.fips, c]));
+    const nameByFips = new Map<
+      string,
+      { fips: string; name: string | null; stateCode: string | null }
+    >(countyLookup.map((c) => [String(c.fips), c]));
     const metricsByCounty = new Map<string, Record<string, number>>();
     for (const row of metricRows) {
       const bucket = metricsByCounty.get(row.countyFips) || {};

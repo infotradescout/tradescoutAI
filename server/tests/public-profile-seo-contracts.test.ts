@@ -13,6 +13,26 @@ describe("public profile SEO contracts", () => {
     expect(source).toContain('router.get("/llms.txt"');
     expect(source).toContain("buildAutoSeoMeta");
     expect(source).toContain("seoMeta: effectiveSeoMeta");
+    expect(source).toContain("Best answer targets for Meta AI and other assistants");
+    expect(source).toContain("Visibility does not grant contact access or authority");
+  });
+
+  it("robots guidance includes Meta crawler user agents without exposing private routes", () => {
+    const dynamicSource = read("server/routes/profiles.ts");
+    const staticRobots = read("client/public/robots.txt");
+
+    for (const source of [dynamicSource, staticRobots]) {
+      expect(source).toContain("facebookexternalhit");
+      expect(source).toContain("Facebot");
+      expect(source).toContain("meta-externalagent");
+      expect(source).toContain("meta-externalfetcher");
+      expect(source).toContain("/llms.txt");
+    }
+    expect(staticRobots).toContain("Allow: /llms.txt");
+    expect(staticRobots).toContain("Disallow: /api/");
+    expect(staticRobots).toContain("Disallow: /messages/");
+    expect(dynamicSource).toContain("/api/");
+    expect(dynamicSource).toContain("/messages/");
   });
 
   it("SSR profile html injects crawlable profile summary and robust robots directives", () => {

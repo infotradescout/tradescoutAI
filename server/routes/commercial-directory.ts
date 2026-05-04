@@ -550,11 +550,11 @@ export function registerCommercialDirectoryRoutes(app: Express) {
               })
             : allContractors;
 
-        const userIds = Array.from(
+        const userIds: string[] = Array.from(
           new Set(
             filteredBySearch
               .map((c) => String(c.userId || "").trim())
-              .filter((value) => value.length > 0)
+              .filter((value): value is string => value.length > 0)
           )
         );
         const verificationSummary =
@@ -967,21 +967,21 @@ export function registerCommercialDirectoryRoutes(app: Express) {
           .where(eq(commercialProjectBids.projectId, id))
           .orderBy(desc(commercialProjectBids.createdAt));
 
-        const bidderUserIds = Array.from(
+        const bidderUserIds: string[] = Array.from(
           new Set(
             bids
               .map((row) => String((row.bid as any).bidderUserId || "").trim())
-              .filter((value) => value.length > 0)
+              .filter((value): value is string => value.length > 0)
           )
         );
         const verificationSummary =
           bidderUserIds.length > 0 ? await storage.getUserVerificationSummary(bidderUserIds) : {};
 
-        const contractorIds = Array.from(
+        const contractorIds: string[] = Array.from(
           new Set(
             bids
               .map((row) => String((row.contractor as any)?.id || "").trim())
-              .filter((value) => value.length > 0)
+              .filter((value): value is string => value.length > 0)
           )
         );
         const docsStateByContractorId = new Map<

@@ -11,13 +11,23 @@ const ENV_SNAPSHOT = {
   SCOUT_LLM_PROVIDER_FAILURE_THRESHOLD: process.env.SCOUT_LLM_PROVIDER_FAILURE_THRESHOLD,
   SCOUT_LLM_PROVIDER_COOLDOWN_MS: process.env.SCOUT_LLM_PROVIDER_COOLDOWN_MS,
   SCOUT_LLM_PROVIDER_ORDER: process.env.SCOUT_LLM_PROVIDER_ORDER,
+  OPENAI_API_KEY: process.env.OPENAI_API_KEY,
 };
 
+function restoreEnv(name: keyof typeof ENV_SNAPSHOT): void {
+  const value = ENV_SNAPSHOT[name];
+  if (value === undefined) {
+    delete process.env[name];
+    return;
+  }
+  process.env[name] = value;
+}
+
 afterEach(() => {
-  process.env.SCOUT_LLM_PROVIDER_FAILURE_THRESHOLD =
-    ENV_SNAPSHOT.SCOUT_LLM_PROVIDER_FAILURE_THRESHOLD;
-  process.env.SCOUT_LLM_PROVIDER_COOLDOWN_MS = ENV_SNAPSHOT.SCOUT_LLM_PROVIDER_COOLDOWN_MS;
-  process.env.SCOUT_LLM_PROVIDER_ORDER = ENV_SNAPSHOT.SCOUT_LLM_PROVIDER_ORDER;
+  restoreEnv("SCOUT_LLM_PROVIDER_FAILURE_THRESHOLD");
+  restoreEnv("SCOUT_LLM_PROVIDER_COOLDOWN_MS");
+  restoreEnv("SCOUT_LLM_PROVIDER_ORDER");
+  restoreEnv("OPENAI_API_KEY");
   __resetLlmProviderFailoverStateForTests();
 });
 
@@ -99,6 +109,37 @@ describe("generateWithFallback provider reliability", () => {
     process.env.SCOUT_LLM_PROVIDER_ORDER = "gemini,vertex";
     const providers = buildScoutLlmProviders();
     expect(providers.map((p) => p.id)).toEqual(["gemini-api", "vertex-gemini"]);
+  });
+
+  it("prefers OpenAI Responses by default while keeping Gemini fallbacks", () => {
+    delete process.env.SCOUT_LLM_PROVIDER_ORDER;
+    const providers = buildScoutLlmProviders();
+    expect(providers.map((p) => p.id)).toEqual(["openai-responses", "vertex-gemini", "gemini-api"]);
+  });
+
+  it("does not call OpenAI unless OPENAI_API_KEY is configured", async () => {
+    delete process.env.OPENAI_API_KEY;
+    let openAiCalls = 0;
+
+    const providers: LLMProvider[] = [
+      {
+        name: "openai",
+        id: "openai-responses",
+        isConfigured: () => Boolean(process.env.OPENAI_API_KEY),
+        generate: async () => {
+          openAiCalls += 1;
+          return "OpenAI response";
+        },
+      },
+      createProvider("gemini-api", {
+        generate: async () => "Gemini fallback response",
+      }),
+    ];
+
+    const result = await generateWithFallback("route this", providers);
+    expect(result.provider).toBe("gemini");
+    expect(result.text).toBe("Gemini fallback response");
+    expect(openAiCalls).toBe(0);
   });
 
   it("contextual fallback includes the user prompt when all providers fail", async () => {

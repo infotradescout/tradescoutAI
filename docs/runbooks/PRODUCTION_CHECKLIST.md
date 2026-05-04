@@ -23,6 +23,17 @@ Ensure the following environment variables are set in the production environment
 | `FACEBOOK_APP_ID` | No | Required for Facebook OAuth |
 | `FACEBOOK_APP_SECRET` | No | Required for Facebook OAuth |
 | `ADMIN_SAFETY_KEY` | Recommended | Required for safeguarded admin support edits when configured |
+| `OPENAI_API_KEY` | Recommended | Enables Scout's OpenAI Responses provider and claim inference |
+| `SCOUT_LLM_PROVIDER_ORDER` | No | Default is `openai,vertex,gemini`; set explicitly to control cost/fallback order |
+| `SCOUT_OPENAI_MODEL_FAST` | No | Default `gpt-5.4-nano` for cheap structured inference |
+| `SCOUT_OPENAI_MODEL_DEFAULT` | No | Default `gpt-5.4-mini` for normal Scout synthesis |
+| `SCOUT_OPENAI_MODEL_STANDARD` | No | Overrides normal Scout synthesis model when set |
+| `SCOUT_OPENAI_MODEL_REASONING` | No | Default `gpt-5.5` for code/permit/safety-sensitive Scout synthesis |
+| `SCOUT_OPENAI_MAX_OUTPUT_TOKENS` | No | Caps Scout OpenAI output; default `700` for structured synthesis |
+| `SCOUT_DEFAULT_ENGINE` | No | Default `classic`; set `v4` only when intentionally testing Enhanced v4 |
+| `SCOUT_ENHANCED_ENABLED` | No | Default `false`; set `true` with `SCOUT_DEFAULT_ENGINE=v4` to opt into Enhanced v4 |
+| `GEMINI_API_KEY` | No | Gemini fallback and legacy enhanced Scout routes |
+| `GOOGLE_PROJECT_ID` / `GOOGLE_VERTEX_LOCATION` | No | Vertex Gemini fallback provider |
 
 ## 2. Security
 - [x] **Rate Limiting**: Configured for sensitive endpoints (login, password reset, AI).

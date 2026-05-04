@@ -1,4 +1,3 @@
-// @ts-expect-error - runtime module without TypeScript types in this build
 import cron from "node-cron";
 import { runCrawler } from "../crawler/crawl";
 import { runUsersAggregationJob } from "./usersAggregationJob";

@@ -1076,7 +1076,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         const hasBankAccount = (user as any)?.bankAccountVerified;
         const hasIdentity = (user as any)?.identityVerified;
 
-        const missingRequirements = [];
+        const missingRequirements: string[] = [];
         if (!hasTaxId) missingRequirements.push("tax_id");
         if (!hasBankAccount) missingRequirements.push("bank_account");
         if (!hasIdentity) missingRequirements.push("identity");

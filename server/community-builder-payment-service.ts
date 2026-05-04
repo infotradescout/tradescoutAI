@@ -76,7 +76,7 @@ export class CommunityBuilderPaymentService {
     let totalEarnings = 0;
     let pendingPayout = 0;
     let totalPaidOut = 0;
-    const contributionsList = [];
+    const contributionsList: Array<{ id: string; value: string; status: string }> = [];
 
     for (const contrib of contributions) {
       const value = parseFloat(contrib.actualValue || contrib.estimatedValue || "0");

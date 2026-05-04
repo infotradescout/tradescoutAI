@@ -18,7 +18,7 @@
  */
 
 import type { Express } from "express";
-import { eq, desc, and, or, like, ilike, sql, inArray, notInArray } from "drizzle-orm";
+import { eq, desc, and, or, like, ilike, sql, inArray, notInArray, type SQL } from "drizzle-orm";
 import { rateLimit } from "express-rate-limit";
 import { pool } from "./db";
 import { createPostgresRateLimitStore } from "./utils/postgresRateLimitStore";
@@ -206,7 +206,7 @@ export function registerSocialFeatures(app: Express) {
         }
 
         // Build search conditions
-        const searchConditions = [];
+        const searchConditions: SQL[] = [];
 
         // Exclude self
         searchConditions.push(notInArray(users.id, [userId]));
@@ -1184,7 +1184,7 @@ export function registerSocialFeatures(app: Express) {
           .from(users)
           .where(inArray(users.id, partnerIds));
 
-        const usersById = new Map(userRows.map((row) => [row.id, row]));
+        const usersById = new Map<string, any>(userRows.map((row: any) => [String(row.id), row]));
 
         const profileRows = partnerIds.length
           ? await db

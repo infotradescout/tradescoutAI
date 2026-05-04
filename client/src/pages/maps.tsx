@@ -734,7 +734,7 @@ export default function MapsPage() {
         canonical="https://www.thetradescout.com/maps"
       />
 
-      <header className="overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-r from-slate-950 via-[#08111f] to-[#091b13] p-4 md:p-6">
+      <header className="overflow-hidden rounded-2xl border border-white/10 bg-tsCard p-4 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="max-w-3xl">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ts-orange">

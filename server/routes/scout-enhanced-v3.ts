@@ -19,7 +19,7 @@ import { executeAssistantAction } from "../assistantActions";
 import { buildUserContext, formatUserContextForPrompt } from "../services/userContextService";
 import { loadScoutEnhancementConfig, getConfigStatus } from "../services/scoutEnhancementConfig";
 import ScoutMemoryService from "../services/scoutMemoryService";
-import ScoutContextAnalyzer from "../services/scoutContextAnalyzer";
+import ScoutContextAnalyzer, { type ContextAnalysis } from "../services/scoutContextAnalyzer";
 
 const router = Router();
 
@@ -139,7 +139,12 @@ async function executeLLMToolCalls(
   toolCalls: EnhancedScoutResponseV3["tool_calls"],
   user?: any
 ): Promise<Array<{ tool_name: string; result: any; success: boolean; execution_time_ms: number }>> {
-  const results = [];
+  const results: Array<{
+    tool_name: string;
+    result: any;
+    success: boolean;
+    execution_time_ms: number;
+  }> = [];
 
   for (const toolCall of toolCalls) {
     const startTime = Date.now();
@@ -230,7 +235,10 @@ router.post("/message-v3", async (req: Request, res: Response) => {
     }
 
     // PHASE 2: Analyze context and detect patterns
-    let contextAnalysis = null;
+    let contextAnalysis: Pick<
+      ContextAnalysis,
+      "detected_patterns" | "proactive_suggestions" | "next_best_actions"
+    > | null = null;
     if (userId) {
       contextAnalysis = await ScoutContextAnalyzer.analyzeContext(
         userId,

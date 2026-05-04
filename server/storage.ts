@@ -2680,7 +2680,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLeads(contractorId?: string, status?: string): Promise<Lead[]> {
-    const conditions = [];
+    const conditions: SQL[] = [];
     if (contractorId) {
       conditions.push(eq(leads.contractorId, contractorId));
     }
@@ -4628,23 +4628,7 @@ export class DatabaseStorage implements IStorage {
 
   // Listings
   async getMarketplaceListings(
-    filters: {
-      categoryId?: string;
-      county?: string;
-      state?: string;
-      preferredCountyFips?: string;
-      preferredCountyName?: string;
-      preferredStateCode?: string;
-      priceMin?: number;
-      priceMax?: number;
-      condition?: string;
-      searchQuery?: string;
-      sortBy?: "price_asc" | "price_desc" | "date_desc" | "date_asc";
-      limit?: number;
-      offset?: number;
-      status?: string;
-      sellerId?: string;
-    } = {}
+    filters: NonNullable<Parameters<IStorage["getMarketplaceListings"]>[0]> = {}
   ): Promise<MarketplaceListing[]> {
     const statusValues = marketplaceListings.status.enumValues ?? [];
     const conditionValues = marketplaceListings.condition.enumValues ?? [];
@@ -5557,11 +5541,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(countyEntities.updatedAt), desc(countyEntities.createdAt))
       .limit(300);
 
-    const entityUserIds = Array.from(
+    const entityUserIds: string[] = Array.from(
       new Set(
         entityRows
           .map((r) => (typeof r.entityId === "string" ? r.entityId.trim() : ""))
-          .filter(Boolean)
+          .filter((value): value is string => value.length > 0)
       )
     );
 
@@ -5593,7 +5577,7 @@ export class DatabaseStorage implements IStorage {
         `)
       : { rows: [] as any[] };
 
-    const entityUserMap = new Map(entityUsers.map((u) => [String(u.id), u]));
+    const entityUserMap = new Map<string, any>(entityUsers.map((u) => [String(u.id), u]));
     const entityTrustMap = new Map(
       (latestEntityTrust.rows as any[]).map((r) => [String(r.user_id), r])
     );
@@ -8772,21 +8756,21 @@ export class DatabaseStorage implements IStorage {
       )
       .orderBy(desc(marketplaceConversations.lastMessageAt));
 
-    const userIds = Array.from(
-      new Set(
+    const userIds: string[] = Array.from(
+      new Set<string>(
         conversationsData.flatMap(({ conversation }: any) => [
-          conversation.buyerId,
-          conversation.sellerId,
+          String(conversation.buyerId || ""),
+          String(conversation.sellerId || ""),
         ])
       )
-    );
+    ).filter((value): value is string => value.length > 0);
     const usersLookup = userIds.length
       ? await db
           .select()
           .from(users)
           .where(inArray(users.id, userIds as string[]))
       : [];
-    const userMap = new Map(usersLookup.map((u: any) => [u.id, u]));
+    const userMap = new Map<string, any>(usersLookup.map((u: any) => [String(u.id), u]));
     const toParticipant = (participantUserId: string) => {
       const raw = userMap.get(participantUserId);
       if (!raw) {
@@ -9543,10 +9527,10 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
 
     // Fetch related data separately to avoid complex join issues
-    const results = [];
+    const results: any[] = [];
     for (const donation of donations) {
       const cause = await this.getFoundationCause(donation.causeId);
-      let county = null;
+      let county: any = null;
       if (cause && cause.countyId) {
         const [countyResult] = await db
           .select()
@@ -9601,10 +9585,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(foundationImpactReports.publishedAt));
 
     // Fetch related data separately to avoid complex join issues
-    const results = [];
+    const results: any[] = [];
     for (const report of reports) {
       const cause = await this.getFoundationCause(report.causeId);
-      let county = null;
+      let county: any = null;
       if (cause && cause.countyId) {
         const [countyResult] = await db
           .select()
@@ -10693,7 +10677,7 @@ export class DatabaseStorage implements IStorage {
       .from(crmContacts)
       .leftJoin(users, eq(crmContacts.assignedToUserId, users.id));
 
-    const conditions = [];
+    const conditions: SQL[] = [];
 
     if (filters?.status) {
       conditions.push(eq(crmContacts.status, filters.status as any));
@@ -10705,18 +10689,17 @@ export class DatabaseStorage implements IStorage {
 
     if (filters?.search) {
       const searchTerm = `%${filters.search}%`;
-      conditions.push(
-        or(
-          like(crmContacts.firstName, searchTerm),
-          like(crmContacts.lastName, searchTerm),
-          like(crmContacts.email, searchTerm),
-          like(crmContacts.company, searchTerm)
-        )
+      const searchCondition = or(
+        like(crmContacts.firstName, searchTerm),
+        like(crmContacts.lastName, searchTerm),
+        like(crmContacts.email, searchTerm),
+        like(crmContacts.company, searchTerm)
       );
+      if (searchCondition) conditions.push(searchCondition);
     }
 
-    const whereExpr: SQL | undefined = conditions.length > 0 ? and(...conditions) : undefined;
-    const results = await baseQuery.where(whereExpr).orderBy(desc(crmContacts.createdAt));
+    const contactQuery = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+    const results = await contactQuery.orderBy(desc(crmContacts.createdAt));
     return results as Array<CrmContact & { assignedTo?: User }>;
   }
 
@@ -10769,7 +10752,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(crmContacts, eq(crmDeals.contactId, crmContacts.id))
       .leftJoin(users, eq(crmDeals.assignedToUserId, users.id));
 
-    const conditions = [];
+    const conditions: SQL[] = [];
 
     if (filters?.stage) {
       conditions.push(eq(crmDeals.stage, filters.stage as any));
@@ -10783,8 +10766,8 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(crmDeals.contactId, filters.contactId));
     }
 
-    const whereExpr: SQL | undefined = conditions.length > 0 ? and(...conditions) : undefined;
-    const results = await baseQuery.where(whereExpr).orderBy(desc(crmDeals.createdAt));
+    const dealQuery = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+    const results = await dealQuery.orderBy(desc(crmDeals.createdAt));
     return results as Array<CrmDeal & { contact?: CrmContact; assignedTo?: User }>;
   }
 
@@ -10884,7 +10867,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(crmDeals, eq(crmActivities.dealId, crmDeals.id))
       .leftJoin(users, eq(crmActivities.createdByUserId, users.id));
 
-    const conditions = [];
+    const conditions: SQL[] = [];
 
     if (filters?.type) {
       conditions.push(eq(crmActivities.type, filters.type as any));
@@ -10898,8 +10881,8 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(crmActivities.dealId, filters.dealId));
     }
 
-    const whereExpr: SQL | undefined = conditions.length > 0 ? and(...conditions) : undefined;
-    const results = await baseQuery.where(whereExpr).orderBy(desc(crmActivities.createdAt));
+    const activityQuery = conditions.length > 0 ? baseQuery.where(and(...conditions)) : baseQuery;
+    const results = await activityQuery.orderBy(desc(crmActivities.createdAt));
     return results as Array<
       CrmActivity & { contact?: CrmContact; deal?: CrmDeal; createdBy?: User }
     >;

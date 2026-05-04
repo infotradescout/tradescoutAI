@@ -1,26 +1,38 @@
 import { useState, useRef } from "react";
 import { Bug, X, Send, TestTube, Zap, Camera, Upload, Image, Loader2 } from "lucide-react";
 import { uploadObject } from "@/lib/objectUpload";
-import html2canvas from 'html2canvas';
+import html2canvas from "html2canvas";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 
 interface TestingErrorReportButtonProps {
-  variant?: 'floating' | 'banner' | 'prominent';
+  variant?: "floating" | "banner" | "prominent";
   showTestingLabel?: boolean;
 }
 
-export function TestingErrorReportButton({ 
-  variant = 'floating', 
-  showTestingLabel = true 
+async function dataUrlToFile(dataUrl: string, filename: string): Promise<File> {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return new File([blob], filename, { type: blob.type || "image/png" });
+}
+
+export function TestingErrorReportButton({
+  variant = "floating",
+  showTestingLabel = true,
 }: TestingErrorReportButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -65,10 +77,10 @@ export function TestingErrorReportButton({
     try {
       // Hide the dialog temporarily to capture clean screenshot
       setIsOpen(false);
-      
+
       // Wait a moment for dialog to close
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
       const canvas = await html2canvas(document.body, {
         height: window.innerHeight,
         width: window.innerWidth,
@@ -77,19 +89,19 @@ export function TestingErrorReportButton({
         useCORS: true,
         allowTaint: true,
       });
-      
-      const screenshotDataUrl = canvas.toDataURL('image/png');
+
+      const screenshotDataUrl = canvas.toDataURL("image/png");
       setScreenshot(screenshotDataUrl);
-      
+
       // Reopen the dialog
       setIsOpen(true);
-      
+
       toast({
         title: "Screenshot Captured",
         description: "Screenshot will be included with your report.",
       });
     } catch (error) {
-      console.error('Screenshot capture failed:', error);
+      console.error("Screenshot capture failed:", error);
       toast({
         title: "Screenshot Failed",
         description: "Unable to capture screenshot, but you can still submit the report.",
@@ -103,7 +115,7 @@ export function TestingErrorReportButton({
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      const newFiles = Array.from(files).filter(file => {
+      const newFiles = Array.from(files).filter((file) => {
         // Limit file size to 5MB
         if (file.size > 5 * 1024 * 1024) {
           toast({
@@ -115,12 +127,12 @@ export function TestingErrorReportButton({
         }
         return true;
       });
-      setUploadedFiles(prev => [...prev, ...newFiles].slice(0, 3)); // Max 3 files
+      setUploadedFiles((prev) => [...prev, ...newFiles].slice(0, 3)); // Max 3 files
     }
   };
 
   const removeFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const uploadFilesToStorage = async (files: (File | string)[]): Promise<string[]> => {
@@ -131,7 +143,7 @@ export function TestingErrorReportButton({
         const { publicUrl } = await uploadObject(file as any);
         uploadedUrls.push(publicUrl);
       } catch (error) {
-        console.error('File upload failed:', error);
+        console.error("File upload failed:", error);
         toast({
           title: "Upload Failed",
           description: "Some files couldn't be uploaded, but your report will still be submitted.",
@@ -145,7 +157,7 @@ export function TestingErrorReportButton({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim() || !description.trim()) {
       toast({
         title: "Missing Information",
@@ -156,11 +168,12 @@ export function TestingErrorReportButton({
     }
 
     // Upload files if any
-    const filesToUpload = [];
-    if (screenshot) filesToUpload.push(screenshot);
+    const filesToUpload: File[] = [];
+    if (screenshot) filesToUpload.push(await dataUrlToFile(screenshot, "screenshot.png"));
     if (uploadedFiles.length > 0) filesToUpload.push(...uploadedFiles);
-    
-    const attachmentUrls = filesToUpload.length > 0 ? await uploadFilesToStorage(filesToUpload) : [];
+
+    const attachmentUrls =
+      filesToUpload.length > 0 ? await uploadFilesToStorage(filesToUpload) : [];
 
     const reportData = {
       title: title.trim(),
@@ -183,41 +196,45 @@ export function TestingErrorReportButton({
 
   const getBrowserName = () => {
     const userAgent = navigator.userAgent;
-    if (userAgent.includes('Chrome')) return 'Chrome';
-    if (userAgent.includes('Firefox')) return 'Firefox';
-    if (userAgent.includes('Safari')) return 'Safari';
-    if (userAgent.includes('Edge')) return 'Edge';
-    return 'Unknown';
+    if (userAgent.includes("Chrome")) return "Chrome";
+    if (userAgent.includes("Firefox")) return "Firefox";
+    if (userAgent.includes("Safari")) return "Safari";
+    if (userAgent.includes("Edge")) return "Edge";
+    return "Unknown";
   };
 
   const getBrowserVersion = () => {
     const userAgent = navigator.userAgent;
     const match = userAgent.match(/(Chrome|Firefox|Safari|Edge)\/(\d+)/);
-    return match ? match[2] : 'Unknown';
+    return match ? match[2] : "Unknown";
   };
 
-  const generateTestReport = (type: 'bug' | 'ui_issue' | 'performance' | 'feature_request') => {
+  const generateTestReport = (type: "bug" | "ui_issue" | "performance" | "feature_request") => {
     const testReports = {
       bug: {
         title: "Test Bug Report - Page Loading Issue",
-        description: "This is a test bug report. The contractor dashboard fails to load properly on mobile devices. The loading spinner appears but content never shows up.",
-        errorType: "bug"
+        description:
+          "This is a test bug report. The contractor dashboard fails to load properly on mobile devices. The loading spinner appears but content never shows up.",
+        errorType: "bug",
       },
       ui_issue: {
         title: "Test UI Issue - Button Alignment",
-        description: "Testing UI issue reporting. The search filters are misaligned on tablet screens, making it difficult to use the contractor search functionality.",
-        errorType: "ui_issue"
+        description:
+          "Testing UI issue reporting. The search filters are misaligned on tablet screens, making it difficult to use the contractor search functionality.",
+        errorType: "ui_issue",
       },
       performance: {
         title: "Test Performance Issue - Slow Loading",
-        description: "Testing performance reporting. The contractor list takes more than 10 seconds to load, especially when filtering by multiple criteria.",
-        errorType: "performance"
+        description:
+          "Testing performance reporting. The contractor list takes more than 10 seconds to load, especially when filtering by multiple criteria.",
+        errorType: "performance",
       },
       feature_request: {
         title: "Test Feature Request - Dark Mode",
-        description: "Testing feature request submission. Would love to have a dark mode option for better viewing during evening hours.",
-        errorType: "feature_request"
-      }
+        description:
+          "Testing feature request submission. Would love to have a dark mode option for better viewing during evening hours.",
+        errorType: "feature_request",
+      },
     };
 
     const testData = testReports[type];
@@ -227,7 +244,7 @@ export function TestingErrorReportButton({
     setUserEmail("test@example.com");
   };
 
-  if (variant === 'banner') {
+  if (variant === "banner") {
     return (
       <>
         <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-4 mb-6">
@@ -236,7 +253,9 @@ export function TestingErrorReportButton({
               <TestTube className="h-5 w-5 text-ts-orange" />
               <div>
                 <h3 className="text-ts-orange font-semibold">Testing Mode: Bug Reporting System</h3>
-                <p className="text-ts-orange text-sm">Try out the error reporting system - all reports are visible in the admin panel.</p>
+                <p className="text-ts-orange text-sm">
+                  Try out the error reporting system - all reports are visible in the admin panel.
+                </p>
               </div>
             </div>
             <Button
@@ -263,36 +282,36 @@ export function TestingErrorReportButton({
               <div className="bg-ts-orange/10 border border-ts-orange/30 rounded-lg p-3">
                 <Label className="text-ts-orange text-sm font-semibold">Quick Test Reports:</Label>
                 <div className="flex gap-2 mt-2 flex-wrap">
-                  <Button 
+                  <Button
                     type="button"
-                    onClick={() => generateTestReport('bug')}
+                    onClick={() => generateTestReport("bug")}
                     size="sm"
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
                   >
                     Test Bug
                   </Button>
-                  <Button 
+                  <Button
                     type="button"
-                    onClick={() => generateTestReport('ui_issue')}
+                    onClick={() => generateTestReport("ui_issue")}
                     size="sm"
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
                   >
                     Test UI Issue
                   </Button>
-                  <Button 
+                  <Button
                     type="button"
-                    onClick={() => generateTestReport('performance')}
+                    onClick={() => generateTestReport("performance")}
                     size="sm"
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
                   >
                     Test Performance
                   </Button>
-                  <Button 
+                  <Button
                     type="button"
-                    onClick={() => generateTestReport('feature_request')}
+                    onClick={() => generateTestReport("feature_request")}
                     size="sm"
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/20"
@@ -303,7 +322,9 @@ export function TestingErrorReportButton({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="issue-type" className="text-white/70">Issue Type</Label>
+                <Label htmlFor="issue-type" className="text-white/70">
+                  Issue Type
+                </Label>
                 <Select value={errorType} onValueChange={setErrorType}>
                   <SelectTrigger className="bg-tsCard border-white/10 text-white">
                     <SelectValue placeholder="Select issue type" />
@@ -319,7 +340,9 @@ export function TestingErrorReportButton({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="title" className="text-white/70">Issue Summary</Label>
+                <Label htmlFor="title" className="text-white/70">
+                  Issue Summary
+                </Label>
                 <Input
                   id="title"
                   value={title}
@@ -331,7 +354,9 @@ export function TestingErrorReportButton({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description" className="text-white/70">Detailed Description</Label>
+                <Label htmlFor="description" className="text-white/70">
+                  Detailed Description
+                </Label>
                 <Textarea
                   id="description"
                   value={description}
@@ -344,7 +369,9 @@ export function TestingErrorReportButton({
 
               {!isAuthenticated && (
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white/70">Email (optional)</Label>
+                  <Label htmlFor="email" className="text-white/70">
+                    Email (optional)
+                  </Label>
                   <Input
                     id="email"
                     type="email"
@@ -360,8 +387,10 @@ export function TestingErrorReportButton({
               <div className="space-y-4">
                 <div className="border-t border-white/10 pt-4">
                   <Label className="text-white/70 text-sm font-semibold">Attachments</Label>
-                  <p className="text-white/60 text-xs mb-3">Screenshots and files help us understand the issue better</p>
-                  
+                  <p className="text-white/60 text-xs mb-3">
+                    Screenshots and files help us understand the issue better
+                  </p>
+
                   <div className="flex gap-2 mb-3">
                     <Button
                       type="button"
@@ -376,9 +405,9 @@ export function TestingErrorReportButton({
                       ) : (
                         <Camera className="h-4 w-4 mr-1" />
                       )}
-                      {isCapturingScreenshot ? 'Capturing...' : 'Take Screenshot'}
+                      {isCapturingScreenshot ? "Capturing..." : "Take Screenshot"}
                     </Button>
-                    
+
                     <Button
                       type="button"
                       variant="outline"
@@ -430,7 +459,10 @@ export function TestingErrorReportButton({
                   {uploadedFiles.length > 0 && (
                     <div className="space-y-2">
                       {uploadedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between bg-tsCard rounded-lg p-2">
+                        <div
+                          key={index}
+                          className="flex items-center justify-between bg-tsCard rounded-lg p-2"
+                        >
                           <div className="flex items-center gap-2">
                             <Upload className="h-4 w-4 text-blue-400" />
                             <span className="text-white text-sm truncate">{file.name}</span>
@@ -485,7 +517,7 @@ export function TestingErrorReportButton({
     );
   }
 
-  if (variant === 'prominent') {
+  if (variant === "prominent") {
     return (
       <>
         <Button

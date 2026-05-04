@@ -318,7 +318,12 @@ export function registerUIIssuesRoutes(app: Express) {
         .map(([element, count]) => ({ element, issueCount: count }));
 
       // Generate priorities
-      const priorities = [];
+      const priorities: Array<{
+        level: string;
+        title: string;
+        description: string;
+        action: string;
+      }> = [];
 
       if (criticalIssues > 0) {
         priorities.push({

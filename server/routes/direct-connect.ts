@@ -2285,7 +2285,7 @@ export function registerDirectConnectRoutes(app: Express) {
             userId: String(userId),
             contextType: "direct_connect" as const,
             contextId: requestId,
-            action: "completed" as const,
+            action: "completed_flow" as const,
             scope,
           };
           await recordOutcomeEvent(outcomeEvent);

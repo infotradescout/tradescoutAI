@@ -1,7 +1,7 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { Server as HTTPServer } from "http";
 import { createAdapter } from "@socket.io/redis-adapter";
-import { createClient, type RedisClientType } from "redis";
+import { createClient } from "redis";
 import { db } from "./db";
 import { conversations, messages, users } from "@shared/schema";
 import { eq, and, or, desc } from "drizzle-orm";
@@ -116,8 +116,8 @@ export class MessagingService {
   private io: SocketIOServer;
   private connectedUsers: Map<string, ConnectedUser> = new Map();
   private messageQueue: Map<string, any[]> = new Map();
-  private redisPubClient: RedisClientType | null = null;
-  private redisSubClient: RedisClientType | null = null;
+  private redisPubClient: unknown = null;
+  private redisSubClient: unknown = null;
 
   constructor(httpServer: HTTPServer) {
     this.io = new SocketIOServer(httpServer, {
@@ -229,7 +229,7 @@ export class MessagingService {
 
           const connectedUser = this.connectedUsers.get(userId);
           if (connectedUser) {
-            userConversations.forEach((conv) => {
+            userConversations.forEach((conv: any) => {
               connectedUser.conversationIds.add(conv.id);
               socket.join(`conversation:${conv.id}`);
             });

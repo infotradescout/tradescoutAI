@@ -97,7 +97,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
       onSearch?.(data);
 
       // Update active filters for display
-      const filters = [];
+      const filters: string[] = [];
       if (data.service) filters.push(data.service);
       if (data.budget) filters.push(data.budget);
       if (data.timeline) filters.push(data.timeline);

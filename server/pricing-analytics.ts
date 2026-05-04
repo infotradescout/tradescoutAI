@@ -193,9 +193,9 @@ export class PricingAnalyticsService {
         if (row.service) previousCatalogMap.set(String(row.service), this.toNumber(row.avgValue));
       }
 
-      const services = currentCatalogRows
-        .map((row) => String(row.service || "").trim())
-        .filter(Boolean);
+      const services: string[] = currentCatalogRows
+        .map((row: any) => String(row.service || "").trim())
+        .filter((service: string) => service.length > 0);
       const uniqueServices = Array.from(new Set(services));
       const tradeRows =
         uniqueServices.length > 0
@@ -204,12 +204,14 @@ export class PricingAnalyticsService {
               .from(trades)
               .where(inArray(trades.slug, uniqueServices))
           : [];
-      const serviceNameMap = new Map(tradeRows.map((t) => [String(t.slug), String(t.name)]));
+      const serviceNameMap = new Map<string, string>(
+        tradeRows.map((t: any) => [String(t.slug), String(t.name)])
+      );
 
       for (const row of currentCatalogRows) {
         const service = String(row.service || "").trim();
         if (!service) continue;
-        const tradeName = serviceNameMap.get(service) || service;
+        const tradeName = String(serviceNameMap.get(service) || service);
         const currentAvg = Math.round(this.toNumber(row.avgValue));
         const previousAvg = previousCatalogMap.get(service) ?? currentAvg;
         const trend = this.percentChange(currentAvg, previousAvg);
@@ -240,7 +242,7 @@ export class PricingAnalyticsService {
 
       const declarationTradeCounts = new Map<string, number>();
       for (const row of providerDeclarationRows) {
-        const ids = Array.isArray(row.tradeIds) ? row.tradeIds : [];
+        const ids = Array.isArray(row.tradeIds) ? (row.tradeIds as unknown[]) : [];
         for (const tradeId of ids) {
           const key = String(tradeId || "").trim();
           if (!key) continue;
@@ -254,10 +256,12 @@ export class PricingAnalyticsService {
           .select({ id: trades.id, name: trades.name })
           .from(trades)
           .where(inArray(trades.id, tradeIds));
-        const tradeNameMap = new Map(tradeRows.map((t) => [t.id, t.name]));
+        const tradeNameMap = new Map<string, string>(
+          tradeRows.map((t: any) => [String(t.id), String(t.name)])
+        );
 
         for (const [tradeId, count] of declarationTradeCounts.entries()) {
-          const tradeName = tradeNameMap.get(tradeId) || tradeId;
+          const tradeName = String(tradeNameMap.get(tradeId) || tradeId);
           byTrade[tradeName] = {
             average: 0,
             count,
@@ -738,7 +742,14 @@ export class PricingAnalyticsService {
    */
   async updateCalculatorPricing(threshold: number = 10) {
     const analytics = await this.getPricingAnalytics("30d");
-    const updates = [];
+    const updates: Array<{
+      tradeId: string;
+      oldLow: unknown;
+      oldHigh: unknown;
+      newLow: number;
+      newHigh: number;
+      sampleSize: number;
+    }> = [];
 
     // Update pricing data for trades with significant data
     for (const [tradeId, data] of Object.entries(analytics.averageQuotes.byTrade)) {
@@ -797,7 +808,15 @@ export class PricingAnalyticsService {
    */
   async getRegionalPricingRecommendations(stateCode?: string) {
     const analytics = await this.getPricingAnalytics("90d");
-    const recommendations = [];
+    const recommendations: Array<{
+      stateCode: string;
+      countyId: string | undefined;
+      recommendedLow: number;
+      recommendedHigh: number;
+      confidence: number;
+      sampleSize: number;
+      currentAverage: number;
+    }> = [];
 
     for (const [regionKey, data] of Object.entries(analytics.averageQuotes.byRegion)) {
       if (stateCode && !regionKey.startsWith(stateCode)) continue;

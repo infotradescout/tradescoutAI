@@ -10,10 +10,11 @@ import {
 import { createCapabilityChecker, buildCapabilitySignals } from "../utils/userCapabilities";
 import { runScoutAction, type ScoutActionContext } from "../utils/scoutActionGuard";
 import {
-  LLMProvider,
   buildScoutLlmProviders,
   generateWithFallback,
   getLlmProviderFailoverRuntimeState,
+  type LLMProvider,
+  type ScoutLlmModelTier,
 } from "../services/llmProvider";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
@@ -752,7 +753,10 @@ async function generateSmartSynthesis(
 
   Now write an inspiring but concrete orientation that helps this person immediately understand what TradeScout is, who it serves, and how Scout will run the operating system for their community:`;
 
-    const { text, provider } = await generateWithFallback(synthPrompt, llmProviders);
+    const { text, provider } = await generateWithFallback(synthPrompt, llmProviders, {
+      modelTier: "standard",
+      promptCacheKey: "scout:intro_orientation",
+    });
     // Allow a richer, orientation-style answer for intro questions
     return {
       message: trimResponseToScreenFit(text, { mode: "intro" }),
@@ -802,6 +806,19 @@ function isGeminiRateLimitFailure(error: unknown): boolean {
     message.includes("quota") ||
     message.includes("resource exhausted")
   );
+}
+
+function chooseScoutSynthesisModelTier(userMessage: string): ScoutLlmModelTier {
+  const lower = String(userMessage || "").toLowerCase();
+  if (
+    /\b(code|codes|permit|permits|inspection|inspector|load-bearing|structural|foundation|electrical|breaker|panel|gas line|carbon monoxide|safety|hazard|asbestos|mold)\b/.test(
+      lower
+    )
+  ) {
+    return "reasoning";
+  }
+
+  return "standard";
 }
 
 function buildContextualSynthesisFallbackMessage(
@@ -1039,7 +1056,12 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
     const { text: rawGeneratedText, provider } = await generateWithFallback(
       synthesisPrompt,
-      llmProviders
+      llmProviders,
+      {
+        modelTier: chooseScoutSynthesisModelTier(userMessage),
+        responseFormat: "scout_synthesis_json",
+        promptCacheKey: "scout:turn_synthesis",
+      }
     );
     let rawResponse = rawGeneratedText;
 
@@ -2479,6 +2501,48 @@ router.post("/", async (req: Request, res: Response) => {
       scoutMessageHash: hashMessageForScout(normalizedMessage),
     } as InsertScoutInteraction;
 
+    const userId = (req as any).user?.id;
+    const userRole = (req as any).user?.role || "user";
+    const normalizedStateCode =
+      typeof rawBody.stateCode === "string" && rawBody.stateCode.trim().length > 0
+        ? rawBody.stateCode.trim().toUpperCase()
+        : undefined;
+    const syncObjectiveBestEffort = async (scoutResult?: { intent?: string | null }) => {
+      if (process.env.OBJECTIVES_ENABLED !== "true") return;
+      if (!userId || !normalizedMessage.trim()) return;
+      const inferredIntent = normalizeScoutIntent(
+        typeof scoutResult?.intent === "string" ? scoutResult.intent : rawBody.intent,
+        normalizedMessage
+      );
+      try {
+        const syncResult = await syncObjectiveFromScoutMessage({
+          userId: String(userId),
+          messageText: normalizedMessage,
+          userRole,
+          scoutIntent: inferredIntent,
+          countyFips: normalizedFips,
+          stateCode: normalizedStateCode,
+        });
+        if (syncResult?.rateLimitedReuse) {
+          console.info("[Scout Objectives] Rate cap reuse", {
+            userId: String(userId),
+            intentClass: syncResult.intentClass,
+            confidence: syncResult.confidence,
+            topicShift: syncResult.wasTopicShift,
+          });
+        }
+      } catch (e) {
+        console.error("Objective sync failed", e);
+        console.error("[Scout Objectives] Sync telemetry", {
+          userId: String(userId),
+          intentClass: null,
+          confidence: null,
+          topicShift: false,
+          scoutIntent: inferredIntent,
+        });
+      }
+    };
+
     if (!isTestRun) {
       res.on("finish", async () => {
         if (!scoutInteractionLog) return;
@@ -2641,23 +2705,25 @@ router.post("/", async (req: Request, res: Response) => {
       onboardingQuestionKey,
     } = rawBody as ScoutRequest;
 
-    // Code-level defaults: enhanced v4 pipeline is ON unless explicitly disabled.
-    // Override with env vars: SCOUT_ENHANCED_ENABLED=false or SCOUT_DEFAULT_ENGINE=classic
+    // Code-level default: canonical Scout pipeline. Enhanced v4 stays available by opt-in.
+    // Opt in with SCOUT_DEFAULT_ENGINE=v4 or enhanced_v4, plus SCOUT_ENHANCED_ENABLED=true.
     const defaultEngine =
       typeof process.env.SCOUT_DEFAULT_ENGINE === "string" &&
       process.env.SCOUT_DEFAULT_ENGINE.trim().length > 0
         ? process.env.SCOUT_DEFAULT_ENGINE.trim().toLowerCase()
-        : "v4"; // Default: v4 pipeline
+        : "classic";
+    const isEnhancedEngine =
+      defaultEngine === "v4" || defaultEngine === "enhanced_v4" || defaultEngine === "enhanced-v4";
+    const enhancedFlagRaw =
+      typeof process.env.SCOUT_ENHANCED_ENABLED === "string"
+        ? process.env.SCOUT_ENHANCED_ENABLED.trim().toLowerCase()
+        : "";
     const scoutEnhancedEnabled =
       process.env.SCOUT_ENHANCED_ENABLED === undefined
-        ? true // Default: enabled
-        : String(process.env.SCOUT_ENHANCED_ENABLED).toLowerCase() !== "false";
+        ? false
+        : enhancedFlagRaw === "true" || enhancedFlagRaw === "1" || enhancedFlagRaw === "yes";
 
-    const wantsEnhancedV4 =
-      scoutEnhancedEnabled &&
-      (defaultEngine === "v4" ||
-        defaultEngine === "enhanced_v4" ||
-        defaultEngine === "enhanced-v4");
+    const wantsEnhancedV4 = scoutEnhancedEnabled && isEnhancedEngine;
 
     let sourceAudit: {
       sourceUsed: string;
@@ -2755,49 +2821,7 @@ router.post("/", async (req: Request, res: Response) => {
       }
     }
 
-    const userRole = (req as any).user?.role || "user";
-    const normalizedStateCode =
-      typeof stateCode === "string" && stateCode.trim().length > 0
-        ? stateCode.trim().toUpperCase()
-        : undefined;
-    const syncObjectiveBestEffort = async (scoutResult?: { intent?: string | null }) => {
-      if (process.env.OBJECTIVES_ENABLED !== "true") return;
-      if (!userId || !normalizedMessage.trim()) return;
-      const inferredIntent = normalizeScoutIntent(
-        typeof scoutResult?.intent === "string" ? scoutResult.intent : intent,
-        normalizedMessage
-      );
-      try {
-        const syncResult = await syncObjectiveFromScoutMessage({
-          userId: String(userId),
-          messageText: normalizedMessage,
-          userRole,
-          scoutIntent: inferredIntent,
-          countyFips: normalizedFips,
-          stateCode: normalizedStateCode,
-        });
-        if (syncResult?.rateLimitedReuse) {
-          console.info("[Scout Objectives] Rate cap reuse", {
-            userId: String(userId),
-            intentClass: syncResult.intentClass,
-            confidence: syncResult.confidence,
-            topicShift: syncResult.wasTopicShift,
-          });
-        }
-      } catch (e) {
-        console.error("Objective sync failed", e);
-        console.error("[Scout Objectives] Sync telemetry", {
-          userId: String(userId),
-          intentClass: null,
-          confidence: null,
-          topicShift: false,
-          scoutIntent: inferredIntent,
-        });
-      }
-    };
-
     // D2-1: Detect and initialize onboarding session (DB-backed)
-    const userId = (req as any).user?.id;
     const clientSessionId = sessionId || `${userId || "guest"}_${Date.now()}`;
     let onboardingSession: OnboardingSession | undefined =
       await getOnboardingSession(clientSessionId);

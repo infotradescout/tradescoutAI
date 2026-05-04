@@ -41,11 +41,10 @@ export function BetaNotificationPopup() {
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent
-        className="p-0 overflow-hidden border-0 shadow-2xl"
+        className="p-0 overflow-hidden border-0 bg-tsCard shadow-2xl"
         style={{
           maxWidth: 440,
           width: "calc(100vw - 2rem)",
-          background: "#0e1318",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 16,
           /* Force true centering — override any template offset */
@@ -74,7 +73,7 @@ export function BetaNotificationPopup() {
                 border: "1px solid rgba(249,115,22,0.25)",
               }}
             >
-              <Rocket className="h-4 w-4" style={{ color: "#f97316" }} />
+              <Rocket className="h-4 w-4 text-ts-orange" />
             </div>
             <div>
               <DialogTitle
@@ -100,11 +99,9 @@ export function BetaNotificationPopup() {
             className="flex gap-3 rounded-xl p-3.5"
             style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.18)" }}
           >
-            <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#f87171" }} />
+            <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0 text-red-400" />
             <div>
-              <p className="text-xs font-semibold mb-0.5" style={{ color: "#fca5a5" }}>
-                Security Notice
-              </p>
+              <p className="text-xs font-semibold mb-0.5 text-red-300">Security Notice</p>
               <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
                 Do not enter real payment details or sensitive personal information. Use test data
                 only during this beta period.
@@ -120,7 +117,7 @@ export function BetaNotificationPopup() {
               border: "1px solid rgba(255,255,255,0.06)",
             }}
           >
-            <Users className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#f97316" }} />
+            <Users className="h-4 w-4 mt-0.5 shrink-0 text-ts-orange" />
             <div>
               <p
                 className="text-xs font-semibold mb-0.5"
@@ -132,8 +129,7 @@ export function BetaNotificationPopup() {
                 Screenshot it and email{" "}
                 <a
                   href={`mailto:${PRIMARY_SUPPORT_EMAIL}`}
-                  className="underline underline-offset-2 transition-colors"
-                  style={{ color: "#f97316" }}
+                  className="text-ts-orange underline underline-offset-2 transition-colors"
                 >
                   {PRIMARY_SUPPORT_EMAIL}
                 </a>{" "}
@@ -155,17 +151,12 @@ export function BetaNotificationPopup() {
             }}
           >
             <div>
-              <p className="text-xs font-semibold" style={{ color: "#f97316" }}>
-                View recent improvements
-              </p>
+              <p className="text-xs font-semibold text-ts-orange">View recent improvements</p>
               <p className="text-[11px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
                 tradescoutinfo.us — auto-updated changelog
               </p>
             </div>
-            <ExternalLink
-              className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              style={{ color: "#f97316" }}
-            />
+            <ExternalLink className="h-3.5 w-3.5 shrink-0 text-ts-orange transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </a>
 
           <p className="text-[11px] text-center" style={{ color: "rgba(255,255,255,0.25)" }}>
@@ -182,8 +173,8 @@ export function BetaNotificationPopup() {
             onClick={handleClose}
             className="flex-1 font-semibold text-sm h-10"
             style={{
-              background: "#f97316",
-              color: "#fff",
+              background: "var(--theme-accent-primary)",
+              color: "white",
               border: "none",
               borderRadius: 8,
             }}

@@ -103,7 +103,7 @@ async function executeLLMToolCalls(
   toolCalls: EnhancedScoutResponse["tool_calls"],
   user?: any
 ): Promise<Array<{ tool_name: string; result: any; error?: string }>> {
-  const results = [];
+  const results: Array<{ tool_name: string; result: any; error?: string }> = [];
 
   for (const toolCall of toolCalls) {
     try {
@@ -203,7 +203,7 @@ Please respond with the enhanced JSON schema including state_acknowledgment, pla
     const parsedResponse = parseEnhancedResponse(llmOutput);
 
     // Execute any tool calls specified by the LLM
-    let toolResults = [];
+    let toolResults: Array<{ tool_name: string; result: any; error?: string }> = [];
     if (parsedResponse.tool_calls && parsedResponse.tool_calls.length > 0) {
       toolResults = await executeLLMToolCalls(parsedResponse.tool_calls, user);
 

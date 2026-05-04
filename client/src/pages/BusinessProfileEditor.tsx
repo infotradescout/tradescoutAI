@@ -992,7 +992,7 @@ export default function BusinessProfileEditor() {
                   <Input
                     value={themeColors.primary}
                     onChange={(e) => setThemeColors({ ...themeColors, primary: e.target.value })}
-                    placeholder="#000000"
+                    placeholder="Primary brand color"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1000,7 +1000,7 @@ export default function BusinessProfileEditor() {
                   <Input
                     value={themeColors.secondary}
                     onChange={(e) => setThemeColors({ ...themeColors, secondary: e.target.value })}
-                    placeholder="#333333"
+                    placeholder="Secondary brand color"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1008,7 +1008,7 @@ export default function BusinessProfileEditor() {
                   <Input
                     value={themeColors.background}
                     onChange={(e) => setThemeColors({ ...themeColors, background: e.target.value })}
-                    placeholder="#ffffff"
+                    placeholder="Background color"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1016,7 +1016,7 @@ export default function BusinessProfileEditor() {
                   <Input
                     value={themeColors.text}
                     onChange={(e) => setThemeColors({ ...themeColors, text: e.target.value })}
-                    placeholder="#111111"
+                    placeholder="Text color"
                   />
                 </div>
               </div>
@@ -1153,7 +1153,8 @@ export default function BusinessProfileEditor() {
                       <CardContent className="space-y-3">
                         <div className="space-y-2">
                           <Label>Type</Label>
-                          <Select value={block.type || "text"}
+                          <Select
+                            value={block.type || "text"}
                             onValueChange={(value) => updateContentBlock(block.id, "type", value)}
                           >
                             <SelectTrigger>

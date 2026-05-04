@@ -306,7 +306,7 @@ export default function ProfileSiteView() {
         structuredData={structuredData}
       />
       <Card className="bg-tsCard overflow-hidden">
-        <CardHeader className="space-y-4 bg-gradient-to-br from-tsCard via-[#1a1d23] to-[#101217]">
+        <CardHeader className="space-y-4 bg-tsCardMuted">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <Badge variant="secondary">Website Profile</Badge>

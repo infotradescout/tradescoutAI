@@ -2466,7 +2466,7 @@ export async function registerRoutes(app: any) {
 
         return res.json({
           user: sanitizeUserForResponse(created.user),
-          profiles: created.profiles.map((p) => ({
+          profiles: created.profiles.map((p: any) => ({
             id: p.id,
             role: p.role,
             userIntent: p.userIntent,
@@ -7762,7 +7762,7 @@ export async function registerRoutes(app: any) {
         const rawId = (t as any)?.tradeId ?? (t as any)?.id;
         const slug = (t as any)?.slug;
 
-        let tradeRecord = null;
+        let tradeRecord: any = null;
         if (rawId) {
           // Best effort: try slug lookup first if it looks like a slug
           tradeRecord = await storage.getTradeBySlug(String(rawId));
@@ -8804,6 +8804,42 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  const mapApiCacheTtlMs = Math.max(0, Number(process.env.MAP_API_CACHE_TTL_MS || 15_000));
+  const mapApiResponseCache = new Map<string, { expiresAt: number; payload: unknown }>();
+  const mapApiInFlight = new Map<string, Promise<unknown>>();
+
+  const getMapApiPayload = async <T>(req: Request, loader: () => Promise<T>): Promise<T> => {
+    const key = req.originalUrl || req.url;
+    const now = Date.now();
+    const cached = mapApiResponseCache.get(key);
+    if (cached && cached.expiresAt > now) {
+      return cached.payload as T;
+    }
+
+    const existing = mapApiInFlight.get(key);
+    if (existing) {
+      return (await existing) as T;
+    }
+
+    const pending = loader().then((payload) => {
+      if (mapApiCacheTtlMs > 0) {
+        mapApiResponseCache.set(key, { expiresAt: Date.now() + mapApiCacheTtlMs, payload });
+        if (mapApiResponseCache.size > 200) {
+          const oldestKey = mapApiResponseCache.keys().next().value;
+          if (oldestKey) mapApiResponseCache.delete(oldestKey);
+        }
+      }
+      return payload;
+    });
+
+    mapApiInFlight.set(key, pending);
+    try {
+      return (await pending) as T;
+    } finally {
+      mapApiInFlight.delete(key);
+    }
+  };
+
   // Maps v1: awareness-only entities for map surfaces (no direct contact data)
   app.get("/api/map/entities", async (req: Request, res: Response) => {
     try {
@@ -8851,150 +8887,152 @@ export async function registerRoutes(app: any) {
       const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 1000;
       const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(5000, limitRaw)) : 1000;
 
-      const points: Array<{
-        id: string;
-        type: string;
-        lat: number;
-        lng: number;
-        title: string;
-        subtitle?: string | null;
-        href?: string | null;
-        meta?: Record<string, unknown>;
-      }> = [];
+      const payload = await getMapApiPayload(req, async () => {
+        const points: Array<{
+          id: string;
+          type: string;
+          lat: number;
+          lng: number;
+          title: string;
+          subtitle?: string | null;
+          href?: string | null;
+          meta?: Record<string, unknown>;
+        }> = [];
 
-      if (wants("provider")) {
-        const providerRoles = [
-          "contractor",
-          "handyman",
-          "service_provider",
-          "specialty_tradesperson",
-          "realtor",
-          "insurance_agent",
-          "mortgage_broker",
-          "car_dealer",
-          "auto_service",
-          "inspector",
-          "business_owner",
-          "commercial_property",
-        ] as const;
+        if (wants("provider")) {
+          const providerRoles = [
+            "contractor",
+            "handyman",
+            "service_provider",
+            "specialty_tradesperson",
+            "realtor",
+            "insurance_agent",
+            "mortgage_broker",
+            "car_dealer",
+            "auto_service",
+            "inspector",
+            "business_owner",
+            "commercial_property",
+          ] as const;
 
-        const predicates: any[] = [
-          sql`${users.latitude} is not null`,
-          sql`${users.longitude} is not null`,
-          sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
-          sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`,
-          or(sql`${contractors.id} is not null`, inArray(users.role, providerRoles as any)),
-        ];
+          const predicates: any[] = [
+            sql`${users.latitude} is not null`,
+            sql`${users.longitude} is not null`,
+            sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
+            sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`,
+            or(sql`${contractors.id} is not null`, inArray(users.role, providerRoles as any)),
+          ];
 
-        if (tradeFilter) {
-          predicates.push(
-            or(
-              sql`lower(${trades.slug}) = ${tradeFilter}`,
-              sql`lower(${trades.name}) = ${tradeFilter}`
-            )
-          );
-        }
+          if (tradeFilter) {
+            predicates.push(
+              or(
+                sql`lower(${trades.slug}) = ${tradeFilter}`,
+                sql`lower(${trades.name}) = ${tradeFilter}`
+              )
+            );
+          }
 
-        if (verifiedOnly) {
-          predicates.push(
-            or(
-              eq(contractors.verifiedLicensed, true),
-              eq(contractors.verifiedInsured, true),
-              eq(users.verificationStatus, "approved" as any)
-            )
-          );
-        }
+          if (verifiedOnly) {
+            predicates.push(
+              or(
+                eq(contractors.verifiedLicensed, true),
+                eq(contractors.verifiedInsured, true),
+                eq(users.verificationStatus, "approved" as any)
+              )
+            );
+          }
 
-        const rows = await db
-          .select({
-            providerId: users.id,
-            displayName: sql<string>`
+          const rows = await db
+            .select({
+              providerId: users.id,
+              displayName: sql<string>`
               coalesce(
                 nullif(${contractors.companyName}, ''),
                 nullif(trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, '')), ''),
                 'TradeScout Provider'
               )
             `,
-            lat: users.latitude,
-            lng: users.longitude,
-            role: users.role,
-            verifiedLicensed: contractors.verifiedLicensed,
-            verifiedInsured: contractors.verifiedInsured,
-            userVerificationStatus: users.verificationStatus,
-            tradeCategories: sql<
-              string[]
-            >`coalesce(array_remove(array_agg(distinct ${trades.slug}), null), array[]::text[])`,
-          })
-          .from(users)
-          .leftJoin(contractors, eq(contractors.userId, users.id))
-          .leftJoin(contractorTrades, eq(contractorTrades.contractorId, contractors.id))
-          .leftJoin(trades, eq(trades.id, contractorTrades.tradeId))
-          .where(and(...predicates))
-          .groupBy(
-            users.id,
-            users.firstName,
-            users.lastName,
-            users.role,
-            users.latitude,
-            users.longitude,
-            users.verificationStatus,
-            contractors.id,
-            contractors.companyName,
-            contractors.verifiedLicensed,
-            contractors.verifiedInsured
-          )
-          .limit(Math.min(limit, 2000));
+              lat: users.latitude,
+              lng: users.longitude,
+              role: users.role,
+              verifiedLicensed: contractors.verifiedLicensed,
+              verifiedInsured: contractors.verifiedInsured,
+              userVerificationStatus: users.verificationStatus,
+              tradeCategories: sql<
+                string[]
+              >`coalesce(array_remove(array_agg(distinct ${trades.slug}), null), array[]::text[])`,
+            })
+            .from(users)
+            .leftJoin(contractors, eq(contractors.userId, users.id))
+            .leftJoin(contractorTrades, eq(contractorTrades.contractorId, contractors.id))
+            .leftJoin(trades, eq(trades.id, contractorTrades.tradeId))
+            .where(and(...predicates))
+            .groupBy(
+              users.id,
+              users.firstName,
+              users.lastName,
+              users.role,
+              users.latitude,
+              users.longitude,
+              users.verificationStatus,
+              contractors.id,
+              contractors.companyName,
+              contractors.verifiedLicensed,
+              contractors.verifiedInsured
+            )
+            .limit(Math.min(limit, 2000));
 
-        const providerIds = rows.map((row) => String(row.providerId));
-        const profileRows = providerIds.length
-          ? await db
-              .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
-              .from(profiles)
-              .where(
-                and(inArray(profiles.ownerUserId, providerIds), eq(profiles.status, "published"))
-              )
-          : [];
+          const providerIds = rows.map((row: any) => String(row.providerId));
+          const profileRows = providerIds.length
+            ? await db
+                .select({ ownerUserId: profiles.ownerUserId, slug: profiles.slug })
+                .from(profiles)
+                .where(
+                  and(inArray(profiles.ownerUserId, providerIds), eq(profiles.status, "published"))
+                )
+            : [];
 
-        const canonicalProfileUrlByProviderId = new Map<string, string>();
-        for (const row of profileRows) {
-          if (!canonicalProfileUrlByProviderId.has(row.ownerUserId)) {
-            canonicalProfileUrlByProviderId.set(row.ownerUserId, `/u/${row.slug}`);
+          const canonicalProfileUrlByProviderId = new Map<string, string>();
+          for (const row of profileRows) {
+            if (!canonicalProfileUrlByProviderId.has(row.ownerUserId)) {
+              canonicalProfileUrlByProviderId.set(row.ownerUserId, `/u/${row.slug}`);
+            }
+          }
+
+          for (const row of rows) {
+            const lat = Number(row.lat);
+            const lng = Number(row.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+            const contractorVerified =
+              row.verifiedLicensed === true || row.verifiedInsured === true;
+            const userVerified =
+              String(row.userVerificationStatus || "").toLowerCase() === "approved";
+            const verifiedStatus = contractorVerified || userVerified ? "verified" : "unverified";
+
+            points.push({
+              id: String(row.providerId),
+              type: "provider",
+              lat,
+              lng,
+              title: row.displayName,
+              subtitle: verifiedStatus === "verified" ? "Verified provider" : "Provider",
+              href:
+                canonicalProfileUrlByProviderId.get(String(row.providerId)) ??
+                `/profile/${encodeURIComponent(String(row.providerId))}`,
+              meta: {
+                role: row.role ?? null,
+                verifiedStatus,
+                tradeCategories: Array.isArray(row.tradeCategories) ? row.tradeCategories : [],
+              },
+            });
           }
         }
 
-        for (const row of rows) {
-          const lat = Number(row.lat);
-          const lng = Number(row.lng);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-          const contractorVerified = row.verifiedLicensed === true || row.verifiedInsured === true;
-          const userVerified =
-            String(row.userVerificationStatus || "").toLowerCase() === "approved";
-          const verifiedStatus = contractorVerified || userVerified ? "verified" : "unverified";
-
-          points.push({
-            id: String(row.providerId),
-            type: "provider",
-            lat,
-            lng,
-            title: row.displayName,
-            subtitle: verifiedStatus === "verified" ? "Verified provider" : "Provider",
-            href:
-              canonicalProfileUrlByProviderId.get(String(row.providerId)) ??
-              `/profile/${encodeURIComponent(String(row.providerId))}`,
-            meta: {
-              role: row.role ?? null,
-              verifiedStatus,
-              tradeCategories: Array.isArray(row.tradeCategories) ? row.tradeCategories : [],
-            },
-          });
-        }
-      }
-
-      if (wants("business")) {
-        // Use geo stored inside profile_data.importExtras (no DB migration dependency).
-        // Filter bbox in SQL to avoid scanning all active businesses at scale.
-        const bizLatExpr = sql<number>`
+        if (wants("business")) {
+          // Use geo stored inside profile_data.importExtras (no DB migration dependency).
+          // Filter bbox in SQL to avoid scanning all active businesses at scale.
+          const bizLatExpr = sql<number>`
           nullif(
             coalesce(
               nullif((${businesses.profileData} -> 'importExtras' ->> 'lat')::text, ''),
@@ -9003,7 +9041,7 @@ export async function registerRoutes(app: any) {
             ''
           )::numeric
         `;
-        const bizLngExpr = sql<number>`
+          const bizLngExpr = sql<number>`
           nullif(
             coalesce(
               nullif((${businesses.profileData} -> 'importExtras' ->> 'lng')::text, ''),
@@ -9014,85 +9052,89 @@ export async function registerRoutes(app: any) {
           )::numeric
         `;
 
-        const rows = await db
-          .select({
-            id: businesses.id,
-            name: businesses.name,
-            slug: businesses.slug,
-            type: businesses.type,
-            ownerUserId: businesses.ownerUserId,
-            claimStatus: businesses.claimStatus,
-            category: sql<
-              string | null
-            >`nullif((${businesses.profileData} ->> 'category')::text, '')`,
-            lat: bizLatExpr,
-            lng: bizLngExpr,
-            ownerVerificationStatus: users.verificationStatus,
-            contractorVerifiedLicensed: contractors.verifiedLicensed,
-            contractorVerifiedInsured: contractors.verifiedInsured,
-          })
-          .from(businesses)
-          .leftJoin(users, eq(users.id, businesses.ownerUserId))
-          .leftJoin(contractors, eq(contractors.userId, users.id))
-          .where(
-            and(
-              eq(businesses.status, "active" as any),
-              sql`${bizLatExpr} is not null`,
-              sql`${bizLngExpr} is not null`,
-              sql`${bizLatExpr} between ${minLat} and ${maxLat}`,
-              sql`${bizLngExpr} between ${minLng} and ${maxLng}`,
-              ...(verifiedOnly
-                ? [
-                    or(
-                      eq(users.verificationStatus, "approved" as any),
-                      eq(contractors.verifiedLicensed, true),
-                      eq(contractors.verifiedInsured, true)
-                    ),
-                  ]
-                : [])
+          const rows = await db
+            .select({
+              id: businesses.id,
+              name: businesses.name,
+              slug: businesses.slug,
+              type: businesses.type,
+              ownerUserId: businesses.ownerUserId,
+              claimStatus: businesses.claimStatus,
+              category: sql<
+                string | null
+              >`nullif((${businesses.profileData} ->> 'category')::text, '')`,
+              lat: bizLatExpr,
+              lng: bizLngExpr,
+              ownerVerificationStatus: users.verificationStatus,
+              contractorVerifiedLicensed: contractors.verifiedLicensed,
+              contractorVerifiedInsured: contractors.verifiedInsured,
+            })
+            .from(businesses)
+            .leftJoin(users, eq(users.id, businesses.ownerUserId))
+            .leftJoin(contractors, eq(contractors.userId, users.id))
+            .where(
+              and(
+                eq(businesses.status, "active" as any),
+                sql`${bizLatExpr} is not null`,
+                sql`${bizLngExpr} is not null`,
+                sql`${bizLatExpr} between ${minLat} and ${maxLat}`,
+                sql`${bizLngExpr} between ${minLng} and ${maxLng}`,
+                ...(verifiedOnly
+                  ? [
+                      or(
+                        eq(users.verificationStatus, "approved" as any),
+                        eq(contractors.verifiedLicensed, true),
+                        eq(contractors.verifiedInsured, true)
+                      ),
+                    ]
+                  : [])
+              )
             )
-          )
-          .limit(Math.min(limit, 5000));
+            .limit(Math.min(limit, 5000));
 
-        for (const row of rows) {
-          const lat = Number(row.lat);
-          const lng = Number(row.lng);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+          for (const row of rows) {
+            const lat = Number(row.lat);
+            const lng = Number(row.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
-          const isClaimed = Boolean(row.ownerUserId) || String(row.claimStatus || "") === "claimed";
-          const isVerified =
-            String(row.ownerVerificationStatus || "").toLowerCase() === "approved" ||
-            row.contractorVerifiedLicensed === true ||
-            row.contractorVerifiedInsured === true;
-          const verifiedStatus = isVerified ? "verified" : isClaimed ? "unverified" : "directory";
+            const isClaimed =
+              Boolean(row.ownerUserId) || String(row.claimStatus || "") === "claimed";
+            const isVerified =
+              String(row.ownerVerificationStatus || "").toLowerCase() === "approved" ||
+              row.contractorVerifiedLicensed === true ||
+              row.contractorVerifiedInsured === true;
+            const verifiedStatus = isVerified ? "verified" : isClaimed ? "unverified" : "directory";
 
-          points.push({
-            id: String(row.id),
-            type: "business",
-            lat,
-            lng,
-            title: String(row.name || "Business"),
-            subtitle:
-              verifiedStatus === "verified"
-                ? "Verified business"
-                : verifiedStatus === "unverified"
-                  ? "Business (unverified)"
-                  : "Directory listing",
-            href: `/business/${encodeURIComponent(String(row.slug))}`,
-            meta: {
-              businessType: row.type ?? null,
-              verifiedStatus,
-              claimStatus: row.claimStatus ?? null,
-            },
-          });
+            points.push({
+              id: String(row.id),
+              type: "business",
+              lat,
+              lng,
+              title: String(row.name || "Business"),
+              subtitle:
+                verifiedStatus === "verified"
+                  ? "Verified business"
+                  : verifiedStatus === "unverified"
+                    ? "Business (unverified)"
+                    : "Directory listing",
+              href: `/business/${encodeURIComponent(String(row.slug))}`,
+              meta: {
+                businessType: row.type ?? null,
+                verifiedStatus,
+                claimStatus: row.claimStatus ?? null,
+              },
+            });
+          }
         }
-      }
 
-      // For now, other entity types are optional layers and may be empty.
-      return res.json({
-        points: points.slice(0, limit),
-        meta: { count: Math.min(points.length, limit) },
+        // For now, other entity types are optional layers and may be empty.
+        return {
+          points: points.slice(0, limit),
+          meta: { count: Math.min(points.length, limit) },
+        };
       });
+
+      return res.json(payload);
     } catch (error: any) {
       console.error("Error fetching map entities:", error);
       return res.status(500).json({ message: "Failed to fetch map entities" });
@@ -9139,131 +9181,136 @@ export async function registerRoutes(app: any) {
       const limitRaw = typeof req.query.limit === "string" ? parseInt(req.query.limit, 10) : 1000;
       const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(2000, limitRaw)) : 1000;
 
-      const providerRoles = [
-        "contractor",
-        "handyman",
-        "service_provider",
-        "specialty_tradesperson",
-        "realtor",
-        "insurance_agent",
-        "mortgage_broker",
-        "car_dealer",
-        "auto_service",
-        "inspector",
-        "business_owner",
-        "commercial_property",
-      ] as const;
+      const payload = await getMapApiPayload(req, async () => {
+        const providerRoles = [
+          "contractor",
+          "handyman",
+          "service_provider",
+          "specialty_tradesperson",
+          "realtor",
+          "insurance_agent",
+          "mortgage_broker",
+          "car_dealer",
+          "auto_service",
+          "inspector",
+          "business_owner",
+          "commercial_property",
+        ] as const;
 
-      const predicates: any[] = [
-        sql`${users.latitude} is not null`,
-        sql`${users.longitude} is not null`,
-        sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
-        sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`,
-        or(sql`${contractors.id} is not null`, inArray(users.role, providerRoles as any)),
-      ];
+        const predicates: any[] = [
+          sql`${users.latitude} is not null`,
+          sql`${users.longitude} is not null`,
+          sql`${users.latitude}::numeric between ${minLat} and ${maxLat}`,
+          sql`${users.longitude}::numeric between ${minLng} and ${maxLng}`,
+          or(sql`${contractors.id} is not null`, inArray(users.role, providerRoles as any)),
+        ];
 
-      if (tradeFilter) {
-        predicates.push(
-          or(
-            sql`lower(${trades.slug}) = ${tradeFilter}`,
-            sql`lower(${trades.name}) = ${tradeFilter}`
-          )
-        );
-      }
+        if (tradeFilter) {
+          predicates.push(
+            or(
+              sql`lower(${trades.slug}) = ${tradeFilter}`,
+              sql`lower(${trades.name}) = ${tradeFilter}`
+            )
+          );
+        }
 
-      if (verifiedOnly) {
-        predicates.push(
-          or(
-            eq(contractors.verifiedLicensed, true),
-            eq(contractors.verifiedInsured, true),
-            eq(users.verificationStatus, "approved" as any)
-          )
-        );
-      }
+        if (verifiedOnly) {
+          predicates.push(
+            or(
+              eq(contractors.verifiedLicensed, true),
+              eq(contractors.verifiedInsured, true),
+              eq(users.verificationStatus, "approved" as any)
+            )
+          );
+        }
 
-      const rows = await db
-        .select({
-          providerId: users.id,
-          displayName: sql<string>`
+        const rows = await db
+          .select({
+            providerId: users.id,
+            displayName: sql<string>`
             coalesce(
               nullif(${contractors.companyName}, ''),
               nullif(trim(coalesce(${users.firstName}, '') || ' ' || coalesce(${users.lastName}, '')), ''),
               'TradeScout Provider'
             )
           `,
-          lat: users.latitude,
-          lng: users.longitude,
-          countyId: users.countyId,
-          countyFips: users.countyFips,
-          countyName: users.countyName,
-          role: users.role,
-          verifiedLicensed: contractors.verifiedLicensed,
-          verifiedInsured: contractors.verifiedInsured,
-          userVerificationStatus: users.verificationStatus,
-          tradeCategories: sql<
-            string[]
-          >`coalesce(array_remove(array_agg(distinct ${trades.slug}), null), array[]::text[])`,
-        })
-        .from(users)
-        .leftJoin(contractors, eq(contractors.userId, users.id))
-        .leftJoin(contractorTrades, eq(contractorTrades.contractorId, contractors.id))
-        .leftJoin(trades, eq(trades.id, contractorTrades.tradeId))
-        .where(and(...predicates))
-        .groupBy(
-          users.id,
-          users.firstName,
-          users.lastName,
-          users.countyId,
-          users.countyFips,
-          users.countyName,
-          users.role,
-          users.latitude,
-          users.longitude,
-          users.verificationStatus,
-          contractors.id,
-          contractors.companyName,
-          contractors.verifiedLicensed,
-          contractors.verifiedInsured
-        )
-        .limit(limit);
+            lat: users.latitude,
+            lng: users.longitude,
+            countyId: users.countyId,
+            countyFips: users.countyFips,
+            countyName: users.countyName,
+            role: users.role,
+            verifiedLicensed: contractors.verifiedLicensed,
+            verifiedInsured: contractors.verifiedInsured,
+            userVerificationStatus: users.verificationStatus,
+            tradeCategories: sql<
+              string[]
+            >`coalesce(array_remove(array_agg(distinct ${trades.slug}), null), array[]::text[])`,
+          })
+          .from(users)
+          .leftJoin(contractors, eq(contractors.userId, users.id))
+          .leftJoin(contractorTrades, eq(contractorTrades.contractorId, contractors.id))
+          .leftJoin(trades, eq(trades.id, contractorTrades.tradeId))
+          .where(and(...predicates))
+          .groupBy(
+            users.id,
+            users.firstName,
+            users.lastName,
+            users.countyId,
+            users.countyFips,
+            users.countyName,
+            users.role,
+            users.latitude,
+            users.longitude,
+            users.verificationStatus,
+            contractors.id,
+            contractors.companyName,
+            contractors.verifiedLicensed,
+            contractors.verifiedInsured
+          )
+          .limit(limit);
 
-      const providers = rows
-        .map((row) => {
-          const lat = Number(row.lat);
-          const lng = Number(row.lng);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        const providers = rows
+          .map((row: any) => {
+            const lat = Number(row.lat);
+            const lng = Number(row.lng);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-          const contractorVerified = row.verifiedLicensed === true || row.verifiedInsured === true;
-          const userVerified =
-            String(row.userVerificationStatus || "").toLowerCase() === "approved";
-          const verifiedStatus = contractorVerified || userVerified ? "verified" : "unverified";
+            const contractorVerified =
+              row.verifiedLicensed === true || row.verifiedInsured === true;
+            const userVerified =
+              String(row.userVerificationStatus || "").toLowerCase() === "approved";
+            const verifiedStatus = contractorVerified || userVerified ? "verified" : "unverified";
 
-          return {
-            id: row.providerId,
-            displayName: row.displayName,
-            lat,
-            lng,
-            countyId: row.countyId ?? null,
-            countyFips: row.countyFips ?? null,
-            countyName: row.countyName ?? null,
-            tradeCategories: Array.isArray(row.tradeCategories) ? row.tradeCategories : [],
-            verifiedStatus,
-            role: row.role ?? null,
-          };
-        })
-        .filter((row): row is NonNullable<typeof row> => row !== null);
+            return {
+              id: row.providerId,
+              displayName: row.displayName,
+              lat,
+              lng,
+              countyId: row.countyId ?? null,
+              countyFips: row.countyFips ?? null,
+              countyName: row.countyName ?? null,
+              tradeCategories: Array.isArray(row.tradeCategories) ? row.tradeCategories : [],
+              verifiedStatus,
+              role: row.role ?? null,
+            };
+          })
+          .filter((row: any): row is any => row !== null);
 
-      return res.json({
-        providers,
-        meta: {
-          count: providers.length,
-          bbox: { minLng, minLat, maxLng, maxLat },
-          filters: {
-            trade: tradeFilter || null,
-            verifiedOnly,
+        return {
+          providers,
+          meta: {
+            count: providers.length,
+            bbox: { minLng, minLat, maxLng, maxLat },
+            filters: {
+              trade: tradeFilter || null,
+              verifiedOnly,
+            },
           },
-        },
+        };
       });
+
+      return res.json(payload);
     } catch (error: any) {
       console.error("Error fetching map providers:", error);
       return res.status(500).json({ message: "Failed to fetch map providers" });
@@ -10315,7 +10362,13 @@ export async function registerRoutes(app: any) {
         const analytics = await pricingAnalyticsService.getPricingAnalytics(timeframe as any);
 
         // Convert analytics to CSV format
-        const csvData = [];
+        const csvData: Array<{
+          type: string;
+          id: string;
+          average: number;
+          count: number;
+          trend: number;
+        }> = [];
 
         // Add trade data
         for (const [tradeId, data] of Object.entries(analytics.averageQuotes.byTrade)) {
@@ -10607,8 +10660,8 @@ export async function registerRoutes(app: any) {
           .innerJoin(workRequests, eq(workRequestAssignments.workRequestId, workRequests.id))
           .where(eq(workRequestAssignments.contractorId, contractorRow.id))
           .groupBy(workRequests.source);
-        const total = rows.reduce((sum, r) => sum + (r.count || 0), 0);
-        const sources = rows.map((r) => ({
+        const total = rows.reduce((sum: number, r: any) => sum + (r.count || 0), 0);
+        const sources = rows.map((r: any) => ({
           source: r.source || "tasks",
           count: r.count || 0,
           percentage: total > 0 ? Math.round(((r.count || 0) / total) * 100) : 0,
@@ -10660,7 +10713,7 @@ export async function registerRoutes(app: any) {
           .orderBy(desc(commercialProjectBids.createdAt))
           .limit(50);
 
-        const projects = bids.map((b) => ({
+        const projects = bids.map((b: any) => ({
           bidId: b.bidId,
           projectId: b.projectId,
           projectTitle: b.projectTitle,
@@ -10847,7 +10900,7 @@ export async function registerRoutes(app: any) {
         const hasInsurance = (user as any)?.insuranceVerified;
         const hasIdentity = (user as any)?.identityVerified;
 
-        const missingRequirements = [];
+        const missingRequirements: string[] = [];
         if (!hasLicense) missingRequirements.push("license");
         if (!hasInsurance) missingRequirements.push("insurance");
         if (!hasIdentity) missingRequirements.push("identity");
@@ -17165,7 +17218,7 @@ export async function registerRoutes(app: any) {
                       profileData: nextProfile,
                       updatedAt: new Date(),
                     } as any)
-                    .where(eq(businesses.id, businessId));
+                    .where(eq(businesses.id, String(businessId)));
 
                   await db.execute(sql`
                   update businesses
@@ -18492,7 +18545,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         // Resolve seller's state for cottage food law check
         let sellerStateForValidation: string | null = null;
         try {
-          const sellerProfile = await storage.getUserById(String(user?.id || ""));
+          const [sellerProfile] = await storage.getUsersByIds([String(user?.id || "")]);
           sellerStateForValidation =
             String((sellerProfile as any)?.state || "")
               .toUpperCase()
@@ -18688,7 +18741,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       if (updateExchangeSlug && updateExchangeSlug !== "metals") {
         let sellerStateForUpdate: string | null = null;
         try {
-          const sellerProfile = await storage.getUserById(String(user?.id || ""));
+          const [sellerProfile] = await storage.getUsersByIds([String(user?.id || "")]);
           sellerStateForUpdate =
             String((sellerProfile as any)?.state || "")
               .toUpperCase()

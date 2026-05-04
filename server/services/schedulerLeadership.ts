@@ -1,4 +1,4 @@
-import type { PoolClient } from "@neondatabase/serverless";
+import type { PoolClient } from "pg";
 import { pool } from "../db";
 
 let schedulerLeaderClient: PoolClient | null = null;

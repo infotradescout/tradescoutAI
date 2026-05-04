@@ -1997,7 +1997,7 @@ export function mountAdminRoutes(app: any) {
 
         await logAdminAction({
           type: "admin_user_delete",
-          adminId: adminUserId,
+          adminId: adminUserId ?? undefined,
           adminRole,
           targetUserId,
           targetEmail: targetUser.email,
@@ -2083,7 +2083,7 @@ export function mountAdminRoutes(app: any) {
 
         await logAdminAction({
           type: "admin_community_post_delete",
-          adminId: adminUserId,
+          adminId: adminUserId ?? undefined,
           adminRole,
           targetPostId: postId,
           authorId: post.authorId,

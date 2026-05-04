@@ -118,7 +118,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     async function checkAuthority() {
       setLoading(true);
 
-      const checks = [];
+      const checks: Promise<void>[] = [];
 
       if (canDirectConnect && !disableDirectConnect) {
         checks.push(

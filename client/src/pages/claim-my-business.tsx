@@ -282,7 +282,7 @@ export default function ClaimMyBusinessPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 text-white sm:py-8">
-      <Card className="overflow-hidden rounded-lg border border-white/10 bg-[#0b0f14] shadow-[0_16px_44px_rgba(0,0,0,0.38)]">
+      <Card className="overflow-hidden rounded-lg border border-white/10 bg-tsCard shadow-[0_16px_44px_rgba(0,0,0,0.38)]">
         <CardHeader className="space-y-1">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>

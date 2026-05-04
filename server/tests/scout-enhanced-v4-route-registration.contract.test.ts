@@ -17,4 +17,12 @@ describe("scout enhanced v4 route registration", () => {
     expect(scout).toContain("/api/scout-enhanced-v4/message-v4");
     expect(enhancedV4).toContain('router.post("/message-v4"');
   });
+
+  it("keeps enhanced v4 opt-in instead of making it the default Scout engine", () => {
+    const scout = read("server/routes/scout.ts");
+
+    expect(scout).toContain(': "classic";');
+    expect(scout).toContain("? false");
+    expect(scout).toContain("const wantsEnhancedV4 = scoutEnhancedEnabled && isEnhancedEngine");
+  });
 });

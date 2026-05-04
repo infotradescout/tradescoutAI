@@ -580,7 +580,12 @@ export class ScoutOutboundDispatcher {
     endpoint: string;
     enabled: boolean;
   }> {
-    const channels = [];
+    const channels: Array<{
+      channel_id: string;
+      channel_type: "email" | "webhook" | "slack" | "discord" | "crm";
+      endpoint: string;
+      enabled: boolean;
+    }> = [];
 
     for (const [channelId, config] of this.dispatchConfigs) {
       channels.push({
