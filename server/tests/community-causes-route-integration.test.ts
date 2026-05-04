@@ -1,6 +1,6 @@
 import express from "express";
 import request from "supertest";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import communityCausesRouter from "../routes/community-causes-routes";
@@ -11,20 +11,21 @@ const shouldRunIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
 const describeDb = hasTestDb && shouldRunIntegration ? describe : describe.skip;
 
 describeDb("community causes route integration", () => {
-  const ownerUserId = "route-cause-owner";
-  const noVoteOwnerUserId = "route-cause-owner-novote";
-  const voterIds = ["route-cause-voter-1", "route-cause-voter-2", "route-cause-voter-3"];
-  const profileId = "route-cause-profile";
-  const noVoteProfileId = "route-cause-profile-novote";
-  const causeIds = ["route-cause-a", "route-cause-b", "route-cause-c"];
-  const noVoteCauseIds = ["route-cause-novote-a", "route-cause-novote-b"];
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const ownerUserId = `route-cause-owner-${runId}`;
+  const noVoteOwnerUserId = `route-cause-owner-novote-${runId}`;
+  const voterIds = [1, 2, 3].map((index) => `route-cause-voter-${index}-${runId}`);
+  const profileId = `route-cause-profile-${runId}`;
+  const noVoteProfileId = `route-cause-profile-novote-${runId}`;
+  const causeIds = [1, 2, 3].map((index) => `route-cause-${index}-${runId}`);
+  const noVoteCauseIds = [1, 2].map((index) => `route-cause-novote-${index}-${runId}`);
   const orderedCreatedAt = {
     oldest: new Date("2026-01-01T00:00:00.000Z"),
     middle: new Date("2026-01-02T00:00:00.000Z"),
     newest: new Date("2026-01-03T00:00:00.000Z"),
   };
 
-  beforeAll(async () => {
+  async function cleanupFixtures() {
     await db
       .delete(communityCauseVotes)
       .where(inArray(communityCauseVotes.causeId, [...causeIds, ...noVoteCauseIds]));
@@ -33,17 +34,21 @@ describeDb("community causes route integration", () => {
       .where(inArray(communityCauses.id, [...causeIds, ...noVoteCauseIds]));
     await db.delete(profiles).where(inArray(profiles.id, [profileId, noVoteProfileId]));
     await db.delete(users).where(inArray(users.id, [ownerUserId, noVoteOwnerUserId, ...voterIds]));
+  }
+
+  beforeAll(async () => {
+    await cleanupFixtures();
 
     await db.insert(users).values([
       {
         id: ownerUserId,
-        email: "route-cause-owner@example.com",
+        email: `route-cause-owner-${runId}@example.com`,
         firstName: "Route",
         lastName: "Owner",
       } as any,
       {
         id: noVoteOwnerUserId,
-        email: "route-cause-owner-novote@example.com",
+        email: `route-cause-owner-novote-${runId}@example.com`,
         firstName: "Route",
         lastName: "NoVoteOwner",
       } as any,
@@ -51,7 +56,7 @@ describeDb("community causes route integration", () => {
         (userId, index) =>
           ({
             id: userId,
-            email: `route-cause-voter-${index + 1}@example.com`,
+            email: `route-cause-voter-${index + 1}-${runId}@example.com`,
             firstName: "Route",
             lastName: `Voter${index + 1}`,
           }) as any
@@ -62,7 +67,7 @@ describeDb("community causes route integration", () => {
       id: profileId,
       ownerUserId,
       roleContext: "homeowner",
-      slug: "route-cause-profile",
+      slug: `route-cause-profile-${runId}`,
       displayName: "Route Cause Profile",
       status: "published",
     } as any);
@@ -71,7 +76,7 @@ describeDb("community causes route integration", () => {
       id: noVoteProfileId,
       ownerUserId: noVoteOwnerUserId,
       roleContext: "homeowner",
-      slug: "route-cause-profile-novote",
+      slug: `route-cause-profile-novote-${runId}`,
       displayName: "Route Cause Profile No Vote",
       status: "published",
     } as any);
@@ -124,6 +129,10 @@ describeDb("community causes route integration", () => {
         { causeId: causeIds[1], userId: voterIds[1] } as any,
         { causeId: causeIds[2], userId: voterIds[2] } as any,
       ]);
+  });
+
+  afterAll(async () => {
+    await cleanupFixtures();
   });
 
   it("returns profile causes with allocation shares summing to exactly 100.00", async () => {

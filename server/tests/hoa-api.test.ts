@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { db } from "../db";
 import {
   homeownerAssociations,
@@ -15,30 +15,42 @@ const hasTestDb = Boolean(process.env.TEST_DATABASE_URL);
 const describeDb = hasTestDb ? describe : describe.skip;
 
 describeDb("HOA API helpers", () => {
-  const memberUserId = "hoa-member-user";
-  const nonMemberUserId = "hoa-non-member-user";
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const memberUserId = `hoa-member-user-${runId}`;
+  const nonMemberUserId = `hoa-non-member-user-${runId}`;
+  const hoaName = `Test HOA ${runId}`;
+  const voteTitle = `Test HOA Vote ${runId}`;
   let hoaId: string;
   let voteId: string;
 
-  beforeAll(async () => {
-    // Clean prior test data
-    await db.delete(hoaVoteResponses).where(inArray(hoaVoteResponses.userId, [memberUserId, nonMemberUserId]));
-    await db.delete(hoaVotes).where(eq(hoaVotes.title, "Test HOA Vote"));
+  async function cleanupFixtures() {
+    await db
+      .delete(hoaVoteResponses)
+      .where(inArray(hoaVoteResponses.userId, [memberUserId, nonMemberUserId]));
+    await db.delete(hoaVotes).where(eq(hoaVotes.title, voteTitle));
     await db.delete(hoaMembers).where(inArray(hoaMembers.userId, [memberUserId, nonMemberUserId]));
-    await db.delete(homeownerAssociations).where(eq(homeownerAssociations.name, "Test HOA"));
+    if (hoaId) {
+      await db.delete(hoaFinancialRecords).where(eq(hoaFinancialRecords.hoaId, hoaId));
+      await db.delete(homeownerAssociations).where(eq(homeownerAssociations.id, hoaId));
+    }
+    await db.delete(homeownerAssociations).where(eq(homeownerAssociations.name, hoaName));
     await db.delete(users).where(inArray(users.id, [memberUserId, nonMemberUserId]));
+  }
+
+  beforeAll(async () => {
+    await cleanupFixtures();
 
     // Seed users
     await db.insert(users).values({
       id: memberUserId,
-      email: "hoa-member@example.com",
+      email: `hoa-member-${runId}@example.com`,
       firstName: "HOA",
       lastName: "Member",
     } as any);
 
     await db.insert(users).values({
       id: nonMemberUserId,
-      email: "hoa-non-member@example.com",
+      email: `hoa-non-member-${runId}@example.com`,
       firstName: "HOA",
       lastName: "NonMember",
     } as any);
@@ -47,7 +59,7 @@ describeDb("HOA API helpers", () => {
     const [hoa] = await db
       .insert(homeownerAssociations)
       .values({
-        name: "Test HOA",
+        name: hoaName,
         address: "123 Test St",
         city: "Testville",
         state: "TX",
@@ -71,7 +83,7 @@ describeDb("HOA API helpers", () => {
       .insert(hoaVotes)
       .values({
         hoaId,
-        title: "Test HOA Vote",
+        title: voteTitle,
         description: "Test vote description",
         voteType: "rule_change",
         createdBy: memberUserId,
@@ -85,12 +97,16 @@ describeDb("HOA API helpers", () => {
     voteId = vote.id;
   });
 
+  afterAll(async () => {
+    await cleanupFixtures();
+  });
+
   it("getHoaForUser returns memberships for member user", async () => {
     const memberships = await (storage as any).getHoaForUser(memberUserId);
     expect(memberships.length).toBeGreaterThan(0);
     const membership = memberships.find((m: any) => m.hoaId === hoaId);
     expect(membership).toBeDefined();
-    expect(membership.hoaName).toBe("Test HOA");
+    expect(membership.hoaName).toBe(hoaName);
     expect(membership.groupType).toBe("hoa");
   });
 

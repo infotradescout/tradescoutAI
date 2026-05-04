@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../db";
 import { storage } from "../storage";
@@ -9,21 +9,26 @@ const shouldRunIntegration = process.env.RUN_INTEGRATION_TESTS === "true";
 const describeDb = hasTestDb && shouldRunIntegration ? describe : describe.skip;
 
 describeDb("community causes allocation integration", () => {
-  const ownerUserId = "test-cause-owner";
-  const voterIds = ["test-cause-voter-1", "test-cause-voter-2", "test-cause-voter-3"];
-  const profileId = "test-cause-profile";
-  const causeIds = ["test-cause-a", "test-cause-b", "test-cause-c", "test-cause-d"];
+  const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const ownerUserId = `test-cause-owner-${runId}`;
+  const voterIds = [1, 2, 3].map((index) => `test-cause-voter-${index}-${runId}`);
+  const profileId = `test-cause-profile-${runId}`;
+  const causeIds = [1, 2, 3, 4].map((index) => `test-cause-${index}-${runId}`);
 
-  beforeAll(async () => {
+  async function cleanupFixtures() {
     await db.delete(communityCauseVotes).where(inArray(communityCauseVotes.causeId, causeIds));
     await db.delete(communityCauses).where(inArray(communityCauses.id, causeIds));
     await db.delete(profiles).where(eq(profiles.id, profileId));
     await db.delete(users).where(inArray(users.id, [ownerUserId, ...voterIds]));
+  }
+
+  beforeAll(async () => {
+    await cleanupFixtures();
 
     await db.insert(users).values([
       {
         id: ownerUserId,
-        email: "test-cause-owner@example.com",
+        email: `test-cause-owner-${runId}@example.com`,
         firstName: "Cause",
         lastName: "Owner",
       } as any,
@@ -31,7 +36,7 @@ describeDb("community causes allocation integration", () => {
         (userId, index) =>
           ({
             id: userId,
-            email: `test-cause-voter-${index + 1}@example.com`,
+            email: `test-cause-voter-${index + 1}-${runId}@example.com`,
             firstName: "Cause",
             lastName: `Voter${index + 1}`,
           }) as any
@@ -42,7 +47,7 @@ describeDb("community causes allocation integration", () => {
       id: profileId,
       ownerUserId,
       roleContext: "homeowner",
-      slug: "test-cause-profile",
+      slug: `test-cause-profile-${runId}`,
       displayName: "Test Cause Profile",
       status: "published",
     } as any);
@@ -92,6 +97,10 @@ describeDb("community causes allocation integration", () => {
         userId: voterIds[2],
       } as any,
     ]);
+  });
+
+  afterAll(async () => {
+    await cleanupFixtures();
   });
 
   it("returns allocation shares summing to exactly 100.00", async () => {
