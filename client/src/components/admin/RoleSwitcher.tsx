@@ -39,7 +39,7 @@ export default function RoleSwitcher() {
       });
 
       // Navigate to role-specific dashboard
-      const dashboard = getRoleDashboardPath(newRole) || "/scout";
+      const dashboard = getRoleDashboardPath(newRole) || "/direct-connect";
       if (dashboard) {
         setTimeout(() => {
           window.location.href = dashboard;

@@ -75,4 +75,15 @@ describe("AppRoutes onboarding decisions", () => {
     expect(userNeedsOnboarding(user)).toBe(false);
     expect(getPostLandingRoute(user)).toBe("/admin");
   });
+
+  it("routes fully onboarded regular users to Direct Connect", () => {
+    const user = {
+      onboardingCompleted: true,
+      profileVersion: 999,
+      role: "homeowner",
+    };
+
+    expect(userNeedsOnboarding(user)).toBe(false);
+    expect(getPostLandingRoute(user)).toBe("/direct-connect");
+  });
 });

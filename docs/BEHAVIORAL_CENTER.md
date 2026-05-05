@@ -8,10 +8,11 @@
 
 ### Landing Route
 - **Logged-out users** → `/pre-scout-setup` (onboarding sign-up)
-- **Authenticated users** → `/scout` (default dashboard)
+- **Authenticated users with incomplete onboarding** → `/onboarding/profile` or `/onboarding/intent`
+- **Authenticated users with complete onboarding** → `/direct-connect` (default work surface)
 - **Admins** → `/admin` (moderation console)
 
-**Finding:** For 90%+ of users, the default page is Scout. It is the "fake homepage."
+**Finding:** Direct Connect is the default post-onboarding work surface. Scout remains the guided bridge and support layer, but users should not land there before setup is complete.
 
 ### UI Emphasis (What Loads First)
 

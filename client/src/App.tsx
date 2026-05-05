@@ -217,6 +217,13 @@ const AppLayout = memo(function AppLayout() {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
 
+    const profileVersion: number =
+      typeof user.profileVersion === "number" ? user.profileVersion : 0;
+    const onboardingCompleted = user.onboardingCompleted === true;
+    const needsOnboarding =
+      profileVersion < CURRENT_PROFILE_VERSION || onboardingCompleted !== true;
+    if (needsOnboarding) return;
+
     if (user.communityFirst && location === "/") {
       setLocation("/community-feed");
       return;

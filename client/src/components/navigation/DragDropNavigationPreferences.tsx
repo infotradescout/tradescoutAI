@@ -17,6 +17,7 @@ import {
   Home,
   Search,
   Calculator,
+  ClipboardList,
   Users,
   Package,
   Trophy,
@@ -59,6 +60,7 @@ const getIconComponent = (iconName: string) => {
     Home: Home,
     Search: Search,
     Calculator: Calculator,
+    ClipboardList: ClipboardList,
     Users: Users,
     Package: Package,
     Trophy: Trophy,
@@ -94,10 +96,10 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
   const baseItems: NavigationItem[] = [
     // Core navigation items - available to all users
     {
-      id: "home",
-      label: "Home",
-      icon: "Home",
-      href: "/",
+      id: "direct-connect",
+      label: "Direct Connect",
+      icon: "ClipboardList",
+      href: "/direct-connect",
       visible: true,
     },
     {

@@ -69,7 +69,7 @@ export function getPostLandingRoute(user: unknown): string {
     roles.some((r) => isAdminTier(r) || String(r).includes("admin"));
 
   if (isSuperAdmin || isAdmin) return "/admin";
-  return "/scout";
+  return "/direct-connect";
 }
 
 function isLegacyRootScoutQuery(rest: string): boolean {
@@ -727,12 +727,12 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Dashboard routes (auth required) */}
               <Route path="/my-tradescout">
                 <ProtectedRoute>
-                  <RedirectTo to="/scout" />
+                  <RedirectTo to="/direct-connect" />
                 </ProtectedRoute>
               </Route>
               <Route path="/dashboard">
                 <ProtectedRoute>
-                  <RedirectTo to="/scout" />
+                  <RedirectTo to="/direct-connect" />
                 </ProtectedRoute>
               </Route>
               <Route path="/dashboard/jobs">

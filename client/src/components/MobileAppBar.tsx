@@ -8,7 +8,6 @@ import {
   User,
   Menu,
   Wrench,
-  Layout,
   Bell,
   Heart,
   Calculator,
@@ -43,8 +42,8 @@ export function MobileAppBar() {
   const { isAuthenticated, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // Unified user hub
-  const dashboardLink = "/scout";
+  // Unified user hub: Direct Connect is the post-onboarding home surface.
+  const dashboardLink = "/direct-connect";
 
   return (
     <>
@@ -72,8 +71,8 @@ export function MobileAppBar() {
                         : "text-white/60 hover:text-white active:bg-white/10"
                     )}
                   >
-                    <Layout className="h-5 w-5 mb-1" />
-                    <span className="text-xs font-medium">Scout</span>
+                    <ClipboardList className="h-5 w-5 mb-1" />
+                    <span className="text-xs font-medium">Connect</span>
                   </button>
                 </Link>
               );

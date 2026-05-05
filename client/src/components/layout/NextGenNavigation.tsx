@@ -63,8 +63,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     // are still accessible from within flows but are no longer top-level
     // navigation for most users.
     const baseItems: NavItem[] = [
-      { href: "/scout", label: "Scout", icon: Calculator, priority: 10 },
-      { href: "/direct-connect", label: "Direct Connect", icon: LayoutDashboard, priority: 9 },
+      { href: "/direct-connect", label: "Direct Connect", icon: LayoutDashboard, priority: 10 },
+      { href: "/scout", label: "Scout", icon: Calculator, priority: 9 },
       {
         href: "/community",
         label: "Community",
@@ -77,8 +77,8 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
       ...(isAuthenticated
         ? [
             {
-              href: isAdminTier(userRole) ? "/admin" : "/scout",
-              label: isSuperAdminLike(userRole) ? "Super Admin" : "Scout",
+              href: isAdminTier(userRole) ? "/admin" : "/direct-connect",
+              label: isSuperAdminLike(userRole) ? "Super Admin" : "Direct Connect",
               icon: LayoutDashboard,
               priority: 11,
             },
@@ -99,38 +99,38 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     ];
 
     // Adjust priorities based on user role while keeping Direct Connect
-    // and Scout as the primary coordination entry points.
+    // as the primary coordination entry point.
     if (isAdminTier(userRole)) {
       return baseItems.map((item) => {
         if (item.href === "/admin/panel") return { ...item, priority: 20 };
         if (item.href === "/admin/users") return { ...item, priority: 19 };
-        if (item.href === "/scout") return { ...item, priority: 18 };
+        if (item.href === "/direct-connect") return { ...item, priority: 18 };
+        if (item.href === "/scout") return { ...item, priority: 17 };
         return item;
       });
     }
 
     if (userRole === "contractor_user" || userRole === "accelerator_member") {
       return baseItems.map((item) => {
-        if (item.href === "/scout") return { ...item, priority: 15 };
-        if (item.href === "/direct-connect") return { ...item, priority: 14 };
-        if (item.href === "/scout") return { ...item, priority: 13 };
+        if (item.href === "/direct-connect") return { ...item, priority: 15 };
+        if (item.href === "/scout") return { ...item, priority: 14 };
         return item;
       });
     }
 
     if (userRole === "helper") {
       return baseItems.map((item) => {
-        if (item.href === "/scout") return { ...item, priority: 15 };
-        if (item.href === "/direct-connect") return { ...item, priority: 14 };
-        if (item.href === "/scout") return { ...item, priority: 13 };
+        if (item.href === "/direct-connect") return { ...item, priority: 15 };
+        if (item.href === "/scout") return { ...item, priority: 14 };
         return item;
       });
     }
 
     if (userRole === "moderator") {
       return baseItems.map((item) => {
-        if (item.href === "/scout") return { ...item, priority: 15 };
+        if (item.href === "/direct-connect") return { ...item, priority: 15 };
         if (item.href === "/community") return { ...item, priority: 14 };
+        if (item.href === "/scout") return { ...item, priority: 13 };
         return item;
       });
     }
@@ -138,6 +138,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
     // homeowner (default)
     return baseItems.map((item) => {
       if (item.href === "/community" && isCommunityFirst) return { ...item, priority: 16 };
+      if (item.href === "/direct-connect") return { ...item, priority: 15 };
       if (item.href === "/scout" && isCommunityFirst) return { ...item, priority: 8 };
       return item;
     });
@@ -284,7 +285,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                     title={!showTextLabel ? item.label : undefined}
                     data-nav-item={item.label.toLowerCase().replace(/\s+/g, "-")}
                     data-nav-contractors={item.href === "/contractors" ? "true" : undefined}
-                    data-nav-dashboard={item.href === "/scout" ? "true" : undefined}
+                    data-nav-dashboard={item.href === "/direct-connect" ? "true" : undefined}
                     data-nav-growth={undefined}
                   >
                     <Icon

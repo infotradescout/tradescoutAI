@@ -7,10 +7,10 @@ const SimpleLanding = memo(function SimpleLanding() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Redirect authenticated users to Scout hub
+  // Redirect authenticated users to the post-onboarding work surface.
   React.useEffect(() => {
     if (isAuthenticated) {
-      setLocation("/scout");
+      setLocation("/direct-connect");
     }
   }, [isAuthenticated, setLocation]);
 

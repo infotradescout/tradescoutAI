@@ -155,7 +155,7 @@ export default function Navigation() {
       href: "/scout",
       label: "Scout",
       icon: Layout,
-      description: "Ask questions, get help, and see your dashboard",
+      description: "Ask questions and get guided help",
     },
     ...(isAdmin
       ? [

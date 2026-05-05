@@ -15,6 +15,13 @@ function isPrimaryTradeScoutHost(hostname: string): boolean {
 }
 
 export function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const currentHost = window.location.hostname.trim().toLowerCase();
+    if (currentHost === "thetradescout.com") {
+      return "https://www.thetradescout.com";
+    }
+  }
+
   if (!configuredApiBaseUrl) return "";
 
   if (typeof window === "undefined") {

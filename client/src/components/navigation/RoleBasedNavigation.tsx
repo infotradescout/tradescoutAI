@@ -26,6 +26,7 @@ import {
   BarChart,
   MessageSquare,
   Briefcase,
+  ClipboardList,
   Building,
   Car,
   Heart,
@@ -59,9 +60,9 @@ interface NavigationItem {
 const NAVIGATION_ITEMS: NavigationItem[] = [
   // Dashboard/Home
   {
-    label: "Scout",
-    href: "/scout",
-    icon: Home,
+    label: "Direct Connect",
+    href: "/direct-connect",
+    icon: ClipboardList,
   },
 
   // Exchange Features (avoid duplicating what's in main nav)

@@ -188,16 +188,16 @@ const buildFeatureNav = (opts?: {
 }): NavItem[] => {
   const coreNav: NavItem[] = [
     {
-      label: "Scout",
-      href: "/scout",
-      icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Ask Scout for the next action.",
-    },
-    {
       label: "Direct Connect",
       href: "/direct-connect",
       icon: <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Post requests and track replies.",
+    },
+    {
+      label: "Scout",
+      href: "/scout",
+      icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Ask Scout for the next action.",
     },
     {
       label: "Commercial",

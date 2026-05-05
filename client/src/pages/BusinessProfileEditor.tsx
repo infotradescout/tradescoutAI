@@ -514,7 +514,7 @@ export default function BusinessProfileEditor() {
             <div className="text-center">
               <h2 className="text-xl font-semibold mb-2">Cannot edit profile</h2>
               <p className="text-muted-foreground mb-6">{error || "Profile not found"}</p>
-              <Button onClick={() => navigate("/scout")}>Go to Dashboard</Button>
+              <Button onClick={() => navigate("/direct-connect")}>Go to Direct Connect</Button>
             </div>
           </CardContent>
         </Card>

@@ -16,6 +16,7 @@ import {
   Settings,
   HelpCircle,
   Building,
+  ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +38,13 @@ const SimpleNavigation = memo(function SimpleNavigation() {
   const isActivePath = (path: string) => location === path;
 
   const mainNavItems = [
-    { icon: Home, label: "Scout", path: "/scout", testId: "nav-home", key: "home" },
+    {
+      icon: ClipboardList,
+      label: "Direct Connect",
+      path: "/direct-connect",
+      testId: "nav-home",
+      key: "home",
+    },
     {
       icon: Users,
       label: "Community",

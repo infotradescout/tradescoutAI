@@ -87,7 +87,9 @@ export function useAuth() {
       clearTimeout(timeoutId);
 
       // 401 is not an error: it means guest / not signed in.
-      if (response.status === 401) {
+      // 404 can happen on a misrouted/cached apex host; fail soft so the app renders
+      // instead of trapping users on the boot spinner.
+      if (response.status === 401 || response.status === 404) {
         return null;
       }
 
@@ -157,9 +159,10 @@ export function useAuth() {
 
   return {
     user: user || null,
-    // Treat active auth revalidation as loading so root routing
-    // doesn't redirect to guest from stale cached null.
-    isLoading: isLoading || isFetching || (!!error && !user),
+    // Treat active auth revalidation as loading, but never pin the whole app
+    // behind the spinner after an auth error. A failed auth probe should degrade
+    // to a guest session so users can still load the site.
+    isLoading: isLoading || isFetching,
     isAuthenticated: !!user,
     error,
     refetch,

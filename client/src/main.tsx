@@ -9,11 +9,11 @@ const BOOT_DETAIL_ID = "ts-boot-fallback-detail";
 const APP_READY_ATTR = "data-app-mounted";
 const SERVICE_WORKER_URL = "/sw.js";
 
-function enforceCanonicalHost() {
-  if (typeof window === "undefined") return;
+function enforceCanonicalHost(): boolean {
+  if (typeof window === "undefined") return false;
   const host = window.location.hostname.toLowerCase();
   const isLocal = host === "localhost" || host === "127.0.0.1";
-  if (isLocal) return;
+  if (isLocal) return false;
 
   // Canonicalize apex -> www so cookies + routing stay consistent.
   // (This is a client-side safety net in case edge/DNS config doesn't 301 properly.)
@@ -22,8 +22,10 @@ function enforceCanonicalHost() {
     if (host !== canonical) {
       const target = `https://${canonical}${window.location.pathname}${window.location.search}${window.location.hash}`;
       window.location.replace(target);
+      return true;
     }
   }
+  return false;
 }
 
 function setViewportVars() {
@@ -241,10 +243,10 @@ window.addEventListener("unhandledrejection", (event) => {
 });
 
 async function bootstrap() {
+  if (enforceCanonicalHost()) return;
   if (await maybeHandleManualReset()) return;
   if (await maybeHandleBuildChangeReset()) return;
 
-  enforceCanonicalHost();
   setViewportVars();
   window.addEventListener("resize", setViewportVars);
   window.addEventListener("orientationchange", setViewportVars);

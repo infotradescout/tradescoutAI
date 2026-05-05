@@ -9,6 +9,7 @@ import {
   Calculator,
   Users,
   Building,
+  ClipboardList,
   BarChart3,
   Menu,
   X,
@@ -27,15 +28,14 @@ export default function Navigation() {
 
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/scout", label: "Scout", icon: Calculator },
     { href: "/direct-connect", label: "Direct Connect", icon: Building },
+    { href: "/scout", label: "Scout", icon: Calculator },
     // Growth Pack entry removed
   ];
 
   const authNavItems = [
-    { href: "/", label: "Dashboard", icon: Home },
+    { href: "/direct-connect", label: "Direct Connect", icon: ClipboardList },
     { href: "/scout", label: "Scout", icon: Calculator },
-    { href: "/direct-connect", label: "Direct Connect", icon: Building },
     // Contractor-specific navigation keeps contractor tools available
     ...(isContractor
       ? [

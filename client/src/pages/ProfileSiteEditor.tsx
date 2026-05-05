@@ -740,9 +740,9 @@ export default function ProfileSiteEditor() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-white/70">You may not have access to this profile.</p>
-            <Link href="/scout">
+            <Link href="/direct-connect">
               <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                Go to Dashboard
+                Go to Direct Connect
               </Button>
             </Link>
           </CardContent>
