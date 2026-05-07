@@ -19,6 +19,8 @@ import {
 } from "../services/scoutMultiSourceSynthesis";
 import { isCodeRelatedQuery, isPricingRelatedQuery } from "../services/scoutKnowledgeIntegration";
 import { scoutFindingsToLisaFeed, type ScoutIntelligenceFinding } from "../services/scoutToLisaConverter";
+import { storeScoutLisaFindings, ensureScoutLisaTable } from "../services/scoutLisaPersistence";
+import type { LisaFeedItem } from "../../shared/lisa";
 
 const router = Router();
 
@@ -146,6 +148,75 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Combine all warnings
     const allWarnings = [...disclaimers, ...synthesis.warnings];
+
+    // Ensure table exists
+    await ensureScoutLisaTable();
+
+    // Build Scout findings for LISA persistence
+    const scoutFindings: Array<{ item: LisaFeedItem; metadata: any }> = [];
+    if (isCodeRelatedQuery(query)) {
+      const codeFindings = scoutFindingsToLisaFeed([{
+        type: "building_code",
+        county,
+        state,
+        headline: multiSourceResponse.message.split(".")[0],
+        narrative: multiSourceResponse.message,
+        evidence: multiSourceResponse.sources.map((s) => `source=${s}`),
+        confidence: (multiSourceResponse.confidence || "medium") as any,
+        freshnessMinutes: 60,
+        sources: synthesis.sourceUsage || [],
+      }]);
+      if (codeFindings.length > 0) {
+        scoutFindings.push({
+          item: codeFindings[0],
+          metadata: {
+            type: "building_code",
+            county,
+            state,
+            trade,
+            confidence: (multiSourceResponse.confidence || "medium") as any,
+            sources: multiSourceResponse.sources,
+            expiresInMinutes: 1440,
+          },
+        });
+      }
+    }
+
+    if (isPricingRelatedQuery(query)) {
+      const priceFindings = scoutFindingsToLisaFeed([{
+        type: "material_price",
+        state,
+        trade,
+        headline: multiSourceResponse.message.split(".")[0],
+        narrative: multiSourceResponse.message,
+        evidence: multiSourceResponse.sources.map((s) => `source=${s}`),
+        confidence: (multiSourceResponse.confidence || "medium") as any,
+        freshnessMinutes: 120,
+        sources: synthesis.sourceUsage || [],
+      }]);
+      if (priceFindings.length > 0) {
+        scoutFindings.push({
+          item: priceFindings[0],
+          metadata: {
+            type: "material_price",
+            state,
+            trade,
+            confidence: (multiSourceResponse.confidence || "medium") as any,
+            sources: multiSourceResponse.sources,
+            expiresInMinutes: 2880,
+          },
+        });
+      }
+    }
+
+    // Store findings in LISA table
+    if (scoutFindings.length > 0) {
+      try {
+        await storeScoutLisaFindings(scoutFindings);
+      } catch (persistError) {
+        console.error("[Scout 2.0] Failed to persist findings:", persistError);
+      }
+    }
 
     return res.json({
       success: true,
