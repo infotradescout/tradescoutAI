@@ -33,6 +33,7 @@ export async function ensureScoutLisaTable(): Promise<void> {
       trend_direction varchar(16),
       trend_magnitude numeric,
       conflict_status varchar(32),
+      routing_tags jsonb NOT NULL DEFAULT '[]'::jsonb,
       INDEX scout_county_idx (county_fips),
       INDEX scout_trade_idx (trade),
       INDEX scout_type_idx (scout_type),
@@ -65,6 +66,7 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
   trendDirection?: "up" | "down" | "stable";
   trendMagnitude?: number;
   conflictStatus?: "no_conflict" | "resolved" | "unresolved";
+  routingTags?: string[];
   sources: string[];
   expiresInMinutes?: number;
 }): Promise<LisaStoredFinding> {
@@ -95,8 +97,9 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
       value_text,
       trend_direction,
       trend_magnitude,
-      conflict_status
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now(), now(), $13, $14, $15, $16, $17, $18)
+      conflict_status,
+      routing_tags
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now(), now(), $13, $14, $15, $16, $17, $18, $19)
     ON CONFLICT (lisa_finding_id) DO UPDATE SET
       scout_type = EXCLUDED.scout_type,
       county_fips = EXCLUDED.county_fips,
@@ -115,7 +118,8 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
       value_text = EXCLUDED.value_text,
       trend_direction = EXCLUDED.trend_direction,
       trend_magnitude = EXCLUDED.trend_magnitude,
-      conflict_status = EXCLUDED.conflict_status
+      conflict_status = EXCLUDED.conflict_status,
+      routing_tags = EXCLUDED.routing_tags
     RETURNING *
     `,
     [
@@ -137,6 +141,7 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
       scoutMetadata.trendDirection || null,
       scoutMetadata.trendMagnitude || null,
       scoutMetadata.conflictStatus || null,
+      JSON.stringify(scoutMetadata.routingTags || []),
     ]
   );
 
@@ -160,6 +165,7 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
     trendDirection: row.trend_direction,
     trendMagnitude: row.trend_magnitude ? parseFloat(row.trend_magnitude) : undefined,
     conflictStatus: row.conflict_status,
+    routingTags: row.routing_tags,
   };
 }
 
@@ -177,6 +183,7 @@ export async function storeScoutLisaFindings(items: Array<{
     trendDirection?: "up" | "down" | "stable";
     trendMagnitude?: number;
     conflictStatus?: "no_conflict" | "resolved" | "unresolved";
+    routingTags?: string[];
     sources: string[];
     expiresInMinutes?: number;
   };
@@ -215,6 +222,7 @@ export async function getScoutLisaFindingsByCounty(countyFips: string): Promise<
     trendDirection: row.trend_direction,
     trendMagnitude: row.trend_magnitude ? parseFloat(row.trend_magnitude) : undefined,
     conflictStatus: row.conflict_status,
+    routingTags: row.routing_tags,
   }));
 }
 
@@ -249,6 +257,7 @@ export async function getScoutLisaFindingsByTrade(trade: string): Promise<LisaSt
     trendDirection: row.trend_direction,
     trendMagnitude: row.trend_magnitude ? parseFloat(row.trend_magnitude) : undefined,
     conflictStatus: row.conflict_status,
+    routingTags: row.routing_tags,
   }));
 }
 

@@ -59,6 +59,54 @@ function extractTrade(query: string): string | undefined {
   return undefined;
 }
 
+function generateRoutingTags(query: string, synthesis: any): string[] {
+  const tags: string[] = [];
+
+  if (isCodeRelatedQuery(query)) {
+    tags.push("CODE_RELATED");
+  }
+  if (isPricingRelatedQuery(query)) {
+    tags.push("PRICING_RELATED");
+  }
+  if (synthesis.overallConfidence === "high") {
+    tags.push("HIGH_CONFIDENCE");
+  }
+  if (synthesis.conflictStatus === "unresolved") {
+    tags.push("CONFLICT_UNRESOLVED");
+  }
+  if (synthesis.dataBySource.knowledge) {
+    tags.push("KNOWLEDGE_BASE_USED");
+  }
+  if (synthesis.dataBySource.local) {
+    tags.push("LOCAL_DATA_USED");
+  }
+  if (synthesis.dataBySource.webSearch) {
+    tags.push("WEB_SEARCH_USED");
+  }
+
+  return tags;
+}
+
+  const trades = [
+    "deck",
+    "roofing",
+    "roof",
+    "electrical",
+    "plumbing",
+    "hvac",
+    "carpentry",
+    "foundation",
+    "framing",
+  ];
+  const lowerQuery = query.toLowerCase();
+  for (const trade of trades) {
+    if (lowerQuery.includes(trade)) {
+      return trade;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Scout 2.0 Main Endpoint
  * POST /api/scout-v2
@@ -136,6 +184,7 @@ router.post("/", async (req: Request, res: Response) => {
     // Build multi-source response
     const multiSourceResponse = buildMultiSourceResponse(synthesis, llmResponse);
     const { overallConfidence, conflictStatus } = synthesis;
+    const routingTags = generateRoutingTags(query, synthesis);
 
     // Ensure table exists
     await ensureScoutLisaTable();
@@ -170,6 +219,7 @@ router.post("/", async (req: Request, res: Response) => {
         sources: synthesis.sourceUsage || [],
         valueNumeric,
         ...trendMetadata,
+        routingTags,
       }]);
       if (codeFindings.length > 0) {
         scoutFindings.push({
@@ -185,6 +235,7 @@ router.post("/", async (req: Request, res: Response) => {
             expiresInMinutes: 1440,
             valueNumeric,
             ...trendMetadata,
+            routingTags,
           },
         });
       }
@@ -217,6 +268,7 @@ router.post("/", async (req: Request, res: Response) => {
         sources: synthesis.sourceUsage || [],
         valueNumeric,
         ...trendMetadata,
+        routingTags,
       }]);
       if (priceFindings.length > 0) {
         scoutFindings.push({
@@ -231,6 +283,7 @@ router.post("/", async (req: Request, res: Response) => {
             expiresInMinutes: 2880,
             valueNumeric,
             ...trendMetadata,
+            routingTags,
           },
         });
       }
@@ -258,6 +311,7 @@ router.post("/", async (req: Request, res: Response) => {
         synthesis: multiSourceResponse.message,
         confidence: overallConfidence,
         conflictStatus,
+        routingTags,
         sources: multiSourceResponse.sources,
         disclaimers: allWarnings,
       },

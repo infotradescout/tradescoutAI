@@ -16,6 +16,7 @@ export type LisaTruthStatus = "current" | "stale" | "superseded" | "suppressed";
 export type LisaScopeType = "global" | "county" | "category" | "surface" | "partner";
 
 export interface LisaFeedItem {
+  routingTags?: string[];
   id: string;
   priority: LisaFeedPriority;
   sourceKind: LisaFeedSourceKind;
@@ -43,6 +44,7 @@ export interface LisaStoredFinding extends LisaFeedItem {
   trendDirection?: "up" | "down" | "stable";
   trendMagnitude?: number;
   conflictStatus?: "no_conflict" | "resolved" | "unresolved";
+  routingTags?: string[];
   provenance?: string[];
   governanceNotes?: string[];
 }
