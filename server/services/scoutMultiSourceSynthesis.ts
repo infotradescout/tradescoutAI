@@ -30,6 +30,8 @@ export interface SourcedData {
   content: string;
   source: string;
   confidence: "high" | "medium" | "low";
+  relevance?: number; // 0-100, how relevant is this data to the query
+  freshness?: number; // in minutes, how recently was this data updated
   timestamp?: string;
 }
 
@@ -42,6 +44,8 @@ export interface SynthesisResult {
     local?: SourcedData;
     webSearch?: SourcedData;
   };
+  overallConfidence: "high" | "medium" | "low";
+  conflictStatus: "no_conflict" | "resolved" | "unresolved";
 }
 
 /**
@@ -162,6 +166,35 @@ export function synthesizeMultiSourcePrompt(
     sources.push("Live Web Search");
   }
 
+  // Determine overall confidence and conflict status
+  let overallConfidence: "high" | "medium" | "low" = "low";
+  let conflictStatus: "no_conflict" | "resolved" | "unresolved" = "no_conflict";
+
+  const hasKnowledge = !!sourceData.knowledge && (sourceData.knowledge.codes || sourceData.knowledge.pricing || sourceData.knowledge.guides);
+  const hasLocal = !!sourceData.local;
+  const hasWebSearch = !!sourceData.webSearch;
+
+  if (hasKnowledge) {
+    overallConfidence = "high";
+  } else if (hasLocal) {
+    overallConfidence = "medium";
+  } else if (hasWebSearch) {
+    overallConfidence = "low";
+  }
+
+  // Simple conflict detection heuristic (can be expanded)
+  // If knowledge base and local data both exist, and their content is significantly different, flag as unresolved.
+  // For now, we'll rely on the LLM to reconcile if instructed.
+  if (hasKnowledge && hasLocal && JSON.stringify(sourceData.knowledge).length > 50 && sourceData.local.content.length > 50) {
+    // A more sophisticated comparison would be needed here, e.g., semantic similarity or keyword matching
+    // For now, if both exist and are substantial, we'll assume potential for conflict and instruct LLM to reconcile.
+    conflictStatus = "unresolved";
+    warnings.push("Potential conflict detected between TradeScout Knowledge Base and Local Jurisdiction Data. LLM is instructed to reconcile.");
+  } else if (hasLocal && hasWebSearch && sourceData.local.content.length > 50 && sourceData.webSearch.content.length > 50) {
+    conflictStatus = "unresolved";
+    warnings.push("Potential conflict detected between Local Jurisdiction Data and Web Search. LLM is instructed to reconcile.");
+  }
+
   // Build comprehensive system prompt with clear source hierarchy
   const systemPrompt = `You are Scout, the TradeScout multi-source intelligence assistant.
 
@@ -187,6 +220,11 @@ When answering:
 6. Be honest about what's not yet indexed or available
 
 CRITICAL: Local rules ALWAYS override general web data. Your TradeScout Knowledge Base is the foundation.
+
+${conflictStatus === "unresolved" ? "ATTENTION: Multiple sources provide conflicting information. Reconcile these differences based on the source priority: Knowledge Base > Local Data > Web Search. Explain any discrepancies and state the most reliable information based on this hierarchy." : ""}
+
+Overall Confidence in synthesized data: ${overallConfidence.toUpperCase()}
+
 ${knowledgeSection}${localSection}${webSearchSection}`;
 
   return {
@@ -194,6 +232,8 @@ ${knowledgeSection}${localSection}${webSearchSection}`;
     sources: Array.from(new Set(sources)), // Deduplicate
     warnings,
     dataBySource,
+    overallConfidence,
+    conflictStatus,
   };
 }
 

@@ -42,6 +42,7 @@ export interface LisaStoredFinding extends LisaFeedItem {
   valueText?: string;
   trendDirection?: "up" | "down" | "stable";
   trendMagnitude?: number;
+  conflictStatus?: "no_conflict" | "resolved" | "unresolved";
   provenance?: string[];
   governanceNotes?: string[];
 }

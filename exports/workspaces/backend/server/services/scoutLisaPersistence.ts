@@ -32,6 +32,7 @@ export async function ensureScoutLisaTable(): Promise<void> {
       value_text text,
       trend_direction varchar(16),
       trend_magnitude numeric,
+      conflict_status varchar(32),
       INDEX scout_county_idx (county_fips),
       INDEX scout_trade_idx (trade),
       INDEX scout_type_idx (scout_type),
@@ -63,6 +64,7 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
   valueText?: string;
   trendDirection?: "up" | "down" | "stable";
   trendMagnitude?: number;
+  conflictStatus?: "no_conflict" | "resolved" | "unresolved";
   sources: string[];
   expiresInMinutes?: number;
 }): Promise<LisaStoredFinding> {
@@ -86,18 +88,34 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
       confidence,
       sources,
       evidence_hash,
-      expires_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+      created_at,
+      updated_at,
+      expires_at,
+      value_numeric,
+      value_text,
+      trend_direction,
+      trend_magnitude,
+      conflict_status
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now(), now(), $13, $14, $15, $16, $17, $18)
     ON CONFLICT (lisa_finding_id) DO UPDATE SET
+      scout_type = EXCLUDED.scout_type,
+      county_fips = EXCLUDED.county_fips,
+      county_name = EXCLUDED.county_name,
+      state_code = EXCLUDED.state_code,
+      trade = EXCLUDED.trade,
       headline = EXCLUDED.headline,
       narrative = EXCLUDED.narrative,
       evidence = EXCLUDED.evidence,
+      confidence = EXCLUDED.confidence,
+      sources = EXCLUDED.sources,
+      evidence_hash = EXCLUDED.evidence_hash,
       updated_at = now(),
       expires_at = EXCLUDED.expires_at,
       value_numeric = EXCLUDED.value_numeric,
       value_text = EXCLUDED.value_text,
       trend_direction = EXCLUDED.trend_direction,
-      trend_magnitude = EXCLUDED.trend_magnitude
+      trend_magnitude = EXCLUDED.trend_magnitude,
+      conflict_status = EXCLUDED.conflict_status
     RETURNING *
     `,
     [
@@ -118,6 +136,7 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
       scoutMetadata.valueText || null,
       scoutMetadata.trendDirection || null,
       scoutMetadata.trendMagnitude || null,
+      scoutMetadata.conflictStatus || null,
     ]
   );
 
@@ -129,13 +148,18 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
     headline: row.headline,
     narrative: row.narrative,
     evidence: row.evidence,
-    freshnessMinutes: item.freshnessMinutes,
+    freshnessMinutes: Math.max(0, Math.round((Date.now() - new Date(row.created_at).getTime()) / 60000)),
     truthStatus: item.truthStatus || "current",
     scopeType: item.scopeType || "global",
     scopeRef: item.scopeRef || null,
     engineVersion: item.engineVersion,
     supersedesId: item.supersedesId,
     generatedAt: row.created_at.toISOString(),
+    valueNumeric: row.value_numeric ? parseFloat(row.value_numeric) : undefined,
+    valueText: row.value_text,
+    trendDirection: row.trend_direction,
+    trendMagnitude: row.trend_magnitude ? parseFloat(row.trend_magnitude) : undefined,
+    conflictStatus: row.conflict_status,
   };
 }
 
@@ -148,10 +172,11 @@ export async function storeScoutLisaFindings(items: Array<{
     stateCode?: string;
     trade?: string;
     confidence: "high" | "medium" | "low";
-  valueNumeric?: number;
-  valueText?: string;
-  trendDirection?: "up" | "down" | "stable";
-  trendMagnitude?: number;
+    valueNumeric?: number;
+    valueText?: string;
+    trendDirection?: "up" | "down" | "stable";
+    trendMagnitude?: number;
+    conflictStatus?: "no_conflict" | "resolved" | "unresolved";
     sources: string[];
     expiresInMinutes?: number;
   };
@@ -182,7 +207,14 @@ export async function getScoutLisaFindingsByCounty(countyFips: string): Promise<
     truthStatus: "current" as const,
     scopeType: "county" as const,
     scopeRef: row.county_fips,
+    engineVersion: row.engineVersion,
+    supersedesId: row.supersedesId,
     generatedAt: row.created_at.toISOString(),
+    valueNumeric: row.value_numeric ? parseFloat(row.value_numeric) : undefined,
+    valueText: row.value_text,
+    trendDirection: row.trend_direction,
+    trendMagnitude: row.trend_magnitude ? parseFloat(row.trend_magnitude) : undefined,
+    conflictStatus: row.conflict_status,
   }));
 }
 
@@ -209,7 +241,14 @@ export async function getScoutLisaFindingsByTrade(trade: string): Promise<LisaSt
     truthStatus: "current" as const,
     scopeType: "category" as const,
     scopeRef: trade,
+    engineVersion: row.engineVersion,
+    supersedesId: row.supersedesId,
     generatedAt: row.created_at.toISOString(),
+    valueNumeric: row.value_numeric ? parseFloat(row.value_numeric) : undefined,
+    valueText: row.value_text,
+    trendDirection: row.trend_direction,
+    trendMagnitude: row.trend_magnitude ? parseFloat(row.trend_magnitude) : undefined,
+    conflictStatus: row.conflict_status,
   }));
 }
 

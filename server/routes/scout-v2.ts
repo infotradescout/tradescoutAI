@@ -135,6 +135,7 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Build multi-source response
     const multiSourceResponse = buildMultiSourceResponse(synthesis, llmResponse);
+    const { overallConfidence, conflictStatus } = synthesis;
 
     // Ensure table exists
     await ensureScoutLisaTable();
@@ -164,7 +165,7 @@ router.post("/", async (req: Request, res: Response) => {
         headline: multiSourceResponse.message.split(".")[0],
         narrative: multiSourceResponse.message,
         evidence: multiSourceResponse.sources.map((s) => `source=${s}`),
-        confidence: (multiSourceResponse.confidence || "medium") as any,
+        confidence: overallConfidence,
         freshnessMinutes: 60,
         sources: synthesis.sourceUsage || [],
         valueNumeric,
@@ -178,7 +179,8 @@ router.post("/", async (req: Request, res: Response) => {
             county,
             state,
             trade,
-            confidence: (multiSourceResponse.confidence || "medium") as any,
+            confidence: overallConfidence,
+            conflictStatus,
             sources: multiSourceResponse.sources,
             expiresInMinutes: 1440,
             valueNumeric,
@@ -210,7 +212,7 @@ router.post("/", async (req: Request, res: Response) => {
         headline: multiSourceResponse.message.split(".")[0],
         narrative: multiSourceResponse.message,
         evidence: multiSourceResponse.sources.map((s) => `source=${s}`),
-        confidence: (multiSourceResponse.confidence || "medium") as any,
+        confidence: overallConfidence,
         freshnessMinutes: 120,
         sources: synthesis.sourceUsage || [],
         valueNumeric,
@@ -223,7 +225,8 @@ router.post("/", async (req: Request, res: Response) => {
             type: "material_price",
             state,
             trade,
-            confidence: (multiSourceResponse.confidence || "medium") as any,
+            confidence: overallConfidence,
+            conflictStatus,
             sources: multiSourceResponse.sources,
             expiresInMinutes: 2880,
             valueNumeric,
@@ -253,7 +256,8 @@ router.post("/", async (req: Request, res: Response) => {
         date: new Date().toISOString(),
         findings: multiSourceResponse.sourceBreakdown,
         synthesis: multiSourceResponse.message,
-        confidence: multiSourceResponse.confidence || "medium",
+        confidence: overallConfidence,
+        conflictStatus,
         sources: multiSourceResponse.sources,
         disclaimers: allWarnings,
       },
