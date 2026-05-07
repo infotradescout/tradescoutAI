@@ -74,37 +74,17 @@ function generateRoutingTags(query: string, synthesis: any): string[] {
   if (synthesis.conflictStatus === "unresolved") {
     tags.push("CONFLICT_UNRESOLVED");
   }
-  if (synthesis.dataBySource.knowledge) {
+  if (synthesis.dataBySource?.knowledge) {
     tags.push("KNOWLEDGE_BASE_USED");
   }
-  if (synthesis.dataBySource.local) {
+  if (synthesis.dataBySource?.local) {
     tags.push("LOCAL_DATA_USED");
   }
-  if (synthesis.dataBySource.webSearch) {
+  if (synthesis.dataBySource?.webSearch) {
     tags.push("WEB_SEARCH_USED");
   }
 
   return tags;
-}
-
-  const trades = [
-    "deck",
-    "roofing",
-    "roof",
-    "electrical",
-    "plumbing",
-    "hvac",
-    "carpentry",
-    "foundation",
-    "framing",
-  ];
-  const lowerQuery = query.toLowerCase();
-  for (const trade of trades) {
-    if (lowerQuery.includes(trade)) {
-      return trade;
-    }
-  }
-  return undefined;
 }
 
 /**
@@ -186,6 +166,18 @@ router.post("/", async (req: Request, res: Response) => {
     const { overallConfidence, conflictStatus } = synthesis;
     const routingTags = generateRoutingTags(query, synthesis);
 
+    const scoutingReport = {
+      mission: query,
+      date: new Date().toISOString(),
+      findings: multiSourceResponse.sourceBreakdown,
+      synthesis: multiSourceResponse.message,
+      confidence: overallConfidence,
+      conflictStatus,
+      routingTags,
+      sources: multiSourceResponse.sources,
+      disclaimers: allWarnings,
+    };
+
     // Ensure table exists
     await ensureScoutLisaTable();
 
@@ -219,7 +211,6 @@ router.post("/", async (req: Request, res: Response) => {
         sources: synthesis.sourceUsage || [],
         valueNumeric,
         ...trendMetadata,
-        routingTags,
       }]);
       if (codeFindings.length > 0) {
         scoutFindings.push({
@@ -236,6 +227,7 @@ router.post("/", async (req: Request, res: Response) => {
             valueNumeric,
             ...trendMetadata,
             routingTags,
+            scoutingReportJson: JSON.stringify(scoutingReport),
           },
         });
       }
@@ -268,7 +260,6 @@ router.post("/", async (req: Request, res: Response) => {
         sources: synthesis.sourceUsage || [],
         valueNumeric,
         ...trendMetadata,
-        routingTags,
       }]);
       if (priceFindings.length > 0) {
         scoutFindings.push({
@@ -284,6 +275,7 @@ router.post("/", async (req: Request, res: Response) => {
             valueNumeric,
             ...trendMetadata,
             routingTags,
+            scoutingReportJson: JSON.stringify(scoutingReport),
           },
         });
       }
@@ -304,17 +296,7 @@ router.post("/", async (req: Request, res: Response) => {
     return res.json({
       success: true,
       // Active Scouting Response
-      scoutingReport: {
-        mission: query,
-        date: new Date().toISOString(),
-        findings: multiSourceResponse.sourceBreakdown,
-        synthesis: multiSourceResponse.message,
-        confidence: overallConfidence,
-        conflictStatus,
-        routingTags,
-        sources: multiSourceResponse.sources,
-        disclaimers: allWarnings,
-      },
+      scoutingReport: scoutingReport,
       // Legacy compatibility
       message: multiSourceResponse.message,
       sources: multiSourceResponse.sources,

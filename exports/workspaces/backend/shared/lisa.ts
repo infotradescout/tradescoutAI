@@ -47,6 +47,7 @@ export interface LisaStoredFinding extends LisaFeedItem {
   routingTags?: string[];
   provenance?: string[];
   governanceNotes?: string[];
+  scoutingReportJson?: string;
 }
 
 export interface LisaFeedResponse {
