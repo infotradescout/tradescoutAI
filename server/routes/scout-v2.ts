@@ -148,6 +148,17 @@ router.post("/", async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
+      // Active Scouting Response
+      scoutingReport: {
+        mission: query,
+        date: new Date().toISOString(),
+        findings: multiSourceResponse.sourceBreakdown,
+        synthesis: multiSourceResponse.message,
+        confidence: multiSourceResponse.confidence || "medium",
+        sources: multiSourceResponse.sources,
+        disclaimers: allWarnings,
+      },
+      // Legacy compatibility
       message: multiSourceResponse.message,
       sources: multiSourceResponse.sources,
       sourceBreakdown: multiSourceResponse.sourceBreakdown,
