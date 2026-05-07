@@ -4834,7 +4834,20 @@ router.post("/", async (req: Request, res: Response) => {
       promptVersion,
       timestamp: new Date().toISOString(),
       onboarding: onboardingMeta.onboardingQuestion ? onboardingMeta : undefined,
-    });
+    };
+
+    // Check if streaming is requested
+    const shouldStream = (req.query.stream === "true" || req.headers["x-stream"] === "true");
+
+    if (shouldStream) {
+      const { initializeStreamingResponse, completeStream } = await import(
+        "../services/scoutStreamingHandler"
+      );
+      initializeStreamingResponse(res);
+      completeStream(res, responsePayload);
+    } else {
+      res.json(responsePayload);
+    }
   } catch (error) {
     if (!isTestRun && scoutInteractionLog) {
       scoutInteractionLog.outcome = "handed_off";
