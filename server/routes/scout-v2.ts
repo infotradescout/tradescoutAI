@@ -20,6 +20,7 @@ import {
 import { isCodeRelatedQuery, isPricingRelatedQuery } from "../services/scoutKnowledgeIntegration";
 import { scoutFindingsToLisaFeed, type ScoutIntelligenceFinding } from "../services/scoutToLisaConverter";
 import { storeScoutLisaFindings, ensureScoutLisaTable } from "../services/scoutLisaPersistence";
+import { getScoutTrendMetadata } from "../services/scoutTrendEngine";
 import type { LisaFeedItem } from "../../shared/lisa";
 
 const router = Router();
@@ -132,29 +133,30 @@ router.post("/", async (req: Request, res: Response) => {
       }
     );
 
-    // Add disclaimers based on query type
-    if (isCodeRelatedQuery(query)) {
-      disclaimers.push("Always verify with your local building department before starting work");
-      disclaimers.push("Building codes vary by jurisdiction and may have been updated");
-    }
-
-    if (isPricingRelatedQuery(query)) {
-      disclaimers.push("Pricing varies significantly by location and contractor");
-      disclaimers.push("Get quotes from multiple contractors for accurate estimates");
-    }
-
     // Build multi-source response
     const multiSourceResponse = buildMultiSourceResponse(synthesis, llmResponse);
-
-    // Combine all warnings
-    const allWarnings = [...disclaimers, ...synthesis.warnings];
 
     // Ensure table exists
     await ensureScoutLisaTable();
 
     // Build Scout findings for LISA persistence
     const scoutFindings: Array<{ item: LisaFeedItem; metadata: any }> = [];
+
     if (isCodeRelatedQuery(query)) {
+      disclaimers.push("Always verify with your local building department before starting work");
+      disclaimers.push("Building codes vary by jurisdiction and may have been updated");
+
+      const trendMetadata = await getScoutTrendMetadata(
+        "building_code",
+        county,
+        state,
+        trade
+      );
+
+      // Extract a numeric value from the message for trend analysis, if possible
+      const numericValueMatch = multiSourceResponse.message.match(/\d+(\.\d+)?/);
+      const valueNumeric = numericValueMatch ? parseFloat(numericValueMatch[0]) : undefined;
+
       const codeFindings = scoutFindingsToLisaFeed([{
         type: "building_code",
         county,
@@ -165,6 +167,8 @@ router.post("/", async (req: Request, res: Response) => {
         confidence: (multiSourceResponse.confidence || "medium") as any,
         freshnessMinutes: 60,
         sources: synthesis.sourceUsage || [],
+        valueNumeric,
+        ...trendMetadata,
       }]);
       if (codeFindings.length > 0) {
         scoutFindings.push({
@@ -177,12 +181,28 @@ router.post("/", async (req: Request, res: Response) => {
             confidence: (multiSourceResponse.confidence || "medium") as any,
             sources: multiSourceResponse.sources,
             expiresInMinutes: 1440,
+            valueNumeric,
+            ...trendMetadata,
           },
         });
       }
     }
 
     if (isPricingRelatedQuery(query)) {
+      disclaimers.push("Pricing varies significantly by location and contractor");
+      disclaimers.push("Get quotes from multiple contractors for accurate estimates");
+
+      const trendMetadata = await getScoutTrendMetadata(
+        "material_price",
+        county,
+        state,
+        trade
+      );
+
+      // Extract a numeric value from the message for trend analysis, if possible
+      const numericValueMatch = multiSourceResponse.message.match(/\d+(\.\d+)?/);
+      const valueNumeric = numericValueMatch ? parseFloat(numericValueMatch[0]) : undefined;
+
       const priceFindings = scoutFindingsToLisaFeed([{
         type: "material_price",
         state,
@@ -193,6 +213,8 @@ router.post("/", async (req: Request, res: Response) => {
         confidence: (multiSourceResponse.confidence || "medium") as any,
         freshnessMinutes: 120,
         sources: synthesis.sourceUsage || [],
+        valueNumeric,
+        ...trendMetadata,
       }]);
       if (priceFindings.length > 0) {
         scoutFindings.push({
@@ -204,10 +226,15 @@ router.post("/", async (req: Request, res: Response) => {
             confidence: (multiSourceResponse.confidence || "medium") as any,
             sources: multiSourceResponse.sources,
             expiresInMinutes: 2880,
+            valueNumeric,
+            ...trendMetadata,
           },
         });
       }
     }
+
+    // Combine all warnings
+    const allWarnings = [...disclaimers, ...synthesis.warnings];
 
     // Store findings in LISA table
     if (scoutFindings.length > 0) {

@@ -28,6 +28,10 @@ export async function ensureScoutLisaTable(): Promise<void> {
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now(),
       expires_at timestamptz,
+      value_numeric numeric,
+      value_text text,
+      trend_direction varchar(16),
+      trend_magnitude numeric,
       INDEX scout_county_idx (county_fips),
       INDEX scout_trade_idx (trade),
       INDEX scout_type_idx (scout_type),
@@ -55,6 +59,10 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
   stateCode?: string;
   trade?: string;
   confidence: "high" | "medium" | "low";
+  valueNumeric?: number;
+  valueText?: string;
+  trendDirection?: "up" | "down" | "stable";
+  trendMagnitude?: number;
   sources: string[];
   expiresInMinutes?: number;
 }): Promise<LisaStoredFinding> {
@@ -79,13 +87,17 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
       sources,
       evidence_hash,
       expires_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
     ON CONFLICT (lisa_finding_id) DO UPDATE SET
       headline = EXCLUDED.headline,
       narrative = EXCLUDED.narrative,
       evidence = EXCLUDED.evidence,
       updated_at = now(),
-      expires_at = EXCLUDED.expires_at
+      expires_at = EXCLUDED.expires_at,
+      value_numeric = EXCLUDED.value_numeric,
+      value_text = EXCLUDED.value_text,
+      trend_direction = EXCLUDED.trend_direction,
+      trend_magnitude = EXCLUDED.trend_magnitude
     RETURNING *
     `,
     [
@@ -102,6 +114,10 @@ export async function storeScoutLisaFinding(item: LisaFeedItem, scoutMetadata: {
       JSON.stringify(scoutMetadata.sources),
       evidenceHash,
       expiresAt,
+      scoutMetadata.valueNumeric || null,
+      scoutMetadata.valueText || null,
+      scoutMetadata.trendDirection || null,
+      scoutMetadata.trendMagnitude || null,
     ]
   );
 
@@ -132,6 +148,10 @@ export async function storeScoutLisaFindings(items: Array<{
     stateCode?: string;
     trade?: string;
     confidence: "high" | "medium" | "low";
+  valueNumeric?: number;
+  valueText?: string;
+  trendDirection?: "up" | "down" | "stable";
+  trendMagnitude?: number;
     sources: string[];
     expiresInMinutes?: number;
   };

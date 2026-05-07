@@ -38,6 +38,10 @@ export interface LisaFeedSummary {
 
 export interface LisaStoredFinding extends LisaFeedItem {
   generatedAt: string;
+  valueNumeric?: number;
+  valueText?: string;
+  trendDirection?: "up" | "down" | "stable";
+  trendMagnitude?: number;
   provenance?: string[];
   governanceNotes?: string[];
 }
