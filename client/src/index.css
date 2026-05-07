@@ -460,6 +460,167 @@ html {
   text-transform: uppercase;
 }
 
+.ts-command-shell {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid color-mix(in oklab, var(--border-primary) 80%, white 6%);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    color-mix(in oklab, var(--surface-frame) 96%, black 4%);
+  padding: 0.75rem;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.38);
+}
+
+@media (min-width: 1024px) {
+  .ts-command-shell {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+}
+
+.ts-command-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 1rem;
+}
+
+.ts-command-nav {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 10px;
+  padding: 0.7rem 0.75rem;
+  color: rgba(255, 255, 255, 0.62);
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.ts-command-nav:hover,
+.ts-command-nav.active {
+  background: color-mix(in oklab, var(--theme-accent-primary) 14%, transparent);
+  color: #fff;
+}
+
+.ts-command-nav.active {
+  box-shadow: inset 3px 0 0 var(--theme-accent-primary);
+}
+
+.ts-command-panel,
+.ts-result-tile,
+.ts-workflow-step,
+.ts-capability-detail,
+.ts-audience-panel {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
+.ts-command-panel {
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .ts-command-panel {
+    padding: 1.25rem;
+  }
+}
+
+.ts-result-tile {
+  border-radius: 16px;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.ts-command-source {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.85rem;
+}
+
+.ts-live-pill,
+.ts-routing-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, transparent);
+  background: color-mix(in oklab, var(--theme-accent-primary) 11%, transparent);
+  color: color-mix(in oklab, var(--theme-accent-primary) 82%, white 18%);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.ts-live-pill {
+  padding: 0.45rem 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ts-routing-tag {
+  padding: 0.4rem 0.65rem;
+  font-family:
+    "JetBrains Mono",
+    "Fira Code",
+    monospace;
+}
+
+.ts-mini-map {
+  display: grid;
+  min-height: 11rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.ts-mini-map-cell {
+  min-height: 2.3rem;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ts-workflow-step,
+.ts-audience-panel {
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.ts-capability-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.68);
+  text-align: left;
+  transition:
+    border-color 150ms ease-out,
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.ts-capability-button:hover,
+.ts-capability-button.active {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 45%, transparent);
+  background: color-mix(in oklab, var(--theme-accent-primary) 10%, transparent);
+  color: #fff;
+}
+
+.ts-capability-detail {
+  border-radius: 18px;
+  padding: 1.25rem;
+}
+
 .ts-badge-new {
   font-size: 0.7rem;
   font-weight: 600;
