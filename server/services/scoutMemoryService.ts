@@ -560,4 +560,125 @@ export class ScoutMemoryService {
   }
 }
 
+  /**
+   * Cache a Scout response (for query deduplication and fast retrieval)
+   */
+  static async cacheScoutResponse(
+    userId: string,
+    queryHash: string,
+    response: Record<string, any>,
+    ttlMinutes: number = 60
+  ): Promise<void> {
+    try {
+      await this.storeMemory(
+        userId,
+        MemoryEntryType.CONVERSATION_CONTEXT,
+        `response_cache_${queryHash}`,
+        {
+          response,
+          cached_at: new Date().toISOString(),
+        },
+        {
+          relevance_score: 95,
+          access_count: 0,
+        },
+        ttlMinutes * 60
+      );
+    } catch (error) {
+      console.warn("[Scout Memory] Failed to cache response:", error);
+    }
+  }
+
+  /**
+   * Retrieve a cached Scout response
+   */
+  static async getCachedResponse(
+    userId: string,
+    queryHash: string
+  ): Promise<Record<string, any> | null> {
+    try {
+      const memory = await this.getMemory(
+        userId,
+        MemoryEntryType.CONVERSATION_CONTEXT,
+        `response_cache_${queryHash}`
+      );
+
+      if (memory) {
+        // Update access count
+        const metadata = memory.metadata || {};
+        metadata.access_count = (metadata.access_count || 0) + 1;
+        metadata.last_accessed = new Date().toISOString();
+        await this.updateMemoryMetadata(userId, `response_cache_${queryHash}`, metadata);
+
+        return memory.value.response;
+      }
+
+      return null;
+    } catch (error) {
+      console.warn("[Scout Memory] Failed to retrieve cached response:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Track in-flight requests to prevent duplicate processing
+   */
+  private static inFlightRequests = new Map<string, Promise<any>>();
+
+  /**
+   * Get or create an in-flight request promise
+   */
+  static getOrCreateInFlightRequest(
+    requestKey: string,
+    executor: () => Promise<any>
+  ): Promise<any> {
+    if (this.inFlightRequests.has(requestKey)) {
+      return this.inFlightRequests.get(requestKey)!;
+    }
+
+    const promise = executor().finally(() => {
+      this.inFlightRequests.delete(requestKey);
+    });
+
+    this.inFlightRequests.set(requestKey, promise);
+    return promise;
+  }
+
+  /**
+   * Get cache statistics
+   */
+  static async getCacheStats(userId: string): Promise<Record<string, any>> {
+    try {
+      const memories = await db.query.scoutMemory.findMany({
+        where: and(
+          eq(scoutMemory.userId, userId),
+          sql`${scoutMemory.key} LIKE 'response_cache_%'`
+        ),
+      });
+
+      const totalCached = memories.length;
+      const totalAccesses = memories.reduce(
+        (sum, m) => sum + ((m.metadata as any)?.access_count || 0),
+        0
+      );
+      const totalSaved = totalAccesses * 0.01; // Rough estimate: $0.01 per API call
+
+      return {
+        cached_responses: totalCached,
+        total_cache_hits: totalAccesses,
+        estimated_savings: `$${totalSaved.toFixed(2)}`,
+        in_flight_requests: this.inFlightRequests.size,
+      };
+    } catch (error) {
+      console.warn("[Scout Memory] Failed to get cache stats:", error);
+      return {
+        cached_responses: 0,
+        total_cache_hits: 0,
+        estimated_savings: "$0.00",
+        in_flight_requests: this.inFlightRequests.size,
+      };
+    }
+  }
+}
+
 export default ScoutMemoryService;
