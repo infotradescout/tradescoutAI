@@ -110,36 +110,64 @@ ${knowledgeSection}`;
   };
 }
 
+import {
+  getBuildingCodeData,
+  getPricingData,
+  getTradeGuide,
+  getLocalGuide,
+  formatBuildingCodeText,
+  formatPricingText,
+  formatTradeGuideText,
+  formatLocalGuideText,
+} from "./scoutKnowledgeLoader";
+
 /**
  * Extract relevant knowledge from the knowledge base for a given query.
- * This would be called during the request pipeline to gather context.
+ * This integrates with scoutKnowledgeLoader to retrieve formatted knowledge.
  */
 export function extractRelevantKnowledge(
   query: string,
-  trade?: string
+  trade?: string,
+  county?: string,
+  state?: string
 ): {
   codes?: string;
   pricing?: string;
   guides?: string;
+  localData?: string;
 } {
   const relevant: any = {};
 
-  // Placeholder: In production, this would query the actual knowledge base
-  // For now, we return empty objects that the caller can populate
-
-  if (isCodeRelatedQuery(query) && trade) {
-    // Would load from data/TradeScout Brain/40_KNOWLEDGE/41_BUILDING_CODES/
-    relevant.codes = `[Building codes for ${trade} would be loaded here]`;
+  // Load building codes if this is a code-related query
+  if (isCodeRelatedQuery(query) && trade && state) {
+    const codeData = getBuildingCodeData(trade, state);
+    if (codeData) {
+      relevant.codes = formatBuildingCodeText(codeData);
+    }
   }
 
-  if (isPricingRelatedQuery(query) && trade) {
-    // Would load from data/TradeScout Brain/40_KNOWLEDGE/43_MARKETS_PRICING/
-    relevant.pricing = `[Pricing data for ${trade} would be loaded here]`;
+  // Load pricing data if this is a pricing-related query
+  if (isPricingRelatedQuery(query) && trade && state) {
+    const pricingData = getPricingData(trade, state);
+    if (pricingData) {
+      relevant.pricing = formatPricingText(pricingData);
+    }
   }
 
+  // Load trade guides
   if (trade) {
-    // Would load from data/TradeScout Brain/40_KNOWLEDGE/42_TRADE_GUIDES/
-    relevant.guides = `[Trade guides for ${trade} would be loaded here]`;
+    const guideData = getTradeGuide(trade);
+    if (guideData) {
+      relevant.guides = formatTradeGuideText(guideData);
+    }
+  }
+
+  // Load local guides
+  if (county && state) {
+    const localData = getLocalGuide(county, state);
+    if (localData) {
+      relevant.localData = formatLocalGuideText(localData);
+    }
   }
 
   return relevant;
