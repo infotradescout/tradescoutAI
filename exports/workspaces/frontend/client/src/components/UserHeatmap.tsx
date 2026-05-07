@@ -44,6 +44,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
+import { RegionalIntelligenceBrowser } from "@/scout/RegionalIntelligenceBrowser";
+import { DraggableDataTray } from "@/scout/DraggableDataTray";
 
 type HeatmapDataPoint = {
   state: string;
@@ -183,6 +185,10 @@ function CountyHeatmapMap({
   const [hovered, setHovered] = useState<HoveredCounty>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  const [internalSelectedFips, setInternalSelectedFips] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isTrayOpen, setIsTrayOpen] = useState(true);
+  const [dragOverFips, setDragOverFips] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [countiesTopology, setCountiesTopology] = useState<CountiesTopology | null>(null);
@@ -303,14 +309,50 @@ function CountyHeatmapMap({
       )
     );
   };
-
   const handleSelect = (fips: string) => {
-    if (!fips) return;
-    onSelectCounty?.(fips);
+    setInternalSelectedFips(fips);
+    setIsSidebarOpen(true);
+    if (onSelectCounty) {
+      onSelectCounty(fips);
+    }
     centerOnCounty(fips);
   };
 
-  const clampZoom = (value: number) => Math.min(8, Math.max(1, value));
+  const assignFileMutation = useMutation({
+    mutationFn: async ({ fileId, fips }: { fileId: string; fips: string }) => {
+      return apiRequest("POST", "/api/scout/assign-file", { fileId, fips });
+    },
+    onSuccess: () => {
+      toast({
+        title: "File Assigned",
+        description: "The file has been successfully assigned to the county.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/scout/unassigned-files"] });
+      if (internalSelectedFips) {
+        queryClient.invalidateQueries({ queryKey: [`/api/heatmap/county/${internalSelectedFips}`] });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Assignment Failed",
+        description: formatUserFacingErrorMessage(error),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDrop = (e: React.DragEvent, fips: string) => {
+    e.preventDefault();
+    setDragOverFips(null);
+    try {
+      const fileData = JSON.parse(e.dataTransfer.getData("application/json"));
+      if (fileData && fileData.id) {
+        assignFileMutation.mutate({ fileId: fileData.id, fips });
+      }
+    } catch (err) {
+      console.error("Error parsing dropped file data:", err);
+    }
+  };t clampZoom = (value: number) => Math.min(8, Math.max(1, value));
 
   const clientToSvgPoint = (clientX: number, clientY: number) => {
     const svg = svgRef.current;
@@ -420,14 +462,17 @@ function CountyHeatmapMap({
 
             const info = fips ? FIPS_LOOKUP.get(fips) : undefined;
 
-            const isSelected = selectedFips && fips === selectedFips;
+            const isSelected = (selectedFips || internalSelectedFips) && fips === (selectedFips || internalSelectedFips);
+            const isDragOver = dragOverFips && fips === dragOverFips;
 
             const fillColor =
-              lens === "coverage"
-                ? getCoverageFillColor(coverage?.coverageStatus)
-                : hasMetric
-                  ? getCountyFillColor(count)
-                  : "var(--coverage-neutral)"; // neutral when metric not populated
+              isDragOver
+                ? "var(--ts-blue-muted)" // Highlight when dragging over
+                : lens === "coverage"
+                  ? getCoverageFillColor(coverage?.coverageStatus)
+                  : hasMetric
+                    ? getCountyFillColor(count)
+                    : "var(--coverage-neutral)"; // neutral when metric not populated
 
             return (
               <path
@@ -435,9 +480,17 @@ function CountyHeatmapMap({
                 d={d}
                 fill={fillColor}
                 stroke={
-                  isSelected ? "var(--heatmap-stroke-selected)" : "var(--heatmap-stroke-default)"
+                  isSelected || isDragOver
+                    ? "var(--heatmap-stroke-selected)"
+                    : "var(--heatmap-stroke-default)"
                 }
-                strokeWidth={isSelected ? 1 : 0.25}
+                strokeWidth={isSelected || isDragOver ? 1 : 0.25}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (fips !== dragOverFips) setDragOverFips(fips);
+                }}
+                onDragLeave={() => setDragOverFips(null)}
+                onDrop={(e) => handleDrop(e, fips)}
                 onMouseEnter={(evt) => {
                   if (!fips || !info) return;
                   if (lens === "coverage") {
@@ -604,6 +657,22 @@ function CountyHeatmapMap({
           )}
         </div>
       </div>
+
+      {/* Scout 2.0 Command Center Components */}
+      {(selectedFips || internalSelectedFips) && isSidebarOpen && (
+        <RegionalIntelligenceBrowser
+          fips={(selectedFips || internalSelectedFips)!}
+          county={FIPS_LOOKUP.get((selectedFips || internalSelectedFips)!)?.countyName || "Unknown"}
+          state={FIPS_LOOKUP.get((selectedFips || internalSelectedFips)!)?.stateCode || ""}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <DraggableDataTray
+        isOpen={isTrayOpen}
+        onClose={() => setIsTrayOpen(false)}
+        onFileAssigned={(fileId, fips) => assignFileMutation.mutate({ fileId, fips })}
+      />
     </div>
   );
 }
