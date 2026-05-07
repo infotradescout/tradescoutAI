@@ -2463,6 +2463,65 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
     const message = typeof rawBody.message === "string" ? rawBody.message : "";
+
+    // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
+    const userId = (requestUser as any)?.id;
+    if (userId && message) {
+      // Import optimization services
+      const ScoutMemoryService = (await import("../services/scoutMemoryService")).default;
+      const { generateQueryHash, checkFaqMatch, routeQuery } = await import(
+        "../services/scoutOptimizationEngine"
+      );
+
+      const queryHash = generateQueryHash(message, {
+        county: (rawBody.countyCode as string | undefined),
+        state: (rawBody.stateCode as string | undefined),
+      });
+
+      // 1. Check if response is cached
+      const cachedResponse = await ScoutMemoryService.getCachedResponse(userId, queryHash);
+      if (cachedResponse) {
+        scoutTurnTelemetry.provider = "cache";
+        scoutTurnTelemetry.sourceUsed = "cached_response";
+        return res.json({
+          ...cachedResponse,
+          _optimization: { source: "cache", queryHash },
+        });
+      }
+
+      // 2. Check if it's an FAQ
+      const faqMatch = checkFaqMatch(message);
+      if (faqMatch && faqMatch.cachedAnswer) {
+        scoutTurnTelemetry.provider = "faq";
+        scoutTurnTelemetry.sourceUsed = "faq";
+        const faqResponse = {
+          message: faqMatch.cachedAnswer,
+          confidence: faqMatch.confidence,
+          _optimization: { source: "faq", reason: faqMatch.reason },
+        };
+        // Cache the FAQ answer for future use
+        await ScoutMemoryService.cacheScoutResponse(userId, queryHash, faqResponse, 1440); // 24h TTL
+        return res.json(faqResponse);
+      }
+
+      // 3. Route the query to determine processing path
+      const route = routeQuery({
+        query: message,
+        userId,
+        isAuthenticated: Boolean(userId),
+        county: (rawBody.countyCode as string | undefined),
+        state: (rawBody.stateCode as string | undefined),
+      });
+
+      // Store routing decision for later use
+      (req as any)._scoutOptimization = {
+        route,
+        queryHash,
+        skipLlm: route.skipLlm,
+      };
+    }
+    // ===== END SCOUT 2.0 OPTIMIZATION =====
+
     const normalizedRequest = normalizeScoutRequest({
       message: typeof rawBody.message === "string" ? rawBody.message : "",
       userId: (requestUser as any)?.id,
