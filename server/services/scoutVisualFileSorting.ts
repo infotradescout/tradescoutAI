@@ -1,1 +1,351 @@
-/**\n * Scout Visual File Sorting\n *\n * Handles visual file assignment and organization by county.\n * Manages the drag-and-drop file assignment workflow.\n *\n * Features:\n * - Assign files to counties\n * - Batch file operations\n * - File organization by region\n * - Unassigned file tracking\n * - Assignment history\n */\n\nexport interface FileAssignment {\n  id: string;\n  fileId: string;\n  countyFips: string;\n  assignedAt: Date;\n  assignedBy: string;\n  notes?: string;\n}\n\nexport interface UnassignedFile {\n  id: string;\n  name: string;\n  type: string;\n  size: number;\n  uploadedAt: Date;\n  uploadedBy: string;\n  relevanceScore?: number;\n  suggestedCounties?: {\n    fips: string;\n    county: string;\n    confidence: number;\n  }[];\n}\n\nexport interface CountyFileOrganization {\n  countyFips: string;\n  county: string;\n  state: string;\n  files: {\n    id: string;\n    name: string;\n    type: string;\n    size: number;\n    assignedAt: Date;\n  }[];\n  filesByType: Record<string, number>;\n  totalSize: number;\n  lastModified: Date;\n}\n\nexport interface FileAssignmentBatch {\n  id: string;\n  fileIds: string[];\n  countyFips: string;\n  status: \"pending\" | \"processing\" | \"completed\" | \"failed\";\n  createdAt: Date;\n  completedAt?: Date;\n  results?: {\n    successful: number;\n    failed: number;\n    errors?: string[];\n  };\n}\n\nclass ScoutVisualFileSorting {\n  private assignments: Map<string, FileAssignment> = new Map();\n  private unassignedFiles: Map<string, UnassignedFile> = new Map();\n  private countyOrganization: Map<string, CountyFileOrganization> = new Map();\n  private assignmentHistory: FileAssignment[] = [];\n  private batches: Map<string, FileAssignmentBatch> = new Map();\n\n  /**\n   * Assign a file to a county\n   */\n  async assignFileToCounty(\n    fileId: string,\n    countyFips: string,\n    assignedBy: string,\n    notes?: string\n  ): Promise<FileAssignment> {\n    const assignment: FileAssignment = {\n      id: `assign-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,\n      fileId,\n      countyFips,\n      assignedAt: new Date(),\n      assignedBy,\n      notes,\n    };\n\n    this.assignments.set(assignment.id, assignment);\n    this.assignmentHistory.push(assignment);\n\n    // Remove from unassigned\n    this.unassignedFiles.delete(fileId);\n\n    // Update county organization\n    this.updateCountyOrganization(countyFips, fileId);\n\n    console.log(\n      `[Visual Sorting] Assigned file ${fileId} to county ${countyFips}`\n    );\n\n    return assignment;\n  }\n\n  /**\n   * Batch assign multiple files to a county\n   */\n  async batchAssignFiles(\n    fileIds: string[],\n    countyFips: string,\n    assignedBy: string\n  ): Promise<FileAssignmentBatch> {\n    const batchId = `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n    const batch: FileAssignmentBatch = {\n      id: batchId,\n      fileIds,\n      countyFips,\n      status: \"processing\",\n      createdAt: new Date(),\n    };\n\n    this.batches.set(batchId, batch);\n\n    let successful = 0;\n    let failed = 0;\n    const errors: string[] = [];\n\n    for (const fileId of fileIds) {\n      try {\n        await this.assignFileToCounty(fileId, countyFips, assignedBy);\n        successful++;\n      } catch (error) {\n        failed++;\n        errors.push(`Failed to assign ${fileId}: ${String(error)}`);\n      }\n    }\n\n    batch.status = \"completed\";\n    batch.completedAt = new Date();\n    batch.results = { successful, failed, errors: errors.length > 0 ? errors : undefined };\n\n    console.log(\n      `[Visual Sorting] Batch assignment completed: ${successful}/${fileIds.length} successful`\n    );\n\n    return batch;\n  }\n\n  /**\n   * Unassign a file from a county\n   */\n  async unassignFile(assignmentId: string): Promise<boolean> {\n    const assignment = this.assignments.get(assignmentId);\n    if (!assignment) return false;\n\n    this.assignments.delete(assignmentId);\n    this.unassignedFiles.set(assignment.fileId, {\n      id: assignment.fileId,\n      name: `file-${assignment.fileId}`,\n      type: \"unknown\",\n      size: 0,\n      uploadedAt: new Date(),\n      uploadedBy: assignment.assignedBy,\n    });\n\n    console.log(`[Visual Sorting] Unassigned file ${assignment.fileId}`);\n\n    return true;\n  }\n\n  /**\n   * Get unassigned files\n   */\n  getUnassignedFiles(): UnassignedFile[] {\n    return Array.from(this.unassignedFiles.values()).sort(\n      (a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime()\n    );\n  }\n\n  /**\n   * Get files for a county\n   */\n  getCountyFiles(countyFips: string): CountyFileOrganization | null {\n    return this.countyOrganization.get(countyFips) || null;\n  }\n\n  /**\n   * Get all county organizations\n   */\n  getAllCountyOrganizations(): CountyFileOrganization[] {\n    return Array.from(this.countyOrganization.values());\n  }\n\n  /**\n   * Move file between counties\n   */\n  async moveFileBetweenCounties(\n    fileId: string,\n    fromCountyFips: string,\n    toCountyFips: string,\n    movedBy: string\n  ): Promise<FileAssignment> {\n    // Find existing assignment\n    let assignment: FileAssignment | null = null;\n    for (const [, assign] of this.assignments) {\n      if (assign.fileId === fileId && assign.countyFips === fromCountyFips) {\n        assignment = assign;\n        break;\n      }\n    }\n\n    if (!assignment) {\n      throw new Error(`File ${fileId} not found in county ${fromCountyFips}`);\n    }\n\n    // Unassign from old county\n    await this.unassignFile(assignment.id);\n\n    // Assign to new county\n    return this.assignFileToCounty(fileId, toCountyFips, movedBy);\n  }\n\n  /**\n   * Get suggested counties for a file based on content\n   */\n  getSuggestedCounties(\n    fileId: string,\n    limit: number = 3\n  ): { fips: string; county: string; confidence: number }[] {\n    // In production, this would use ML to analyze file content\n    // For now, return empty\n    return [];\n  }\n\n  /**\n   * Get assignment history\n   */\n  getAssignmentHistory(\n    limit: number = 100,\n    countyFips?: string\n  ): FileAssignment[] {\n    let history = this.assignmentHistory;\n\n    if (countyFips) {\n      history = history.filter((a) => a.countyFips === countyFips);\n    }\n\n    return history.slice(-limit);\n  }\n\n  /**\n   * Get batch status\n   */\n  getBatchStatus(batchId: string): FileAssignmentBatch | null {\n    return this.batches.get(batchId) || null;\n  }\n\n  /**\n   * Get statistics\n   */\n  getStatistics() {\n    const totalAssignments = this.assignments.size;\n    const totalUnassigned = this.unassignedFiles.size;\n    const totalCounties = this.countyOrganization.size;\n\n    const assignmentsByType: Record<string, number> = {};\n    const assignmentsByCounty: Record<string, number> = {};\n\n    for (const [, org] of this.countyOrganization) {\n      assignmentsByCounty[org.county] = org.files.length;\n      Object.entries(org.filesByType).forEach(([type, count]) => {\n        assignmentsByType[type] = (assignmentsByType[type] || 0) + count;\n      });\n    }\n\n    return {\n      totalAssignments,\n      totalUnassigned,\n      totalCounties,\n      assignmentsByType,\n      assignmentsByCounty,\n      totalSize: Array.from(this.countyOrganization.values()).reduce(\n        (sum, org) => sum + org.totalSize,\n        0\n      ),\n    };\n  }\n\n  /**\n   * Update county organization\n   */\n  private updateCountyOrganization(countyFips: string, fileId: string): void {\n    let org = this.countyOrganization.get(countyFips);\n\n    if (!org) {\n      org = {\n        countyFips,\n        county: this.getCountyName(countyFips),\n        state: this.getStateName(countyFips),\n        files: [],\n        filesByType: {},\n        totalSize: 0,\n        lastModified: new Date(),\n      };\n      this.countyOrganization.set(countyFips, org);\n    }\n\n    // Add file (in production, fetch real file data)\n    const file = {\n      id: fileId,\n      name: `file-${fileId}`,\n      type: \"unknown\",\n      size: 0,\n      assignedAt: new Date(),\n    };\n\n    org.files.push(file);\n    org.filesByType[file.type] = (org.filesByType[file.type] || 0) + 1;\n    org.totalSize += file.size;\n    org.lastModified = new Date();\n  }\n\n  /**\n   * Helper: Get county name from FIPS\n   */\n  private getCountyName(fips: string): string {\n    const fipsMap: Record<string, string> = {\n      \"48453\": \"Travis\",\n      \"48201\": \"Harris\",\n      \"48439\": \"Tarrant\",\n      \"48113\": \"Dallas\",\n    };\n    return fipsMap[fips] || \"Unknown\";\n  }\n\n  /**\n   * Helper: Get state name from FIPS\n   */\n  private getStateName(fips: string): string {\n    const stateCode = fips.substring(0, 2);\n    const stateMap: Record<string, string> = {\n      \"48\": \"TX\",\n      \"06\": \"CA\",\n      \"36\": \"NY\",\n    };\n    return stateMap[stateCode] || \"US\";\n  }\n}\n\n// Singleton instance\nexport const scoutVisualFileSorting = new ScoutVisualFileSorting();\n
+/**
+ * Scout Visual File Sorting
+ *
+ * Handles visual file assignment and organization by county.
+ * Manages the drag-and-drop file assignment workflow.
+ *
+ * Features:
+ * - Assign files to counties
+ * - Batch file operations
+ * - File organization by region
+ * - Unassigned file tracking
+ * - Assignment history
+ */
+
+export interface FileAssignment {
+  id: string;
+  fileId: string;
+  countyFips: string;
+  assignedAt: Date;
+  assignedBy: string;
+  notes?: string;
+}
+
+export interface UnassignedFile {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  uploadedAt: Date;
+  uploadedBy: string;
+  relevanceScore?: number;
+  suggestedCounties?: {
+    fips: string;
+    county: string;
+    confidence: number;
+  }[];
+}
+
+export interface CountyFileOrganization {
+  countyFips: string;
+  county: string;
+  state: string;
+  files: {
+    id: string;
+    name: string;
+    type: string;
+    size: number;
+    assignedAt: Date;
+  }[];
+  filesByType: Record<string, number>;
+  totalSize: number;
+  lastModified: Date;
+}
+
+export interface FileAssignmentBatch {
+  id: string;
+  fileIds: string[];
+  countyFips: string;
+  status: "pending" | "processing" | "completed" | "failed";
+  createdAt: Date;
+  completedAt?: Date;
+  results?: {
+    successful: number;
+    failed: number;
+    errors?: string[];
+  };
+}
+
+class ScoutVisualFileSorting {
+  private assignments: Map<string, FileAssignment> = new Map();
+  private unassignedFiles: Map<string, UnassignedFile> = new Map();
+  private countyOrganization: Map<string, CountyFileOrganization> = new Map();
+  private assignmentHistory: FileAssignment[] = [];
+  private batches: Map<string, FileAssignmentBatch> = new Map();
+
+  /**
+   * Assign a file to a county
+   */
+  async assignFileToCounty(
+    fileId: string,
+    countyFips: string,
+    assignedBy: string,
+    notes?: string
+  ): Promise<FileAssignment> {
+    const assignment: FileAssignment = {
+      id: `assign-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      fileId,
+      countyFips,
+      assignedAt: new Date(),
+      assignedBy,
+      notes,
+    };
+
+    this.assignments.set(assignment.id, assignment);
+    this.assignmentHistory.push(assignment);
+
+    // Remove from unassigned
+    this.unassignedFiles.delete(fileId);
+
+    // Update county organization
+    this.updateCountyOrganization(countyFips, fileId);
+
+    console.log(`[Visual Sorting] Assigned file ${fileId} to county ${countyFips}`);
+
+    return assignment;
+  }
+
+  /**
+   * Batch assign multiple files to a county
+   */
+  async batchAssignFiles(
+    fileIds: string[],
+    countyFips: string,
+    assignedBy: string
+  ): Promise<FileAssignmentBatch> {
+    const batchId = `batch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const batch: FileAssignmentBatch = {
+      id: batchId,
+      fileIds,
+      countyFips,
+      status: "processing",
+      createdAt: new Date(),
+    };
+
+    this.batches.set(batchId, batch);
+
+    let successful = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    for (const fileId of fileIds) {
+      try {
+        await this.assignFileToCounty(fileId, countyFips, assignedBy);
+        successful++;
+      } catch (error) {
+        failed++;
+        errors.push(`Failed to assign ${fileId}: ${String(error)}`);
+      }
+    }
+
+    batch.status = "completed";
+    batch.completedAt = new Date();
+    batch.results = { successful, failed, errors: errors.length > 0 ? errors : undefined };
+
+    console.log(
+      `[Visual Sorting] Batch assignment completed: ${successful}/${fileIds.length} successful`
+    );
+
+    return batch;
+  }
+
+  /**
+   * Unassign a file from a county
+   */
+  async unassignFile(assignmentId: string): Promise<boolean> {
+    const assignment = this.assignments.get(assignmentId);
+    if (!assignment) return false;
+
+    this.assignments.delete(assignmentId);
+    this.unassignedFiles.set(assignment.fileId, {
+      id: assignment.fileId,
+      name: `file-${assignment.fileId}`,
+      type: "unknown",
+      size: 0,
+      uploadedAt: new Date(),
+      uploadedBy: assignment.assignedBy,
+    });
+
+    console.log(`[Visual Sorting] Unassigned file ${assignment.fileId}`);
+
+    return true;
+  }
+
+  /**
+   * Get unassigned files
+   */
+  getUnassignedFiles(): UnassignedFile[] {
+    return Array.from(this.unassignedFiles.values()).sort(
+      (a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime()
+    );
+  }
+
+  /**
+   * Get files for a county
+   */
+  getCountyFiles(countyFips: string): CountyFileOrganization | null {
+    return this.countyOrganization.get(countyFips) || null;
+  }
+
+  /**
+   * Get all county organizations
+   */
+  getAllCountyOrganizations(): CountyFileOrganization[] {
+    return Array.from(this.countyOrganization.values());
+  }
+
+  /**
+   * Move file between counties
+   */
+  async moveFileBetweenCounties(
+    fileId: string,
+    fromCountyFips: string,
+    toCountyFips: string,
+    movedBy: string
+  ): Promise<FileAssignment> {
+    // Find existing assignment
+    let assignment: FileAssignment | null = null;
+    for (const [, assign] of this.assignments) {
+      if (assign.fileId === fileId && assign.countyFips === fromCountyFips) {
+        assignment = assign;
+        break;
+      }
+    }
+
+    if (!assignment) {
+      throw new Error(`File ${fileId} not found in county ${fromCountyFips}`);
+    }
+
+    // Unassign from old county
+    await this.unassignFile(assignment.id);
+
+    // Assign to new county
+    return this.assignFileToCounty(fileId, toCountyFips, movedBy);
+  }
+
+  /**
+   * Get suggested counties for a file based on content
+   */
+  getSuggestedCounties(
+    fileId: string,
+    limit: number = 3
+  ): { fips: string; county: string; confidence: number }[] {
+    // In production, this would use ML to analyze file content
+    // For now, return empty
+    return [];
+  }
+
+  /**
+   * Get assignment history
+   */
+  getAssignmentHistory(limit: number = 100, countyFips?: string): FileAssignment[] {
+    let history = this.assignmentHistory;
+
+    if (countyFips) {
+      history = history.filter((a) => a.countyFips === countyFips);
+    }
+
+    return history.slice(-limit);
+  }
+
+  /**
+   * Get batch status
+   */
+  getBatchStatus(batchId: string): FileAssignmentBatch | null {
+    return this.batches.get(batchId) || null;
+  }
+
+  /**
+   * Get statistics
+   */
+  getStatistics() {
+    const totalAssignments = this.assignments.size;
+    const totalUnassigned = this.unassignedFiles.size;
+    const totalCounties = this.countyOrganization.size;
+
+    const assignmentsByType: Record<string, number> = {};
+    const assignmentsByCounty: Record<string, number> = {};
+
+    for (const [, org] of this.countyOrganization) {
+      assignmentsByCounty[org.county] = org.files.length;
+      Object.entries(org.filesByType).forEach(([type, count]) => {
+        assignmentsByType[type] = (assignmentsByType[type] || 0) + count;
+      });
+    }
+
+    return {
+      totalAssignments,
+      totalUnassigned,
+      totalCounties,
+      assignmentsByType,
+      assignmentsByCounty,
+      totalSize: Array.from(this.countyOrganization.values()).reduce(
+        (sum, org) => sum + org.totalSize,
+        0
+      ),
+    };
+  }
+
+  /**
+   * Update county organization
+   */
+  private updateCountyOrganization(countyFips: string, fileId: string): void {
+    let org = this.countyOrganization.get(countyFips);
+
+    if (!org) {
+      org = {
+        countyFips,
+        county: this.getCountyName(countyFips),
+        state: this.getStateName(countyFips),
+        files: [],
+        filesByType: {},
+        totalSize: 0,
+        lastModified: new Date(),
+      };
+      this.countyOrganization.set(countyFips, org);
+    }
+
+    // Add file (in production, fetch real file data)
+    const file = {
+      id: fileId,
+      name: `file-${fileId}`,
+      type: "unknown",
+      size: 0,
+      assignedAt: new Date(),
+    };
+
+    org.files.push(file);
+    org.filesByType[file.type] = (org.filesByType[file.type] || 0) + 1;
+    org.totalSize += file.size;
+    org.lastModified = new Date();
+  }
+
+  /**
+   * Helper: Get county name from FIPS
+   */
+  private getCountyName(fips: string): string {
+    const fipsMap: Record<string, string> = {
+      "48453": "Travis",
+      "48201": "Harris",
+      "48439": "Tarrant",
+      "48113": "Dallas",
+    };
+    return fipsMap[fips] || "Unknown";
+  }
+
+  /**
+   * Helper: Get state name from FIPS
+   */
+  private getStateName(fips: string): string {
+    const stateCode = fips.substring(0, 2);
+    const stateMap: Record<string, string> = {
+      "48": "TX",
+      "06": "CA",
+      "36": "NY",
+    };
+    return stateMap[stateCode] || "US";
+  }
+}
+
+// Singleton instance
+export const scoutVisualFileSorting = new ScoutVisualFileSorting();

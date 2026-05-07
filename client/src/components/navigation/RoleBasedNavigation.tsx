@@ -126,7 +126,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   // Staff & Moderation
   {
     label: "Moderation",
-    href: "/content-moderation",
+    href: "/admin/moderation",
     icon: Shield,
     requiredPermission: "canModerateContent",
   },

@@ -133,17 +133,17 @@ export function buildDecisionPipelineBehaviorResponse(
   if (input.behaviorKey === "support_routing") {
     return {
       message:
-        "I will route this through Support Tickets so follow-up remains tracked and accountable.",
-      suggestedActions: ["Open support tickets", "Open help center"],
+        "I will route this through the help center so follow-up starts in the accessible support flow.",
+      suggestedActions: ["Open help center"],
       actions: [
         {
           type: "NAVIGATE",
-          label: "Open support tickets",
-          to: "/support-tickets",
-          path: "/support-tickets",
+          label: "Open help center",
+          to: "/help",
+          path: "/help",
           primary: true,
-          subtitle: "Support authority path",
-          why: "Keeps support handling auditable and avoids dead-end guidance.",
+          subtitle: "Support path",
+          why: "Keeps support guidance accessible and avoids dead-end routes.",
         },
       ],
       metadata: baseMetadata,

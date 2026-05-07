@@ -268,6 +268,7 @@ const HOAManagementShell = React.lazy(() =>
 );
 const Foundation = React.lazy(() => import("./pages/foundation"));
 const ScoutOS = React.lazy(() => import("./scout"));
+const ScoutInfoPage = React.lazy(() => import("./pages/scout-info"));
 const SmartHome = React.lazy(() => import("./SmartHome"));
 
 // Core Pages
@@ -304,15 +305,6 @@ const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-d
 
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
-const StaffHardrockDirectory = React.lazy(() => import("./pages/staff-hardrock-directory"));
-const StaffShareLinks = React.lazy(() => import("./pages/staff-share-links"));
-const AdminInspectionIntelligence = React.lazy(
-  () => import("./pages/admin-inspection-intelligence")
-);
-const AdminCommercialDirectoryPage = React.lazy(() => import("./pages/admin-commercial-directory"));
-const AdminCommercialContractorsPage = React.lazy(
-  () => import("./pages/admin-commercial-contractors")
-);
 
 // Marketplace & Social
 const ContractorLeads = React.lazy(() => import("./pages/contractor-leads"));
@@ -542,14 +534,8 @@ const ReferralDashboard = React.lazy(() => import("./pages/referral-dashboard"))
 const EventManagement = React.lazy(() => import("./pages/event-management"));
 const APIIntegrations = React.lazy(() => import("./pages/api-integrations"));
 
-// Admin Interactive Features
-const ContractorVerification = React.lazy(() => import("./pages/contractor-verification"));
-const SupportTickets = React.lazy(() => import("./pages/support-tickets"));
-
 // Interactive Action Pages
 const ScheduleConsultation = React.lazy(() => import("./pages/schedule-consultation"));
-const PaymentProcessing = React.lazy(() => import("./pages/payment-processing"));
-const FileManagement = React.lazy(() => import("./pages/file-management"));
 
 // Car Sales Pages
 const CarSalesNewListing = React.lazy(() => import("./pages/car-sales-new-listing"));
@@ -713,6 +699,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <LandingAccessGate>
                   <LazyPage Component={Landing} />
                 </LandingAccessGate>
+              </Route>
+              <Route path="/scout-info">
+                <RedirectTo to="/help/scout" />
               </Route>
               {/* Scout OS: primary AI controller surface */}
               <Route path="/scout" component={ScoutOS} />
@@ -923,12 +912,12 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/admin/commercial-directory">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminCommercialDirectoryPage} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/admin/commercial-contractors">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminCommercialContractorsPage} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/contractor-apply">
@@ -1272,57 +1261,18 @@ export const AppRoutes = memo(function AppRoutes({
                   */}
 
               <Route path="/staff/hardrock-directory">
-                <ProtectedRoute
-                  requiredRoles={[
-                    "support_agent",
-                    "content_moderator",
-                    "territory_manager",
-                    "contractor_success",
-                    "content_seo",
-                    "analytics_specialist",
-                    "marketing_specialist",
-                    "moderator",
-                    "ops_admin",
-                    "super_admin",
-                  ]}
-                >
-                  <LazyPage Component={StaffHardrockDirectory} />
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/commercial-directory" />
                 </ProtectedRoute>
               </Route>
               <Route path="/staff/share-links">
-                <ProtectedRoute
-                  requiredRoles={[
-                    "support_agent",
-                    "content_moderator",
-                    "territory_manager",
-                    "contractor_success",
-                    "content_seo",
-                    "analytics_specialist",
-                    "marketing_specialist",
-                    "moderator",
-                    "ops_admin",
-                    "super_admin",
-                  ]}
-                >
-                  <LazyPage Component={StaffShareLinks} />
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/share-links" />
                 </ProtectedRoute>
               </Route>
               <Route path="/staff/inspection-intelligence">
-                <ProtectedRoute
-                  requiredRoles={[
-                    "support_agent",
-                    "content_moderator",
-                    "territory_manager",
-                    "contractor_success",
-                    "content_seo",
-                    "analytics_specialist",
-                    "marketing_specialist",
-                    "moderator",
-                    "ops_admin",
-                    "super_admin",
-                  ]}
-                >
-                  <LazyPage Component={AdminInspectionIntelligence} />
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/inspection-intelligence" />
                 </ProtectedRoute>
               </Route>
 
@@ -1382,6 +1332,9 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/help">
                 <LazyPage Component={Help} />
+              </Route>
+              <Route path="/help/scout">
+                <LazyPage Component={ScoutInfoPage} />
               </Route>
               <Route path="/help/how-tradescout-works">
                 <LazyPage Component={HowTradeScoutWorks} />
@@ -1759,7 +1712,7 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Advanced Admin */}
               <Route path="/contractor-verification">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={ContractorVerification} />
+                  <RedirectTo to="/admin/professional-verification" />
                 </ProtectedRoute>
               </Route>
               <Route path="/content-moderation">
@@ -1773,7 +1726,9 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/support-tickets">
-                <LazyPage Component={SupportTickets} />
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/errors" />
+                </ProtectedRoute>
               </Route>
               <Route path="/platform-analytics">
                 <ProtectedRoute adminOnly>
@@ -1786,10 +1741,14 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/payment-processing">
-                <LazyPage Component={PaymentProcessing} />
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/payment-model" />
+                </ProtectedRoute>
               </Route>
               <Route path="/file-management">
-                <LazyPage Component={FileManagement} />
+                <ProtectedRoute adminOnly>
+                  <RedirectTo to="/admin/attachments" />
+                </ProtectedRoute>
               </Route>
 
               {/* Social & Integration */}

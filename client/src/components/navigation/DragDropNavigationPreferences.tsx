@@ -314,7 +314,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
       id: "moderation",
       label: "Moderation",
       icon: "Shield",
-      href: "/content-moderation",
+      href: "/admin/moderation",
       visible: true,
     });
   }

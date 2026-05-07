@@ -1,1 +1,170 @@
-/**\n * Scout Optimization Engine\n *\n * Lightweight optimization layer integrated into the main Scout engine.\n * Handles:\n * - Query routing (FAQ → Knowledge → LLM hierarchy)\n * - Token optimization (compress prompts before sending to LLM)\n * - Request deduplication (via scoutMemoryService)\n * - Streaming support\n */\n\nimport crypto from \"crypto\";\n\nexport interface OptimizationContext {\n  query: string;\n  userId: string;\n  isAuthenticated: boolean;\n  county?: string;\n  state?: string;\n}\n\nexport interface OptimizationResult {\n  route: \"faq\" | \"knowledge\" | \"llm\";\n  confidence: number;\n  skipLlm: boolean;\n  reason: string;\n  cachedAnswer?: string;\n  optimizedPrompt?: string;\n  tokenSavings?: number;\n}\n\n/**\n * FAQ database (common Scout questions)\n */\nconst FAQ_DATABASE = [\n  {\n    keywords: [\"what is tradescout\", \"who is tradescout\", \"about tradescout\"],\n    answer:\n      \"TradeScout is a platform connecting homeowners with local contractors and trade professionals. It provides building codes, pricing information, and trade guides to help with home improvement projects.\",\n  },\n  {\n    keywords: [\"how do i find a contractor\", \"find contractor\", \"search contractors\"],\n    answer:\n      \"Use TradeScout's contractor directory to search by trade, location, and ratings. Filter by verified professionals and read reviews from other homeowners.\",\n  },\n  {\n    keywords: [\"what trades are available\", \"list of trades\", \"what services\"],\n    answer:\n      \"TradeScout covers major trades including: Roofing, Electrical, Plumbing, HVAC, Carpentry, Masonry, Landscaping, and more. Search our directory for specific trades in your area.\",\n  },\n  {\n    keywords: [\"is tradescout free\", \"cost of tradescout\", \"pricing\"],\n    answer:\n      \"TradeScout is free for homeowners to use. We help you find contractors and access building codes and pricing information at no cost.\",\n  },\n];\n\n/**\n * Generate a query hash for deduplication\n */\nexport function generateQueryHash(query: string, context?: Partial<OptimizationContext>): string {\n  const normalized = query\n    .toLowerCase()\n    .replace(/[?!.,;:]/g, \"\")\n    .replace(/\\s+/g, \" \")\n    .trim();\n  const contextStr = context ? JSON.stringify(context) : \"\";\n  return crypto.createHash(\"md5\").update(normalized + contextStr).digest(\"hex\");\n}\n\n/**\n * Check if query matches FAQ\n */\nexport function checkFaqMatch(query: string): OptimizationResult | null {\n  const lowerQuery = query.toLowerCase();\n\n  for (const faq of FAQ_DATABASE) {\n    for (const keyword of faq.keywords) {\n      if (lowerQuery.includes(keyword)) {\n        return {\n          route: \"faq\",\n          confidence: 0.95,\n          skipLlm: true,\n          reason: `FAQ match: \"${keyword}\"`,\n          cachedAnswer: faq.answer,\n        };\n      }\n    }\n  }\n\n  return null;\n}\n\n/**\n * Calculate query complexity (0-1)\n */\nexport function calculateComplexity(query: string): number {\n  const complexityIndicators = [\n    \"compare\",\n    \"recommend\",\n    \"best\",\n    \"worst\",\n    \"opinion\",\n    \"should i\",\n    \"would you\",\n    \"what do you think\",\n    \"help me decide\",\n    \"pros and cons\",\n  ];\n\n  const lowerQuery = query.toLowerCase();\n  let complexity = 0;\n\n  for (const indicator of complexityIndicators) {\n    if (lowerQuery.includes(indicator)) {\n      complexity += 0.2;\n    }\n  }\n\n  const questionMarks = (query.match(/\\?/g) || []).length;\n  complexity += Math.min(questionMarks * 0.1, 0.3);\n\n  if (/if|then|but|however|although/i.test(query)) {\n    complexity += 0.15;\n  }\n\n  const wordCount = query.split(/\\s+/).length;\n  if (wordCount > 20) complexity += 0.1;\n\n  return Math.min(complexity, 1);\n}\n\n/**\n * Route a query to the appropriate handler\n */\nexport function routeQuery(context: OptimizationContext): OptimizationResult {\n  const { query } = context;\n\n  // 1. Check FAQ first (no API call needed)\n  const faqMatch = checkFaqMatch(query);\n  if (faqMatch) {\n    return faqMatch;\n  }\n\n  // 2. Calculate complexity\n  const complexity = calculateComplexity(query);\n\n  if (complexity < 0.3) {\n    return {\n      route: \"knowledge\",\n      confidence: 0.7,\n      skipLlm: false,\n      reason: \"Low complexity - try knowledge base first\",\n    };\n  }\n\n  if (complexity < 0.6) {\n    return {\n      route: \"llm\",\n      confidence: 0.6,\n      skipLlm: false,\n      reason: \"Medium complexity - use LLM with knowledge context\",\n    };\n  }\n\n  return {\n    route: \"llm\",\n    confidence: 0.5,\n    skipLlm: false,\n    reason: \"High complexity - use full LLM synthesis\",\n  };\n}\n\n/**\n * Optimize a prompt by removing redundancy and compressing tokens\n */\nexport function optimizePrompt(prompt: string): { optimized: string; tokenSavings: number } {\n  const originalLength = prompt.length;\n\n  let optimized = prompt;\n\n  // Remove duplicate sentences\n  const sentences = optimized.match(/[^.!?]+[.!?]+/g) || [];\n  const seen = new Set<string>();\n  const unique: string[] = [];\n\n  for (const sentence of sentences) {\n    const normalized = sentence.trim().toLowerCase();\n    if (!seen.has(normalized)) {\n      seen.add(normalized);\n      unique.push(sentence);\n    }\n  }\n\n  optimized = unique.join(\" \");\n\n  // Remove redundant phrases\n  const redundantPatterns = [\n    /please note that /gi,\n    /it is important to /gi,\n    /it should be noted that /gi,\n    /in addition to this /gi,\n    /furthermore, /gi,\n    /moreover, /gi,\n  ];\n\n  for (const pattern of redundantPatterns) {\n    optimized = optimized.replace(pattern, \"\");\n  }\n\n  // Compress whitespace\n  optimized = optimized\n    .replace(/\\n\\n+/g, \"\\n\")\n    .replace(/\\s+/g, \" \")\n    .trim();\n\n  const optimizedLength = optimized.length;\n  const tokenSavings = Math.round((originalLength - optimizedLength) / 4); // 1 token ≈ 4 chars\n\n  return { optimized, tokenSavings };\n}\n\n/**\n * Get optimization statistics\n */\nexport function getOptimizationStats(): {\n  faqCount: number;\n  optimizationEnabled: boolean;\n} {\n  return {\n    faqCount: FAQ_DATABASE.length,\n    optimizationEnabled: true,\n  };\n}\n
+type ScoutCacheEntry<T> = {
+  value: T;
+  expiresAt: number;
+};
+
+export interface ScoutOptimizationSnapshot<T> {
+  value: T;
+  cacheKey: string;
+  cacheHit: boolean;
+  deduped: boolean;
+  route: "cache" | "inflight" | "compute";
+}
+
+export interface ScoutMissionCacheInput {
+  query: string;
+  countyFips?: string;
+  stateCode?: string;
+  trade?: string;
+  learningMode?: boolean;
+}
+
+const responseCache = new Map<string, ScoutCacheEntry<unknown>>();
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+function normalize(value: unknown): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function buildScoutMissionCacheKey(input: ScoutMissionCacheInput): string {
+  return [
+    normalize(input.query),
+    normalize(input.countyFips),
+    normalize(input.stateCode),
+    normalize(input.trade),
+    input.learningMode ? "learning" : "standard",
+  ].join("|");
+}
+
+export function generateQueryHash(
+  query: string,
+  context?: { county?: string; state?: string; trade?: string }
+): string {
+  return buildScoutMissionCacheKey({
+    query,
+    countyFips: context?.county,
+    stateCode: context?.state,
+    trade: context?.trade,
+  });
+}
+
+export function checkFaqMatch(
+  query: string
+): { cachedAnswer: string; confidence: "high" | "medium"; reason: string } | null {
+  if (!isFaqStyleScoutQuery(query)) {
+    return null;
+  }
+
+  return null;
+}
+
+export function routeQuery(input: {
+  query: string;
+  userId?: string;
+  isAuthenticated?: boolean;
+  county?: string;
+  state?: string;
+}): { path: "compute"; skipLlm: boolean; reason: string } {
+  return {
+    path: "compute",
+    skipLlm: false,
+    reason: input.isAuthenticated ? "authenticated_scout_mission" : "guest_scout_mission",
+  };
+}
+
+export function isFaqStyleScoutQuery(query: string): boolean {
+  const lower = normalize(query);
+  if (!lower) return false;
+
+  return (
+    /^(what|how|why|where|when|who|which)\b/.test(lower) ||
+    /\b(what is|how does|how do|explain|define|faq|help me understand|walk me through)\b/.test(
+      lower
+    ) ||
+    lower.length <= 48
+  );
+}
+
+export function compressScoutPrompt(prompt: string, maxChars = 12000): string {
+  const collapsed = String(prompt || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  if (collapsed.length <= maxChars) {
+    return collapsed;
+  }
+
+  return collapsed.slice(0, maxChars);
+}
+
+export function pruneScoutOptimizationCache(): void {
+  const now = Date.now();
+  for (const [key, entry] of responseCache.entries()) {
+    if (entry.expiresAt <= now) {
+      responseCache.delete(key);
+    }
+  }
+}
+
+export async function runScoutMissionWithOptimization<T>(
+  cacheKey: string,
+  work: () => Promise<T>,
+  options?: {
+    ttlMs?: number;
+  }
+): Promise<ScoutOptimizationSnapshot<T>> {
+  pruneScoutOptimizationCache();
+
+  const cached = responseCache.get(cacheKey);
+  if (cached) {
+    return {
+      value: cached.value as T,
+      cacheKey,
+      cacheHit: true,
+      deduped: false,
+      route: "cache",
+    };
+  }
+
+  const inFlight = inFlightRequests.get(cacheKey);
+  if (inFlight) {
+    const value = (await inFlight) as T;
+    return {
+      value,
+      cacheKey,
+      cacheHit: false,
+      deduped: true,
+      route: "inflight",
+    };
+  }
+
+  const promise = (async () => {
+    const result = await work();
+    const ttlMs = Math.max(15_000, Number(options?.ttlMs || 5 * 60_000));
+    responseCache.set(cacheKey, {
+      value: result,
+      expiresAt: Date.now() + ttlMs,
+    });
+    return result;
+  })();
+
+  inFlightRequests.set(cacheKey, promise as Promise<unknown>);
+
+  try {
+    const value = await promise;
+    return {
+      value,
+      cacheKey,
+      cacheHit: false,
+      deduped: false,
+      route: "compute",
+    };
+  } finally {
+    inFlightRequests.delete(cacheKey);
+  }
+}

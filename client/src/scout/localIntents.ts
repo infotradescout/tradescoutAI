@@ -42,6 +42,9 @@ export function resolveExplicitNavigationIntent(message: string): LocalNavIntent
   if (lower.includes("message") || lower.includes("inbox") || lower.includes("conversations")) {
     return { to: "/conversations", label: "Messages", confidence: 0.95 };
   }
+  if (lower.includes("support") || lower.includes("help center")) {
+    return { to: ROUTES.HELP ?? "/help", label: "Help", confidence: 0.95 };
+  }
   if (lower.includes("settings")) {
     return { to: ROUTES.SETTINGS ?? "/settings", label: "Settings", confidence: 0.95 };
   }
@@ -91,6 +94,8 @@ const QUICK_ACTION_NAV: Record<string, string> = {
   leaderboard: "/leaderboard",
   "show local groups hoas and boards i can join or follow": "/hoa-management",
   "open my admin panel and monitoring tools": "/admin/panel",
+  "open support tickets": ROUTES.HELP ?? "/help",
+  "open help center": ROUTES.HELP ?? "/help",
   "show recent finance invoicing ledger activity": "/admin/panel?tab=finance",
   "open my jobs workspace": "/finances/jobs",
   "view invoices and payments": "/finances",

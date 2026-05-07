@@ -1,1 +1,363 @@
-/**\n * Scout Learning Pipeline\n *\n * Automatically captures, indexes, and learns from every scouting report.\n * Every search result, every finding, every synthesis becomes part of Scout's brain.\n * All outputs are indexed and searchable by LISA.\n */\n\nimport { EventEmitter } from \"events\";\n\nexport interface ScoutingReportForIndexing {\n  id: string;\n  mission: string;\n  query: string;\n  findings: {\n    knowledge: string[];\n    local: string[];\n    web: string[];\n  };\n  synthesis: string;\n  confidence: \"high\" | \"medium\" | \"low\";\n  sources: string[];\n  jurisdiction?: string;\n  trade?: string;\n  timestamp: string;\n  userId?: string;\n}\n\nexport interface IndexedIntelligence {\n  id: string;\n  type: \"finding\" | \"synthesis\" | \"web_search\" | \"local_data\";\n  content: string;\n  keywords: string[];\n  source: string;\n  confidence: \"high\" | \"medium\" | \"low\";\n  jurisdiction?: string;\n  trade?: string;\n  timestamp: string;\n  scoutingReportId: string;\n  lisaRelevance: number; // 0-1, how relevant this is to LISA's decision making\n}\n\nexport interface LearningMetrics {\n  totalReportsProcessed: number;\n  totalIntelligenceIndexed: number;\n  averageConfidence: number;\n  lastLearningUpdate: string;\n  knowledgeGrowthRate: number; // new intelligence per day\n}\n\n/**\n * Scout Learning Pipeline\n *\n * Processes every scouting report and:\n * 1. Extracts key intelligence\n * 2. Indexes it for searchability\n * 3. Calculates LISA relevance\n * 4. Feeds it into the decision layer\n * 5. Updates Scout's brain with new learnings\n */\nexport class ScoutLearningPipeline extends EventEmitter {\n  private indexedIntelligence: Map<string, IndexedIntelligence> = new Map();\n  private metrics: LearningMetrics = {\n    totalReportsProcessed: 0,\n    totalIntelligenceIndexed: 0,\n    averageConfidence: 0,\n    lastLearningUpdate: new Date().toISOString(),\n    knowledgeGrowthRate: 0,\n  };\n\n  /**\n   * Process a scouting report and add it to Scout's brain\n   */\n  async processScoutingReport(report: ScoutingReportForIndexing): Promise<IndexedIntelligence[]> {\n    const indexedItems: IndexedIntelligence[] = [];\n\n    // Extract and index findings from each source\n    const knowledgeFindings = this.indexFindings(\n      report.findings.knowledge,\n      \"knowledge\",\n      report\n    );\n    const localFindings = this.indexFindings(report.findings.local, \"local_data\", report);\n    const webFindings = this.indexFindings(report.findings.web, \"web_search\", report);\n\n    indexedItems.push(...knowledgeFindings, ...localFindings, ...webFindings);\n\n    // Index the synthesis as a unified intelligence piece\n    const synthesisIntelligence = this.indexSynthesis(report);\n    indexedItems.push(synthesisIntelligence);\n\n    // Add all to the index\n    for (const item of indexedItems) {\n      this.indexedIntelligence.set(item.id, item);\n    }\n\n    // Update metrics\n    this.updateMetrics(report, indexedItems);\n\n    // Emit event for LISA integration\n    this.emit(\"intelligence-indexed\", {\n      reportId: report.id,\n      intelligence: indexedItems,\n      timestamp: new Date().toISOString(),\n    });\n\n    return indexedItems;\n  }\n\n  /**\n   * Index findings from a specific source\n   */\n  private indexFindings(\n    findings: string[],\n    source: \"knowledge\" | \"local_data\" | \"web_search\",\n    report: ScoutingReportForIndexing\n  ): IndexedIntelligence[] {\n    return findings.map((finding, idx) => {\n      const intelligence: IndexedIntelligence = {\n        id: `${report.id}-${source}-${idx}`,\n        type: source,\n        content: finding,\n        keywords: this.extractKeywords(finding),\n        source,\n        confidence: report.confidence,\n        jurisdiction: report.jurisdiction,\n        trade: report.trade,\n        timestamp: report.timestamp,\n        scoutingReportId: report.id,\n        lisaRelevance: this.calculateLisaRelevance(finding, report),\n      };\n      return intelligence;\n    });\n  }\n\n  /**\n   * Index the synthesis as a unified intelligence piece\n   */\n  private indexSynthesis(report: ScoutingReportForIndexing): IndexedIntelligence {\n    return {\n      id: `${report.id}-synthesis`,\n      type: \"synthesis\",\n      content: report.synthesis,\n      keywords: this.extractKeywords(report.synthesis),\n      source: \"scout-synthesis\",\n      confidence: report.confidence,\n      jurisdiction: report.jurisdiction,\n      trade: report.trade,\n      timestamp: report.timestamp,\n      scoutingReportId: report.id,\n      lisaRelevance: this.calculateLisaRelevance(report.synthesis, report),\n    };\n  }\n\n  /**\n   * Extract keywords from content for searchability\n   */\n  private extractKeywords(content: string): string[] {\n    // Simple keyword extraction - can be enhanced with NLP\n    const stopWords = new Set([\n      \"the\",\n      \"a\",\n      \"an\",\n      \"and\",\n      \"or\",\n      \"but\",\n      \"in\",\n      \"on\",\n      \"at\",\n      \"to\",\n      \"for\",\n      \"of\",\n      \"with\",\n      \"is\",\n      \"are\",\n      \"be\",\n      \"been\",\n      \"being\",\n      \"have\",\n      \"has\",\n      \"had\",\n      \"do\",\n      \"does\",\n      \"did\",\n    ]);\n\n    const words = content\n      .toLowerCase()\n      .split(/\\s+/)\n      .filter(\n        (word) =>\n          word.length > 3 &&\n          !stopWords.has(word) &&\n          /^[a-z]+$/.test(word.replace(/[^a-z]/g, \"\"))\n      )\n      .slice(0, 20); // Top 20 keywords\n\n    return [...new Set(words)];\n  }\n\n  /**\n   * Calculate how relevant this intelligence is to LISA\n   * Higher relevance = more useful for decision making\n   */\n  private calculateLisaRelevance(\n    content: string,\n    report: ScoutingReportForIndexing\n  ): number {\n    let relevance = 0;\n\n    // Base relevance from confidence\n    const confidenceScore = {\n      high: 0.9,\n      medium: 0.6,\n      low: 0.3,\n    };\n    relevance += confidenceScore[report.confidence] * 0.4;\n\n    // Boost for actionable intelligence (contains \"must\", \"required\", \"should\", etc.)\n    const actionableKeywords = [\n      \"must\",\n      \"required\",\n      \"should\",\n      \"need\",\n      \"permit\",\n      \"license\",\n      \"inspection\",\n      \"code\",\n      \"regulation\",\n    ];\n    const hasActionable = actionableKeywords.some((kw) =>\n      content.toLowerCase().includes(kw)\n    );\n    if (hasActionable) relevance += 0.3;\n\n    // Boost for specific trades\n    if (report.trade) relevance += 0.2;\n\n    // Boost for specific jurisdiction\n    if (report.jurisdiction) relevance += 0.1;\n\n    return Math.min(relevance, 1.0);\n  }\n\n  /**\n   * Update learning metrics\n   */\n  private updateMetrics(\n    report: ScoutingReportForIndexing,\n    indexedItems: IndexedIntelligence[]\n  ): void {\n    this.metrics.totalReportsProcessed += 1;\n    this.metrics.totalIntelligenceIndexed += indexedItems.length;\n    this.metrics.lastLearningUpdate = new Date().toISOString();\n\n    // Update average confidence\n    const allConfidenceScores = {\n      high: 1,\n      medium: 0.5,\n      low: 0.25,\n    };\n    const newAverage =\n      (this.metrics.averageConfidence * (this.metrics.totalReportsProcessed - 1) +\n        allConfidenceScores[report.confidence]) /\n      this.metrics.totalReportsProcessed;\n    this.metrics.averageConfidence = newAverage;\n  }\n\n  /**\n   * Search Scout's indexed intelligence\n   */\n  searchIntelligence(\n    query: string,\n    filters?: {\n      source?: string;\n      trade?: string;\n      jurisdiction?: string;\n      minConfidence?: \"high\" | \"medium\" | \"low\";\n    }\n  ): IndexedIntelligence[] {\n    const queryKeywords = query.toLowerCase().split(/\\s+/);\n    const results: IndexedIntelligence[] = [];\n\n    for (const intelligence of this.indexedIntelligence.values()) {\n      // Apply filters\n      if (filters?.source && intelligence.source !== filters.source) continue;\n      if (filters?.trade && intelligence.trade !== filters.trade) continue;\n      if (filters?.jurisdiction && intelligence.jurisdiction !== filters.jurisdiction) continue;\n\n      // Check confidence filter\n      if (filters?.minConfidence) {\n        const confidenceOrder = { high: 3, medium: 2, low: 1 };\n        if (\n          confidenceOrder[intelligence.confidence] <\n          confidenceOrder[filters.minConfidence]\n        ) {\n          continue;\n        }\n      }\n\n      // Check if keywords match\n      const matchCount = queryKeywords.filter((kw) =>\n        intelligence.keywords.some((keyword) => keyword.includes(kw))\n      ).length;\n\n      if (matchCount > 0) {\n        results.push(intelligence);\n      }\n    }\n\n    // Sort by relevance and recency\n    return results.sort((a, b) => {\n      // Primary: LISA relevance\n      if (b.lisaRelevance !== a.lisaRelevance) {\n        return b.lisaRelevance - a.lisaRelevance;\n      }\n      // Secondary: Recency\n      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();\n    });\n  }\n\n  /**\n   * Get all intelligence for a specific trade\n   */\n  getTradeIntelligence(trade: string): IndexedIntelligence[] {\n    return Array.from(this.indexedIntelligence.values())\n      .filter((i) => i.trade === trade)\n      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());\n  }\n\n  /**\n   * Get all intelligence for a specific jurisdiction\n   */\n  getJurisdictionIntelligence(jurisdiction: string): IndexedIntelligence[] {\n    return Array.from(this.indexedIntelligence.values())\n      .filter((i) => i.jurisdiction === jurisdiction)\n      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());\n  }\n\n  /**\n   * Get learning metrics\n   */\n  getMetrics(): LearningMetrics {\n    return { ...this.metrics };\n  }\n\n  /**\n   * Get the size of Scout's brain\n   */\n  getBrainSize(): number {\n    return this.indexedIntelligence.size;\n  }\n\n  /**\n   * Export all indexed intelligence (for backup/analysis)\n   */\n  exportIntelligence(): IndexedIntelligence[] {\n    return Array.from(this.indexedIntelligence.values());\n  }\n\n  /**\n   * Clear all indexed intelligence (for reset)\n   */\n  clearBrain(): void {\n    this.indexedIntelligence.clear();\n    this.metrics = {\n      totalReportsProcessed: 0,\n      totalIntelligenceIndexed: 0,\n      averageConfidence: 0,\n      lastLearningUpdate: new Date().toISOString(),\n      knowledgeGrowthRate: 0,\n    };\n  }\n}\n\n// Export singleton instance\nexport const scoutLearningPipeline = new ScoutLearningPipeline();\n
+/**
+ * Scout Learning Pipeline
+ *
+ * Automatically captures, indexes, and learns from every scouting report.
+ * Every search result, every finding, every synthesis becomes part of Scout's brain.
+ * All outputs are indexed and searchable by LISA.
+ */
+
+import { EventEmitter } from "events";
+
+export interface ScoutingReportForIndexing {
+  id: string;
+  mission: string;
+  query: string;
+  findings: {
+    knowledge: string[];
+    local: string[];
+    web: string[];
+  };
+  synthesis: string;
+  confidence: "high" | "medium" | "low";
+  sources: string[];
+  jurisdiction?: string;
+  trade?: string;
+  timestamp: string;
+  userId?: string;
+}
+
+export interface IndexedIntelligence {
+  id: string;
+  type: "finding" | "synthesis" | "web_search" | "local_data";
+  content: string;
+  keywords: string[];
+  source: string;
+  confidence: "high" | "medium" | "low";
+  jurisdiction?: string;
+  trade?: string;
+  timestamp: string;
+  scoutingReportId: string;
+  lisaRelevance: number; // 0-1, how relevant this is to LISA's decision making
+}
+
+export interface LearningMetrics {
+  totalReportsProcessed: number;
+  totalIntelligenceIndexed: number;
+  averageConfidence: number;
+  lastLearningUpdate: string;
+  knowledgeGrowthRate: number; // new intelligence per day
+}
+
+/**
+ * Scout Learning Pipeline
+ *
+ * Processes every scouting report and:
+ * 1. Extracts key intelligence
+ * 2. Indexes it for searchability
+ * 3. Calculates LISA relevance
+ * 4. Feeds it into the decision layer
+ * 5. Updates Scout's brain with new learnings
+ */
+export class ScoutLearningPipeline extends EventEmitter {
+  private indexedIntelligence: Map<string, IndexedIntelligence> = new Map();
+  private metrics: LearningMetrics = {
+    totalReportsProcessed: 0,
+    totalIntelligenceIndexed: 0,
+    averageConfidence: 0,
+    lastLearningUpdate: new Date().toISOString(),
+    knowledgeGrowthRate: 0,
+  };
+
+  /**
+   * Process a scouting report and add it to Scout's brain
+   */
+  async processScoutingReport(report: ScoutingReportForIndexing): Promise<IndexedIntelligence[]> {
+    const indexedItems: IndexedIntelligence[] = [];
+
+    // Extract and index findings from each source
+    const knowledgeFindings = this.indexFindings(report.findings.knowledge, "knowledge", report);
+    const localFindings = this.indexFindings(report.findings.local, "local_data", report);
+    const webFindings = this.indexFindings(report.findings.web, "web_search", report);
+
+    indexedItems.push(...knowledgeFindings, ...localFindings, ...webFindings);
+
+    // Index the synthesis as a unified intelligence piece
+    const synthesisIntelligence = this.indexSynthesis(report);
+    indexedItems.push(synthesisIntelligence);
+
+    // Add all to the index
+    for (const item of indexedItems) {
+      this.indexedIntelligence.set(item.id, item);
+    }
+
+    // Update metrics
+    this.updateMetrics(report, indexedItems);
+
+    // Emit event for LISA integration
+    this.emit("intelligence-indexed", {
+      reportId: report.id,
+      intelligence: indexedItems,
+      timestamp: new Date().toISOString(),
+    });
+
+    return indexedItems;
+  }
+
+  /**
+   * Index findings from a specific source
+   */
+  private indexFindings(
+    findings: string[],
+    source: "knowledge" | "local_data" | "web_search",
+    report: ScoutingReportForIndexing
+  ): IndexedIntelligence[] {
+    return findings.map((finding, idx) => {
+      const intelligence: IndexedIntelligence = {
+        id: `${report.id}-${source}-${idx}`,
+        type: source === "knowledge" ? "finding" : source,
+        content: finding,
+        keywords: this.extractKeywords(finding),
+        source,
+        confidence: report.confidence,
+        jurisdiction: report.jurisdiction,
+        trade: report.trade,
+        timestamp: report.timestamp,
+        scoutingReportId: report.id,
+        lisaRelevance: this.calculateLisaRelevance(finding, report),
+      };
+      return intelligence;
+    });
+  }
+
+  /**
+   * Index the synthesis as a unified intelligence piece
+   */
+  private indexSynthesis(report: ScoutingReportForIndexing): IndexedIntelligence {
+    return {
+      id: `${report.id}-synthesis`,
+      type: "synthesis",
+      content: report.synthesis,
+      keywords: this.extractKeywords(report.synthesis),
+      source: "scout-synthesis",
+      confidence: report.confidence,
+      jurisdiction: report.jurisdiction,
+      trade: report.trade,
+      timestamp: report.timestamp,
+      scoutingReportId: report.id,
+      lisaRelevance: this.calculateLisaRelevance(report.synthesis, report),
+    };
+  }
+
+  /**
+   * Extract keywords from content for searchability
+   */
+  private extractKeywords(content: string): string[] {
+    // Simple keyword extraction - can be enhanced with NLP
+    const stopWords = new Set([
+      "the",
+      "a",
+      "an",
+      "and",
+      "or",
+      "but",
+      "in",
+      "on",
+      "at",
+      "to",
+      "for",
+      "of",
+      "with",
+      "is",
+      "are",
+      "be",
+      "been",
+      "being",
+      "have",
+      "has",
+      "had",
+      "do",
+      "does",
+      "did",
+    ]);
+
+    const words = content
+      .toLowerCase()
+      .split(/\\s+/)
+      .filter(
+        (word) =>
+          word.length > 3 && !stopWords.has(word) && /^[a-z]+$/.test(word.replace(/[^a-z]/g, ""))
+      )
+      .slice(0, 20); // Top 20 keywords
+
+    return [...new Set(words)];
+  }
+
+  /**
+   * Calculate how relevant this intelligence is to LISA
+   * Higher relevance = more useful for decision making
+   */
+  private calculateLisaRelevance(content: string, report: ScoutingReportForIndexing): number {
+    let relevance = 0;
+
+    // Base relevance from confidence
+    const confidenceScore = {
+      high: 0.9,
+      medium: 0.6,
+      low: 0.3,
+    };
+    relevance += confidenceScore[report.confidence] * 0.4;
+
+    // Boost for actionable intelligence (contains "must", "required", "should", etc.)
+    const actionableKeywords = [
+      "must",
+      "required",
+      "should",
+      "need",
+      "permit",
+      "license",
+      "inspection",
+      "code",
+      "regulation",
+    ];
+    const hasActionable = actionableKeywords.some((kw) => content.toLowerCase().includes(kw));
+    if (hasActionable) relevance += 0.3;
+
+    // Boost for specific trades
+    if (report.trade) relevance += 0.2;
+
+    // Boost for specific jurisdiction
+    if (report.jurisdiction) relevance += 0.1;
+
+    return Math.min(relevance, 1.0);
+  }
+
+  /**
+   * Update learning metrics
+   */
+  private updateMetrics(
+    report: ScoutingReportForIndexing,
+    indexedItems: IndexedIntelligence[]
+  ): void {
+    this.metrics.totalReportsProcessed += 1;
+    this.metrics.totalIntelligenceIndexed += indexedItems.length;
+    this.metrics.lastLearningUpdate = new Date().toISOString();
+
+    // Update average confidence
+    const allConfidenceScores = {
+      high: 1,
+      medium: 0.5,
+      low: 0.25,
+    };
+    const newAverage =
+      (this.metrics.averageConfidence * (this.metrics.totalReportsProcessed - 1) +
+        allConfidenceScores[report.confidence]) /
+      this.metrics.totalReportsProcessed;
+    this.metrics.averageConfidence = newAverage;
+  }
+
+  /**
+   * Search Scout's indexed intelligence
+   */
+  searchIntelligence(
+    query: string,
+    filters?: {
+      source?: string;
+      trade?: string;
+      jurisdiction?: string;
+      minConfidence?: "high" | "medium" | "low";
+    }
+  ): IndexedIntelligence[] {
+    const queryKeywords = query.toLowerCase().split(/\\s+/);
+    const results: IndexedIntelligence[] = [];
+
+    for (const intelligence of this.indexedIntelligence.values()) {
+      // Apply filters
+      if (filters?.source && intelligence.source !== filters.source) continue;
+      if (filters?.trade && intelligence.trade !== filters.trade) continue;
+      if (filters?.jurisdiction && intelligence.jurisdiction !== filters.jurisdiction) continue;
+
+      // Check confidence filter
+      if (filters?.minConfidence) {
+        const confidenceOrder = { high: 3, medium: 2, low: 1 };
+        if (confidenceOrder[intelligence.confidence] < confidenceOrder[filters.minConfidence]) {
+          continue;
+        }
+      }
+
+      // Check if keywords match
+      const matchCount = queryKeywords.filter((kw) =>
+        intelligence.keywords.some((keyword) => keyword.includes(kw))
+      ).length;
+
+      if (matchCount > 0) {
+        results.push(intelligence);
+      }
+    }
+
+    // Sort by relevance and recency
+    return results.sort((a, b) => {
+      // Primary: LISA relevance
+      if (b.lisaRelevance !== a.lisaRelevance) {
+        return b.lisaRelevance - a.lisaRelevance;
+      }
+      // Secondary: Recency
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+    });
+  }
+
+  /**
+   * Get all intelligence for a specific trade
+   */
+  getTradeIntelligence(trade: string): IndexedIntelligence[] {
+    return Array.from(this.indexedIntelligence.values())
+      .filter((i) => i.trade === trade)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  /**
+   * Get all intelligence for a specific jurisdiction
+   */
+  getJurisdictionIntelligence(jurisdiction: string): IndexedIntelligence[] {
+    return Array.from(this.indexedIntelligence.values())
+      .filter((i) => i.jurisdiction === jurisdiction)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  /**
+   * Get learning metrics
+   */
+  getMetrics(): LearningMetrics {
+    return { ...this.metrics };
+  }
+
+  /**
+   * Get the size of Scout's brain
+   */
+  getBrainSize(): number {
+    return this.indexedIntelligence.size;
+  }
+
+  /**
+   * Export all indexed intelligence (for backup/analysis)
+   */
+  exportIntelligence(): IndexedIntelligence[] {
+    return Array.from(this.indexedIntelligence.values());
+  }
+
+  /**
+   * Clear all indexed intelligence (for reset)
+   */
+  clearBrain(): void {
+    this.indexedIntelligence.clear();
+    this.metrics = {
+      totalReportsProcessed: 0,
+      totalIntelligenceIndexed: 0,
+      averageConfidence: 0,
+      lastLearningUpdate: new Date().toISOString(),
+      knowledgeGrowthRate: 0,
+    };
+  }
+}
+
+// Export singleton instance
+export const scoutLearningPipeline = new ScoutLearningPipeline();

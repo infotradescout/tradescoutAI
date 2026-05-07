@@ -558,7 +558,6 @@ export class ScoutMemoryService {
       };
     }
   }
-}
 
   /**
    * Cache a Scout response (for query deduplication and fast retrieval)
@@ -577,10 +576,10 @@ export class ScoutMemoryService {
         {
           response,
           cached_at: new Date().toISOString(),
-        },
-        {
-          relevance_score: 95,
-          access_count: 0,
+          metadata: {
+            relevance_score: 95,
+            access_count: 0,
+          },
         },
         ttlMinutes * 60
       );
@@ -650,10 +649,7 @@ export class ScoutMemoryService {
   static async getCacheStats(userId: string): Promise<Record<string, any>> {
     try {
       const memories = await db.query.scoutMemory.findMany({
-        where: and(
-          eq(scoutMemory.userId, userId),
-          sql`${scoutMemory.key} LIKE 'response_cache_%'`
-        ),
+        where: and(eq(scoutMemory.userId, userId), sql`${scoutMemory.key} LIKE 'response_cache_%'`),
       });
 
       const totalCached = memories.length;

@@ -83,6 +83,30 @@ type HomeScoutStatsRow = {
   county_count: number;
   last_seen_at: string | Date | null;
 };
+type ScoutIntelligenceRow = {
+  finding_key: string;
+  mission_id: string;
+  priority: string;
+  headline: string;
+  narrative: string;
+  evidence: unknown;
+  freshness_minutes: number | null;
+  truth_status: string | null;
+  scope_type: string | null;
+  scope_ref: string | null;
+  county_fips: string | null;
+  state_code: string | null;
+  trade: string | null;
+  generated_at: string | Date | null;
+  expires_at: string | Date | null;
+};
+
+function coerceTruthStatus(value: unknown): LisaTruthStatus {
+  if (value === "stale" || value === "superseded" || value === "suppressed") {
+    return value;
+  }
+  return "current";
+}
 
 const LISA_TRUTH_NOW_MAX_AGE_MINUTES = Math.max(
   30,
@@ -99,6 +123,7 @@ const LISA_SOURCE_MAX_AGE_MINUTES: Record<LisaFeedSourceKind, number> = {
   observations: Math.max(30, Number(process.env.LISA_MAX_AGE_OBSERVATIONS || 360)),
   bot_visibility: Math.max(30, Number(process.env.LISA_MAX_AGE_BOT_VISIBILITY || 240)),
   bot_crawl_signals: Math.max(30, Number(process.env.LISA_MAX_AGE_BOT_CRAWL || 180)),
+  scout_intelligence: Math.max(30, Number(process.env.LISA_MAX_AGE_SCOUT_INTELLIGENCE || 360)),
 };
 const LISA_DURABILITY_AGE_OVERRIDES = {
   volatile: Math.max(30, Number(process.env.LISA_MAX_AGE_VOLATILE || 180)),
@@ -243,6 +268,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     crawlerCountySignalResult,
     crawlerRouteInsightResult,
     homeScoutResult,
+    scoutIntelligenceResult,
   ] = await Promise.all([
     safeSignalQuery<ScoutDemandRow>({
       label: "scout-demand",
@@ -430,6 +456,40 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
         where e.observed_at >= now() - interval '24 hours'
       `,
     }),
+    safeSignalQuery<ScoutIntelligenceRow>({
+      label: "scout-intelligence",
+      fallbackRows: [],
+      sql: `
+        select
+          finding_key,
+          mission_id,
+          priority,
+          headline,
+          narrative,
+          evidence,
+          freshness_minutes,
+          truth_status,
+          scope_type,
+          scope_ref,
+          county_fips,
+          state_code,
+          trade,
+          generated_at,
+          expires_at
+        from scout_lisa_findings
+        where truth_status = 'current'
+          and (expires_at is null or expires_at > now())
+        order by
+          case priority
+            when 'critical' then 0
+            when 'high' then 1
+            when 'medium' then 2
+            else 3
+          end asc,
+          generated_at desc
+        limit 12
+      `,
+    }),
   ]);
   const botCrawlSignals = await getBotCrawlAggregateSignals();
 
@@ -442,6 +502,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
   const crawlerCountySignals = crawlerCountySignalResult.rows || [];
   const crawlerRouteInsights = crawlerRouteInsightResult.rows || [];
   const homeScoutStats = homeScoutResult.rows?.[0] || {};
+  const scoutIntelligenceRows = scoutIntelligenceResult.rows || [];
   const topBotCrawlSignal = botCrawlSignals[0] || null;
   const topCrawlerRoute = crawlerRouteInsights[0] || null;
   const topBrokenCrawlerRoute =
@@ -471,6 +532,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
   const homeScoutCreated = Number(homeScoutStats.created_count || 0);
   const homeScoutPriceChanged = Number(homeScoutStats.price_changed_count || 0);
   const homeScoutCountyCount = Number(homeScoutStats.county_count || 0);
+  const scoutIntelligenceCount = scoutIntelligenceRows.length;
   const isScoutFresh = isFreshTimestamp(
     demand.last_seen_at,
     resolveMaxAgeMinutesForSignal({
@@ -657,6 +719,40 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     freshnessMinutes: minutesSince(crawlerTelemetryStats.last_seen_at || botUiStats.last_seen_at),
   });
 
+  for (const row of scoutIntelligenceRows) {
+    const evidence = Array.isArray(row.evidence)
+      ? row.evidence
+      : typeof row.evidence === "string"
+        ? [row.evidence]
+        : [];
+    const findingPriority =
+      row.priority === "critical"
+        ? "critical"
+        : row.priority === "high"
+          ? "high"
+          : row.priority === "medium"
+            ? "medium"
+            : "low";
+    const finding: LisaFeedItem = {
+      id: String(row.finding_key),
+      priority: findingPriority,
+      sourceKind: "scout_intelligence",
+      headline: String(row.headline || "Scout 2.0 finding"),
+      narrative: String(row.narrative || ""),
+      evidence: evidence.map((entry) => String(entry)),
+      freshnessMinutes:
+        typeof row.freshness_minutes === "number"
+          ? row.freshness_minutes
+          : minutesSinceTimestamp(row.generated_at),
+      truthStatus: coerceTruthStatus(row.truth_status),
+      scopeType: (row.scope_type as any) || "global",
+      scopeRef: row.scope_ref || null,
+      engineVersion: "scout-v2",
+    };
+
+    feed.push(finding);
+  }
+
   if (topBotCrawlSignal) {
     const countyLabel = topBotCrawlSignal.county
       ? `${topBotCrawlSignal.county}${topBotCrawlSignal.state ? ` County, ${topBotCrawlSignal.state}` : ""}`
@@ -814,6 +910,7 @@ async function buildTradeScoutLocalFeed(): Promise<LisaFeedResponse> {
     `${activeObjectives} active objectives`,
     `${observationCount} canonical observations`,
     `${homeScoutCreated + homeScoutPriceChanged} HomeScout listing events`,
+    `${scoutIntelligenceCount} scout intelligence findings`,
     `${botTotal} bot HTTP responses`,
     topCrawlerRoute
       ? `top route ${String(topCrawlerRoute.path || "/")} (${Number(topCrawlerRoute.request_count || 0)} hits)`

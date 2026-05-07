@@ -1,1 +1,394 @@
-/**\n * Scout LISA Action Hooks\n *\n * Enables LISA to take automated actions based on Scout's intelligence findings.\n *\n * Actions include:\n * - Send notifications to affected users\n * - Update contractor rankings\n * - Trigger alerts\n * - Generate recommendations\n * - Update pricing\n * - Create tasks\n */\n\nimport { EventEmitter } from \"events\";\n\nexport type ActionType =\n  | \"notify-users\"\n  | \"update-ranking\"\n  | \"trigger-alert\"\n  | \"generate-recommendation\"\n  | \"update-pricing\"\n  | \"create-task\"\n  | \"send-email\"\n  | \"create-post\";\n\nexport interface LisaAction {\n  id: string;\n  type: ActionType;\n  trigger: string; // What Scout finding triggered this\n  target: {\n    type: \"user\" | \"group\" | \"contractor\" | \"market\" | \"system\";\n    id?: string;\n    filter?: Record<string, any>;\n  };\n  payload: Record<string, any>;\n  priority: \"critical\" | \"high\" | \"normal\" | \"low\";\n  executed: boolean;\n  executedAt?: Date;\n  result?: Record<string, any>;\n}\n\nclass ScoutLisaActionHooks extends EventEmitter {\n  private actions: Map<string, LisaAction> = new Map();\n  private actionHistory: LisaAction[] = [];\n  private actionRules: ActionRule[] = [];\n\n  constructor() {\n    super();\n    this.initializeDefaultRules();\n  }\n\n  /**\n   * Initialize default action rules\n   */\n  private initializeDefaultRules(): void {\n    // Rule: Critical code change → notify affected contractors\n    this.addActionRule({\n      id: \"rule-critical-code\",\n      name: \"Critical Code Change Notification\",\n      trigger: \"code-change\",\n      condition: (finding) => finding.severity === \"critical\",\n      action: (finding) => ({\n        type: \"notify-users\" as ActionType,\n        target: {\n          type: \"group\",\n          filter: {\n            trade: finding.metadata.trade,\n            jurisdiction: finding.metadata.jurisdiction,\n          },\n        },\n        payload: {\n          subject: `Critical Code Update: ${finding.title}`,\n          message: finding.description,\n          actionUrl: `/scout/codes/${finding.metadata.jurisdiction}`,\n        },\n        priority: \"critical\",\n      }),\n    });\n\n    // Rule: Price spike → alert contractors\n    this.addActionRule({\n      id: \"rule-price-spike\",\n      name: \"Material Price Spike Alert\",\n      trigger: \"price-change\",\n      condition: (finding) => finding.metadata.percentChange > 10,\n      action: (finding) => ({\n        type: \"trigger-alert\" as ActionType,\n        target: {\n          type: \"group\",\n          filter: { trade: finding.metadata.trade },\n        },\n        payload: {\n          alertType: \"price-spike\",\n          material: finding.metadata.material,\n          percentChange: finding.metadata.percentChange,\n          newPrice: finding.metadata.newPrice,\n          recommendation: \"Consider bulk purchasing or alternative materials\",\n        },\n        priority: \"high\",\n      }),\n    });\n\n    // Rule: New contractor available → update rankings\n    this.addActionRule({\n      id: \"rule-new-contractor\",\n      name: \"New Contractor Availability\",\n      trigger: \"contractor-available\",\n      condition: () => true,\n      action: (finding) => ({\n        type: \"update-ranking\" as ActionType,\n        target: {\n          type: \"contractor\",\n          id: finding.metadata.contractorId,\n        },\n        payload: {\n          availabilityStatus: \"available\",\n          updateRankings: true,\n          notifyMatches: true,\n        },\n        priority: \"normal\",\n      }),\n    });\n\n    // Rule: Market signal detected → generate recommendations\n    this.addActionRule({\n      id: \"rule-market-signal\",\n      name: \"Market Signal Recommendations\",\n      trigger: \"market-signal\",\n      condition: (finding) => finding.confidence === \"high\",\n      action: (finding) => ({\n        type: \"generate-recommendation\" as ActionType,\n        target: {\n          type: \"user\",\n          filter: { interestedInMarketSignals: true },\n        },\n        payload: {\n          signal: finding.content,\n          confidence: finding.confidence,\n          recommendation: finding.metadata.recommendation,\n          actionItems: finding.metadata.actionItems,\n        },\n        priority: \"high\",\n      }),\n    });\n  }\n\n  /**\n   * Add an action rule\n   */\n  addActionRule(rule: ActionRule): void {\n    this.actionRules.push(rule);\n    console.log(`[LISA Hooks] Added action rule: ${rule.name}`);\n  }\n\n  /**\n   * Process a Scout finding and generate actions\n   */\n  async processScoutFinding(finding: any): Promise<LisaAction[]> {\n    const actions: LisaAction[] = [];\n\n    // Find matching rules\n    const matchingRules = this.actionRules.filter(\n      (rule) => rule.trigger === finding.type && rule.condition(finding)\n    );\n\n    // Generate actions from matching rules\n    for (const rule of matchingRules) {\n      const actionPayload = rule.action(finding);\n      const action: LisaAction = {\n        id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,\n        ...actionPayload,\n        trigger: finding.id,\n        executed: false,\n      };\n\n      this.actions.set(action.id, action);\n      actions.push(action);\n\n      console.log(`[LISA Hooks] Generated action: ${action.type} (${action.id})`);\n\n      // Execute action\n      await this.executeAction(action);\n    }\n\n    return actions;\n  }\n\n  /**\n   * Execute an action\n   */\n  async executeAction(action: LisaAction): Promise<void> {\n    try {\n      console.log(`[LISA Hooks] Executing action: ${action.type}`);\n\n      switch (action.type) {\n        case \"notify-users\":\n          await this.notifyUsers(action);\n          break;\n        case \"update-ranking\":\n          await this.updateRanking(action);\n          break;\n        case \"trigger-alert\":\n          await this.triggerAlert(action);\n          break;\n        case \"generate-recommendation\":\n          await this.generateRecommendation(action);\n          break;\n        case \"update-pricing\":\n          await this.updatePricing(action);\n          break;\n        case \"create-task\":\n          await this.createTask(action);\n          break;\n        case \"send-email\":\n          await this.sendEmail(action);\n          break;\n        case \"create-post\":\n          await this.createPost(action);\n          break;\n      }\n\n      // Mark as executed\n      action.executed = true;\n      action.executedAt = new Date();\n      action.result = { status: \"success\" };\n\n      console.log(`[LISA Hooks] Action executed successfully: ${action.id}`);\n      this.emit(\"action-executed\", action);\n    } catch (error) {\n      console.error(`[LISA Hooks] Action failed: ${action.id}`, error);\n      action.result = { status: \"failed\", error: String(error) };\n      this.emit(\"action-failed\", { action, error });\n    }\n\n    // Add to history\n    this.actionHistory.push(action);\n    if (this.actionHistory.length > 10000) {\n      this.actionHistory.shift();\n    }\n  }\n\n  /**\n   * Notify users\n   */\n  private async notifyUsers(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Notifying users:`, action.target);\n    // In production, send notifications via email, SMS, push, etc.\n    this.emit(\"notification\", {\n      type: \"user-notification\",\n      target: action.target,\n      payload: action.payload,\n    });\n  }\n\n  /**\n   * Update contractor ranking\n   */\n  private async updateRanking(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Updating ranking for contractor:`, action.target.id);\n    this.emit(\"ranking-update\", {\n      contractorId: action.target.id,\n      payload: action.payload,\n    });\n  }\n\n  /**\n   * Trigger alert\n   */\n  private async triggerAlert(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Triggering alert:`, action.payload.alertType);\n    this.emit(\"alert\", {\n      type: action.payload.alertType,\n      target: action.target,\n      payload: action.payload,\n    });\n  }\n\n  /**\n   * Generate recommendation\n   */\n  private async generateRecommendation(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Generating recommendation`);\n    this.emit(\"recommendation\", {\n      target: action.target,\n      payload: action.payload,\n    });\n  }\n\n  /**\n   * Update pricing\n   */\n  private async updatePricing(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Updating pricing`);\n    this.emit(\"pricing-update\", action.payload);\n  }\n\n  /**\n   * Create task\n   */\n  private async createTask(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Creating task`);\n    this.emit(\"task-create\", action.payload);\n  }\n\n  /**\n   * Send email\n   */\n  private async sendEmail(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Sending email`);\n    this.emit(\"email\", action.payload);\n  }\n\n  /**\n   * Create post\n   */\n  private async createPost(action: LisaAction): Promise<void> {\n    console.log(`[LISA Hooks] Creating post`);\n    this.emit(\"post-create\", action.payload);\n  }\n\n  /**\n   * Get action history\n   */\n  getHistory(limit: number = 100): LisaAction[] {\n    return this.actionHistory.slice(-limit);\n  }\n\n  /**\n   * Get pending actions\n   */\n  getPendingActions(): LisaAction[] {\n    return Array.from(this.actions.values()).filter((a) => !a.executed);\n  }\n\n  /**\n   * Get action statistics\n   */\n  getStats() {\n    return {\n      totalActions: this.actionHistory.length,\n      pendingActions: this.getPendingActions().length,\n      actionsByType: this.groupBy(this.actionHistory, (a) => a.type),\n      actionsByPriority: this.groupBy(this.actionHistory, (a) => a.priority),\n      successRate:\n        this.actionHistory.length > 0\n          ? (\n              (this.actionHistory.filter((a) => a.result?.status === \"success\").length /\n                this.actionHistory.length) *\n              100\n            ).toFixed(2) + \"%\"\n          : \"N/A\",\n    };\n  }\n\n  /**\n   * Helper: group array by key\n   */\n  private groupBy<T>(arr: T[], keyFn: (item: T) => string): Record<string, number> {\n    return arr.reduce(\n      (acc, item) => {\n        const key = keyFn(item);\n        acc[key] = (acc[key] || 0) + 1;\n        return acc;\n      },\n      {} as Record<string, number>\n    );\n  }\n}\n\ninterface ActionRule {\n  id: string;\n  name: string;\n  trigger: string;\n  condition: (finding: any) => boolean;\n  action: (finding: any) => Omit<LisaAction, \"id\" | \"trigger\" | \"executed\">;\n}\n\n// Singleton instance\nexport const scoutLisaActionHooks = new ScoutLisaActionHooks();\n\n/**\n * Hook Scout learning pipeline to LISA actions\n */\nexport function setupScoutLisaActionHooks(scoutLearningPipeline: any): void {\n  scoutLearningPipeline.on(\"intelligence-indexed\", async (event: any) => {\n    // When Scout indexes new intelligence, process it for actions\n    for (const finding of event.intelligence) {\n      await scoutLisaActionHooks.processScoutFinding(finding);\n    }\n  });\n\n  console.log(\"[LISA Hooks] Scout-LISA action hooks initialized\");\n}\n
+/**
+ * Scout LISA Action Hooks
+ *
+ * Enables LISA to take automated actions based on Scout's intelligence findings.
+ *
+ * Actions include:
+ * - Send notifications to affected users
+ * - Update contractor rankings
+ * - Trigger alerts
+ * - Generate recommendations
+ * - Update pricing
+ * - Create tasks
+ */
+
+import { EventEmitter } from "events";
+
+export type ActionType =
+  | "notify-users"
+  | "update-ranking"
+  | "trigger-alert"
+  | "generate-recommendation"
+  | "update-pricing"
+  | "create-task"
+  | "send-email"
+  | "create-post";
+
+export interface LisaAction {
+  id: string;
+  type: ActionType;
+  trigger: string; // What Scout finding triggered this
+  target: {
+    type: "user" | "group" | "contractor" | "market" | "system";
+    id?: string;
+    filter?: Record<string, any>;
+  };
+  payload: Record<string, any>;
+  priority: "critical" | "high" | "normal" | "low";
+  executed: boolean;
+  executedAt?: Date;
+  result?: Record<string, any>;
+}
+
+class ScoutLisaActionHooks extends EventEmitter {
+  private actions: Map<string, LisaAction> = new Map();
+  private actionHistory: LisaAction[] = [];
+  private actionRules: ActionRule[] = [];
+
+  constructor() {
+    super();
+    this.initializeDefaultRules();
+  }
+
+  /**
+   * Initialize default action rules
+   */
+  private initializeDefaultRules(): void {
+    // Rule: Critical code change → notify affected contractors
+    this.addActionRule({
+      id: "rule-critical-code",
+      name: "Critical Code Change Notification",
+      trigger: "code-change",
+      condition: (finding) => finding.severity === "critical",
+      action: (finding) => ({
+        type: "notify-users" as ActionType,
+        target: {
+          type: "group",
+          filter: {
+            trade: finding.metadata.trade,
+            jurisdiction: finding.metadata.jurisdiction,
+          },
+        },
+        payload: {
+          subject: `Critical Code Update: ${finding.title}`,
+          message: finding.description,
+          actionUrl: `/scout/codes/${finding.metadata.jurisdiction}`,
+        },
+        priority: "critical",
+      }),
+    });
+
+    // Rule: Price spike → alert contractors
+    this.addActionRule({
+      id: "rule-price-spike",
+      name: "Material Price Spike Alert",
+      trigger: "price-change",
+      condition: (finding) => finding.metadata.percentChange > 10,
+      action: (finding) => ({
+        type: "trigger-alert" as ActionType,
+        target: {
+          type: "group",
+          filter: { trade: finding.metadata.trade },
+        },
+        payload: {
+          alertType: "price-spike",
+          material: finding.metadata.material,
+          percentChange: finding.metadata.percentChange,
+          newPrice: finding.metadata.newPrice,
+          recommendation: "Consider bulk purchasing or alternative materials",
+        },
+        priority: "high",
+      }),
+    });
+
+    // Rule: New contractor available → update rankings
+    this.addActionRule({
+      id: "rule-new-contractor",
+      name: "New Contractor Availability",
+      trigger: "contractor-available",
+      condition: () => true,
+      action: (finding) => ({
+        type: "update-ranking" as ActionType,
+        target: {
+          type: "contractor",
+          id: finding.metadata.contractorId,
+        },
+        payload: {
+          availabilityStatus: "available",
+          updateRankings: true,
+          notifyMatches: true,
+        },
+        priority: "normal",
+      }),
+    });
+
+    // Rule: Market signal detected → generate recommendations
+    this.addActionRule({
+      id: "rule-market-signal",
+      name: "Market Signal Recommendations",
+      trigger: "market-signal",
+      condition: (finding) => finding.confidence === "high",
+      action: (finding) => ({
+        type: "generate-recommendation" as ActionType,
+        target: {
+          type: "user",
+          filter: { interestedInMarketSignals: true },
+        },
+        payload: {
+          signal: finding.content,
+          confidence: finding.confidence,
+          recommendation: finding.metadata.recommendation,
+          actionItems: finding.metadata.actionItems,
+        },
+        priority: "high",
+      }),
+    });
+  }
+
+  /**
+   * Add an action rule
+   */
+  addActionRule(rule: ActionRule): void {
+    this.actionRules.push(rule);
+    console.log(`[LISA Hooks] Added action rule: ${rule.name}`);
+  }
+
+  /**
+   * Process a Scout finding and generate actions
+   */
+  async processScoutFinding(finding: any): Promise<LisaAction[]> {
+    const actions: LisaAction[] = [];
+
+    // Find matching rules
+    const matchingRules = this.actionRules.filter(
+      (rule) => rule.trigger === finding.type && rule.condition(finding)
+    );
+
+    // Generate actions from matching rules
+    for (const rule of matchingRules) {
+      const actionPayload = rule.action(finding);
+      const action: LisaAction = {
+        id: `action-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        ...actionPayload,
+        trigger: finding.id,
+        executed: false,
+      };
+
+      this.actions.set(action.id, action);
+      actions.push(action);
+
+      console.log(`[LISA Hooks] Generated action: ${action.type} (${action.id})`);
+
+      // Execute action
+      await this.executeAction(action);
+    }
+
+    return actions;
+  }
+
+  /**
+   * Execute an action
+   */
+  async executeAction(action: LisaAction): Promise<void> {
+    try {
+      console.log(`[LISA Hooks] Executing action: ${action.type}`);
+
+      switch (action.type) {
+        case "notify-users":
+          await this.notifyUsers(action);
+          break;
+        case "update-ranking":
+          await this.updateRanking(action);
+          break;
+        case "trigger-alert":
+          await this.triggerAlert(action);
+          break;
+        case "generate-recommendation":
+          await this.generateRecommendation(action);
+          break;
+        case "update-pricing":
+          await this.updatePricing(action);
+          break;
+        case "create-task":
+          await this.createTask(action);
+          break;
+        case "send-email":
+          await this.sendEmail(action);
+          break;
+        case "create-post":
+          await this.createPost(action);
+          break;
+      }
+
+      // Mark as executed
+      action.executed = true;
+      action.executedAt = new Date();
+      action.result = { status: "success" };
+
+      console.log(`[LISA Hooks] Action executed successfully: ${action.id}`);
+      this.emit("action-executed", action);
+    } catch (error) {
+      console.error(`[LISA Hooks] Action failed: ${action.id}`, error);
+      action.result = { status: "failed", error: String(error) };
+      this.emit("action-failed", { action, error });
+    }
+
+    // Add to history
+    this.actionHistory.push(action);
+    if (this.actionHistory.length > 10000) {
+      this.actionHistory.shift();
+    }
+  }
+
+  /**
+   * Notify users
+   */
+  private async notifyUsers(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Notifying users:`, action.target);
+    // In production, send notifications via email, SMS, push, etc.
+    this.emit("notification", {
+      type: "user-notification",
+      target: action.target,
+      payload: action.payload,
+    });
+  }
+
+  /**
+   * Update contractor ranking
+   */
+  private async updateRanking(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Updating ranking for contractor:`, action.target.id);
+    this.emit("ranking-update", {
+      contractorId: action.target.id,
+      payload: action.payload,
+    });
+  }
+
+  /**
+   * Trigger alert
+   */
+  private async triggerAlert(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Triggering alert:`, action.payload.alertType);
+    this.emit("alert", {
+      type: action.payload.alertType,
+      target: action.target,
+      payload: action.payload,
+    });
+  }
+
+  /**
+   * Generate recommendation
+   */
+  private async generateRecommendation(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Generating recommendation`);
+    this.emit("recommendation", {
+      target: action.target,
+      payload: action.payload,
+    });
+  }
+
+  /**
+   * Update pricing
+   */
+  private async updatePricing(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Updating pricing`);
+    this.emit("pricing-update", action.payload);
+  }
+
+  /**
+   * Create task
+   */
+  private async createTask(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Creating task`);
+    this.emit("task-create", action.payload);
+  }
+
+  /**
+   * Send email
+   */
+  private async sendEmail(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Sending email`);
+    this.emit("email", action.payload);
+  }
+
+  /**
+   * Create post
+   */
+  private async createPost(action: LisaAction): Promise<void> {
+    console.log(`[LISA Hooks] Creating post`);
+    this.emit("post-create", action.payload);
+  }
+
+  /**
+   * Get action history
+   */
+  getHistory(limit: number = 100): LisaAction[] {
+    return this.actionHistory.slice(-limit);
+  }
+
+  /**
+   * Get pending actions
+   */
+  getPendingActions(): LisaAction[] {
+    return Array.from(this.actions.values()).filter((a) => !a.executed);
+  }
+
+  /**
+   * Get action statistics
+   */
+  getStats() {
+    return {
+      totalActions: this.actionHistory.length,
+      pendingActions: this.getPendingActions().length,
+      actionsByType: this.groupBy(this.actionHistory, (a) => a.type),
+      actionsByPriority: this.groupBy(this.actionHistory, (a) => a.priority),
+      successRate:
+        this.actionHistory.length > 0
+          ? (
+              (this.actionHistory.filter((a) => a.result?.status === "success").length /
+                this.actionHistory.length) *
+              100
+            ).toFixed(2) + "%"
+          : "N/A",
+    };
+  }
+
+  /**
+   * Helper: group array by key
+   */
+  private groupBy<T>(arr: T[], keyFn: (item: T) => string): Record<string, number> {
+    return arr.reduce(
+      (acc, item) => {
+        const key = keyFn(item);
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+  }
+}
+
+interface ActionRule {
+  id: string;
+  name: string;
+  trigger: string;
+  condition: (finding: any) => boolean;
+  action: (finding: any) => Omit<LisaAction, "id" | "trigger" | "executed">;
+}
+
+// Singleton instance
+export const scoutLisaActionHooks = new ScoutLisaActionHooks();
+
+/**
+ * Hook Scout learning pipeline to LISA actions
+ */
+export function setupScoutLisaActionHooks(scoutLearningPipeline: any): void {
+  scoutLearningPipeline.on("intelligence-indexed", async (event: any) => {
+    // When Scout indexes new intelligence, process it for actions
+    for (const finding of event.intelligence) {
+      await scoutLisaActionHooks.processScoutFinding(finding);
+    }
+  });
+
+  console.log("[LISA Hooks] Scout-LISA action hooks initialized");
+}

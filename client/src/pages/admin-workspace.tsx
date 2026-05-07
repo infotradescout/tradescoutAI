@@ -323,7 +323,7 @@ export default function AdminWorkspace() {
 
           <Card
             className="bg-tsCard border-white/10 hover:bg-tsCard transition-colors cursor-pointer"
-            onClick={() => setLocation("/content-moderation")}
+            onClick={() => setLocation("/admin/moderation")}
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -746,7 +746,7 @@ export default function AdminWorkspace() {
                     <Button
                       variant="outline"
                       className="border-white/15 text-white/70 hover:bg-white/10"
-                      onClick={() => setLocation("/staff/hardrock-directory")}
+                      onClick={() => setLocation("/admin/commercial-directory")}
                     >
                       Open
                     </Button>
@@ -771,7 +771,7 @@ export default function AdminWorkspace() {
                   <Button
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
-                    onClick={() => setLocation("/platform-analytics")}
+                    onClick={() => setLocation("/admin/platform-analytics")}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Open Platform Analytics

@@ -12,7 +12,7 @@ const ContractorDashboard = lazy(() => import("@/pages/contractor-dashboard"));
 const RealtorDashboard = lazy(() => import("@/pages/realtor-dashboard"));
 const HOADashboard = lazy(() => import("@/pages/hoa-dashboard"));
 const BusinessOwnerDashboard = lazy(() => import("@/pages/business-owner-dashboard"));
-const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
+const AdminShell = lazy(() => import("@/pages/admin"));
 const StaffDashboard = lazy(() => import("@/pages/staff-dashboard"));
 const HelperDashboard = lazy(() => import("@/pages/helper-dashboard"));
 
@@ -113,9 +113,9 @@ const RoleDashboardRouter = memo(function RoleDashboardRouter() {
   // Role-based dashboards (insurance/mortgage/property/dealer, etc.) are deprecated
   // and no longer routed here.
   const getDashboardComponent = () => {
-    // Legacy admin roles still get their specific dashboards
+    // Admin-tier roles open the canonical Admin OS shell.
     if (isSuperAdminLike(user.role)) {
-      return AdminDashboard;
+      return AdminShell;
     }
 
     if (user.role === "ops_admin" || user.role === "territory_manager") {

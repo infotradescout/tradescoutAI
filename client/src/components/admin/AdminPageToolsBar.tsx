@@ -5,7 +5,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { getAdminNavSectionsForRole, type AdminRole } from "@/admin/adminTools";
+import {
+  getAdminNavSectionsForRole,
+  getAdminToolDescription,
+  type AdminRole,
+} from "@/admin/adminTools";
 import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 
 export interface AdminToolLink {
@@ -22,7 +26,7 @@ export function buildPageTools(path: string): AdminToolLink[] {
     tools.push({
       id: "content-moderation",
       label: "Moderate Community",
-      href: "/content-moderation",
+      href: "/admin/moderation",
       description: "Review posts, reports, and flags for this area",
     });
   }
@@ -30,9 +34,9 @@ export function buildPageTools(path: string): AdminToolLink[] {
   if (path.startsWith("/contractors")) {
     tools.push(
       {
-        id: "contractor-verification",
+        id: "professional-verification",
         label: "Verify Contractors",
-        href: "/contractor-verification",
+        href: "/admin/professional-verification",
         description: "Review license & insurance for active pros",
       },
       {
@@ -86,6 +90,7 @@ export function buildAdminTools(
     id: t.id,
     label: t.label,
     href: t.path,
+    description: getAdminToolDescription(t),
   }));
 
   const pageTools = buildPageTools(path);

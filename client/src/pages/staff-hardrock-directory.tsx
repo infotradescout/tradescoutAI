@@ -118,7 +118,7 @@ export default function StaffHardrockDirectory() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => setLocation("/staff/share-links")}>
+            <Button variant="outline" onClick={() => setLocation("/admin/share-links")}>
               Share Links Library
             </Button>
             <div className="w-56">

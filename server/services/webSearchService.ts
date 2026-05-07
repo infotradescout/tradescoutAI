@@ -28,10 +28,8 @@ async function webSearchWithOpenAI(query: string, nResults = 5): Promise<WebSear
       input: `Search the web for: "${query}"\n\nProvide ${nResults} relevant findings with sources. Format: 1. [Finding] (Source: URL)`,
       tools: [
         {
-          type: "web_search",
-          web_search: {
-            max_results: nResults,
-          },
+          type: "web_search_preview",
+          search_context_size: nResults <= 3 ? "low" : nResults <= 6 ? "medium" : "high",
         },
       ],
     });

@@ -15,7 +15,7 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
 
   const explicitNavVerbs = /(open|go to|take me to|navigate|show me|bring me to)/i;
   const explicitNavTargets: Array<{ route: string; label: string; pattern: RegExp }> = [
-    { route: "/support-tickets", label: "Open Support Tickets", pattern: /support tickets?/i },
+    { route: "/help", label: "Open Help Center", pattern: /support tickets?/i },
     { route: "/help", label: "Open Help", pattern: /help( center)?/i },
     { route: "/exchange", label: "Open Exchange", pattern: /exchange|marketplace/i },
     { route: "/community", label: "Open Community", pattern: /community/i },

@@ -1,1 +1,258 @@
-/**\n * Scout Heatmap Routes\n *\n * Handles all backend operations for the Visual Scouting Command Center:\n * - File assignment to counties\n * - Regional intelligence retrieval\n * - Unassigned file tracking\n * - County data organization\n */\n\nimport { Router, Request, Response } from \"express\";\nimport { scoutHeatmapIntelligence } from \"../services/scoutHeatmapIntelligence\";\nimport { scoutVisualFileSorting } from \"../services/scoutVisualFileSorting\";\nimport { scoutLisaIntegration } from \"../services/scoutLisaIntegration\";\nimport { requireAuth, requireAdmin } from \"../middleware/auth\";\n\nconst router = Router();\n\n/**\n * GET /api/scout/unassigned-files\n * Get all unassigned files for the data tray\n */\nrouter.get(\"/unassigned-files\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const files = scoutVisualFileSorting.getUnassignedFiles();\n    res.json(files);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error fetching unassigned files:\", error);\n    res.status(500).json({ error: \"Failed to fetch unassigned files\" });\n  }\n});\n\n/**\n * GET /api/heatmap/county/:fips\n * Get intelligence data for a specific county\n */\nrouter.get(\"/county/:fips\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { fips } = req.params;\n    const intelligence = await scoutHeatmapIntelligence.getCountyIntelligence(fips);\n    if (!intelligence) {\n      return res.status(404).json({ error: \"County not found\" });\n    }\n    res.json(intelligence);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error fetching county intelligence:\", error);\n    res.status(500).json({ error: \"Failed to fetch county intelligence\" });\n  }\n});\n\n/**\n * GET /api/heatmap/counties\n * Get intelligence for multiple counties\n */\nrouter.get(\"/counties\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { counties } = req.query;\n    const countyList = typeof counties === \"string\" ? counties.split(\",\") : [];\n    const intelligence = await scoutHeatmapIntelligence.getMultiCountyIntelligence({\n      counties: countyList,\n    });\n    res.json(intelligence);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error fetching multi-county intelligence:\", error);\n    res.status(500).json({ error: \"Failed to fetch county intelligence\" });\n  }\n});\n\n/**\n * POST /api/scout/assign-file\n * Assign a file to a county\n */\nrouter.post(\"/assign-file\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { fileId, fips } = req.body;\n    const userId = (req as any).user?.id;\n\n    if (!fileId || !fips) {\n      return res.status(400).json({ error: \"Missing fileId or fips\" });\n    }\n\n    const assignment = await scoutVisualFileSorting.assignFileToCounty(\n      fileId,\n      fips,\n      userId,\n      undefined\n    );\n\n    // Trigger LISA to update rankings/recommendations for this county\n    await scoutLisaIntegration.triggerCountyUpdate(fips, \"file_assigned\");\n\n    res.json(assignment);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error assigning file:\", error);\n    res.status(500).json({ error: \"Failed to assign file\" });\n  }\n});\n\n/**\n * POST /api/scout/batch-assign-files\n * Batch assign multiple files to a county\n */\nrouter.post(\"/batch-assign-files\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { fileIds, fips } = req.body;\n    const userId = (req as any).user?.id;\n\n    if (!fileIds || !Array.isArray(fileIds) || !fips) {\n      return res.status(400).json({ error: \"Missing fileIds array or fips\" });\n    }\n\n    const batch = await scoutVisualFileSorting.batchAssignFiles(fileIds, fips, userId);\n\n    // Trigger LISA update\n    await scoutLisaIntegration.triggerCountyUpdate(fips, \"batch_files_assigned\");\n\n    res.json(batch);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error batch assigning files:\", error);\n    res.status(500).json({ error: \"Failed to batch assign files\" });\n  }\n});\n\n/**\n * GET /api/scout/county/:fips/files\n * Get files for a specific county\n */\nrouter.get(\"/county/:fips/files\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { fips } = req.params;\n    const { type, sortBy, limit } = req.query;\n\n    const files = await scoutVisualFileSorting.getCountyFiles(fips);\n    if (!files) {\n      return res.status(404).json({ error: \"County not found\" });\n    }\n\n    res.json(files);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error fetching county files:\", error);\n    res.status(500).json({ error: \"Failed to fetch county files\" });\n  }\n});\n\n/**\n * POST /api/scout/move-file\n * Move a file between counties\n */\nrouter.post(\"/move-file\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { fileId, fromFips, toFips } = req.body;\n    const userId = (req as any).user?.id;\n\n    if (!fileId || !fromFips || !toFips) {\n      return res.status(400).json({ error: \"Missing required parameters\" });\n    }\n\n    const assignment = await scoutVisualFileSorting.moveFileBetweenCounties(\n      fileId,\n      fromFips,\n      toFips,\n      userId\n    );\n\n    // Trigger LISA updates for both counties\n    await Promise.all([\n      scoutLisaIntegration.triggerCountyUpdate(fromFips, \"file_moved_out\"),\n      scoutLisaIntegration.triggerCountyUpdate(toFips, \"file_moved_in\"),\n    ]);\n\n    res.json(assignment);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error moving file:\", error);\n    res.status(500).json({ error: \"Failed to move file\" });\n  }\n});\n\n/**\n * GET /api/scout/county/:fips/compare/:otherFips\n * Compare two counties\n */\nrouter.get(\"/county/:fips/compare/:otherFips\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { fips, otherFips } = req.params;\n    const comparison = await scoutHeatmapIntelligence.compareCounties(fips, otherFips);\n    if (!comparison) {\n      return res.status(404).json({ error: \"One or both counties not found\" });\n    }\n    res.json(comparison);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error comparing counties:\", error);\n    res.status(500).json({ error: \"Failed to compare counties\" });\n  }\n});\n\n/**\n * GET /api/scout/assignment-history\n * Get assignment history (admin only)\n */\nrouter.get(\"/assignment-history\", requireAuth, requireAdmin, async (req: Request, res: Response) => {\n  try {\n    const { limit, fips } = req.query;\n    const history = scoutVisualFileSorting.getAssignmentHistory(\n      parseInt(String(limit)) || 100,\n      String(fips) || undefined\n    );\n    res.json(history);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error fetching assignment history:\", error);\n    res.status(500).json({ error: \"Failed to fetch assignment history\" });\n  }\n});\n\n/**\n * GET /api/scout/statistics\n * Get visual sorting statistics (admin only)\n */\nrouter.get(\"/statistics\", requireAuth, requireAdmin, async (req: Request, res: Response) => {\n  try {\n    const stats = scoutVisualFileSorting.getStatistics();\n    res.json(stats);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error fetching statistics:\", error);\n    res.status(500).json({ error: \"Failed to fetch statistics\" });\n  }\n});\n\n/**\n * POST /api/scout/trigger-mission\n * Trigger a scouting mission for a county\n */\nrouter.post(\"/trigger-mission\", requireAuth, async (req: Request, res: Response) => {\n  try {\n    const { fips, missionType } = req.body;\n    const userId = (req as any).user?.id;\n\n    if (!fips || !missionType) {\n      return res.status(400).json({ error: \"Missing fips or missionType\" });\n    }\n\n    const mission = await scoutHeatmapIntelligence.triggerCountyScouting(fips, missionType);\n\n    // Trigger LISA to monitor mission progress\n    await scoutLisaIntegration.monitorMission(mission.missionId, fips);\n\n    res.json(mission);\n  } catch (error) {\n    console.error(\"[Heatmap Route] Error triggering mission:\", error);\n    res.status(500).json({ error: \"Failed to trigger mission\" });\n  }\n});\n\nexport const scoutHeatmapRoutes = router;\n
+/**
+ * Scout Heatmap Routes
+ *
+ * Handles all backend operations for the Visual Scouting Command Center:
+ * - File assignment to counties
+ * - Regional intelligence retrieval
+ * - Unassigned file tracking
+ * - County data organization
+ */
+
+import { Router, Request, Response } from "express";
+import { scoutHeatmapIntelligence } from "../services/scoutHeatmapIntelligence";
+import { scoutVisualFileSorting } from "../services/scoutVisualFileSorting";
+import { scoutLisaIntegration } from "../services/scoutLisaIntegration";
+import { requireAuth, requireAdmin } from "../auth";
+
+const router = Router();
+
+/**
+ * GET /api/scout/unassigned-files
+ * Get all unassigned files for the data tray
+ */
+router.get("/unassigned-files", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const files = scoutVisualFileSorting.getUnassignedFiles();
+    res.json(files);
+  } catch (error) {
+    console.error("[Heatmap Route] Error fetching unassigned files:", error);
+    res.status(500).json({ error: "Failed to fetch unassigned files" });
+  }
+});
+
+/**
+ * GET /api/heatmap/county/:fips
+ * Get intelligence data for a specific county
+ */
+router.get("/county/:fips", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { fips } = req.params;
+    const intelligence = await scoutHeatmapIntelligence.getCountyIntelligence(fips);
+    if (!intelligence) {
+      return res.status(404).json({ error: "County not found" });
+    }
+    res.json(intelligence);
+  } catch (error) {
+    console.error("[Heatmap Route] Error fetching county intelligence:", error);
+    res.status(500).json({ error: "Failed to fetch county intelligence" });
+  }
+});
+
+/**
+ * GET /api/heatmap/counties
+ * Get intelligence for multiple counties
+ */
+router.get("/counties", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { counties } = req.query;
+    const countyList = typeof counties === "string" ? counties.split(",") : [];
+    const intelligence = await scoutHeatmapIntelligence.getMultiCountyIntelligence({
+      counties: countyList,
+    });
+    res.json(intelligence);
+  } catch (error) {
+    console.error("[Heatmap Route] Error fetching multi-county intelligence:", error);
+    res.status(500).json({ error: "Failed to fetch county intelligence" });
+  }
+});
+
+/**
+ * POST /api/scout/assign-file
+ * Assign a file to a county
+ */
+router.post("/assign-file", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { fileId, fips } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!fileId || !fips) {
+      return res.status(400).json({ error: "Missing fileId or fips" });
+    }
+
+    const assignment = await scoutVisualFileSorting.assignFileToCounty(
+      fileId,
+      fips,
+      userId,
+      undefined
+    );
+
+    // Trigger LISA to update rankings/recommendations for this county
+    await scoutLisaIntegration.triggerCountyUpdate(fips, "file_assigned");
+
+    res.json(assignment);
+  } catch (error) {
+    console.error("[Heatmap Route] Error assigning file:", error);
+    res.status(500).json({ error: "Failed to assign file" });
+  }
+});
+
+/**
+ * POST /api/scout/batch-assign-files
+ * Batch assign multiple files to a county
+ */
+router.post("/batch-assign-files", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { fileIds, fips } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!fileIds || !Array.isArray(fileIds) || !fips) {
+      return res.status(400).json({ error: "Missing fileIds array or fips" });
+    }
+
+    const batch = await scoutVisualFileSorting.batchAssignFiles(fileIds, fips, userId);
+
+    // Trigger LISA update
+    await scoutLisaIntegration.triggerCountyUpdate(fips, "batch_files_assigned");
+
+    res.json(batch);
+  } catch (error) {
+    console.error("[Heatmap Route] Error batch assigning files:", error);
+    res.status(500).json({ error: "Failed to batch assign files" });
+  }
+});
+
+/**
+ * GET /api/scout/county/:fips/files
+ * Get files for a specific county
+ */
+router.get("/county/:fips/files", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { fips } = req.params;
+    const { type, sortBy, limit } = req.query;
+
+    const files = await scoutVisualFileSorting.getCountyFiles(fips);
+    if (!files) {
+      return res.status(404).json({ error: "County not found" });
+    }
+
+    res.json(files);
+  } catch (error) {
+    console.error("[Heatmap Route] Error fetching county files:", error);
+    res.status(500).json({ error: "Failed to fetch county files" });
+  }
+});
+
+/**
+ * POST /api/scout/move-file
+ * Move a file between counties
+ */
+router.post("/move-file", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { fileId, fromFips, toFips } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!fileId || !fromFips || !toFips) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    const assignment = await scoutVisualFileSorting.moveFileBetweenCounties(
+      fileId,
+      fromFips,
+      toFips,
+      userId
+    );
+
+    // Trigger LISA updates for both counties
+    await Promise.all([
+      scoutLisaIntegration.triggerCountyUpdate(fromFips, "file_moved_out"),
+      scoutLisaIntegration.triggerCountyUpdate(toFips, "file_moved_in"),
+    ]);
+
+    res.json(assignment);
+  } catch (error) {
+    console.error("[Heatmap Route] Error moving file:", error);
+    res.status(500).json({ error: "Failed to move file" });
+  }
+});
+
+/**
+ * GET /api/scout/county/:fips/compare/:otherFips
+ * Compare two counties
+ */
+router.get("/county/:fips/compare/:otherFips", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { fips, otherFips } = req.params;
+    const comparison = await scoutHeatmapIntelligence.compareCounties(fips, otherFips);
+    if (!comparison) {
+      return res.status(404).json({ error: "One or both counties not found" });
+    }
+    res.json(comparison);
+  } catch (error) {
+    console.error("[Heatmap Route] Error comparing counties:", error);
+    res.status(500).json({ error: "Failed to compare counties" });
+  }
+});
+
+/**
+ * GET /api/scout/assignment-history
+ * Get assignment history (admin only)
+ */
+router.get(
+  "/assignment-history",
+  requireAuth,
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const { limit, fips } = req.query;
+      const history = scoutVisualFileSorting.getAssignmentHistory(
+        parseInt(String(limit)) || 100,
+        String(fips) || undefined
+      );
+      res.json(history);
+    } catch (error) {
+      console.error("[Heatmap Route] Error fetching assignment history:", error);
+      res.status(500).json({ error: "Failed to fetch assignment history" });
+    }
+  }
+);
+
+/**
+ * GET /api/scout/statistics
+ * Get visual sorting statistics (admin only)
+ */
+router.get("/statistics", requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const stats = scoutVisualFileSorting.getStatistics();
+    res.json(stats);
+  } catch (error) {
+    console.error("[Heatmap Route] Error fetching statistics:", error);
+    res.status(500).json({ error: "Failed to fetch statistics" });
+  }
+});
+
+/**
+ * POST /api/scout/trigger-mission
+ * Trigger a scouting mission for a county
+ */
+router.post("/trigger-mission", requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { fips, missionType } = req.body;
+    const userId = (req as any).user?.id;
+
+    if (!fips || !missionType) {
+      return res.status(400).json({ error: "Missing fips or missionType" });
+    }
+
+    const mission = await scoutHeatmapIntelligence.triggerCountyScouting(fips, missionType);
+
+    // Trigger LISA to monitor mission progress
+    await scoutLisaIntegration.monitorMission(mission.missionId, fips);
+
+    res.json(mission);
+  } catch (error) {
+    console.error("[Heatmap Route] Error triggering mission:", error);
+    res.status(500).json({ error: "Failed to trigger mission" });
+  }
+});
+
+export const scoutHeatmapRoutes = router;

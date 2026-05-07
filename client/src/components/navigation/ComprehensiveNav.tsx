@@ -327,11 +327,11 @@ const ALL_NAVIGATION: NavItem[] = [
   // MODERATION
   {
     label: "Moderation",
-    href: "/content-moderation",
+    href: "/admin/moderation",
     icon: Shield,
     permission: "canModerateContent",
     children: [
-      { label: "Content Moderation", href: "/content-moderation", icon: Shield },
+      { label: "Content Moderation", href: "/admin/moderation", icon: Shield },
       { label: "Community Moderation", href: "/community-moderation", icon: Users },
       { label: "Reported Content", href: "/moderation/reports", icon: FileCheck },
     ],

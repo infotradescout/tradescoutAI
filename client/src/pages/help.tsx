@@ -234,6 +234,14 @@ export default function Help() {
                   variant="outline"
                   size="sm"
                   className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
+                  onClick={() => navigate("/help/scout")}
+                >
+                  Scout info
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
                   onClick={() =>
                     navigate("/help/how-tradescout-works#connection-without-compromise")
                   }

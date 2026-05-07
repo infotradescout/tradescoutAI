@@ -1,19 +1,25 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Search } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import type { SuperAdminNavSection, SuperAdminNavItem } from "./superAdminNav";
+import { cn } from "@/lib/utils";
+import {
+  getAdminToolDescription,
+  getAdminToolSearchText,
+  type AdminTool,
+  type AdminToolSection,
+} from "./adminTools";
 
 interface SuperAdminLeftNavProps {
-  sections: SuperAdminNavSection[];
+  sections: AdminToolSection[];
   onNavigate?: () => void;
   density?: "comfortable" | "compact";
 }
 
 const COLLAPSE_KEY = "admin:nav:collapsedSections:v1";
 
-function isItemActive(pathname: string, item: SuperAdminNavItem): boolean {
+function isItemActive(pathname: string, item: AdminTool): boolean {
   if (!pathname) return false;
   if (pathname === item.path) return true;
   if (item.path !== "/admin" && pathname.startsWith(item.path + "/")) return true;
@@ -28,6 +34,7 @@ export function SuperAdminLeftNav({
   const [location, setLocation] = useLocation();
   const normalizedLocation = (location || "/").split(/[?#]/, 1)[0] || "/";
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
+  const [navQuery, setNavQuery] = React.useState("");
   const { data: toolNotifications } = useQuery<{
     byTool?: Record<string, number>;
     totalUnread?: number;
@@ -45,6 +52,19 @@ export function SuperAdminLeftNav({
     },
     [unreadByTool]
   );
+  const normalizedQuery = navQuery.trim().toLowerCase();
+  const visibleSections = React.useMemo(() => {
+    if (!normalizedQuery) return sections;
+
+    return sections
+      .map((section) => ({
+        section: section.section,
+        items: section.items.filter((item) =>
+          getAdminToolSearchText(item, section.section).includes(normalizedQuery)
+        ),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [normalizedQuery, sections]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -83,7 +103,7 @@ export function SuperAdminLeftNav({
     const next: Record<string, boolean> = {};
     for (const section of sections) next[section.section] = false;
     setCollapsed(next);
-  }, []);
+  }, [sections]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -109,6 +129,7 @@ export function SuperAdminLeftNav({
   const activeItem =
     activeSection?.items.find((item) => isItemActive(normalizedLocation, item)) ?? null;
   const visibleToolCount = sections.reduce((sum, section) => sum + section.items.length, 0);
+  const filteredToolCount = visibleSections.reduce((sum, section) => sum + section.items.length, 0);
   const totalUnread = sections.reduce(
     (sum, section) =>
       sum + section.items.reduce((inner, item) => inner + getToolUnreadCount(item.id), 0),
@@ -119,39 +140,53 @@ export function SuperAdminLeftNav({
     <aside
       className={`ts-admin-left-nav ${density === "compact" ? "w-64 shrink-0" : "w-[18rem] shrink-0"}`}
     >
-      <div className="ts-admin-left-nav-card rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(15,23,42,0.86))] p-3 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
-        <div className="border-b border-slate-800 pb-3">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+      <div className="ts-admin-left-nav-card rounded-2xl border border-zinc-800 bg-zinc-950 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.3)]">
+        <div className="border-b border-zinc-800 pb-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-500">
             Admin navigation
           </div>
-          <div className="mt-2 text-lg font-semibold text-slate-100">
+          <div className="mt-2 text-lg font-semibold text-zinc-100">
             {activeSection?.section || "Platform ops"}
           </div>
-          <div className="mt-1 text-sm text-slate-400">
-            {activeItem?.label || "Choose a tool"} • {visibleToolCount} tools available
+          <div className="mt-1 text-sm text-zinc-400">
+            {activeItem?.label || "Choose a tool"} / {visibleToolCount} tools available
           </div>
           <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-            <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
+            <span className="rounded-full border border-zinc-700 bg-zinc-900/80 px-2.5 py-1 text-zinc-300">
               {sections.length} sections
             </span>
-            <span className="rounded-full border border-slate-700 bg-slate-950/80 px-2.5 py-1 text-slate-300">
+            <span className="rounded-full border border-zinc-700 bg-zinc-900/80 px-2.5 py-1 text-zinc-300">
               {totalUnread} unread
             </span>
           </div>
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
+            <input
+              value={navQuery}
+              onChange={(event) => setNavQuery(event.target.value)}
+              placeholder="Find tool"
+              className="h-9 w-full rounded-xl border border-zinc-800 bg-zinc-900 pl-8 pr-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-500 focus:ring-2 focus:ring-orange-500/35"
+            />
+          </div>
+          {normalizedQuery ? (
+            <div className="mt-2 text-xs text-zinc-500">
+              {filteredToolCount} match{filteredToolCount === 1 ? "" : "es"}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-3 flex items-center gap-2">
           <button
             type="button"
             onClick={expandAll}
-            className="rounded-xl border border-slate-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-300 hover:bg-slate-900/60"
+            className="rounded-xl border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-300 hover:bg-zinc-900/80"
           >
             Expand all
           </button>
           <button
             type="button"
             onClick={collapseAll}
-            className="rounded-xl border border-slate-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-300 hover:bg-slate-900/60"
+            className="rounded-xl border border-zinc-700 px-2.5 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-300 hover:bg-zinc-900/80"
           >
             Collapse all
           </button>
@@ -164,7 +199,7 @@ export function SuperAdminLeftNav({
               : "mt-3 space-y-4 max-h-[calc(var(--app-height)-190px)] overflow-y-auto pr-1"
           }
         >
-          {sections.map((section) => (
+          {visibleSections.map((section) => (
             <div key={section.section} className="space-y-1.5">
               {(() => {
                 const sectionUnread = section.items.reduce(
@@ -185,22 +220,22 @@ export function SuperAdminLeftNav({
                     }
                     className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
                       sectionActive
-                        ? "border-slate-600 bg-slate-900/90"
-                        : "border-slate-800 bg-slate-950/60 hover:bg-slate-900/60"
+                        ? "border-zinc-600 bg-zinc-900"
+                        : "border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900"
                     }`}
                     aria-expanded={!collapsed[section.section]}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                      <span className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400">
                         {section.section}
                       </span>
-                      {collapsed[section.section] ? (
-                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                      {!normalizedQuery && collapsed[section.section] ? (
+                        <ChevronRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       ) : (
-                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
                       )}
                     </div>
-                    <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+                    <div className="mt-2 flex items-center gap-2 text-[11px] text-zinc-500">
                       <span>{section.items.length} tools</span>
                       {sectionUnread > 0 && (
                         <span className="rounded-full border border-orange-500/25 bg-orange-500/10 px-2 py-0.5 text-orange-200">
@@ -211,7 +246,7 @@ export function SuperAdminLeftNav({
                   </button>
                 );
               })()}
-              {!collapsed[section.section] &&
+              {(normalizedQuery || !collapsed[section.section]) &&
                 section.items.map((item) => {
                   const Icon = item.icon;
                   const active = isItemActive(normalizedLocation, item);
@@ -227,7 +262,7 @@ export function SuperAdminLeftNav({
                       className={`w-full rounded-xl border text-left transition-colors ${
                         active
                           ? "border-orange-500/60 bg-orange-500/12 text-orange-50 shadow-[0_0_0_1px_rgba(249,115,22,0.08)]"
-                          : "border-slate-800 bg-slate-950/50 text-slate-300 hover:border-slate-700 hover:bg-slate-900/70 hover:text-white"
+                          : "border-zinc-800 bg-zinc-900/60 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900 hover:text-white"
                       } ${density === "compact" ? "px-3 py-2" : "px-3 py-2.5"}`}
                     >
                       <div className="flex items-center gap-3">
@@ -236,7 +271,7 @@ export function SuperAdminLeftNav({
                             className={`inline-flex h-8 w-8 items-center justify-center rounded-lg border ${
                               active
                                 ? "border-orange-400/30 bg-orange-500/10 text-orange-200"
-                                : "border-slate-800 bg-slate-900/80 text-slate-400"
+                                : "border-zinc-800 bg-zinc-950 text-zinc-400"
                             }`}
                           >
                             <Icon className="h-4 w-4" />
@@ -244,10 +279,8 @@ export function SuperAdminLeftNav({
                         )}
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">{item.label}</span>
-                          <span className="mt-0.5 block text-[11px] text-slate-500">
-                            {item.path === "/admin"
-                              ? "Admin home"
-                              : item.path.replace("/admin/", "").replaceAll("-", " ")}
+                          <span className="mt-0.5 block truncate text-[11px] text-zinc-500">
+                            {getAdminToolDescription(item)}
                           </span>
                         </span>
                         {unreadCount > 0 && (
@@ -261,6 +294,11 @@ export function SuperAdminLeftNav({
                 })}
             </div>
           ))}
+          {visibleSections.length === 0 ? (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 text-sm text-zinc-500">
+              No matching admin tools.
+            </div>
+          ) : null}
         </nav>
       </div>
     </aside>

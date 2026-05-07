@@ -18,6 +18,7 @@ import { runSeoDirectoryScopeSnapshotJob } from "./seoDirectoryScopeSnapshotJob"
 import { runBotArmyAutoPromotion } from "./missionControl";
 import { runIntentAutomationTick } from "../routes/observability";
 import { runMarketSignalsSnapshotJob } from "./marketSignalsSnapshotJob";
+import { runScoutLisaCleanupJob } from "./scoutLisaCleanupJob";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -43,6 +44,7 @@ let partnerIntelligenceBriefSnapshotsTask: any = null;
 let botArmyAutoPromoteTask: any = null;
 let intentAutomationTask: any = null;
 let marketSignalsSnapshotTask: any = null;
+let scoutLisaCleanupTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -73,6 +75,45 @@ export function startCrawlerScheduler() {
   startPartnerIntelligenceBriefSnapshotsScheduler();
   startBotArmyAutoPromoteScheduler();
   startIntentAutomationScheduler();
+  startScoutLisaCleanupScheduler();
+}
+
+function startScoutLisaCleanupScheduler() {
+  if (process.env.DISABLE_SCOUT_LISA_CLEANUP === "true") {
+    console.log("Scout LISA cleanup job disabled via DISABLE_SCOUT_LISA_CLEANUP env flag");
+    return;
+  }
+
+  const schedule = process.env.SCOUT_LISA_CLEANUP_SCHEDULE || "17 * * * *";
+  const jobName = "scout_lisa_cleanup";
+
+  console.log(`\n🧽 Starting Scout LISA cleanup scheduler with schedule: "${schedule}"`);
+
+  const runTick = async () => {
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () => runScoutLisaCleanupJob());
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+
+      console.log("✅ Scout LISA cleanup job completed", result);
+      emitJobEnd(jobName, Number((result as any).deletedCount || 0), false);
+    } catch (error) {
+      console.error("❌ Scout LISA cleanup job failed:", error);
+      emitJobError(jobName, error);
+    }
+  };
+
+  scoutLisaCleanupTask = cron.schedule(schedule, async () => {
+    console.log(`\n🧽 [${new Date().toISOString()}] Running Scout LISA cleanup job...`);
+    await runTick();
+  });
+
+  void runTick();
+  console.log("✅ Scout LISA cleanup scheduler started\n");
 }
 
 function startMarketSignalsSnapshotScheduler() {
@@ -875,6 +916,13 @@ export function stopCrawlerScheduler() {
     marketSignalsSnapshotTask = null;
     console.log("🛑 Market signals snapshot scheduler stopped");
   }
+
+  if (scoutLisaCleanupTask) {
+    scoutLisaCleanupTask.stop();
+    scoutLisaCleanupTask.destroy();
+    scoutLisaCleanupTask = null;
+    console.log("🛑 Scout LISA cleanup scheduler stopped");
+  }
 }
 
 /**
@@ -933,6 +981,10 @@ export function getCrawlerSchedulerStatus() {
     marketSignalsSnapshots: {
       active: marketSignalsSnapshotTask !== null,
       schedule: process.env.MARKET_SIGNALS_SNAPSHOTS_SCHEDULE || "10 * * * *",
+    },
+    scoutLisaCleanup: {
+      active: scoutLisaCleanupTask !== null,
+      schedule: process.env.SCOUT_LISA_CLEANUP_SCHEDULE || "17 * * * *",
     },
     partnerCountyObservationSnapshots: {
       active: partnerCountyObservationSnapshotsTask !== null,

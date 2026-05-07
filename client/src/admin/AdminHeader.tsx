@@ -1,9 +1,9 @@
 import React from "react";
 import { Menu, LayoutGrid, ArrowUpRight, ShieldCheck } from "lucide-react";
-import type { SuperAdminNavItem } from "./superAdminNav";
+import { getAdminToolDescription, type AdminTool } from "./adminTools";
 
 interface AdminHeaderProps {
-  currentItem: SuperAdminNavItem | null;
+  currentItem: AdminTool | null;
   onToggleNav?: () => void;
   isNavOpen?: boolean;
   density?: "comfortable" | "compact";
@@ -19,25 +19,18 @@ export function AdminHeader({
 }: AdminHeaderProps) {
   const label = currentItem?.label ?? "Dashboard";
   const path = currentItem?.path ?? "/admin";
-  const summary =
-    path === "/admin"
-      ? "Current issues, demand signals, and recent decisions."
-      : path.startsWith("/admin/live-stream") || path.startsWith("/admin/observability")
-        ? "Unified telemetry center for live evidence, snapshot health, and crawler/system signals."
-        : path.startsWith("/admin/scout-resilience")
-          ? "Fix issues that block Scout from completing user actions."
-          : path.startsWith("/admin/cumulus-intelligence")
-            ? "Commercial pressure, county demand, and market reads."
-            : "Focused admin tool for platform management.";
+  const summary = currentItem
+    ? getAdminToolDescription(currentItem)
+    : "Focused admin tool for platform work.";
 
   return (
-    <header className="ts-admin-header rounded-2xl border border-slate-800 bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(15,23,42,0.82))] px-4 py-4 shadow-[0_18px_40px_rgba(2,6,23,0.28)]">
+    <header className="ts-admin-header rounded-2xl border border-zinc-800 bg-zinc-950 px-4 py-4 shadow-[0_18px_40px_rgba(0,0,0,0.3)]">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <button
             type="button"
             onClick={onToggleNav}
-            className="ts-admin-action-btn mt-0.5 inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 px-2.5 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-scout-500/60"
+            className="ts-admin-action-btn mt-0.5 inline-flex items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 px-2.5 py-2 text-xs font-medium text-zinc-100 hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-orange-500/45"
             aria-label={isNavOpen ? "Hide admin navigation" : "Show admin navigation"}
           >
             <Menu className="mr-1 h-4 w-4" />
@@ -50,21 +43,21 @@ export function AdminHeader({
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Admin OS
               </span>
-              <span className="ts-admin-pill rounded-full border border-slate-700 bg-slate-900/80 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">
+              <span className="ts-admin-pill rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-400">
                 {path}
               </span>
             </div>
             <h1
               className={
                 density === "compact"
-                  ? "truncate text-xl font-semibold text-slate-100"
-                  : "truncate text-2xl font-semibold text-slate-100"
+                  ? "truncate text-xl font-semibold text-zinc-100"
+                  : "truncate text-2xl font-semibold text-zinc-100"
               }
               title={label}
             >
               {label}
             </h1>
-            <p className="mt-1 max-w-2xl text-sm text-slate-400">{summary}</p>
+            <p className="mt-1 max-w-2xl text-sm text-zinc-400">{summary}</p>
           </div>
         </div>
 
@@ -73,7 +66,7 @@ export function AdminHeader({
             <button
               type="button"
               onClick={onToggleDensity}
-              className="ts-admin-action-btn inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-950/80 px-3 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800"
+              className="ts-admin-action-btn inline-flex items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-100 hover:bg-zinc-800"
               aria-label={
                 density === "compact"
                   ? "Switch to comfortable density"

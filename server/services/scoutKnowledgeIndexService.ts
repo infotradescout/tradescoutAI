@@ -56,11 +56,14 @@ export function extractTextFromFile(filePath: string): string | null {
   try {
     // Try docx2txt first
     try {
-      const result = execSync(`docx2txt.pl "${filePath}" 2>/dev/null || docx2txt "${filePath}" 2>/dev/null`, {
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "ignore"],
-        timeout: 5000,
-      });
+      const result = execSync(
+        `docx2txt.pl "${filePath}" 2>/dev/null || docx2txt "${filePath}" 2>/dev/null`,
+        {
+          encoding: "utf-8",
+          stdio: ["pipe", "pipe", "ignore"],
+          timeout: 5000,
+        }
+      );
       return result.trim();
     } catch (e) {
       // Try python-docx
@@ -183,10 +186,7 @@ export function extractTags(content: string): string[] {
 /**
  * Index a single document
  */
-export function indexDocument(
-  filePath: string,
-  title?: string
-): IndexedKnowledge | null {
+export function indexDocument(filePath: string, title?: string): IndexedKnowledge | null {
   // Extract content
   const content = extractTextFromFile(filePath);
   if (!content) {
@@ -339,7 +339,14 @@ export function getAllDocuments(): IndexedKnowledge[] {
 export function getIndexStats(): IndexStats {
   return {
     ...stats,
-    searchableIndex: wordIndex,
+    searchableIndex: new Map(
+      Array.from(wordIndex.entries()).map(([word, docIds]) => [
+        word,
+        Array.from(docIds)
+          .map((docId) => knowledgeIndex.get(docId))
+          .filter((doc): doc is IndexedKnowledge => Boolean(doc)),
+      ])
+    ),
   };
 }
 

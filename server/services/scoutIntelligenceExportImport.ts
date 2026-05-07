@@ -1,1 +1,439 @@
-/**\n * Scout Intelligence Export/Import\n *\n * Tools for bulk exporting and importing Scout intelligence.\n *\n * Features:\n * - Export to JSON, CSV, Excel\n * - Import from external sources\n * - Batch operations\n * - Data validation\n * - Backup and restore\n */\n\nimport { EventEmitter } from \"events\";\n\nexport type ExportFormat = \"json\" | \"csv\" | \"excel\" | \"markdown\";\n\nexport interface ExportOptions {\n  format: ExportFormat;\n  includeMetadata: boolean;\n  includeHistory: boolean;\n  dateRange?: {\n    start: Date;\n    end: Date;\n  };\n  filters?: {\n    brand?: string;\n    jurisdiction?: string;\n    type?: string;\n    confidence?: \"high\" | \"medium\" | \"low\";\n  };\n}\n\nexport interface ImportOptions {\n  format: ExportFormat;\n  validateBeforeImport: boolean;\n  overwriteExisting: boolean;\n  skipErrors: boolean;\n  brand?: string;\n}\n\nexport interface ExportResult {\n  id: string;\n  format: ExportFormat;\n  filename: string;\n  recordCount: number;\n  fileSize: number;\n  createdAt: Date;\n  expiresAt: Date;\n  url?: string;\n}\n\nexport interface ImportResult {\n  id: string;\n  filename: string;\n  recordsProcessed: number;\n  recordsSuccessful: number;\n  recordsFailed: number;\n  errors: ImportError[];\n  warnings: string[];\n  createdAt: Date;\n}\n\nexport interface ImportError {\n  recordIndex: number;\n  field?: string;\n  error: string;\n  value?: any;\n}\n\nclass ScoutIntelligenceExportImport extends EventEmitter {\n  private exports: Map<string, ExportResult> = new Map();\n  private imports: Map<string, ImportResult> = new Map();\n  private exportHistory: ExportResult[] = [];\n  private importHistory: ImportResult[] = [];\n\n  /**\n   * Export intelligence\n   */\n  async exportIntelligence(\n    intelligence: any[],\n    options: ExportOptions\n  ): Promise<ExportResult> {\n    const exportId = `export-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n    const filename = `scout-intelligence-${new Date().toISOString().split(\"T\")[0]}.${options.format}`;\n\n    let content = \"\";\n    let fileSize = 0;\n\n    switch (options.format) {\n      case \"json\":\n        content = this.exportAsJSON(intelligence, options);\n        break;\n      case \"csv\":\n        content = this.exportAsCSV(intelligence, options);\n        break;\n      case \"excel\":\n        content = this.exportAsExcel(intelligence, options);\n        break;\n      case \"markdown\":\n        content = this.exportAsMarkdown(intelligence, options);\n        break;\n    }\n\n    fileSize = Buffer.byteLength(content, \"utf8\");\n\n    const result: ExportResult = {\n      id: exportId,\n      format: options.format,\n      filename,\n      recordCount: intelligence.length,\n      fileSize,\n      createdAt: new Date(),\n      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days\n    };\n\n    this.exports.set(exportId, result);\n    this.exportHistory.push(result);\n\n    console.log(`[Export/Import] Exported ${intelligence.length} records as ${options.format}`);\n    this.emit(\"export-complete\", result);\n\n    return result;\n  }\n\n  /**\n   * Export as JSON\n   */\n  private exportAsJSON(intelligence: any[], options: ExportOptions): string {\n    const data: any = {\n      exportDate: new Date().toISOString(),\n      recordCount: intelligence.length,\n      format: \"json\",\n      records: intelligence,\n    };\n\n    if (options.includeMetadata) {\n      data.metadata = {\n        filters: options.filters,\n        dateRange: options.dateRange,\n      };\n    }\n\n    return JSON.stringify(data, null, 2);\n  }\n\n  /**\n   * Export as CSV\n   */\n  private exportAsCSV(intelligence: any[], options: ExportOptions): string {\n    if (intelligence.length === 0) return \"\";\n\n    // Get all unique keys\n    const keys = new Set<string>();\n    intelligence.forEach((record) => {\n      Object.keys(record).forEach((key) => keys.add(key));\n    });\n\n    const headers = Array.from(keys);\n    const rows: string[] = [];\n\n    // Add header row\n    rows.push(headers.map((h) => `\"${h}\"`).join(\",\"));\n\n    // Add data rows\n    intelligence.forEach((record) => {\n      const values = headers.map((header) => {\n        const value = record[header];\n        if (value === null || value === undefined) return \"\";\n        if (typeof value === \"string\" && value.includes(\",\")) {\n          return `\"${value.replace(/\"/g, '\"\"')}\"`;\n        }\n        return String(value);\n      });\n      rows.push(values.join(\",\"));\n    });\n\n    return rows.join(\"\\n\");\n  }\n\n  /**\n   * Export as Excel (placeholder - would use xlsx library)\n   */\n  private exportAsExcel(intelligence: any[], options: ExportOptions): string {\n    // In production, use xlsx library\n    return this.exportAsCSV(intelligence, options);\n  }\n\n  /**\n   * Export as Markdown\n   */\n  private exportAsMarkdown(intelligence: any[], options: ExportOptions): string {\n    const lines: string[] = [];\n\n    lines.push(\"# Scout Intelligence Export\");\n    lines.push(`Generated: ${new Date().toISOString()}`);\n    lines.push(`Records: ${intelligence.length}`);\n    lines.push(\"\");\n\n    if (options.includeMetadata && options.filters) {\n      lines.push(\"## Filters Applied\");\n      Object.entries(options.filters).forEach(([key, value]) => {\n        if (value) lines.push(`- ${key}: ${value}`);\n      });\n      lines.push(\"\");\n    }\n\n    lines.push(\"## Records\");\n    lines.push(\"\");\n\n    intelligence.forEach((record, index) => {\n      lines.push(`### Record ${index + 1}`);\n      Object.entries(record).forEach(([key, value]) => {\n        lines.push(`- **${key}**: ${value}`);\n      });\n      lines.push(\"\");\n    });\n\n    return lines.join(\"\\n\");\n  }\n\n  /**\n   * Import intelligence\n   */\n  async importIntelligence(\n    fileContent: string,\n    options: ImportOptions\n  ): Promise<ImportResult> {\n    const importId = `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;\n    const errors: ImportError[] = [];\n    const warnings: string[] = [];\n    let records: any[] = [];\n\n    try {\n      // Parse based on format\n      switch (options.format) {\n        case \"json\":\n          const jsonData = JSON.parse(fileContent);\n          records = jsonData.records || jsonData;\n          break;\n        case \"csv\":\n          records = this.parseCSV(fileContent);\n          break;\n        case \"markdown\":\n          records = this.parseMarkdown(fileContent);\n          break;\n      }\n    } catch (error) {\n      errors.push({\n        recordIndex: 0,\n        error: `Failed to parse ${options.format}: ${String(error)}`,\n      });\n    }\n\n    // Validate records\n    let successCount = 0;\n    records.forEach((record, index) => {\n      const validation = this.validateRecord(record);\n      if (!validation.valid) {\n        if (!options.skipErrors) {\n          errors.push({\n            recordIndex: index,\n            error: validation.errors.join(\"; \"),\n          });\n        } else {\n          warnings.push(`Record ${index}: ${validation.errors.join(\"; \")}`);\n        }\n      } else {\n        successCount++;\n      }\n    });\n\n    const result: ImportResult = {\n      id: importId,\n      filename: \"imported-intelligence\",\n      recordsProcessed: records.length,\n      recordsSuccessful: successCount,\n      recordsFailed: records.length - successCount,\n      errors,\n      warnings,\n      createdAt: new Date(),\n    };\n\n    this.imports.set(importId, result);\n    this.importHistory.push(result);\n\n    console.log(\n      `[Export/Import] Imported ${successCount}/${records.length} records from ${options.format}`\n    );\n    this.emit(\"import-complete\", result);\n\n    return result;\n  }\n\n  /**\n   * Parse CSV content\n   */\n  private parseCSV(content: string): any[] {\n    const lines = content.split(\"\\n\").filter((line) => line.trim());\n    if (lines.length < 2) return [];\n\n    const headers = lines[0].split(\",\").map((h) => h.trim().replace(/^\"|\"$/g, \"\"));\n    const records: any[] = [];\n\n    for (let i = 1; i < lines.length; i++) {\n      const values = lines[i].split(\",\").map((v) => v.trim().replace(/^\"|\"$/g, \"\"));\n      const record: any = {};\n      headers.forEach((header, index) => {\n        record[header] = values[index] || \"\";\n      });\n      records.push(record);\n    }\n\n    return records;\n  }\n\n  /**\n   * Parse Markdown content\n   */\n  private parseMarkdown(content: string): any[] {\n    // Simple markdown parser for records\n    const records: any[] = [];\n    const lines = content.split(\"\\n\");\n    let currentRecord: any = {};\n\n    lines.forEach((line) => {\n      if (line.startsWith(\"### Record\")) {\n        if (Object.keys(currentRecord).length > 0) {\n          records.push(currentRecord);\n        }\n        currentRecord = {};\n      } else if (line.startsWith(\"- **\")) {\n        const match = line.match(/- \\*\\*(.+?)\\*\\*: (.+)/);\n        if (match) {\n          currentRecord[match[1]] = match[2];\n        }\n      }\n    });\n\n    if (Object.keys(currentRecord).length > 0) {\n      records.push(currentRecord);\n    }\n\n    return records;\n  }\n\n  /**\n   * Validate a record\n   */\n  private validateRecord(record: any): { valid: boolean; errors: string[] } {\n    const errors: string[] = [];\n\n    // Check required fields\n    if (!record.id) errors.push(\"Missing required field: id\");\n    if (!record.content) errors.push(\"Missing required field: content\");\n    if (!record.type) errors.push(\"Missing required field: type\");\n\n    // Check data types\n    if (record.timestamp && isNaN(new Date(record.timestamp).getTime())) {\n      errors.push(\"Invalid timestamp format\");\n    }\n\n    return {\n      valid: errors.length === 0,\n      errors,\n    };\n  }\n\n  /**\n   * Get export history\n   */\n  getExportHistory(limit: number = 50): ExportResult[] {\n    return this.exportHistory.slice(-limit);\n  }\n\n  /**\n   * Get import history\n   */\n  getImportHistory(limit: number = 50): ImportResult[] {\n    return this.importHistory.slice(-limit);\n  }\n\n  /**\n   * Get export statistics\n   */\n  getExportStats() {\n    return {\n      totalExports: this.exportHistory.length,\n      exportsByFormat: this.groupBy(this.exportHistory, (e) => e.format),\n      totalRecordsExported: this.exportHistory.reduce((sum, e) => sum + e.recordCount, 0),\n      totalDataExported: this.exportHistory.reduce((sum, e) => sum + e.fileSize, 0),\n    };\n  }\n\n  /**\n   * Get import statistics\n   */\n  getImportStats() {\n    return {\n      totalImports: this.importHistory.length,\n      totalRecordsImported: this.importHistory.reduce((sum, i) => sum + i.recordsSuccessful, 0),\n      totalRecordsFailed: this.importHistory.reduce((sum, i) => sum + i.recordsFailed, 0),\n      successRate:\n        this.importHistory.length > 0\n          ? (\n              (this.importHistory.reduce((sum, i) => sum + i.recordsSuccessful, 0) /\n                this.importHistory.reduce((sum, i) => sum + i.recordsProcessed, 0)) *\n              100\n            ).toFixed(2) + \"%\"\n          : \"N/A\",\n    };\n  }\n\n  /**\n   * Helper: group array by key\n   */\n  private groupBy<T>(arr: T[], keyFn: (item: T) => string): Record<string, number> {\n    return arr.reduce(\n      (acc, item) => {\n        const key = keyFn(item);\n        acc[key] = (acc[key] || 0) + 1;\n        return acc;\n      },\n      {} as Record<string, number>\n    );\n  }\n}\n\n// Singleton instance\nexport const scoutIntelligenceExportImport = new ScoutIntelligenceExportImport();\n
+/**
+ * Scout Intelligence Export/Import
+ *
+ * Tools for bulk exporting and importing Scout intelligence.
+ *
+ * Features:
+ * - Export to JSON, CSV, Excel
+ * - Import from external sources
+ * - Batch operations
+ * - Data validation
+ * - Backup and restore
+ */
+
+import { EventEmitter } from "events";
+
+export type ExportFormat = "json" | "csv" | "excel" | "markdown";
+
+export interface ExportOptions {
+  format: ExportFormat;
+  includeMetadata: boolean;
+  includeHistory: boolean;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+  filters?: {
+    brand?: string;
+    jurisdiction?: string;
+    type?: string;
+    confidence?: "high" | "medium" | "low";
+  };
+}
+
+export interface ImportOptions {
+  format: ExportFormat;
+  validateBeforeImport: boolean;
+  overwriteExisting: boolean;
+  skipErrors: boolean;
+  brand?: string;
+}
+
+export interface ExportResult {
+  id: string;
+  format: ExportFormat;
+  filename: string;
+  recordCount: number;
+  fileSize: number;
+  createdAt: Date;
+  expiresAt: Date;
+  url?: string;
+}
+
+export interface ImportResult {
+  id: string;
+  filename: string;
+  recordsProcessed: number;
+  recordsSuccessful: number;
+  recordsFailed: number;
+  errors: ImportError[];
+  warnings: string[];
+  createdAt: Date;
+}
+
+export interface ImportError {
+  recordIndex: number;
+  field?: string;
+  error: string;
+  value?: any;
+}
+
+class ScoutIntelligenceExportImport extends EventEmitter {
+  private exports: Map<string, ExportResult> = new Map();
+  private imports: Map<string, ImportResult> = new Map();
+  private exportHistory: ExportResult[] = [];
+  private importHistory: ImportResult[] = [];
+
+  /**
+   * Export intelligence
+   */
+  async exportIntelligence(intelligence: any[], options: ExportOptions): Promise<ExportResult> {
+    const exportId = `export-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const filename = `scout-intelligence-${new Date().toISOString().split("T")[0]}.${options.format}`;
+
+    let content = "";
+    let fileSize = 0;
+
+    switch (options.format) {
+      case "json":
+        content = this.exportAsJSON(intelligence, options);
+        break;
+      case "csv":
+        content = this.exportAsCSV(intelligence, options);
+        break;
+      case "excel":
+        content = this.exportAsExcel(intelligence, options);
+        break;
+      case "markdown":
+        content = this.exportAsMarkdown(intelligence, options);
+        break;
+    }
+
+    fileSize = Buffer.byteLength(content, "utf8");
+
+    const result: ExportResult = {
+      id: exportId,
+      format: options.format,
+      filename,
+      recordCount: intelligence.length,
+      fileSize,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    };
+
+    this.exports.set(exportId, result);
+    this.exportHistory.push(result);
+
+    console.log(`[Export/Import] Exported ${intelligence.length} records as ${options.format}`);
+    this.emit("export-complete", result);
+
+    return result;
+  }
+
+  /**
+   * Export as JSON
+   */
+  private exportAsJSON(intelligence: any[], options: ExportOptions): string {
+    const data: any = {
+      exportDate: new Date().toISOString(),
+      recordCount: intelligence.length,
+      format: "json",
+      records: intelligence,
+    };
+
+    if (options.includeMetadata) {
+      data.metadata = {
+        filters: options.filters,
+        dateRange: options.dateRange,
+      };
+    }
+
+    return JSON.stringify(data, null, 2);
+  }
+
+  /**
+   * Export as CSV
+   */
+  private exportAsCSV(intelligence: any[], options: ExportOptions): string {
+    if (intelligence.length === 0) return "";
+
+    // Get all unique keys
+    const keys = new Set<string>();
+    intelligence.forEach((record) => {
+      Object.keys(record).forEach((key) => keys.add(key));
+    });
+
+    const headers = Array.from(keys);
+    const rows: string[] = [];
+
+    // Add header row
+    rows.push(headers.map((h) => `"${h}"`).join(","));
+
+    // Add data rows
+    intelligence.forEach((record) => {
+      const values = headers.map((header) => {
+        const value = record[header];
+        if (value === null || value === undefined) return "";
+        if (typeof value === "string" && value.includes(",")) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return String(value);
+      });
+      rows.push(values.join(","));
+    });
+
+    return rows.join(
+      "\
+"
+    );
+  }
+
+  /**
+   * Export as Excel (placeholder - would use xlsx library)
+   */
+  private exportAsExcel(intelligence: any[], options: ExportOptions): string {
+    // In production, use xlsx library
+    return this.exportAsCSV(intelligence, options);
+  }
+
+  /**
+   * Export as Markdown
+   */
+  private exportAsMarkdown(intelligence: any[], options: ExportOptions): string {
+    const lines: string[] = [];
+
+    lines.push("# Scout Intelligence Export");
+    lines.push(`Generated: ${new Date().toISOString()}`);
+    lines.push(`Records: ${intelligence.length}`);
+    lines.push("");
+
+    if (options.includeMetadata && options.filters) {
+      lines.push("## Filters Applied");
+      Object.entries(options.filters).forEach(([key, value]) => {
+        if (value) lines.push(`- ${key}: ${value}`);
+      });
+      lines.push("");
+    }
+
+    lines.push("## Records");
+    lines.push("");
+
+    intelligence.forEach((record, index) => {
+      lines.push(`### Record ${index + 1}`);
+      Object.entries(record).forEach(([key, value]) => {
+        lines.push(`- **${key}**: ${value}`);
+      });
+      lines.push("");
+    });
+
+    return lines.join(
+      "\
+"
+    );
+  }
+
+  /**
+   * Import intelligence
+   */
+  async importIntelligence(fileContent: string, options: ImportOptions): Promise<ImportResult> {
+    const importId = `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const errors: ImportError[] = [];
+    const warnings: string[] = [];
+    let records: any[] = [];
+
+    try {
+      // Parse based on format
+      switch (options.format) {
+        case "json":
+          const jsonData = JSON.parse(fileContent);
+          records = jsonData.records || jsonData;
+          break;
+        case "csv":
+          records = this.parseCSV(fileContent);
+          break;
+        case "markdown":
+          records = this.parseMarkdown(fileContent);
+          break;
+      }
+    } catch (error) {
+      errors.push({
+        recordIndex: 0,
+        error: `Failed to parse ${options.format}: ${String(error)}`,
+      });
+    }
+
+    // Validate records
+    let successCount = 0;
+    records.forEach((record, index) => {
+      const validation = this.validateRecord(record);
+      if (!validation.valid) {
+        if (!options.skipErrors) {
+          errors.push({
+            recordIndex: index,
+            error: validation.errors.join("; "),
+          });
+        } else {
+          warnings.push(`Record ${index}: ${validation.errors.join("; ")}`);
+        }
+      } else {
+        successCount++;
+      }
+    });
+
+    const result: ImportResult = {
+      id: importId,
+      filename: "imported-intelligence",
+      recordsProcessed: records.length,
+      recordsSuccessful: successCount,
+      recordsFailed: records.length - successCount,
+      errors,
+      warnings,
+      createdAt: new Date(),
+    };
+
+    this.imports.set(importId, result);
+    this.importHistory.push(result);
+
+    console.log(
+      `[Export/Import] Imported ${successCount}/${records.length} records from ${options.format}`
+    );
+    this.emit("import-complete", result);
+
+    return result;
+  }
+
+  /**
+   * Parse CSV content
+   */
+  private parseCSV(content: string): any[] {
+    const lines = content
+      .split(
+        "\
+"
+      )
+      .filter((line) => line.trim());
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+    const records: any[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      const record: any = {};
+      headers.forEach((header, index) => {
+        record[header] = values[index] || "";
+      });
+      records.push(record);
+    }
+
+    return records;
+  }
+
+  /**
+   * Parse Markdown content
+   */
+  private parseMarkdown(content: string): any[] {
+    // Simple markdown parser for records
+    const records: any[] = [];
+    const lines =
+      content.split(
+        "\
+"
+      );
+    let currentRecord: any = {};
+
+    lines.forEach((line) => {
+      if (line.startsWith("### Record")) {
+        if (Object.keys(currentRecord).length > 0) {
+          records.push(currentRecord);
+        }
+        currentRecord = {};
+      } else if (line.startsWith("- **")) {
+        const match = line.match(/- \\*\\*(.+?)\\*\\*: (.+)/);
+        if (match) {
+          currentRecord[match[1]] = match[2];
+        }
+      }
+    });
+
+    if (Object.keys(currentRecord).length > 0) {
+      records.push(currentRecord);
+    }
+
+    return records;
+  }
+
+  /**
+   * Validate a record
+   */
+  private validateRecord(record: any): { valid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Check required fields
+    if (!record.id) errors.push("Missing required field: id");
+    if (!record.content) errors.push("Missing required field: content");
+    if (!record.type) errors.push("Missing required field: type");
+
+    // Check data types
+    if (record.timestamp && isNaN(new Date(record.timestamp).getTime())) {
+      errors.push("Invalid timestamp format");
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Get export history
+   */
+  getExportHistory(limit: number = 50): ExportResult[] {
+    return this.exportHistory.slice(-limit);
+  }
+
+  /**
+   * Get import history
+   */
+  getImportHistory(limit: number = 50): ImportResult[] {
+    return this.importHistory.slice(-limit);
+  }
+
+  /**
+   * Get export statistics
+   */
+  getExportStats() {
+    return {
+      totalExports: this.exportHistory.length,
+      exportsByFormat: this.groupBy(this.exportHistory, (e) => e.format),
+      totalRecordsExported: this.exportHistory.reduce((sum, e) => sum + e.recordCount, 0),
+      totalDataExported: this.exportHistory.reduce((sum, e) => sum + e.fileSize, 0),
+    };
+  }
+
+  /**
+   * Get import statistics
+   */
+  getImportStats() {
+    return {
+      totalImports: this.importHistory.length,
+      totalRecordsImported: this.importHistory.reduce((sum, i) => sum + i.recordsSuccessful, 0),
+      totalRecordsFailed: this.importHistory.reduce((sum, i) => sum + i.recordsFailed, 0),
+      successRate:
+        this.importHistory.length > 0
+          ? (
+              (this.importHistory.reduce((sum, i) => sum + i.recordsSuccessful, 0) /
+                this.importHistory.reduce((sum, i) => sum + i.recordsProcessed, 0)) *
+              100
+            ).toFixed(2) + "%"
+          : "N/A",
+    };
+  }
+
+  /**
+   * Helper: group array by key
+   */
+  private groupBy<T>(arr: T[], keyFn: (item: T) => string): Record<string, number> {
+    return arr.reduce(
+      (acc, item) => {
+        const key = keyFn(item);
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+  }
+}
+
+// Singleton instance
+export const scoutIntelligenceExportImport = new ScoutIntelligenceExportImport();

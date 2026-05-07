@@ -2465,21 +2465,23 @@ router.post("/", async (req: Request, res: Response) => {
     const message = typeof rawBody.message === "string" ? rawBody.message : "";
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
-    const userId = (requestUser as any)?.id;
-    if (userId && message) {
+    const optimizationUserId = (requestUser as any)?.id;
+    if (optimizationUserId && message) {
       // Import optimization services
       const ScoutMemoryService = (await import("../services/scoutMemoryService")).default;
-      const { generateQueryHash, checkFaqMatch, routeQuery } = await import(
-        "../services/scoutOptimizationEngine"
-      );
+      const { generateQueryHash, checkFaqMatch, routeQuery } =
+        await import("../services/scoutOptimizationEngine");
 
       const queryHash = generateQueryHash(message, {
-        county: (rawBody.countyCode as string | undefined),
-        state: (rawBody.stateCode as string | undefined),
+        county: rawBody.countyCode as string | undefined,
+        state: rawBody.stateCode as string | undefined,
       });
 
       // 1. Check if response is cached
-      const cachedResponse = await ScoutMemoryService.getCachedResponse(userId, queryHash);
+      const cachedResponse = await ScoutMemoryService.getCachedResponse(
+        optimizationUserId,
+        queryHash
+      );
       if (cachedResponse) {
         scoutTurnTelemetry.provider = "cache";
         scoutTurnTelemetry.sourceUsed = "cached_response";
@@ -2500,17 +2502,22 @@ router.post("/", async (req: Request, res: Response) => {
           _optimization: { source: "faq", reason: faqMatch.reason },
         };
         // Cache the FAQ answer for future use
-        await ScoutMemoryService.cacheScoutResponse(userId, queryHash, faqResponse, 1440); // 24h TTL
+        await ScoutMemoryService.cacheScoutResponse(
+          optimizationUserId,
+          queryHash,
+          faqResponse,
+          1440
+        ); // 24h TTL
         return res.json(faqResponse);
       }
 
       // 3. Route the query to determine processing path
       const route = routeQuery({
         query: message,
-        userId,
-        isAuthenticated: Boolean(userId),
-        county: (rawBody.countyCode as string | undefined),
-        state: (rawBody.stateCode as string | undefined),
+        userId: optimizationUserId,
+        isAuthenticated: Boolean(optimizationUserId),
+        county: rawBody.countyCode as string | undefined,
+        state: rawBody.stateCode as string | undefined,
       });
 
       // Store routing decision for later use
@@ -4809,7 +4816,7 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    res.json({
+    return res.json({
       message: finalMessage,
       suggestedActions: aiResponse.suggestedActions ?? [],
       actions: guardedActions,
@@ -4834,20 +4841,7 @@ router.post("/", async (req: Request, res: Response) => {
       promptVersion,
       timestamp: new Date().toISOString(),
       onboarding: onboardingMeta.onboardingQuestion ? onboardingMeta : undefined,
-    };
-
-    // Check if streaming is requested
-    const shouldStream = (req.query.stream === "true" || req.headers["x-stream"] === "true");
-
-    if (shouldStream) {
-      const { initializeStreamingResponse, completeStream } = await import(
-        "../services/scoutStreamingHandler"
-      );
-      initializeStreamingResponse(res);
-      completeStream(res, responsePayload);
-    } else {
-      res.json(responsePayload);
-    }
+    });
   } catch (error) {
     if (!isTestRun && scoutInteractionLog) {
       scoutInteractionLog.outcome = "handed_off";

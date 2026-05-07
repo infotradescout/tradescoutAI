@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { PageLoadingSpinner } from "@/components/LoadingSpinner";
 import { SuperAdminOSLayout } from "@/admin/SuperAdminOSLayout";
+import AdminHome from "@/admin/AdminHome";
 import { resolveAdminToolByLocation, type AdminRole } from "@/admin/adminTools";
 
 type AdminHealthResponse = {
@@ -55,12 +56,12 @@ export default function AdminShell() {
       </div>
     );
   }
+  const role = ((data?.role as AdminRole) || "ops_admin") as AdminRole;
+  const isSuperAdmin = Boolean(data?.isSuperAdmin);
+
   return (
-    <SuperAdminOSLayout>
-      <AdminContentRouter
-        role={((data?.role as AdminRole) || "ops_admin") as AdminRole}
-        isSuperAdmin={Boolean(data?.isSuperAdmin)}
-      />
+    <SuperAdminOSLayout role={role} isSuperAdmin={isSuperAdmin}>
+      <AdminContentRouter role={role} isSuperAdmin={isSuperAdmin} />
     </SuperAdminOSLayout>
   );
 }
@@ -69,15 +70,8 @@ function AdminContentRouter({ role, isSuperAdmin }: { role: AdminRole; isSuperAd
   const [location] = useLocation();
   const pathname = (location || "/admin").split(/[?#]/, 1)[0] || "/admin";
 
-  // Canonical Admin OS landing: super admins go to Mission Control, other admins go to users.
   if (pathname === "/admin") {
-    const MissionControlV0 = React.lazy(() => import("@/pages/MissionControlV0"));
-    const AdminUsers = React.lazy(() => import("@/pages/admin-users"));
-    return (
-      <Suspense fallback={<PageLoadingSpinner message="Loading admin tools..." />}>
-        {isSuperAdmin ? <MissionControlV0 /> : <AdminUsers />}
-      </Suspense>
-    );
+    return <AdminHome role={role} isSuperAdmin={isSuperAdmin} />;
   }
 
   const resolved = resolveAdminToolByLocation(pathname || "/admin", role, isSuperAdmin);

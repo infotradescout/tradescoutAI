@@ -21,6 +21,15 @@ describe("localIntents", () => {
       const intent = resolveExplicitNavigationIntent("Take me to create account");
       expect(intent?.to).toBe("/pre-scout-setup?mode=create");
     });
+
+    it("routes explicit support navigation to help center", () => {
+      const intent = resolveExplicitNavigationIntent("Open support tickets");
+      expect(intent).toEqual({
+        to: "/help",
+        label: "Help",
+        confidence: 0.95,
+      });
+    });
   });
 
   describe("resolveQuickActionIntent", () => {
@@ -64,6 +73,15 @@ describe("localIntents", () => {
     it("returns null for unmapped labels", () => {
       const action = resolveQuickActionIntent("Do something novel");
       expect(action).toBeNull();
+    });
+
+    it("maps support quick actions to help center", () => {
+      const action = resolveQuickActionIntent("Open support tickets");
+      expect(action).toEqual({
+        kind: "navigate",
+        to: "/help",
+        label: "Open support tickets",
+      });
     });
   });
 });

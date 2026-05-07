@@ -1,1 +1,233 @@
-/**\n * Scout-LISA Integration\n *\n * Feeds Scout's indexed intelligence into LISA's decision layer.\n * LISA uses Scout's findings to make smarter routing and recommendation decisions.\n */\n\nimport { scoutLearningPipeline, IndexedIntelligence } from \"./scoutLearningPipeline\";\n\nexport interface LisaDecisionContext {\n  userId?: string;\n  trade?: string;\n  jurisdiction?: string;\n  query: string;\n  scoutIntelligence: IndexedIntelligence[];\n  confidenceThreshold?: \"high\" | \"medium\" | \"low\";\n}\n\nexport interface LisaDecision {\n  action: string;\n  confidence: number;\n  reasoning: string;\n  scoutIntelligenceUsed: string[]; // IDs of intelligence used\n  recommendations: string[];\n}\n\n/**\n * Scout-LISA Integration Service\n *\n * Provides LISA with Scout's intelligence for decision making.\n * LISA can query Scout's brain to inform routing, recommendations, and user guidance.\n */\nexport class ScoutLisaIntegration {\n  /**\n   * Get relevant Scout intelligence for a LISA decision\n   */\n  static getRelevantIntelligence(\n    context: LisaDecisionContext\n  ): IndexedIntelligence[] {\n    // Search Scout's brain for relevant intelligence\n    const intelligence = scoutLearningPipeline.searchIntelligence(context.query, {\n      trade: context.trade,\n      jurisdiction: context.jurisdiction,\n      minConfidence: context.confidenceThreshold || \"medium\",\n    });\n\n    // Filter by LISA relevance (only high-relevance intelligence)\n    return intelligence.filter((i) => i.lisaRelevance >= 0.6);\n  }\n\n  /**\n   * Make a LISA decision informed by Scout intelligence\n   */\n  static makeDecision(context: LisaDecisionContext): LisaDecision {\n    const relevantIntelligence = this.getRelevantIntelligence(context);\n\n    if (relevantIntelligence.length === 0) {\n      return {\n        action: \"insufficient_intelligence\",\n        confidence: 0,\n        reasoning: \"Scout has not gathered enough intelligence on this topic yet\",\n        scoutIntelligenceUsed: [],\n        recommendations: [\n          \"Send Scout to gather more information\",\n          \"Consider manual research or expert consultation\",\n        ],\n      };\n    }\n\n    // Analyze the intelligence to make a decision\n    const decision = this.analyzeIntelligence(relevantIntelligence, context);\n    return decision;\n  }\n\n  /**\n   * Analyze Scout intelligence to make a decision\n   */\n  private static analyzeIntelligence(\n    intelligence: IndexedIntelligence[],\n    context: LisaDecisionContext\n  ): LisaDecision {\n    // Calculate overall confidence\n    const avgConfidence =\n      intelligence.reduce((sum, i) => {\n        const confidenceScore = { high: 1, medium: 0.5, low: 0.25 };\n        return sum + confidenceScore[i.confidence];\n      }, 0) / intelligence.length;\n\n    // Determine the most relevant action based on intelligence\n    const actionableIntelligence = intelligence.filter(\n      (i) =>\n        i.content.toLowerCase().includes(\"must\") ||\n        i.content.toLowerCase().includes(\"required\") ||\n        i.content.toLowerCase().includes(\"need\")\n    );\n\n    let action = \"provide_guidance\";\n    let reasoning = \"Scout has gathered relevant intelligence\";\n\n    if (actionableIntelligence.length > 0) {\n      action = \"enforce_requirement\";\n      reasoning = `Scout found ${actionableIntelligence.length} actionable requirements`;\n    }\n\n    // Build recommendations from intelligence\n    const recommendations = intelligence\n      .filter((i) => i.lisaRelevance >= 0.7)\n      .slice(0, 3)\n      .map((i) => i.content);\n\n    return {\n      action,\n      confidence: Math.min(avgConfidence, 1),\n      reasoning,\n      scoutIntelligenceUsed: intelligence.map((i) => i.id),\n      recommendations,\n    };\n  }\n\n  /**\n   * Get Scout intelligence for a specific user context\n   * Used by LISA to personalize recommendations\n   */\n  static getContextualIntelligence(\n    userId: string,\n    trade?: string,\n    jurisdiction?: string\n  ): IndexedIntelligence[] {\n    const intelligence: IndexedIntelligence[] = [];\n\n    if (trade) {\n      intelligence.push(...scoutLearningPipeline.getTradeIntelligence(trade));\n    }\n\n    if (jurisdiction) {\n      intelligence.push(\n        ...scoutLearningPipeline.getJurisdictionIntelligence(jurisdiction)\n      );\n    }\n\n    // Remove duplicates and sort by relevance\n    const uniqueIntelligence = Array.from(\n      new Map(intelligence.map((i) => [i.id, i])).values()\n    );\n\n    return uniqueIntelligence.sort((a, b) => b.lisaRelevance - a.lisaRelevance);\n  }\n\n  /**\n   * Get Scout's brain stats for LISA monitoring\n   */\n  static getBrainStats() {\n    return {\n      metrics: scoutLearningPipeline.getMetrics(),\n      brainSize: scoutLearningPipeline.getBrainSize(),\n      status: \"learning\",\n    };\n  }\n\n  /**\n   * Suggest a scouting mission based on LISA's needs\n   */\n  static suggestScoutingMission(\n    trade: string,\n    jurisdiction: string\n  ): {\n    mission: string;\n    reason: string;\n    priority: \"high\" | \"medium\" | \"low\";\n  } {\n    const existingIntelligence = scoutLearningPipeline.searchIntelligence(\n      `${trade} ${jurisdiction}`,\n      { trade, jurisdiction }\n    );\n\n    if (existingIntelligence.length === 0) {\n      return {\n        mission: `Scout for ${trade} requirements in ${jurisdiction}`,\n        reason: \"No intelligence exists for this trade/jurisdiction combination\",\n        priority: \"high\",\n      };\n    }\n\n    if (existingIntelligence.length < 5) {\n      return {\n        mission: `Scout for more ${trade} details in ${jurisdiction}`,\n        reason: \"Limited intelligence available\",\n        priority: \"medium\",\n      };\n    }\n\n    // Check if intelligence is stale (older than 30 days)\n    const oldestIntelligence = existingIntelligence[existingIntelligence.length - 1];\n    const ageInDays =\n      (Date.now() - new Date(oldestIntelligence.timestamp).getTime()) /\n      (1000 * 60 * 60 * 24);\n\n    if (ageInDays > 30) {\n      return {\n        mission: `Scout for updated ${trade} information in ${jurisdiction}`,\n        reason: \"Intelligence is outdated\",\n        priority: \"low\",\n      };\n    }\n\n    return {\n      mission: `Scout for advanced ${trade} topics in ${jurisdiction}`,\n      reason: \"Deepen existing knowledge\",\n      priority: \"low\",\n    };\n  }\n}\n\n/**\n * Hook for Scout learning pipeline to notify LISA of new intelligence\n */\nexport function setupScoutLisaHooks(): void {\n  scoutLearningPipeline.on(\"intelligence-indexed\", (event) => {\n    // When Scout indexes new intelligence, notify LISA\n    console.log(`[Scout-LISA] New intelligence indexed:`, {\n      reportId: event.reportId,\n      itemCount: event.intelligence.length,\n      timestamp: event.timestamp,\n    });\n\n    // LISA can now use this intelligence for decisions\n    // This would trigger LISA to re-evaluate any pending decisions\n    // that might benefit from this new intelligence\n  });\n}\n
+/**
+ * Scout-LISA Integration
+ *
+ * Feeds Scout's indexed intelligence into LISA's decision layer.
+ * LISA uses Scout's findings to make smarter routing and recommendation decisions.
+ */
+
+import { scoutLearningPipeline, IndexedIntelligence } from "./scoutLearningPipeline";
+
+export interface LisaDecisionContext {
+  userId?: string;
+  trade?: string;
+  jurisdiction?: string;
+  query: string;
+  scoutIntelligence: IndexedIntelligence[];
+  confidenceThreshold?: "high" | "medium" | "low";
+}
+
+export interface LisaDecision {
+  action: string;
+  confidence: number;
+  reasoning: string;
+  scoutIntelligenceUsed: string[]; // IDs of intelligence used
+  recommendations: string[];
+}
+
+/**
+ * Scout-LISA Integration Service
+ *
+ * Provides LISA with Scout's intelligence for decision making.
+ * LISA can query Scout's brain to inform routing, recommendations, and user guidance.
+ */
+export class ScoutLisaIntegration {
+  /**
+   * Get relevant Scout intelligence for a LISA decision
+   */
+  static getRelevantIntelligence(context: LisaDecisionContext): IndexedIntelligence[] {
+    // Search Scout's brain for relevant intelligence
+    const intelligence = scoutLearningPipeline.searchIntelligence(context.query, {
+      trade: context.trade,
+      jurisdiction: context.jurisdiction,
+      minConfidence: context.confidenceThreshold || "medium",
+    });
+
+    // Filter by LISA relevance (only high-relevance intelligence)
+    return intelligence.filter((i) => i.lisaRelevance >= 0.6);
+  }
+
+  /**
+   * Make a LISA decision informed by Scout intelligence
+   */
+  static makeDecision(context: LisaDecisionContext): LisaDecision {
+    const relevantIntelligence = this.getRelevantIntelligence(context);
+
+    if (relevantIntelligence.length === 0) {
+      return {
+        action: "insufficient_intelligence",
+        confidence: 0,
+        reasoning: "Scout has not gathered enough intelligence on this topic yet",
+        scoutIntelligenceUsed: [],
+        recommendations: [
+          "Send Scout to gather more information",
+          "Consider manual research or expert consultation",
+        ],
+      };
+    }
+
+    // Analyze the intelligence to make a decision
+    const decision = this.analyzeIntelligence(relevantIntelligence, context);
+    return decision;
+  }
+
+  /**
+   * Analyze Scout intelligence to make a decision
+   */
+  private static analyzeIntelligence(
+    intelligence: IndexedIntelligence[],
+    context: LisaDecisionContext
+  ): LisaDecision {
+    // Calculate overall confidence
+    const avgConfidence =
+      intelligence.reduce((sum, i) => {
+        const confidenceScore = { high: 1, medium: 0.5, low: 0.25 };
+        return sum + confidenceScore[i.confidence];
+      }, 0) / intelligence.length;
+
+    // Determine the most relevant action based on intelligence
+    const actionableIntelligence = intelligence.filter(
+      (i) =>
+        i.content.toLowerCase().includes("must") ||
+        i.content.toLowerCase().includes("required") ||
+        i.content.toLowerCase().includes("need")
+    );
+
+    let action = "provide_guidance";
+    let reasoning = "Scout has gathered relevant intelligence";
+
+    if (actionableIntelligence.length > 0) {
+      action = "enforce_requirement";
+      reasoning = `Scout found ${actionableIntelligence.length} actionable requirements`;
+    }
+
+    // Build recommendations from intelligence
+    const recommendations = intelligence
+      .filter((i) => i.lisaRelevance >= 0.7)
+      .slice(0, 3)
+      .map((i) => i.content);
+
+    return {
+      action,
+      confidence: Math.min(avgConfidence, 1),
+      reasoning,
+      scoutIntelligenceUsed: intelligence.map((i) => i.id),
+      recommendations,
+    };
+  }
+
+  /**
+   * Get Scout intelligence for a specific user context
+   * Used by LISA to personalize recommendations
+   */
+  static getContextualIntelligence(
+    userId: string,
+    trade?: string,
+    jurisdiction?: string
+  ): IndexedIntelligence[] {
+    const intelligence: IndexedIntelligence[] = [];
+
+    if (trade) {
+      intelligence.push(...scoutLearningPipeline.getTradeIntelligence(trade));
+    }
+
+    if (jurisdiction) {
+      intelligence.push(...scoutLearningPipeline.getJurisdictionIntelligence(jurisdiction));
+    }
+
+    // Remove duplicates and sort by relevance
+    const uniqueIntelligence = Array.from(new Map(intelligence.map((i) => [i.id, i])).values());
+
+    return uniqueIntelligence.sort((a, b) => b.lisaRelevance - a.lisaRelevance);
+  }
+
+  /**
+   * Get Scout's brain stats for LISA monitoring
+   */
+  static getBrainStats() {
+    return {
+      metrics: scoutLearningPipeline.getMetrics(),
+      brainSize: scoutLearningPipeline.getBrainSize(),
+      status: "learning",
+    };
+  }
+
+  /**
+   * Suggest a scouting mission based on LISA's needs
+   */
+  static suggestScoutingMission(
+    trade: string,
+    jurisdiction: string
+  ): {
+    mission: string;
+    reason: string;
+    priority: "high" | "medium" | "low";
+  } {
+    const existingIntelligence = scoutLearningPipeline.searchIntelligence(
+      `${trade} ${jurisdiction}`,
+      { trade, jurisdiction }
+    );
+
+    if (existingIntelligence.length === 0) {
+      return {
+        mission: `Scout for ${trade} requirements in ${jurisdiction}`,
+        reason: "No intelligence exists for this trade/jurisdiction combination",
+        priority: "high",
+      };
+    }
+
+    if (existingIntelligence.length < 5) {
+      return {
+        mission: `Scout for more ${trade} details in ${jurisdiction}`,
+        reason: "Limited intelligence available",
+        priority: "medium",
+      };
+    }
+
+    // Check if intelligence is stale (older than 30 days)
+    const oldestIntelligence = existingIntelligence[existingIntelligence.length - 1];
+    const ageInDays =
+      (Date.now() - new Date(oldestIntelligence.timestamp).getTime()) / (1000 * 60 * 60 * 24);
+
+    if (ageInDays > 30) {
+      return {
+        mission: `Scout for updated ${trade} information in ${jurisdiction}`,
+        reason: "Intelligence is outdated",
+        priority: "low",
+      };
+    }
+
+    return {
+      mission: `Scout for advanced ${trade} topics in ${jurisdiction}`,
+      reason: "Deepen existing knowledge",
+      priority: "low",
+    };
+  }
+}
+
+/**
+ * Hook for Scout learning pipeline to notify LISA of new intelligence
+ */
+export function setupScoutLisaHooks(): void {
+  scoutLearningPipeline.on("intelligence-indexed", (event) => {
+    // When Scout indexes new intelligence, notify LISA
+    console.log(`[Scout-LISA] New intelligence indexed:`, {
+      reportId: event.reportId,
+      itemCount: event.intelligence.length,
+      timestamp: event.timestamp,
+    });
+
+    // LISA can now use this intelligence for decisions
+    // This would trigger LISA to re-evaluate any pending decisions
+    // that might benefit from this new intelligence
+  });
+}
+
+export const scoutLisaIntegration = {
+  async triggerCountyUpdate(fips: string, reason: string): Promise<void> {
+    console.log("[Scout-LISA] County intelligence update queued", { fips, reason });
+  },
+
+  async monitorMission(missionId: string, fips?: string): Promise<void> {
+    console.log("[Scout-LISA] Mission monitoring queued", { missionId, fips });
+  },
+};

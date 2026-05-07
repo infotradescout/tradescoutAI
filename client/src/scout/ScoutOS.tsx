@@ -37,7 +37,7 @@ import {
 } from "../agent/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Sparkles, ClipboardList, Users2, Wrench } from "lucide-react";
+import { BadgeInfo, Sparkles, ClipboardList, Users2, Wrench } from "lucide-react";
 import { getHelpLink } from "./helpSources";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
@@ -2855,6 +2855,21 @@ export default function ScoutOS() {
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
               {!isMobile && (
                 <div className="flex items-center justify-end pb-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mr-2 h-7 px-2.5 text-[11px]"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      color: "var(--text-primary)",
+                      backgroundColor: "transparent",
+                    }}
+                    onClick={() => navigate("/help/scout")}
+                  >
+                    <BadgeInfo className="h-3.5 w-3.5" />
+                    Scout info
+                  </Button>
                   <Sheet>
                     <SheetTrigger asChild>
                       <Button

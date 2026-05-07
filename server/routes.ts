@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Legacy route module ingests dynamic JSON across many endpoints; incremental hardening tracked separately. */
 import scoutRoute from "./routes/scout";
 import scoutNormalizeRouter from "./routes/scout-normalize";
-import scoutV2Router from "./routes/scout-v2";
-import scoutV2LearningRouter from "./routes/scout-v2-learning";
 import { scoutHeatmapRoutes } from "./routes/scout-heatmap";
 import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { logger } from "./services/logger";
@@ -26474,11 +26472,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register AI Scout routes (with assistant alias for backward compatibility)
   const scoutEnhancedV4Router = (await import("./routes/scout-enhanced-v4")).default;
+  const scoutV2Router = (await import("./routes/scout-v2")).default;
   app.use("/api/scout-enhanced-v4", scoutEnhancedV4Router);
   // Scout 2.0: Admin-only new version with OpenAI, web search, and knowledge integration
   app.use("/api/scout-v2", scoutV2Router);
   // Scout 2.0 Learning: With automatic indexing and LISA integration
-  app.use("/api/scout-v2-learning", scoutV2LearningRouter);
+  app.use("/api/scout-v2-learning", scoutV2Router);
+  app.use("/api/scout-heatmap", scoutV2Router);
   // Scout 2.0 Heatmap: Visual Scouting Command Center for file sorting and regional intelligence
   app.use("/api/scout", scoutHeatmapRoutes);
   app.use("/api/heatmap", scoutHeatmapRoutes);

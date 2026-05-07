@@ -1,224 +1,286 @@
-/**
- * Scout Knowledge Loader
- *
- * Loads real knowledge from the TradeScout Brain knowledge base.
- * Reads from actual .docx files in data/TradeScout Brain/40_KNOWLEDGE/
- *
- * NO MOCK DATA. Only real, verified content from your knowledge base.
- * If data is not indexed yet, reports honestly as "not yet indexed".
- */
+import fs from "node:fs";
+import path from "node:path";
+import mammoth from "mammoth";
 
-import fs from "fs";
-import path from "path";
+export type ScoutKnowledgeStatus = "ready" | "not_yet_indexed";
 
-const KNOWLEDGE_BASE_PATH = path.join(process.cwd(), "data", "TradeScout Brain", "40_KNOWLEDGE");
-
-export interface KnowledgeSource {
-  type: "building_codes" | "trade_guides" | "pricing" | "local_data";
-  file: string;
-  indexed: boolean;
-  content?: string;
-  error?: string;
+export interface ScoutKnowledgeEntry {
+  filePath: string;
+  title: string;
+  excerpt: string;
+  score: number;
 }
 
-/**
- * Get all available knowledge files from the knowledge base
- */
-export function getAvailableKnowledgeFiles(): KnowledgeSource[] {
-  const sources: KnowledgeSource[] = [];
+export interface ScoutKnowledgeLoadInput {
+  query: string;
+  countyFips?: string;
+  stateCode?: string;
+  trade?: string;
+  limit?: number;
+}
 
+export interface ScoutKnowledgeLoadResult {
+  status: ScoutKnowledgeStatus;
+  root: string;
+  fileCount: number;
+  matchedCount: number;
+  entries: ScoutKnowledgeEntry[];
+  note: string;
+}
+
+const FILE_EXTENSIONS = new Set([".docx", ".md", ".txt"]);
+const knowledgeTextCache = new Map<string, { mtimeMs: number; text: string }>();
+
+function resolveRepoRoot(): string {
+  let current = process.cwd();
+  for (let i = 0; i < 10; i += 1) {
+    const packageJson = path.join(current, "package.json");
+    if (fs.existsSync(packageJson)) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+
+  return path.resolve(process.cwd());
+}
+
+const REPO_ROOT = resolveRepoRoot();
+export const SCOUT_KNOWLEDGE_ROOT = path.join(
+  REPO_ROOT,
+  "data",
+  "TradeScout Brain",
+  "40_KNOWLEDGE"
+);
+
+function existsSafe(target: string): boolean {
   try {
-    // Building codes
-    const buildingCodesDir = path.join(KNOWLEDGE_BASE_PATH, "41_BUILDING_CODES");
-    if (fs.existsSync(buildingCodesDir)) {
-      const files = fs.readdirSync(buildingCodesDir).filter((f) => f.endsWith(".docx"));
-      files.forEach((file) => {
-        sources.push({
-          type: "building_codes",
-          file,
-          indexed: false, // Would be true if we had parsed and indexed it
-        });
-      });
-    }
-
-    // Trade guides
-    const tradeGuidesDir = path.join(KNOWLEDGE_BASE_PATH, "42_TRADE_GUIDES");
-    if (fs.existsSync(tradeGuidesDir)) {
-      const walkDir = (dir: string) => {
-        const files = fs.readdirSync(dir);
-        files.forEach((file) => {
-          const fullPath = path.join(dir, file);
-          const stat = fs.statSync(fullPath);
-          if (stat.isDirectory()) {
-            walkDir(fullPath);
-          } else if (file.endsWith(".docx")) {
-            sources.push({
-              type: "trade_guides",
-              file: path.relative(tradeGuidesDir, fullPath),
-              indexed: false,
-            });
-          }
-        });
-      };
-      walkDir(tradeGuidesDir);
-    }
-
-    // Pricing
-    const pricingDir = path.join(KNOWLEDGE_BASE_PATH, "43_MARKETS_PRICING");
-    if (fs.existsSync(pricingDir)) {
-      const files = fs.readdirSync(pricingDir).filter((f) => f.endsWith(".docx"));
-      files.forEach((file) => {
-        sources.push({
-          type: "pricing",
-          file,
-          indexed: false,
-        });
-      });
-    }
-  } catch (error) {
-    console.error("[Knowledge Loader] Error scanning knowledge base:", error);
+    return fs.existsSync(target);
+  } catch {
+    return false;
   }
-
-  return sources;
 }
 
-/**
- * Get building code files available
- */
-export function getBuildingCodeFiles(): string[] {
-  const buildingCodesDir = path.join(KNOWLEDGE_BASE_PATH, "41_BUILDING_CODES");
-  if (!fs.existsSync(buildingCodesDir)) {
-    return [];
-  }
-  return fs.readdirSync(buildingCodesDir).filter((f) => f.endsWith(".docx"));
-}
-
-/**
- * Get trade guide files available
- */
-export function getTradeGuideFiles(): string[] {
-  const tradeGuidesDir = path.join(KNOWLEDGE_BASE_PATH, "42_TRADE_GUIDES");
-  if (!fs.existsSync(tradeGuidesDir)) {
-    return [];
-  }
-
+function walkKnowledgeFiles(dir: string): string[] {
   const files: string[] = [];
-  const walkDir = (dir: string) => {
-    const entries = fs.readdirSync(dir);
-    entries.forEach((entry) => {
-      const fullPath = path.join(dir, entry);
-      const stat = fs.statSync(fullPath);
-      if (stat.isDirectory()) {
-        walkDir(fullPath);
-      } else if (entry.endsWith(".docx")) {
-        files.push(path.relative(tradeGuidesDir, fullPath));
-      }
-    });
-  };
-  walkDir(tradeGuidesDir);
+  if (!existsSafe(dir)) {
+    return files;
+  }
+
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...walkKnowledgeFiles(fullPath));
+      continue;
+    }
+    if (FILE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+      files.push(fullPath);
+    }
+  }
+
   return files;
 }
 
-/**
- * Get pricing files available
- */
-export function getPricingFiles(): string[] {
-  const pricingDir = path.join(KNOWLEDGE_BASE_PATH, "43_MARKETS_PRICING");
-  if (!fs.existsSync(pricingDir)) {
-    return [];
+async function readKnowledgeFile(filePath: string): Promise<string | null> {
+  try {
+    const stats = fs.statSync(filePath);
+    const cached = knowledgeTextCache.get(filePath);
+    if (cached && cached.mtimeMs === stats.mtimeMs) {
+      return cached.text;
+    }
+
+    const ext = path.extname(filePath).toLowerCase();
+    let text = "";
+    if (ext === ".docx") {
+      const result = await mammoth.extractRawText({ path: filePath });
+      text = result.value || "";
+    } else {
+      text = fs.readFileSync(filePath, "utf8");
+    }
+
+    const clean = text.trim();
+    if (!clean) {
+      return null;
+    }
+
+    knowledgeTextCache.set(filePath, { mtimeMs: stats.mtimeMs, text: clean });
+    return clean;
+  } catch {
+    return null;
   }
-  return fs.readdirSync(pricingDir).filter((f) => f.endsWith(".docx"));
 }
 
-/**
- * Check if knowledge base is available
- */
-export function isKnowledgeBaseAvailable(): boolean {
-  return fs.existsSync(KNOWLEDGE_BASE_PATH);
+function normalizeTerms(input: ScoutKnowledgeLoadInput): string[] {
+  const raw = [input.query, input.trade, input.countyFips, input.stateCode]
+    .filter((value) => typeof value === "string")
+    .map((value) => String(value || "").toLowerCase())
+    .join(" ");
+
+  return raw
+    .split(/[^a-z0-9]+/i)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 3);
 }
 
-/**
- * Get knowledge base status
- */
-export function getKnowledgeBaseStatus(): {
-  available: boolean;
-  path: string;
-  buildingCodesCount: number;
-  tradeGuidesCount: number;
-  pricingCount: number;
-  totalFiles: number;
-} {
-  const buildingCodes = getBuildingCodeFiles();
-  const tradeGuides = getTradeGuideFiles();
-  const pricing = getPricingFiles();
+function scorePath(filePath: string, terms: string[]): number {
+  const lower = filePath.toLowerCase();
+  return terms.reduce((score, term) => score + (lower.includes(term) ? 2 : 0), 0);
+}
+
+function scoreText(text: string, terms: string[]): number {
+  const lower = text.toLowerCase();
+  return terms.reduce((score, term) => score + (lower.includes(term) ? 1 : 0), 0);
+}
+
+function buildExcerpt(text: string, terms: string[]): string {
+  const lower = text.toLowerCase();
+  const term = terms.find((value) => lower.includes(value));
+  if (!term) {
+    return text.slice(0, 500);
+  }
+
+  const index = lower.indexOf(term);
+  const start = Math.max(0, index - 180);
+  const end = Math.min(text.length, index + 620);
+  return text.slice(start, end);
+}
+
+export async function loadScoutKnowledgeBase(
+  input: ScoutKnowledgeLoadInput
+): Promise<ScoutKnowledgeLoadResult> {
+  const root = SCOUT_KNOWLEDGE_ROOT;
+  const terms = normalizeTerms(input);
+  const limit = Math.max(1, Math.min(Number(input.limit || 5), 8));
+
+  if (!existsSafe(root)) {
+    return {
+      status: "not_yet_indexed",
+      root,
+      fileCount: 0,
+      matchedCount: 0,
+      entries: [],
+      note: "Scout Knowledge Base is not yet indexed at data/TradeScout Brain/40_KNOWLEDGE.",
+    };
+  }
+
+  const files = walkKnowledgeFiles(root);
+  if (!files.length) {
+    return {
+      status: "not_yet_indexed",
+      root,
+      fileCount: 0,
+      matchedCount: 0,
+      entries: [],
+      note: "TradeScout Brain is present, but the 40_KNOWLEDGE corpus is not yet indexed.",
+    };
+  }
+
+  if (!terms.length) {
+    return {
+      status: "not_yet_indexed",
+      root,
+      fileCount: files.length,
+      matchedCount: 0,
+      entries: [],
+      note: "Scout Knowledge Base is available, but this mission did not include enough search terms to index it safely.",
+    };
+  }
+
+  const ranked = files
+    .map((filePath) => ({
+      filePath,
+      pathScore: scorePath(filePath, terms),
+    }))
+    .filter((entry) => entry.pathScore > 0)
+    .sort((a, b) => b.pathScore - a.pathScore)
+    .slice(0, 24);
+
+  const entries: ScoutKnowledgeEntry[] = [];
+
+  for (const candidate of ranked) {
+    const text = await readKnowledgeFile(candidate.filePath);
+    if (!text) {
+      continue;
+    }
+
+    const score = candidate.pathScore + scoreText(text, terms);
+    if (score <= 0) {
+      continue;
+    }
+
+    entries.push({
+      filePath: path.relative(root, candidate.filePath),
+      title: path.basename(candidate.filePath, path.extname(candidate.filePath)),
+      excerpt: buildExcerpt(text, terms),
+      score,
+    });
+  }
+
+  entries.sort((a, b) => b.score - a.score);
+
+  if (!entries.length) {
+    return {
+      status: "not_yet_indexed",
+      root,
+      fileCount: files.length,
+      matchedCount: 0,
+      entries: [],
+      note: "Scout Knowledge Base exists, but this mission is not yet indexed in the TradeScout Brain corpus.",
+    };
+  }
 
   return {
-    available: isKnowledgeBaseAvailable(),
-    path: KNOWLEDGE_BASE_PATH,
-    buildingCodesCount: buildingCodes.length,
-    tradeGuidesCount: tradeGuides.length,
-    pricingCount: pricing.length,
-    totalFiles: buildingCodes.length + tradeGuides.length + pricing.length,
+    status: "ready",
+    root,
+    fileCount: files.length,
+    matchedCount: entries.length,
+    entries: entries.slice(0, limit),
+    note: `Found ${Math.min(entries.length, limit)} indexed TradeScout Brain match${entries.length === 1 ? "" : "es"}.`,
   };
 }
 
-/**
- * Format knowledge availability message
- */
-export function formatKnowledgeAvailability(): string {
-  const status = getKnowledgeBaseStatus();
-
-  if (!status.available) {
-    return "Knowledge base not found at: " + status.path;
+function getKnowledgeFilesByPattern(pattern: RegExp): string[] {
+  if (!existsSafe(SCOUT_KNOWLEDGE_ROOT)) {
+    return [];
   }
 
-  const lines = [
-    "TradeScout Knowledge Base Status:",
-    `- Building Codes: ${status.buildingCodesCount} files`,
-    `- Trade Guides: ${status.tradeGuidesCount} files`,
-    `- Pricing Data: ${status.pricingCount} files`,
-    `- Total: ${status.totalFiles} files`,
-  ];
-
-  return lines.join("\n");
+  return walkKnowledgeFiles(SCOUT_KNOWLEDGE_ROOT)
+    .filter((filePath) => pattern.test(filePath))
+    .map((filePath) => path.relative(SCOUT_KNOWLEDGE_ROOT, filePath));
 }
 
-/**
- * Get honest response when data is not yet indexed
- */
-export function getNotIndexedResponse(dataType: string, context?: string): string {
-  const contextStr = context ? ` for ${context}` : "";
-  return `I don't have ${dataType}${contextStr} indexed yet in the TradeScout knowledge base. The files exist but haven't been processed into a searchable format. Please check the raw documents in the knowledge base or ask your team to index this data.`;
+export function getBuildingCodeFiles(): string[] {
+  return getKnowledgeFilesByPattern(/\b(code|codes|permit|inspection|jurisdiction|building)\b/i);
 }
 
-/**
- * Get knowledge base summary for debugging
- */
-export function getKnowledgeSummary(): {
-  status: string;
-  files: KnowledgeSource[];
-  summary: string;
+export function getTradeGuideFiles(): string[] {
+  return getKnowledgeFilesByPattern(
+    /\b(trade|guide|electrical|plumbing|hvac|roof|framing|deck)\b/i
+  );
+}
+
+export function getPricingFiles(): string[] {
+  return getKnowledgeFilesByPattern(/\b(price|pricing|cost|material|estimate|market)\b/i);
+}
+
+export function getNotIndexedResponse(topic: string, context?: string): string {
+  const suffix = context ? ` ${context}` : "";
+  return `${topic}${suffix} is present only when indexed in data/TradeScout Brain/40_KNOWLEDGE; Scout has not indexed a verified match yet.`;
+}
+
+export function getKnowledgeBaseStatus(): {
+  available: boolean;
+  root: string;
+  fileCount: number;
 } {
-  const files = getAvailableKnowledgeFiles();
-  const status = getKnowledgeBaseStatus();
-
-  const summary = `
-Knowledge Base Summary:
-- Location: ${status.path}
-- Available: ${status.available}
-- Building Codes: ${status.buildingCodesCount} files
-- Trade Guides: ${status.tradeGuidesCount} files
-- Pricing: ${status.pricingCount} files
-- Total: ${status.totalFiles} files
-
-Note: These are the raw .docx files available. To use them in Scout,
-they need to be indexed and parsed. Currently, Scout will report
-"not yet indexed" for queries until indexing is complete.
-  `.trim();
-
+  const files = existsSafe(SCOUT_KNOWLEDGE_ROOT) ? walkKnowledgeFiles(SCOUT_KNOWLEDGE_ROOT) : [];
   return {
-    status: status.available ? "ready" : "not_found",
-    files,
-    summary,
+    available: files.length > 0,
+    root: SCOUT_KNOWLEDGE_ROOT,
+    fileCount: files.length,
   };
 }

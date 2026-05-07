@@ -146,7 +146,7 @@ export default function Navigation() {
     },
     { href: "/wallet", label: "Wallet", icon: DollarSign, description: "Your TradeScout balance" },
     {
-      href: "/content-moderation",
+      href: "/admin/moderation",
       label: "Moderate Community",
       icon: Shield,
       description: "Review posts, reports, and flags",

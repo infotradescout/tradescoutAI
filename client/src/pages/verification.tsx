@@ -220,7 +220,7 @@ const Verification = memo(function Verification() {
               <Link href="/identity-verification">Complete identity verification</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
-              <Link href="/contractor-verification">Professional verification</Link>
+              <Link href="/admin/professional-verification">Professional verification</Link>
             </Button>
             <Button asChild variant="outline" className="justify-start">
               <Link href="/license-verification">License documents</Link>
