@@ -12,13 +12,12 @@
 
 import { Router, Request, Response } from "express";
 import { buildScoutLlmProviders, generateWithFallback } from "../services/llmProvider";
-import { webSearch } from "../services/webSearchService";
 import {
-  buildEnrichedPrompt,
-  extractRelevantKnowledge,
-  isCodeRelatedQuery,
-  isPricingRelatedQuery,
-} from "../services/scoutKnowledgeIntegration";
+  gatherMultiSourceData,
+  synthesizeMultiSourcePrompt,
+  buildMultiSourceResponse,
+} from "../services/scoutMultiSourceSynthesis";
+import { isCodeRelatedQuery, isPricingRelatedQuery } from "../services/scoutKnowledgeIntegration";
 
 const router = Router();
 
@@ -103,51 +102,32 @@ router.post("/", async (req: Request, res: Response) => {
     const trade = extractTrade(query);
     const disclaimers: string[] = [];
 
-    // Extract relevant knowledge based on query
-    const relevantKnowledge = extractRelevantKnowledge(query, trade, county, state);
-
-    // Build enriched prompt with knowledge context
-    const enrichedPrompt = buildEnrichedPrompt(
+    // Proactively gather data from ALL sources (Knowledge + Web + Local)
+    const sourceData = await gatherMultiSourceData({
       query,
-      {
-        query,
-        county,
-        state,
-        trade,
-      },
-      relevantKnowledge
+      county,
+      state,
+      trade,
+    });
+
+    // Synthesize all sources into a comprehensive prompt
+    const synthesis = synthesizeMultiSourcePrompt(
+      query,
+      { query, county, state, trade },
+      sourceData
     );
 
     // Build LLM providers with failover
     const providers = buildScoutLlmProviders();
 
-    // Generate response using LLM with fallback
+    // Generate response using LLM with multi-source context
     const { text: llmResponse, provider } = await generateWithFallback(
-      enrichedPrompt.systemPrompt,
+      synthesis.systemPrompt,
       providers,
       {
         maxTokens: 900,
       }
     );
-
-    // Check if we should do a web search for real-time data
-    let includesWebSearch = false;
-    let webSearchContent = "";
-
-    if ((isCodeRelatedQuery(query) || isPricingRelatedQuery(query)) && provider === "openai") {
-      // OpenAI can do web search, but we'll do it explicitly for transparency
-      try {
-        const searchResult = await webSearch(query, 3);
-        if (searchResult.success && searchResult.content) {
-          includesWebSearch = true;
-          webSearchContent = `\n\n**Real-time Web Search Results:**\n${searchResult.content}`;
-          enrichedPrompt.sources.push("Web Search (Real-time)");
-        }
-      } catch (e) {
-        // Web search is optional, continue without it
-        console.warn("[Scout 2.0] Web search failed:", e);
-      }
-    }
 
     // Add disclaimers based on query type
     if (isCodeRelatedQuery(query)) {
@@ -160,22 +140,18 @@ router.post("/", async (req: Request, res: Response) => {
       disclaimers.push("Get quotes from multiple contractors for accurate estimates");
     }
 
-    // Build final response
-    const finalMessage = llmResponse + webSearchContent;
+    // Build multi-source response
+    const multiSourceResponse = buildMultiSourceResponse(synthesis, llmResponse);
 
-    // Combine disclaimers with knowledge warnings
-    const allWarnings = [...disclaimers];
-    if (enrichedPrompt.warnings) {
-      allWarnings.push(...enrichedPrompt.warnings);
-    }
+    // Combine all warnings
+    const allWarnings = [...disclaimers, ...synthesis.warnings];
 
     return res.json({
       success: true,
-      message: finalMessage,
-      sources: enrichedPrompt.sources,
-      confidence: enrichedPrompt.confidence,
+      message: multiSourceResponse.message,
+      sources: multiSourceResponse.sources,
+      sourceBreakdown: multiSourceResponse.sourceBreakdown,
       provider,
-      includesWebSearch,
       disclaimers: allWarnings,
       timestamp: new Date().toISOString(),
       scoutVersion: "2.0",
