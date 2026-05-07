@@ -3,6 +3,7 @@ import scoutRoute from "./routes/scout";
 import scoutNormalizeRouter from "./routes/scout-normalize";
 import scoutV2Router from "./routes/scout-v2";
 import scoutV2LearningRouter from "./routes/scout-v2-learning";
+import { scoutHeatmapRoutes } from "./routes/scout-heatmap";
 import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
@@ -26478,6 +26479,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use("/api/scout-v2", scoutV2Router);
   // Scout 2.0 Learning: With automatic indexing and LISA integration
   app.use("/api/scout-v2-learning", scoutV2LearningRouter);
+  // Scout 2.0 Heatmap: Visual Scouting Command Center for file sorting and regional intelligence
+  app.use("/api/scout", scoutHeatmapRoutes);
+  app.use("/api/heatmap", scoutHeatmapRoutes);
   app.use("/", scoutNormalizeRouter);
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
