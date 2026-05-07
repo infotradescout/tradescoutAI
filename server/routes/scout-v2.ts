@@ -18,6 +18,7 @@ import {
   buildMultiSourceResponse,
 } from "../services/scoutMultiSourceSynthesis";
 import { isCodeRelatedQuery, isPricingRelatedQuery } from "../services/scoutKnowledgeIntegration";
+import { scoutFindingsToLisaFeed, type ScoutIntelligenceFinding } from "../services/scoutToLisaConverter";
 
 const router = Router();
 

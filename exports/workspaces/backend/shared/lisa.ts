@@ -4,6 +4,7 @@ export type LisaFeedPriority = "critical" | "high" | "medium" | "low";
 
 export type LisaFeedSourceKind =
   | "scout_interactions"
+  | "scout_intelligence"
   | "objectives"
   | "homescout_listings"
   | "observations"
