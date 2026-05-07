@@ -163,6 +163,12 @@ router.post("/", async (req: Request, res: Response) => {
     // Build final response
     const finalMessage = llmResponse + webSearchContent;
 
+    // Combine disclaimers with knowledge warnings
+    const allWarnings = [...disclaimers];
+    if (enrichedPrompt.warnings) {
+      allWarnings.push(...enrichedPrompt.warnings);
+    }
+
     return res.json({
       success: true,
       message: finalMessage,
@@ -170,7 +176,7 @@ router.post("/", async (req: Request, res: Response) => {
       confidence: enrichedPrompt.confidence,
       provider,
       includesWebSearch,
-      disclaimers,
+      disclaimers: allWarnings,
       timestamp: new Date().toISOString(),
       scoutVersion: "2.0",
       adminOnly: true,

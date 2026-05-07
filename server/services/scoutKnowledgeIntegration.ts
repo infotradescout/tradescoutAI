@@ -2,12 +2,22 @@
  * Scout Knowledge Integration Service
  *
  * Bridges the gap between:
- * 1. Structured knowledge base (building codes, pricing, trade guides)
+ * 1. Real knowledge base (building codes, pricing, trade guides)
  * 2. OpenAI Responses API for intelligent synthesis
  * 3. Web search for real-time data (material prices, local regulations)
  *
  * This ensures Scout answers are grounded in verified data, not hallucinations.
+ * NO MOCK DATA - only real, verified content from your knowledge base.
+ * If data is not indexed yet, reports honestly as "not yet indexed".
  */
+
+import {
+  getBuildingCodeFiles,
+  getTradeGuideFiles,
+  getPricingFiles,
+  getNotIndexedResponse,
+  getKnowledgeBaseStatus,
+} from "./scoutKnowledgeLoader";
 
 export interface KnowledgeContext {
   query: string;
@@ -22,6 +32,7 @@ export interface EnrichedPrompt {
   userPrompt: string;
   sources: string[];
   confidence: "high" | "medium" | "low";
+  warnings?: string[];
 }
 
 /**
@@ -41,8 +52,81 @@ export function isPricingRelatedQuery(query: string): boolean {
 }
 
 /**
+ * Extract relevant knowledge from the knowledge base for a given query.
+ * Returns real data if indexed, or honest "not yet indexed" message if not.
+ * NO MOCK DATA - only real verified content.
+ */
+export function extractRelevantKnowledge(
+  query: string,
+  trade?: string,
+  county?: string,
+  state?: string
+): {
+  codes?: string;
+  pricing?: string;
+  guides?: string;
+  localData?: string;
+  notIndexed?: string[];
+} {
+  const relevant: any = {};
+  const notIndexed: string[] = [];
+
+  // Check if knowledge base is available
+  const status = getKnowledgeBaseStatus();
+  if (!status.available) {
+    notIndexed.push(
+      "Knowledge base not found. Building codes, pricing, and guides are not available."
+    );
+    relevant.notIndexed = notIndexed;
+    return relevant;
+  }
+
+  // Building codes: Check if files exist
+  if (isCodeRelatedQuery(query)) {
+    const buildingCodeFiles = getBuildingCodeFiles();
+    if (buildingCodeFiles.length > 0) {
+      // Files exist but are not yet parsed/indexed
+      notIndexed.push(
+        getNotIndexedResponse("building codes", trade ? `for ${trade}` : undefined)
+      );
+    } else {
+      notIndexed.push("Building code files have not been added to the knowledge base yet.");
+    }
+  }
+
+  // Pricing data: Check if files exist
+  if (isPricingRelatedQuery(query)) {
+    const pricingFiles = getPricingFiles();
+    if (pricingFiles.length > 0) {
+      // Files exist but are not yet parsed/indexed
+      notIndexed.push(getNotIndexedResponse("pricing data", state ? `for ${state}` : undefined));
+    } else {
+      notIndexed.push("Pricing files have not been added to the knowledge base yet.");
+    }
+  }
+
+  // Trade guides: Check if files exist
+  if (trade) {
+    const tradeGuideFiles = getTradeGuideFiles();
+    if (tradeGuideFiles.length > 0) {
+      // Files exist but are not yet parsed/indexed
+      notIndexed.push(getNotIndexedResponse("trade guides", `for ${trade}`));
+    } else {
+      notIndexed.push("Trade guide files have not been added to the knowledge base yet.");
+    }
+  }
+
+  if (notIndexed.length > 0) {
+    relevant.notIndexed = notIndexed;
+  }
+
+  return relevant;
+}
+
+/**
  * Build an enriched prompt that includes relevant knowledge context.
  * This ensures OpenAI has the right context to give accurate, grounded answers.
+ * If knowledge is not indexed, includes honest warnings.
  */
 export function buildEnrichedPrompt(
   userQuery: string,
@@ -52,10 +136,17 @@ export function buildEnrichedPrompt(
     pricing?: string;
     guides?: string;
     localData?: string;
+    notIndexed?: string[];
   }
 ): EnrichedPrompt {
   const sources: string[] = [];
+  const warnings: string[] = [];
   let knowledgeSection = "";
+
+  // Add warnings if data is not indexed
+  if (relevantKnowledge?.notIndexed && relevantKnowledge.notIndexed.length > 0) {
+    warnings.push(...relevantKnowledge.notIndexed);
+  }
 
   // Add code-related context if applicable
   if (isCodeRelatedQuery(userQuery) && relevantKnowledge?.codes) {
@@ -81,6 +172,7 @@ export function buildEnrichedPrompt(
     sources.push(`Local Data for ${knowledgeContext.county}, ${knowledgeContext.state}`);
   }
 
+  // Build system prompt
   const systemPrompt = `You are Scout, the TradeScout operating system assistant.
 
 Your role:
@@ -89,6 +181,7 @@ Your role:
 - If you reference codes, pricing, or guides, cite the source clearly
 - If information comes from the open web, always say so explicitly
 - Never invent data, contractors, prices, or regulations
+- Be honest about what you don't know
 
 When answering:
 1. Use the knowledge provided below as your primary source
@@ -107,68 +200,6 @@ ${knowledgeSection}`;
     userPrompt,
     sources,
     confidence,
+    warnings: warnings.length > 0 ? warnings : undefined,
   };
-}
-
-import {
-  getBuildingCodeData,
-  getPricingData,
-  getTradeGuide,
-  getLocalGuide,
-  formatBuildingCodeText,
-  formatPricingText,
-  formatTradeGuideText,
-  formatLocalGuideText,
-} from "./scoutKnowledgeLoader";
-
-/**
- * Extract relevant knowledge from the knowledge base for a given query.
- * This integrates with scoutKnowledgeLoader to retrieve formatted knowledge.
- */
-export function extractRelevantKnowledge(
-  query: string,
-  trade?: string,
-  county?: string,
-  state?: string
-): {
-  codes?: string;
-  pricing?: string;
-  guides?: string;
-  localData?: string;
-} {
-  const relevant: any = {};
-
-  // Load building codes if this is a code-related query
-  if (isCodeRelatedQuery(query) && trade && state) {
-    const codeData = getBuildingCodeData(trade, state);
-    if (codeData) {
-      relevant.codes = formatBuildingCodeText(codeData);
-    }
-  }
-
-  // Load pricing data if this is a pricing-related query
-  if (isPricingRelatedQuery(query) && trade && state) {
-    const pricingData = getPricingData(trade, state);
-    if (pricingData) {
-      relevant.pricing = formatPricingText(pricingData);
-    }
-  }
-
-  // Load trade guides
-  if (trade) {
-    const guideData = getTradeGuide(trade);
-    if (guideData) {
-      relevant.guides = formatTradeGuideText(guideData);
-    }
-  }
-
-  // Load local guides
-  if (county && state) {
-    const localData = getLocalGuide(county, state);
-    if (localData) {
-      relevant.localData = formatLocalGuideText(localData);
-    }
-  }
-
-  return relevant;
 }
