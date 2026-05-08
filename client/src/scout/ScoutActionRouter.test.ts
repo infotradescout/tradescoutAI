@@ -48,6 +48,8 @@ describe("ScoutActionRouter structured prefill routing", () => {
           jobType: "roofing",
           scope: "Need roof leak repair",
           urgency: "high",
+          budgetMin: 500,
+          budgetMax: 900,
         },
       },
     };
@@ -64,6 +66,8 @@ describe("ScoutActionRouter structured prefill routing", () => {
     expect(params.get("title")).toBe("roofing request");
     expect(params.get("description")).toBe("Need roof leak repair");
     expect(params.get("urgency")).toBe("high");
+    expect(params.get("budgetMin")).toBe("500");
+    expect(params.get("budgetMax")).toBe("900");
     expect(params.get("source")).toBe("scout");
   });
 

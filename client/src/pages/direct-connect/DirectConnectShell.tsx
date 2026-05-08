@@ -562,6 +562,8 @@ function DirectConnectRequestComposer({
   prefillSource,
   prefillTitle,
   prefillDescription,
+  prefillBudgetMin,
+  prefillBudgetMax,
 }: {
   defaultCountyFips?: string;
   prefillTargetUserId?: string;
@@ -569,6 +571,8 @@ function DirectConnectRequestComposer({
   prefillSource?: string;
   prefillTitle?: string;
   prefillDescription?: string;
+  prefillBudgetMin?: string;
+  prefillBudgetMax?: string;
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -595,9 +599,11 @@ function DirectConnectRequestComposer({
         ? `This request started from Community and is intended for ${initialTargetName}.`
         : "")
   );
-  const [budgetMin, setBudgetMin] = useState("");
-  const [budgetMax, setBudgetMax] = useState("");
-  const [showOptional, setShowOptional] = useState(false);
+  const [budgetMin, setBudgetMin] = useState(() => prefillBudgetMin?.trim() || "");
+  const [budgetMax, setBudgetMax] = useState(() => prefillBudgetMax?.trim() || "");
+  const [showOptional, setShowOptional] = useState(() =>
+    Boolean(prefillBudgetMin?.trim() || prefillBudgetMax?.trim())
+  );
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
   const [showDispatchSheet, setShowDispatchSheet] = useState(false);
   const [dispatchMode, setDispatchMode] = useState<DispatchMode>("top_count");
@@ -2906,6 +2912,8 @@ export default function DirectConnectShell() {
     const source = params.get("source") || undefined;
     const title = params.get("title") || undefined;
     const description = params.get("description") || undefined;
+    const budgetMin = params.get("budgetMin") || undefined;
+    const budgetMax = params.get("budgetMax") || undefined;
     return {
       countyFips,
       targetUserId,
@@ -2913,6 +2921,8 @@ export default function DirectConnectShell() {
       source,
       title,
       description,
+      budgetMin,
+      budgetMax,
     };
   }, [location]);
   const defaultCountyFips = requestPrefill?.countyFips;
@@ -3041,6 +3051,8 @@ export default function DirectConnectShell() {
           prefillSource={requestPrefill?.source}
           prefillTitle={requestPrefill?.title}
           prefillDescription={requestPrefill?.description}
+          prefillBudgetMin={requestPrefill?.budgetMin}
+          prefillBudgetMax={requestPrefill?.budgetMax}
         />
       );
       break;

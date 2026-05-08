@@ -21,6 +21,16 @@ type MatcherConfig = {
   minScore?: number;
 };
 
+type DumpFacts = {
+  need: string;
+  urgency: "high" | "normal";
+  urgencyLabel: string;
+  jobType?: string;
+  budgetMin?: number;
+  budgetMax?: number;
+  factItems: Array<{ id: string; label: string; description?: string }>;
+};
+
 function normalize(input: string): string {
   return input
     .toLowerCase()
@@ -50,20 +60,130 @@ function quotedNeed(rawMessage: string): string {
   return trimmed.length > 120 ? `${trimmed.slice(0, 117).trim()}...` : trimmed;
 }
 
-function requestAction(rawMessage: string): ScoutAction {
+function inferJobType(rawMessage: string): string | undefined {
+  const normalized = normalize(rawMessage);
+  const tradeHints: Array<[string, string[]]> = [
+    ["roofing", ["roof", "roofer", "roofing", "shingle", "gutter"]],
+    [
+      "plumbing",
+      ["plumber", "plumbing", "pipe", "toilet", "sink", "water heater", "drain", "water leak"],
+    ],
+    ["electrical", ["electrician", "electrical", "outlet", "breaker", "panel", "wire", "wiring"]],
+    ["hvac", ["hvac", "ac", "a c", "air conditioner", "heat pump", "furnace", "no heat", "no ac"]],
+    ["fencing", ["fence", "gate"]],
+    ["deck", ["deck", "decking", "porch", "patio"]],
+    ["painting", ["paint", "painter", "painting"]],
+    ["landscaping", ["lawn", "landscape", "landscaping", "tree", "yard"]],
+    ["concrete", ["concrete", "driveway", "slab", "sidewalk"]],
+    ["cleaning", ["cleaner", "cleaning", "deep clean"]],
+  ];
+
+  return tradeHints.find(([, hints]) => hints.some((hint) => normalized.includes(hint)))?.[0];
+}
+
+function inferBudget(rawMessage: string): { min?: number; max?: number } {
+  const compact = rawMessage.replace(/,/g, "");
+  const range = compact.match(/\$?\s*(\d{2,7})\s*(?:-|to|through|and)\s*\$?\s*(\d{2,7})/i);
+  if (range) {
+    const first = Number(range[1]);
+    const second = Number(range[2]);
+    if (Number.isFinite(first) && Number.isFinite(second)) {
+      return { min: Math.min(first, second), max: Math.max(first, second) };
+    }
+  }
+
+  const under = compact.match(/\b(?:under|below|max|maximum|up to)\s*\$?\s*(\d{2,7})\b/i);
+  if (under) {
+    const max = Number(under[1]);
+    if (Number.isFinite(max)) return { max };
+  }
+
+  const over = compact.match(/\b(?:over|above|min|minimum|at least)\s*\$?\s*(\d{2,7})\b/i);
+  if (over) {
+    const min = Number(over[1]);
+    if (Number.isFinite(min)) return { min };
+  }
+
+  const dollars = compact.match(/\$\s*(\d{2,7})\b/);
+  if (dollars) {
+    const max = Number(dollars[1]);
+    if (Number.isFinite(max)) return { max };
+  }
+
+  return {};
+}
+
+function inferUrgency(rawMessage: string): DumpFacts["urgency"] {
+  return /\b(today|urgent|asap|emergency|now|leak|broken|no heat|no ac|flood|sparking)\b/i.test(
+    rawMessage
+  )
+    ? "high"
+    : "normal";
+}
+
+function buildFacts(rawMessage: string): DumpFacts {
   const need = quotedNeed(rawMessage);
+  const jobType = inferJobType(rawMessage);
+  const budget = inferBudget(rawMessage);
+  const urgency = inferUrgency(rawMessage);
+  const factItems: DumpFacts["factItems"] = [];
+
+  if (jobType) {
+    factItems.push({
+      id: "fact-job-type",
+      label: `Likely type: ${jobType}`,
+      description: "Used to prefill the request title",
+    });
+  }
+
+  if (budget.min || budget.max) {
+    const budgetLabel =
+      budget.min && budget.max
+        ? `$${budget.min}-$${budget.max}`
+        : budget.max
+          ? `up to $${budget.max}`
+          : `at least $${budget.min}`;
+    factItems.push({
+      id: "fact-budget",
+      label: `Budget: ${budgetLabel}`,
+      description: "You can change this before sharing",
+    });
+  }
+
+  factItems.push({
+    id: "fact-urgency",
+    label: urgency === "high" ? "Timing: urgent" : "Timing: normal",
+    description:
+      urgency === "high" ? "Scout saw time-sensitive wording" : "No urgent wording found",
+  });
+
+  return {
+    need,
+    urgency,
+    urgencyLabel: urgency === "high" ? "urgent" : "normal",
+    jobType,
+    budgetMin: budget.min,
+    budgetMax: budget.max,
+    factItems,
+  };
+}
+
+function requestAction(rawMessage: string): ScoutAction {
+  const facts = buildFacts(rawMessage);
   return {
     type: "PREFILL_INPUT",
-    label: "Create request",
-    subtitle: "Review before sharing",
+    label: facts.jobType ? `Create ${facts.jobType} request` : "Create request",
+    subtitle:
+      facts.urgency === "high" ? "Urgent draft, review before sharing" : "Review before sharing",
     payload: {
       target: "direct_connect_request",
       route: "/direct-connect",
       prefill: {
-        scope: need,
-        urgency: /\b(today|urgent|asap|emergency|now|leak|broken|no heat|no ac)\b/i.test(rawMessage)
-          ? "high"
-          : "normal",
+        scope: facts.need,
+        jobType: facts.jobType,
+        urgency: facts.urgency,
+        budgetMin: facts.budgetMin,
+        budgetMax: facts.budgetMax,
       },
     },
     primary: true,
@@ -79,7 +199,8 @@ function askScoutAction(label: string, prompt: string): ScoutAction {
 }
 
 function matcherConfigs(rawMessage: string): MatcherConfig[] {
-  const need = quotedNeed(rawMessage);
+  const facts = buildFacts(rawMessage);
+  const need = facts.need;
 
   return [
     {
@@ -112,7 +233,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
         "fence",
         "deck",
       ],
-      body: "Scout can turn this into local help options, a saved request, or more questions before contact opens.",
+      body: `Scout can turn this into local help options, a saved request, or more questions before contact opens. It reads as ${facts.urgencyLabel}${facts.jobType ? ` ${facts.jobType}` : ""} help.`,
       actions: [
         requestAction(rawMessage),
         { type: "NAVIGATE", label: "Browse local help", to: "/direct-connect/pros" },
@@ -276,6 +397,7 @@ export function sortScoutInfoDump(rawMessage: string): SortedScoutIntent[] {
   const normalized = normalize(rawMessage);
   if (!normalized || normalized.length < 2) return [];
 
+  const facts = buildFacts(rawMessage);
   const configs = matcherConfigs(rawMessage);
   const scored = configs
     .map((config) => {
@@ -300,6 +422,7 @@ export function sortScoutInfoDump(rawMessage: string): SortedScoutIntent[] {
       kind: config.kind,
       body: config.body,
       items: [
+        ...facts.factItems,
         {
           id: `${config.id}-reason`,
           label: config.reason,

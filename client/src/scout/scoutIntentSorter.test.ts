@@ -9,9 +9,29 @@ describe("sortScoutInfoDump", () => {
 
     expect(intents.map((intent) => intent.id)).toContain("local-help");
     expect(intents.map((intent) => intent.id)).toContain("saved-request");
-    expect(intents[0].cluster.actions?.some((action) => action.label === "Create request")).toBe(
-      true
+    const requestAction = intents[0].cluster.actions?.find((action) =>
+      String(action.label || "").includes("Create roofing request")
     );
+    expect(requestAction).toBeTruthy();
+    expect(requestAction?.payload?.prefill).toMatchObject({
+      jobType: "roofing",
+      urgency: "high",
+    });
+  });
+
+  it("extracts budget ranges into the saved request prefill", () => {
+    const intents = sortScoutInfoDump("need plumber this week budget $500-$900 for a sink leak");
+    const localHelp = intents.find((intent) => intent.id === "local-help");
+    const requestAction = localHelp?.actions.find((action) =>
+      String(action.label || "").includes("Create plumbing request")
+    );
+
+    expect(requestAction?.payload?.prefill).toMatchObject({
+      jobType: "plumbing",
+      budgetMin: 500,
+      budgetMax: 900,
+    });
+    expect(localHelp?.cluster.items?.some((item) => item.label === "Budget: $500-$900")).toBe(true);
   });
 
   it("sorts invoice and message language into site search", () => {
