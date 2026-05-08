@@ -201,7 +201,7 @@ export function useScoutOnboarding() {
           setFlowState((prev) => ({
             ...prev,
             phase: "confirming",
-            error: "Finish local setup first so Scout can route your claims to the right county.",
+            error: "Finish local setup first so Scout can show the right nearby results.",
           }));
           return;
         }

@@ -34,7 +34,7 @@ describe("enforceResponseQualityContract", () => {
     });
 
     expect(result.toLowerCase()).not.toContain("can't help");
-    expect(result).toContain("direct next step");
+    expect(result).toContain("next local step");
   });
 
   it("appends a follow-up question when response has no question", () => {
@@ -97,7 +97,7 @@ describe("enforceResponseQualityContract", () => {
     expect(result).toContain("having trouble generating");
   });
 
-  it("replaces blocked fallback copy with direct next-step language", () => {
+  it("replaces blocked fallback copy with local next-step language", () => {
     const result = enforceResponseQualityContract({
       userMessage: "hello",
       content:
@@ -105,7 +105,7 @@ describe("enforceResponseQualityContract", () => {
       hasActionOptions: false,
     });
 
-    expect(result).toContain("direct next step");
+    expect(result).toContain("next local step");
     expect(result.toLowerCase()).not.toContain("couldn't find reliable information");
   });
 });

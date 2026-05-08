@@ -210,7 +210,7 @@ function ObjectiveSuggestionCard(props: {
             borderColor: "var(--border-subtle)",
           }}
         >
-          Open route
+          Open
         </button>
       </div>
     </article>
@@ -290,7 +290,7 @@ function FastWinCard(props: {
 }
 
 /**
- * Objective-first onboarding surface for Scout.
+ * Guided first-step surface for Scout.
  *
  * This component is intentionally state-light:
  * - Server/service controls objective scoring and recommendation ordering.
@@ -347,7 +347,7 @@ export function ObjectiveOnboardingFlow({
         }}
       >
         <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-          Objective onboarding
+          Getting started
         </h3>
         <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
           No suggestions available yet. Ask Scout for a local objective to begin.
@@ -370,10 +370,10 @@ export function ObjectiveOnboardingFlow({
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-            Objective-first onboarding
+            Your next steps
           </h3>
           <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            {roleLabel ? `${roleLabel} path` : "Your path"} with fast wins and governed next steps.
+            {roleLabel ? `${roleLabel} path` : "Your path"} with quick wins and clear next steps.
           </p>
         </div>
 
@@ -429,7 +429,7 @@ export function ObjectiveOnboardingFlow({
       <div className="mt-5 rounded-lg border p-3" style={{ borderColor: "var(--border-subtle)" }}>
         <div className="mb-2 flex items-center justify-between gap-2">
           <h4 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-            Fast-win cards
+            Quick wins
           </h4>
 
           <button
@@ -458,7 +458,7 @@ export function ObjectiveOnboardingFlow({
           </div>
         ) : (
           <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-            Fast-win cards are hidden. Re-open to continue immediate objective actions.
+            Quick wins are hidden. Re-open them whenever you want another easy next step.
           </p>
         )}
       </div>
@@ -475,7 +475,7 @@ export function ObjectiveOnboardingFlow({
             className="text-xs uppercase tracking-wide"
             style={{ color: "var(--text-secondary)" }}
           >
-            Selected objective
+            Selected step
           </div>
           <div className="mt-1 text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
             {selectedSuggestion.title}
@@ -505,7 +505,7 @@ export function ObjectiveOnboardingFlow({
               className="rounded-md border px-3 py-2 text-xs font-semibold"
               style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
             >
-              Open {selectedSuggestion.recommendedRoute}
+              Open
             </button>
           </div>
         </footer>

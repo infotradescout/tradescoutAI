@@ -175,7 +175,7 @@ export function buildConnectionFallback(
   }
 
   candidateActions.push(
-    { type: "NAVIGATE", label: "Open Direct Connect", to: "/direct-connect" },
+    { type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" },
     { type: "NAVIGATE", label: "Browse local help", to: payload.contractorsRoute },
     { type: "NAVIGATE", label: "Open community", to: payload.communityRoute }
   );

@@ -1677,7 +1677,7 @@ export default function ScoutOS() {
         if (isFirstAnswer) {
           clusters.push({
             id: "first-nav-contractors",
-            title: "Browse local professionals",
+            title: "Find local help",
             kind: "generic",
             primaryAction: {
               type: "NAVIGATE",
@@ -1691,7 +1691,7 @@ export default function ScoutOS() {
               id: "first-account-prompt",
               title: "Save your area and requests",
               kind: "generic",
-              body: "Create a free account so Scout can remember your area and keep your Direct Connect requests synced.",
+              body: "Create a free account so Scout can remember your area and keep your saved requests synced.",
               actions: [
                 {
                   type: "NAVIGATE",
@@ -3470,7 +3470,7 @@ export default function ScoutOS() {
                         className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide"
                         style={{ color: "var(--text-secondary)" }}
                       >
-                        Controller
+                        Actions
                       </p>
 
                       <button
@@ -3613,8 +3613,8 @@ export default function ScoutOS() {
                           className="text-xs md:text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          Set your county so Scout can show the right local providers, activity, and
-                          jobs.
+                          Set your county so Scout can show the right nearby help, activity, and
+                          requests.
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button
@@ -3762,7 +3762,7 @@ export default function ScoutOS() {
                             : [],
                           trustBandLabel:
                             routingDecisionCard.metadata?.trust?.trustSignals?.trustBandLabel ||
-                            "CVS pending",
+                            "Safety check pending",
                           requiredReview: Boolean(
                             routingDecisionCard.metadata?.trust?.trustSignals?.requiredReview
                           ),
@@ -4269,14 +4269,14 @@ export default function ScoutOS() {
                     clusters: [
                       {
                         id: `dc-created-${Date.now()}`,
-                        title: "Direct Connect",
+                        title: "Saved request",
                         kind: "generic",
                         body: createdId
-                          ? "Your request is saved. Review it before you share it with local pros."
-                          : "Your request is saved. Review it before you share it with local pros.",
+                          ? "Your request is saved. Review it before you share it locally."
+                          : "Your request is saved. Review it before you share it locally.",
                         primaryAction: {
                           type: "NAVIGATE",
-                          label: "Open Direct Connect",
+                          label: "Open saved requests",
                           to: "/direct-connect",
                         },
                       },
@@ -4284,7 +4284,7 @@ export default function ScoutOS() {
                   };
 
                   applyServerResponse(msg, [
-                    { type: "NAVIGATE", label: "Open Direct Connect", to: "/direct-connect" },
+                    { type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" },
                   ]);
 
                   recordActivity({
@@ -4296,7 +4296,7 @@ export default function ScoutOS() {
                 } catch (err: any) {
                   const message = formatUserFacingErrorMessage(
                     err,
-                    "Failed to create Direct Connect request."
+                    "Could not create the saved request."
                   );
                   setError(message);
                 } finally {

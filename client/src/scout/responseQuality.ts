@@ -105,14 +105,14 @@ function appendFollowUpQuestion(input: string, hasActionOptions: boolean): strin
   const trimmed = collapseWhitespace(input);
   if (!trimmed)
     return hasActionOptions
-      ? "Ready to open it — shall I?"
-      : "I can still move this forward with a direct next step.";
+      ? "Ready to open it?"
+      : "I can still help you find the next local step.";
   if (trimmed.includes("?")) return trimmed;
   // Only append a follow-up question for bare navigation phrases (e.g. "Got it - opening X.")
   // Substantive answers (e.g. "I found strong options in your area.") are returned unchanged
   const isBareNavPhrase = /^got it/i.test(trimmed) && trimmed.length < 80;
   if (hasActionOptions && isBareNavPhrase) return `${trimmed} Ready to go?`;
-  if (!hasActionOptions) return `${trimmed} Want me to move this forward?`;
+  if (!hasActionOptions) return `${trimmed} Want me to find the next local step?`;
   return trimmed;
 }
 
@@ -142,11 +142,11 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   output = forceConciseAnswer(userMessage, output);
 
   if (!output) {
-    output = "I can still move this forward with a direct next step.";
+    output = "I can still help you find the next local step.";
   }
 
   if (appearsDeadEnd(output) || hasBlockedCopy(output)) {
-    output = "I can still move this forward with a direct next step.";
+    output = "I can still help you find the next local step.";
   }
 
   if (isRecoveryCopy(output)) {

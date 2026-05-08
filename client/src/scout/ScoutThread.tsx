@@ -150,7 +150,7 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
             </div>
           )}
           {evidenceSources.length > 0 && (
-            <div className="scout-evidence-sources">Evidence: {evidenceSources.join(" | ")}</div>
+            <div className="scout-evidence-sources">Checked: {evidenceSources.join(" | ")}</div>
           )}
         </>
       )}

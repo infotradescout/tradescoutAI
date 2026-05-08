@@ -54,7 +54,7 @@ describe("ScoutThread evidence strip", () => {
     const html = renderThread([userMessage]);
 
     expect(html).not.toContain("scout-evidence-strip");
-    expect(html).not.toContain("Evidence:");
+    expect(html).not.toContain("Checked:");
   });
 
   it("renders action surfaces even when controller extras are disabled", () => {

@@ -370,7 +370,7 @@ export class UnifiedScoutRouterClient {
 
   private static localFallbackActions(): ScoutAction[] {
     return [
-      { type: "NAVIGATE", to: "/direct-connect", label: "Open Direct Connect" },
+      { type: "NAVIGATE", to: "/direct-connect", label: "Open saved requests" },
       { type: "NAVIGATE", to: "/community", label: "Open Community" },
       { type: "NAVIGATE", to: "/exchange", label: "Open Exchange" },
     ];
