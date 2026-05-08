@@ -1,5 +1,16 @@
 import React from "react";
 import clsx from "clsx";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Bookmark,
+  ClipboardList,
+  HelpCircle,
+  MessageSquareText,
+  Search,
+  Store,
+  Users2,
+} from "lucide-react";
 import type { ScoutMode } from "./api";
 import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutStatus } from "./state";
 import { validateAction } from "./actionValidation";
@@ -77,6 +88,90 @@ function normalizeActionText(value: string): string {
     .replace(/[^a-z0-9]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function actionTarget(action: ScoutAction): string {
+  return String(action.to || action.path || action.prompt || action.payload?.route || action.type);
+}
+
+function clusterKindMeta(kind: ScoutCluster["kind"]) {
+  switch (kind) {
+    case "pros":
+      return { label: "Local help", icon: Users2 };
+    case "marketplace":
+      return { label: "Exchange", icon: Store };
+    case "community":
+      return { label: "Nearby activity", icon: MessageSquareText };
+    case "projects":
+      return { label: "Saved request", icon: ClipboardList };
+    default:
+      return { label: "Result", icon: Search };
+  }
+}
+
+function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
+  if (cluster.kind === "pros") {
+    return [
+      {
+        type: "NAVIGATE",
+        label: "Create request",
+        to: "/direct-connect",
+        subtitle: "Review before sharing",
+      },
+      {
+        type: "NAVIGATE",
+        label: "Browse local help",
+        to: "/direct-connect/pros",
+      },
+    ];
+  }
+
+  if (cluster.kind === "community") {
+    return [{ type: "NAVIGATE", label: "Open community", to: "/community" }];
+  }
+
+  if (cluster.kind === "marketplace") {
+    return [{ type: "NAVIGATE", label: "Open Exchange", to: "/exchange" }];
+  }
+
+  if (cluster.kind === "projects") {
+    return [{ type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" }];
+  }
+
+  return [];
+}
+
+function buildAskScoutAction(cluster: ScoutCluster): ScoutAction {
+  const title = cluster.title || "this result";
+  const bodyHint = cluster.body ? ` Context: ${cluster.body.slice(0, 180)}` : "";
+
+  return {
+    type: "ASK_SCOUT",
+    label: "Ask Scout",
+    prompt: `Tell me more about ${title} and what I can safely do next.${bodyHint}`,
+  };
+}
+
+function mergeClusterActions(cluster: ScoutCluster): ScoutAction[] {
+  const candidates = [
+    ...(cluster.primaryAction ? [{ ...cluster.primaryAction, primary: true }] : []),
+    ...(Array.isArray(cluster.actions) ? cluster.actions : []),
+    ...defaultActionsForCluster(cluster),
+    buildAskScoutAction(cluster),
+  ];
+  const seen = new Set<string>();
+  const merged: ScoutAction[] = [];
+
+  for (const action of candidates) {
+    const key = [action.type, normalizeActionText(action.label || ""), actionTarget(action)].join(
+      "|"
+    );
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(action);
+  }
+
+  return merged;
 }
 
 function buildEvidenceChips(msg: ScoutMessage): string[] {
@@ -486,15 +581,6 @@ function ClusterCard({
   cluster: ScoutCluster;
   onAction?: (action: ScoutAction) => void;
 }) {
-  const handlePrimary = () => {
-    if (onAction && cluster.primaryAction) {
-      const validated = validateAction(cluster.primaryAction);
-      if (validated) {
-        onAction(validated);
-      }
-    }
-  };
-
   const handleAction = (action: ScoutAction) => {
     if (onAction) {
       const validated = validateAction(action);
@@ -505,64 +591,82 @@ function ClusterCard({
   };
 
   const [showAllActions, setShowAllActions] = React.useState(false);
+  const kindMeta = clusterKindMeta(cluster.kind);
+  const KindIcon = kindMeta.icon;
   const prioritizedActions = React.useMemo(() => {
-    const actions = Array.isArray(cluster.actions) ? cluster.actions : [];
+    const actions = mergeClusterActions(cluster);
     return [...actions].sort((a, b) => {
       if (a.primary !== b.primary) return a.primary ? -1 : 1;
       const aIsNavigate = a.type === "NAVIGATE";
       const bIsNavigate = b.type === "NAVIGATE";
       if (aIsNavigate !== bIsNavigate) return aIsNavigate ? -1 : 1;
+      const aIsAsk = a.type === "ASK_SCOUT";
+      const bIsAsk = b.type === "ASK_SCOUT";
+      if (aIsAsk !== bIsAsk) return aIsAsk ? 1 : -1;
       return 0;
     });
-  }, [cluster.actions]);
+  }, [cluster]);
 
   const visibleActions = React.useMemo(() => {
     if (showAllActions) return prioritizedActions;
-    return prioritizedActions.slice(0, 2);
+    return prioritizedActions.slice(0, 3);
   }, [prioritizedActions, showAllActions]);
 
   return (
-    <div className="scout-card mt-3 rounded-xl px-3 py-2">
-      {cluster.title && (
-        <div className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
-          {cluster.title}
+    <article className="scout-result-card">
+      <div className="scout-result-card__header">
+        <div className="scout-result-card__icon" aria-hidden="true">
+          <KindIcon className="h-4 w-4" />
         </div>
-      )}
+        <div className="min-w-0 flex-1">
+          <div className="scout-result-card__kind">{kindMeta.label}</div>
+          <h4 className="scout-result-card__title">{cluster.title || kindMeta.label}</h4>
+        </div>
+        {cluster.primaryAction && <BadgeCheck className="h-4 w-4 text-ts-orange" />}
+      </div>
 
-      {cluster.body && (
-        <p
-          className="mt-1 text-[13px] whitespace-pre-line"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {cluster.body}
-        </p>
-      )}
+      {cluster.body && <p className="scout-result-card__body">{cluster.body}</p>}
 
       {cluster.items && cluster.items.length > 0 && (
-        <ul className="mt-2 space-y-1 text-[12px]" style={{ color: "var(--text-secondary)" }}>
+        <ul className="scout-result-card__items">
           {cluster.items.map((item) => (
-            <li key={item.id} className="flex gap-2">
-              <span
-                className="mt-[3px] h-1 w-1 rounded-full"
-                style={{ backgroundColor: "var(--text-muted)" }}
-              />
-              <span>{item.label}</span>
+            <li key={item.id} className="scout-result-card__item">
+              <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ts-orange" />
+              <span className="min-w-0">
+                <span className="block font-medium text-[var(--text-primary)]">{item.label}</span>
+                {item.description && (
+                  <span className="mt-0.5 block text-[11px] text-[var(--text-secondary)]">
+                    {item.description}
+                  </span>
+                )}
+              </span>
             </li>
           ))}
         </ul>
       )}
 
-      {cluster.actions && cluster.actions.length > 0 && (
-        <div className="mt-2 space-y-2">
-          <div className="flex flex-wrap gap-1.5">
+      {prioritizedActions.length > 0 && (
+        <div className="scout-result-card__actions">
+          <div className="flex flex-wrap gap-2">
             {visibleActions.map((action) => (
               <button
-                key={`${cluster.id}-${action.label}`}
+                key={`${cluster.id}-${action.type}-${action.label}-${actionTarget(action)}`}
                 type="button"
                 onClick={() => handleAction(action)}
-                className="scout-action-button"
+                className={clsx(
+                  "scout-result-action",
+                  action.primary && "scout-result-action--primary",
+                  action.type === "ASK_SCOUT" && "scout-result-action--ask"
+                )}
               >
-                <div className="flex flex-col items-start text-left">
+                <span className="scout-result-action__icon" aria-hidden="true">
+                  {action.type === "ASK_SCOUT" ? (
+                    <HelpCircle className="h-3.5 w-3.5" />
+                  ) : (
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  )}
+                </span>
+                <span className="flex min-w-0 flex-col items-start text-left">
                   <span>{action.label}</span>
                   {action.subtitle && (
                     <span className="text-[11px] opacity-80">{action.subtitle}</span>
@@ -572,12 +676,12 @@ function ClusterCard({
                       {action.why ?? (action as any)._scoutWhy}
                     </span>
                   )}
-                </div>
+                </span>
               </button>
             ))}
           </div>
 
-          {prioritizedActions.length > 2 && (
+          {prioritizedActions.length > 3 && (
             <button
               type="button"
               onClick={() => setShowAllActions((v) => !v)}
@@ -588,35 +692,9 @@ function ClusterCard({
                 backgroundColor: "transparent",
               }}
             >
-              {showAllActions ? "Show fewer" : `More actions (${prioritizedActions.length - 2})`}
+              {showAllActions ? "Show fewer" : `More actions (${prioritizedActions.length - 3})`}
             </button>
           )}
-        </div>
-      )}
-
-      {!cluster.actions && cluster.primaryAction && (
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={handlePrimary}
-            className="inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-semibold transition"
-            style={{
-              backgroundColor: "var(--theme-accent-primary)",
-              color: "var(--ts-text-on-accent, #0B0F14)",
-            }}
-          >
-            <div className="flex flex-col items-start text-left">
-              <span>{cluster.primaryAction.label}</span>
-              {cluster.primaryAction.subtitle && (
-                <span className="text-[11px] opacity-80">{cluster.primaryAction.subtitle}</span>
-              )}
-              {(cluster.primaryAction.why || (cluster.primaryAction as any)._scoutWhy) && (
-                <span className="text-[10px] opacity-70">
-                  {cluster.primaryAction.why ?? (cluster.primaryAction as any)._scoutWhy}
-                </span>
-              )}
-            </div>
-          </button>
         </div>
       )}
 
@@ -638,7 +716,7 @@ function ClusterCard({
           />
         </div>
       )}
-    </div>
+    </article>
   );
 }
 

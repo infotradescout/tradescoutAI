@@ -88,6 +88,32 @@ describe("ScoutThread evidence strip", () => {
     const html = renderThread([assistantMessage], false);
 
     expect(html).toContain("Next steps");
+    expect(html).toContain("scout-result-card");
     expect(html).toContain("Review and send");
+    expect(html).toContain("Ask Scout");
+  });
+
+  it("adds casual default actions for local help result cards", () => {
+    const assistantMessage: ScoutMessage = {
+      id: "a_local_help",
+      role: "assistant",
+      content: "Here are local help options.",
+      timestamp: new Date().toISOString(),
+      clusters: [
+        {
+          id: "pros",
+          title: "Roof help nearby",
+          kind: "pros",
+          body: "Compare local options before contact opens.",
+        },
+      ],
+    };
+
+    const html = renderThread([assistantMessage], false);
+
+    expect(html).toContain("Local help");
+    expect(html).toContain("Create request");
+    expect(html).toContain("Browse local help");
+    expect(html).toContain("Ask Scout");
   });
 });

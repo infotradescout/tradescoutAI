@@ -2878,6 +2878,140 @@ body {
   border-color: var(--border-active);
 }
 
+.scout-result-card {
+  margin-top: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface-card) 96%, transparent),
+      color-mix(in oklab, var(--surface-intermediate) 88%, transparent)
+    );
+  padding: 12px;
+  box-shadow: inset 0 1px 0 color-mix(in oklab, white 3%, transparent);
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.scout-result-card:hover {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 42%, var(--border-active));
+  transform: translateY(-1px);
+}
+
+.scout-result-card__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scout-result-card__icon {
+  display: inline-flex;
+  height: 32px;
+  width: 32px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 36%, var(--border-subtle));
+  background: color-mix(in oklab, var(--theme-accent-primary) 12%, var(--surface-card));
+  color: var(--theme-accent-primary);
+}
+
+.scout-result-card__kind {
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.scout-result-card__title {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 2px 0 0;
+}
+
+.scout-result-card__body {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 9px 0 0;
+  white-space: pre-line;
+}
+
+.scout-result-card__items {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.scout-result-card__item {
+  display: flex;
+  gap: 8px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--surface-card) 70%, transparent);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 8px;
+}
+
+.scout-result-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 11px;
+}
+
+.scout-result-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--surface-intermediate) 90%, transparent);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 7px 10px;
+  transition:
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.scout-result-action:hover {
+  border-color: var(--border-active);
+  background: color-mix(in oklab, var(--surface-intermediate) 98%, transparent);
+  transform: translateY(-1px);
+}
+
+.scout-result-action--primary {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 55%, var(--border-active));
+  background: color-mix(in oklab, var(--theme-accent-primary) 16%, var(--surface-intermediate));
+}
+
+.scout-result-action--ask {
+  color: color-mix(in oklab, var(--theme-accent-primary) 82%, var(--text-primary));
+}
+
+.scout-result-action__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--theme-accent-primary);
+}
+
 /* Scout input - restrained, low-noise */
 .scout-input {
   transition:
