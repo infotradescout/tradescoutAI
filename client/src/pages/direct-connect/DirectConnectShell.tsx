@@ -564,6 +564,7 @@ function DirectConnectRequestComposer({
   prefillDescription,
   prefillBudgetMin,
   prefillBudgetMax,
+  prefillTradeId,
 }: {
   defaultCountyFips?: string;
   prefillTargetUserId?: string;
@@ -573,6 +574,7 @@ function DirectConnectRequestComposer({
   prefillDescription?: string;
   prefillBudgetMin?: string;
   prefillBudgetMax?: string;
+  prefillTradeId?: string;
 }) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -822,6 +824,7 @@ function DirectConnectRequestComposer({
       const max = Number(budgetMax);
       if (Number.isFinite(min) && min > 0) payload.budgetMin = min;
       if (Number.isFinite(max) && max > 0) payload.budgetMax = max;
+      if (prefillTradeId?.trim()) payload.tradeId = prefillTradeId.trim();
       if (dispatch?.targetContractorIds?.length) {
         payload.targetContractorIds = Array.from(new Set(dispatch.targetContractorIds));
         payload.autoRoute = false;
@@ -1916,7 +1919,7 @@ function MyDirectConnectRequests() {
   const { data: requestsData, isLoading } = useQuery<DirectConnectRequest[]>({
     queryKey: ["/api/direct-connect/requests"],
     queryFn: async () => {
-      const res = await fetch("/api/direct-connect/requests?scope=local");
+      const res = await fetch("/api/direct-connect/requests?scope=all");
       if (!res.ok) return [];
       return res.json();
     },
@@ -2914,6 +2917,7 @@ export default function DirectConnectShell() {
     const description = params.get("description") || undefined;
     const budgetMin = params.get("budgetMin") || undefined;
     const budgetMax = params.get("budgetMax") || undefined;
+    const tradeId = params.get("trade") || params.get("tradeId") || undefined;
     return {
       countyFips,
       targetUserId,
@@ -2923,6 +2927,7 @@ export default function DirectConnectShell() {
       description,
       budgetMin,
       budgetMax,
+      tradeId,
     };
   }, [location]);
   const defaultCountyFips = requestPrefill?.countyFips;
@@ -3053,6 +3058,7 @@ export default function DirectConnectShell() {
           prefillDescription={requestPrefill?.description}
           prefillBudgetMin={requestPrefill?.budgetMin}
           prefillBudgetMax={requestPrefill?.budgetMax}
+          prefillTradeId={requestPrefill?.tradeId}
         />
       );
       break;

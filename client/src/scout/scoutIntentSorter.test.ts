@@ -15,6 +15,7 @@ describe("sortScoutInfoDump", () => {
     expect(requestAction).toBeTruthy();
     expect(requestAction?.payload?.prefill).toMatchObject({
       jobType: "roofing",
+      tradeId: "roofing",
       urgency: "high",
     });
   });
@@ -28,6 +29,7 @@ describe("sortScoutInfoDump", () => {
 
     expect(requestAction?.payload?.prefill).toMatchObject({
       jobType: "plumbing",
+      tradeId: "plumbing",
       budgetMin: 500,
       budgetMax: 900,
     });

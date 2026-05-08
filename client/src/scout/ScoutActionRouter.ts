@@ -117,6 +117,12 @@ function buildStructuredPrefillRoute(action: ScoutAction): string | null {
   if (target === "direct_connect_request") {
     const scope = typeof prefill.scope === "string" ? prefill.scope.trim() : "";
     const jobType = typeof prefill.jobType === "string" ? prefill.jobType.trim() : "";
+    const tradeId =
+      typeof prefill.tradeId === "string"
+        ? prefill.tradeId.trim()
+        : typeof prefill.trade === "string"
+          ? prefill.trade.trim()
+          : "";
     const urgency = typeof prefill.urgency === "string" ? prefill.urgency.trim() : "";
     const budgetMin =
       typeof prefill.budgetMin === "number"
@@ -138,6 +144,7 @@ function buildStructuredPrefillRoute(action: ScoutAction): string | null {
       params.set("title", `${jobType} request`);
     }
     if (urgency) params.set("urgency", urgency);
+    if (tradeId || jobType) params.set("trade", tradeId || jobType);
     if (Number.isFinite(budgetMin) && budgetMin > 0) params.set("budgetMin", String(budgetMin));
     if (Number.isFinite(budgetMax) && budgetMax > 0) params.set("budgetMax", String(budgetMax));
     params.set("source", "scout");

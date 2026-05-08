@@ -181,6 +181,7 @@ function requestAction(rawMessage: string): ScoutAction {
       prefill: {
         scope: facts.need,
         jobType: facts.jobType,
+        tradeId: facts.jobType,
         urgency: facts.urgency,
         budgetMin: facts.budgetMin,
         budgetMax: facts.budgetMax,

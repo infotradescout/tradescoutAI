@@ -273,12 +273,36 @@ describe("direct-connect gate regressions", () => {
     const routeFile = readRepoFile("server/routes/direct-connect.ts");
     const tasksFile = readRepoFile("client/src/pages/tasks.tsx");
 
+    expect(routeFile).toContain("filterContractorsEligibleForRequest");
+    expect(routeFile).toContain("filterBusinessesEligibleForRequest");
+    expect(routeFile).toContain("outside_request_county");
     expect(routeFile).toContain("filterEligibleContractorsByTradeRequirements");
     expect(routeFile).toContain("excludedTargets");
     expect(routeFile).toContain("canSelectForResponse");
     expect(routeFile).toContain("viewerEligibility");
     expect(tasksFile).toContain("Eligible to respond");
     expect(tasksFile).toContain("Verification needed:");
+  });
+
+  it("keeps auto-routed requests open until assignments are actually created", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain('status: "open" as const');
+    expect(routeFile).toContain("routeRequestToTopContractors({");
+    expect(routeFile).toContain('.set({ status: "routed", updatedAt: now })');
+    expect(routeFile).not.toContain(
+      'status: shouldAutoRoute ? ("routed" as const) : ("open" as const)'
+    );
+  });
+
+  it("allows universal provider assignments to view direct-connect attachments", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain("canResponderUserAccessRequest");
+    expect(routeFile).toContain(
+      "eq((workRequestAssignments as any).responderUserId, String(userId))"
+    );
+    expect(routeFile).toContain("const hasAccess = await canResponderUserAccessRequest");
   });
 
   it("keeps the explicit super-admin platform-support auto-link path", () => {

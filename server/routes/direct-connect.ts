@@ -284,6 +284,11 @@ function hasExplicitTradeRequirements(requirements: any): boolean {
   );
 }
 
+function isOpenDirectConnectCategory(category: unknown): boolean {
+  const requestCategory = typeof category === "string" ? category.trim().toLowerCase() : "";
+  return new Set(["employment", "odd_job", "helper", "general", "other"]).has(requestCategory);
+}
+
 function getMissingTradeRequirements(requirements: any, summary: any): string[] {
   const missing: string[] = [];
   if (!requirements) return missing;
@@ -343,6 +348,156 @@ async function filterEligibleContractorsByTradeRequirements(
   }
 
   return { eligible, ineligible, requirementsApplied: true };
+}
+
+async function resolveRequestCountyRecord(requestRow: any) {
+  const countyFips = typeof requestRow?.countyFips === "string" ? requestRow.countyFips.trim() : "";
+  if (!countyFips) return null;
+  return await storage.getCountyByFips(countyFips);
+}
+
+async function filterContractorsEligibleForRequest(contractorRows: any[], requestRow: any) {
+  const countyRecord = await resolveRequestCountyRecord(requestRow);
+  if (!countyRecord?.id) {
+    return {
+      eligible: [] as any[],
+      ineligible: contractorRows
+        .map((contractor: any) => String(contractor.id || "").trim())
+        .filter(Boolean)
+        .map((contractorId) => ({ contractorId, reason: "missing_request_county" })),
+      tradeEligibility: {
+        eligible: [] as any[],
+        ineligible: [] as Array<{ contractorId: string; missingRequirements: string[] }>,
+        requirementsApplied: false,
+      },
+    };
+  }
+
+  const contractorIds = contractorRows
+    .map((contractor: any) => String(contractor.id || "").trim())
+    .filter(Boolean);
+  const serviceRows = contractorIds.length
+    ? await db
+        .select({ contractorId: contractorCounties.contractorId })
+        .from(contractorCounties)
+        .where(
+          and(
+            inArray(contractorCounties.contractorId, contractorIds),
+            eq(contractorCounties.countyId, String(countyRecord.id))
+          )
+        )
+    : [];
+  const servesCountyIds = new Set(serviceRows.map((row) => String(row.contractorId)));
+  const countyEligible = contractorRows.filter((contractor: any) =>
+    servesCountyIds.has(String(contractor.id || "").trim())
+  );
+  const countyIneligible = contractorRows
+    .filter((contractor: any) => !servesCountyIds.has(String(contractor.id || "").trim()))
+    .map((contractor: any) => String(contractor.id || "").trim())
+    .filter(Boolean)
+    .map((contractorId) => ({ contractorId, reason: "outside_request_county" }));
+
+  const tradeEligibility = await filterEligibleContractorsByTradeRequirements(
+    countyEligible,
+    requestRow?.tradeId ? String(requestRow.tradeId) : null
+  );
+
+  return {
+    eligible: tradeEligibility.eligible,
+    ineligible: countyIneligible,
+    tradeEligibility,
+  };
+}
+
+async function filterBusinessesEligibleForRequest(businessRows: any[], requestRow: any) {
+  const countyRecord = await resolveRequestCountyRecord(requestRow);
+  const tradeRecord = await resolveTradeRecordBySlugOrId(
+    requestRow?.tradeId ? String(requestRow.tradeId) : null
+  );
+  const requirements = tradeRecord?.id
+    ? await storage.getTradeRequirementsByTradeId(String(tradeRecord.id))
+    : null;
+  if (
+    hasExplicitTradeRequirements(requirements) &&
+    !isOpenDirectConnectCategory(requestRow?.category)
+  ) {
+    return {
+      eligible: [] as any[],
+      ineligible: businessRows
+        .map((business: any) => String(business.id || "").trim())
+        .filter(Boolean)
+        .map((businessId) => ({ businessId, reason: "regulated_trade_requires_contractor" })),
+    };
+  }
+
+  if (!countyRecord?.id) {
+    return {
+      eligible: [] as any[],
+      ineligible: businessRows
+        .map((business: any) => String(business.id || "").trim())
+        .filter(Boolean)
+        .map((businessId) => ({ businessId, reason: "missing_request_county" })),
+    };
+  }
+
+  const businessIds = businessRows
+    .map((business: any) => String(business.id || "").trim())
+    .filter(Boolean);
+  const countyRows = businessIds.length
+    ? await db
+        .select({ businessId: businessCounties.businessId })
+        .from(businessCounties)
+        .where(
+          and(
+            inArray(businessCounties.businessId, businessIds),
+            eq(businessCounties.countyId, String(countyRecord.id))
+          )
+        )
+    : [];
+  const servesCountyIds = new Set(countyRows.map((row) => String(row.businessId)));
+  return {
+    eligible: businessRows.filter((business: any) =>
+      servesCountyIds.has(String(business.id || "").trim())
+    ),
+    ineligible: businessRows
+      .filter((business: any) => !servesCountyIds.has(String(business.id || "").trim()))
+      .map((business: any) => String(business.id || "").trim())
+      .filter(Boolean)
+      .map((businessId) => ({ businessId, reason: "outside_request_county" })),
+  };
+}
+
+async function canResponderUserAccessRequest(userId: string, requestRow: any): Promise<boolean> {
+  const requestId = String(requestRow?.id || "");
+  if (!requestId || String(requestRow?.createdByUserId) === String(userId)) return true;
+
+  const contractor = await storage.getContractorByUserId(String(userId));
+  if (contractor) {
+    const [assignment] = await db
+      .select()
+      .from(workRequestAssignments)
+      .where(
+        and(
+          eq(workRequestAssignments.workRequestId, requestId),
+          eq(workRequestAssignments.contractorId, contractor.id)
+        )
+      )
+      .limit(1);
+    if (assignment) return true;
+  }
+
+  const [responderAssignment] = await db
+    .select()
+    .from(workRequestAssignments)
+    .where(
+      and(
+        eq(workRequestAssignments.workRequestId, requestId),
+        eq((workRequestAssignments as any).responderUserId, String(userId))
+      )
+    )
+    .limit(1);
+
+  return Boolean(responderAssignment);
 }
 
 const normalizeTradeSlugInput = (value: string): string =>
@@ -529,12 +684,7 @@ export function registerDirectConnectRoutes(app: Express) {
     let countyFips = typeof requestRow.countyFips === "string" ? requestRow.countyFips.trim() : "";
     let stateCode = typeof requestRow.stateCode === "string" ? requestRow.stateCode.trim() : "";
     const tradeSlug = typeof requestRow.tradeId === "string" ? requestRow.tradeId : "";
-    const requestCategory =
-      typeof requestRow.category === "string" ? requestRow.category.trim().toLowerCase() : "";
-    // Categories that do NOT require contractor-level license/insurance verification.
-    // These are routed to any active business in the county.
-    const OPEN_CATEGORIES = new Set(["employment", "odd_job", "helper", "general", "other"]);
-    const isOpenCategory = OPEN_CATEGORIES.has(requestCategory);
+    const isOpenCategory = isOpenDirectConnectCategory(requestRow.category);
 
     let countyRecord = countyFips ? await storage.getCountyByFips(countyFips) : null;
 
@@ -1113,11 +1263,16 @@ export function registerDirectConnectRoutes(app: Express) {
             return res.status(200).json({ assignments: [], routed: false });
           }
 
-          const eligibility = await filterEligibleContractorsByTradeRequirements(
+          const contractorEligibility = await filterContractorsEligibleForRequest(
             invitedContractors,
-            requestRow.tradeId ? String(requestRow.tradeId) : null
+            requestRow
           );
-          const eligibleContractors = eligibility.eligible;
+          const eligibleContractors = contractorEligibility.eligible;
+          const businessEligibility = await filterBusinessesEligibleForRequest(
+            invitedBusinesses,
+            requestRow
+          );
+          const eligibleBusinesses = businessEligibility.eligible;
 
           const existingContractorAssignments =
             eligibleContractors.length > 0
@@ -1149,7 +1304,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
           // For businesses: check existing responderUserId assignments to avoid duplicates.
           const existingBizAssignments =
-            invitedBusinesses.length > 0
+            eligibleBusinesses.length > 0
               ? await db
                   .select({ responderUserId: (workRequestAssignments as any).responderUserId })
                   .from(workRequestAssignments)
@@ -1160,7 +1315,7 @@ export function registerDirectConnectRoutes(app: Express) {
               .map((a: any) => String(a.responderUserId || "").trim())
               .filter(Boolean)
           );
-          const businessesToAssign = invitedBusinesses.filter(
+          const businessesToAssign = eligibleBusinesses.filter(
             (biz) =>
               biz.ownerUserId && !existingResponderUserIds.has(String(biz.ownerUserId || "").trim())
           );
@@ -1169,7 +1324,11 @@ export function registerDirectConnectRoutes(app: Express) {
             return res.status(200).json({
               assignments: [],
               routed: false,
-              excludedTargets: eligibility.ineligible,
+              excludedTargets: [
+                ...contractorEligibility.ineligible,
+                ...contractorEligibility.tradeEligibility.ineligible,
+                ...businessEligibility.ineligible,
+              ],
               routeMode: "owner_direct",
             });
           }
@@ -1261,7 +1420,11 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.status(200).json({
             assignments,
             routed: true,
-            excludedTargets: eligibility.ineligible,
+            excludedTargets: [
+              ...contractorEligibility.ineligible,
+              ...contractorEligibility.tradeEligibility.ineligible,
+              ...businessEligibility.ineligible,
+            ],
             routeMode: "owner_direct",
           });
         }
@@ -1841,23 +2004,7 @@ export function registerDirectConnectRoutes(app: Express) {
           return res.status(400).json({ message: "Only Direct Connect attachments are available" });
         }
 
-        let hasAccess = String(requestRow.createdByUserId) === String(userId);
-        if (!hasAccess) {
-          const contractor = await storage.getContractorByUserId(String(userId));
-          if (contractor) {
-            const [assignment] = await db
-              .select()
-              .from(workRequestAssignments)
-              .where(
-                and(
-                  eq(workRequestAssignments.workRequestId, requestId),
-                  eq(workRequestAssignments.contractorId, contractor.id)
-                )
-              )
-              .limit(1);
-            hasAccess = Boolean(assignment);
-          }
-        }
+        const hasAccess = await canResponderUserAccessRequest(String(userId), requestRow);
 
         if (!hasAccess) {
           return res.status(403).json({ message: "You do not have access to this attachment" });
@@ -2465,7 +2612,7 @@ export function registerDirectConnectRoutes(app: Express) {
             // Direct-to-provider requests should not be listed as "community board" jobs.
             scope: isDirectToProviders ? "personal" : "community",
             source: "direct_connect" as any,
-            status: shouldAutoRoute ? ("routed" as const) : ("open" as const),
+            status: "open" as const,
             visibility: isDirectToProviders ? "private" : "community",
             exposureMode: "guided",
             competitionMode: "none",
@@ -2525,11 +2672,16 @@ export function registerDirectConnectRoutes(app: Express) {
                       )
                     )
                 : [];
-            const eligibility = await filterEligibleContractorsByTradeRequirements(
+            const contractorEligibility = await filterContractorsEligibleForRequest(
               invitedContractors,
-              created.tradeId ? String(created.tradeId) : null
+              created
             );
-            const eligibleContractors = eligibility.eligible;
+            const eligibleContractors = contractorEligibility.eligible;
+            const businessEligibility = await filterBusinessesEligibleForRequest(
+              invitedBusinesses,
+              created
+            );
+            const eligibleBusinesses = businessEligibility.eligible;
             const now = new Date();
             const contractorAssignments = eligibleContractors.map((contractor) => ({
               workRequestId: created.id,
@@ -2538,7 +2690,7 @@ export function registerDirectConnectRoutes(app: Express) {
               createdAt: now,
               updatedAt: now,
             }));
-            const businessAssignments = invitedBusinesses
+            const businessAssignments = eligibleBusinesses
               .filter((biz) => biz.ownerUserId)
               .map((biz) => ({
                 workRequestId: created.id,
@@ -2566,7 +2718,7 @@ export function registerDirectConnectRoutes(app: Express) {
                     source: "direct_connect",
                   },
                 }));
-                const businessEvents = invitedBusinesses
+                const businessEvents = eligibleBusinesses
                   .filter((biz) => biz.ownerUserId)
                   .map((biz) => ({
                     workRequestId: created.id,
@@ -2589,7 +2741,7 @@ export function registerDirectConnectRoutes(app: Express) {
               try {
                 const notifyUserIds: string[] = [
                   ...(eligibleContractors.map((c) => c.userId).filter(Boolean) as string[]),
-                  ...(invitedBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
+                  ...(eligibleBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
                 ];
                 await Promise.all(
                   notifyUserIds.map(async (notifyUserId) => {
@@ -2869,7 +3021,7 @@ export function registerDirectConnectRoutes(app: Express) {
             stateCode,
             scope: "community",
             source: "direct_connect" as any,
-            status: shouldAutoRoute ? ("routed" as const) : ("open" as const),
+            status: "open" as const,
             visibility: "community",
             exposureMode: "guided",
             competitionMode: "none",
@@ -2970,11 +3122,16 @@ export function registerDirectConnectRoutes(app: Express) {
                       )
                     )
                 : [];
-            const eligibility = await filterEligibleContractorsByTradeRequirements(
+            const contractorEligibility = await filterContractorsEligibleForRequest(
               invitedContractors,
-              created.tradeId ? String(created.tradeId) : null
+              created
             );
-            const eligibleContractors = eligibility.eligible;
+            const eligibleContractors = contractorEligibility.eligible;
+            const businessEligibility = await filterBusinessesEligibleForRequest(
+              invitedBusinesses,
+              created
+            );
+            const eligibleBusinesses = businessEligibility.eligible;
             const now = new Date();
             const contractorAssignments = eligibleContractors.map((contractor) => ({
               workRequestId: created.id,
@@ -2983,7 +3140,7 @@ export function registerDirectConnectRoutes(app: Express) {
               createdAt: now,
               updatedAt: now,
             }));
-            const businessAssignments = invitedBusinesses
+            const businessAssignments = eligibleBusinesses
               .filter((biz) => biz.ownerUserId)
               .map((biz) => ({
                 workRequestId: created.id,
@@ -3012,7 +3169,7 @@ export function registerDirectConnectRoutes(app: Express) {
                     createdForUserId: resolvedTargetUserId,
                   },
                 }));
-                const businessEvents = invitedBusinesses
+                const businessEvents = eligibleBusinesses
                   .filter((biz) => biz.ownerUserId)
                   .map((biz) => ({
                     workRequestId: created.id,
@@ -3036,7 +3193,7 @@ export function registerDirectConnectRoutes(app: Express) {
               try {
                 const notifyUserIds: string[] = [
                   ...(eligibleContractors.map((c) => c.userId).filter(Boolean) as string[]),
-                  ...(invitedBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
+                  ...(eligibleBusinesses.map((b) => b.ownerUserId).filter(Boolean) as string[]),
                 ];
                 await Promise.all(
                   notifyUserIds.map(async (notifyUserId) => {
@@ -3728,9 +3885,23 @@ export function registerDirectConnectRoutes(app: Express) {
         if (String(requestRow.createdByUserId) === String(userId)) {
           return res.status(400).json({ message: "You cannot respond to your own request." });
         }
+        const contractorEligibility = contractor
+          ? await filterContractorsEligibleForRequest([contractor], requestRow)
+          : { eligible: [] as any[] };
+        const businessEligibility = business
+          ? await filterBusinessesEligibleForRequest([business], requestRow)
+          : { eligible: [] as any[] };
+        const eligibleContractor = contractorEligibility.eligible[0] || null;
+        const eligibleBusiness = businessEligibility.eligible[0] || null;
+        if (!eligibleContractor && !eligibleBusiness) {
+          return res.status(403).json({
+            message:
+              "This request is outside your Direct Connect service area or requires a different provider verification.",
+          });
+        }
         const now = new Date();
         // Idempotency: if the provider already has an assignment for this request, return it
-        const isContractorProvider = Boolean(contractor?.id);
+        const isContractorProvider = Boolean(eligibleContractor?.id);
         const existingQuery = isContractorProvider
           ? db
               .select()
@@ -3738,7 +3909,7 @@ export function registerDirectConnectRoutes(app: Express) {
               .where(
                 and(
                   eq(workRequestAssignments.workRequestId, requestId),
-                  eq(workRequestAssignments.contractorId, String(contractor!.id))
+                  eq(workRequestAssignments.contractorId, String(eligibleContractor!.id))
                 )
               )
               .limit(1)
@@ -3762,7 +3933,7 @@ export function registerDirectConnectRoutes(app: Express) {
           .insert(workRequestAssignments)
           .values({
             workRequestId: requestId,
-            contractorId: isContractorProvider ? String(contractor!.id) : null,
+            contractorId: isContractorProvider ? String(eligibleContractor!.id) : null,
             responderUserId: isContractorProvider ? null : String(userId),
             workerId: null,
             status: "suggested" as const,
@@ -3782,10 +3953,10 @@ export function registerDirectConnectRoutes(app: Express) {
             type: "provider_self_selected" as const,
             actorUserId: String(userId),
             metadata: {
-              contractorId: isContractorProvider ? contractor!.id : null,
+              contractorId: isContractorProvider ? eligibleContractor!.id : null,
               responderUserId: isContractorProvider ? null : String(userId),
               source: "self_selected",
-              businessId: business?.id ?? null,
+              businessId: isContractorProvider ? null : (eligibleBusiness?.id ?? null),
             },
           });
         } catch (e) {
@@ -3794,8 +3965,12 @@ export function registerDirectConnectRoutes(app: Express) {
         // Notify the requester that a provider has expressed interest
         try {
           const providerName = isContractorProvider
-            ? String((contractor as any).companyName || (contractor as any).name || "A provider")
-            : String((business as any)?.name || "A provider");
+            ? String(
+                (eligibleContractor as any).companyName ||
+                  (eligibleContractor as any).name ||
+                  "A provider"
+              )
+            : String((eligibleBusiness as any)?.name || "A provider");
           await notificationService.createNotification({
             userId: String(requestRow.createdByUserId),
             type: "dc_provider_interested",
