@@ -38,9 +38,9 @@ export function ScoutInputRow({
     <div className="scout-input-row space-y-3">
       <div className="grid grid-cols-3 gap-2 px-1">
         {[
-          ["1", "Ask local"],
-          ["2", "See signals"],
-          ["3", "Act safely"],
+          ["1", "Ask"],
+          ["2", "Compare"],
+          ["3", "Choose"],
         ].map(([num, label]) => (
           <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
             <p className="font-mono text-[10px] text-ts-orange">{num}</p>
@@ -141,7 +141,7 @@ export function ScoutInputRow({
       <ScoutInput
         key={prefillKey}
         disabled={isBusy}
-        placeholder="Example: What useful stuff is happening near me this week?"
+        placeholder="Example: Who near me can help with a fence this week?"
         onSend={onSend}
         onUserTyping={onTyping}
         prefillKey="scout-main"

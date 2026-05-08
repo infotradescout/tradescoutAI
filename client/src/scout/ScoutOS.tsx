@@ -43,6 +43,7 @@ import {
   Database,
   MapPinned,
   Route,
+  Search,
   Sparkles,
   ClipboardList,
   Users2,
@@ -2860,27 +2861,27 @@ export default function ScoutOS() {
   }> = [
     {
       id: "nearby",
-      label: "Nearby",
-      icon: MapPinned,
-      prompt: "Show me useful local signals around me right now.",
+      label: "Search",
+      icon: Search,
+      prompt: "Search TradeScout and my area for what I need.",
     },
     {
       id: "people",
-      label: "People",
+      label: "Help",
       icon: Users2,
-      prompt: "Help me discover useful local people, services, and community activity nearby.",
+      prompt: "Find people, services, businesses, or community help near me.",
     },
     {
       id: "market",
-      label: "Prices",
+      label: "Nearby",
       icon: BarChart3,
-      prompt: "Show me local price changes, deals, materials, and timing signals near me.",
+      prompt: "Show posts, requests, projects, prices, deals, and changes near me.",
     },
     {
       id: "rules",
       label: "Rules",
       icon: Route,
-      prompt: "Show me local rules, permits, events, or changes I should know about nearby.",
+      prompt: "Find local rules, permits, events, or updates I should know about.",
     },
   ];
 
@@ -2891,23 +2892,23 @@ export default function ScoutOS() {
   }> = [
     {
       id: "around_me",
-      label: "Around me",
-      description: "What's useful nearby",
+      label: "Anything",
+      description: "Search site and local",
     },
     {
       id: "help",
       label: "Find help",
-      description: "People and services",
+      description: "Pros, services, groups",
     },
     {
       id: "prices",
-      label: "Prices & deals",
-      description: "Materials and timing",
+      label: "Posts & deals",
+      description: "Requests and prices",
     },
     {
       id: "events",
       label: "Rules & events",
-      description: "Local changes",
+      description: "Permits and updates",
     },
   ];
 
@@ -2921,9 +2922,9 @@ export default function ScoutOS() {
     id: keyof typeof enabledMissionSources;
     label: string;
   }> = [
-    { id: "knowledge", label: "TradeScout" },
-    { id: "county", label: "My area" },
-    { id: "live", label: "Live signals" },
+    { id: "knowledge", label: "Site" },
+    { id: "county", label: "Near me" },
+    { id: "live", label: "Latest" },
   ];
 
   const composeMissionDraft = useCallback(
@@ -2945,25 +2946,25 @@ export default function ScoutOS() {
           : "my county";
       const opening =
         type === "around_me"
-          ? `Help me discover what is useful around me in ${area}.`
-          : `Help me discover what is useful locally for ${typeLabel.toLowerCase()} in ${area}.`;
+          ? `Search TradeScout and my area for what I need in ${area}.`
+          : `Search TradeScout and my area for ${typeLabel.toLowerCase()} in ${area}.`;
       const sourceList = sourceOptions
         .filter((source) => sources[source.id])
         .map((source) => source.label)
         .join(", ");
       const panelInstruction =
         panel === "nearby"
-          ? "Focus on useful places, projects, requests, posts, services, and changes nearby."
+          ? "Include matching pages, tools, local results, posts, requests, and anything nearby that may help."
           : panel === "people"
-            ? "Focus on local people, contractors, services, groups, and community activity."
+            ? "Focus on people, contractors, services, businesses, groups, and community help."
             : panel === "market"
-              ? "Focus on local prices, deals, materials, demand, and timing signals."
-              : "Focus on local rules, permits, events, alerts, and changes I should know about.";
+              ? "Focus on nearby posts, requests, projects, prices, deals, materials, and recent changes."
+              : "Focus on local rules, permits, events, alerts, pages, and updates I should know about.";
       const urgencyLabel =
         urgencyOptions.find((option) => option.id === urgency)?.label.toLowerCase() ||
         urgency.replace("_", " ");
 
-      return `${opening} Please check ${sourceList || "what matters"}, assume I care about ${urgencyLabel}, and keep it simple. ${panelInstruction} Show what is nearby, what changed, and what I can safely do next before I contact anyone.`;
+      return `${opening} Look in ${sourceList || "everything"}, assume I care about ${urgencyLabel}, and keep it simple. ${panelInstruction} Show the best matches, why they matter, and what I can safely do next before I contact anyone.`;
     },
     [activeMissionPanel, enabledMissionSources, heroLocationLabel, missionType, missionUrgency]
   );
@@ -3091,7 +3092,7 @@ export default function ScoutOS() {
                   </div>
                   <div className="mt-3 space-y-3">
                     <div>
-                      <p className="scout-builder-label">What are you exploring?</p>
+                      <p className="scout-builder-label">What do you want to find?</p>
                       <div className="mt-2 grid grid-cols-2 gap-1.5">
                         {missionTypeOptions.map((option) => (
                           <button
@@ -3112,7 +3113,7 @@ export default function ScoutOS() {
                     </div>
                     <div className="grid grid-cols-[1fr_0.8fr] gap-2">
                       <div>
-                        <p className="scout-builder-label">Scout should scan</p>
+                        <p className="scout-builder-label">Look in</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {sourceOptions.map((source) => (
                             <button
@@ -3314,8 +3315,8 @@ export default function ScoutOS() {
                       Before you contact anyone
                     </p>
                     <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Scout scans nearby signals first. You review the next step before sharing
-                      contact info or making a request.
+                      Scout searches first. You review the next step before sharing contact info or
+                      making a request.
                     </p>
                   </div>
                 )}
@@ -3970,41 +3971,26 @@ export default function ScoutOS() {
                     </span>
                   </div>
                   <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-white">
-                    Your local discovery layer.
+                    Search the site and your area.
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                    Scout scans nearby help, projects, posts, prices, rules, and events so you can
-                    see what matters around you.
+                    Scout finds TradeScout pages, local help, posts, requests, prices, rules, and
+                    events in one place.
                   </p>
                 </div>
 
                 <div className="scout-v2-rail-card">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                      What Scout Scans
+                      Where Scout Looks
                     </p>
                     <Database className="h-4 w-4 text-ts-orange" />
                   </div>
                   <div className="mt-4 space-y-3">
                     {[
-                      [
-                        "TradeScout",
-                        "local posts, requests, pros, and guidance",
-                        "knowledge",
-                        "w-[92%]",
-                      ],
-                      [
-                        "My area",
-                        "city, county, neighborhood, and nearby activity",
-                        "county",
-                        "w-[76%]",
-                      ],
-                      [
-                        "Live signals",
-                        "prices, availability, changes, and alerts",
-                        "live",
-                        "w-[54%]",
-                      ],
+                      ["Site", "pages, tools, help, and saved guidance", "knowledge", "w-[92%]"],
+                      ["Near me", "city, county, people, posts, and requests", "county", "w-[76%]"],
+                      ["Latest", "prices, availability, events, and updates", "live", "w-[54%]"],
                     ].map(([label, detail, sourceId, width], index) => (
                       <button
                         key={label}
@@ -4045,11 +4031,11 @@ export default function ScoutOS() {
                     const Icon = item.icon;
                     const subcopy =
                       item.id === "nearby"
-                        ? "what's around you"
+                        ? "site and local"
                         : item.id === "people"
-                          ? "who and what is active"
+                          ? "people and services"
                           : item.id === "market"
-                            ? "prices and deals"
+                            ? "posts and deals"
                             : "rules and events";
 
                     return (
@@ -4074,11 +4060,11 @@ export default function ScoutOS() {
 
                 <div className="scout-v2-rail-card">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Build Your Local Scan
+                    Build Your Search
                   </p>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <p className="scout-builder-label">What are you exploring?</p>
+                      <p className="scout-builder-label">What do you want to find?</p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         {missionTypeOptions.map((option) => (
                           <button
@@ -4100,7 +4086,7 @@ export default function ScoutOS() {
                     </div>
 
                     <div>
-                      <p className="scout-builder-label">Scout should scan</p>
+                      <p className="scout-builder-label">Look in</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {sourceOptions.map((source) => (
                           <button
@@ -4155,7 +4141,7 @@ export default function ScoutOS() {
                       onClick={() => applyMissionDraft()}
                       className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-white"
                     >
-                      Scan with these choices
+                      Search with these choices
                     </button>
                   </div>
                 </div>
@@ -4169,12 +4155,12 @@ export default function ScoutOS() {
                   className="scout-v2-rail-card text-left"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Discovery Before Contact
+                    Search Before Contact
                   </p>
                   <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-white/65">
-                    <p>Scout lets you look around locally before you make yourself visible.</p>
-                    <p className="mt-2 text-white/50">1. Scan nearby signals</p>
-                    <p className="text-white/50">2. Understand what changed</p>
+                    <p>Scout lets you search first before you make yourself visible.</p>
+                    <p className="mt-2 text-white/50">1. Find the best matches</p>
+                    <p className="text-white/50">2. Compare what matters</p>
                     <p className="text-white/50">3. Choose a safe next step</p>
                   </div>
                 </button>

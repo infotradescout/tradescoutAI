@@ -22,11 +22,11 @@ describe("scout info page", () => {
     expect(scoutOs).toContain('navigate("/help/scout")');
     expect(scoutInfo).toContain('export { default } from "./scout-info-showcase"');
     expect(showcase).toContain("Scout Help");
-    expect(showcase).toContain("Tell Scout what you want to discover around you");
-    expect(showcase).toContain("What Scout scans");
+    expect(showcase).toContain("Search TradeScout and your area");
+    expect(showcase).toContain("Where Scout looks");
     expect(showcase).toContain("Before contact");
-    expect(showcase).toContain("Nearby scan");
-    expect(showcase).toContain("nearby help, projects, posts, prices, rules, events");
+    expect(showcase).toContain("Search everything");
+    expect(showcase).toContain("search the site and find nearby help");
     expect(showcase).toContain("How Scout Works");
     expect(showcase).toContain("Scout is for everyone");
     expect(showcase).toContain("not yet indexed");

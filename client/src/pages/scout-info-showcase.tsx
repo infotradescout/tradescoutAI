@@ -35,24 +35,24 @@ const navItems: Array<{ id: WorkspaceTab; label: string; icon: IconType }> = [
 
 const commandSources = [
   {
-    label: "Trusted info",
-    detail: "rules and guidance",
+    label: "Site",
+    detail: "pages, tools, and help",
     rank: "01",
     confidence: "high",
     icon: Database,
     bar: "w-[94%]",
   },
   {
-    label: "Local rules",
-    detail: "city and county details",
+    label: "Near me",
+    detail: "people, posts, and requests",
     rank: "02",
     confidence: "medium",
     icon: MapPinned,
     bar: "w-[78%]",
   },
   {
-    label: "Current prices",
-    detail: "recent market context",
+    label: "Latest",
+    detail: "prices, events, and updates",
     rank: "03",
     confidence: "low",
     icon: Search,
@@ -95,11 +95,11 @@ const missionSteps = [
 
 const capabilityPanels = [
   {
-    title: "Nearby scan",
+    title: "Search everything",
     icon: MapPinned,
-    kicker: "What is around you",
-    body: "Scout helps you discover nearby activity, useful services, local questions, material signals, and things worth checking before you act.",
-    evidence: "nearby posts\nlocal services\nactive changes",
+    kicker: "Site plus local",
+    body: "Scout helps you find TradeScout pages, local activity, useful services, posts, requests, prices, and things worth checking before you act.",
+    evidence: "site pages\nnearby posts\nlocal services",
   },
   {
     title: "Price watch",
@@ -112,7 +112,7 @@ const capabilityPanels = [
     title: "Plain answer",
     icon: Layers3,
     kicker: "What, why, what next",
-    body: "Scout turns messy local discovery questions into a short explanation and a practical next step.",
+    body: "Scout turns messy search questions into a short explanation and a practical next step.",
     evidence: "what matters\nwhy it matters\nwhat to do next",
   },
   {
@@ -156,8 +156,8 @@ const audienceCards = [
 
 const workspaceCopy: Record<WorkspaceTab, { title: string; body: string; status: string }> = {
   scout: {
-    title: "Discover locally",
-    body: "Start with a normal sentence. Scout scans what is useful around you.",
+    title: "Search TradeScout",
+    body: "Start with a normal sentence. Scout searches the site and what is useful around you.",
     status: "ready",
   },
   community: {
@@ -238,14 +238,14 @@ function MiniHeatmap() {
 
 const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("scout");
-  const [openPanel, setOpenPanel] = useState("Nearby scan");
+  const [openPanel, setOpenPanel] = useState("Search everything");
   const activeCopy = workspaceCopy[activeTab];
 
   return (
     <div className="font-body text-white">
       <SEOHelmet
         title="Scout Help | TradeScout"
-        description="Scout helps TradeScout users discover nearby help, projects, posts, prices, rules, events, and safe next steps."
+        description="Scout helps TradeScout users search the site and find nearby help, posts, requests, prices, rules, events, and safe next steps."
         canonical="https://www.thetradescout.com/help/scout"
       />
 
@@ -309,11 +309,11 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                     <div>
                       <p className="ts-section-label">Start Here</p>
                       <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight md:text-6xl">
-                        Tell Scout what you want to discover around you.
+                        Search TradeScout and your area.
                       </h1>
                       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
-                        Scout scans the practical stuff around you first: nearby help, active
-                        projects, useful posts, prices, local rules, events, and safer next steps.
+                        Scout searches pages, people, services, requests, prices, rules, events, and
+                        useful local updates in one place.
                       </p>
                     </div>
                     <span className="ts-live-pill">{activeCopy.status}</span>
@@ -324,7 +324,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                       <div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4">
                         <Search className="h-4 w-4 shrink-0 text-ts-orange" />
                         <span className="text-sm text-white/80">
-                          What useful stuff is happening near me this week?
+                          Who near me can help with a fence this week?
                         </span>
                       </div>
                       <Button asChild className="bg-ts-orange text-white hover:bg-ts-orange-dark">
@@ -354,11 +354,11 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                             </p>
                             <p className="mt-2 text-sm leading-relaxed text-white/75">
                               {index === 0 &&
-                                "There may be nearby requests, active pros, price changes, and local updates worth seeing."}
+                                "Scout found matching pages, nearby help, recent requests, and price notes worth checking."}
                               {index === 1 &&
-                                "Local signals help you decide what is worth your attention before you contact anyone."}
+                                "Seeing the best matches first helps you avoid contacting the wrong person or opening the wrong page."}
                               {index === 2 &&
-                                "Start by scanning nearby activity, then choose whether to save, ask more, or make a request."}
+                                "Open the best match, save it, ask a follow-up, or make a request when it makes sense."}
                             </p>
                           </div>
                         ))}
@@ -383,8 +383,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                 <div className="grid gap-4">
                   <div className="ts-command-panel">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="ts-section-label">What Scout scans</p>
-                      <span className="text-xs text-white/45">plain language first</span>
+                      <p className="ts-section-label">Where Scout looks</p>
+                      <span className="text-xs text-white/45">site plus local</span>
                     </div>
                     <div className="mt-4">
                       <SourceRail />
@@ -475,7 +475,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
                 Scout is not a public directory and it is not a lead-selling shortcut. It helps you
-                discover what is useful around you before you move forward.
+                find the right page, person, post, price, rule, or next step before you move
+                forward.
               </p>
             </div>
 
@@ -589,8 +590,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                 Built for people who need one clear next step.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
-                The interface can be simple, but the engine behind it is scanning local signals,
-                checking context, and protecting the contact path.
+                The interface can be simple, but the engine behind it is searching site and local
+                context while protecting the contact path.
               </p>
             </div>
 

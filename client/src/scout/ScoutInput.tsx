@@ -211,9 +211,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         value={value}
         onChange={handleManualChange}
         disabled={disabled}
-        placeholder={
-          placeholder || "Ask Scout what is useful, nearby, changing, or worth checking."
-        }
+        placeholder={placeholder || "Ask Scout who, what, where, or what changed nearby."}
         rows={3}
         className="w-full min-h-[110px] resize-none rounded-xl px-3.5 py-3 text-[15px] leading-relaxed transition-colors focus:outline-none placeholder:text-[color:var(--text-secondary)]"
         style={{

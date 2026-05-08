@@ -8,31 +8,31 @@ const read = (relativePath: string) => {
 };
 
 describe("Scout entry framing contracts", () => {
-  it("header frames Scout as a local discovery layer", () => {
+  it("header frames Scout as site search plus local discovery", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
-    expect(source).toContain("Local Discovery");
-    expect(source).toContain("What do you want to discover around");
-    expect(source).toContain("nearby help, active projects, prices, rules, events");
-    expect(source).toContain("Nearby help");
-    expect(source).toContain("Local projects");
-    expect(source).toContain("Prices & deals");
-    expect(source).toContain("Rules & events");
+    expect(source).toContain("Search TradeScout");
+    expect(source).toContain("What are you looking for");
+    expect(source).toContain("Use Scout like search");
+    expect(source).toContain("Search the site");
+    expect(source).toContain("Who can help");
+    expect(source).toContain("What's nearby");
+    expect(source).toContain("Prices & rules");
   });
 
   it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain("What useful stuff is happening near me");
-    expect(inputSource).toContain("Ask local");
-    expect(inputSource).toContain("See signals");
-    expect(inputSource).toContain("Act safely");
+    expect(inputSource).toContain("Who near me can help with a fence");
+    expect(inputSource).toContain("Ask");
+    expect(inputSource).toContain("Compare");
+    expect(inputSource).toContain("Choose");
     expect(inputSource).toContain("Your area:");
     expect(inputSource).toContain("Use current location");
-    expect(promptsSource).toContain("Show me what's happening nearby");
-    expect(promptsSource).toContain("Find useful local help around me");
-    expect(promptsSource).toContain("What prices or deals changed nearby?");
+    expect(promptsSource).toContain("What's happening near me today?");
+    expect(promptsSource).toContain("Who nearby can help with this?");
+    expect(promptsSource).toContain("Any local prices or deals I should know about?");
     expect(promptsSource).toContain("What's my next step?");
   });
 

@@ -1,10 +1,10 @@
 export const LIVE_READINESS_QUICK_START_PROMPT = "What's my next step?";
 
 export const SCOUT_QUICK_START_PROMPTS = [
-  "Show me what's happening nearby",
-  "Find useful local help around me",
-  "What prices or deals changed nearby?",
-  "What should I know before I contact anyone?",
-  "What local rules or events matter this week?",
+  "What's happening near me today?",
+  "Who nearby can help with this?",
+  "Any local prices or deals I should know about?",
+  "What changed around me this week?",
+  "What should I check before I contact anyone?",
   LIVE_READINESS_QUICK_START_PROMPT,
 ] as const;
