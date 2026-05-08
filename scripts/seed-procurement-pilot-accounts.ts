@@ -1,6 +1,7 @@
 import { hashPassword } from "../server/auth";
 import { pool } from "../server/db";
 import { ensureProcurementEngineTables } from "../server/db/ensureProcurementEngineTables";
+import { ensureTradepartnerUserEntitlementsTable } from "../server/services/tradepartnerAccessService";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 
 type PilotAccount = {
@@ -76,7 +77,6 @@ async function upsertUser(account: PilotAccount) {
         address_verified,
         state_code,
         county_fips,
-        location_committed,
         created_at,
         updated_at
       )
@@ -94,7 +94,6 @@ async function upsertUser(account: PilotAccount) {
         true,
         'TX',
         '48453',
-        true,
         now(),
         now()
       )
@@ -111,7 +110,6 @@ async function upsertUser(account: PilotAccount) {
         address_verified = true,
         state_code = excluded.state_code,
         county_fips = excluded.county_fips,
-        location_committed = true,
         updated_at = now()
       returning id, email
     `,
@@ -174,6 +172,7 @@ async function grantGruntOperator(userId: string) {
 
 async function main() {
   await ensureProcurementEngineTables();
+  await ensureTradepartnerUserEntitlementsTable();
 
   const created = new Map<string, { id: string; email: string }>();
   for (const account of accounts) {
