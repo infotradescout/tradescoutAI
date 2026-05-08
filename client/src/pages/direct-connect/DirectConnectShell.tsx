@@ -576,10 +576,10 @@ function DirectConnectRequestComposer({
   prefillBudgetMax?: string;
   prefillTradeId?: string;
 }) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const attachmentsRef = useRef<DraftAttachment[]>([]);
   const initialTargetName = String(prefillTargetName || "").trim();
   const prefillTargetLabel = initialTargetName || "selected member";
@@ -613,6 +613,10 @@ function DirectConnectRequestComposer({
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
   const requestStartedRef = useRef(false);
+  const currentReturnPath = () => {
+    if (typeof window === "undefined") return location || "/direct-connect";
+    return `${window.location.pathname}${window.location.search || ""}`;
+  };
 
   const replaceAttachments = (next: DraftAttachment[]) => {
     attachmentsRef.current = next;
@@ -884,6 +888,16 @@ function DirectConnectRequestComposer({
       navigate("/direct-connect/engagements");
     },
     onError: (error: any) => {
+      if (error?.status === 401) {
+        toast({
+          title: "Sign in to send",
+          description: "Your request draft is ready. Sign in to review and send it.",
+        });
+        const next = encodeURIComponent(currentReturnPath());
+        navigate(`/pre-scout-setup?mode=signin&next=${next}`);
+        return;
+      }
+
       const isVerificationGate =
         error?.status === 428 ||
         String(error?.code || "").toUpperCase() === "VERIFICATION_REQUIRED";
@@ -950,6 +964,15 @@ function DirectConnectRequestComposer({
 
   const handleOpenDispatchSheet = () => {
     if (!canSubmit || createMutation.isPending) return;
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign in to send",
+        description: "Your request draft is ready. Sign in to review and send it.",
+      });
+      const next = encodeURIComponent(currentReturnPath());
+      navigate(`/pre-scout-setup?mode=signin&next=${next}`);
+      return;
+    }
     setShowDispatchSheet(true);
   };
 
@@ -1130,7 +1153,11 @@ function DirectConnectRequestComposer({
             disabled={createMutation.isPending || !canSubmit}
             className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
-            {createMutation.isPending ? "Sending..." : "Send request"}
+            {createMutation.isPending
+              ? "Sending..."
+              : isAuthenticated
+                ? "Send request"
+                : "Sign in to send"}
           </Button>
         </div>
 

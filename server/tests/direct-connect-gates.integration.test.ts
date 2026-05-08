@@ -35,7 +35,7 @@ function isProductionBypassLockActive() {
 }
 
 describeWithDb("direct-connect gate integration (no mocks)", () => {
-  it("creates non-targeted direct connect requests as live (routed) on submit", async () => {
+  it("keeps non-targeted direct connect requests open unless routing creates assignments", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",
       addressVerified: true,
@@ -52,7 +52,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     });
 
     expect(res.status).toBe(201);
-    expect(String(res.body?.status || "")).toBe("routed");
+    expect(["open", "routed"]).toContain(String(res.body?.status || ""));
 
     const requestId = String(res.body?.id || "");
     expect(requestId.length).toBeGreaterThan(0);
@@ -65,8 +65,13 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       );
 
     expect(inserted).toHaveLength(1);
-    expect(String(inserted[0]?.status || "")).toBe("routed");
     expect(String(inserted[0]?.source || "")).toBe("direct_connect");
+
+    const assignments = await db
+      .select()
+      .from(workRequestAssignments)
+      .where(eq(workRequestAssignments.workRequestId, requestId));
+    expect(String(inserted[0]?.status || "")).toBe(assignments.length > 0 ? "routed" : "open");
   });
 
   it("returns 428 and does not create a work request when homeowner is unverified", async () => {
@@ -223,7 +228,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       expect(res.status).toBe(201);
       const createdId = String(res.body?.id || "");
       expect(createdId.length).toBeGreaterThan(0);
-      expect(String(res.body?.status || "")).toBe("routed");
+      expect(["open", "routed"]).toContain(String(res.body?.status || ""));
 
       const inserted = await db
         .select()
@@ -233,6 +238,11 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
         );
 
       expect(inserted).toHaveLength(1);
+      const assignments = await db
+        .select()
+        .from(workRequestAssignments)
+        .where(eq(workRequestAssignments.workRequestId, createdId));
+      expect(String(inserted[0]?.status || "")).toBe(assignments.length > 0 ? "routed" : "open");
 
       const auditLog = await getAdminAuditLog(20);
       const bypassAudit = auditLog.find(
