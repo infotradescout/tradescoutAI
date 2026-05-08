@@ -41,7 +41,6 @@ import {
   BadgeInfo,
   BarChart3,
   Database,
-  MapPinned,
   Route,
   Search,
   Sparkles,
@@ -3041,12 +3040,12 @@ export default function ScoutOS() {
                           backgroundColor: "transparent",
                         }}
                       >
-                        Dashboard
+                        Requests
                       </Button>
                     </SheetTrigger>
                     <SheetContent side="right" className="w-[380px] max-w-[92vw]">
                       <SheetHeader>
-                        <SheetTitle>Scout workspace</SheetTitle>
+                        <SheetTitle>Saved requests</SheetTitle>
                       </SheetHeader>
                       <div className="mt-4 flex flex-col gap-3">
                         <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
@@ -3407,7 +3406,7 @@ export default function ScoutOS() {
                 {!isMobile && (
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                      View mode
+                      Results
                     </p>
 
                     <div
@@ -3433,7 +3432,7 @@ export default function ScoutOS() {
                               : "transparent",
                         }}
                       >
-                        Chat only
+                        Simple
                       </button>
                       <button
                         type="button"
@@ -3450,7 +3449,7 @@ export default function ScoutOS() {
                               : "transparent",
                         }}
                       >
-                        Chat + controller
+                        With actions
                       </button>
                     </div>
                   </div>
@@ -3544,14 +3543,14 @@ export default function ScoutOS() {
                       className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Start local
+                      Start search
                     </p>
 
                     <p
                       className="text-[11px] md:text-xs"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Pick the nearby signal you want Scout to scan first.
+                      Pick what you want Scout to look for first.
                     </p>
 
                     {/* Primary action grid: navigation with intent, not chat suggestions */}
@@ -3614,8 +3613,8 @@ export default function ScoutOS() {
                           className="text-xs md:text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          Set your county so Scout can route local providers, activity, and jobs
-                          correctly.
+                          Set your county so Scout can show the right local providers, activity, and
+                          jobs.
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
                           <Button
@@ -3728,7 +3727,7 @@ export default function ScoutOS() {
                   routingDecisionCard?.action &&
                   routingDecisionCard.metadata?.trust?.trustSignals && (
                     <TrustAwareDecisionCard
-                      title="Scout recommended route"
+                      title="Scout found a next step"
                       summary={routingDecisionCard.reasoning}
                       primaryAction={routingDecisionCard.action}
                       alternativeActions={routingDecisionCard.metadata?.alternativeActions}
@@ -3967,7 +3966,7 @@ export default function ScoutOS() {
                       Scout
                     </div>
                     <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
-                      live workspace
+                      ready
                     </span>
                   </div>
                   <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-white">
@@ -4180,10 +4179,10 @@ export default function ScoutOS() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Post to Direct Connect?</AlertDialogTitle>
+            <AlertDialogTitle>Create this local request?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will create a request on your Direct Connect board. You can route it to pros
-              after it is posted.
+              Scout will save this as a request. You can review it before sharing it with local
+              pros.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
@@ -4265,7 +4264,7 @@ export default function ScoutOS() {
                   const msg: ScoutMessage = {
                     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
                     role: "assistant",
-                    content: "Posted. Want to review it in Direct Connect?",
+                    content: "Saved. Want to review it before sharing?",
                     timestamp: new Date().toISOString(),
                     clusters: [
                       {
@@ -4273,8 +4272,8 @@ export default function ScoutOS() {
                         title: "Direct Connect",
                         kind: "generic",
                         body: createdId
-                          ? "Your request is live. You can route it to local pros from the board."
-                          : "Your request is live. You can route it to local pros from the board.",
+                          ? "Your request is saved. Review it before you share it with local pros."
+                          : "Your request is saved. Review it before you share it with local pros.",
                         primaryAction: {
                           type: "NAVIGATE",
                           label: "Open Direct Connect",
@@ -4307,7 +4306,7 @@ export default function ScoutOS() {
                 }
               }}
             >
-              {dcBusy ? "Posting..." : "Post request"}
+              {dcBusy ? "Saving..." : "Create request"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

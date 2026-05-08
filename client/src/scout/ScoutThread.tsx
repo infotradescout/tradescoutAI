@@ -760,15 +760,15 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     const statusMessages =
       mode === "contractors"
         ? [
-            "Analyzing your project needs...",
-            "Matching local contractors...",
-            "Loading profiles and trust (CVS)...",
+            "Reading your search...",
+            "Finding nearby help...",
+            "Checking trust and profile details...",
           ]
         : mode === "marketplace"
           ? [
-              "Scanning local listings...",
-              "Filtering matched offers...",
-              "Loading marketplace updates...",
+              "Searching local listings...",
+              "Comparing matching offers...",
+              "Checking recent marketplace updates...",
             ]
           : mode === "admin"
             ? [
@@ -777,18 +777,18 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 "Compiling control settings...",
               ]
             : [
-                "Scanning your community...",
-                "Reviewing local activity...",
-                "Preparing community insights...",
+                "Searching TradeScout...",
+                "Checking what's nearby...",
+                "Preparing useful matches...",
               ];
 
     // Cycle through messages based on progress (0-1 range maps to 0-messages.length)
     const messageIndex = Math.floor(progress * statusMessages.length);
     statusLabel = statusMessages[Math.min(messageIndex, statusMessages.length - 1)];
   } else if (status === "executing_action") {
-    statusLabel = "Starting that action...";
+    statusLabel = "Opening the next step...";
   } else if (status === "ready") {
-    statusLabel = "Preparing your answer...";
+    statusLabel = "Preparing your results...";
   }
 
   // Show loader for any active phase so returning answers and actions
@@ -912,7 +912,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse"
                 style={{ backgroundColor: "var(--theme-accent-primary)" }}
               />
-              {statusLabel ?? "Scout is thinking about the best local answer..."}
+              {statusLabel ?? "Scout is finding the best match..."}
             </div>
           </div>
         </div>
