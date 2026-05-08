@@ -88,13 +88,13 @@ const missionSteps = [
     description: "Caching, request dedupe, and prompt compression reduce repeated spend.",
   },
   {
-    title: "LISA Conversion",
+    title: "Decision Routing",
     description:
-      "Findings become LisaFeedItem objects with priority, scope, and next-step context.",
+      "Findings become decision-ready findings with priority, scope, and next-step context.",
   },
   {
     title: "Persistence and Routing",
-    description: "Scout writes to scout_lisa_findings and routes through the correct UI surfaces.",
+    description: "Scout stores the finding and routes it through the correct UI surfaces.",
   },
 ];
 
@@ -114,10 +114,10 @@ const capabilityPanels = [
     evidence: "Truth stack\n1. knowledge base\n2. local data\n3. live web",
   },
   {
-    title: "LISA handoff",
+    title: "Decision routing",
     icon: Route,
     kicker: "Exact routing shape",
-    body: "Scout converts findings into LISA-ready intelligence while preserving the Intent -> Decision Card -> Contact path.",
+    body: "Scout converts findings into decision-ready intelligence while preserving the Intent -> Decision Card -> Contact path.",
     evidence: "kind: scout_intelligence\nscope: county + trade\nnext: Decision Card",
   },
   {
@@ -155,7 +155,7 @@ const audienceCards = [
 const workspaceCopy: Record<WorkspaceTab, { title: string; body: string; status: string }> = {
   scout: {
     title: "Active Scouting Workspace",
-    body: "Mission input, live synthesis, source ranking, LISA tags, and county writeback in one working surface.",
+    body: "Mission input, live synthesis, source ranking, routing tags, and county writeback in one working surface.",
     status: "mission ready",
   },
   community: {
@@ -243,7 +243,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
     <div className="font-body text-white">
       <SEOHelmet
         title="Scout 2.0 Showcase | TradeScout"
-        description="Scout 2.0 is TradeScout's active intelligence command center for knowledge base, county data, live context, and LISA-ready findings."
+        description="Scout 2.0 is TradeScout's active intelligence command center for knowledge base, county data, live context, and decision-ready findings."
         canonical="https://www.thetradescout.com/help/scout"
       />
 
@@ -311,7 +311,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                       </h1>
                       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
                         It scouts codes, prices, and market conditions, then converts the result
-                        into LISA-ready intelligence without pretending missing data exists.
+                        into decision-ready intelligence without pretending missing data exists.
                       </p>
                     </div>
                     <span className="ts-live-pill">{activeCopy.status}</span>
@@ -413,7 +413,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
 
               <div className="mt-4 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                 <div className="ts-command-panel">
-                  <p className="ts-section-label">LISA handoff</p>
+                  <p className="ts-section-label">Decision routing</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {routingTags.map((tag) => (
                       <span key={tag} className="ts-routing-tag">
@@ -468,7 +468,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
                 Scout is not generic chat. It is active intelligence gathering with source priority,
-                cost controls, persistence, and LISA routing.
+                cost controls, persistence, and decision routing.
               </p>
             </div>
 

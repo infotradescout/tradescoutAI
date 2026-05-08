@@ -24,7 +24,7 @@ describe("scout info page", () => {
     expect(showcase).toContain("Scout 2.0");
     expect(showcase).toContain("Scout 2.0 Showcase");
     expect(showcase).toContain("Truth stack");
-    expect(showcase).toContain("LISA handoff");
+    expect(showcase).toContain("Decision routing");
     expect(showcase).toContain("Trend Engine");
     expect(showcase).toContain("How Scout Works");
     expect(showcase).toContain("Scout is for everyone");

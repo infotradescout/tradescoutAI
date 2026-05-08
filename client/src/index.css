@@ -657,6 +657,18 @@ html {
   min-height: 8rem;
   border-radius: 16px;
   padding: 0.9rem;
+  transition:
+    border-color 150ms ease-out,
+    background-color 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.scout-v2-mini-card:hover,
+.scout-v2-mini-card.active,
+.scout-v2-mobile-chip:hover,
+.scout-v2-mobile-chip.active {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 52%, rgba(255, 255, 255, 0.1));
+  background: color-mix(in oklab, var(--theme-accent-primary) 12%, rgba(0, 0, 0, 0.2));
 }
 
 .scout-v2-mobile-console {

@@ -8,19 +8,23 @@ const read = (relativePath: string) => {
 };
 
 describe("Scout entry framing contracts", () => {
-  it("header frames Scout as a clear ask surface and focuses on outcomes", () => {
+  it("header frames Scout as an active mission workspace", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
-    expect(source).toContain("TradeScout • Ask Scout");
-    expect(source).toContain("What do you need done");
-    expect(source).toContain("Start here for the clearest next step.");
+    expect(source).toContain("TradeScout Data Factory");
+    expect(source).toContain("Launch a scouting mission");
+    expect(source).toContain("Scout gathers codes, prices, county context");
+    expect(source).toContain("Decision routing");
   });
 
   it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain("What do you need help with today?");
+    expect(inputSource).toContain("Scout Travis County electrical permit rules");
+    expect(inputSource).toContain("Gather");
+    expect(inputSource).toContain("Synthesize");
+    expect(inputSource).toContain("Route");
     expect(inputSource).toContain("Your area:");
     expect(inputSource).toContain("Use current location");
     expect(promptsSource).toContain("Help me find the right local help");

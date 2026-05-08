@@ -40,7 +40,7 @@ export function ScoutHeader({
         </p>
       )}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-        {["Knowledge base", "County data", "Live context", "LISA routing"].map((label) => (
+        {["Knowledge base", "County data", "Live context", "Decision routing"].map((label) => (
           <div
             key={label}
             className="rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-semibold text-white/75"

@@ -516,6 +516,9 @@ export default function ScoutOS() {
   const [workAreaUrl, setWorkAreaUrl] = useState<string | null>(null);
   const [workAreaTitle, setWorkAreaTitle] = useState<string | null>(null);
   const [prefillKey, setPrefillKey] = useState(0);
+  const [activeMissionPanel, setActiveMissionPanel] = useState<
+    "truth" | "trend" | "routing" | "county"
+  >("truth");
   const [activeMode, setActiveMode] = useState<ScoutMode>("default");
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
@@ -2839,6 +2842,51 @@ export default function ScoutOS() {
     [user, locality]
   );
 
+  const missionControlItems: Array<{
+    id: "truth" | "trend" | "routing" | "county";
+    label: string;
+    icon: typeof Database;
+    prompt: string;
+  }> = [
+    {
+      id: "truth",
+      label: "Truth stack",
+      icon: Database,
+      prompt:
+        "Scout the most reliable answer for my project using knowledge base first, county data second, and live context third.",
+    },
+    {
+      id: "trend",
+      label: "Trend Engine",
+      icon: BarChart3,
+      prompt:
+        "Scout current material price and permit timeline trends for my county and show what is rising, falling, or stable.",
+    },
+    {
+      id: "routing",
+      label: "Decision routing",
+      icon: Route,
+      prompt: "Scout this need and prepare the right Decision Card path before any contact step.",
+    },
+    {
+      id: "county",
+      label: "County layer",
+      icon: MapPinned,
+      prompt:
+        "Scout county-specific facts and tell me what belongs in county metrics, notes, or assignments.",
+    },
+  ];
+
+  const prefillScoutMission = useCallback((prompt: string) => {
+    try {
+      window.localStorage.setItem("scout:prefill:scout-main", prompt);
+    } catch {
+      // ignore storage errors
+    }
+    setHasGuestInteracted(true);
+    setPrefillKey((k) => k + 1);
+  }, []);
+
   return (
     <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
@@ -2922,19 +2970,24 @@ export default function ScoutOS() {
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-4 gap-1.5">
-                    {[
-                      ["Truth stack", Database],
-                      ["Trend Engine", BarChart3],
-                      ["LISA handoff", Route],
-                      ["County layer", MapPinned],
-                    ].map(([label, Icon]) => {
-                      const ConsoleIcon = Icon as typeof Database;
+                    {missionControlItems.map((item) => {
+                      const ConsoleIcon = item.icon;
 
                       return (
-                        <div key={String(label)} className="scout-v2-mobile-chip">
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveMissionPanel(item.id);
+                            prefillScoutMission(item.prompt);
+                          }}
+                          className={`scout-v2-mobile-chip ${
+                            activeMissionPanel === item.id ? "active" : ""
+                          }`}
+                        >
                           <ConsoleIcon className="h-3.5 w-3.5 text-ts-orange" />
-                          <span>{String(label)}</span>
-                        </div>
+                          <span>{item.label}</span>
+                        </button>
                       );
                     })}
                   </div>
@@ -3749,7 +3802,7 @@ export default function ScoutOS() {
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
                     Scout gathers, reconciles, writes back to county containers, and prepares the
-                    LISA handoff while the conversation stays focused.
+                    next-step routing while the conversation stays focused.
                   </p>
                 </div>
 
@@ -3766,9 +3819,16 @@ export default function ScoutOS() {
                       ["County Data", "local override", "w-[76%]"],
                       ["Live Web", "market context", "w-[54%]"],
                     ].map(([label, detail, width], index) => (
-                      <div
+                      <button
                         key={label}
-                        className="rounded-xl border border-white/10 bg-black/20 p-3"
+                        type="button"
+                        onClick={() => {
+                          setActiveMissionPanel("truth");
+                          prefillScoutMission(missionControlItems[0].prompt);
+                        }}
+                        className={`w-full rounded-xl border border-white/10 bg-black/20 p-3 text-left ${
+                          activeMissionPanel === "truth" ? "border-ts-orange/50" : ""
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
@@ -3782,46 +3842,62 @@ export default function ScoutOS() {
                         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
                           <div className={`h-full rounded-full bg-ts-orange ${width}`} />
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="scout-v2-mini-card">
-                    <BarChart3 className="h-4 w-4 text-emerald-300" />
-                    <p className="mt-3 text-sm font-semibold text-white">Trend Engine</p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/50">directional signal</p>
-                  </div>
-                  <div className="scout-v2-mini-card">
-                    <Layers3 className="h-4 w-4 text-sky-300" />
-                    <p className="mt-3 text-sm font-semibold text-white">Synthesis</p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/50">conflict resolver</p>
-                  </div>
-                  <div className="scout-v2-mini-card">
-                    <Route className="h-4 w-4 text-ts-orange" />
-                    <p className="mt-3 text-sm font-semibold text-white">LISA handoff</p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/50">Decision Card path</p>
-                  </div>
-                  <div className="scout-v2-mini-card">
-                    <MapPinned className="h-4 w-4 text-rose-200" />
-                    <p className="mt-3 text-sm font-semibold text-white">County layer</p>
-                    <p className="mt-1 text-xs leading-relaxed text-white/50">precomputed facts</p>
-                  </div>
+                  {missionControlItems.map((item) => {
+                    const Icon = item.icon;
+                    const subcopy =
+                      item.id === "truth"
+                        ? "source priority"
+                        : item.id === "trend"
+                          ? "directional signal"
+                          : item.id === "routing"
+                            ? "Decision Card path"
+                            : "precomputed facts";
+
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveMissionPanel(item.id);
+                          prefillScoutMission(item.prompt);
+                        }}
+                        className={`scout-v2-mini-card text-left ${
+                          activeMissionPanel === item.id ? "active" : ""
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 text-ts-orange" />
+                        <p className="mt-3 text-sm font-semibold text-white">{item.label}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-white/50">{subcopy}</p>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <div className="scout-v2-rail-card">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveMissionPanel("routing");
+                    prefillScoutMission(missionControlItems[2].prompt);
+                  }}
+                  className="scout-v2-rail-card text-left"
+                >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    LISA routing payload
+                    Decision routing payload
                   </p>
                   <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4 font-mono text-[11px] leading-6 text-white/60">
-                    kind: scout_intelligence
+                    kind: scout finding
                     <br />
                     narrative: What / Why / What to do
                     <br />
                     gate: Intent -&gt; Decision Card -&gt; Contact
                   </div>
-                </div>
+                </button>
               </aside>
             )}
           </div>
