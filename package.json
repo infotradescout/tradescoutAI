@@ -48,6 +48,7 @@
     "check:scale-readiness": "node scripts/check-scale-readiness.mjs",
     "db:baseline": "node scripts/db-baseline-drizzle.mjs",
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",
+    "seed:procurement-pilot": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-procurement-pilot-accounts.ts",
     "seed:businesses": "node scripts/seed_businesses_places_new.mjs",
     "test:run:db": "npm run db:push:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run",
     "test:direct-connect:gates": "npm run test:run -- server/tests/direct-connect-gates.regression.test.ts",

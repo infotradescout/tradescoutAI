@@ -141,6 +141,46 @@ Business framing for demos: “We built the ordering layer as infrastructure own
 - [ ] Mobile flow is usable.
 - [ ] Pilot language protects TradeScout/LISA ownership.
 
+## Internal Pilot Account Setup
+
+If real internal accounts do not exist yet, create them with the guarded seed script. Do not use fake/sample orders for the pilot walkthrough, and do not give Grunt external access.
+
+Set these environment variables locally or in a secure one-off shell session:
+
+- `PILOT_TS_CUSTOMER_EMAIL`
+- `PILOT_TS_CUSTOMER_PASSWORD`
+- `PILOT_TS_ADMIN_EMAIL`
+- `PILOT_TS_ADMIN_PASSWORD`
+- `PILOT_GRUNT_OPERATOR_EMAIL`
+- `PILOT_GRUNT_OPERATOR_PASSWORD`
+
+Optional display-name variables:
+
+- `PILOT_TS_CUSTOMER_FIRST_NAME`
+- `PILOT_TS_CUSTOMER_LAST_NAME`
+- `PILOT_TS_ADMIN_FIRST_NAME`
+- `PILOT_TS_ADMIN_LAST_NAME`
+- `PILOT_GRUNT_OPERATOR_FIRST_NAME`
+- `PILOT_GRUNT_OPERATOR_LAST_NAME`
+
+Run:
+
+```bash
+npm run seed:procurement-pilot
+```
+
+The script:
+
+- creates or updates the TradeScout customer account
+- creates or updates the TradeScout admin account with `ops_admin`
+- creates or updates the limited Grunt operator account
+- grants the Grunt operator only `grunt` procurement workspace access
+- grants the Grunt operator only the `grunt` procurement entitlement
+- does not print passwords
+- does not create orders, files, quotes, proofs, or sample data
+
+Use those accounts for the manual walkthrough and permission kill-tests.
+
 ## Known Limitations
 
 These are intentionally deferred until the pilot proves demand:
