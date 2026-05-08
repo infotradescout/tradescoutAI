@@ -2985,6 +2985,63 @@ export default function ScoutOS() {
     [composeMissionDraft, prefillScoutMission]
   );
 
+  const localDiscoveryLaunchers = useMemo(() => {
+    const area =
+      heroLocationLabel && heroLocationLabel.toLowerCase() !== "your area"
+        ? heroLocationLabel
+        : "near me";
+
+    return [
+      {
+        id: "need-help",
+        label: "I need help",
+        detail: "Find people, services, and saved request options",
+        icon: Wrench,
+        panel: "people" as const,
+        type: "help" as const,
+        prompt: `Find local help ${area}. Show the best matches, what they do, and what I can safely do next before sharing contact info.`,
+      },
+      {
+        id: "local-feed",
+        label: "What's happening?",
+        detail: "Posts, requests, projects, events, and changes nearby",
+        icon: Users2,
+        panel: "market" as const,
+        type: "events" as const,
+        prompt: `Show what's happening ${area}: local posts, requests, projects, events, and recent changes. Keep it easy to scan.`,
+      },
+      {
+        id: "search-site",
+        label: "Find a page or tool",
+        detail: "Use Scout as TradeScout search",
+        icon: Search,
+        panel: "nearby" as const,
+        type: "around_me" as const,
+        prompt:
+          "Search TradeScout for the right page, tool, request, listing, or next step. If there are multiple matches, compare them simply.",
+      },
+      {
+        id: "prices-rules",
+        label: "Prices or rules",
+        detail: "Local prices, permits, rules, and updates",
+        icon: BarChart3,
+        panel: "rules" as const,
+        type: "prices" as const,
+        prompt: `Check prices, permits, rules, and local updates ${area}. Tell me what matters and what I can do next.`,
+      },
+    ];
+  }, [heroLocationLabel]);
+
+  const startDiscoveryLauncher = useCallback(
+    (launcher: (typeof localDiscoveryLaunchers)[number]) => {
+      setActiveMissionPanel(launcher.panel);
+      setMissionType(launcher.type);
+      setHasGuestInteracted(true);
+      prefillScoutMission(launcher.prompt);
+    },
+    [localDiscoveryLaunchers, prefillScoutMission]
+  );
+
   return (
     <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
@@ -3347,6 +3404,61 @@ export default function ScoutOS() {
                   autoDemoText={introDemoText}
                   enableAutoDemo={shouldPlayIntroDemo}
                 />
+
+                {!hasUserMessages && (
+                  <div className="mt-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                        Try a local search
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => applyMissionDraft()}
+                        className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          color: "var(--text-secondary)",
+                          backgroundColor: "transparent",
+                        }}
+                      >
+                        Use my choices
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {localDiscoveryLaunchers.map((launcher) => {
+                        const Icon = launcher.icon;
+
+                        return (
+                          <button
+                            key={launcher.id}
+                            type="button"
+                            onClick={() => startDiscoveryLauncher(launcher)}
+                            className="group flex min-h-[84px] flex-col items-start rounded-xl border px-3 py-2.5 text-left transition-colors"
+                            style={{
+                              borderColor: "var(--border-subtle)",
+                              backgroundColor:
+                                "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            <span className="mb-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-ts-orange/10 text-ts-orange">
+                              <Icon className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="text-[13px] font-semibold leading-tight">
+                              {launcher.label}
+                            </span>
+                            <span
+                              className="mt-1 text-[11px] leading-snug"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              {launcher.detail}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {!isAuthenticated && (
                   <div className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
