@@ -732,6 +732,65 @@ html {
   box-shadow: 0 16px 34px color-mix(in oklab, var(--theme-accent-primary) 22%, transparent);
 }
 
+.scout-builder-label {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.scout-builder-button,
+.scout-source-toggle {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.68);
+  transition:
+    border-color 150ms ease-out,
+    background-color 150ms ease-out,
+    color 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.scout-builder-button {
+  display: flex;
+  min-height: 3.75rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.18rem;
+  border-radius: 0.85rem;
+  padding: 0.65rem;
+  text-align: left;
+}
+
+.scout-builder-button span {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.scout-builder-button small {
+  font-size: 0.62rem;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.46);
+}
+
+.scout-source-toggle {
+  border-radius: 999px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.scout-builder-button:hover,
+.scout-builder-button.active,
+.scout-source-toggle:hover,
+.scout-source-toggle.active {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 52%, rgba(255, 255, 255, 0.1));
+  background: color-mix(in oklab, var(--theme-accent-primary) 13%, rgba(0, 0, 0, 0.22));
+  color: #fff;
+}
+
 .ts-badge-new {
   font-size: 0.7rem;
   font-weight: 600;

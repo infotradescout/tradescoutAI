@@ -519,6 +519,17 @@ export default function ScoutOS() {
   const [activeMissionPanel, setActiveMissionPanel] = useState<
     "truth" | "trend" | "routing" | "county"
   >("truth");
+  const [missionType, setMissionType] = useState<"code_price" | "market" | "permit" | "trust">(
+    "code_price"
+  );
+  const [missionUrgency, setMissionUrgency] = useState<"today" | "this_week" | "planning">(
+    "this_week"
+  );
+  const [enabledMissionSources, setEnabledMissionSources] = useState({
+    knowledge: true,
+    county: true,
+    live: true,
+  });
   const [activeMode, setActiveMode] = useState<ScoutMode>("default");
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
@@ -2877,6 +2888,83 @@ export default function ScoutOS() {
     },
   ];
 
+  const missionTypeOptions: Array<{
+    id: typeof missionType;
+    label: string;
+    description: string;
+  }> = [
+    {
+      id: "code_price",
+      label: "Code + price",
+      description: "Rules, materials, and quote risk",
+    },
+    {
+      id: "market",
+      label: "Market signal",
+      description: "Trends, demand, and timing",
+    },
+    {
+      id: "permit",
+      label: "Permit path",
+      description: "County steps and inspection risk",
+    },
+    {
+      id: "trust",
+      label: "Trust check",
+      description: "Verify before a contact path",
+    },
+  ];
+
+  const urgencyOptions: Array<{ id: typeof missionUrgency; label: string }> = [
+    { id: "today", label: "Today" },
+    { id: "this_week", label: "This week" },
+    { id: "planning", label: "Planning" },
+  ];
+
+  const sourceOptions: Array<{
+    id: keyof typeof enabledMissionSources;
+    label: string;
+  }> = [
+    { id: "knowledge", label: "Knowledge" },
+    { id: "county", label: "County" },
+    { id: "live", label: "Live" },
+  ];
+
+  const composeMissionDraft = useCallback(
+    (overrides?: {
+      panel?: typeof activeMissionPanel;
+      type?: typeof missionType;
+      urgency?: typeof missionUrgency;
+      sources?: typeof enabledMissionSources;
+    }) => {
+      const panel = overrides?.panel ?? activeMissionPanel;
+      const type = overrides?.type ?? missionType;
+      const urgency = overrides?.urgency ?? missionUrgency;
+      const sources = overrides?.sources ?? enabledMissionSources;
+      const typeLabel =
+        missionTypeOptions.find((option) => option.id === type)?.label || "Code + price";
+      const sourceList = sourceOptions
+        .filter((source) => sources[source.id])
+        .map((source) => source.label.toLowerCase())
+        .join(", ");
+      const area =
+        heroLocationLabel && heroLocationLabel.toLowerCase() !== "your area"
+          ? heroLocationLabel
+          : "my county";
+      const panelInstruction =
+        panel === "truth"
+          ? "resolve conflicts by source priority and show the evidence trail"
+          : panel === "trend"
+            ? "show what is rising, falling, or stable"
+            : panel === "routing"
+              ? "prepare the right Decision Card path before any contact step"
+              : "separate county facts, notes, and assignments";
+
+      return `Scout a ${typeLabel.toLowerCase()} mission for ${area}. Use ${sourceList || "available"} sources, treat urgency as ${urgency.replace("_", " ")}, ${panelInstruction}. Return What, Why, and What to do next.`;
+    },
+    [activeMissionPanel, enabledMissionSources, heroLocationLabel, missionType, missionUrgency]
+  );
+
   const prefillScoutMission = useCallback((prompt: string) => {
     try {
       window.localStorage.setItem("scout:prefill:scout-main", prompt);
@@ -2886,6 +2974,13 @@ export default function ScoutOS() {
     setHasGuestInteracted(true);
     setPrefillKey((k) => k + 1);
   }, []);
+
+  const applyMissionDraft = useCallback(
+    (overrides?: Parameters<typeof composeMissionDraft>[0]) => {
+      prefillScoutMission(composeMissionDraft(overrides));
+    },
+    [composeMissionDraft, prefillScoutMission]
+  );
 
   return (
     <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
@@ -2979,7 +3074,7 @@ export default function ScoutOS() {
                           type="button"
                           onClick={() => {
                             setActiveMissionPanel(item.id);
-                            prefillScoutMission(item.prompt);
+                            applyMissionDraft({ panel: item.id });
                           }}
                           className={`scout-v2-mobile-chip ${
                             activeMissionPanel === item.id ? "active" : ""
@@ -2990,6 +3085,79 @@ export default function ScoutOS() {
                         </button>
                       );
                     })}
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <p className="scout-builder-label">Mission type</p>
+                      <div className="mt-2 grid grid-cols-2 gap-1.5">
+                        {missionTypeOptions.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => {
+                              setMissionType(option.id);
+                              applyMissionDraft({ type: option.id });
+                            }}
+                            className={`scout-builder-button ${
+                              missionType === option.id ? "active" : ""
+                            }`}
+                          >
+                            <span>{option.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-[1fr_0.8fr] gap-2">
+                      <div>
+                        <p className="scout-builder-label">Evidence</p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {sourceOptions.map((source) => (
+                            <button
+                              key={source.id}
+                              type="button"
+                              onClick={() => {
+                                const enabledCount =
+                                  Object.values(enabledMissionSources).filter(Boolean).length;
+                                const next = {
+                                  ...enabledMissionSources,
+                                  [source.id]:
+                                    enabledCount === 1 && enabledMissionSources[source.id]
+                                      ? true
+                                      : !enabledMissionSources[source.id],
+                                };
+                                setEnabledMissionSources(next);
+                                applyMissionDraft({ sources: next });
+                              }}
+                              className={`scout-source-toggle ${
+                                enabledMissionSources[source.id] ? "active" : ""
+                              }`}
+                            >
+                              {source.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="scout-builder-label">Urgency</p>
+                        <div className="mt-2 flex flex-col gap-1.5">
+                          {urgencyOptions.map((option) => (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => {
+                                setMissionUrgency(option.id);
+                                applyMissionDraft({ urgency: option.id });
+                              }}
+                              className={`scout-source-toggle ${
+                                missionUrgency === option.id ? "active" : ""
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -3824,7 +3992,7 @@ export default function ScoutOS() {
                         type="button"
                         onClick={() => {
                           setActiveMissionPanel("truth");
-                          prefillScoutMission(missionControlItems[0].prompt);
+                          applyMissionDraft({ panel: "truth" });
                         }}
                         className={`w-full rounded-xl border border-white/10 bg-black/20 p-3 text-left ${
                           activeMissionPanel === "truth" ? "border-ts-orange/50" : ""
@@ -3865,7 +4033,7 @@ export default function ScoutOS() {
                         type="button"
                         onClick={() => {
                           setActiveMissionPanel(item.id);
-                          prefillScoutMission(item.prompt);
+                          applyMissionDraft({ panel: item.id });
                         }}
                         className={`scout-v2-mini-card text-left ${
                           activeMissionPanel === item.id ? "active" : ""
@@ -3879,11 +4047,99 @@ export default function ScoutOS() {
                   })}
                 </div>
 
+                <div className="scout-v2-rail-card">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                    Build the mission
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="scout-builder-label">Mission type</p>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {missionTypeOptions.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => {
+                              setMissionType(option.id);
+                              applyMissionDraft({ type: option.id });
+                            }}
+                            className={`scout-builder-button ${
+                              missionType === option.id ? "active" : ""
+                            }`}
+                          >
+                            <span>{option.label}</span>
+                            <small>{option.description}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="scout-builder-label">Evidence sources</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {sourceOptions.map((source) => (
+                          <button
+                            key={source.id}
+                            type="button"
+                            onClick={() => {
+                              const enabledCount =
+                                Object.values(enabledMissionSources).filter(Boolean).length;
+                              const next = {
+                                ...enabledMissionSources,
+                                [source.id]:
+                                  enabledCount === 1 && enabledMissionSources[source.id]
+                                    ? true
+                                    : !enabledMissionSources[source.id],
+                              };
+                              setEnabledMissionSources(next);
+                              applyMissionDraft({ sources: next });
+                            }}
+                            className={`scout-source-toggle ${
+                              enabledMissionSources[source.id] ? "active" : ""
+                            }`}
+                          >
+                            {source.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="scout-builder-label">Urgency</p>
+                      <div className="mt-2 grid grid-cols-3 gap-2">
+                        {urgencyOptions.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            onClick={() => {
+                              setMissionUrgency(option.id);
+                              applyMissionDraft({ urgency: option.id });
+                            }}
+                            className={`scout-source-toggle ${
+                              missionUrgency === option.id ? "active" : ""
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => applyMissionDraft()}
+                      className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Draft this mission
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
                     setActiveMissionPanel("routing");
-                    prefillScoutMission(missionControlItems[2].prompt);
+                    applyMissionDraft({ panel: "routing" });
                   }}
                   className="scout-v2-rail-card text-left"
                 >
