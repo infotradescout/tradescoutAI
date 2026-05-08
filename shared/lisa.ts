@@ -4,6 +4,7 @@ export type LisaFeedPriority = "critical" | "high" | "medium" | "low";
 
 export type LisaFeedSourceKind =
   | "scout_interactions"
+  | "scout_intelligence"
   | "objectives"
   | "homescout_listings"
   | "observations"
@@ -16,6 +17,7 @@ export type LisaTruthStatus = "current" | "stale" | "superseded" | "suppressed";
 export type LisaScopeType = "global" | "county" | "category" | "surface" | "partner";
 
 export interface LisaFeedItem {
+  routingTags?: string[];
   id: string;
   priority: LisaFeedPriority;
   sourceKind: LisaFeedSourceKind;
@@ -38,8 +40,15 @@ export interface LisaFeedSummary {
 
 export interface LisaStoredFinding extends LisaFeedItem {
   generatedAt: string;
+  valueNumeric?: number;
+  valueText?: string;
+  trendDirection?: "up" | "down" | "stable";
+  trendMagnitude?: number;
+  conflictStatus?: "no_conflict" | "resolved" | "unresolved";
+  routingTags?: string[];
   provenance?: string[];
   governanceNotes?: string[];
+  scoutingReportJson?: string;
 }
 
 export interface LisaFeedResponse {
