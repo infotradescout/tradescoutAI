@@ -43,7 +43,7 @@ function Ring({ score }: { score: number | null }) {
   const stroke = scoreColor(score);
 
   return (
-    <svg width="66" height="66" viewBox="0 0 66 66" role="img" aria-label="CVS score ring">
+    <svg width="66" height="66" viewBox="0 0 66 66" role="img" aria-label="Safety score">
       <circle cx="33" cy="33" r="20" fill="none" stroke="var(--border-subtle)" strokeWidth="6" />
       <circle
         cx="33"
@@ -65,7 +65,7 @@ function Ring({ score }: { score: number | null }) {
 }
 
 /**
- * Displays Trust/CVS signals for Scout decision cards.
+ * Displays safety context for Scout result cards.
  */
 export function TrustSignalCard({
   cvsScore,
@@ -96,7 +96,7 @@ export function TrustSignalCard({
             className="text-[11px] uppercase tracking-wide"
             style={{ color: "var(--text-secondary)" }}
           >
-            Trust signal
+            Safety check
           </div>
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
             {trustBandLabel || "Trust snapshot"}
@@ -108,7 +108,7 @@ export function TrustSignalCard({
 
       <div className="rounded-md border px-2 py-2" style={{ borderColor: "var(--border-subtle)" }}>
         <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-          Verified activity
+          Why this match
         </div>
         <div className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
           {verifiedActivityProof}
@@ -124,7 +124,7 @@ export function TrustSignalCard({
           }}
         >
           <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-            Confidence
+            Match quality
           </div>
           <div
             className="text-sm font-semibold"
@@ -142,7 +142,7 @@ export function TrustSignalCard({
           }}
         >
           <div className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-            Verification
+            Account check
           </div>
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
             {statusLabel(verificationStatus)}
@@ -152,7 +152,7 @@ export function TrustSignalCard({
 
       <div className="mt-2">
         <div className="mb-1 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-          Confidence profile
+          Match profile
         </div>
         <div
           className="h-1.5 rounded"
@@ -180,7 +180,7 @@ export function TrustSignalCard({
             className="text-[11px] font-semibold uppercase tracking-wide"
             style={{ color: "var(--status-error)" }}
           >
-            Risk flags
+            Things to review
           </div>
           <div className="mt-1 flex flex-wrap gap-1">
             {flags.map((flag) => (
@@ -203,7 +203,7 @@ export function TrustSignalCard({
 
       {requiredReview && (
         <div className="mt-2 text-xs font-medium" style={{ color: "var(--status-error)" }}>
-          Trust review required before exposing sensitive contact actions.
+          Review required before contact or sharing opens.
         </div>
       )}
     </section>

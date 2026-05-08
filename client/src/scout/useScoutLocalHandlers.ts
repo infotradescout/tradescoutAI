@@ -208,25 +208,25 @@ export function useScoutLocalHandlers() {
       const helpLink = getHelpLink("directConnect");
 
       const bodyLines: string[] = [
-        "Direct Connect only shares requests when the core details are complete so local pros get clear, serious work posts.",
+        "TradeScout only shares a request when the basics are complete, so local help sees a clear need.",
         "",
         "Your request is currently saved as a draft and has not been shared yet.",
         "",
         "What to do next:",
-        "- Open My requests and finish the basics (job type, location, budget).",
-        "- If sharing is blocked, add a trade and county so Scout can find local matches.",
+        "- Open saved requests and finish the basics (job type, location, budget).",
+        "- If sharing is blocked, add the trade and county so Scout can find local matches.",
         "- If you no longer need it, cancel it and reopen later when ready.",
       ];
 
       const routingClusters: ScoutCluster[] = [
         {
           id: "direct-connect-routing-explainer",
-          title: "Why your request is still in draft",
+          title: "Why your request is still saved",
           kind: "generic",
           body: bodyLines.join("\n"),
           primaryAction: {
             type: "NAVIGATE",
-            label: "Open Direct Connect guide",
+            label: "See how sharing works",
             to: helpLink,
           },
         },
@@ -236,7 +236,7 @@ export function useScoutLocalHandlers() {
         id: makeId(),
         role: "assistant",
         content:
-          "Your request will be shared once the key details are complete so the right local providers can respond.",
+          "Your request will be shared once the key details are complete so the right local help can respond.",
         timestamp: new Date().toISOString(),
         clusters: routingClusters,
         navTarget: helpLink,
@@ -260,12 +260,12 @@ export function useScoutLocalHandlers() {
       const helpLink = getHelpLink("messaging");
 
       const bodyLines: string[] = [
-        "TradeScout keeps messaging locked until a provider accepts the request. This prevents spam and keeps communication tied to a real match.",
+        "TradeScout keeps messaging locked until someone accepts the request. This prevents spam and keeps contact tied to a real match.",
         "",
-        "Right now no provider has accepted this request yet, so messaging stays closed.",
+        "Right now nobody has accepted this request yet, so messaging stays closed.",
         "",
         "What to do next:",
-        "- Wait for a provider acceptance. Messaging opens automatically on that request.",
+        "- Wait for someone to accept. Messaging opens automatically on that request.",
         "- Improve request details if responses are slow or off-target.",
         "- Cancel and replace the request if your needs changed.",
       ];
@@ -288,7 +288,7 @@ export function useScoutLocalHandlers() {
         id: makeId(),
         role: "assistant",
         content:
-          "Messaging opens after a provider accepts your Direct Connect request. Until then, it stays locked to prevent spam and misalignment.",
+          "Messaging opens after someone accepts your request. Until then, it stays locked to prevent spam and mismatched contact.",
         timestamp: new Date().toISOString(),
         clusters: messagingClusters,
         navTarget: helpLink,

@@ -56,7 +56,7 @@ function riskColor(riskLevel?: "low" | "medium" | "high") {
 }
 
 /**
- * Decision card that includes trust signals and trust-aware action gating.
+ * Result card that explains safety checks before opening a next step.
  */
 export function TrustAwareDecisionCard({
   title,
@@ -92,10 +92,10 @@ export function TrustAwareDecisionCard({
 
   const gateReason = useMemo(() => {
     if (signal.requiredReview) {
-      return "Action locked until trust review is resolved.";
+      return "This needs a quick review before contact or sharing opens.";
     }
     if (!primaryAllowed) {
-      return `Requires CVS ${trust.minRequiredScore}; current score ${normalizedScore}.`;
+      return "This match needs more trust info before contact or sharing opens.";
     }
     return null;
   }, [primaryAllowed, normalizedScore, signal.requiredReview, trust.minRequiredScore]);
@@ -124,7 +124,7 @@ export function TrustAwareDecisionCard({
               color: "var(--text-secondary)",
             }}
           >
-            Decision step
+            Suggested next step
           </span>
 
           <div className="flex flex-wrap gap-2">
@@ -135,7 +135,7 @@ export function TrustAwareDecisionCard({
                 color: confidenceColor(confidenceBand),
               }}
             >
-              Confidence {displayedConfidence}%
+              Match {displayedConfidence}%
             </span>
 
             <span
@@ -145,7 +145,7 @@ export function TrustAwareDecisionCard({
                 color: riskColor(riskLevel),
               }}
             >
-              Risk {String(riskLevel || "low").toUpperCase()}
+              Safety {String(riskLevel || "low").toUpperCase()}
             </span>
           </div>
         </div>
@@ -166,7 +166,7 @@ export function TrustAwareDecisionCard({
           style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
           onClick={() => setShowTrustDetails((v) => !v)}
         >
-          {showTrustDetails ? "Hide trust details" : "Show trust details"}
+          {showTrustDetails ? "Hide why this is safer" : "Why this is safer"}
         </button>
 
         {showTrustDetails && (
@@ -187,7 +187,7 @@ export function TrustAwareDecisionCard({
           className="mb-1 text-[11px] uppercase tracking-wide"
           style={{ color: "var(--text-secondary)" }}
         >
-          Primary action
+          Best match
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -228,7 +228,7 @@ export function TrustAwareDecisionCard({
               className="text-[11px] uppercase tracking-wide"
               style={{ color: "var(--text-secondary)" }}
             >
-              Alternative routes
+              Other options
             </div>
             {finalAlt.length > 1 && (
               <button
@@ -270,9 +270,7 @@ export function TrustAwareDecisionCard({
 
       <footer className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          {trust.trustFilterApplied
-            ? `Trust filter active: minimum CVS ${trust.minRequiredScore}`
-            : "Trust filter not required for this route"}
+          {trust.trustFilterApplied ? "Extra safety check applied" : "No extra safety check needed"}
         </div>
 
         <button
@@ -281,7 +279,7 @@ export function TrustAwareDecisionCard({
           style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
           onClick={onOpenTrustModel}
         >
-          View trust model
+          How safety works
         </button>
       </footer>
     </article>
