@@ -25,6 +25,7 @@ import { metalsRouter } from "./routes/metals";
 import { registerRecommendationGeneratorRoutes } from "./routes/recommendation-generator";
 import { registerNotificationRoutes } from "./routes/notification-routes";
 import { registerDirectConnectRoutes } from "./routes/direct-connect";
+import { registerProcurementRoutes } from "./routes/procurement";
 import { registerEmploymentRoutes } from "./routes/employment";
 import { registerIdentityVerificationRoutes } from "./routes/identity-verification";
 import { registerObjectivesRoutes } from "./routes/objectives";
@@ -26399,6 +26400,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register notification routes
   registerNotificationRoutes(app);
+  registerProcurementRoutes(app);
   registerDirectConnectRoutes(app);
   registerEmploymentRoutes(app);
   registerIdentityVerificationRoutes(app);

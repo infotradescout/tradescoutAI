@@ -270,6 +270,19 @@ const Foundation = React.lazy(() => import("./pages/foundation"));
 const ScoutOS = React.lazy(() => import("./scout"));
 const ScoutInfoPage = React.lazy(() => import("./pages/scout-info"));
 const SmartHome = React.lazy(() => import("./SmartHome"));
+const SupplyRunHome = React.lazy(() => import("./pages/supply-run"));
+const SupplyRunNew = React.lazy(() => import("./pages/supply-run-new"));
+const SupplyRunDetail = React.lazy(() => import("./pages/supply-run-detail"));
+const GruntOrder = React.lazy(() => import("./pages/grunt-order"));
+const GruntOrderDetail = React.lazy(() => import("./pages/grunt-order-detail"));
+const GruntAdminOrders = React.lazy(() => import("./pages/grunt-admin-orders"));
+const GruntAdminOrderDetail = React.lazy(() => import("./pages/grunt-admin-order-detail"));
+const AdminProcurement = React.lazy(() => import("./pages/admin-procurement"));
+const AdminProcurementDetail = React.lazy(() => import("./pages/admin-procurement-detail"));
+const AdminProcurementWorkspaces = React.lazy(() => import("./pages/admin-procurement-workspaces"));
+const AdminProcurementWorkspaceDetail = React.lazy(
+  () => import("./pages/admin-procurement-workspace-detail")
+);
 
 // Core Pages
 // Contractors: canonical path is the licensed/verified contractor search
@@ -707,6 +720,63 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/scout" component={ScoutOS} />
               {/* Home routes */}
               <Route path="/home" component={SmartHome} />
+
+              {/* TradeScout Procurement Engine */}
+              <Route path="/utilities/supply-run">
+                <ProtectedRoute>
+                  <LazyPage Component={SupplyRunHome} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/utilities/supply-run/new">
+                <ProtectedRoute>
+                  <LazyPage Component={SupplyRunNew} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/utilities/supply-run/:id">
+                <ProtectedRoute>
+                  <LazyPage Component={SupplyRunDetail} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/grunt/order">
+                <ProtectedRoute>
+                  <LazyPage Component={GruntOrder} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/grunt/order/:id">
+                <ProtectedRoute>
+                  <LazyPage Component={GruntOrderDetail} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/grunt/admin/orders">
+                <ProtectedRoute>
+                  <LazyPage Component={GruntAdminOrders} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/grunt/admin/orders/:id">
+                <ProtectedRoute>
+                  <LazyPage Component={GruntAdminOrderDetail} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/procurement">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminProcurement} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/procurement/workspaces">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminProcurementWorkspaces} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/procurement/workspaces/:id">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminProcurementWorkspaceDetail} />
+                </ProtectedRoute>
+              </Route>
+              <Route path="/admin/procurement/:id">
+                <ProtectedRoute adminOnly>
+                  <LazyPage Component={AdminProcurementDetail} />
+                </ProtectedRoute>
+              </Route>
 
               {/* Role hubs for each user type */}
               <Route path="/roles/:roleKey">
