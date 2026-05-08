@@ -666,6 +666,13 @@
       "when": 1745200000000,
       "tag": "0091_dc_notification_types_and_self_select",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1778270400000,
+      "tag": "0092_procurement_engine_workspaces",
+      "breakpoints": true
     }
   ]
 }
