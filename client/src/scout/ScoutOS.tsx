@@ -37,7 +37,18 @@ import {
 } from "../agent/activity";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { BadgeInfo, Sparkles, ClipboardList, Users2, Wrench } from "lucide-react";
+import {
+  BadgeInfo,
+  BarChart3,
+  Database,
+  Layers3,
+  MapPinned,
+  Route,
+  Sparkles,
+  ClipboardList,
+  Users2,
+  Wrench,
+} from "lucide-react";
 import { getHelpLink } from "./helpSources";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
@@ -2833,7 +2844,7 @@ export default function ScoutOS() {
       <div className="scout-content w-full flex flex-col flex-1 min-h-0">
         <div
           className={`w-full ${
-            isMobile ? "px-3 pt-2.5 pb-12" : "max-w-6xl px-4 pt-3 pb-8"
+            isMobile ? "px-3 pt-2.5 pb-12" : "max-w-7xl px-4 pt-3 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
             paddingBottom: isMobile ? "calc(3.9rem + env(safe-area-inset-bottom))" : undefined,
@@ -2844,11 +2855,11 @@ export default function ScoutOS() {
             className={
               isMobile
                 ? "max-w-[32rem] mx-auto w-full flex flex-col min-h-0"
-                : "mx-auto w-full flex flex-1 min-h-0 max-w-6xl gap-5"
+                : "mx-auto w-full flex flex-1 min-h-0 max-w-7xl gap-5"
             }
           >
             <div
-              className={`scout-panel scout-mobile-panel w-full flex flex-col min-h-0 max-w-3xl rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
+              className={`scout-panel scout-mobile-panel w-full flex flex-col min-h-0 rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
                 isMobile ? "" : "flex-1"
               }`}
             >
@@ -2896,6 +2907,44 @@ export default function ScoutOS() {
                       </div>
                     </SheetContent>
                   </Sheet>
+                </div>
+              )}
+
+              {isMobile && !hasUserMessages && (
+                <div className="scout-v2-mobile-console mb-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Scout 2.0
+                    </div>
+                    <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
+                      active
+                    </span>
+                  </div>
+                  <p className="mt-3 text-sm font-semibold leading-snug text-white">
+                    Mission console
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-secondary)]">
+                    Knowledge base, county data, live context, and LISA routing are part of every
+                    scouting mission.
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {[
+                      ["Truth stack", Database],
+                      ["Trend Engine", BarChart3],
+                      ["LISA handoff", Route],
+                      ["County layer", MapPinned],
+                    ].map(([label, Icon]) => {
+                      const ConsoleIcon = Icon as typeof Database;
+
+                      return (
+                        <div key={String(label)} className="scout-v2-mobile-chip">
+                          <ConsoleIcon className="h-3.5 w-3.5 text-ts-orange" />
+                          <span>{String(label)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
@@ -3685,7 +3734,98 @@ export default function ScoutOS() {
               </div>
             </div>
 
-            {/* Coordination panels moved into the Dashboard sheet to keep the thread clean. */}
+            {!isMobile && (
+              <aside className="scout-v2-command-rail">
+                <div className="scout-v2-rail-card scout-v2-rail-card--hero">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Scout 2.0
+                    </div>
+                    <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
+                      live workspace
+                    </span>
+                  </div>
+                  <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-white">
+                    Mission control is visible now.
+                  </h2>
+                  <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
+                    Scout gathers, reconciles, writes back to county containers, and prepares the
+                    LISA handoff while the conversation stays focused.
+                  </p>
+                </div>
+
+                <div className="scout-v2-rail-card">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                      Truth stack
+                    </p>
+                    <Database className="h-4 w-4 text-ts-orange" />
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {[
+                      ["Knowledge Base", "highest trust", "w-[92%]"],
+                      ["County Data", "local override", "w-[76%]"],
+                      ["Live Web", "market context", "w-[54%]"],
+                    ].map(([label, detail, width], index) => (
+                      <div
+                        key={label}
+                        className="rounded-xl border border-white/10 bg-black/20 p-3"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-white">{label}</p>
+                            <p className="mt-0.5 text-xs text-white/50">{detail}</p>
+                          </div>
+                          <span className="font-mono text-[10px] text-white/35">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                        </div>
+                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <div className={`h-full rounded-full bg-ts-orange ${width}`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="scout-v2-mini-card">
+                    <BarChart3 className="h-4 w-4 text-emerald-300" />
+                    <p className="mt-3 text-sm font-semibold text-white">Trend Engine</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white/50">directional signal</p>
+                  </div>
+                  <div className="scout-v2-mini-card">
+                    <Layers3 className="h-4 w-4 text-sky-300" />
+                    <p className="mt-3 text-sm font-semibold text-white">Synthesis</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white/50">conflict resolver</p>
+                  </div>
+                  <div className="scout-v2-mini-card">
+                    <Route className="h-4 w-4 text-ts-orange" />
+                    <p className="mt-3 text-sm font-semibold text-white">LISA handoff</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white/50">Decision Card path</p>
+                  </div>
+                  <div className="scout-v2-mini-card">
+                    <MapPinned className="h-4 w-4 text-rose-200" />
+                    <p className="mt-3 text-sm font-semibold text-white">County layer</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white/50">precomputed facts</p>
+                  </div>
+                </div>
+
+                <div className="scout-v2-rail-card">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                    LISA routing payload
+                  </p>
+                  <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4 font-mono text-[11px] leading-6 text-white/60">
+                    kind: scout_intelligence
+                    <br />
+                    narrative: What / Why / What to do
+                    <br />
+                    gate: Intent -&gt; Decision Card -&gt; Contact
+                  </div>
+                </div>
+              </aside>
+            )}
           </div>
         </div>
       </div>

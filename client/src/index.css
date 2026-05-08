@@ -621,6 +621,67 @@ html {
   padding: 1.25rem;
 }
 
+.scout-v2-command-rail {
+  display: flex;
+  width: min(24rem, 32vw);
+  min-width: 21rem;
+  max-height: calc(100vh - 8rem);
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.scout-v2-rail-card,
+.scout-v2-mini-card {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    color-mix(in oklab, var(--surface-card) 94%, transparent);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+}
+
+.scout-v2-rail-card {
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.scout-v2-rail-card--hero {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 28%, rgba(255, 255, 255, 0.09));
+  background:
+    radial-gradient(circle at top right, rgba(255, 112, 24, 0.16), transparent 42%),
+    color-mix(in oklab, var(--surface-card) 94%, transparent);
+}
+
+.scout-v2-mini-card {
+  min-height: 8rem;
+  border-radius: 16px;
+  padding: 0.9rem;
+}
+
+.scout-v2-mobile-console {
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, rgba(255, 255, 255, 0.1));
+  background:
+    radial-gradient(circle at top right, rgba(255, 112, 24, 0.16), transparent 48%),
+    color-mix(in oklab, var(--surface-card) 94%, transparent);
+  padding: 1rem;
+}
+
+.scout-v2-mobile-chip {
+  display: flex;
+  min-height: 2.45rem;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.55rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.78);
+}
+
 .ts-badge-new {
   font-size: 0.7rem;
   font-weight: 600;
