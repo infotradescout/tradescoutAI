@@ -59,8 +59,8 @@ export type ScoutActionTile = {
 export const scoutActionTiles: ScoutActionTile[] = [
   {
     id: "start_project",
-    label: "Start a local request",
-    description: "Tell Scout about the job once and it will line up the next move",
+    label: "Create a local request",
+    description: "Save what you need, then review before sharing",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
@@ -75,56 +75,55 @@ export const scoutActionTiles: ScoutActionTile[] = [
           return Date.now() - updated <= days14;
         },
         label: (ctx) => `Continue project: ${ctx.activeJobs[0].name}`,
-        description: "Resume where you left off",
+        description: "Open the saved request",
       },
       {
         // Proven by: GET /api/dashboard → myProjects (when count > 1)
         when: (ctx) => ctx.activeJobs.length > 1,
         label: (ctx) => `View ${ctx.activeJobs.length} active projects`,
-        description: "Manage your ongoing work",
+        description: "Review your saved work",
       },
     ],
   },
   {
     id: "find_pros",
-    label: "Find local pros",
-    description: "Compare local providers before contact opens",
+    label: "Find local help",
+    description: "Compare people and services before contact opens",
     action: { type: "NAVIGATE", to: "/direct-connect" },
     variants: [
       {
         // Proven by: User's geo context (heroLocationLabel from session)
         when: (ctx) => !!ctx.location && ctx.location.length > 0,
-        label: "Find pros near me",
-        description: (ctx) =>
-          `Browse local providers${ctx.location ? ` around ${ctx.location}` : ""}`,
+        label: "Find help near me",
+        description: (ctx) => `Browse local help${ctx.location ? ` around ${ctx.location}` : ""}`,
       },
       {
         // Proven by: GET /api/saved-contractors (when array.length > 0)
         when: (ctx) => ctx.savedContractors.length > 0,
         label: (ctx) =>
           `Use ${ctx.savedContractors.length} saved pro${ctx.savedContractors.length > 1 ? "s" : ""}`,
-        description: "Start with providers you already trust",
+        description: "Start with people you already trust",
       },
     ],
   },
   {
     id: "nearby",
-    label: "See what's happening nearby",
-    description: "Check local posts, activity, and marketplace movement",
+    label: "See what's nearby",
+    description: "Check local posts, requests, and marketplace activity",
     action: { type: "NAVIGATE", to: "/community" },
     variants: [
       {
         // Proven by: User's geo context (heroLocationLabel from session)
         when: (ctx) => !!ctx.location && ctx.location.length > 0,
         label: "See local activity",
-        description: "Community updates and local marketplace",
+        description: "Community updates and nearby listings",
       },
     ],
   },
   {
     id: "manage",
     label: "Browse Exchange",
-    description: "See property, vehicles, equipment, and other major local listings",
+    description: "Search property, vehicles, equipment, and other local listings",
     action: { type: "NAVIGATE", to: "/exchange" },
     variants: [
       {

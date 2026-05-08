@@ -34,8 +34,8 @@ describe("messageBuilders", () => {
     );
 
     expect(message.role).toBe("assistant");
-    expect(message.content.toLowerCase()).toContain("trusted");
-    expect(message.content.toLowerCase()).toContain("action");
+    expect(message.content.toLowerCase()).toContain("keep moving");
+    expect(message.content.toLowerCase()).toContain("results");
     expect(message.clusters?.[0]?.title).toBe("Continue now");
     expect(actions.length).toBeGreaterThan(0);
     expect(message.suggestedActions?.[0]).toBe("Retry my question");

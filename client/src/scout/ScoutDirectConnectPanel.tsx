@@ -76,7 +76,7 @@ function ActiveCoordinationPanel({
             style={{ color: "var(--theme-accent-primary)" }}
           >
             <ListChecks className="h-3.5 w-3.5" />
-            Live Queue
+            Saved requests
           </div>
           <button
             type="button"
@@ -84,12 +84,12 @@ function ActiveCoordinationPanel({
             style={{ color: "var(--theme-accent-primary)" }}
             onClick={onViewBoard}
           >
-            View board
+            View all
             <ArrowUpRight className="h-3 w-3" />
           </button>
         </div>
         <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-          Track active requests without leaving Scout.
+          Keep track of local requests you may want to share.
         </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <div
@@ -103,7 +103,7 @@ function ActiveCoordinationPanel({
               className="text-[10px] uppercase tracking-wide"
               style={{ color: "var(--text-secondary)" }}
             >
-              Active
+              Saved
             </p>
             <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               {activeCount}
@@ -120,7 +120,7 @@ function ActiveCoordinationPanel({
               className="text-[10px] uppercase tracking-wide"
               style={{ color: "var(--text-secondary)" }}
             >
-              In progress
+              Talking
             </p>
             <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
               {inProgressCount}
@@ -131,7 +131,7 @@ function ActiveCoordinationPanel({
 
       {!isAuthenticated ? (
         <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          Sign in to view and manage your live requests in Direct Connect.
+          Sign in to view saved requests and pick up where you left off.
         </div>
       ) : isLoading ? (
         <div className="space-y-2">
@@ -157,10 +157,10 @@ function ActiveCoordinationPanel({
           }}
         >
           <p className="font-medium" style={{ color: "var(--text-primary)" }}>
-            No active requests yet.
+            No saved requests yet.
           </p>
           <p className="mt-1">
-            Start a Direct Connect request and it will appear here for live tracking.
+            Create a local request from Scout and it will appear here before you share it.
           </p>
         </div>
       ) : (
@@ -248,7 +248,7 @@ function ActiveCoordinationPanel({
             onClick={onViewBoard}
           >
             <LoaderCircle className="h-3.5 w-3.5 mr-1" />
-            Queue
+            Saved
           </Button>
           <Button
             type="button"

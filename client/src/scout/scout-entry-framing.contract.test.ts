@@ -44,8 +44,8 @@ describe("Scout entry framing contracts", () => {
     expect(threadSource).toContain("Next steps");
     expect(threadSource).toContain("Keep going");
     expect(threadSource).not.toContain("Controller actions");
-    expect(tilesSource).toContain('label: "Start a local request"');
-    expect(tilesSource).toContain('label: "Find local pros"');
+    expect(tilesSource).toContain('label: "Create a local request"');
+    expect(tilesSource).toContain('label: "Find local help"');
     expect(tilesSource).toContain('label: "Browse Exchange"');
   });
 });

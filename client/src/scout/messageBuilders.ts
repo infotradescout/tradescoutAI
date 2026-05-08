@@ -92,10 +92,10 @@ export function buildConnectionFallback(
 
   const stayInScoutPrompt = useAmbiguityBundle
     ? roofDomainAmbiguous
-      ? "Keep me in Scout and help me choose: should I hire a roofer, browse recent roofing materials, or check community signals first?"
+      ? "Keep me in Scout and help me choose: should I hire a roofer, browse recent roofing materials, or check nearby posts first?"
       : deckSignals
-        ? "Keep me in Scout and help me scope this deck project: should I start by planning it, opening deck builders, or checking rental equipment first?"
-        : "Keep me in Scout and help me choose: should I start with trusted local pros, recent marketplace listings, or community signals first?"
+        ? "Keep me in Scout and help me choose: should I plan the deck, look for deck builders, or check rental equipment first?"
+        : "Keep me in Scout and help me choose: should I start with trusted local help, recent listings, or nearby posts first?"
     : "Keep me in Scout and walk me through the best next action step-by-step without leaving this page.";
 
   const candidateActions: ScoutAction[] = [];
@@ -108,7 +108,7 @@ export function buildConnectionFallback(
   if (wantsRoutingWorkflowHelp) {
     candidateActions.push({
       type: "NAVIGATE",
-      label: "See the Direct Connect routing workflow",
+      label: "See how requests are shared",
       to: routingHelpPath,
     });
   }
@@ -117,7 +117,7 @@ export function buildConnectionFallback(
     candidateActions.push(
       {
         type: "NAVIGATE",
-        label: deckSignals ? "Start or plan this project" : "Start or plan this project",
+        label: deckSignals ? "Plan this project" : "Plan this project",
         to: "/project-tracker",
       },
       {
@@ -126,7 +126,7 @@ export function buildConnectionFallback(
           ? "Find trusted roofing pros"
           : deckSignals
             ? "Find deck builders"
-            : "Find trusted local pros",
+            : "Find trusted local help",
         to: "/direct-connect/pros",
       },
       {
@@ -141,10 +141,10 @@ export function buildConnectionFallback(
       {
         type: "NAVIGATE",
         label: roofDomainAmbiguous
-          ? "Check recent community roofing signals"
+          ? "Check recent roofing posts"
           : deckSignals
-            ? "Check local deck project signals"
-            : "Check community signals",
+            ? "Check local deck posts"
+            : "Check nearby posts",
         to: payload.communityRoute,
       }
     );
@@ -153,7 +153,7 @@ export function buildConnectionFallback(
   if (prioritizePros) {
     candidateActions.push({
       type: "NAVIGATE",
-      label: "Browse local pros",
+      label: "Browse local help",
       to: "/direct-connect/pros",
     });
   }
@@ -176,7 +176,7 @@ export function buildConnectionFallback(
 
   candidateActions.push(
     { type: "NAVIGATE", label: "Open Direct Connect", to: "/direct-connect" },
-    { type: "NAVIGATE", label: "Browse local pros", to: payload.contractorsRoute },
+    { type: "NAVIGATE", label: "Browse local help", to: payload.contractorsRoute },
     { type: "NAVIGATE", label: "Open community", to: payload.communityRoute }
   );
 
@@ -206,10 +206,10 @@ export function buildConnectionFallback(
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     role: "assistant",
     content: deckSignals
-      ? "Got it. For a deck project, start by planning the scope, budget, and timing. Then compare local builders or check rental equipment and local project signals. Which path should we open first?"
+      ? "Got it. For a deck project, start by planning the scope, budget, and timing. Then compare local builders or check rental equipment and nearby posts. Which result should we open first?"
       : homeProjectSignals
-        ? "Got it. Start by planning the scope, budget, and timing for this project. Then compare trusted local pros and nearby options. Which path should we open first?"
-        : "Scout had a connection issue. You can keep moving — choose a trusted option below and take action now. Which path looks right?",
+        ? "Got it. Start by planning the scope, budget, and timing. Then compare trusted local help and nearby options. Which result should we open first?"
+        : "Scout had a connection issue. You can still keep moving. Pick one of these results or try the search again.",
     timestamp: new Date().toISOString(),
     clusters: [
       {
@@ -217,10 +217,10 @@ export function buildConnectionFallback(
         title: "Continue now",
         kind: "generic",
         body: deckSignals
-          ? "Start with project planning, deck builders, rental equipment, or local project signals."
+          ? "Start with project planning, deck builders, rental equipment, or nearby posts."
           : homeProjectSignals
-            ? "Start with project planning, pros, Exchange, or community signals for this project."
-            : "Pick a path below. Your next action helps Scout improve future routing for everyone.",
+            ? "Start with project planning, local help, Exchange, or nearby posts."
+            : "Pick a result below. Scout can open it or keep searching.",
         actions,
       },
     ],

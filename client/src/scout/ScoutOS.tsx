@@ -1272,8 +1272,8 @@ export default function ScoutOS() {
         break;
       default:
         base.push(
-          "Start a Direct Connect request for this",
-          "Find local contractors or groups who can help with this",
+          "Create a local request from this",
+          "Find nearby people or groups who can help",
           "Open a floating note to keep this visible"
         );
         break;
@@ -3455,7 +3455,7 @@ export default function ScoutOS() {
                   </div>
                 )}
 
-                {/* Avoid duplicated action rails: in "Chat + controller" view, actions render per-message. */}
+                {/* Avoid duplicated action lists: in action view, actions render per-message. */}
                 {false && effectiveViewMode === "chat_only" && controllerActions.length > 0 && (
                   <div
                     className="mt-2 rounded-lg border p-2"

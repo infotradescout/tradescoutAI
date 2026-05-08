@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { Bot, Radar, Send, ShieldCheck } from "lucide-react";
+import { Bot, Radar, Search, ShieldCheck } from "lucide-react";
 
 export const ScoutHasDonePanel: React.FC = () => {
   return (
@@ -23,10 +23,10 @@ export const ScoutHasDonePanel: React.FC = () => {
           style={{ color: "var(--theme-accent-primary)" }}
         >
           <Bot className="h-3.5 w-3.5" />
-          Automation Layer
+          What happens next
         </div>
         <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-          What Scout handles in the background once you post a Direct Connect request.
+          Scout keeps search, saved requests, and safe contact steps connected.
         </p>
       </div>
 
@@ -43,10 +43,10 @@ export const ScoutHasDonePanel: React.FC = () => {
             style={{ color: "var(--text-primary)" }}
           >
             <ShieldCheck className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
-            Request staged
+            Request saved
           </div>
           <p className="mt-0.5 text-[11px]">
-            Every request is anchored to your Direct Connect board so status never gets lost.
+            If you create a request, Scout keeps it saved so you can review it later.
           </p>
         </div>
 
@@ -62,10 +62,10 @@ export const ScoutHasDonePanel: React.FC = () => {
             style={{ color: "var(--text-primary)" }}
           >
             <Radar className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
-            Local signal pass
+            Local match check
           </div>
           <p className="mt-0.5 text-[11px]">
-            Where enabled, Scout surfaces the request to relevant local signals.
+            Scout can compare your request against nearby people, posts, services, and updates.
           </p>
         </div>
 
@@ -80,17 +80,17 @@ export const ScoutHasDonePanel: React.FC = () => {
             className="inline-flex items-center gap-1.5 font-medium"
             style={{ color: "var(--text-primary)" }}
           >
-            <Send className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
-            Provider notifications
+            <Search className="h-3.5 w-3.5" style={{ color: "var(--theme-accent-primary)" }} />
+            Share when ready
           </div>
           <p className="mt-0.5 text-[11px]">
-            Eligible local providers are notified so they can choose whether to respond.
+            Contact stays gated until you choose to move from search into a real request.
           </p>
         </div>
       </div>
 
       <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-        Scout provides context and automation. Direct Connect remains the source of truth.
+        Scout helps you search first, then choose whether to save, ask more, or contact.
       </p>
     </Card>
   );
