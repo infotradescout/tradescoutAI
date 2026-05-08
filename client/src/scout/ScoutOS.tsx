@@ -73,6 +73,7 @@ import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
+import { sortScoutInfoDump } from "./scoutIntentSorter";
 import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
@@ -1593,8 +1594,52 @@ export default function ScoutOS() {
         });
 
         const dedupedServerActions = dedupeScoutActions(res.actions);
+        const sortedIntents = sortScoutInfoDump(value);
 
         let clusters: ScoutCluster[] = [];
+
+        if (sortedIntents.length > 0) {
+          clusters.push({
+            id: `sorted-summary-${Date.now()}`,
+            title: "Scout sorted your search",
+            kind: "site",
+            body:
+              sortedIntents.length === 1
+                ? `This looks most like ${sortedIntents[0].label.toLowerCase()}.`
+                : `This may touch ${sortedIntents.map((intent) => intent.label.toLowerCase()).join(", ")}.`,
+            items: sortedIntents.map((intent) => ({
+              id: intent.id,
+              label: intent.label,
+              description: intent.reason,
+            })),
+            actions: sortedIntents
+              .flatMap((intent) => intent.actions)
+              .filter((action, index, all) => {
+                const key = [
+                  action.type,
+                  action.label || "",
+                  action.to || "",
+                  action.path || "",
+                  action.prompt || "",
+                ].join("|");
+                return (
+                  all.findIndex(
+                    (candidate) =>
+                      [
+                        candidate.type,
+                        candidate.label || "",
+                        candidate.to || "",
+                        candidate.path || "",
+                        candidate.prompt || "",
+                      ].join("|") === key
+                  ) === index
+                );
+              })
+              .slice(0, 5),
+          });
+
+          clusters.push(...sortedIntents.map((intent) => intent.cluster));
+        }
 
         // Sponsored/affiliate guardrails:
         // - never on the first real Scout answer

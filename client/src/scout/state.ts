@@ -15,7 +15,15 @@ export type ScoutStatus =
   | "executing_action"
   | "error";
 
-export type ScoutClusterKind = "projects" | "pros" | "marketplace" | "community" | "generic";
+export type ScoutClusterKind =
+  | "projects"
+  | "pros"
+  | "marketplace"
+  | "community"
+  | "rules"
+  | "site"
+  | "account"
+  | "generic";
 
 export interface ScoutClusterItem {
   id: string;

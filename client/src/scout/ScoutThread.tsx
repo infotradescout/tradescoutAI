@@ -104,6 +104,12 @@ function clusterKindMeta(kind: ScoutCluster["kind"]) {
       return { label: "Nearby activity", icon: MessageSquareText };
     case "projects":
       return { label: "Saved request", icon: ClipboardList };
+    case "rules":
+      return { label: "Rules and permits", icon: BadgeCheck };
+    case "site":
+      return { label: "TradeScout search", icon: Search };
+    case "account":
+      return { label: "Account", icon: BadgeCheck };
     default:
       return { label: "Result", icon: Search };
   }
@@ -136,6 +142,24 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
 
   if (cluster.kind === "projects") {
     return [{ type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" }];
+  }
+
+  if (cluster.kind === "site") {
+    return [{ type: "NAVIGATE", label: "Open help", to: "/help" }];
+  }
+
+  if (cluster.kind === "rules") {
+    return [
+      {
+        type: "ASK_SCOUT",
+        label: "Check rules",
+        prompt: `Check local rules and permits for ${cluster.title || "this"}.`,
+      },
+    ];
+  }
+
+  if (cluster.kind === "account") {
+    return [{ type: "NAVIGATE", label: "Open settings", to: "/settings" }];
   }
 
   return [];
