@@ -516,10 +516,14 @@ export default function ScoutOS() {
   const [workAreaTitle, setWorkAreaTitle] = useState<string | null>(null);
   const [prefillKey, setPrefillKey] = useState(0);
   const [activeMissionPanel, setActiveMissionPanel] = useState<
-    "cost" | "timeline" | "permits" | "help"
-  >("cost");
-  const [missionType, setMissionType] = useState<"project" | "cost" | "permit" | "pro">("project");
-  const [missionUrgency, setMissionUrgency] = useState<"now" | "soon" | "just_planning">("soon");
+    "nearby" | "people" | "market" | "rules"
+  >("nearby");
+  const [missionType, setMissionType] = useState<"around_me" | "help" | "prices" | "events">(
+    "around_me"
+  );
+  const [missionUrgency, setMissionUrgency] = useState<"today" | "this_week" | "exploring">(
+    "this_week"
+  );
   const [enabledMissionSources, setEnabledMissionSources] = useState({
     knowledge: true,
     county: true,
@@ -2849,34 +2853,34 @@ export default function ScoutOS() {
   );
 
   const missionControlItems: Array<{
-    id: "cost" | "timeline" | "permits" | "help";
+    id: "nearby" | "people" | "market" | "rules";
     label: string;
     icon: typeof Database;
     prompt: string;
   }> = [
     {
-      id: "cost",
-      label: "Estimate cost",
-      icon: Database,
-      prompt: "Help me estimate the likely cost, timing, and biggest gotchas for this project.",
-    },
-    {
-      id: "timeline",
-      label: "Check timing",
-      icon: BarChart3,
-      prompt: "Help me understand when to start and what could slow this down.",
-    },
-    {
-      id: "permits",
-      label: "Permits",
-      icon: Route,
-      prompt: "Help me figure out whether this might need permits, inspections, or local approval.",
-    },
-    {
-      id: "help",
-      label: "Find help",
+      id: "nearby",
+      label: "Nearby",
       icon: MapPinned,
-      prompt: "Help me figure out what kind of local pro or service I should look for.",
+      prompt: "Show me useful local signals around me right now.",
+    },
+    {
+      id: "people",
+      label: "People",
+      icon: Users2,
+      prompt: "Help me discover useful local people, services, and community activity nearby.",
+    },
+    {
+      id: "market",
+      label: "Prices",
+      icon: BarChart3,
+      prompt: "Show me local price changes, deals, materials, and timing signals near me.",
+    },
+    {
+      id: "rules",
+      label: "Rules",
+      icon: Route,
+      prompt: "Show me local rules, permits, events, or changes I should know about nearby.",
     },
   ];
 
@@ -2886,40 +2890,40 @@ export default function ScoutOS() {
     description: string;
   }> = [
     {
-      id: "project",
-      label: "Home project",
-      description: "Plan what to do first",
+      id: "around_me",
+      label: "Around me",
+      description: "What's useful nearby",
     },
     {
-      id: "cost",
-      label: "Cost question",
-      description: "Budget and price range",
+      id: "help",
+      label: "Find help",
+      description: "People and services",
     },
     {
-      id: "permit",
-      label: "Permit question",
-      description: "Rules and approvals",
+      id: "prices",
+      label: "Prices & deals",
+      description: "Materials and timing",
     },
     {
-      id: "pro",
-      label: "Find a pro",
-      description: "Who to ask for help",
+      id: "events",
+      label: "Rules & events",
+      description: "Local changes",
     },
   ];
 
   const urgencyOptions: Array<{ id: typeof missionUrgency; label: string }> = [
-    { id: "now", label: "ASAP" },
-    { id: "soon", label: "Soon" },
-    { id: "just_planning", label: "Just planning" },
+    { id: "today", label: "Today" },
+    { id: "this_week", label: "This week" },
+    { id: "exploring", label: "Just exploring" },
   ];
 
   const sourceOptions: Array<{
     id: keyof typeof enabledMissionSources;
     label: string;
   }> = [
-    { id: "knowledge", label: "Trusted info" },
-    { id: "county", label: "Local rules" },
-    { id: "live", label: "Prices now" },
+    { id: "knowledge", label: "TradeScout" },
+    { id: "county", label: "My area" },
+    { id: "live", label: "Live signals" },
   ];
 
   const composeMissionDraft = useCallback(
@@ -2934,28 +2938,32 @@ export default function ScoutOS() {
       const urgency = overrides?.urgency ?? missionUrgency;
       const sources = overrides?.sources ?? enabledMissionSources;
       const typeLabel =
-        missionTypeOptions.find((option) => option.id === type)?.label || "home project";
-      const sourceList = sourceOptions
-        .filter((source) => sources[source.id])
-        .map((source) => source.label.toLowerCase())
-        .join(", ");
+        missionTypeOptions.find((option) => option.id === type)?.label || "around me";
       const area =
         heroLocationLabel && heroLocationLabel.toLowerCase() !== "your area"
           ? heroLocationLabel
           : "my county";
+      const opening =
+        type === "around_me"
+          ? `Help me discover what is useful around me in ${area}.`
+          : `Help me discover what is useful locally for ${typeLabel.toLowerCase()} in ${area}.`;
+      const sourceList = sourceOptions
+        .filter((source) => sources[source.id])
+        .map((source) => source.label)
+        .join(", ");
       const panelInstruction =
-        panel === "cost"
-          ? "Focus on likely cost, timing, and common surprises."
-          : panel === "timeline"
-            ? "Focus on when to start, how long it may take, and what could slow things down."
-            : panel === "permits"
-              ? "Focus on permits, inspections, and local approval."
-              : "Focus on what kind of local help I should look for.";
+        panel === "nearby"
+          ? "Focus on useful places, projects, requests, posts, services, and changes nearby."
+          : panel === "people"
+            ? "Focus on local people, contractors, services, groups, and community activity."
+            : panel === "market"
+              ? "Focus on local prices, deals, materials, demand, and timing signals."
+              : "Focus on local rules, permits, events, alerts, and changes I should know about.";
       const urgencyLabel =
         urgencyOptions.find((option) => option.id === urgency)?.label.toLowerCase() ||
         urgency.replace("_", " ");
 
-      return `I need help with a ${typeLabel.toLowerCase()} in ${area}. Please check ${sourceList || "what matters"}, assume this is ${urgencyLabel}, and keep it simple. ${panelInstruction} Tell me what to do next before I contact anyone.`;
+      return `${opening} Please check ${sourceList || "what matters"}, assume I care about ${urgencyLabel}, and keep it simple. ${panelInstruction} Show what is nearby, what changed, and what I can safely do next before I contact anyone.`;
     },
     [activeMissionPanel, enabledMissionSources, heroLocationLabel, missionType, missionUrgency]
   );
@@ -3083,7 +3091,7 @@ export default function ScoutOS() {
                   </div>
                   <div className="mt-3 space-y-3">
                     <div>
-                      <p className="scout-builder-label">What do you need?</p>
+                      <p className="scout-builder-label">What are you exploring?</p>
                       <div className="mt-2 grid grid-cols-2 gap-1.5">
                         {missionTypeOptions.map((option) => (
                           <button
@@ -3104,7 +3112,7 @@ export default function ScoutOS() {
                     </div>
                     <div className="grid grid-cols-[1fr_0.8fr] gap-2">
                       <div>
-                        <p className="scout-builder-label">Scout should check</p>
+                        <p className="scout-builder-label">Scout should scan</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {sourceOptions.map((source) => (
                             <button
@@ -3133,7 +3141,7 @@ export default function ScoutOS() {
                         </div>
                       </div>
                       <div>
-                        <p className="scout-builder-label">How soon?</p>
+                        <p className="scout-builder-label">Timeframe</p>
                         <div className="mt-2 flex flex-col gap-1.5">
                           {urgencyOptions.map((option) => (
                             <button
@@ -3306,8 +3314,8 @@ export default function ScoutOS() {
                       Before you contact anyone
                     </p>
                     <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Scout checks the basics first. You review the next step before sharing contact
-                      info.
+                      Scout scans nearby signals first. You review the next step before sharing
+                      contact info or making a request.
                     </p>
                   </div>
                 )}
@@ -3535,14 +3543,14 @@ export default function ScoutOS() {
                       className="text-[11px] md:text-xs font-semibold tracking-wide uppercase"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Start with Scout
+                      Start local
                     </p>
 
                     <p
                       className="text-[11px] md:text-xs"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Pick the operating path that matches what you need to move forward right now.
+                      Pick the nearby signal you want Scout to scan first.
                     </p>
 
                     {/* Primary action grid: navigation with intent, not chat suggestions */}
@@ -3962,26 +3970,41 @@ export default function ScoutOS() {
                     </span>
                   </div>
                   <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-white">
-                    Start with a clearer question.
+                    Your local discovery layer.
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                    Scout checks local rules, prices, timing, and next steps before you contact
-                    anyone.
+                    Scout scans nearby help, projects, posts, prices, rules, and events so you can
+                    see what matters around you.
                   </p>
                 </div>
 
                 <div className="scout-v2-rail-card">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                      What Scout Checks
+                      What Scout Scans
                     </p>
                     <Database className="h-4 w-4 text-ts-orange" />
                   </div>
                   <div className="mt-4 space-y-3">
                     {[
-                      ["Trusted info", "common rules and guidance", "knowledge", "w-[92%]"],
-                      ["Local rules", "county and city details", "county", "w-[76%]"],
-                      ["Prices now", "recent prices and timing", "live", "w-[54%]"],
+                      [
+                        "TradeScout",
+                        "local posts, requests, pros, and guidance",
+                        "knowledge",
+                        "w-[92%]",
+                      ],
+                      [
+                        "My area",
+                        "city, county, neighborhood, and nearby activity",
+                        "county",
+                        "w-[76%]",
+                      ],
+                      [
+                        "Live signals",
+                        "prices, availability, changes, and alerts",
+                        "live",
+                        "w-[54%]",
+                      ],
                     ].map(([label, detail, sourceId, width], index) => (
                       <button
                         key={label}
@@ -4021,13 +4044,13 @@ export default function ScoutOS() {
                   {missionControlItems.map((item) => {
                     const Icon = item.icon;
                     const subcopy =
-                      item.id === "cost"
-                        ? "budget range"
-                        : item.id === "timeline"
-                          ? "how long it may take"
-                          : item.id === "permits"
-                            ? "rules and inspections"
-                            : "who to ask";
+                      item.id === "nearby"
+                        ? "what's around you"
+                        : item.id === "people"
+                          ? "who and what is active"
+                          : item.id === "market"
+                            ? "prices and deals"
+                            : "rules and events";
 
                     return (
                       <button
@@ -4051,11 +4074,11 @@ export default function ScoutOS() {
 
                 <div className="scout-v2-rail-card">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Build Your Question
+                    Build Your Local Scan
                   </p>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <p className="scout-builder-label">What do you need?</p>
+                      <p className="scout-builder-label">What are you exploring?</p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         {missionTypeOptions.map((option) => (
                           <button
@@ -4077,7 +4100,7 @@ export default function ScoutOS() {
                     </div>
 
                     <div>
-                      <p className="scout-builder-label">Scout should check</p>
+                      <p className="scout-builder-label">Scout should scan</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {sourceOptions.map((source) => (
                           <button
@@ -4107,7 +4130,7 @@ export default function ScoutOS() {
                     </div>
 
                     <div>
-                      <p className="scout-builder-label">How soon?</p>
+                      <p className="scout-builder-label">Timeframe</p>
                       <div className="mt-2 grid grid-cols-3 gap-2">
                         {urgencyOptions.map((option) => (
                           <button
@@ -4132,7 +4155,7 @@ export default function ScoutOS() {
                       onClick={() => applyMissionDraft()}
                       className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-white"
                     >
-                      Use these choices
+                      Scan with these choices
                     </button>
                   </div>
                 </div>
@@ -4140,19 +4163,19 @@ export default function ScoutOS() {
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveMissionPanel("help");
-                    applyMissionDraft({ panel: "help" });
+                    setActiveMissionPanel("people");
+                    applyMissionDraft({ panel: "people" });
                   }}
                   className="scout-v2-rail-card text-left"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Before You Contact Anyone
+                    Discovery Before Contact
                   </p>
                   <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-white/65">
-                    <p>Scout helps you slow down before sharing contact info.</p>
-                    <p className="mt-2 text-white/50">1. Check what matters</p>
-                    <p className="text-white/50">2. Explain the risk</p>
-                    <p className="text-white/50">3. Suggest the next step</p>
+                    <p>Scout lets you look around locally before you make yourself visible.</p>
+                    <p className="mt-2 text-white/50">1. Scan nearby signals</p>
+                    <p className="text-white/50">2. Understand what changed</p>
+                    <p className="text-white/50">3. Choose a safe next step</p>
                   </div>
                 </button>
               </aside>

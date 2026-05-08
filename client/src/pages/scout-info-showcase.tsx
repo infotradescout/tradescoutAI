@@ -67,12 +67,13 @@ const trendBars = ["h-[36%]", "h-[48%]", "h-[42%]", "h-[58%]", "h-[67%]", "h-[76
 const missionSteps = [
   {
     title: "Tell Scout what you need",
-    description: "Start with a project, repair, cost question, permit concern, or search for help.",
+    description:
+      "Start with a local question: what is nearby, changing, useful, available, or worth checking.",
   },
   {
     title: "Scout checks the basics",
     description:
-      "It looks at trusted info, local rules, and current prices when they are available.",
+      "It looks at nearby posts, requests, pros, services, prices, rules, and events when available.",
   },
   {
     title: "You get a simple answer",
@@ -94,17 +95,24 @@ const missionSteps = [
 
 const capabilityPanels = [
   {
-    title: "Price check",
+    title: "Nearby scan",
+    icon: MapPinned,
+    kicker: "What is around you",
+    body: "Scout helps you discover nearby activity, useful services, local questions, material signals, and things worth checking before you act.",
+    evidence: "nearby posts\nlocal services\nactive changes",
+  },
+  {
+    title: "Price watch",
     icon: TrendingUp,
     kicker: "What costs may be doing",
-    body: "Scout can help you understand whether a material or project cost looks steady, rising, or worth checking before you buy.",
-    evidence: "checks recent prices\nlooks for surprises\nkeeps it simple",
+    body: "Scout can help you understand whether a local material, service, or project cost looks steady, rising, or worth checking before you buy.",
+    evidence: "recent prices\navailability\nlocal demand",
   },
   {
     title: "Plain answer",
     icon: Layers3,
     kicker: "What, why, what next",
-    body: "Scout turns messy project questions into a short explanation and a practical next step.",
+    body: "Scout turns messy local discovery questions into a short explanation and a practical next step.",
     evidence: "what matters\nwhy it matters\nwhat to do next",
   },
   {
@@ -127,29 +135,29 @@ const audienceCards = [
   {
     icon: Users,
     title: "Homeowners",
-    description: "Figure out what to check before you start a project or contact a pro.",
+    description: "See useful local activity before you decide where to spend time or money.",
   },
   {
     icon: MapPinned,
     title: "Contractors",
-    description: "Sanity-check pricing, timing, and local requirements before quoting.",
+    description: "Spot local demand, pricing, timing, and requirements before quoting.",
   },
   {
     icon: ShieldCheck,
     title: "DIY planners",
-    description: "Understand the risk, the likely order of work, and what may need approval.",
+    description: "Understand nearby materials, services, rules, and timing before starting.",
   },
   {
     icon: BarChart3,
     title: "Local buyers",
-    description: "Know what to ask before buying materials or hiring help.",
+    description: "Know what changed nearby before buying materials or hiring help.",
   },
 ];
 
 const workspaceCopy: Record<WorkspaceTab, { title: string; body: string; status: string }> = {
   scout: {
-    title: "Ask Scout",
-    body: "Start with a normal sentence. Scout helps shape it into a useful next step.",
+    title: "Discover locally",
+    body: "Start with a normal sentence. Scout scans what is useful around you.",
     status: "ready",
   },
   community: {
@@ -159,7 +167,7 @@ const workspaceCopy: Record<WorkspaceTab, { title: string; body: string; status:
   },
   learn: {
     title: "Learn before acting",
-    body: "Check costs, timing, permits, and risk before you commit.",
+    body: "Check nearby activity, costs, timing, rules, and risk before you commit.",
     status: "simple guidance",
   },
   outcomes: {
@@ -230,14 +238,14 @@ function MiniHeatmap() {
 
 const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("scout");
-  const [openPanel, setOpenPanel] = useState("Price check");
+  const [openPanel, setOpenPanel] = useState("Nearby scan");
   const activeCopy = workspaceCopy[activeTab];
 
   return (
     <div className="font-body text-white">
       <SEOHelmet
         title="Scout Help | TradeScout"
-        description="Scout helps TradeScout users check local rules, prices, timing, and next steps before contacting anyone."
+        description="Scout helps TradeScout users discover nearby help, projects, posts, prices, rules, events, and safe next steps."
         canonical="https://www.thetradescout.com/help/scout"
       />
 
@@ -301,11 +309,11 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                     <div>
                       <p className="ts-section-label">Start Here</p>
                       <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight md:text-6xl">
-                        Tell Scout what you want to get done.
+                        Tell Scout what you want to discover around you.
                       </h1>
                       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
-                        Scout checks the practical stuff first: what might cost more, what might
-                        need approval, what could slow you down, and what to do next.
+                        Scout scans the practical stuff around you first: nearby help, active
+                        projects, useful posts, prices, local rules, events, and safer next steps.
                       </p>
                     </div>
                     <span className="ts-live-pill">{activeCopy.status}</span>
@@ -316,7 +324,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                       <div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4">
                         <Search className="h-4 w-4 shrink-0 text-ts-orange" />
                         <span className="text-sm text-white/80">
-                          I want to remodel a bathroom. What should I check first?
+                          What useful stuff is happening near me this week?
                         </span>
                       </div>
                       <Button asChild className="bg-ts-orange text-white hover:bg-ts-orange-dark">
@@ -346,11 +354,11 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                             </p>
                             <p className="mt-2 text-sm leading-relaxed text-white/75">
                               {index === 0 &&
-                                "This project may involve plumbing, electrical, ventilation, and finish work."}
+                                "There may be nearby requests, active pros, price changes, and local updates worth seeing."}
                               {index === 1 &&
-                                "Those pieces affect cost, permits, schedule, and who you may need to hire."}
+                                "Local signals help you decide what is worth your attention before you contact anyone."}
                               {index === 2 &&
-                                "Start by checking local permit rules and listing the work before contacting anyone."}
+                                "Start by scanning nearby activity, then choose whether to save, ask more, or make a request."}
                             </p>
                           </div>
                         ))}
@@ -358,7 +366,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                     </div>
 
                     <div className="ts-result-tile">
-                      <p className="text-sm font-semibold text-white">Cost Watch</p>
+                      <p className="text-sm font-semibold text-white">Local Pulse</p>
                       <div className="mt-4 flex h-24 items-end gap-2">
                         {trendBars.map((heightClass, index) => (
                           <div
@@ -367,9 +375,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                           />
                         ))}
                       </div>
-                      <p className="mt-3 text-xs text-white/55">
-                        Prices and timing can change fast
-                      </p>
+                      <p className="mt-3 text-xs text-white/55">Nearby activity can change fast</p>
                     </div>
                   </div>
                 </div>
@@ -377,7 +383,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                 <div className="grid gap-4">
                   <div className="ts-command-panel">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="ts-section-label">What Scout checks</p>
+                      <p className="ts-section-label">What Scout scans</p>
                       <span className="text-xs text-white/45">plain language first</span>
                     </div>
                     <div className="mt-4">
@@ -397,8 +403,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                           Where you are changes the answer
                         </p>
                         <p className="mt-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                          Permits, timing, prices, and available help can be different by city or
-                          county.
+                          People, projects, services, prices, rules, and events can be different by
+                          city or county.
                         </p>
                         <div className="mt-3 rounded-lg border border-rose-400/20 bg-rose-400/10 p-3">
                           <p className="text-xs font-semibold text-rose-100">No fake data rule</p>
@@ -442,7 +448,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                     <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" />
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    {["Cost", "Timing", "Permits"].map((label) => (
+                    {["People", "Prices", "Rules"].map((label) => (
                       <div
                         key={label}
                         className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
@@ -469,7 +475,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
                 Scout is not a public directory and it is not a lead-selling shortcut. It helps you
-                understand what matters before you move forward.
+                discover what is useful around you before you move forward.
               </p>
             </div>
 
@@ -583,8 +589,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                 Built for people who need one clear next step.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
-                The interface can be simple, but the engine behind it is scouting, scoring,
-                checking, and protecting the contact path.
+                The interface can be simple, but the engine behind it is scanning local signals,
+                checking context, and protecting the contact path.
               </p>
             </div>
 

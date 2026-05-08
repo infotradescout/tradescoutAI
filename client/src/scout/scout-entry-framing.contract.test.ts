@@ -8,29 +8,31 @@ const read = (relativePath: string) => {
 };
 
 describe("Scout entry framing contracts", () => {
-  it("header frames Scout as a casual starting point", () => {
+  it("header frames Scout as a local discovery layer", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
-    expect(source).toContain("Start with Scout");
-    expect(source).toContain("What are you trying to get done");
-    expect(source).toContain("Pick a starting point or type it in");
-    expect(source).toContain("Find help");
-    expect(source).toContain("Estimate cost");
-    expect(source).toContain("Check permits");
+    expect(source).toContain("Local Discovery");
+    expect(source).toContain("What do you want to discover around");
+    expect(source).toContain("nearby help, active projects, prices, rules, events");
+    expect(source).toContain("Nearby help");
+    expect(source).toContain("Local projects");
+    expect(source).toContain("Prices & deals");
+    expect(source).toContain("Rules & events");
   });
 
   it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain("I want to remodel a bathroom");
-    expect(inputSource).toContain("Tell Scout");
-    expect(inputSource).toContain("Review");
-    expect(inputSource).toContain("Choose");
+    expect(inputSource).toContain("What useful stuff is happening near me");
+    expect(inputSource).toContain("Ask local");
+    expect(inputSource).toContain("See signals");
+    expect(inputSource).toContain("Act safely");
     expect(inputSource).toContain("Your area:");
     expect(inputSource).toContain("Use current location");
-    expect(promptsSource).toContain("Help me find the right local help");
-    expect(promptsSource).toContain("Help me figure out cost and timing");
+    expect(promptsSource).toContain("Show me what's happening nearby");
+    expect(promptsSource).toContain("Find useful local help around me");
+    expect(promptsSource).toContain("What prices or deals changed nearby?");
     expect(promptsSource).toContain("What's my next step?");
   });
 
