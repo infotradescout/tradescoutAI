@@ -13,7 +13,6 @@ import {
   Layers3,
   LockKeyhole,
   MapPinned,
-  Route,
   Search,
   ShieldCheck,
   Sparkles,
@@ -36,24 +35,24 @@ const navItems: Array<{ id: WorkspaceTab; label: string; icon: IconType }> = [
 
 const commandSources = [
   {
-    label: "Knowledge Base",
-    detail: "TradeScout Brain match",
+    label: "Trusted info",
+    detail: "rules and guidance",
     rank: "01",
     confidence: "high",
     icon: Database,
     bar: "w-[94%]",
   },
   {
-    label: "County Data",
-    detail: "48453 local container",
+    label: "Local rules",
+    detail: "city and county details",
     rank: "02",
     confidence: "medium",
     icon: MapPinned,
     bar: "w-[78%]",
   },
   {
-    label: "Live Web",
-    detail: "market context only",
+    label: "Current prices",
+    detail: "recent market context",
     rank: "03",
     confidence: "low",
     icon: Search,
@@ -61,117 +60,112 @@ const commandSources = [
   },
 ];
 
-const routingTags = [
-  "kind: scout_intelligence",
-  "scope: 48453",
-  "trade: electrical",
-  "priority: high",
-];
+const contactSteps = ["Ask Scout", "Review the next step", "Choose what to do"];
 
 const trendBars = ["h-[36%]", "h-[48%]", "h-[42%]", "h-[58%]", "h-[67%]", "h-[76%]", "h-[84%]"];
 
 const missionSteps = [
   {
-    title: "Mission Trigger",
-    description: "A user, admin, or scheduled job starts a scouting mission.",
+    title: "Tell Scout what you need",
+    description: "Start with a project, repair, cost question, permit concern, or search for help.",
   },
   {
-    title: "Multi-Source Gathering",
-    description: "Scout checks the knowledge base first, county data second, and live web third.",
-  },
-  {
-    title: "Synthesis",
-    description: "Conflicts are resolved by truth order and the evidence path stays visible.",
-  },
-  {
-    title: "Optimization",
-    description: "Caching, request dedupe, and prompt compression reduce repeated spend.",
-  },
-  {
-    title: "Decision Routing",
+    title: "Scout checks the basics",
     description:
-      "Findings become decision-ready findings with priority, scope, and next-step context.",
+      "It looks at trusted info, local rules, and current prices when they are available.",
   },
   {
-    title: "Persistence and Routing",
-    description: "Scout stores the finding and routes it through the correct UI surfaces.",
+    title: "You get a simple answer",
+    description: "Scout explains what matters, why it matters, and what to do next.",
+  },
+  {
+    title: "Missing info stays honest",
+    description: "If TradeScout has not indexed something yet, Scout says so plainly.",
+  },
+  {
+    title: "Contact stays protected",
+    description: "You review the next step before sharing contact info or making a request.",
+  },
+  {
+    title: "You stay in control",
+    description: "Save it, keep asking, or move forward when the next step makes sense.",
   },
 ];
 
 const capabilityPanels = [
   {
-    title: "Trend Engine",
+    title: "Price check",
     icon: TrendingUp,
-    kicker: "Predictive market intelligence",
-    body: "Scout compares timestamped findings so pricing, permit timelines, and market signals show direction instead of just a static answer.",
-    evidence: "window: 30 days\ntrend: rising\nevidence: 3 matching sources",
+    kicker: "What costs may be doing",
+    body: "Scout can help you understand whether a material or project cost looks steady, rising, or worth checking before you buy.",
+    evidence: "checks recent prices\nlooks for surprises\nkeeps it simple",
   },
   {
-    title: "Synthesis 2.0",
+    title: "Plain answer",
     icon: Layers3,
-    kicker: "Multi-source conflict reconciliation",
-    body: "Scout resolves disagreements by source priority: TradeScout Knowledge Base, then local county data, then live web context.",
-    evidence: "Truth stack\n1. knowledge base\n2. local data\n3. live web",
+    kicker: "What, why, what next",
+    body: "Scout turns messy project questions into a short explanation and a practical next step.",
+    evidence: "what matters\nwhy it matters\nwhat to do next",
   },
   {
-    title: "Decision routing",
-    icon: Route,
-    kicker: "Exact routing shape",
-    body: "Scout converts findings into decision-ready intelligence while preserving the Intent -> Decision Card -> Contact path.",
-    evidence: "kind: scout_intelligence\nscope: county + trade\nnext: Decision Card",
+    title: "Contact guard",
+    icon: ShieldCheck,
+    kicker: "No surprise contact sharing",
+    body: "Scout helps you review the next step before contact info or a request path is opened.",
+    evidence: "ask first\nreview next step\nchoose contact",
   },
   {
-    title: "Scout Vault",
+    title: "Saved context",
     icon: Database,
-    kicker: "Evidence history",
-    body: "Scout stores what it knew, when it knew it, and how the answer was assembled so teams can replay the decision trail.",
-    evidence: "evidence_hash: stored\nttl: cleanup job\naudit: replayable",
+    kicker: "Come back later",
+    body: "When you sign in, Scout can keep your question and answer available so you do not have to start over.",
+    evidence: "saved question\nsaved answer\nnext step remembered",
   },
 ];
 
 const audienceCards = [
   {
     icon: Users,
-    title: "Contractors",
-    description: "Check codes, prices, and market shifts before quoting or buying material.",
+    title: "Homeowners",
+    description: "Figure out what to check before you start a project or contact a pro.",
   },
   {
     icon: MapPinned,
-    title: "County teams",
-    description: "Work from precomputed county intelligence instead of rebuilding the same answer.",
+    title: "Contractors",
+    description: "Sanity-check pricing, timing, and local requirements before quoting.",
   },
   {
     icon: ShieldCheck,
-    title: "Admin operators",
-    description: "Run missions, inspect evidence, and keep the Scout pipeline healthy.",
+    title: "DIY planners",
+    description: "Understand the risk, the likely order of work, and what may need approval.",
   },
   {
     icon: BarChart3,
-    title: "Support leads",
-    description: "Route one clear next step with confidence and a clean record.",
+    title: "Local buyers",
+    description: "Know what to ask before buying materials or hiring help.",
   },
 ];
 
 const workspaceCopy: Record<WorkspaceTab, { title: string; body: string; status: string }> = {
   scout: {
-    title: "Active Scouting Workspace",
-    body: "Mission input, live synthesis, source ranking, routing tags, and county writeback in one working surface.",
-    status: "mission ready",
+    title: "Ask Scout",
+    body: "Start with a normal sentence. Scout helps shape it into a useful next step.",
+    status: "ready",
   },
   community: {
-    title: "Live Scout Feed",
-    body: "Shared local questions, emerging county signals, and reusable findings without exposing gated contact paths.",
-    status: "read-only global",
+    title: "Local awareness",
+    body: "Learn from nearby questions and patterns without opening contact paths too early.",
+    status: "local context",
   },
   learn: {
-    title: "Trend Analysis",
-    body: "Historical patterns, market signals, and scouting guidance built from verified TradeScout intelligence.",
-    status: "learning layer",
+    title: "Learn before acting",
+    body: "Check costs, timing, permits, and risk before you commit.",
+    status: "simple guidance",
   },
   outcomes: {
-    title: "Mission Outcomes",
-    body: "Vault history, decisions made, and the downstream impact of Scout intelligence.",
-    status: "audit trail",
+    title: "Next steps",
+    body: "Move forward only after you understand the safer path.",
+    status: "your choice",
   },
 };
 
@@ -236,14 +230,14 @@ function MiniHeatmap() {
 
 const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("scout");
-  const [openPanel, setOpenPanel] = useState("Trend Engine");
+  const [openPanel, setOpenPanel] = useState("Price check");
   const activeCopy = workspaceCopy[activeTab];
 
   return (
     <div className="font-body text-white">
       <SEOHelmet
-        title="Scout 2.0 Showcase | TradeScout"
-        description="Scout 2.0 is TradeScout's active intelligence command center for knowledge base, county data, live context, and decision-ready findings."
+        title="Scout Help | TradeScout"
+        description="Scout helps TradeScout users check local rules, prices, timing, and next steps before contacting anyone."
         canonical="https://www.thetradescout.com/help/scout"
       />
 
@@ -253,12 +247,12 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex items-center gap-2 rounded-full border border-ts-orange/25 bg-ts-orange/10 px-3 py-1.5 text-xs font-semibold text-ts-orange">
               <Sparkles className="h-3.5 w-3.5" />
-              Scout 2.0 Showcase
+              Scout Help
             </div>
 
             <div className="flex items-center gap-2 text-xs text-[color:var(--text-secondary)]">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
-              Data Factory online
+              Ask first, act smarter
             </div>
           </div>
 
@@ -291,11 +285,11 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
                 <div className="flex items-center gap-2 text-xs font-semibold text-white">
                   <LockKeyhole className="h-3.5 w-3.5 text-ts-orange" />
-                  Contact invariant
+                  Contact stays protected
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-white/55">
-                  Visibility does not grant access. Scout preserves Intent -&gt; Decision Card -&gt;
-                  Contact.
+                  Seeing someone does not mean sharing contact info. Scout helps you review the next
+                  step first.
                 </p>
               </div>
             </aside>
@@ -305,13 +299,13 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                 <div className="ts-command-panel">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="ts-section-label">Active mission</p>
+                      <p className="ts-section-label">Start Here</p>
                       <h1 className="mt-3 max-w-3xl font-display text-4xl font-bold leading-tight md:text-6xl">
-                        Scout is the Data Factory for TradeScout.
+                        Tell Scout what you want to get done.
                       </h1>
                       <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
-                        It scouts codes, prices, and market conditions, then converts the result
-                        into decision-ready intelligence without pretending missing data exists.
+                        Scout checks the practical stuff first: what might cost more, what might
+                        need approval, what could slow you down, and what to do next.
                       </p>
                     </div>
                     <span className="ts-live-pill">{activeCopy.status}</span>
@@ -322,7 +316,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                       <div className="flex min-h-12 flex-1 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4">
                         <Search className="h-4 w-4 shrink-0 text-ts-orange" />
                         <span className="text-sm text-white/80">
-                          What changed in Travis County electrical permit rules and copper pricing?
+                          I want to remodel a bathroom. What should I check first?
                         </span>
                       </div>
                       <Button asChild className="bg-ts-orange text-white hover:bg-ts-orange-dark">
@@ -337,7 +331,9 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                   <div className="mt-5 grid gap-4 md:grid-cols-3">
                     <div className="ts-result-tile md:col-span-2">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-white">Synthesis result</p>
+                        <p className="text-sm font-semibold text-white">
+                          A Scout answer feels like this
+                        </p>
                         <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">
                           high confidence
                         </span>
@@ -350,11 +346,11 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                             </p>
                             <p className="mt-2 text-sm leading-relaxed text-white/75">
                               {index === 0 &&
-                                "Copper pricing is rising and county electrical notes need review."}
+                                "This project may involve plumbing, electrical, ventilation, and finish work."}
                               {index === 1 &&
-                                "Knowledge base and county data agree; web context is directional only."}
+                                "Those pieces affect cost, permits, schedule, and who you may need to hire."}
                               {index === 2 &&
-                                "Open a Decision Card before any contact or assignment path."}
+                                "Start by checking local permit rules and listing the work before contacting anyone."}
                             </p>
                           </div>
                         ))}
@@ -362,7 +358,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                     </div>
 
                     <div className="ts-result-tile">
-                      <p className="text-sm font-semibold text-white">Trend Engine</p>
+                      <p className="text-sm font-semibold text-white">Cost Watch</p>
                       <div className="mt-4 flex h-24 items-end gap-2">
                         {trendBars.map((heightClass, index) => (
                           <div
@@ -371,7 +367,9 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                           />
                         ))}
                       </div>
-                      <p className="mt-3 text-xs text-white/55">Copper: rising over 30 days</p>
+                      <p className="mt-3 text-xs text-white/55">
+                        Prices and timing can change fast
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -379,8 +377,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                 <div className="grid gap-4">
                   <div className="ts-command-panel">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="ts-section-label">Truth stack</p>
-                      <span className="text-xs text-white/45">highest trust first</span>
+                      <p className="ts-section-label">What Scout checks</p>
+                      <span className="text-xs text-white/45">plain language first</span>
                     </div>
                     <div className="mt-4">
                       <SourceRail />
@@ -389,15 +387,18 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
 
                   <div className="ts-command-panel">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="ts-section-label">County layer</p>
+                      <p className="ts-section-label">Local matters</p>
                       <MapPinned className="h-4 w-4 text-ts-orange" />
                     </div>
                     <div className="mt-4 grid gap-4 sm:grid-cols-[0.9fr_1.1fr]">
                       <MiniHeatmap />
                       <div>
-                        <p className="text-sm font-semibold text-white">Visual Command Center</p>
+                        <p className="text-sm font-semibold text-white">
+                          Where you are changes the answer
+                        </p>
                         <p className="mt-2 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                          Regional browser, heatmap intelligence, and file tray stay county-aware.
+                          Permits, timing, prices, and available help can be different by city or
+                          county.
                         </p>
                         <div className="mt-3 rounded-lg border border-rose-400/20 bg-rose-400/10 p-3">
                           <p className="text-xs font-semibold text-rose-100">No fake data rule</p>
@@ -413,20 +414,20 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
 
               <div className="mt-4 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
                 <div className="ts-command-panel">
-                  <p className="ts-section-label">Decision routing</p>
+                  <p className="ts-section-label">Before contact</p>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    {routingTags.map((tag) => (
-                      <span key={tag} className="ts-routing-tag">
-                        {tag}
+                    {contactSteps.map((step) => (
+                      <span key={step} className="ts-routing-tag">
+                        {step}
                       </span>
                     ))}
                   </div>
-                  <div className="mt-5 rounded-xl border border-white/10 bg-black/25 p-4 font-mono text-xs leading-6 text-white/65">
-                    kind: scout_intelligence
-                    <br />
-                    narrative: What / Why / What to do
-                    <br />
-                    route: county surface + Decision Card
+                  <div className="mt-5 rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-white/65">
+                    <p>Scout keeps the first move low-pressure.</p>
+                    <p className="mt-2 text-white/50">
+                      Ask the question, understand the risk, then decide whether contact makes
+                      sense.
+                    </p>
                   </div>
                 </div>
 
@@ -441,13 +442,13 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                     <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-300" />
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    {["Cache", "Dedupe", "Compress"].map((label) => (
+                    {["Cost", "Timing", "Permits"].map((label) => (
                       <div
                         key={label}
                         className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
                       >
                         <p className="text-xs text-white/45">{label}</p>
-                        <p className="mt-1 text-sm font-semibold text-white">Cost controlled</p>
+                        <p className="mt-1 text-sm font-semibold text-white">Checked first</p>
                       </div>
                     ))}
                   </div>
@@ -464,11 +465,11 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
             <div>
               <p className="ts-section-label">How Scout Works</p>
               <h2 className="mt-4 font-display text-3xl font-bold md:text-4xl">
-                One mission, one truth order, one output path.
+                Ask a normal question. Get a useful next step.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
-                Scout is not generic chat. It is active intelligence gathering with source priority,
-                cost controls, persistence, and decision routing.
+                Scout is not a public directory and it is not a lead-selling shortcut. It helps you
+                understand what matters before you move forward.
               </p>
             </div>
 
@@ -497,13 +498,13 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-3xl">
-              <p className="ts-section-label">Core systems</p>
+              <p className="ts-section-label">What it helps with</p>
               <h2 className="mt-4 font-display text-3xl font-bold md:text-4xl">
-                Scout 2.0 shows its work.
+                Practical answers without the jargon.
               </h2>
             </div>
             <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5 text-xs text-white/60">
-              TradeScout only. No cross-brand data.
+              TradeScout only
             </div>
           </div>
 
@@ -553,16 +554,16 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
 
                     <div className="mt-8 grid gap-4 md:grid-cols-[1fr_0.85fr]">
                       <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-                        <p className="text-sm font-semibold text-white">Evidence note</p>
+                        <p className="text-sm font-semibold text-white">Plain notes</p>
                         <pre className="mt-4 whitespace-pre-wrap font-mono text-xs leading-6 text-white/65">
                           {panel.evidence}
                         </pre>
                       </div>
                       <div className="rounded-2xl border border-ts-orange/20 bg-ts-orange/10 p-5">
-                        <p className="text-sm font-semibold text-white">Routing rule</p>
+                        <p className="text-sm font-semibold text-white">Contact rule</p>
                         <p className="mt-3 text-sm leading-relaxed text-white/70">
-                          Scout keeps findings inside county, trust, and contact boundaries before
-                          routing them outward.
+                          Scout helps you review the next step before sharing contact info or making
+                          a request.
                         </p>
                       </div>
                     </div>
@@ -583,7 +584,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-[color:var(--text-secondary)] md:text-base">
                 The interface can be simple, but the engine behind it is scouting, scoring,
-                preserving, and routing the decision trail.
+                checking, and protecting the contact path.
               </p>
             </div>
 
@@ -612,9 +613,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                   Missing information stays missing
                 </div>
                 <p className="mt-3 max-w-3xl text-sm leading-relaxed text-white/70 md:text-base">
-                  When Scout does not have indexed evidence, it reports not yet indexed instead of
-                  inventing placeholders. That is the difference between a chat answer and an
-                  intelligence engine.
+                  When Scout has not indexed something yet, it says not yet indexed instead of
+                  inventing an answer.
                 </p>
               </div>
               <Button asChild className="bg-ts-orange text-white hover:bg-ts-orange-dark">

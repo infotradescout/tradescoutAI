@@ -41,7 +41,6 @@ import {
   BadgeInfo,
   BarChart3,
   Database,
-  Layers3,
   MapPinned,
   Route,
   Sparkles,
@@ -517,14 +516,10 @@ export default function ScoutOS() {
   const [workAreaTitle, setWorkAreaTitle] = useState<string | null>(null);
   const [prefillKey, setPrefillKey] = useState(0);
   const [activeMissionPanel, setActiveMissionPanel] = useState<
-    "truth" | "trend" | "routing" | "county"
-  >("truth");
-  const [missionType, setMissionType] = useState<"code_price" | "market" | "permit" | "trust">(
-    "code_price"
-  );
-  const [missionUrgency, setMissionUrgency] = useState<"today" | "this_week" | "planning">(
-    "this_week"
-  );
+    "cost" | "timeline" | "permits" | "help"
+  >("cost");
+  const [missionType, setMissionType] = useState<"project" | "cost" | "permit" | "pro">("project");
+  const [missionUrgency, setMissionUrgency] = useState<"now" | "soon" | "just_planning">("soon");
   const [enabledMissionSources, setEnabledMissionSources] = useState({
     knowledge: true,
     county: true,
@@ -2854,37 +2849,34 @@ export default function ScoutOS() {
   );
 
   const missionControlItems: Array<{
-    id: "truth" | "trend" | "routing" | "county";
+    id: "cost" | "timeline" | "permits" | "help";
     label: string;
     icon: typeof Database;
     prompt: string;
   }> = [
     {
-      id: "truth",
-      label: "Truth stack",
+      id: "cost",
+      label: "Estimate cost",
       icon: Database,
-      prompt:
-        "Scout the most reliable answer for my project using knowledge base first, county data second, and live context third.",
+      prompt: "Help me estimate the likely cost, timing, and biggest gotchas for this project.",
     },
     {
-      id: "trend",
-      label: "Trend Engine",
+      id: "timeline",
+      label: "Check timing",
       icon: BarChart3,
-      prompt:
-        "Scout current material price and permit timeline trends for my county and show what is rising, falling, or stable.",
+      prompt: "Help me understand when to start and what could slow this down.",
     },
     {
-      id: "routing",
-      label: "Decision routing",
+      id: "permits",
+      label: "Permits",
       icon: Route,
-      prompt: "Scout this need and prepare the right Decision Card path before any contact step.",
+      prompt: "Help me figure out whether this might need permits, inspections, or local approval.",
     },
     {
-      id: "county",
-      label: "County layer",
+      id: "help",
+      label: "Find help",
       icon: MapPinned,
-      prompt:
-        "Scout county-specific facts and tell me what belongs in county metrics, notes, or assignments.",
+      prompt: "Help me figure out what kind of local pro or service I should look for.",
     },
   ];
 
@@ -2894,40 +2886,40 @@ export default function ScoutOS() {
     description: string;
   }> = [
     {
-      id: "code_price",
-      label: "Code + price",
-      description: "Rules, materials, and quote risk",
+      id: "project",
+      label: "Home project",
+      description: "Plan what to do first",
     },
     {
-      id: "market",
-      label: "Market signal",
-      description: "Trends, demand, and timing",
+      id: "cost",
+      label: "Cost question",
+      description: "Budget and price range",
     },
     {
       id: "permit",
-      label: "Permit path",
-      description: "County steps and inspection risk",
+      label: "Permit question",
+      description: "Rules and approvals",
     },
     {
-      id: "trust",
-      label: "Trust check",
-      description: "Verify before a contact path",
+      id: "pro",
+      label: "Find a pro",
+      description: "Who to ask for help",
     },
   ];
 
   const urgencyOptions: Array<{ id: typeof missionUrgency; label: string }> = [
-    { id: "today", label: "Today" },
-    { id: "this_week", label: "This week" },
-    { id: "planning", label: "Planning" },
+    { id: "now", label: "ASAP" },
+    { id: "soon", label: "Soon" },
+    { id: "just_planning", label: "Just planning" },
   ];
 
   const sourceOptions: Array<{
     id: keyof typeof enabledMissionSources;
     label: string;
   }> = [
-    { id: "knowledge", label: "Knowledge" },
-    { id: "county", label: "County" },
-    { id: "live", label: "Live" },
+    { id: "knowledge", label: "Trusted info" },
+    { id: "county", label: "Local rules" },
+    { id: "live", label: "Prices now" },
   ];
 
   const composeMissionDraft = useCallback(
@@ -2942,7 +2934,7 @@ export default function ScoutOS() {
       const urgency = overrides?.urgency ?? missionUrgency;
       const sources = overrides?.sources ?? enabledMissionSources;
       const typeLabel =
-        missionTypeOptions.find((option) => option.id === type)?.label || "Code + price";
+        missionTypeOptions.find((option) => option.id === type)?.label || "home project";
       const sourceList = sourceOptions
         .filter((source) => sources[source.id])
         .map((source) => source.label.toLowerCase())
@@ -2952,15 +2944,18 @@ export default function ScoutOS() {
           ? heroLocationLabel
           : "my county";
       const panelInstruction =
-        panel === "truth"
-          ? "resolve conflicts by source priority and show the evidence trail"
-          : panel === "trend"
-            ? "show what is rising, falling, or stable"
-            : panel === "routing"
-              ? "prepare the right Decision Card path before any contact step"
-              : "separate county facts, notes, and assignments";
+        panel === "cost"
+          ? "Focus on likely cost, timing, and common surprises."
+          : panel === "timeline"
+            ? "Focus on when to start, how long it may take, and what could slow things down."
+            : panel === "permits"
+              ? "Focus on permits, inspections, and local approval."
+              : "Focus on what kind of local help I should look for.";
+      const urgencyLabel =
+        urgencyOptions.find((option) => option.id === urgency)?.label.toLowerCase() ||
+        urgency.replace("_", " ");
 
-      return `Scout a ${typeLabel.toLowerCase()} mission for ${area}. Use ${sourceList || "available"} sources, treat urgency as ${urgency.replace("_", " ")}, ${panelInstruction}. Return What, Why, and What to do next.`;
+      return `I need help with a ${typeLabel.toLowerCase()} in ${area}. Please check ${sourceList || "what matters"}, assume this is ${urgencyLabel}, and keep it simple. ${panelInstruction} Tell me what to do next before I contact anyone.`;
     },
     [activeMissionPanel, enabledMissionSources, heroLocationLabel, missionType, missionUrgency]
   );
@@ -3058,7 +3053,7 @@ export default function ScoutOS() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
                       <Sparkles className="h-3.5 w-3.5" />
-                      Scout 2.0
+                      Scout
                     </div>
                     <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
                       active
@@ -3088,7 +3083,7 @@ export default function ScoutOS() {
                   </div>
                   <div className="mt-3 space-y-3">
                     <div>
-                      <p className="scout-builder-label">Mission type</p>
+                      <p className="scout-builder-label">What do you need?</p>
                       <div className="mt-2 grid grid-cols-2 gap-1.5">
                         {missionTypeOptions.map((option) => (
                           <button
@@ -3109,7 +3104,7 @@ export default function ScoutOS() {
                     </div>
                     <div className="grid grid-cols-[1fr_0.8fr] gap-2">
                       <div>
-                        <p className="scout-builder-label">Evidence</p>
+                        <p className="scout-builder-label">Scout should check</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {sourceOptions.map((source) => (
                             <button
@@ -3138,7 +3133,7 @@ export default function ScoutOS() {
                         </div>
                       </div>
                       <div>
-                        <p className="scout-builder-label">Urgency</p>
+                        <p className="scout-builder-label">How soon?</p>
                         <div className="mt-2 flex flex-col gap-1.5">
                           {urgencyOptions.map((option) => (
                             <button
@@ -3308,10 +3303,11 @@ export default function ScoutOS() {
                       className="text-[10px] font-semibold uppercase tracking-wide"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Mission launch protocol
+                      Before you contact anyone
                     </p>
                     <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Scout gathers evidence first. You review a Decision Card before contact.
+                      Scout checks the basics first. You review the next step before sharing contact
+                      info.
                     </p>
                   </div>
                 )}
@@ -3959,43 +3955,49 @@ export default function ScoutOS() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
                       <Sparkles className="h-3.5 w-3.5" />
-                      Scout 2.0
+                      Scout
                     </div>
                     <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
                       live workspace
                     </span>
                   </div>
                   <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-white">
-                    Mission control is visible now.
+                    Start with a clearer question.
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                    Scout gathers, reconciles, writes back to county containers, and prepares the
-                    next-step routing while the conversation stays focused.
+                    Scout checks local rules, prices, timing, and next steps before you contact
+                    anyone.
                   </p>
                 </div>
 
                 <div className="scout-v2-rail-card">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                      Truth stack
+                      What Scout Checks
                     </p>
                     <Database className="h-4 w-4 text-ts-orange" />
                   </div>
                   <div className="mt-4 space-y-3">
                     {[
-                      ["Knowledge Base", "highest trust", "w-[92%]"],
-                      ["County Data", "local override", "w-[76%]"],
-                      ["Live Web", "market context", "w-[54%]"],
-                    ].map(([label, detail, width], index) => (
+                      ["Trusted info", "common rules and guidance", "knowledge", "w-[92%]"],
+                      ["Local rules", "county and city details", "county", "w-[76%]"],
+                      ["Prices now", "recent prices and timing", "live", "w-[54%]"],
+                    ].map(([label, detail, sourceId, width], index) => (
                       <button
                         key={label}
                         type="button"
                         onClick={() => {
-                          setActiveMissionPanel("truth");
-                          applyMissionDraft({ panel: "truth" });
+                          const next = {
+                            ...enabledMissionSources,
+                            [sourceId]: true,
+                          };
+                          setEnabledMissionSources(next);
+                          applyMissionDraft({ sources: next });
                         }}
                         className={`w-full rounded-xl border border-white/10 bg-black/20 p-3 text-left ${
-                          activeMissionPanel === "truth" ? "border-ts-orange/50" : ""
+                          enabledMissionSources[sourceId as keyof typeof enabledMissionSources]
+                            ? "border-ts-orange/50"
+                            : ""
                         }`}
                       >
                         <div className="flex items-center justify-between gap-3">
@@ -4019,13 +4021,13 @@ export default function ScoutOS() {
                   {missionControlItems.map((item) => {
                     const Icon = item.icon;
                     const subcopy =
-                      item.id === "truth"
-                        ? "source priority"
-                        : item.id === "trend"
-                          ? "directional signal"
-                          : item.id === "routing"
-                            ? "Decision Card path"
-                            : "precomputed facts";
+                      item.id === "cost"
+                        ? "budget range"
+                        : item.id === "timeline"
+                          ? "how long it may take"
+                          : item.id === "permits"
+                            ? "rules and inspections"
+                            : "who to ask";
 
                     return (
                       <button
@@ -4049,11 +4051,11 @@ export default function ScoutOS() {
 
                 <div className="scout-v2-rail-card">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Build the mission
+                    Build Your Question
                   </p>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <p className="scout-builder-label">Mission type</p>
+                      <p className="scout-builder-label">What do you need?</p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         {missionTypeOptions.map((option) => (
                           <button
@@ -4075,7 +4077,7 @@ export default function ScoutOS() {
                     </div>
 
                     <div>
-                      <p className="scout-builder-label">Evidence sources</p>
+                      <p className="scout-builder-label">Scout should check</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {sourceOptions.map((source) => (
                           <button
@@ -4105,7 +4107,7 @@ export default function ScoutOS() {
                     </div>
 
                     <div>
-                      <p className="scout-builder-label">Urgency</p>
+                      <p className="scout-builder-label">How soon?</p>
                       <div className="mt-2 grid grid-cols-3 gap-2">
                         {urgencyOptions.map((option) => (
                           <button
@@ -4130,7 +4132,7 @@ export default function ScoutOS() {
                       onClick={() => applyMissionDraft()}
                       className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-white"
                     >
-                      Draft this mission
+                      Use these choices
                     </button>
                   </div>
                 </div>
@@ -4138,20 +4140,19 @@ export default function ScoutOS() {
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveMissionPanel("routing");
-                    applyMissionDraft({ panel: "routing" });
+                    setActiveMissionPanel("help");
+                    applyMissionDraft({ panel: "help" });
                   }}
                   className="scout-v2-rail-card text-left"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Decision routing payload
+                    Before You Contact Anyone
                   </p>
-                  <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4 font-mono text-[11px] leading-6 text-white/60">
-                    kind: scout finding
-                    <br />
-                    narrative: What / Why / What to do
-                    <br />
-                    gate: Intent -&gt; Decision Card -&gt; Contact
+                  <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-white/65">
+                    <p>Scout helps you slow down before sharing contact info.</p>
+                    <p className="mt-2 text-white/50">1. Check what matters</p>
+                    <p className="text-white/50">2. Explain the risk</p>
+                    <p className="text-white/50">3. Suggest the next step</p>
                   </div>
                 </button>
               </aside>

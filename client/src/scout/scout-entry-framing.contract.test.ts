@@ -8,23 +8,25 @@ const read = (relativePath: string) => {
 };
 
 describe("Scout entry framing contracts", () => {
-  it("header frames Scout as an active mission workspace", () => {
+  it("header frames Scout as a casual starting point", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
-    expect(source).toContain("TradeScout Data Factory");
-    expect(source).toContain("Launch a scouting mission");
-    expect(source).toContain("Scout gathers codes, prices, county context");
-    expect(source).toContain("Decision routing");
+    expect(source).toContain("Start with Scout");
+    expect(source).toContain("What are you trying to get done");
+    expect(source).toContain("Pick a starting point or type it in");
+    expect(source).toContain("Find help");
+    expect(source).toContain("Estimate cost");
+    expect(source).toContain("Check permits");
   });
 
   it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain("Scout Travis County electrical permit rules");
-    expect(inputSource).toContain("Gather");
-    expect(inputSource).toContain("Synthesize");
-    expect(inputSource).toContain("Route");
+    expect(inputSource).toContain("I want to remodel a bathroom");
+    expect(inputSource).toContain("Tell Scout");
+    expect(inputSource).toContain("Review");
+    expect(inputSource).toContain("Choose");
     expect(inputSource).toContain("Your area:");
     expect(inputSource).toContain("Use current location");
     expect(promptsSource).toContain("Help me find the right local help");
