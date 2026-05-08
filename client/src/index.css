@@ -660,26 +660,64 @@ html {
 }
 
 .scout-v2-mobile-console {
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, rgba(255, 255, 255, 0.1));
   background:
     radial-gradient(circle at top right, rgba(255, 112, 24, 0.16), transparent 48%),
     color-mix(in oklab, var(--surface-card) 94%, transparent);
-  padding: 1rem;
+  padding: 0.8rem;
 }
 
 .scout-v2-mobile-chip {
   display: flex;
-  min-height: 2.45rem;
+  min-height: 2.2rem;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 0.45rem;
-  border-radius: 0.75rem;
+  gap: 0.2rem;
+  border-radius: 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(0, 0, 0, 0.2);
-  padding: 0.55rem 0.65rem;
-  font-size: 0.72rem;
+  padding: 0.4rem 0.35rem;
+  font-size: 0.58rem;
   font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
   color: rgba(255, 255, 255, 0.78);
+}
+
+.scout-shell-refined .scout-header-refined {
+  border-radius: 1.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)),
+    rgba(0, 0, 0, 0.16);
+  padding: 0.85rem;
+}
+
+@media (min-width: 768px) {
+  .scout-shell-refined .scout-header-refined {
+    padding: 1.35rem;
+  }
+}
+
+.scout-shell-refined .scout-input-refined {
+  border-radius: 1.25rem !important;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
+    color-mix(in oklab, var(--surface-intermediate) 90%, transparent) !important;
+}
+
+.scout-shell-refined .scout-input-refined textarea {
+  min-height: 6rem;
+  border-radius: 1rem !important;
+  font-size: 0.95rem;
+}
+
+.scout-shell-refined .scout-send-btn {
+  min-height: 3rem;
+  border-radius: 1rem !important;
+  box-shadow: 0 16px 34px color-mix(in oklab, var(--theme-accent-primary) 22%, transparent);
 }
 
 .ts-badge-new {

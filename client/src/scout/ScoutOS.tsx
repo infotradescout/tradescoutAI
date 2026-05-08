@@ -2921,14 +2921,7 @@ export default function ScoutOS() {
                       active
                     </span>
                   </div>
-                  <p className="mt-3 text-sm font-semibold leading-snug text-white">
-                    Mission console
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-secondary)]">
-                    Knowledge base, county data, live context, and LISA routing are part of every
-                    scouting mission.
-                  </p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="mt-3 grid grid-cols-4 gap-1.5">
                     {[
                       ["Truth stack", Database],
                       ["Trend Engine", BarChart3],
@@ -3069,10 +3062,15 @@ export default function ScoutOS() {
               )}
 
               <div
-                className="scout-composer-dock scout-composer-refined mt-1.5 order-2 z-10 rounded-lg border px-1.5 py-1.5"
+                className="scout-composer-dock scout-composer-refined mt-1.5 order-2 z-10 rounded-2xl border px-3 py-3 md:px-4 md:py-4"
                 style={{
-                  borderColor: "var(--border-subtle)",
-                  backgroundColor: "color-mix(in oklab, var(--surface-card) 93%, transparent)",
+                  borderColor: !hasUserMessages
+                    ? "color-mix(in oklab, var(--theme-accent-primary) 25%, var(--border-subtle))"
+                    : "var(--border-subtle)",
+                  backgroundColor: !hasUserMessages
+                    ? "color-mix(in oklab, var(--surface-card) 96%, black 4%)"
+                    : "color-mix(in oklab, var(--surface-card) 93%, transparent)",
+                  boxShadow: !hasUserMessages ? "0 18px 48px rgba(0,0,0,0.32)" : undefined,
                   backdropFilter: "blur(8px)",
                 }}
               >
@@ -3089,10 +3087,10 @@ export default function ScoutOS() {
                       className="text-[10px] font-semibold uppercase tracking-wide"
                       style={{ color: "var(--text-secondary)" }}
                     >
-                      Step 1 of 3
+                      Mission launch protocol
                     </p>
                     <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Ask Scout first. You will review a decision card before contact.
+                      Scout gathers evidence first. You review a Decision Card before contact.
                     </p>
                   </div>
                 )}

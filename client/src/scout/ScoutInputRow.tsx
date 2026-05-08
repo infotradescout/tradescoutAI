@@ -36,6 +36,18 @@ export function ScoutInputRow({
 
   return (
     <div className="scout-input-row space-y-3">
+      <div className="grid grid-cols-3 gap-2 px-1">
+        {[
+          ["01", "Gather"],
+          ["02", "Synthesize"],
+          ["03", "Route"],
+        ].map(([num, label]) => (
+          <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+            <p className="font-mono text-[10px] text-ts-orange">{num}</p>
+            <p className="mt-1 text-[11px] font-semibold text-white/70">{label}</p>
+          </div>
+        ))}
+      </div>
       <div className="flex flex-col gap-2 px-1">
         <div className="flex flex-wrap items-center gap-1.5">
           {heroLocationLabel && (
@@ -97,7 +109,7 @@ export function ScoutInputRow({
               type="button"
               onClick={() => onSend(prompt)}
               disabled={isBusy}
-              className="scout-quick-prompt inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default"
+              className="scout-quick-prompt inline-flex items-center rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-default"
               style={{
                 borderColor: "var(--border-subtle)",
                 backgroundColor:
@@ -114,7 +126,7 @@ export function ScoutInputRow({
               type="button"
               onClick={() => setShowAllPrompts((v) => !v)}
               disabled={isBusy}
-              className="scout-quick-prompt inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] transition-colors disabled:opacity-50 disabled:cursor-default sm:hidden"
+              className="scout-quick-prompt inline-flex items-center rounded-xl border px-3 py-2 text-[12px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-default sm:hidden"
               style={{
                 borderColor: "var(--border-subtle)",
                 backgroundColor: "transparent",
@@ -129,7 +141,7 @@ export function ScoutInputRow({
       <ScoutInput
         key={prefillKey}
         disabled={isBusy}
-        placeholder="What do you need help with today?"
+        placeholder="Example: Scout Travis County electrical permit rules and copper pricing this week"
         onSend={onSend}
         onUserTyping={onTyping}
         prefillKey="scout-main"

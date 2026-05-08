@@ -211,7 +211,10 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
         value={value}
         onChange={handleManualChange}
         disabled={disabled}
-        placeholder={placeholder}
+        placeholder={
+          placeholder ||
+          "Describe the code, price, county, contractor, or market condition Scout should investigate."
+        }
         rows={3}
         className="w-full min-h-[110px] resize-none rounded-xl px-3.5 py-3 text-[15px] leading-relaxed transition-colors focus:outline-none placeholder:text-[color:var(--text-secondary)]"
         style={{
@@ -237,7 +240,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
           }}
         >
           <Send className="h-4 w-4" />
-          <span>{isSubmitting ? "Sending..." : "Send"}</span>
+          <span>{isSubmitting ? "Scouting..." : "Run mission"}</span>
         </button>
       </div>
     </div>
