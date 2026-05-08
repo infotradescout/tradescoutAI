@@ -477,7 +477,7 @@ export function registerProcurementRoutes(app: Express) {
     res.json({ orders: result.rows });
   });
 
-  app.post("/api/procurement/orders", isAuthenticated, async (req, res) => {
+  app.post("/api/procurement/orders", async (req, res) => {
     const parsed = orderCreateSchema.safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json({ message: "Invalid order", errors: parsed.error.flatten() });
@@ -485,6 +485,19 @@ export function registerProcurementRoutes(app: Express) {
     const sourceChannel =
       body.sourceChannel ||
       (req.path.startsWith("/api/grunt") ? "grunt_direct_ordering" : "tradescout_supply_run");
+    if (sourceChannel !== "grunt_direct_ordering" && !req.isAuthenticated()) {
+      return res.status(401).json({ message: "Authentication required" });
+    }
+    if (
+      sourceChannel === "grunt_direct_ordering" &&
+      !body.customerName &&
+      !body.customerEmail &&
+      !body.customerPhone
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Add a customer name, email, or phone for Grunt direct orders" });
+    }
     const isGruntDirect = sourceChannel === "grunt_direct_ordering";
     const origin = await ensureWorkspace(isGruntDirect ? "grunt" : "tradescout");
     const fulfillment = await ensureWorkspace("grunt");

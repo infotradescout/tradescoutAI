@@ -56,4 +56,55 @@ describe("procurement engine contract", () => {
     expect(route).toContain("fulfillment_workspace_id");
     expect(route).toContain("isPrivateObjectKey");
   });
+
+  it("keeps Grunt direct intake public while protecting TradeScout supply runs", () => {
+    const route = read("server/routes/procurement.ts");
+    expect(route).toContain('app.post("/api/procurement/orders", async');
+    expect(route).toContain('sourceChannel !== "grunt_direct_ordering" && !req.isAuthenticated()');
+    expect(route).toContain('sourceChannel === "grunt_direct_ordering"');
+    expect(route).toContain("Add a customer name, email, or phone for Grunt direct orders");
+
+    const appRoutes = read("client/src/AppRoutes.tsx");
+    const gruntOrderBlock = appRoutes.slice(
+      appRoutes.indexOf('<Route path="/grunt/order">'),
+      appRoutes.indexOf('<Route path="/grunt/order/:id">')
+    );
+    expect(gruntOrderBlock).toContain("GruntOrder");
+    expect(gruntOrderBlock).not.toContain("ProtectedRoute");
+  });
+
+  it("covers pilot order transitions and proof metadata", () => {
+    const route = read("server/routes/procurement.ts");
+    [
+      'app.post("/api/procurement/orders/:id/quote"',
+      'app.post("/api/procurement/orders/:id/approve"',
+      'app.post("/api/procurement/orders/:id/assign-fulfillment"',
+      'app.post("/api/procurement/orders/:id/status"',
+      'app.post("/api/procurement/orders/:id/proof"',
+      'app.post("/api/grunt/orders/:id/accept"',
+      'app.post("/api/grunt/orders/:id/reject"',
+      'app.post("/api/partners/grunt/orders/:id/status"',
+      'app.post("/api/partners/grunt/orders/:id/proof"',
+    ].forEach((needle) => expect(route).toContain(needle));
+
+    expect(route).toContain('proofType: z.enum(["pickup", "receipt", "delivery", "other"])');
+    expect(route).toContain("partner_eta");
+    expect(route).toContain("recordEvent");
+  });
+
+  it("uses operational labels instead of internal engine labels", () => {
+    const shared = read("shared/procurement.ts");
+    expect(shared).toContain('quote_pending: "Waiting on Quote"');
+    expect(shared).toContain('assigned_to_fulfillment: "Sent to Grunt"');
+    expect(shared).toContain('proof_uploaded: "Proof Received"');
+
+    const page = read("client/src/pages/procurement/ProcurementPages.tsx");
+    expect(page).toContain("Start Supply Run");
+    expect(page).toContain("Send to Grunt");
+    expect(page).toContain("Accept Run");
+    expect(page).toContain("Update ETA / Status");
+    expect(page).toContain("Upload Receipt");
+    expect(page).toContain("Upload Pickup Proof");
+    expect(page).toContain("Upload Delivery Proof");
+  });
 });

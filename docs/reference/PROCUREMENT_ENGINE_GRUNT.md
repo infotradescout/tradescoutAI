@@ -58,3 +58,99 @@ The same live system can show branded ordering, backend queue, status pipeline, 
 ## Commercial Framing
 
 Recommended pilot structure: TradeScout/LISA builds and owns the procurement engine, Grunt receives operating access to the branded workspace, and the 90-day pilot measures completed orders, fulfillment time, revenue processed, and repeat customers. After the pilot, terms can move to license, rev share, platform fee, purchase option, or strategic infrastructure partnership.
+
+## Internal TradeScout SOP
+
+Use this flow for TradeScout Supply Run orders before sending work to Grunt.
+
+1. Open `/admin/procurement`.
+2. Filter by order source, status, or fulfillment partner.
+3. Open the Supply Run.
+4. Review the delivery address, item list, notes, and uploaded files.
+5. Add internal notes if the request needs cleanup before quoting.
+6. Build the quote using materials estimate, delivery fee, service fee, and contingency buffer.
+7. Send the quote.
+8. Approve the quote manually during pilot if payment is not enabled.
+9. Use **Send to Grunt** when the order is ready for fulfillment.
+10. Track the timeline until receipt, pickup proof, delivery proof, and completion are recorded.
+
+TradeScout should keep control of the customer relationship, quote review, and handoff decision. Grunt should receive only what it needs to fulfill the run.
+
+## Grunt Operator SOP
+
+Use this flow for Grunt direct orders and TradeScout-routed Supply Runs.
+
+1. Open `/grunt/admin/orders`.
+2. Review assigned TradeScout orders and Grunt direct orders.
+3. Open an order.
+4. Use **Accept Run** or **Reject Run**.
+5. Add or update ETA with **Update ETA / Status**.
+6. Move the order through supplier confirmed, purchase pending, purchased, driver assigned, pickup started, picked up, delivery started, delivered, and completed as applicable.
+7. Upload receipt when purchase is made.
+8. Upload pickup proof when supplies are collected.
+9. Upload delivery proof when supplies are dropped off.
+10. Mark completed after delivery proof is attached and the order is closed operationally.
+
+Grunt operators should not need GitHub, database access, full admin access, or help from Thomas to run the dashboard.
+
+## Pilot Terms Sheet
+
+**Pilot length:** 90 days.
+
+**Owner of platform engine:** TradeScout/LISA.
+
+**Operator during pilot:** Grunt.
+
+**Allowed use:** Grunt direct ordering and TradeScout-routed Supply Runs.
+
+**Data boundaries:** Grunt can access fulfillment details, delivery address, customer contact needed for fulfillment, item list, receipts, pickup proof, delivery proof, ETA, and status history. Grunt cannot access unrelated TradeScout profiles, Trust/CVS scoring, contractor ranking logic, lead routing data, browsing data, database access, or source code.
+
+**Pilot KPIs:**
+
+- completed orders
+- average fulfillment time
+- revenue processed
+- repeat customers
+- customer issues or disputes
+
+**After pilot:** licensing agreement, revenue share, purchase option, expanded partnership, or shutdown of Grunt operating access.
+
+Business framing for demos: “We built the ordering layer as infrastructure owned by TradeScout/LISA. Grunt can operate on it during a pilot, and if it proves valuable, we can license it, revenue share it, or structure a purchase option.”
+
+## Pilot Readiness Checklist
+
+- [ ] TradeScout user can create Supply Run.
+- [ ] Grunt direct customer can create order.
+- [ ] Admin can view and manage all procurement orders.
+- [ ] Admin can filter by workspace, source, and status.
+- [ ] Admin can review uploaded files.
+- [ ] Admin can build and send quote.
+- [ ] Admin or customer can approve quote for pilot.
+- [ ] Admin can send order to Grunt.
+- [ ] Grunt can only view Grunt-originated or Grunt-assigned orders.
+- [ ] Grunt cannot access unrelated TradeScout profile, trust, ranking, or lead data.
+- [ ] Quote builder works.
+- [ ] Quote approval works.
+- [ ] Status timeline works.
+- [ ] Private file upload works.
+- [ ] Receipt upload works.
+- [ ] Pickup proof upload works.
+- [ ] Delivery proof upload works.
+- [ ] Empty states work.
+- [ ] Error states work.
+- [ ] Mobile flow is usable.
+- [ ] Pilot language protects TradeScout/LISA ownership.
+
+## Known Limitations
+
+These are intentionally deferred until the pilot proves demand:
+
+- full supplier catalog
+- automated Home Depot or Lowe's integration
+- live driver GPS
+- Stripe Connect split payments
+- supplier bidding
+- AI item substitution
+- public launch marketing
+
+Payment is manual for the pilot. Quote approval can be recorded by the customer or an admin until payment authorization/capture is explicitly approved.

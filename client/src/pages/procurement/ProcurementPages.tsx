@@ -562,7 +562,7 @@ export function SupplyRunHome() {
   return (
     <Shell
       title="Supply Run"
-      eyebrow="TradeScout Procurement Engine"
+      eyebrow="Order Supplies"
       action={
         <Link
           href="/utilities/supply-run/new"
@@ -603,6 +603,7 @@ export function OrderDetail({
   const [status, setStatus] = useState<ProcurementOrderStatus>("submitted");
   const [eta, setEta] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofType, setProofType] = useState<"receipt" | "pickup" | "delivery">("delivery");
   const latestQuote = data?.quotes?.[0];
   const canOperate = portal === "admin" || portal === "grunt";
   const base =
@@ -624,12 +625,26 @@ export function OrderDetail({
       }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
   });
+  const acceptRun = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/grunt/orders/${id}/accept`, {
+        message: "Grunt accepted the run.",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
+  });
+  const rejectRun = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/grunt/orders/${id}/reject`, {
+        message: "Grunt rejected the run.",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
+  });
   const uploadProof = useMutation({
     mutationFn: async () => {
       if (!proofFile) throw new Error("Choose a file first.");
       const uploaded = await uploadPrivateObject(proofFile);
       return apiRequest("POST", `/api/procurement/orders/${id}/proof`, {
-        proofType: "delivery",
+        proofType,
         objectKey: uploaded.objectKey,
         fileName: proofFile.name,
       });
@@ -653,7 +668,7 @@ export function OrderDetail({
   return (
     <Shell
       title={data.order.order_number}
-      eyebrow={portal === "grunt" ? "Grunt Ordering System" : "Procurement Engine"}
+      eyebrow={portal === "grunt" ? "Grunt Ordering System" : "Supply Run"}
       action={
         <Link href={base} className="rounded-md bg-white/10 px-4 py-2 text-sm font-bold">
           Back
@@ -674,9 +689,9 @@ export function OrderDetail({
               <StatusBadge status={data.order.status as ProcurementOrderStatus} />
             </div>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div>Source: {data.order.source_channel}</div>
+              <div>Order Source: {data.order.source_channel}</div>
               <div>
-                Fulfillment:{" "}
+                Fulfillment Partner:{" "}
                 {data.order.fulfillmentWorkspaceName ||
                   data.order.fulfillmentworkspacename ||
                   "Unassigned"}
@@ -800,9 +815,38 @@ export function OrderDetail({
                 onClick={() => updateStatus.mutate()}
                 className="mt-3 w-full rounded-md bg-white/10 px-4 py-2 text-sm font-bold"
               >
-                Update Status
+                Update ETA / Status
               </button>
-              <Field label="Upload delivery proof">
+              {portal === "grunt" ? (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => acceptRun.mutate()}
+                    className="rounded-md bg-green-500 px-4 py-2 text-sm font-black text-black"
+                  >
+                    Accept Run
+                  </button>
+                  <button
+                    onClick={() => rejectRun.mutate()}
+                    className="rounded-md bg-red-500/90 px-4 py-2 text-sm font-black text-white"
+                  >
+                    Reject Run
+                  </button>
+                </div>
+              ) : null}
+              <Field label="Proof type">
+                <select
+                  className={inputClass}
+                  value={proofType}
+                  onChange={(e) =>
+                    setProofType(e.target.value as "receipt" | "pickup" | "delivery")
+                  }
+                >
+                  <option value="receipt">Receipt</option>
+                  <option value="pickup">Pickup proof</option>
+                  <option value="delivery">Delivery proof</option>
+                </select>
+              </Field>
+              <Field label="Upload receipt or proof">
                 <input
                   className={inputClass}
                   type="file"
@@ -813,7 +857,11 @@ export function OrderDetail({
                 onClick={() => uploadProof.mutate()}
                 className="mt-3 w-full rounded-md bg-orange-500 px-4 py-2 text-sm font-black text-black"
               >
-                Upload Proof
+                {proofType === "receipt"
+                  ? "Upload Receipt"
+                  : proofType === "pickup"
+                    ? "Upload Pickup Proof"
+                    : "Upload Delivery Proof"}
               </button>
             </Card>
           ) : null}
@@ -849,7 +897,7 @@ export function AdminProcurementPage() {
   const { data, isLoading, error } = useOrders(query);
   return (
     <Shell
-      title="Procurement"
+      title="Supply Runs"
       eyebrow="Admin"
       action={
         <Link
@@ -953,7 +1001,7 @@ export function AdminProcurementDetailPage() {
       <div className="bg-neutral-950 px-4 pb-10 text-white">
         <div className="mx-auto grid max-w-6xl gap-4 lg:grid-cols-2">
           <Card>
-            <h2 className="mb-3 text-lg font-bold">Admin order edit</h2>
+            <h2 className="mb-3 text-lg font-bold">Order details</h2>
             <Field label="Delivery address">
               <textarea
                 className={inputClass}
@@ -978,7 +1026,7 @@ export function AdminProcurementDetailPage() {
             </button>
           </Card>
           <Card>
-            <h2 className="mb-3 text-lg font-bold">Admin quote builder</h2>
+            <h2 className="mb-3 text-lg font-bold">Quote builder</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {lines.map((line, index) => (
                 <Field key={line.lineType} label={line.label}>
@@ -1008,7 +1056,7 @@ export function AdminProcurementDetailPage() {
                 onClick={() => assign.mutate()}
                 className="rounded-md bg-white/10 px-4 py-2 text-sm font-bold"
               >
-                Assign Grunt
+                Send to Grunt
               </button>
             </div>
           </Card>
