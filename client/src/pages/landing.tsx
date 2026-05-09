@@ -173,9 +173,9 @@ function Navbar({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 lg:h-16">
-          <button onClick={() => handleNavClick("#")} className="flex items-center gap-3 group">
-            <TradeScoutLogo size="sm" className="lg:w-10 lg:h-10" />
-            <span className="font-display font-bold text-lg lg:text-xl text-white tracking-tight">
+          <button onClick={() => handleNavClick("#")} className="flex items-center gap-2.5 group">
+            <TradeScoutLogo size="sm" className="h-5 w-5 lg:h-7 lg:w-7" />
+            <span className="font-display font-bold text-base lg:text-lg text-white tracking-tight">
               Trade<span className="text-ts-orange">Scout</span>
             </span>
           </button>
