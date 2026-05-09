@@ -1,1 +1,1 @@
-export { GruntOrderDetail as default } from "./procurement/ProcurementPages";
+export { GruntAdminOrderDetail as default } from "./procurement/ProcurementPages";

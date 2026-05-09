@@ -235,6 +235,7 @@ async function loadOrder(orderId: string) {
 
 async function canReadOrder(req: Request, order: any): Promise<boolean> {
   if (!order) return false;
+  if (!req.isAuthenticated?.() && order.source_channel === "grunt_direct_ordering") return true;
   if (isAdminUser(req)) return true;
   const uid = userId(req);
   if (uid && order.user_id === uid) return true;
@@ -611,7 +612,7 @@ export function registerProcurementRoutes(app: Express) {
     res.status(201).json(await bundleOrder(await loadOrder(orderId)));
   });
 
-  app.get("/api/procurement/orders/:id", isAuthenticated, async (req, res) => {
+  app.get("/api/procurement/orders/:id", async (req, res) => {
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
     res.json(await bundleOrder(order));

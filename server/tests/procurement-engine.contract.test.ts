@@ -64,6 +64,10 @@ describe("procurement engine contract", () => {
     expect(route).toContain('sourceChannel === "grunt_direct_ordering"');
     expect(route).toContain("Add a customer name, email, or phone for Grunt direct orders");
     expect(route).toContain(
+      '!req.isAuthenticated?.() && order.source_channel === "grunt_direct_ordering"'
+    );
+    expect(route).toContain('app.get("/api/procurement/orders/:id", async');
+    expect(route).toContain(
       'const fulfillment = isGruntDirect ? await ensureWorkspace("grunt") : null;'
     );
     expect(route).toContain("fulfillment?.id || null");
@@ -75,6 +79,12 @@ describe("procurement engine contract", () => {
     );
     expect(gruntOrderBlock).toContain("GruntOrder");
     expect(gruntOrderBlock).not.toContain("ProtectedRoute");
+    const gruntOrderDetailBlock = appRoutes.slice(
+      appRoutes.indexOf('<Route path="/grunt/order/:id">'),
+      appRoutes.indexOf('<Route path="/grunt/admin/orders">')
+    );
+    expect(gruntOrderDetailBlock).toContain("GruntOrderDetail");
+    expect(gruntOrderDetailBlock).not.toContain("ProtectedRoute");
   });
 
   it("covers pilot order transitions and proof metadata", () => {
@@ -107,11 +117,20 @@ describe("procurement engine contract", () => {
 
     const page = read("client/src/pages/procurement/ProcurementPages.tsx");
     expect(page).toContain("Start Supply Run");
+    expect(page).toContain('case "tradescout_supply_run":');
+    expect(page).toContain('"Supply Run"');
+    expect(page).toContain('"Waiting for assignment"');
     expect(page).toContain("Send to Grunt");
     expect(page).toContain("Accept Run");
     expect(page).toContain("Update ETA / Status");
     expect(page).toContain("Upload Receipt");
     expect(page).toContain("Upload Pickup Proof");
     expect(page).toContain("Upload Delivery Proof");
+
+    const publicGruntDetail = read("client/src/pages/grunt-order-detail.tsx");
+    const gruntAdminDetail = read("client/src/pages/grunt-admin-order-detail.tsx");
+    expect(publicGruntDetail).toContain("GruntOrderDetail");
+    expect(publicGruntDetail).not.toContain("GruntAdminOrderDetail");
+    expect(gruntAdminDetail).toContain("GruntAdminOrderDetail");
   });
 });

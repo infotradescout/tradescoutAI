@@ -79,6 +79,27 @@ function money(cents?: number | null) {
   return value.toLocaleString(undefined, { style: "currency", currency: "USD" });
 }
 
+function sourceLabel(source?: string | null) {
+  switch (source) {
+    case "tradescout_supply_run":
+      return "Supply Run";
+    case "grunt_direct_ordering":
+      return "Grunt direct order";
+    case "admin_created":
+      return "Created by admin";
+    case "repeat_order":
+      return "Repeat order";
+    default:
+      return "Order";
+  }
+}
+
+function fulfillmentLabel(order: any) {
+  return (
+    order.fulfillmentWorkspaceName || order.fulfillmentworkspacename || "Waiting for assignment"
+  );
+}
+
 function getIdFromPath() {
   const path = typeof window === "undefined" ? "" : window.location.pathname;
   return decodeURIComponent(path.split("/").filter(Boolean).pop() || "");
@@ -179,8 +200,7 @@ function OrderList({ orders, basePath }: { orders: any[]; basePath: string }) {
                   {order.delivery_address}
                 </div>
                 <div className="mt-1 text-xs text-neutral-500">
-                  {order.source_channel} ·{" "}
-                  {order.fulfillmentWorkspaceName || order.fulfillmentworkspacename || "Unassigned"}
+                  {sourceLabel(order.source_channel)} · {fulfillmentLabel(order)}
                 </div>
               </div>
               <StatusBadge status={order.status as ProcurementOrderStatus} />
@@ -689,13 +709,8 @@ export function OrderDetail({
               <StatusBadge status={data.order.status as ProcurementOrderStatus} />
             </div>
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-              <div>Order Source: {data.order.source_channel}</div>
-              <div>
-                Fulfillment Partner:{" "}
-                {data.order.fulfillmentWorkspaceName ||
-                  data.order.fulfillmentworkspacename ||
-                  "Unassigned"}
-              </div>
+              <div>Order path: {sourceLabel(data.order.source_channel)}</div>
+              <div>Fulfillment Partner: {fulfillmentLabel(data.order)}</div>
               <div>
                 Urgency: {procurementUrgencyLabels[data.order.urgency as ProcurementUrgency]}
               </div>
@@ -876,6 +891,10 @@ export function SupplyRunDetail() {
 }
 
 export function GruntOrderDetail() {
+  return <OrderDetail portal="tradescout" />;
+}
+
+export function GruntAdminOrderDetail() {
   return <OrderDetail portal="grunt" />;
 }
 

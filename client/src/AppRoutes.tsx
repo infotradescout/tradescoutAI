@@ -741,9 +741,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={GruntOrder} />
               </Route>
               <Route path="/grunt/order/:id">
-                <ProtectedRoute>
-                  <LazyPage Component={GruntOrderDetail} />
-                </ProtectedRoute>
+                <LazyPage Component={GruntOrderDetail} />
               </Route>
               <Route path="/grunt/admin/orders">
                 <ProtectedRoute>
