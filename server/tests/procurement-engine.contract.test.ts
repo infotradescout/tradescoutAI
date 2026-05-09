@@ -63,6 +63,10 @@ describe("procurement engine contract", () => {
     expect(route).toContain('sourceChannel !== "grunt_direct_ordering" && !req.isAuthenticated()');
     expect(route).toContain('sourceChannel === "grunt_direct_ordering"');
     expect(route).toContain("Add a customer name, email, or phone for Grunt direct orders");
+    expect(route).toContain(
+      'const fulfillment = isGruntDirect ? await ensureWorkspace("grunt") : null;'
+    );
+    expect(route).toContain("fulfillment?.id || null");
 
     const appRoutes = read("client/src/AppRoutes.tsx");
     const gruntOrderBlock = appRoutes.slice(
@@ -90,6 +94,9 @@ describe("procurement engine contract", () => {
     expect(route).toContain('proofType: z.enum(["pickup", "receipt", "delivery", "other"])');
     expect(route).toContain("partner_eta");
     expect(route).toContain("recordEvent");
+    expect(route).toContain("values ($1, $2::varchar, $3, $4, $5, $6)");
+    expect(route).toContain("status = $2::varchar");
+    expect(route).toContain("completed_at = case when $2::varchar = 'completed'");
   });
 
   it("uses operational labels instead of internal engine labels", () => {

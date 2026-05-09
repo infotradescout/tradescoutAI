@@ -404,7 +404,7 @@ export function registerProcurementRoutes(app: Express) {
         slug = coalesce($2, slug),
         name = coalesce($3, name),
         workspace_type = coalesce($4, workspace_type),
-        status = coalesce($5, status),
+        status = coalesce($5::varchar, status),
         updated_at = now()
        where id = $1`,
       [
@@ -500,7 +500,7 @@ export function registerProcurementRoutes(app: Express) {
     }
     const isGruntDirect = sourceChannel === "grunt_direct_ordering";
     const origin = await ensureWorkspace(isGruntDirect ? "grunt" : "tradescout");
-    const fulfillment = await ensureWorkspace("grunt");
+    const fulfillment = isGruntDirect ? await ensureWorkspace("grunt") : null;
     const uid = userId(req);
 
     for (const file of body.files || []) {
@@ -527,7 +527,7 @@ export function registerProcurementRoutes(app: Express) {
       [
         makeOrderNumber(isGruntDirect ? "GR" : "SR"),
         origin.id,
-        fulfillment.id,
+        fulfillment?.id || null,
         sourceChannel,
         uid || null,
         body.customerName || null,
@@ -665,9 +665,9 @@ export function registerProcurementRoutes(app: Express) {
         partner_order_id = coalesce($23, partner_order_id),
         partner_eta = coalesce($24, partner_eta),
         updated_at = now(),
-        approved_at = case when $5 = 'approved' then now() else approved_at end,
-        completed_at = case when $5 = 'completed' then now() else completed_at end,
-        cancelled_at = case when $5 = 'cancelled' then now() else cancelled_at end
+        approved_at = case when $5::varchar = 'approved' then now() else approved_at end,
+        completed_at = case when $5::varchar = 'completed' then now() else completed_at end,
+        cancelled_at = case when $5::varchar = 'cancelled' then now() else cancelled_at end
        where id = $1`,
       [
         req.params.id,
@@ -793,12 +793,20 @@ export function registerProcurementRoutes(app: Express) {
       return res.status(400).json({ message: "Invalid quote", errors: parsed.error.flatten() });
     const body = parsed.data;
     const total = body.lines.reduce((sum, line) => sum + line.amountCents, 0);
+    const quoteStatus = body.send ? "sent" : "draft";
     const quote = await queryOne(
       `insert into procurement_quotes
         (order_id, status, notes, total_amount_cents, sent_at, created_by_user_id)
-       values ($1, $2, $3, $4, case when $2 = 'sent' then now() else null end, $5)
+       values ($1, $2::varchar, $3, $4, $5, $6)
        returning *`,
-      [req.params.id, body.send ? "sent" : "draft", body.notes || null, total, userId(req) || null]
+      [
+        req.params.id,
+        quoteStatus,
+        body.notes || null,
+        total,
+        body.send ? new Date() : null,
+        userId(req) || null,
+      ]
     );
     for (const [index, line] of body.lines.entries()) {
       await pool.query(
@@ -897,12 +905,12 @@ export function registerProcurementRoutes(app: Express) {
     const body = parsed.data;
     await pool.query(
       `update procurement_orders set
-        status = $2,
+        status = $2::varchar,
         partner_order_id = coalesce($3, partner_order_id),
         partner_eta = coalesce($4, partner_eta),
         updated_at = now(),
-        completed_at = case when $2 = 'completed' then now() else completed_at end,
-        cancelled_at = case when $2 = 'cancelled' then now() else cancelled_at end
+        completed_at = case when $2::varchar = 'completed' then now() else completed_at end,
+        cancelled_at = case when $2::varchar = 'cancelled' then now() else cancelled_at end
        where id = $1`,
       [req.params.id, body.status, body.partnerOrderId || null, body.partnerEta || null]
     );
@@ -1041,7 +1049,7 @@ export function registerProcurementRoutes(app: Express) {
         .status(400)
         .json({ message: "Invalid Grunt response", errors: parsed.error.flatten() });
     await pool.query(
-      `update procurement_orders set status = $2, partner_order_id = coalesce($3, partner_order_id), updated_at = now() where id = $1`,
+      `update procurement_orders set status = $2::varchar, partner_order_id = coalesce($3, partner_order_id), updated_at = now() where id = $1`,
       [req.params.id, status, parsed.data.partnerOrderId || null]
     );
     await recordEvent(
@@ -1090,7 +1098,7 @@ export function registerProcurementRoutes(app: Express) {
     if (!parsed.success)
       return res.status(400).json({ message: "Invalid status", errors: parsed.error.flatten() });
     await pool.query(
-      `update procurement_orders set status = $2, partner_order_id = coalesce($3, partner_order_id), partner_eta = coalesce($4, partner_eta), updated_at = now() where id = $1`,
+      `update procurement_orders set status = $2::varchar, partner_order_id = coalesce($3, partner_order_id), partner_eta = coalesce($4, partner_eta), updated_at = now() where id = $1`,
       [
         req.params.id,
         parsed.data.status,
