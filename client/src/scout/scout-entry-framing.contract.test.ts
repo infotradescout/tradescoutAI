@@ -11,20 +11,21 @@ describe("Scout entry framing contracts", () => {
   it("header frames Scout as site search plus local discovery", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
-    expect(source).toContain("Search TradeScout");
-    expect(source).toContain("What are you looking for");
-    expect(source).toContain("Use Scout like search");
-    expect(source).toContain("Search the site");
-    expect(source).toContain("Who can help");
-    expect(source).toContain("What's nearby");
-    expect(source).toContain("Prices & rules");
+    expect(source).toContain("What do you need help with today?");
+    expect(source).toContain("find local contractors");
+    expect(source).toContain("compare options");
+    expect(source).toContain("Fix something");
+    expect(source).toContain("Start a project");
+    expect(source).toContain("Compare prices");
+    expect(source).toContain("Find trusted local help");
+    expect(source).toContain("Ask a question");
   });
 
   it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain("Who near me can help with a fence");
+    expect(inputSource).toContain("AC not cooling");
     expect(inputSource).toContain("Ask");
     expect(inputSource).toContain("Compare");
     expect(inputSource).toContain("Choose");

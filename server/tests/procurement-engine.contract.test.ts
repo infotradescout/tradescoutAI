@@ -14,11 +14,15 @@ describe("procurement engine contract", () => {
       "procurement_workspace_branding",
       "procurement_order_sources",
       "procurement_orders",
+      "procurement_supplier_quotes",
       "procurement_payment_authorizations",
     ].forEach((table) => expect(migration).toContain(table));
 
     expect(migration).toContain("origin_workspace_id");
     expect(migration).toContain("fulfillment_workspace_id");
+    expect(migration).toContain("public_access_token");
+    expect(migration).toContain("idx_procurement_orders_public_access_token");
+    expect(migration).toContain("supplier_snapshot");
     expect(migration).toContain("tradescout_supply_run");
     expect(migration).toContain("grunt_direct_ordering");
   });
@@ -42,6 +46,7 @@ describe("procurement engine contract", () => {
       "/grunt/order/:id",
       "/grunt/admin/orders",
       "/grunt/admin/orders/:id",
+      "/supplier/procurement/:token",
       "/admin/procurement",
       "/admin/procurement/workspaces",
       "/admin/procurement/workspaces/:id",
@@ -63,9 +68,9 @@ describe("procurement engine contract", () => {
     expect(route).toContain('sourceChannel !== "grunt_direct_ordering" && !req.isAuthenticated()');
     expect(route).toContain('sourceChannel === "grunt_direct_ordering"');
     expect(route).toContain("Add a customer name, email, or phone for Grunt direct orders");
-    expect(route).toContain(
-      '!req.isAuthenticated?.() && order.source_channel === "grunt_direct_ordering"'
-    );
+    expect(route).toContain("public_access_token");
+    expect(route).toContain("makePublicAccessToken");
+    expect(route).toContain("publicOrderToken(req) === order.public_access_token");
     expect(route).toContain('app.get("/api/procurement/orders/:id", async');
     expect(route).toContain(
       'const fulfillment = isGruntDirect ? await ensureWorkspace("grunt") : null;'
@@ -92,6 +97,11 @@ describe("procurement engine contract", () => {
     [
       'app.post("/api/procurement/orders/:id/quote"',
       'app.post("/api/procurement/orders/:id/approve"',
+      'app.post("/api/procurement/orders/:id/checkout-session"',
+      'app.post("/api/procurement/orders/:id/verify-checkout"',
+      'app.post("/api/procurement/orders/:id/supplier-quotes"',
+      'app.get("/api/procurement/supplier-quotes/:token"',
+      'app.post("/api/procurement/supplier-quotes/:token/respond"',
       'app.post("/api/procurement/orders/:id/assign-fulfillment"',
       'app.post("/api/procurement/orders/:id/status"',
       'app.post("/api/procurement/orders/:id/proof"',
@@ -104,9 +114,48 @@ describe("procurement engine contract", () => {
     expect(route).toContain('proofType: z.enum(["pickup", "receipt", "delivery", "other"])');
     expect(route).toContain("partner_eta");
     expect(route).toContain("recordEvent");
+    expect(route).toContain("stripe.checkout.sessions.create");
+    expect(route).toContain("procurement_payment_authorizations");
+    expect(route).toContain("procurement_supplier_quotes");
+    expect(route).toContain("makeSupplierQuoteToken");
+    expect(route).toContain("procurement_supply_run");
+    expect(route).toContain("allowedStatusTransitions");
+    expect(route).toContain("assertStatusTransition");
     expect(route).toContain("values ($1, $2::varchar, $3, $4, $5, $6)");
     expect(route).toContain("status = $2::varchar");
     expect(route).toContain("completed_at = case when $2::varchar = 'completed'");
+  });
+
+  it("supports live supplier product link enrichment", () => {
+    const route = read("server/routes/procurement.ts");
+    const resolver = read("server/services/supplierProductResolver.ts");
+    const page = read("client/src/pages/procurement/ProcurementPages.tsx");
+    const schema = read("shared/schema.ts");
+
+    expect(route).toContain('app.post("/api/procurement/products/resolve"');
+    expect(route).toContain("resolveSupplierProduct");
+    expect(route).toContain("supplier_snapshot");
+    expect(resolver).toContain("resolveSupplierProduct");
+    expect(resolver).toContain("application\\/ld\\+json");
+    expect(resolver).toContain("og:title");
+    expect(page).toContain("Use Link");
+    expect(page).toContain("supplierSnapshot");
+    expect(page).toContain("snapshot saved");
+    expect(schema).toContain('supplierSnapshot: jsonb("supplier_snapshot")');
+  });
+
+  it("separates read, operate, and public-token permissions", () => {
+    const route = read("server/routes/procurement.ts");
+    expect(route).toContain("canReadOrder");
+    expect(route).toContain("canOperateFulfillment");
+    expect(route).toContain("isPublicTokenHolder");
+    expect(route).toContain("hasRestrictedPatchFields");
+    expect(route).toContain("Only admins can edit operational procurement fields");
+    expect(route).toContain("Fulfillment access required");
+    expect(route).toContain("redactOrder");
+    expect(route).toContain("visibleMessages");
+    expect(route).toContain('new Set(["partner", "public"])');
+    expect(route).toContain('new Set(["customer", "public"])');
   });
 
   it("uses operational labels instead of internal engine labels", () => {
@@ -126,6 +175,15 @@ describe("procurement engine contract", () => {
     expect(page).toContain("Upload Receipt");
     expect(page).toContain("Upload Pickup Proof");
     expect(page).toContain("Upload Delivery Proof");
+    expect(page).toContain("Pay Quote");
+    expect(page).toContain("SupplierQuoteResponsePage");
+    expect(page).toContain("Request Supplier Quote");
+    expect(page).toContain("supplierQuotes");
+    expect(page).toContain("checkout-session");
+    expect(page).toContain("verify-checkout");
+    expect(page).toContain("getOrderToken");
+    expect(page).toContain("public_access_token");
+    expect(page).toContain("tokenQuery");
 
     const publicGruntDetail = read("client/src/pages/grunt-order-detail.tsx");
     const gruntAdminDetail = read("client/src/pages/grunt-admin-order-detail.tsx");

@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS procurement_orders (
   final_total_cents integer,
   partner_order_id varchar(160),
   partner_eta timestamptz,
+  public_access_token varchar(120),
   notes text,
   internal_notes text,
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -114,6 +115,10 @@ CREATE INDEX IF NOT EXISTS idx_procurement_orders_fulfillment
   ON procurement_orders (fulfillment_workspace_id, status);
 CREATE INDEX IF NOT EXISTS idx_procurement_orders_status ON procurement_orders (status);
 CREATE INDEX IF NOT EXISTS idx_procurement_orders_created_at ON procurement_orders (created_at);
+ALTER TABLE procurement_orders ADD COLUMN IF NOT EXISTS public_access_token varchar(120);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_procurement_orders_public_access_token
+  ON procurement_orders (public_access_token)
+  WHERE public_access_token IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS procurement_order_items (
   id varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -131,6 +136,7 @@ CREATE TABLE IF NOT EXISTS procurement_order_items (
   estimated_unit_price_cents integer,
   approved_unit_price_cents integer,
   actual_unit_price_cents integer,
+  supplier_snapshot jsonb,
   status varchar(40) NOT NULL DEFAULT 'requested',
   sort_order integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -138,6 +144,34 @@ CREATE TABLE IF NOT EXISTS procurement_order_items (
 );
 
 CREATE INDEX IF NOT EXISTS idx_procurement_order_items_order ON procurement_order_items (order_id);
+ALTER TABLE procurement_order_items ADD COLUMN IF NOT EXISTS supplier_snapshot jsonb;
+
+CREATE TABLE IF NOT EXISTS procurement_supplier_quotes (
+  id varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  order_id varchar NOT NULL REFERENCES procurement_orders(id) ON DELETE CASCADE,
+  supplier_name varchar(220) NOT NULL,
+  supplier_email varchar(220),
+  supplier_phone varchar(80),
+  supplier_address text,
+  request_token varchar(120) NOT NULL UNIQUE,
+  status varchar(40) NOT NULL DEFAULT 'requested',
+  requested_by_user_id varchar REFERENCES users(id) ON DELETE SET NULL,
+  requested_at timestamptz NOT NULL DEFAULT now(),
+  responded_at timestamptz,
+  material_total_cents integer,
+  pickup_ready_at timestamptz,
+  expires_at timestamptz,
+  availability_summary text,
+  supplier_notes text,
+  response_payload jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_procurement_supplier_quotes_order
+  ON procurement_supplier_quotes (order_id, status);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_procurement_supplier_quotes_token
+  ON procurement_supplier_quotes (request_token);
 
 CREATE TABLE IF NOT EXISTS procurement_order_files (
   id varchar PRIMARY KEY DEFAULT gen_random_uuid()::text,

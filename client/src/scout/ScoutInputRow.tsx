@@ -42,9 +42,18 @@ export function ScoutInputRow({
           ["2", "Compare"],
           ["3", "Choose"],
         ].map(([num, label]) => (
-          <div key={label} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-            <p className="font-mono text-[10px] text-ts-orange">{num}</p>
-            <p className="mt-1 text-[11px] font-semibold text-white/70">{label}</p>
+          <div
+            key={label}
+            className="rounded-xl border px-3 py-2"
+            style={{
+              borderColor: "var(--border-subtle)",
+              backgroundColor: "var(--surface-card)",
+            }}
+          >
+            <p className="text-[10px] font-semibold text-ts-orange">{num}</p>
+            <p className="mt-1 text-[11px] font-semibold" style={{ color: "var(--text-muted)" }}>
+              {label}
+            </p>
           </div>
         ))}
       </div>
@@ -141,7 +150,7 @@ export function ScoutInputRow({
       <ScoutInput
         key={prefillKey}
         disabled={isBusy}
-        placeholder="Example: Who near me can help with a fence this week?"
+        placeholder="Example: AC not cooling, need concrete driveway, or is this roofing quote fair?"
         onSend={onSend}
         onUserTyping={onTyping}
         prefillKey="scout-main"

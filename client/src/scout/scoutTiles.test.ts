@@ -1,6 +1,6 @@
 /**
  * Scout Contextual Tiles - Determinism & Safety Tests
- * 
+ *
  * These tests enforce the hard invariants that prevent AI-UX bullshit:
  * - Intent IDs never change (routing stability)
  * - Variants only trigger on real data (no guessing)
@@ -109,7 +109,7 @@ describe("Scout Contextual Tiles - Hard Invariants", () => {
       const findProsTile = scoutActionTiles.find((t) => t.id === "find_pros")!;
       const resolved = resolveTile(findProsTile, withAdministrativeLocation);
 
-      expect(resolved.label).toBe("Find pros near me");
+      expect(resolved.label).toBe("Find help near me");
       expect(resolved.label.toLowerCase()).not.toContain("parish");
       expect(resolved.label.toLowerCase()).not.toContain("county");
     });
@@ -117,7 +117,9 @@ describe("Scout Contextual Tiles - Hard Invariants", () => {
     it("should apply freshness rule for single active project within 14 days", () => {
       const recentDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
       const ctx: ScoutTileContext = {
-        activeJobs: [{ id: "p1", name: "Kitchen Remodel", status: "active", updatedAt: recentDate }],
+        activeJobs: [
+          { id: "p1", name: "Kitchen Remodel", status: "active", updatedAt: recentDate },
+        ],
         activeInvoices: [],
         savedContractors: [],
         recentActivity: [],
@@ -147,7 +149,9 @@ describe("Scout Contextual Tiles - Hard Invariants", () => {
       const recentDate = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
       const ctx: ScoutTileContext = {
         activeJobs: [],
-        activeInvoices: [{ id: "i1", jobName: "Roof Repair", status: "pending", updatedAt: recentDate }],
+        activeInvoices: [
+          { id: "i1", jobName: "Roof Repair", status: "pending", updatedAt: recentDate },
+        ],
         savedContractors: [],
         recentActivity: [],
       };
@@ -162,7 +166,9 @@ describe("Scout Contextual Tiles - Hard Invariants", () => {
       const oldDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       const ctx: ScoutTileContext = {
         activeJobs: [],
-        activeInvoices: [{ id: "i1", jobName: "Roof Repair", status: "pending", updatedAt: oldDate }],
+        activeInvoices: [
+          { id: "i1", jobName: "Roof Repair", status: "pending", updatedAt: oldDate },
+        ],
         savedContractors: [],
         recentActivity: [],
       };

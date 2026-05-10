@@ -131,8 +131,8 @@ function buildFacts(rawMessage: string): DumpFacts {
   if (jobType) {
     factItems.push({
       id: "fact-job-type",
-      label: `Likely type: ${jobType}`,
-      description: "Used to prefill the request title",
+      label: `Looks like ${jobType} help`,
+      description: "You can correct this before anything is shared",
     });
   }
 
@@ -152,9 +152,9 @@ function buildFacts(rawMessage: string): DumpFacts {
 
   factItems.push({
     id: "fact-urgency",
-    label: urgency === "high" ? "Timing: urgent" : "Timing: normal",
+    label: urgency === "high" ? "Soon" : "Flexible timing",
     description:
-      urgency === "high" ? "Scout saw time-sensitive wording" : "No urgent wording found",
+      urgency === "high" ? "This sounds time-sensitive" : "Tell Scout if you need it sooner",
   });
 
   return {
@@ -234,19 +234,19 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
         "fence",
         "deck",
       ],
-      body: `Scout can turn this into local help options, a saved request, or more questions before contact opens. It reads as ${facts.urgencyLabel}${facts.jobType ? ` ${facts.jobType}` : ""} help.`,
+      body: "Scout can help you narrow the job, compare options, and decide what to check before contacting anyone.",
       actions: [
         requestAction(rawMessage),
         { type: "NAVIGATE", label: "Browse local help", to: "/direct-connect/pros" },
         askScoutAction(
-          "Sort this need",
-          `Sort this info dump into the best local-help next step: ${need}`
+          "Ask before calling",
+          `Help me figure out the safest next step before I contact anyone about: ${need}`
         ),
       ],
     },
     {
       id: "saved-request",
-      label: "Saved request",
+      label: "Save this search",
       kind: "projects",
       reason: "Looks like something worth saving as a request before sharing locally.",
       keywords: [
@@ -263,19 +263,19 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
         "need someone",
         "can anyone",
       ],
-      body: "Save the basics first. You can review the request before it becomes visible to local help.",
+      body: "Save the basics first. You can review everything before it becomes visible to local help.",
       actions: [
         requestAction(rawMessage),
-        { type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" },
+        { type: "NAVIGATE", label: "Save this search", to: "/direct-connect" },
         askScoutAction(
-          "Clean up my request",
-          `Rewrite this as a clear local request I can review: ${need}`
+          "Make this clearer",
+          `Rewrite this as a clear local request I can review before sharing: ${need}`
         ),
       ],
     },
     {
       id: "site-search",
-      label: "TradeScout search",
+      label: "Ask Scout",
       kind: "site",
       reason:
         "Looks like you may be trying to find a page, tool, setting, or saved area in TradeScout.",
@@ -297,12 +297,11 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
         "support",
         "notes",
       ],
-      body: "Scout can act like site search and open the most likely TradeScout area.",
+      body: "Scout can help you find the right place to go next.",
       actions: [
-        { type: "NAVIGATE", label: "Invoices and payments", to: "/finances" },
-        { type: "NAVIGATE", label: "Messages", to: "/messages" },
-        { type: "NAVIGATE", label: "Settings", to: "/settings" },
-        askScoutAction("Find the right page", `Find the best TradeScout page or tool for: ${need}`),
+        { type: "NAVIGATE", label: "Find someone", to: "/direct-connect/pros" },
+        { type: "NAVIGATE", label: "See local posts", to: "/community" },
+        askScoutAction("Ask Scout", `Help me find the right next step for: ${need}`),
       ],
     },
     {
@@ -330,7 +329,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
       ],
       body: "Scout can check local activity, community posts, groups, and nearby updates.",
       actions: [
-        { type: "NAVIGATE", label: "Open community", to: "/community", primary: true },
+        { type: "NAVIGATE", label: "See local posts", to: "/community", primary: true },
         askScoutAction("Search nearby activity", `Search nearby activity related to: ${need}`),
       ],
     },
@@ -387,8 +386,11 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
       ],
       body: "Scout can explain the likely rule path and keep local requirements separate from general advice.",
       actions: [
-        askScoutAction("Check rules", `Check local rules, permits, and requirements for: ${need}`),
-        { type: "NAVIGATE", label: "Open help", to: "/help" },
+        askScoutAction(
+          "Ask before calling",
+          `Check what I should know before calling about: ${need}`
+        ),
+        { type: "NAVIGATE", label: "Find someone", to: "/direct-connect/pros" },
       ],
     },
   ];
@@ -427,8 +429,7 @@ export function sortScoutInfoDump(rawMessage: string): SortedScoutIntent[] {
         {
           id: `${config.id}-reason`,
           label: config.reason,
-          description:
-            confidence >= 0.8 ? "Strong match from your wording" : "Useful match from your wording",
+          description: confidence >= 0.8 ? "This is a good place to start" : "This may help",
         },
       ],
       actions: config.actions,

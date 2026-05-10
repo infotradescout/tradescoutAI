@@ -30,6 +30,8 @@ export function resolveTile(tile: ScoutActionTile, ctx: ScoutTileContext): Scout
     savedContractors: Array.isArray((ctx as any)?.savedContractors)
       ? (ctx as any).savedContractors
       : [],
+    homes: Array.isArray((ctx as any)?.homes) ? (ctx as any).homes : [],
+    vehicles: Array.isArray((ctx as any)?.vehicles) ? (ctx as any).vehicles : [],
   };
   // No variants → return as-is
   if (!tile.variants || tile.variants.length === 0) {

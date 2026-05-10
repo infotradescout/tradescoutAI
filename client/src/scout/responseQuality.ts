@@ -28,6 +28,9 @@ const RECOVERY_COPY_PATTERNS = [
 ];
 
 const BLOCKED_COPY_PATTERNS = [
+  /\bi don'?t have verified live tradescout results\b/i,
+  /\bno verified live tradescout results\b/i,
+  /\bi don'?t have verified live results\b/i,
   /\bi couldn'?t find reliable information about this in tradescout'?s local data or on the web\b/i,
   /\byou may need to confirm with a local professional or contact your admin for assistance\b/i,
   /\bi can(?:not|'t)\s+directly\s+search\s+the\s+internet\b/i,
@@ -146,7 +149,8 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   }
 
   if (appearsDeadEnd(output) || hasBlockedCopy(output)) {
-    output = "I can still help you find the next local step.";
+    output =
+      "I can help you start this search. Tell me what kind of help you need, where you are, and how soon you need it.";
   }
 
   if (isRecoveryCopy(output)) {

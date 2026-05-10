@@ -13,6 +13,7 @@ export interface ScoutActionHelpers {
   openToolsDrawer: () => void;
   prefillInput: (value: string) => void;
   askScout?: (prompt: string) => void;
+  confirmAction?: (action: ScoutAction) => Promise<boolean> | boolean;
 }
 
 type GuardedActionResponse = {
@@ -22,6 +23,10 @@ type GuardedActionResponse = {
 };
 
 function isSensitiveScoutAction(action: ScoutAction): boolean {
+  const name = String((action as any).name || action.payload?.name || "").toLowerCase();
+  const label = String(action.label || "").toLowerCase();
+  const text = `${name} ${label}`;
+
   switch (action.type) {
     case "SEND_ADMIN_BROADCAST":
     case "START_COMMUNITY_VAULT_DONATION":
@@ -29,9 +34,49 @@ function isSensitiveScoutAction(action: ScoutAction): boolean {
     case "FOLLOW_USER":
     case "UNFOLLOW_USER":
       return true;
+    case "EXTERNAL_LINK":
+      return /^(mailto|tel|sms):/i.test(String(action.to || action.path || ""));
+    case "CALL_TOOL":
+      return /\b(send|publish|post|message|invoice|quote|broadcast|charge|pay|refund|approve)\b/.test(
+        text
+      );
     default:
+      if (action.payload?.requiresApproval === true || (action as any).requiresApproval === true) {
+        return true;
+      }
       return false;
   }
+}
+
+function isPaymentExecutionAction(action: ScoutAction): boolean {
+  const name = String((action as any).name || action.payload?.name || "").toLowerCase();
+  const label = String(action.label || "").toLowerCase();
+  const target = String(action.to || action.path || "").toLowerCase();
+  const text = `${name} ${label} ${target}`;
+
+  return /\b(pay|payment|charge|checkout|refund|donation|donate|support checkout)\b/.test(text);
+}
+
+function paymentRouteForAction(action: ScoutAction): string | null {
+  const target = String(action.to || action.path || "");
+  if (target.startsWith("/") && /\b(finances|checkout|procurement|invoice|payment)/i.test(target)) {
+    return target;
+  }
+  const payloadRoute = String(action.payload?.route || action.payload?.checkoutUrl || "");
+  if (payloadRoute.startsWith("/")) return payloadRoute;
+  if (action.type === "START_COMMUNITY_VAULT_DONATION") return "/community";
+  if (action.type === "START_PLATFORM_SUPPORT") return "/";
+  return "/finances";
+}
+
+async function confirmSensitiveAction(action: ScoutAction, helpers: ScoutActionHelpers) {
+  if (!isSensitiveScoutAction(action)) return true;
+  if (helpers.confirmAction) {
+    return Boolean(await helpers.confirmAction(action));
+  }
+  if (typeof window === "undefined" || typeof window.confirm !== "function") return false;
+  const label = action.label || action.type.replace(/_/g, " ").toLowerCase();
+  return window.confirm(`Approve this Scout action?\n\n${label}`);
 }
 
 async function executeActionViaServerGuard(action: ScoutAction): Promise<{
@@ -507,9 +552,25 @@ export async function executeScoutActions(
       throw new Error(guarded.message || "This action is blocked right now.");
     }
 
+    if (isPaymentExecutionAction(action)) {
+      const route = paymentRouteForAction(action);
+      if (route) helpers.navigate(route);
+      continue;
+    }
+
+    const approved = await confirmSensitiveAction(action, helpers);
+    if (!approved) continue;
+
     await executeScoutActionLocal(action, helpers);
 
     if (guarded.nextAction && guarded.nextAction.type !== "NOOP") {
+      if (isPaymentExecutionAction(guarded.nextAction)) {
+        const route = paymentRouteForAction(guarded.nextAction);
+        if (route) helpers.navigate(route);
+        continue;
+      }
+      const nextApproved = await confirmSensitiveAction(guarded.nextAction, helpers);
+      if (!nextApproved) continue;
       await executeScoutActionLocal(guarded.nextAction, helpers);
     }
   }

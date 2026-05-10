@@ -41,6 +41,9 @@ import {
   BadgeInfo,
   BarChart3,
   Database,
+  Car,
+  FolderOpen,
+  Home,
   Route,
   Search,
   Sparkles,
@@ -54,6 +57,7 @@ import { ScoutInputRow } from "./ScoutInputRow";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
+import { buildScoutContextCards, type ScoutContextCardKind } from "./scoutContextCards";
 import { applyCtasToClusters, type ScoutCtaHint } from "./ctaHelpers";
 import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
@@ -102,7 +106,7 @@ const COUNTY_EXPLAINED_FOLLOWUP_KEY = "scout:county_explained_followup_recorded"
 const AUTO_ROUTE_ENABLED_KEY = "scout:auto_route_enabled:v1";
 const SCOUT_VIEW_MODE_KEY = "scout:view_mode:v1";
 const SCOUT_AUTO_START_SESSION_KEY = "scout:auto_profile_start:v1";
-const AUTO_ROUTE_DEFAULT_ENABLED = true;
+const AUTO_ROUTE_DEFAULT_ENABLED = false;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
 const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
@@ -793,23 +797,24 @@ export default function ScoutOS() {
       const raw = typeof to === "string" ? to : "";
       if (!raw.startsWith("/")) return false;
 
-      // The pros directory should open as a full route so users can see
-      // searchable listings immediately, not inside the Scout work-area sheet.
-      if (raw.startsWith("/direct-connect/pros")) {
-        return false;
-      }
-
       // Tight allowlist: only embed pages that behave correctly without a full route swap.
       const safePrefixes = [
         "/profile-settings",
         "/settings",
         "/notifications",
         "/direct-connect",
+        "/finances",
+        "/messages",
         "/exchange",
         "/community-feed",
         "/community",
         "/homescout-listings",
         "/homescout",
+        "/homes",
+        "/vehicles",
+        "/vehicle-marketplace",
+        "/marketplace",
+        "/procurement",
       ];
 
       if (!safePrefixes.some((p) => raw.startsWith(p))) return false;
@@ -906,6 +911,14 @@ export default function ScoutOS() {
     if (controllerShowAll) return controllerActions;
     return controllerActions.slice(0, 2);
   }, [controllerActions, controllerShowAll]);
+
+  const latestUserQuery = useMemo(() => {
+    for (let i = state.messages.length - 1; i >= 0; i -= 1) {
+      const msg = state.messages[i];
+      if (msg?.role === "user") return msg.content;
+    }
+    return "";
+  }, [state.messages]);
 
   const setViewMode = useCallback((nextMode: "chat_only" | "chat_plus_controller") => {
     setScoutViewMode(nextMode);
@@ -1601,12 +1614,12 @@ export default function ScoutOS() {
         if (sortedIntents.length > 0) {
           clusters.push({
             id: `sorted-summary-${Date.now()}`,
-            title: "Scout sorted your search",
+            title: "A good place to start",
             kind: "site",
             body:
               sortedIntents.length === 1
-                ? `This looks most like ${sortedIntents[0].label.toLowerCase()}.`
-                : `This may touch ${sortedIntents.map((intent) => intent.label.toLowerCase()).join(", ")}.`,
+                ? "Scout can help you narrow this down and choose a safe next step."
+                : "Scout can help you compare the possible paths and choose what to do next.",
             items: sortedIntents.map((intent) => ({
               id: intent.id,
               label: intent.label,
@@ -2495,6 +2508,12 @@ export default function ScoutOS() {
           askScout: (prompt) => {
             void handleSend(prompt);
           },
+          confirmAction: async (action) => {
+            const label = action.label || action.type.replace(/_/g, " ").toLowerCase();
+            return window.confirm(
+              `Approve this Scout action?\n\n${label}\n\nScout will not send, publish, contact, or change anything unless you approve. Payments always open a payment page for you to complete yourself.`
+            );
+          },
         });
 
         if (action.type === "SAVE_PROFILE") {
@@ -2678,11 +2697,45 @@ export default function ScoutOS() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: homesData } = useQuery<{
+    homes?: Array<{
+      id: string;
+      nickname?: string | null;
+      address?: string | null;
+      city?: string | null;
+      stateCode?: string | null;
+      updatedAt?: string | Date | null;
+    }>;
+  }>({
+    queryKey: ["/api/homes", user?.id],
+    queryFn: () => apiRequest("GET", "/api/homes"),
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: vehiclesData } = useQuery<{
+    vehicles?: Array<{
+      id: string;
+      nickname?: string | null;
+      year?: number | string | null;
+      make?: string | null;
+      model?: string | null;
+      updatedAt?: string | Date | null;
+    }>;
+  }>({
+    queryKey: ["/api/vehicles", user?.id],
+    queryFn: () => apiRequest("GET", "/api/vehicles"),
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Build tile context from deterministic user state (no guessing, only real data)
   const tileContext: ScoutTileContext = useMemo(() => {
     const saved = savedContractorsData ?? [];
     const projects = dashboardData?.myProjects ?? [];
     const invoices = invoicesData ?? [];
+    const homes = Array.isArray(homesData?.homes) ? homesData.homes : [];
+    const vehicles = Array.isArray(vehiclesData?.vehicles) ? vehiclesData.vehicles : [];
 
     // Confidence rule: Only include saved contractors if we have data
     const savedContractors = saved.map((c) => ({
@@ -2712,10 +2765,49 @@ export default function ScoutOS() {
       activeJobs,
       activeInvoices,
       savedContractors,
+      homes: homes.map((home) => ({
+        id: String(home.id),
+        label:
+          home.nickname || [home.city, home.stateCode].filter(Boolean).join(", ") || "Your home",
+        city: home.city ?? null,
+        stateCode: home.stateCode ?? null,
+        updatedAt: home.updatedAt ?? null,
+      })),
+      vehicles: vehicles.map((vehicle) => ({
+        id: String(vehicle.id),
+        label:
+          vehicle.nickname ||
+          [vehicle.year, vehicle.make, vehicle.model].filter(Boolean).join(" ") ||
+          "Your vehicle",
+        updatedAt: vehicle.updatedAt ?? null,
+      })),
       location: heroLocationLabel || undefined,
       recentActivity: [],
     };
-  }, [heroLocationLabel, savedContractorsData, dashboardData, invoicesData]);
+  }, [
+    heroLocationLabel,
+    savedContractorsData,
+    dashboardData,
+    invoicesData,
+    homesData,
+    vehiclesData,
+  ]);
+
+  const scoutContextCards = useMemo(
+    () => buildScoutContextCards(tileContext, latestUserQuery, hasUserMessages ? 4 : 5),
+    [tileContext, latestUserQuery, hasUserMessages]
+  );
+
+  const contextCardMeta: Record<
+    ScoutContextCardKind,
+    { icon: React.ComponentType<{ className?: string }>; label: string }
+  > = {
+    project: { icon: FolderOpen, label: "Project" },
+    home: { icon: Home, label: "Home" },
+    vehicle: { icon: Car, label: "Vehicle" },
+    pro: { icon: Wrench, label: "Saved help" },
+    nearby: { icon: Users2, label: "Nearby" },
+  };
 
   // Resolve tiles to contextual variants based on deterministic state
   // Feature kill switch: Set VITE_DISABLE_CONTEXTUAL_TILES=true to disable variants
@@ -2905,27 +2997,28 @@ export default function ScoutOS() {
   }> = [
     {
       id: "nearby",
-      label: "Search",
+      label: "Find someone",
       icon: Search,
-      prompt: "Search TradeScout and my area for what I need.",
+      prompt:
+        "I need local help. Help me find who handles this and what to check before contacting anyone.",
     },
     {
       id: "people",
-      label: "Help",
+      label: "Ask Scout",
       icon: Users2,
-      prompt: "Find people, services, businesses, or community help near me.",
+      prompt: "I have a question. Help me figure out what to do first.",
     },
     {
       id: "market",
-      label: "Nearby",
+      label: "Check prices",
       icon: BarChart3,
-      prompt: "Show posts, requests, projects, prices, deals, and changes near me.",
+      prompt: "Help me understand normal price ranges before I call anyone.",
     },
     {
       id: "rules",
-      label: "Rules",
+      label: "Nearby",
       icon: Route,
-      prompt: "Find local rules, permits, events, or updates I should know about.",
+      prompt: "Show me local posts, recent requests, and useful activity near me.",
     },
   ];
 
@@ -2936,39 +3029,39 @@ export default function ScoutOS() {
   }> = [
     {
       id: "around_me",
-      label: "Anything",
-      description: "Search site and local",
+      label: "Not sure",
+      description: "Help me choose",
     },
     {
       id: "help",
       label: "Find help",
-      description: "Pros, services, groups",
+      description: "Local contractors",
     },
     {
       id: "prices",
-      label: "Posts & deals",
-      description: "Requests and prices",
+      label: "Check prices",
+      description: "Before calling",
     },
     {
       id: "events",
-      label: "Rules & events",
-      description: "Permits and updates",
+      label: "Ask a question",
+      description: "What to do first",
     },
   ];
 
   const urgencyOptions: Array<{ id: typeof missionUrgency; label: string }> = [
     { id: "today", label: "Today" },
     { id: "this_week", label: "This week" },
-    { id: "exploring", label: "Just exploring" },
+    { id: "exploring", label: "Flexible" },
   ];
 
   const sourceOptions: Array<{
     id: keyof typeof enabledMissionSources;
     label: string;
   }> = [
-    { id: "knowledge", label: "Site" },
-    { id: "county", label: "Near me" },
-    { id: "live", label: "Latest" },
+    { id: "knowledge", label: "Guidance" },
+    { id: "county", label: "Local" },
+    { id: "live", label: "Recent" },
   ];
 
   const composeMissionDraft = useCallback(
@@ -2990,20 +3083,20 @@ export default function ScoutOS() {
           : "my county";
       const opening =
         type === "around_me"
-          ? `Search TradeScout and my area for what I need in ${area}.`
-          : `Search TradeScout and my area for ${typeLabel.toLowerCase()} in ${area}.`;
+          ? `Help me figure out what I need in ${area}.`
+          : `Help me with ${typeLabel.toLowerCase()} in ${area}.`;
       const sourceList = sourceOptions
         .filter((source) => sources[source.id])
         .map((source) => source.label)
         .join(", ");
       const panelInstruction =
         panel === "nearby"
-          ? "Include matching pages, tools, local results, posts, requests, and anything nearby that may help."
+          ? "Include local matches, nearby posts, price guidance, and safety checks."
           : panel === "people"
-            ? "Focus on people, contractors, services, businesses, groups, and community help."
+            ? "Focus on local contractors, services, and what I should check before calling."
             : panel === "market"
-              ? "Focus on nearby posts, requests, projects, prices, deals, materials, and recent changes."
-              : "Focus on local rules, permits, events, alerts, pages, and updates I should know about.";
+              ? "Focus on price guidance, recent local requests, and nearby posts."
+              : "Focus on nearby activity, useful local updates, and safety checks.";
       const urgencyLabel =
         urgencyOptions.find((option) => option.id === urgency)?.label.toLowerCase() ||
         urgency.replace("_", " ");
@@ -3039,8 +3132,8 @@ export default function ScoutOS() {
     return [
       {
         id: "need-help",
-        label: "I need help",
-        detail: "Find people, services, and saved request options",
+        label: "Fix something",
+        detail: "AC, plumbing, electrical, roof, appliance",
         icon: Wrench,
         panel: "people" as const,
         type: "help" as const,
@@ -3048,8 +3141,8 @@ export default function ScoutOS() {
       },
       {
         id: "local-feed",
-        label: "What's happening?",
-        detail: "Posts, requests, projects, events, and changes nearby",
+        label: "Find trusted local help",
+        detail: "Verified pages, community signals, nearby results",
         icon: Users2,
         panel: "market" as const,
         type: "events" as const,
@@ -3057,18 +3150,18 @@ export default function ScoutOS() {
       },
       {
         id: "search-site",
-        label: "Find a page or tool",
-        detail: "Use Scout as TradeScout search",
+        label: "Ask a question",
+        detail: "Quotes, who handles this, what to do first",
         icon: Search,
         panel: "nearby" as const,
         type: "around_me" as const,
         prompt:
-          "Search TradeScout for the right page, tool, request, listing, or next step. If there are multiple matches, compare them simply.",
+          "Help me find the right next step. If there are multiple options, compare them simply.",
       },
       {
         id: "prices-rules",
-        label: "Prices or rules",
-        detail: "Local prices, permits, rules, and updates",
+        label: "Compare prices",
+        detail: "See normal ranges before calling",
         icon: BarChart3,
         panel: "rules" as const,
         type: "prices" as const,
@@ -3161,12 +3254,12 @@ export default function ScoutOS() {
               {isMobile && !hasUserMessages && (
                 <div className="scout-v2-mobile-console mb-3">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
                       <Sparkles className="h-3.5 w-3.5" />
                       Scout
                     </div>
-                    <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
-                      active
+                    <span className="rounded-full px-2 py-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50">
+                      ready
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-4 gap-1.5">
@@ -3449,6 +3542,90 @@ export default function ScoutOS() {
                   autoDemoText={introDemoText}
                   enableAutoDemo={shouldPlayIntroDemo}
                 />
+
+                {scoutContextCards.length > 0 && (
+                  <div className="mt-3">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-secondary)]">
+                        {hasUserMessages ? "Related to this" : "Keep working"}
+                      </p>
+                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                        Stay here or open the workspace
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {scoutContextCards.map((card) => {
+                        const meta = contextCardMeta[card.kind];
+                        const Icon = meta.icon;
+
+                        return (
+                          <div
+                            key={card.id}
+                            className="group flex min-h-[92px] items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
+                            style={{
+                              borderColor: "var(--border-subtle)",
+                              backgroundColor:
+                                "color-mix(in oklab, var(--surface-card) 88%, var(--surface-intermediate) 12%)",
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ts-orange/10 text-ts-orange">
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-ts-orange">
+                                {meta.label}
+                              </span>
+                              <span className="mt-0.5 block text-sm font-semibold leading-tight">
+                                {card.label}
+                              </span>
+                              <span
+                                className="mt-1 block text-[11px] leading-snug"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {card.description}
+                              </span>
+                              <span className="mt-2 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setHasGuestInteracted(true);
+                                    void handleClusterAction(card.action);
+                                  }}
+                                  className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                                  style={{
+                                    borderColor: "var(--border-subtle)",
+                                    backgroundColor: "var(--surface-intermediate)",
+                                    color: "var(--text-primary)",
+                                  }}
+                                >
+                                  Open here
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setHasGuestInteracted(true);
+                                    void handleSend(card.prompt);
+                                  }}
+                                  className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                                  style={{
+                                    borderColor:
+                                      "color-mix(in oklab, var(--theme-accent-primary) 42%, var(--border-subtle))",
+                                    backgroundColor:
+                                      "color-mix(in oklab, var(--theme-accent-primary) 8%, var(--surface-card))",
+                                    color: "var(--text-primary)",
+                                  }}
+                                >
+                                  Ask Scout
+                                </button>
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {!hasUserMessages && (
                   <div className="mt-3">
@@ -3972,6 +4149,7 @@ export default function ScoutOS() {
                     onOverride={handleOverride}
                     overridePendingScope={overridePendingScope}
                     onSendMessage={handleOnboardingMessage}
+                    pendingContextCards={scoutContextCards}
                     onQuickAction={(text) => {
                       const trimmed = text.trim();
                       setHasGuestInteracted(true);
@@ -4118,36 +4296,62 @@ export default function ScoutOS() {
               <aside className="scout-v2-command-rail">
                 <div className="scout-v2-rail-card scout-v2-rail-card--hero">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
                       <Sparkles className="h-3.5 w-3.5" />
                       Scout
                     </div>
-                    <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
                       ready
                     </span>
                   </div>
-                  <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-white">
-                    Search the site and your area.
+                  <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-[color:var(--text-primary)]">
+                    Tell me what you need help with, and I'll narrow it down.
                   </h2>
-                  <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-secondary)]">
-                    Scout finds TradeScout pages, local help, posts, requests, prices, rules, and
-                    events in one place.
+                  <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-muted)]">
+                    You can search by job, problem, or question, like "AC not cooling", "need
+                    concrete driveway", or "is this roofing quote fair?"
                   </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[
+                      "AC or heating",
+                      "Plumbing",
+                      "Electrical",
+                      "Roofing",
+                      "Concrete",
+                      "Handyman",
+                      "Not sure yet",
+                    ].map((label) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => prefillScoutMission(label)}
+                        className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          color: "var(--text-primary)",
+                          backgroundColor: "var(--surface-intermediate)",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="scout-v2-rail-card">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                      Where Scout Looks
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                      How Scout helps
                     </p>
                     <Database className="h-4 w-4 text-ts-orange" />
                   </div>
                   <div className="mt-4 space-y-3">
                     {[
-                      ["Site", "pages, tools, help, and saved guidance", "knowledge", "w-[92%]"],
-                      ["Near me", "city, county, people, posts, and requests", "county", "w-[76%]"],
-                      ["Latest", "prices, availability, events, and updates", "live", "w-[54%]"],
-                    ].map(([label, detail, sourceId, width], index) => (
+                      ["Local matches", "contractors and services that may fit", "knowledge"],
+                      ["Nearby posts", "community signals and recent requests", "county"],
+                      ["Price guidance", "normal ranges and quote questions", "live"],
+                      ["Safety checks", "what to confirm before contact", "county"],
+                    ].map(([label, detail, sourceId]) => (
                       <button
                         key={label}
                         type="button"
@@ -4159,23 +4363,29 @@ export default function ScoutOS() {
                           setEnabledMissionSources(next);
                           applyMissionDraft({ sources: next });
                         }}
-                        className={`w-full rounded-xl border border-white/10 bg-black/20 p-3 text-left ${
+                        className={`w-full rounded-xl border p-3 text-left ${
                           enabledMissionSources[sourceId as keyof typeof enabledMissionSources]
-                            ? "border-ts-orange/50"
+                            ? "border-ts-orange/50 bg-ts-orange/5"
                             : ""
                         }`}
+                        style={{
+                          borderColor: enabledMissionSources[
+                            sourceId as keyof typeof enabledMissionSources
+                          ]
+                            ? "color-mix(in oklab, var(--theme-accent-primary) 50%, transparent)"
+                            : "var(--border-subtle)",
+                          backgroundColor: "var(--surface-card)",
+                        }}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <p className="text-sm font-semibold text-white">{label}</p>
-                            <p className="mt-0.5 text-xs text-white/50">{detail}</p>
+                            <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                              {label}
+                            </p>
+                            <p className="mt-0.5 text-xs text-[color:var(--text-muted)]">
+                              {detail}
+                            </p>
                           </div>
-                          <span className="font-mono text-[10px] text-white/35">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-                        </div>
-                        <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                          <div className={`h-full rounded-full bg-ts-orange ${width}`} />
                         </div>
                       </button>
                     ))}
@@ -4187,12 +4397,12 @@ export default function ScoutOS() {
                     const Icon = item.icon;
                     const subcopy =
                       item.id === "nearby"
-                        ? "site and local"
+                        ? "local options"
                         : item.id === "people"
-                          ? "people and services"
+                          ? "questions and next steps"
                           : item.id === "market"
-                            ? "posts and deals"
-                            : "rules and events";
+                            ? "normal ranges"
+                            : "nearby activity";
 
                     return (
                       <button
@@ -4207,20 +4417,24 @@ export default function ScoutOS() {
                         }`}
                       >
                         <Icon className="h-4 w-4 text-ts-orange" />
-                        <p className="mt-3 text-sm font-semibold text-white">{item.label}</p>
-                        <p className="mt-1 text-xs leading-relaxed text-white/50">{subcopy}</p>
+                        <p className="mt-3 text-sm font-semibold text-[color:var(--text-primary)]">
+                          {item.label}
+                        </p>
+                        <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-muted)]">
+                          {subcopy}
+                        </p>
                       </button>
                     );
                   })}
                 </div>
 
                 <div className="scout-v2-rail-card">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Build Your Search
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                    Build your search
                   </p>
                   <div className="mt-4 space-y-4">
                     <div>
-                      <p className="scout-builder-label">What do you want to find?</p>
+                      <p className="scout-builder-label">What do you need?</p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         {missionTypeOptions.map((option) => (
                           <button
@@ -4297,7 +4511,7 @@ export default function ScoutOS() {
                       onClick={() => applyMissionDraft()}
                       className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-white"
                     >
-                      Search with these choices
+                      Start search
                     </button>
                   </div>
                 </div>
@@ -4311,13 +4525,20 @@ export default function ScoutOS() {
                   className="scout-v2-rail-card text-left"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Search Before Contact
+                    Ask before calling
                   </p>
-                  <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-white/65">
+                  <div
+                    className="mt-4 rounded-xl border p-4 text-sm leading-6"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor: "var(--surface-intermediate)",
+                      color: "var(--text-muted)",
+                    }}
+                  >
                     <p>Scout lets you search first before you make yourself visible.</p>
-                    <p className="mt-2 text-white/50">1. Find the best matches</p>
-                    <p className="text-white/50">2. Compare what matters</p>
-                    <p className="text-white/50">3. Choose a safe next step</p>
+                    <p className="mt-2">1. Find the best matches</p>
+                    <p>2. Compare what matters</p>
+                    <p>3. Choose a safe next step</p>
                   </div>
                 </button>
               </aside>

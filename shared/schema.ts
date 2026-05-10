@@ -11966,6 +11966,7 @@ export const procurementOrders = pgTable(
     finalTotalCents: integer("final_total_cents"),
     partnerOrderId: varchar("partner_order_id", { length: 160 }),
     partnerEta: timestamp("partner_eta"),
+    publicAccessToken: varchar("public_access_token", { length: 120 }),
     notes: text("notes"),
     internalNotes: text("internal_notes"),
     metadata: jsonb("metadata")
@@ -11984,6 +11985,7 @@ export const procurementOrders = pgTable(
     index("idx_procurement_orders_fulfillment").on(table.fulfillmentWorkspaceId, table.status),
     index("idx_procurement_orders_status").on(table.status),
     index("idx_procurement_orders_created_at").on(table.createdAt),
+    uniqueIndex("idx_procurement_orders_public_access_token").on(table.publicAccessToken),
   ]
 );
 
@@ -12009,6 +12011,7 @@ export const procurementOrderItems = pgTable(
     estimatedUnitPriceCents: integer("estimated_unit_price_cents"),
     approvedUnitPriceCents: integer("approved_unit_price_cents"),
     actualUnitPriceCents: integer("actual_unit_price_cents"),
+    supplierSnapshot: jsonb("supplier_snapshot"),
     status: varchar("status", { length: 40 }).notNull().default("requested"),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -12037,6 +12040,43 @@ export const procurementOrderFiles = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [index("idx_procurement_order_files_order").on(table.orderId)]
+);
+
+export const procurementSupplierQuotes = pgTable(
+  "procurement_supplier_quotes",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()::text`),
+    orderId: varchar("order_id")
+      .notNull()
+      .references(() => procurementOrders.id, { onDelete: "cascade" }),
+    supplierName: varchar("supplier_name", { length: 220 }).notNull(),
+    supplierEmail: varchar("supplier_email", { length: 220 }),
+    supplierPhone: varchar("supplier_phone", { length: 80 }),
+    supplierAddress: text("supplier_address"),
+    requestToken: varchar("request_token", { length: 120 }).notNull().unique(),
+    status: varchar("status", { length: 40 }).notNull().default("requested"),
+    requestedByUserId: varchar("requested_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    requestedAt: timestamp("requested_at").notNull().defaultNow(),
+    respondedAt: timestamp("responded_at"),
+    materialTotalCents: integer("material_total_cents"),
+    pickupReadyAt: timestamp("pickup_ready_at"),
+    expiresAt: timestamp("expires_at"),
+    availabilitySummary: text("availability_summary"),
+    supplierNotes: text("supplier_notes"),
+    responsePayload: jsonb("response_payload")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_procurement_supplier_quotes_order").on(table.orderId, table.status),
+    uniqueIndex("idx_procurement_supplier_quotes_token").on(table.requestToken),
+  ]
 );
 
 export const procurementQuotes = pgTable(
@@ -12200,6 +12240,8 @@ export type ProcurementOrder = typeof procurementOrders.$inferSelect;
 export type InsertProcurementOrder = typeof procurementOrders.$inferInsert;
 export type ProcurementOrderItem = typeof procurementOrderItems.$inferSelect;
 export type InsertProcurementOrderItem = typeof procurementOrderItems.$inferInsert;
+export type ProcurementSupplierQuote = typeof procurementSupplierQuotes.$inferSelect;
+export type InsertProcurementSupplierQuote = typeof procurementSupplierQuotes.$inferInsert;
 export type ProcurementOrderFile = typeof procurementOrderFiles.$inferSelect;
 export type InsertProcurementOrderFile = typeof procurementOrderFiles.$inferInsert;
 export type ProcurementQuote = typeof procurementQuotes.$inferSelect;

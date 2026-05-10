@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { ScoutMode } from "./api";
 import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutStatus } from "./state";
+import type { ScoutContextCard } from "./scoutContextCards";
 import { validateAction } from "./actionValidation";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
 import { OnboardingPrompt } from "./OnboardingPrompt";
@@ -27,6 +28,7 @@ type ScoutThreadProps = {
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
   overridePendingScope?: string | null;
   onSendMessage?: (payload: any) => void;
+  pendingContextCards?: ScoutContextCard[];
 };
 
 function AssistantStreamedText({
@@ -103,11 +105,11 @@ function clusterKindMeta(kind: ScoutCluster["kind"]) {
     case "community":
       return { label: "Nearby activity", icon: MessageSquareText };
     case "projects":
-      return { label: "Saved request", icon: ClipboardList };
+      return { label: "Saved search", icon: ClipboardList };
     case "rules":
-      return { label: "Rules and permits", icon: BadgeCheck };
+      return { label: "What to check", icon: BadgeCheck };
     case "site":
-      return { label: "TradeScout search", icon: Search };
+      return { label: "Ask Scout", icon: Search };
     case "account":
       return { label: "Account", icon: BadgeCheck };
     default:
@@ -133,7 +135,7 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
   }
 
   if (cluster.kind === "community") {
-    return [{ type: "NAVIGATE", label: "Open community", to: "/community" }];
+    return [{ type: "NAVIGATE", label: "See local posts", to: "/community" }];
   }
 
   if (cluster.kind === "marketplace") {
@@ -141,19 +143,21 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
   }
 
   if (cluster.kind === "projects") {
-    return [{ type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" }];
+    return [{ type: "NAVIGATE", label: "Save this search", to: "/direct-connect" }];
   }
 
   if (cluster.kind === "site") {
-    return [{ type: "NAVIGATE", label: "Open help", to: "/help" }];
+    return [
+      { type: "ASK_SCOUT", label: "Ask Scout", prompt: `Help me with ${cluster.title || "this"}.` },
+    ];
   }
 
   if (cluster.kind === "rules") {
     return [
       {
         type: "ASK_SCOUT",
-        label: "Check rules",
-        prompt: `Check local rules and permits for ${cluster.title || "this"}.`,
+        label: "Ask before calling",
+        prompt: `Tell me what I should check before calling about ${cluster.title || "this"}.`,
       },
     ];
   }
@@ -196,6 +200,23 @@ function mergeClusterActions(cluster: ScoutCluster): ScoutAction[] {
   }
 
   return merged;
+}
+
+function quickStartsForPendingSearch(userMessage?: string): string[] {
+  const text = String(userMessage || "").toLowerCase();
+  if (/\b(ac|a c|hvac|heat|heating|furnace|air conditioner|not cooling|no heat)\b/.test(text)) {
+    return ["AC or heating", "Ask before calling", "Check prices"];
+  }
+  if (/\b(plumb|pipe|drain|toilet|sink|water heater|leak)\b/.test(text)) {
+    return ["Plumbing", "Soon or flexible", "Check prices"];
+  }
+  if (/\b(roof|shingle|gutter|leak)\b/.test(text)) {
+    return ["Roofing", "Quote questions", "Find local help"];
+  }
+  if (/\b(concrete|driveway|slab|sidewalk)\b/.test(text)) {
+    return ["Concrete", "Compare prices", "Find local help"];
+  }
+  return ["Find someone", "Check prices", "Ask before calling"];
 }
 
 function buildEvidenceChips(msg: ScoutMessage): string[] {
@@ -754,6 +775,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onOverride,
   overridePendingScope,
   onSendMessage,
+  pendingContextCards,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [progress, setProgress] = React.useState(0);
@@ -762,6 +784,13 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   const latestAssistantMessageId = React.useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
       if (messages[i]?.role === "assistant") return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  const latestUserMessage = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      if (messages[i]?.role === "user") return messages[i];
     }
     return null;
   }, [messages]);
@@ -855,7 +884,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   }, [status]);
   let statusLabel: string | null = null;
   if (status === "resolving_context") {
-    statusLabel = "Checking your account and location...";
+    statusLabel = "Starting your search...";
   } else if (status === "checking_documents") {
     // Rotate through status messages based on progress in this phase
     // to show Scout is actively working on different aspects
@@ -879,9 +908,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 "Compiling control settings...",
               ]
             : [
-                "Searching TradeScout...",
-                "Checking what's nearby...",
-                "Preparing useful matches...",
+                "Looking for local matches...",
+                "Checking nearby activity...",
+                "Getting next steps ready...",
               ];
 
     // Cycle through messages based on progress (0-1 range maps to 0-messages.length)
@@ -890,7 +919,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   } else if (status === "executing_action") {
     statusLabel = "Opening the next step...";
   } else if (status === "ready") {
-    statusLabel = "Preparing your results...";
+    statusLabel = "Getting this ready...";
   }
 
   // Show loader for any active phase so returning answers and actions
@@ -899,10 +928,10 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
 
   const statusStyles: React.CSSProperties =
     status === "checking_documents"
-      ? { color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" }
+      ? { color: "var(--text-secondary)" }
       : status === "ready"
-        ? { color: "var(--text-primary)", border: "1px solid var(--theme-accent-primary)" }
-        : { color: "var(--text-secondary)", border: "1px solid var(--border-subtle)" };
+        ? { color: "var(--text-primary)" }
+        : { color: "var(--text-secondary)" };
 
   return (
     <div
@@ -986,35 +1015,54 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       })}
 
       {showProgress && (
-        <div className="space-y-1">
-          <div
-            className="h-1.5 w-full rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--charcoal-800)" }}
-          >
-            <div
-              className="h-full rounded-full transition-[width] duration-150 ease-out"
-              style={{
-                width: `${Math.max(5, Math.min(Math.round(progress * 100), 100))}%`,
-                background:
-                  "linear-gradient(to right, var(--theme-accent-primary), var(--theme-accent-secondary), var(--theme-accent-tertiary, var(--theme-accent-primary)))",
-              }}
-            />
-          </div>
-
-          <div className="flex justify-start">
-            <div
-              className={clsx("mt-1 inline-flex items-center rounded-2xl px-3 py-1 text-[11px]")}
-              style={{
-                backgroundColor:
-                  "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                ...statusStyles,
-              }}
-            >
-              <span
-                className="mr-1 h-1.5 w-1.5 rounded-full animate-pulse"
-                style={{ backgroundColor: "var(--theme-accent-primary)" }}
-              />
-              {statusLabel ?? "Scout is finding the best match..."}
+        <div
+          className="rounded-2xl border p-3"
+          style={{
+            borderColor: "var(--border-subtle)",
+            backgroundColor: "var(--surface-card)",
+            boxShadow: "var(--surface-card-shadow)",
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div className="scout-avatar mt-0.5" aria-hidden="true">
+              TS
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold" style={statusStyles}>
+                {statusLabel ?? "Starting your search..."}
+              </div>
+              <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--text-primary)" }}>
+                Tell me what kind of help you need, where you are, and how soon you need it. I’ll
+                narrow it down while I look.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(Array.isArray(pendingContextCards) && pendingContextCards.length > 0
+                  ? pendingContextCards.slice(0, 3).map((card) => ({
+                      key: card.id,
+                      label: card.label,
+                      onClick: () => onAction && onAction(card.action),
+                    }))
+                  : quickStartsForPendingSearch(latestUserMessage?.content).map((label) => ({
+                      key: label,
+                      label,
+                      onClick: () => onQuickAction && onQuickAction(label),
+                    }))
+                ).map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={item.onClick}
+                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor: "var(--surface-intermediate)",
+                      color: "var(--text-primary)",
+                    }}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

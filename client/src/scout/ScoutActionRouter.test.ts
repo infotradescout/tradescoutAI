@@ -156,4 +156,78 @@ describe("ScoutActionRouter structured prefill routing", () => {
     expect(navigate).not.toHaveBeenCalled();
     expect(prefillInput).not.toHaveBeenCalled();
   });
+
+  it("requires approval before agentic send/publish-style tool actions execute", async () => {
+    mockGuardAllowsActions();
+    const { helpers } = makeHelpers();
+    const confirmAction = vi.fn().mockResolvedValue(false);
+    helpers.confirmAction = confirmAction;
+
+    const action: ScoutAction = {
+      type: "CALL_TOOL",
+      label: "Send message",
+      payload: { name: "messages.send", text: "Hello" },
+    };
+
+    await executeScoutActions([action], helpers);
+
+    expect(confirmAction).toHaveBeenCalledWith(action);
+  });
+
+  it("does not require approval for normal local navigation", async () => {
+    mockGuardAllowsActions();
+    const { helpers, navigate } = makeHelpers();
+    const confirmAction = vi.fn();
+    helpers.confirmAction = confirmAction;
+
+    await executeScoutActions(
+      [{ type: "NAVIGATE", label: "Open Home Vault", to: "/homes" }],
+      helpers
+    );
+
+    expect(confirmAction).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/homes");
+  });
+
+  it("never executes payment actions and only routes to payment workspace", async () => {
+    mockGuardAllowsActions();
+    const { helpers, navigate } = makeHelpers();
+    const confirmAction = vi.fn().mockResolvedValue(true);
+    helpers.confirmAction = confirmAction;
+
+    await executeScoutActions(
+      [
+        {
+          type: "START_PLATFORM_SUPPORT",
+          label: "Pay platform support",
+          payload: { amount: 25 },
+        },
+      ],
+      helpers
+    );
+
+    expect(confirmAction).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/");
+  });
+
+  it("routes checkout tool actions instead of executing them", async () => {
+    mockGuardAllowsActions();
+    const { helpers, navigate } = makeHelpers();
+    const confirmAction = vi.fn().mockResolvedValue(true);
+    helpers.confirmAction = confirmAction;
+
+    await executeScoutActions(
+      [
+        {
+          type: "CALL_TOOL",
+          label: "Create checkout",
+          payload: { name: "payments.charge", route: "/finances" },
+        },
+      ],
+      helpers
+    );
+
+    expect(confirmAction).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/finances");
+  });
 });

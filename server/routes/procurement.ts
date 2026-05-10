@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
 import type { Express, Request, Response } from "express";
+import Stripe from "stripe";
 import { z } from "zod";
 import { pool } from "../db";
 import { isAuthenticated } from "../auth";
 import { ensureProcurementEngineTables } from "../db/ensureProcurementEngineTables";
+import { resolveSupplierProduct } from "../services/supplierProductResolver";
 import { getTradepartnerUserEntitlement } from "../services/tradepartnerAccessService";
 import {
   procurementModes,
@@ -24,6 +26,10 @@ const adminRoles = new Set([
   "head_admin",
 ]);
 
+const stripe = process.env.STRIPE_SECRET_KEY
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2026-02-25.clover" as any })
+  : null;
+
 const text = (max: number) => z.string().trim().max(max).optional().nullable();
 const requiredText = (max: number) => z.string().trim().min(1).max(max);
 const cents = z.coerce.number().int().min(0).max(100_000_000).optional().nullable();
@@ -42,7 +48,28 @@ const itemSchema = z.object({
   estimatedUnitPriceCents: cents,
   approvedUnitPriceCents: cents,
   actualUnitPriceCents: cents,
+  supplierSnapshot: z.record(z.unknown()).optional().nullable(),
   status: z.string().trim().max(40).optional(),
+});
+
+const productResolveSchema = z.object({
+  url: requiredText(1000),
+});
+
+const supplierQuoteRequestSchema = z.object({
+  supplierName: requiredText(220),
+  supplierEmail: text(220),
+  supplierPhone: text(80),
+  supplierAddress: text(1200),
+  expiresAt: z.coerce.date().optional().nullable(),
+});
+
+const supplierQuoteResponseSchema = z.object({
+  materialTotalCents: cents,
+  pickupReadyAt: z.coerce.date().optional().nullable(),
+  availabilitySummary: text(2000),
+  supplierNotes: text(4000),
+  responsePayload: z.record(z.unknown()).optional().nullable(),
 });
 
 const fileSchema = z.object({
@@ -164,6 +191,30 @@ function makeOrderNumber(prefix = "PE") {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}-${randomBytes(3).toString("hex").toUpperCase()}`;
 }
 
+function publicOrigin(req: Request): string {
+  const configured = String(
+    process.env.PUBLIC_WEB_URL || process.env.APP_URL || process.env.APP_BASE_URL || ""
+  ).trim();
+  if (configured) return configured.replace(/\/+$/, "");
+  const host = String(req.get("host") || "").trim();
+  const proto = String(req.get("x-forwarded-proto") || req.protocol || "https").trim();
+  return host ? `${proto}://${host}` : "https://www.thetradescout.com";
+}
+
+function makePublicAccessToken() {
+  return randomBytes(24).toString("base64url");
+}
+
+function makeSupplierQuoteToken() {
+  return randomBytes(24).toString("base64url");
+}
+
+function publicOrderToken(req: Request): string {
+  return String(req.query.token || req.body?.token || req.get("x-procurement-order-token") || "")
+    .trim()
+    .slice(0, 120);
+}
+
 async function queryOne<T = any>(sql: string, values: any[] = []): Promise<T | null> {
   const result = await pool.query(sql, values);
   return (result.rows?.[0] as T) || null;
@@ -235,7 +286,6 @@ async function loadOrder(orderId: string) {
 
 async function canReadOrder(req: Request, order: any): Promise<boolean> {
   if (!order) return false;
-  if (!req.isAuthenticated?.() && order.source_channel === "grunt_direct_ordering") return true;
   if (isAdminUser(req)) return true;
   const uid = userId(req);
   if (uid && order.user_id === uid) return true;
@@ -250,7 +300,107 @@ async function canReadOrder(req: Request, order: any): Promise<boolean> {
   }
   if (String(order.fulfillmentWorkspaceSlug || "") === "grunt" && (await hasGruntAccess(req)))
     return true;
+  if (
+    order.source_channel === "grunt_direct_ordering" &&
+    order.public_access_token &&
+    publicOrderToken(req) === order.public_access_token
+  ) {
+    return true;
+  }
   return false;
+}
+
+async function canOperateFulfillment(req: Request, order: any): Promise<boolean> {
+  if (!order) return false;
+  if (isAdminUser(req)) return true;
+  const uid = userId(req);
+  if (
+    uid &&
+    order.fulfillment_workspace_id &&
+    (await isWorkspaceMember(order.fulfillment_workspace_id, uid))
+  ) {
+    return true;
+  }
+  return String(order.fulfillmentWorkspaceSlug || "") === "grunt" && (await hasGruntAccess(req));
+}
+
+function isPublicTokenHolder(req: Request, order: any): boolean {
+  return Boolean(
+    order?.source_channel === "grunt_direct_ordering" &&
+    order?.public_access_token &&
+    publicOrderToken(req) === order.public_access_token
+  );
+}
+
+function hasRestrictedPatchFields(body: Record<string, unknown>) {
+  const restricted = [
+    "status",
+    "internalNotes",
+    "estimatedMaterialTotalCents",
+    "estimatedDeliveryFeeCents",
+    "estimatedServiceFeeCents",
+    "approvedTotalCents",
+    "actualMaterialTotalCents",
+    "actualDeliveryFeeCents",
+    "actualServiceFeeCents",
+    "finalTotalCents",
+    "partnerOrderId",
+    "partnerEta",
+  ];
+  return restricted.some((key) => Object.prototype.hasOwnProperty.call(body, key));
+}
+
+const allowedStatusTransitions: Partial<Record<string, string[]>> = {
+  submitted: ["needs_review", "quote_pending", "quote_sent", "cancelled"],
+  needs_review: ["quote_pending", "quote_sent", "cancelled"],
+  quote_pending: ["quote_sent", "cancelled"],
+  quote_sent: ["approved", "cancelled"],
+  approved: ["assigned_to_fulfillment", "cancelled"],
+  assigned_to_fulfillment: [
+    "accepted_by_fulfillment",
+    "rejected_by_fulfillment",
+    "supplier_confirmed",
+    "cancelled",
+  ],
+  accepted_by_fulfillment: [
+    "supplier_confirmed",
+    "purchase_pending",
+    "purchased",
+    "driver_assigned",
+    "pickup_started",
+    "cancelled",
+    "failed",
+  ],
+  rejected_by_fulfillment: ["assigned_to_fulfillment", "cancelled"],
+  supplier_confirmed: ["purchase_pending", "purchased", "driver_assigned", "cancelled", "failed"],
+  purchase_pending: ["purchased", "cancelled", "failed"],
+  purchased: ["driver_assigned", "pickup_started", "cancelled", "failed"],
+  driver_assigned: ["pickup_started", "cancelled", "failed"],
+  pickup_started: ["picked_up", "cancelled", "failed"],
+  picked_up: ["delivery_started", "cancelled", "failed"],
+  delivery_started: ["delivered", "failed"],
+  delivered: ["proof_uploaded", "completed"],
+  proof_uploaded: ["completed", "delivered"],
+};
+
+function canTransitionStatus(currentStatus: string, nextStatus: string): boolean {
+  if (currentStatus === nextStatus) return true;
+  return Boolean(allowedStatusTransitions[currentStatus]?.includes(nextStatus));
+}
+
+function assertStatusTransition(order: any, nextStatus: string, res: Response): boolean {
+  const currentStatus = String(order?.status || "");
+  if (canTransitionStatus(currentStatus, nextStatus)) return true;
+  res.status(409).json({
+    message: `Invalid procurement status transition from ${currentStatus || "unknown"} to ${nextStatus}`,
+  });
+  return false;
+}
+
+function proofStatusAfterUpload(order: any, proofType: string): string {
+  const currentStatus = String(order?.status || "");
+  if (proofType === "delivery" && currentStatus === "delivered") return "proof_uploaded";
+  return currentStatus;
 }
 
 async function requireOrderAccess(req: Request, res: Response, orderId: string) {
@@ -266,8 +416,60 @@ async function requireOrderAccess(req: Request, res: Response, orderId: string) 
   return order;
 }
 
-async function bundleOrder(order: any) {
-  const [items, files, quotes, events, proofs, messages] = await Promise.all([
+type ProcurementAudience = "admin" | "fulfillment" | "owner" | "public" | "origin_workspace";
+
+function redactOrder(order: any, audience: ProcurementAudience, includePublicToken = false) {
+  const redacted = { ...order };
+  if (!includePublicToken) delete redacted.public_access_token;
+
+  if (audience === "admin") return redacted;
+
+  delete redacted.internal_notes;
+  delete redacted.metadata;
+
+  if (audience === "fulfillment") {
+    delete redacted.user_id;
+    delete redacted.job_id;
+    delete redacted.contractor_profile_id;
+    delete redacted.homeowner_profile_id;
+    return redacted;
+  }
+
+  delete redacted.user_id;
+  delete redacted.job_id;
+  delete redacted.contractor_profile_id;
+  delete redacted.homeowner_profile_id;
+  delete redacted.actual_material_total_cents;
+  delete redacted.actual_delivery_fee_cents;
+  delete redacted.actual_service_fee_cents;
+  delete redacted.final_total_cents;
+  delete redacted.partner_order_id;
+  return redacted;
+}
+
+function visibleMessages(messages: any[], audience: ProcurementAudience) {
+  if (audience === "admin") return messages;
+  const allowed =
+    audience === "fulfillment" ? new Set(["partner", "public"]) : new Set(["customer", "public"]);
+  return messages.filter((message) => allowed.has(String(message.visibility || "")));
+}
+
+async function orderAudience(req: Request, order: any): Promise<ProcurementAudience> {
+  if (isAdminUser(req)) return "admin";
+  if (await canOperateFulfillment(req, order)) return "fulfillment";
+  const uid = userId(req);
+  if (uid && order.user_id === uid) return "owner";
+  if (uid && order.origin_workspace_id && (await isWorkspaceMember(order.origin_workspace_id, uid)))
+    return "origin_workspace";
+  return "public";
+}
+
+async function bundleOrder(
+  order: any,
+  req?: Request,
+  options: { includePublicToken?: boolean; audience?: ProcurementAudience } = {}
+) {
+  const [items, files, quotes, events, proofs, messages, supplierQuotes] = await Promise.all([
     pool.query(
       `select * from procurement_order_items where order_id = $1 order by sort_order, created_at`,
       [order.id]
@@ -290,6 +492,13 @@ async function bundleOrder(order: any) {
     pool.query(`select * from procurement_messages where order_id = $1 order by created_at desc`, [
       order.id,
     ]),
+    pool.query(
+      `select id, order_id, supplier_name, supplier_email, supplier_phone, supplier_address,
+        status, requested_at, responded_at, material_total_cents, pickup_ready_at, expires_at,
+        availability_summary, supplier_notes, response_payload, created_at, updated_at
+       from procurement_supplier_quotes where order_id = $1 order by created_at desc`,
+      [order.id]
+    ),
   ]);
 
   const quoteIds = quotes.rows.map((quote: any) => quote.id);
@@ -306,14 +515,17 @@ async function bundleOrder(order: any) {
     lines: quoteLines.rows.filter((line: any) => line.quote_id === quote.id),
   }));
 
+  const audience = options.audience || (req ? await orderAudience(req, order) : "admin");
+
   return {
-    order,
+    order: redactOrder(order, audience, options.includePublicToken),
     items: items.rows,
     files: files.rows,
     quotes: quotesWithLines,
     events: events.rows,
     proofs: proofs.rows,
-    messages: messages.rows,
+    messages: visibleMessages(messages.rows, audience),
+    supplierQuotes: audience === "admin" ? supplierQuotes.rows : [],
   };
 }
 
@@ -445,6 +657,135 @@ export function registerProcurementRoutes(app: Express) {
     });
   });
 
+  app.post("/api/procurement/products/resolve", async (req, res) => {
+    const parsed = productResolveSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid supplier product URL", errors: parsed.error.flatten() });
+    const product = await resolveSupplierProduct(parsed.data.url);
+    res.json({ product });
+  });
+
+  app.post("/api/procurement/orders/:id/supplier-quotes", isAuthenticated, async (req, res) => {
+    if (!isAdminUser(req)) return res.status(403).json({ message: "Admin access required" });
+    const order = await requireOrderAccess(req, res, req.params.id);
+    if (!order) return;
+    const parsed = supplierQuoteRequestSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid supplier quote request", errors: parsed.error.flatten() });
+    const body = parsed.data;
+    const token = makeSupplierQuoteToken();
+    const row = await queryOne(
+      `insert into procurement_supplier_quotes
+        (order_id, supplier_name, supplier_email, supplier_phone, supplier_address,
+         request_token, requested_by_user_id, expires_at)
+       values ($1,$2,$3,$4,$5,$6,$7,$8)
+       returning id, order_id, supplier_name, supplier_email, supplier_phone, supplier_address,
+        status, requested_at, responded_at, material_total_cents, pickup_ready_at, expires_at,
+        availability_summary, supplier_notes, response_payload, created_at, updated_at`,
+      [
+        req.params.id,
+        body.supplierName,
+        body.supplierEmail || null,
+        body.supplierPhone || null,
+        body.supplierAddress || null,
+        token,
+        userId(req) || null,
+        body.expiresAt || null,
+      ]
+    );
+    const responseUrl = `${publicOrigin(req)}/supplier/procurement/${token}`;
+    await recordEvent(
+      req.params.id,
+      "needs_review",
+      `Supplier quote requested from ${body.supplierName}.`,
+      req,
+      "admin",
+      { supplierQuoteId: (row as any)?.id, responseUrl }
+    );
+    res.status(201).json({ supplierQuote: row, responseUrl });
+  });
+
+  app.get("/api/procurement/supplier-quotes/:token", async (req, res) => {
+    const token = String(req.params.token || "").trim();
+    const supplierQuote = await queryOne(
+      `select sq.id, sq.order_id, sq.supplier_name, sq.supplier_address, sq.status,
+        sq.requested_at, sq.responded_at, sq.material_total_cents, sq.pickup_ready_at,
+        sq.expires_at, sq.availability_summary, sq.supplier_notes, sq.response_payload,
+        o.order_number, o.delivery_address, o.preferred_supplier_name, o.preferred_supplier_address,
+        o.pickup_address, o.urgency, o.vehicle_type
+       from procurement_supplier_quotes sq
+       join procurement_orders o on o.id = sq.order_id
+       where sq.request_token = $1
+       limit 1`,
+      [token]
+    );
+    if (!supplierQuote) return res.status(404).json({ message: "Supplier quote not found" });
+    const items = await pool.query(
+      `select item_name, description, quantity, unit, brand_preference, sku, url, photo_url,
+        must_match_exactly, substitution_allowed, estimated_unit_price_cents, supplier_snapshot
+       from procurement_order_items where order_id = $1 order by sort_order, created_at`,
+      [(supplierQuote as any).order_id]
+    );
+    res.json({ supplierQuote, items: items.rows });
+  });
+
+  app.post("/api/procurement/supplier-quotes/:token/respond", async (req, res) => {
+    const token = String(req.params.token || "").trim();
+    const existing = await queryOne(
+      `select * from procurement_supplier_quotes where request_token = $1 limit 1`,
+      [token]
+    );
+    if (!existing) return res.status(404).json({ message: "Supplier quote not found" });
+    if (
+      (existing as any).expires_at &&
+      new Date((existing as any).expires_at).getTime() < Date.now()
+    ) {
+      return res.status(410).json({ message: "Supplier quote request expired" });
+    }
+    const parsed = supplierQuoteResponseSchema.safeParse(req.body);
+    if (!parsed.success)
+      return res
+        .status(400)
+        .json({ message: "Invalid supplier quote response", errors: parsed.error.flatten() });
+    const body = parsed.data;
+    const row = await queryOne(
+      `update procurement_supplier_quotes set
+        status = 'responded',
+        responded_at = now(),
+        material_total_cents = coalesce($2, material_total_cents),
+        pickup_ready_at = coalesce($3, pickup_ready_at),
+        availability_summary = coalesce($4, availability_summary),
+        supplier_notes = coalesce($5, supplier_notes),
+        response_payload = coalesce($6::jsonb, response_payload),
+        updated_at = now()
+       where request_token = $1
+       returning id, order_id, supplier_name, supplier_email, supplier_phone, supplier_address,
+        status, requested_at, responded_at, material_total_cents, pickup_ready_at, expires_at,
+        availability_summary, supplier_notes, response_payload, created_at, updated_at`,
+      [
+        token,
+        body.materialTotalCents ?? null,
+        body.pickupReadyAt || null,
+        body.availabilitySummary || null,
+        body.supplierNotes || null,
+        JSON.stringify(body.responsePayload || {}),
+      ]
+    );
+    await recordEvent(
+      String((existing as any).order_id),
+      "needs_review",
+      `Supplier quote received from ${(existing as any).supplier_name}.`,
+      req,
+      "supplier",
+      { supplierQuoteId: (existing as any).id }
+    );
+    res.json({ supplierQuote: row });
+  });
+
   app.get("/api/procurement/orders", isAuthenticated, async (req, res) => {
     const where = buildOrderListWhere(req);
     const filters: string[] = [where.clause];
@@ -475,7 +816,10 @@ export function registerProcurementRoutes(app: Express) {
        limit 200`,
       values
     );
-    res.json({ orders: result.rows });
+    const orders = await Promise.all(
+      result.rows.map(async (order) => redactOrder(order, await orderAudience(req, order)))
+    );
+    res.json({ orders });
   });
 
   app.post("/api/procurement/orders", async (req, res) => {
@@ -503,6 +847,7 @@ export function registerProcurementRoutes(app: Express) {
     const origin = await ensureWorkspace(isGruntDirect ? "grunt" : "tradescout");
     const fulfillment = isGruntDirect ? await ensureWorkspace("grunt") : null;
     const uid = userId(req);
+    const publicAccessToken = isGruntDirect ? makePublicAccessToken() : null;
 
     for (const file of body.files || []) {
       if (!isPrivateObjectKey(file.objectKey)) {
@@ -516,13 +861,13 @@ export function registerProcurementRoutes(app: Express) {
         customer_name, customer_email, customer_phone, county_id, job_id, contractor_profile_id,
         homeowner_profile_id, status, order_type, urgency, preferred_supplier_name,
         preferred_supplier_address, pickup_address, delivery_address, vehicle_type, needs_purchase,
-        customer_already_paid, budget_limit_cents, notes, submitted_at
+        customer_already_paid, budget_limit_cents, notes, public_access_token, submitted_at
       ) values (
         $1, $2, $3, $4, $5,
         $6, $7, $8, $9, $10, $11,
         $12, 'submitted', $13, $14, $15,
         $16, $17, $18, $19, $20,
-        $21, $22, $23, now()
+        $21, $22, $23, $24, now()
       )
       returning *`,
       [
@@ -549,6 +894,7 @@ export function registerProcurementRoutes(app: Express) {
         body.customerAlreadyPaid ?? body.orderType === "pickup_my_order",
         body.budgetLimitCents ?? null,
         body.notes || null,
+        publicAccessToken,
       ]
     );
 
@@ -558,8 +904,8 @@ export function registerProcurementRoutes(app: Express) {
         `insert into procurement_order_items (
           order_id, item_name, description, quantity, unit, brand_preference, sku, url, photo_url,
           must_match_exactly, substitution_allowed, estimated_unit_price_cents,
-          approved_unit_price_cents, actual_unit_price_cents, status, sort_order
-        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+          approved_unit_price_cents, actual_unit_price_cents, supplier_snapshot, status, sort_order
+        ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,$16,$17)`,
         [
           orderId,
           item.itemName,
@@ -575,6 +921,7 @@ export function registerProcurementRoutes(app: Express) {
           item.estimatedUnitPriceCents ?? null,
           item.approvedUnitPriceCents ?? null,
           item.actualUnitPriceCents ?? null,
+          JSON.stringify(item.supplierSnapshot || null),
           item.status || "requested",
           index,
         ]
@@ -609,13 +956,18 @@ export function registerProcurementRoutes(app: Express) {
       { sourceChannel }
     );
 
-    res.status(201).json(await bundleOrder(await loadOrder(orderId)));
+    res.status(201).json(
+      await bundleOrder(await loadOrder(orderId), req, {
+        includePublicToken: isGruntDirect,
+        audience: isGruntDirect ? "public" : undefined,
+      })
+    );
   });
 
   app.get("/api/procurement/orders/:id", async (req, res) => {
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
-    res.json(await bundleOrder(order));
+    res.json(await bundleOrder(order, req));
   });
 
   app.patch("/api/procurement/orders/:id", isAuthenticated, async (req, res) => {
@@ -639,6 +991,12 @@ export function registerProcurementRoutes(app: Express) {
     if (!workspaceEditable && order.user_id !== uid) {
       return res.status(403).json({ message: "You cannot edit this order" });
     }
+    if (!isAdminUser(req) && hasRestrictedPatchFields(req.body || {})) {
+      return res
+        .status(403)
+        .json({ message: "Only admins can edit operational procurement fields" });
+    }
+    if (body.status && !assertStatusTransition(order, body.status, res)) return;
 
     await pool.query(
       `update procurement_orders set
@@ -705,7 +1063,7 @@ export function registerProcurementRoutes(app: Express) {
         req,
         "operator"
       );
-    res.json(await bundleOrder(await loadOrder(req.params.id)));
+    res.json(await bundleOrder(await loadOrder(req.params.id), req));
   });
 
   app.post("/api/procurement/orders/:id/items", isAuthenticated, async (req, res) => {
@@ -719,8 +1077,8 @@ export function registerProcurementRoutes(app: Express) {
       `insert into procurement_order_items
         (order_id, item_name, description, quantity, unit, brand_preference, sku, url, photo_url,
          must_match_exactly, substitution_allowed, estimated_unit_price_cents,
-         approved_unit_price_cents, actual_unit_price_cents, status)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         approved_unit_price_cents, actual_unit_price_cents, supplier_snapshot, status)
+       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15::jsonb,$16)
        returning *`,
       [
         req.params.id,
@@ -737,6 +1095,7 @@ export function registerProcurementRoutes(app: Express) {
         item.estimatedUnitPriceCents ?? null,
         item.approvedUnitPriceCents ?? null,
         item.actualUnitPriceCents ?? null,
+        JSON.stringify(item.supplierSnapshot || null),
         item.status || "requested",
       ]
     );
@@ -793,6 +1152,8 @@ export function registerProcurementRoutes(app: Express) {
     if (!parsed.success)
       return res.status(400).json({ message: "Invalid quote", errors: parsed.error.flatten() });
     const body = parsed.data;
+    const nextStatus = body.send ? "quote_sent" : "quote_pending";
+    if (!assertStatusTransition(order, nextStatus, res)) return;
     const total = body.lines.reduce((sum, line) => sum + line.amountCents, 0);
     const quoteStatus = body.send ? "sent" : "draft";
     const quote = await queryOne(
@@ -819,23 +1180,18 @@ export function registerProcurementRoutes(app: Express) {
     }
     await pool.query(
       `update procurement_orders set status = $2, approved_total_cents = $3, updated_at = now() where id = $1`,
-      [req.params.id, body.send ? "quote_sent" : "quote_pending", total]
+      [req.params.id, nextStatus, total]
     );
-    await recordEvent(
-      req.params.id,
-      body.send ? "quote_sent" : "quote_pending",
-      "Quote prepared for approval.",
-      req,
-      "admin",
-      { total }
-    );
-    res.status(201).json(await bundleOrder(await loadOrder(req.params.id)));
+    await recordEvent(req.params.id, nextStatus, "Quote prepared for approval.", req, "admin", {
+      total,
+    });
+    res.status(201).json(await bundleOrder(await loadOrder(req.params.id), req));
   });
 
-  app.post("/api/procurement/orders/:id/approve", isAuthenticated, async (req, res) => {
+  app.post("/api/procurement/orders/:id/approve", async (req, res) => {
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
-    if (!isAdminUser(req) && order.user_id !== userId(req)) {
+    if (!isAdminUser(req) && order.user_id !== userId(req) && !isPublicTokenHolder(req, order)) {
       return res
         .status(403)
         .json({ message: "Only the customer or an admin can approve this quote" });
@@ -844,6 +1200,7 @@ export function registerProcurementRoutes(app: Express) {
       `select * from procurement_quotes where order_id = $1 order by created_at desc limit 1`,
       [req.params.id]
     );
+    if (!assertStatusTransition(order, "approved", res)) return;
     if (quote) {
       await pool.query(
         `update procurement_quotes set status = 'approved', approved_at = now(), updated_at = now() where id = $1`,
@@ -861,7 +1218,147 @@ export function registerProcurementRoutes(app: Express) {
       req,
       isAdminUser(req) ? "admin" : "user"
     );
-    res.json(await bundleOrder(await loadOrder(req.params.id)));
+    res.json(await bundleOrder(await loadOrder(req.params.id), req));
+  });
+
+  app.post("/api/procurement/orders/:id/checkout-session", async (req, res) => {
+    if (!stripe) return res.status(400).json({ message: "Stripe is not configured" });
+    const order = await requireOrderAccess(req, res, req.params.id);
+    if (!order) return;
+    if (!isAdminUser(req) && order.user_id !== userId(req) && !isPublicTokenHolder(req, order)) {
+      return res.status(403).json({ message: "Only the customer or an admin can start checkout" });
+    }
+
+    const quote = await queryOne(
+      `select * from procurement_quotes where order_id = $1 and status in ('sent', 'approved') order by created_at desc limit 1`,
+      [req.params.id]
+    );
+    const amountCents = Number(
+      (quote as any)?.total_amount_cents || order.approved_total_cents || 0
+    );
+    if (!quote || !Number.isFinite(amountCents) || amountCents <= 0) {
+      return res.status(400).json({ message: "A sent quote is required before checkout" });
+    }
+    if (!["quote_sent", "approved"].includes(String(order.status || ""))) {
+      return res.status(409).json({ message: "This order is not ready for checkout" });
+    }
+
+    const origin = publicOrigin(req);
+    const token = order.public_access_token
+      ? `&token=${encodeURIComponent(order.public_access_token)}`
+      : "";
+    const successUrl = `${origin}/${
+      order.source_channel === "grunt_direct_ordering" ? "grunt/order" : "utilities/supply-run"
+    }/${encodeURIComponent(order.id)}?paid=1&session_id={CHECKOUT_SESSION_ID}${token}`;
+    const cancelUrl = `${origin}/${
+      order.source_channel === "grunt_direct_ordering" ? "grunt/order" : "utilities/supply-run"
+    }/${encodeURIComponent(order.id)}?checkout=cancelled${token}`;
+
+    try {
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        currency: "usd",
+        line_items: [
+          {
+            price_data: {
+              currency: "usd",
+              unit_amount: amountCents,
+              product_data: {
+                name: `TradeScout Supply Run ${order.order_number}`,
+                description: "Materials procurement, pickup, and delivery coordination.",
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        metadata: {
+          type: "procurement_supply_run",
+          procurementOrderId: String(order.id),
+          procurementQuoteId: String((quote as any).id),
+          sourceChannel: String(order.source_channel || ""),
+        },
+        customer_email: order.customer_email || undefined,
+      });
+
+      await pool.query(
+        `insert into procurement_payment_authorizations
+          (order_id, provider, provider_reference, status, authorized_amount_cents, metadata)
+         values ($1, 'stripe_checkout', $2, 'checkout_created', $3, $4::jsonb)
+         on conflict do nothing`,
+        [
+          req.params.id,
+          session.id,
+          amountCents,
+          JSON.stringify({ checkoutUrl: session.url, quoteId: (quote as any).id }),
+        ]
+      );
+      await recordEvent(req.params.id, "quote_sent", "Checkout session created.", req, "system", {
+        sessionId: session.id,
+        amountCents,
+      });
+      res.json({ url: session.url, sessionId: session.id });
+    } catch (error) {
+      console.error("[procurement] checkout session failed", error);
+      res.status(500).json({ message: "Could not create checkout session" });
+    }
+  });
+
+  app.post("/api/procurement/orders/:id/verify-checkout", async (req, res) => {
+    if (!stripe) return res.status(400).json({ message: "Stripe is not configured" });
+    const order = await requireOrderAccess(req, res, req.params.id);
+    if (!order) return;
+    const sessionId = String(req.body?.sessionId || req.query.sessionId || "").trim();
+    if (!sessionId) return res.status(400).json({ message: "Missing checkout session" });
+
+    try {
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      if (session.payment_status !== "paid") {
+        return res.status(402).json({ message: "Checkout is not paid yet" });
+      }
+      if (String(session.metadata?.procurementOrderId || "") !== String(order.id)) {
+        return res.status(403).json({ message: "Checkout does not belong to this order" });
+      }
+
+      await pool.query(
+        `update procurement_payment_authorizations set
+          status = 'paid',
+          captured_amount_cents = coalesce($3, captured_amount_cents),
+          metadata = metadata || $4::jsonb,
+          updated_at = now()
+         where order_id = $1 and provider_reference = $2`,
+        [
+          req.params.id,
+          session.id,
+          session.amount_total || null,
+          JSON.stringify({ paymentStatus: session.payment_status }),
+        ]
+      );
+      if (String(order.status || "") === "quote_sent") {
+        if (!assertStatusTransition(order, "approved", res)) return;
+        await pool.query(
+          `update procurement_orders set status = 'approved', approved_at = now(), updated_at = now() where id = $1`,
+          [req.params.id]
+        );
+        await recordEvent(
+          req.params.id,
+          "approved",
+          "Quote paid through Stripe Checkout.",
+          req,
+          "user",
+          {
+            sessionId: session.id,
+            amountCents: session.amount_total || null,
+          }
+        );
+      }
+
+      res.json(await bundleOrder(await loadOrder(req.params.id), req));
+    } catch (error) {
+      console.error("[procurement] checkout verification failed", error);
+      res.status(500).json({ message: "Could not verify checkout" });
+    }
   });
 
   app.post("/api/procurement/orders/:id/assign-fulfillment", isAuthenticated, async (req, res) => {
@@ -875,6 +1372,9 @@ export function registerProcurementRoutes(app: Express) {
       [parsed.data.workspaceSlug]
     );
     if (!workspace) return res.status(404).json({ message: "Fulfillment workspace not found" });
+    const order = await requireOrderAccess(req, res, req.params.id);
+    if (!order) return;
+    if (!assertStatusTransition(order, "assigned_to_fulfillment", res)) return;
     await pool.query(
       `update procurement_orders set fulfillment_workspace_id = $2, status = 'assigned_to_fulfillment', updated_at = now() where id = $1`,
       [req.params.id, (workspace as any).id]
@@ -886,12 +1386,15 @@ export function registerProcurementRoutes(app: Express) {
       req,
       "admin"
     );
-    res.json(await bundleOrder(await loadOrder(req.params.id)));
+    res.json(await bundleOrder(await loadOrder(req.params.id), req));
   });
 
   app.post("/api/procurement/orders/:id/status", isAuthenticated, async (req, res) => {
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
+    if (!(await canOperateFulfillment(req, order))) {
+      return res.status(403).json({ message: "Fulfillment access required" });
+    }
     const parsed = z
       .object({
         status: z.enum(procurementOrderStatuses),
@@ -904,6 +1407,7 @@ export function registerProcurementRoutes(app: Express) {
     if (!parsed.success)
       return res.status(400).json({ message: "Invalid status", errors: parsed.error.flatten() });
     const body = parsed.data;
+    if (!assertStatusTransition(order, body.status, res)) return;
     await pool.query(
       `update procurement_orders set
         status = $2::varchar,
@@ -923,12 +1427,15 @@ export function registerProcurementRoutes(app: Express) {
       isAdminUser(req) ? "admin" : "workspace",
       { supplierConfirmation: body.supplierConfirmation || null }
     );
-    res.json(await bundleOrder(await loadOrder(req.params.id)));
+    res.json(await bundleOrder(await loadOrder(req.params.id), req));
   });
 
   app.post("/api/procurement/orders/:id/proof", isAuthenticated, async (req, res) => {
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
+    if (!(await canOperateFulfillment(req, order))) {
+      return res.status(403).json({ message: "Fulfillment access required" });
+    }
     const parsed = z
       .object({
         proofType: z.enum(["pickup", "receipt", "delivery", "other"]),
@@ -945,6 +1452,8 @@ export function registerProcurementRoutes(app: Express) {
         .status(400)
         .json({ message: "Proof uploads must use private TradeScout storage keys" });
     }
+    const nextStatus = proofStatusAfterUpload(order, body.proofType);
+    if (nextStatus !== order.status && !assertStatusTransition(order, nextStatus, res)) return;
     const proof = await queryOne(
       `insert into procurement_delivery_proofs
         (order_id, uploaded_by_user_id, proof_type, object_key, file_name, note)
@@ -959,13 +1468,15 @@ export function registerProcurementRoutes(app: Express) {
         body.note || null,
       ]
     );
-    await pool.query(
-      `update procurement_orders set status = 'proof_uploaded', updated_at = now() where id = $1`,
-      [req.params.id]
-    );
+    if (nextStatus !== order.status) {
+      await pool.query(
+        `update procurement_orders set status = $2, updated_at = now() where id = $1`,
+        [req.params.id, nextStatus]
+      );
+    }
     await recordEvent(
       req.params.id,
-      "proof_uploaded",
+      nextStatus,
       `${body.proofType} proof uploaded.`,
       req,
       "workspace"
@@ -973,40 +1484,36 @@ export function registerProcurementRoutes(app: Express) {
     res.status(201).json({ proof });
   });
 
-  app.get(
-    "/api/procurement/orders/:id/files/:fileId/download",
-    isAuthenticated,
-    async (req, res) => {
-      const order = await requireOrderAccess(req, res, req.params.id);
-      if (!order) return;
-      const file = await queryOne(
-        `select * from procurement_order_files where id = $1 and order_id = $2
+  app.get("/api/procurement/orders/:id/files/:fileId/download", async (req, res) => {
+    const order = await requireOrderAccess(req, res, req.params.id);
+    if (!order) return;
+    const file = await queryOne(
+      `select * from procurement_order_files where id = $1 and order_id = $2
        union all
        select id, order_id, uploaded_by_user_id, object_key, coalesce(file_name, proof_type || '-proof') as file_name,
          null as file_type, null as file_size, proof_type as file_purpose, created_at
        from procurement_delivery_proofs where id = $1 and order_id = $2
        limit 1`,
-        [req.params.fileId, req.params.id]
-      );
-      if (!file || !isPrivateObjectKey((file as any).object_key)) {
-        return res.status(404).json({ message: "File not found" });
-      }
-      const objectKey = String((file as any).object_key);
-      const filename = String((file as any).file_name || "procurement-file");
-      const useR2 = Boolean(process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID);
-      if (useR2) {
-        const { R2StorageService } = await import("../localStorage");
-        const storageService = new R2StorageService();
-        const url = await storageService.getDownloadURL(objectKey, { filename });
-        return res.redirect(302, url);
-      }
-      const { LocalStorageService } = await import("../localStorage");
-      const storageService = new LocalStorageService();
-      const filePath = await storageService.getPrivateFilePathFromObjectKey(objectKey);
-      if (!filePath) return res.status(404).json({ message: "File not found" });
-      return res.download(filePath, filename);
+      [req.params.fileId, req.params.id]
+    );
+    if (!file || !isPrivateObjectKey((file as any).object_key)) {
+      return res.status(404).json({ message: "File not found" });
     }
-  );
+    const objectKey = String((file as any).object_key);
+    const filename = String((file as any).file_name || "procurement-file");
+    const useR2 = Boolean(process.env.R2_BUCKET_NAME && process.env.R2_ACCESS_KEY_ID);
+    if (useR2) {
+      const { R2StorageService } = await import("../localStorage");
+      const storageService = new R2StorageService();
+      const url = await storageService.getDownloadURL(objectKey, { filename });
+      return res.redirect(302, url);
+    }
+    const { LocalStorageService } = await import("../localStorage");
+    const storageService = new LocalStorageService();
+    const filePath = await storageService.getPrivateFilePathFromObjectKey(objectKey);
+    if (!filePath) return res.status(404).json({ message: "File not found" });
+    return res.download(filePath, filename);
+  });
 
   app.get("/api/grunt/orders", isAuthenticated, async (req, res) => {
     if (!(await hasGruntAccess(req)))
@@ -1022,7 +1529,7 @@ export function registerProcurementRoutes(app: Express) {
        limit 200`,
       [grunt.id]
     );
-    res.json({ orders: rows.rows });
+    res.json({ orders: rows.rows.map((order) => redactOrder(order, "fulfillment")) });
   });
 
   app.get("/api/grunt/orders/:id", isAuthenticated, async (req, res) => {
@@ -1030,7 +1537,7 @@ export function registerProcurementRoutes(app: Express) {
       return res.status(403).json({ message: "Grunt workspace access required" });
     const order = await requireOrderAccess(req, res, req.params.id);
     if (!order) return;
-    res.json(await bundleOrder(order));
+    res.json(await bundleOrder(order, req));
   });
 
   const updateGruntDecision = async (
@@ -1049,6 +1556,7 @@ export function registerProcurementRoutes(app: Express) {
       return res
         .status(400)
         .json({ message: "Invalid Grunt response", errors: parsed.error.flatten() });
+    if (!assertStatusTransition(order, status, res)) return;
     await pool.query(
       `update procurement_orders set status = $2::varchar, partner_order_id = coalesce($3, partner_order_id), updated_at = now() where id = $1`,
       [req.params.id, status, parsed.data.partnerOrderId || null]
@@ -1063,7 +1571,7 @@ export function registerProcurementRoutes(app: Express) {
       req,
       "workspace"
     );
-    res.json(await bundleOrder(await loadOrder(req.params.id)));
+    res.json(await bundleOrder(await loadOrder(req.params.id), req));
   };
 
   app.post("/api/grunt/orders/:id/accept", isAuthenticated, (req, res) =>
@@ -1098,6 +1606,7 @@ export function registerProcurementRoutes(app: Express) {
       .safeParse(req.body);
     if (!parsed.success)
       return res.status(400).json({ message: "Invalid status", errors: parsed.error.flatten() });
+    if (!assertStatusTransition(order, parsed.data.status, res)) return;
     await pool.query(
       `update procurement_orders set status = $2::varchar, partner_order_id = coalesce($3, partner_order_id), partner_eta = coalesce($4, partner_eta), updated_at = now() where id = $1`,
       [
@@ -1114,7 +1623,7 @@ export function registerProcurementRoutes(app: Express) {
       req,
       "workspace"
     );
-    res.json(await bundleOrder(await loadOrder(req.params.id)));
+    res.json(await bundleOrder(await loadOrder(req.params.id), req));
   });
   app.post("/api/partners/grunt/orders/:id/proof", isAuthenticated, async (req, res) => {
     if (!(await hasGruntAccess(req)))
@@ -1135,6 +1644,8 @@ export function registerProcurementRoutes(app: Express) {
       return res
         .status(400)
         .json({ message: "Proof uploads must use private TradeScout storage keys" });
+    const nextStatus = proofStatusAfterUpload(order, parsed.data.proofType);
+    if (nextStatus !== order.status && !assertStatusTransition(order, nextStatus, res)) return;
     const proof = await queryOne(
       `insert into procurement_delivery_proofs (order_id, uploaded_by_user_id, proof_type, object_key, file_name, note)
        values ($1,$2,$3,$4,$5,$6) returning *`,
@@ -1147,9 +1658,15 @@ export function registerProcurementRoutes(app: Express) {
         parsed.data.note || null,
       ]
     );
+    if (nextStatus !== order.status) {
+      await pool.query(
+        `update procurement_orders set status = $2, updated_at = now() where id = $1`,
+        [req.params.id, nextStatus]
+      );
+    }
     await recordEvent(
       req.params.id,
-      "proof_uploaded",
+      nextStatus,
       `${parsed.data.proofType} proof uploaded.`,
       req,
       "workspace"

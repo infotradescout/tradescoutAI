@@ -277,6 +277,7 @@ const GruntOrder = React.lazy(() => import("./pages/grunt-order"));
 const GruntOrderDetail = React.lazy(() => import("./pages/grunt-order-detail"));
 const GruntAdminOrders = React.lazy(() => import("./pages/grunt-admin-orders"));
 const GruntAdminOrderDetail = React.lazy(() => import("./pages/grunt-admin-order-detail"));
+const SupplierProcurementQuote = React.lazy(() => import("./pages/supplier-procurement-quote"));
 const AdminProcurement = React.lazy(() => import("./pages/admin-procurement"));
 const AdminProcurementDetail = React.lazy(() => import("./pages/admin-procurement-detail"));
 const AdminProcurementWorkspaces = React.lazy(() => import("./pages/admin-procurement-workspaces"));
@@ -752,6 +753,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <ProtectedRoute>
                   <LazyPage Component={GruntAdminOrderDetail} />
                 </ProtectedRoute>
+              </Route>
+              <Route path="/supplier/procurement/:token">
+                <LazyPage Component={SupplierProcurementQuote} />
               </Route>
               <Route path="/admin/procurement">
                 <ProtectedRoute adminOnly>

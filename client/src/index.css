@@ -634,28 +634,24 @@ html {
 
 .scout-v2-rail-card,
 .scout-v2-mini-card {
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
-    color-mix(in oklab, var(--surface-card) 94%, transparent);
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  box-shadow: 0 10px 28px rgba(42, 35, 28, 0.08);
 }
 
 .scout-v2-rail-card {
-  border-radius: 18px;
+  border-radius: 14px;
   padding: 1rem;
 }
 
 .scout-v2-rail-card--hero {
-  border-color: color-mix(in oklab, var(--theme-accent-primary) 28%, rgba(255, 255, 255, 0.09));
-  background:
-    radial-gradient(circle at top right, rgba(255, 112, 24, 0.16), transparent 42%),
-    color-mix(in oklab, var(--surface-card) 94%, transparent);
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 20%, var(--border-subtle));
+  background: color-mix(in oklab, var(--surface-card) 92%, #fff7ed 8%);
 }
 
 .scout-v2-mini-card {
   min-height: 8rem;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 0.9rem;
   transition:
     border-color 150ms ease-out,
@@ -667,16 +663,14 @@ html {
 .scout-v2-mini-card.active,
 .scout-v2-mobile-chip:hover,
 .scout-v2-mobile-chip.active {
-  border-color: color-mix(in oklab, var(--theme-accent-primary) 52%, rgba(255, 255, 255, 0.1));
-  background: color-mix(in oklab, var(--theme-accent-primary) 12%, rgba(0, 0, 0, 0.2));
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 42%, var(--border-subtle));
+  background: color-mix(in oklab, var(--theme-accent-primary) 9%, var(--surface-card));
 }
 
 .scout-v2-mobile-console {
-  border-radius: 16px;
-  border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 30%, rgba(255, 255, 255, 0.1));
-  background:
-    radial-gradient(circle at top right, rgba(255, 112, 24, 0.16), transparent 48%),
-    color-mix(in oklab, var(--surface-card) 94%, transparent);
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 24%, var(--border-subtle));
+  background: color-mix(in oklab, var(--surface-card) 92%, #fff7ed 8%);
   padding: 0.8rem;
 }
 
@@ -688,22 +682,20 @@ html {
   align-items: center;
   gap: 0.2rem;
   border-radius: 0.65rem;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
   padding: 0.4rem 0.35rem;
   font-size: 0.58rem;
   font-weight: 700;
   line-height: 1.1;
   text-align: center;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-primary);
 }
 
 .scout-shell-refined .scout-header-refined {
-  border-radius: 1.2rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.012)),
-    rgba(0, 0, 0, 0.16);
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--surface-card) 94%, #fff7ed 6%);
   padding: 0.85rem;
 }
 
@@ -714,10 +706,8 @@ html {
 }
 
 .scout-shell-refined .scout-input-refined {
-  border-radius: 1.25rem !important;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018)),
-    color-mix(in oklab, var(--surface-intermediate) 90%, transparent) !important;
+  border-radius: 1rem !important;
+  background: var(--surface-card) !important;
 }
 
 .scout-shell-refined .scout-input-refined textarea {
@@ -735,16 +725,16 @@ html {
 .scout-builder-label {
   font-size: 0.64rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.46);
+  color: var(--text-muted);
 }
 
 .scout-builder-button,
 .scout-source-toggle {
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  background: rgba(0, 0, 0, 0.22);
-  color: rgba(255, 255, 255, 0.68);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  color: var(--text-muted);
   transition:
     border-color 150ms ease-out,
     background-color 150ms ease-out,
@@ -758,7 +748,7 @@ html {
   flex-direction: column;
   justify-content: center;
   gap: 0.18rem;
-  border-radius: 0.85rem;
+  border-radius: 0.75rem;
   padding: 0.65rem;
   text-align: left;
 }
@@ -766,13 +756,13 @@ html {
 .scout-builder-button span {
   font-size: 0.76rem;
   font-weight: 800;
-  color: rgba(255, 255, 255, 0.86);
+  color: var(--text-primary);
 }
 
 .scout-builder-button small {
   font-size: 0.62rem;
   line-height: 1.25;
-  color: rgba(255, 255, 255, 0.46);
+  color: var(--text-muted);
 }
 
 .scout-source-toggle {
@@ -786,9 +776,9 @@ html {
 .scout-builder-button.active,
 .scout-source-toggle:hover,
 .scout-source-toggle.active {
-  border-color: color-mix(in oklab, var(--theme-accent-primary) 52%, rgba(255, 255, 255, 0.1));
-  background: color-mix(in oklab, var(--theme-accent-primary) 13%, rgba(0, 0, 0, 0.22));
-  color: #fff;
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 42%, var(--border-subtle));
+  background: color-mix(in oklab, var(--theme-accent-primary) 9%, var(--surface-card));
+  color: var(--text-primary);
 }
 
 .ts-badge-new {
@@ -3691,6 +3681,36 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
     -webkit-text-fill-color: currentColor;
     color: var(--theme-accent-primary);
   }
+}
+
+/* Public homeowner Scout should feel like a local guide, not an ops console. */
+.scout-shell-refined {
+  --surface-card: #fffdf8;
+  --surface-intermediate: #fff7ed;
+  --surface-input: #ffffff;
+  --surface-card-border: rgba(68, 60, 49, 0.12);
+  --surface-card-border-hover: rgba(255, 112, 24, 0.28);
+  --surface-card-shadow: 0 12px 28px rgba(42, 35, 28, 0.08);
+  --surface-card-shadow-hover: 0 14px 30px rgba(42, 35, 28, 0.11);
+  --border-subtle: rgba(68, 60, 49, 0.14);
+  --border-primary: rgba(68, 60, 49, 0.2);
+  --text-primary: #26221d;
+  --text-secondary: #5f574d;
+  --text-muted: #766d61;
+}
+
+.scout-shell-refined .scout-mobile-panel,
+.scout-shell-refined .scout-composer-refined,
+.scout-shell-refined .scout-input-refined,
+.scout-shell-refined .scout-input-refined textarea {
+  background: var(--surface-card) !important;
+  box-shadow: var(--surface-card-shadow);
+}
+
+.scout-shell-refined .scout-mobile-panel,
+.scout-shell-refined .scout-composer-refined,
+.scout-shell-refined .scout-input-refined {
+  border-color: var(--border-subtle) !important;
 }
 
 /* Deployment trigger: Mon Feb 23 12:50:43 EST 2026 */

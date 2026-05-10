@@ -105,7 +105,18 @@ describe("enforceResponseQualityContract", () => {
       hasActionOptions: false,
     });
 
-    expect(result).toContain("next local step");
+    expect(result).toContain("start this search");
     expect(result.toLowerCase()).not.toContain("couldn't find reliable information");
+  });
+
+  it("turns no-live-results copy into a useful homeowner prompt", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "AC not cooling",
+      content: "I don't have verified live TradeScout results for that yet.",
+      hasActionOptions: false,
+    });
+
+    expect(result).toContain("Tell me what kind of help you need");
+    expect(result.toLowerCase()).not.toContain("verified live");
   });
 });

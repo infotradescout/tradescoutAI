@@ -10,6 +10,11 @@ function titleFromUrl(url: string): string {
   if (path.startsWith("/settings")) return "Settings";
   if (path.startsWith("/notifications")) return "Notifications";
   if (path.startsWith("/direct-connect")) return "Direct Connect";
+  if (path.startsWith("/finances")) return "Invoices & payments";
+  if (path.startsWith("/messages")) return "Messages";
+  if (path.startsWith("/procurement")) return "Supply Run";
+  if (path.startsWith("/marketplace") || path.startsWith("/vehicle-marketplace"))
+    return "Marketplace";
   if (path.startsWith("/exchange")) return "Exchange";
   if (path.startsWith("/community-feed") || path.startsWith("/community")) return "Community";
   if (path.startsWith("/homes") || path.startsWith("/vehicles")) return "Asset Management";
@@ -54,17 +59,23 @@ export function ScoutWorkAreaSheet({
           "p-0 overflow-hidden",
         ].join(" ")}
       >
-        <div className="flex h-full flex-col bg-tsCard">
-          <SheetHeader className="px-4 py-3 border-b border-tsBorder bg-tsCardHeader">
+        <div className="flex h-full flex-col bg-[var(--surface-card)]">
+          <SheetHeader
+            className="border-b px-4 py-3"
+            style={{ borderColor: "var(--border-subtle)", backgroundColor: "var(--surface-card)" }}
+          >
             <div className="flex items-center justify-between gap-2">
-              <SheetTitle className="text-sm font-semibold text-white">{resolvedTitle}</SheetTitle>
+              <SheetTitle className="text-sm font-semibold text-[var(--text-primary)]">
+                {resolvedTitle}
+              </SheetTitle>
               <div className="flex items-center gap-2">
                 {url ? (
                   <Button
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-8 px-2.5 border-slate-700 text-slate-200"
+                    className="h-8 px-2.5"
+                    style={{ borderColor: "var(--border-subtle)", color: "var(--text-primary)" }}
                     onClick={() => {
                       window.location.href = url;
                     }}
@@ -77,7 +88,7 @@ export function ScoutWorkAreaSheet({
             </div>
           </SheetHeader>
 
-          <div className="flex-1 bg-black">
+          <div className="flex-1 bg-[var(--surface-intermediate)]">
             {url ? (
               <iframe
                 key={url}

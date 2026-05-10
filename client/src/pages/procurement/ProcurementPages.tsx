@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -25,6 +25,9 @@ type ItemDraft = {
   brandPreference: string;
   sku: string;
   url: string;
+  photoUrl: string;
+  estimatedUnitPriceCents: number | null;
+  supplierSnapshot: Record<string, unknown> | null;
   mustMatchExactly: boolean;
   substitutionAllowed: boolean;
 };
@@ -36,6 +39,7 @@ type OrderBundle = {
   quotes: any[];
   events: any[];
   proofs: any[];
+  supplierQuotes?: any[];
 };
 
 const statusOptions: ProcurementOrderStatus[] = [
@@ -70,6 +74,9 @@ const emptyItem = (): ItemDraft => ({
   brandPreference: "",
   sku: "",
   url: "",
+  photoUrl: "",
+  estimatedUnitPriceCents: null,
+  supplierSnapshot: null,
   mustMatchExactly: false,
   substitutionAllowed: true,
 });
@@ -103,6 +110,11 @@ function fulfillmentLabel(order: any) {
 function getIdFromPath() {
   const path = typeof window === "undefined" ? "" : window.location.pathname;
   return decodeURIComponent(path.split("/").filter(Boolean).pop() || "");
+}
+
+function getOrderToken() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("token") || "";
 }
 
 function Shell({
@@ -172,9 +184,11 @@ function useOrders(query = "") {
 }
 
 function useOrder(id: string) {
+  const token = getOrderToken();
+  const query = token ? `?token=${encodeURIComponent(token)}` : "";
   return useQuery<OrderBundle>({
-    queryKey: ["/api/procurement/orders", id],
-    queryFn: () => apiRequest("GET", `/api/procurement/orders/${encodeURIComponent(id)}`),
+    queryKey: ["/api/procurement/orders", id, token],
+    queryFn: () => apiRequest("GET", `/api/procurement/orders/${encodeURIComponent(id)}${query}`),
     enabled: Boolean(id),
   });
 }
@@ -219,6 +233,7 @@ function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
   const [vehicleType, setVehicleType] = useState<ProcurementVehicleType>("unsure");
   const [items, setItems] = useState<ItemDraft[]>([emptyItem()]);
   const [files, setFiles] = useState<File[]>([]);
+  const [resolvingItemIndex, setResolvingItemIndex] = useState<number | null>(null);
   const [form, setForm] = useState({
     customerName: "",
     customerEmail: "",
@@ -231,6 +246,40 @@ function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
     budgetLimitCents: "",
   });
   const [error, setError] = useState("");
+
+  const resolveItemLink = async (index: number) => {
+    const item = items[index];
+    if (!item?.url.trim()) {
+      setError("Paste a supplier product link first.");
+      return;
+    }
+    setError("");
+    setResolvingItemIndex(index);
+    try {
+      const data = await apiRequest("POST", "/api/procurement/products/resolve", {
+        url: item.url,
+      });
+      const product = data?.product || {};
+      const next = [...items];
+      next[index] = {
+        ...item,
+        itemName: item.itemName || product.title || "",
+        brandPreference: item.brandPreference || product.brand || "",
+        sku: item.sku || product.sku || "",
+        photoUrl: item.photoUrl || product.imageUrl || "",
+        estimatedUnitPriceCents: item.estimatedUnitPriceCents ?? product.priceCents ?? null,
+        supplierSnapshot: product,
+      };
+      setItems(next);
+      if (product.status === "unavailable") {
+        setError(product.message || "Could not read product details from that link.");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Could not read that supplier link.");
+    } finally {
+      setResolvingItemIndex(null);
+    }
+  };
 
   const createOrder = useMutation({
     mutationFn: async () => {
@@ -272,7 +321,12 @@ function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
     },
     onSuccess: (data) => {
       const id = data?.order?.id;
-      navigate(mode === "grunt" ? `/grunt/order/${id}` : `/utilities/supply-run/${id}`);
+      const token = data?.order?.public_access_token;
+      navigate(
+        mode === "grunt"
+          ? `/grunt/order/${id}${token ? `?token=${encodeURIComponent(token)}` : ""}`
+          : `/utilities/supply-run/${id}`
+      );
     },
     onError: (err: any) => setError(err?.message || "Could not submit this order."),
   });
@@ -385,17 +439,53 @@ function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
                       />
                     </Field>
                     <Field label="URL">
-                      <input
-                        className={inputClass}
-                        value={item.url}
-                        onChange={(e) => {
-                          const next = [...items];
-                          next[index] = { ...item, url: e.target.value };
-                          setItems(next);
-                        }}
-                      />
+                      <div className="flex gap-2">
+                        <input
+                          className={inputClass}
+                          value={item.url}
+                          onChange={(e) => {
+                            const next = [...items];
+                            next[index] = {
+                              ...item,
+                              url: e.target.value,
+                              supplierSnapshot: null,
+                            };
+                            setItems(next);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => resolveItemLink(index)}
+                          disabled={resolvingItemIndex === index}
+                          className="shrink-0 rounded-md bg-white/10 px-3 py-2 text-xs font-bold text-white disabled:opacity-60"
+                        >
+                          {resolvingItemIndex === index ? "Reading..." : "Use Link"}
+                        </button>
+                      </div>
                     </Field>
                   </div>
+                  {item.supplierSnapshot ? (
+                    <div className="mt-3 flex gap-3 rounded-md border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                      {item.photoUrl ? (
+                        <img
+                          src={item.photoUrl}
+                          alt=""
+                          className="h-14 w-14 rounded-md object-cover"
+                        />
+                      ) : null}
+                      <div>
+                        <div className="font-bold">
+                          {String(item.supplierSnapshot.host || "Supplier")} snapshot saved
+                        </div>
+                        <div className="text-emerald-100/80">
+                          {item.estimatedUnitPriceCents
+                            ? `${money(item.estimatedUnitPriceCents)} estimate`
+                            : "Price needs confirmation"}
+                          {item.sku ? ` · SKU ${item.sku}` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                   <Field label="Description">
                     <textarea
                       className={inputClass}
@@ -618,12 +708,20 @@ export function OrderDetail({
   portal?: "tradescout" | "grunt" | "admin";
 }) {
   const id = getIdFromPath();
+  const orderToken = getOrderToken();
+  const tokenQuery = orderToken ? `?token=${encodeURIComponent(orderToken)}` : "";
+  const checkoutSessionId =
+    typeof window === "undefined"
+      ? ""
+      : new URLSearchParams(window.location.search).get("session_id") || "";
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useOrder(id);
+  const orderQueryKey = ["/api/procurement/orders", id, orderToken];
   const [status, setStatus] = useState<ProcurementOrderStatus>("submitted");
   const [eta, setEta] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofType, setProofType] = useState<"receipt" | "pickup" | "delivery">("delivery");
+  const [actionError, setActionError] = useState("");
   const latestQuote = data?.quotes?.[0];
   const canOperate = portal === "admin" || portal === "grunt";
   const base =
@@ -634,8 +732,25 @@ export function OrderDetail({
         : "/utilities/supply-run";
 
   const approve = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/procurement/orders/${id}/approve`, {}),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
+    mutationFn: () => apiRequest("POST", `/api/procurement/orders/${id}/approve${tokenQuery}`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderQueryKey }),
+    onError: (err: any) => setActionError(err?.message || "Could not approve quote."),
+  });
+  const startCheckout = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/procurement/orders/${id}/checkout-session${tokenQuery}`, {}),
+    onSuccess: (result) => {
+      if (result?.url) window.location.href = result.url;
+    },
+    onError: (err: any) => setActionError(err?.message || "Could not start checkout."),
+  });
+  const verifyCheckout = useMutation({
+    mutationFn: (sessionId: string) =>
+      apiRequest("POST", `/api/procurement/orders/${id}/verify-checkout${tokenQuery}`, {
+        sessionId,
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderQueryKey }),
+    onError: (err: any) => setActionError(err?.message || "Could not verify checkout."),
   });
   const updateStatus = useMutation({
     mutationFn: () =>
@@ -643,21 +758,24 @@ export function OrderDetail({
         status,
         partnerEta: eta || null,
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderQueryKey }),
+    onError: (err: any) => setActionError(err?.message || "Could not update status."),
   });
   const acceptRun = useMutation({
     mutationFn: () =>
       apiRequest("POST", `/api/grunt/orders/${id}/accept`, {
         message: "Grunt accepted the run.",
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderQueryKey }),
+    onError: (err: any) => setActionError(err?.message || "Could not accept run."),
   });
   const rejectRun = useMutation({
     mutationFn: () =>
       apiRequest("POST", `/api/grunt/orders/${id}/reject`, {
         message: "Grunt rejected the run.",
       }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderQueryKey }),
+    onError: (err: any) => setActionError(err?.message || "Could not reject run."),
   });
   const uploadProof = useMutation({
     mutationFn: async () => {
@@ -669,8 +787,21 @@ export function OrderDetail({
         fileName: proofFile.name,
       });
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: orderQueryKey }),
+    onError: (err: any) => setActionError(err?.message || "Could not upload proof."),
   });
+
+  useEffect(() => {
+    if (data?.order?.status) {
+      setStatus(data.order.status as ProcurementOrderStatus);
+    }
+  }, [data?.order?.status]);
+
+  useEffect(() => {
+    if (checkoutSessionId && !verifyCheckout.isPending && data?.order?.status === "quote_sent") {
+      verifyCheckout.mutate(checkoutSessionId);
+    }
+  }, [checkoutSessionId, data?.order?.status]);
 
   if (isLoading)
     return (
@@ -724,15 +855,43 @@ export function OrderDetail({
             <h2 className="mb-3 text-lg font-bold">Items</h2>
             <div className="space-y-2">
               {data.items.map((item) => (
-                <div key={item.id} className="rounded-md bg-neutral-900 p-3 text-sm">
-                  <div className="font-bold">{item.item_name}</div>
-                  <div className="text-neutral-300">
-                    {item.quantity} {item.unit || "each"}{" "}
-                    {item.brand_preference ? `· ${item.brand_preference}` : ""}
-                  </div>
-                  {item.description ? (
-                    <div className="mt-1 text-neutral-400">{item.description}</div>
+                <div key={item.id} className="flex gap-3 rounded-md bg-neutral-900 p-3 text-sm">
+                  {item.photo_url ? (
+                    <img
+                      src={item.photo_url}
+                      alt=""
+                      className="h-16 w-16 rounded-md object-cover"
+                    />
                   ) : null}
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold">{item.item_name}</div>
+                    <div className="text-neutral-300">
+                      {item.quantity} {item.unit || "each"}{" "}
+                      {item.brand_preference ? `· ${item.brand_preference}` : ""}
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-neutral-500">
+                      {item.sku ? <span>SKU {item.sku}</span> : null}
+                      {item.estimated_unit_price_cents ? (
+                        <span>{money(item.estimated_unit_price_cents)} est.</span>
+                      ) : null}
+                      {item.supplier_snapshot?.host ? (
+                        <span>{item.supplier_snapshot.host}</span>
+                      ) : null}
+                      {item.url ? (
+                        <a
+                          className="text-orange-200"
+                          href={item.url}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Supplier link
+                        </a>
+                      ) : null}
+                    </div>
+                    {item.description ? (
+                      <div className="mt-1 text-neutral-400">{item.description}</div>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>
@@ -763,6 +922,11 @@ export function OrderDetail({
           {latestQuote ? (
             <Card>
               <h2 className="mb-3 text-lg font-bold">Quote</h2>
+              {actionError ? (
+                <div className="mb-3 rounded-md bg-red-500/20 p-2 text-sm text-red-100">
+                  {actionError}
+                </div>
+              ) : null}
               {latestQuote.lines.map((line: any) => (
                 <div
                   key={line.id}
@@ -777,12 +941,22 @@ export function OrderDetail({
                 <span>{money(latestQuote.total_amount_cents)}</span>
               </div>
               {data.order.status === "quote_sent" ? (
-                <button
-                  onClick={() => approve.mutate()}
-                  className="mt-4 w-full rounded-md bg-orange-500 px-4 py-2 text-sm font-black text-black"
-                >
-                  Approve Quote
-                </button>
+                <div className="mt-4 grid gap-2">
+                  <button
+                    onClick={() => startCheckout.mutate()}
+                    disabled={startCheckout.isPending}
+                    className="w-full rounded-md bg-orange-500 px-4 py-2 text-sm font-black text-black disabled:opacity-60"
+                  >
+                    {startCheckout.isPending ? "Starting Checkout..." : "Pay Quote"}
+                  </button>
+                  <button
+                    onClick={() => approve.mutate()}
+                    disabled={approve.isPending}
+                    className="w-full rounded-md bg-white/10 px-4 py-2 text-sm font-bold"
+                  >
+                    Manual Approval
+                  </button>
+                </div>
               ) : null}
             </Card>
           ) : null}
@@ -793,7 +967,7 @@ export function OrderDetail({
                 <a
                   key={file.id}
                   className="mb-2 block rounded-md bg-neutral-900 p-3 text-sm text-orange-200"
-                  href={`/api/procurement/orders/${id}/files/${file.id}/download`}
+                  href={`/api/procurement/orders/${id}/files/${file.id}/download${tokenQuery}`}
                 >
                   {file.file_name || `${file.proof_type} proof`}
                 </a>
@@ -898,6 +1072,166 @@ export function GruntAdminOrderDetail() {
   return <OrderDetail portal="grunt" />;
 }
 
+export function SupplierQuoteResponsePage() {
+  const token = getIdFromPath();
+  const [form, setForm] = useState({
+    materialTotal: "",
+    pickupReadyAt: "",
+    availabilitySummary: "",
+    supplierNotes: "",
+  });
+  const [submitted, setSubmitted] = useState(false);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["/api/procurement/supplier-quotes", token],
+    queryFn: () =>
+      apiRequest("GET", `/api/procurement/supplier-quotes/${encodeURIComponent(token)}`),
+    enabled: Boolean(token),
+  });
+  const respond = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/procurement/supplier-quotes/${encodeURIComponent(token)}/respond`, {
+        materialTotalCents: form.materialTotal
+          ? Math.round(Number(form.materialTotal) * 100)
+          : null,
+        pickupReadyAt: form.pickupReadyAt || null,
+        availabilitySummary: form.availabilitySummary,
+        supplierNotes: form.supplierNotes,
+      }),
+    onSuccess: () => setSubmitted(true),
+  });
+
+  if (isLoading) {
+    return (
+      <Shell title="Supplier Quote" eyebrow="Supply Run">
+        <Card>Loading quote request...</Card>
+      </Shell>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <Shell title="Supplier Quote" eyebrow="Supply Run">
+        <Card>Could not load this supplier quote request.</Card>
+      </Shell>
+    );
+  }
+
+  if (submitted || data.supplierQuote?.status === "responded") {
+    return (
+      <Shell title="Quote Received" eyebrow="Supply Run">
+        <Card>Thanks. TradeScout received your supplier quote.</Card>
+      </Shell>
+    );
+  }
+
+  return (
+    <Shell title="Supplier Quote" eyebrow={data.supplierQuote?.supplier_name || "Supply Run"}>
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="space-y-4">
+          <Card>
+            <h2 className="mb-3 text-lg font-bold">{data.supplierQuote?.order_number}</h2>
+            <div className="grid gap-2 text-sm text-neutral-300 sm:grid-cols-2">
+              <div>Delivery: {data.supplierQuote?.delivery_address}</div>
+              <div>
+                Urgency:{" "}
+                {procurementUrgencyLabels[data.supplierQuote?.urgency as ProcurementUrgency]}
+              </div>
+              <div>
+                Vehicle:{" "}
+                {
+                  procurementVehicleLabels[
+                    data.supplierQuote?.vehicle_type as ProcurementVehicleType
+                  ]
+                }
+              </div>
+              <div>Preferred store: {data.supplierQuote?.preferred_supplier_name || "Open"}</div>
+            </div>
+          </Card>
+          <Card>
+            <h2 className="mb-3 text-lg font-bold">Requested items</h2>
+            <div className="space-y-2">
+              {(data.items || []).map((item: any, index: number) => (
+                <div
+                  key={`${item.item_name}-${index}`}
+                  className="rounded-md bg-neutral-900 p-3 text-sm"
+                >
+                  <div className="font-bold">{item.item_name}</div>
+                  <div className="text-neutral-300">
+                    {item.quantity} {item.unit || "each"}{" "}
+                    {item.brand_preference ? `· ${item.brand_preference}` : ""}
+                  </div>
+                  {item.sku ? <div className="text-xs text-neutral-500">SKU {item.sku}</div> : null}
+                  {item.url ? (
+                    <a
+                      className="text-xs text-orange-200"
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Product link
+                    </a>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+        <Card>
+          <h2 className="mb-3 text-lg font-bold">Your response</h2>
+          <div className="space-y-3">
+            <Field label="Materials total">
+              <input
+                className={inputClass}
+                type="number"
+                min="0"
+                step="0.01"
+                value={form.materialTotal}
+                onChange={(event) => setForm({ ...form, materialTotal: event.target.value })}
+              />
+            </Field>
+            <Field label="Pickup ready">
+              <input
+                className={inputClass}
+                type="datetime-local"
+                value={form.pickupReadyAt}
+                onChange={(event) => setForm({ ...form, pickupReadyAt: event.target.value })}
+              />
+            </Field>
+            <Field label="Availability">
+              <textarea
+                className={inputClass}
+                rows={4}
+                value={form.availabilitySummary}
+                onChange={(event) => setForm({ ...form, availabilitySummary: event.target.value })}
+              />
+            </Field>
+            <Field label="Notes">
+              <textarea
+                className={inputClass}
+                rows={4}
+                value={form.supplierNotes}
+                onChange={(event) => setForm({ ...form, supplierNotes: event.target.value })}
+              />
+            </Field>
+          </div>
+          {respond.error ? (
+            <div className="mt-3 rounded-md bg-red-500/20 p-2 text-sm text-red-100">
+              {(respond.error as any)?.message || "Could not submit quote."}
+            </div>
+          ) : null}
+          <button
+            onClick={() => respond.mutate()}
+            disabled={respond.isPending}
+            className="mt-4 w-full rounded-md bg-orange-500 px-4 py-2 text-sm font-black text-black disabled:opacity-60"
+          >
+            {respond.isPending ? "Submitting..." : "Send Quote"}
+          </button>
+        </Card>
+      </div>
+    </Shell>
+  );
+}
+
 export function AdminProcurementPage() {
   const [filters, setFilters] = useState({
     status: "",
@@ -976,6 +1310,13 @@ export function AdminProcurementDetailPage() {
   const queryClient = useQueryClient();
   const { data } = useOrder(id);
   const [edit, setEdit] = useState({ deliveryAddress: "", internalNotes: "" });
+  const [supplierRequest, setSupplierRequest] = useState({
+    supplierName: "",
+    supplierEmail: "",
+    supplierPhone: "",
+    supplierAddress: "",
+  });
+  const [supplierResponseUrl, setSupplierResponseUrl] = useState("");
   const [lines, setLines] = useState([
     { lineType: "materials_estimate", label: "Materials estimate", amount: "" },
     { lineType: "delivery_fee", label: "Delivery fee", amount: "" },
@@ -1012,6 +1353,20 @@ export function AdminProcurementDetailPage() {
     onSuccess: () => {
       setEdit({ deliveryAddress: "", internalNotes: "" });
       queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id] });
+    },
+  });
+  const requestSupplierQuote = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/procurement/orders/${id}/supplier-quotes`, supplierRequest),
+    onSuccess: (result) => {
+      setSupplierResponseUrl(result?.responseUrl || "");
+      setSupplierRequest({
+        supplierName: "",
+        supplierEmail: "",
+        supplierPhone: "",
+        supplierAddress: "",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/procurement/orders", id, ""] });
     },
   });
   return (
@@ -1077,6 +1432,95 @@ export function AdminProcurementDetailPage() {
               >
                 Send to Grunt
               </button>
+            </div>
+          </Card>
+          <Card>
+            <h2 className="mb-3 text-lg font-bold">Supplier quotes</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Supplier name">
+                <input
+                  className={inputClass}
+                  value={supplierRequest.supplierName}
+                  onChange={(event) =>
+                    setSupplierRequest({ ...supplierRequest, supplierName: event.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Supplier email">
+                <input
+                  className={inputClass}
+                  value={supplierRequest.supplierEmail}
+                  onChange={(event) =>
+                    setSupplierRequest({ ...supplierRequest, supplierEmail: event.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Supplier phone">
+                <input
+                  className={inputClass}
+                  value={supplierRequest.supplierPhone}
+                  onChange={(event) =>
+                    setSupplierRequest({ ...supplierRequest, supplierPhone: event.target.value })
+                  }
+                />
+              </Field>
+              <Field label="Supplier address">
+                <input
+                  className={inputClass}
+                  value={supplierRequest.supplierAddress}
+                  onChange={(event) =>
+                    setSupplierRequest({ ...supplierRequest, supplierAddress: event.target.value })
+                  }
+                />
+              </Field>
+            </div>
+            <button
+              onClick={() => requestSupplierQuote.mutate()}
+              disabled={!supplierRequest.supplierName.trim() || requestSupplierQuote.isPending}
+              className="mt-4 rounded-md bg-white/10 px-4 py-2 text-sm font-bold disabled:opacity-60"
+            >
+              Request Supplier Quote
+            </button>
+            {supplierResponseUrl ? (
+              <div className="mt-3 rounded-md border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                <div className="font-bold">Supplier response link</div>
+                <a className="break-all text-emerald-100 underline" href={supplierResponseUrl}>
+                  {supplierResponseUrl}
+                </a>
+              </div>
+            ) : null}
+            <div className="mt-4 space-y-2">
+              {(data?.supplierQuotes || []).map((quote: any) => (
+                <div
+                  key={quote.id}
+                  className="rounded-md border border-white/10 bg-neutral-900 p-3 text-sm"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-bold">{quote.supplier_name}</div>
+                    <StatusBadge
+                      status={
+                        (quote.status === "responded"
+                          ? "supplier_confirmed"
+                          : "needs_review") as ProcurementOrderStatus
+                      }
+                    />
+                  </div>
+                  <div className="mt-1 text-neutral-300">
+                    {quote.material_total_cents
+                      ? `${money(quote.material_total_cents)} materials`
+                      : "Waiting for price"}
+                    {quote.pickup_ready_at
+                      ? ` · Ready ${new Date(quote.pickup_ready_at).toLocaleString()}`
+                      : ""}
+                  </div>
+                  {quote.availability_summary ? (
+                    <div className="mt-1 text-neutral-400">{quote.availability_summary}</div>
+                  ) : null}
+                  {quote.supplier_notes ? (
+                    <div className="mt-1 text-neutral-500">{quote.supplier_notes}</div>
+                  ) : null}
+                </div>
+              ))}
             </div>
           </Card>
         </div>

@@ -20,6 +20,20 @@ export type ScoutTileContext = {
   }>;
   /** Saved contractors from localStorage or API */
   savedContractors: Array<{ id: string; name: string; trade?: string }>;
+  /** User homes/assets from Home Vault */
+  homes?: Array<{
+    id: string;
+    label: string;
+    city?: string | null;
+    stateCode?: string | null;
+    updatedAt?: string | Date | null;
+  }>;
+  /** User vehicles/assets from Vehicle Vault */
+  vehicles?: Array<{
+    id: string;
+    label: string;
+    updatedAt?: string | Date | null;
+  }>;
   /** User's location label (e.g., "Pensacola, FL") */
   location?: string;
   /** Recent activity for soft signals (future use) */
