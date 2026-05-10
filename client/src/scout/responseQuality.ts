@@ -58,6 +58,39 @@ function stripFiller(input: string): string {
   return collapseWhitespace(output);
 }
 
+function tuneScoutVoice(input: string): string {
+  let output = input;
+
+  const replacements: Array<[RegExp, string]> = [
+    [/\bI can help you start this search\./gi, "Let's start with the basics."],
+    [/\bI can still help you find the next local step\./gi, "Let's find the next local step."],
+    [
+      /\bTell me what kind of help you need, where you are, and how soon you need it\./gi,
+      "Tell me what happened, where it is, and how soon you need it.",
+    ],
+    [/\bScout can help you\b/gi, "I can help"],
+    [/\bScout can\b/gi, "I can"],
+    [/\bTradeScout can still move this forward\b/gi, "We can keep this moving"],
+    [/\broute the strongest next step\b/gi, "open the best next step"],
+    [/\brouting\b/gi, "matching"],
+    [/\brouted\b/gi, "matched"],
+    [/\broute\b/gi, "open"],
+    [/\bwithout bypassing trust gates\b/gi, "without skipping review"],
+    [/\btrust gates\b/gi, "review steps"],
+    [/\bsafest next step\b/gi, "best next step"],
+    [/\bsafely do next\b/gi, "do next"],
+    [/\bsafe next step\b/gi, "best next step"],
+    [/\bverified live TradeScout results\b/gi, "local results"],
+    [/\bPick one of these results\b/gi, "Choose what fits"],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    output = output.replace(pattern, replacement);
+  }
+
+  return collapseWhitespace(output);
+}
+
 function appearsDeadEnd(input: string): boolean {
   return DEAD_END_PATTERNS.some((pattern) => pattern.test(input));
 }
@@ -148,9 +181,12 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
     output = "I can still help you find the next local step.";
   }
 
-  if (appearsDeadEnd(output) || hasBlockedCopy(output)) {
+  const shouldUseBlockedFallback = appearsDeadEnd(output) || hasBlockedCopy(output);
+  output = tuneScoutVoice(output);
+
+  if (shouldUseBlockedFallback) {
     output =
-      "I can help you start this search. Tell me what kind of help you need, where you are, and how soon you need it.";
+      "Let's start with the basics. Tell me what happened, where it is, and how soon you need it.";
   }
 
   if (isRecoveryCopy(output)) {

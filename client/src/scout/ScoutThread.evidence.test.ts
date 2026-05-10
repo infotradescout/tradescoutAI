@@ -38,7 +38,7 @@ describe("ScoutThread evidence strip", () => {
     const html = renderThread([assistantMessage], true);
 
     expect(html).toContain("scout-evidence-strip");
-    expect(html).toContain(">Why this answer<");
+    expect(html).toContain(">Why this helps<");
     // Details are collapsed by default; content renders after a user toggle in the browser.
     expect(html).not.toContain("Source:");
   });
@@ -87,7 +87,7 @@ describe("ScoutThread evidence strip", () => {
 
     const html = renderThread([assistantMessage], false);
 
-    expect(html).toContain("Next steps");
+    expect(html).toContain("Options");
     expect(html).toContain("scout-result-card");
     expect(html).toContain("Review and send");
     expect(html).toContain("Ask Scout");

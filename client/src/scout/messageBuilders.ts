@@ -96,13 +96,13 @@ export function buildConnectionFallback(
       : deckSignals
         ? "Keep me in Scout and help me choose: should I plan the deck, look for deck builders, or check rental equipment first?"
         : "Keep me in Scout and help me choose: should I start with trusted local help, recent listings, or nearby posts first?"
-    : "Keep me in Scout and walk me through the best next action step-by-step without leaving this page.";
+    : "Keep me here and walk me through the best next move.";
 
   const candidateActions: ScoutAction[] = [];
 
   candidateActions.push({
     type: "ASK_SCOUT",
-    label: "Keep this in Scout",
+    label: "Stay here",
     prompt: stayInScoutPrompt,
   });
   if (wantsRoutingWorkflowHelp) {
@@ -169,15 +169,15 @@ export function buildConnectionFallback(
   if (wantsCommunity) {
     candidateActions.push({
       type: "NAVIGATE",
-      label: "Open community",
+      label: "See local posts",
       to: payload.communityRoute,
     });
   }
 
   candidateActions.push(
-    { type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" },
+    { type: "NAVIGATE", label: "Saved requests", to: "/direct-connect" },
     { type: "NAVIGATE", label: "Browse local help", to: payload.contractorsRoute },
-    { type: "NAVIGATE", label: "Open community", to: payload.communityRoute }
+    { type: "NAVIGATE", label: "See local posts", to: payload.communityRoute }
   );
 
   const seen = new Set<string>();
@@ -206,21 +206,21 @@ export function buildConnectionFallback(
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     role: "assistant",
     content: deckSignals
-      ? "Got it. For a deck project, start by planning the scope, budget, and timing. Then compare local builders or check rental equipment and nearby posts. Which result should we open first?"
+      ? "For a deck project, start with scope, budget, and timing. Then compare local builders, rental equipment, and nearby posts. What do you want to check first?"
       : homeProjectSignals
-        ? "Got it. Start by planning the scope, budget, and timing. Then compare trusted local help and nearby options. Which result should we open first?"
-        : "Scout had a connection issue. You can still keep moving. Pick one of these results or try the search again.",
+        ? "Start with scope, budget, and timing. Then compare local help and nearby options. What do you want to check first?"
+        : "The connection hiccuped, but you can keep moving. Choose what fits or try again.",
     timestamp: new Date().toISOString(),
     clusters: [
       {
         id: `scout-fallback-${Date.now()}`,
-        title: "Continue now",
+        title: "Keep moving",
         kind: "generic",
         body: deckSignals
           ? "Start with project planning, deck builders, rental equipment, or nearby posts."
           : homeProjectSignals
             ? "Start with project planning, local help, Exchange, or nearby posts."
-            : "Pick a result below. Scout can open it or keep searching.",
+            : "Choose a result below. I can open it here or keep searching.",
         actions,
       },
     ],

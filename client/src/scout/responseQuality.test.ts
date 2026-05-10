@@ -105,7 +105,7 @@ describe("enforceResponseQualityContract", () => {
       hasActionOptions: false,
     });
 
-    expect(result).toContain("start this search");
+    expect(result).toContain("start with the basics");
     expect(result.toLowerCase()).not.toContain("couldn't find reliable information");
   });
 
@@ -116,7 +116,22 @@ describe("enforceResponseQualityContract", () => {
       hasActionOptions: false,
     });
 
-    expect(result).toContain("Tell me what kind of help you need");
+    expect(result).toContain("Tell me what happened");
     expect(result.toLowerCase()).not.toContain("verified live");
+  });
+
+  it("softens system language into plain local-guide language", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "Need a roofer",
+      content:
+        "Scout can route the strongest next step without bypassing trust gates. Pick one of these results.",
+      hasActionOptions: true,
+    });
+
+    expect(result).toContain("I can open the best next step");
+    expect(result).toContain("without skipping review");
+    expect(result).toContain("Choose what fits");
+    expect(result.toLowerCase()).not.toContain("trust gates");
+    expect(result.toLowerCase()).not.toContain("route");
   });
 });

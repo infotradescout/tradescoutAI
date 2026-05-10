@@ -217,7 +217,7 @@ function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
     case "ERROR": {
       const errorMessage = createMessage(
         "assistant",
-        "Scout hit an error handling that request. Please try again or adjust your prompt."
+        "That did not go through. Try again, or say it a little differently."
       );
       return {
         ...state,

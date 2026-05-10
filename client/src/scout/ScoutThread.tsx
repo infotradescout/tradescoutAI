@@ -275,7 +275,7 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
-        {open ? "Hide why" : "Why this answer"}
+        {open ? "Hide details" : "Why this helps"}
       </button>
 
       {open && (
@@ -415,7 +415,7 @@ function MessageExtras({
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-              Next steps
+              Options
             </div>
             <button
               type="button"
@@ -884,7 +884,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   }, [status]);
   let statusLabel: string | null = null;
   if (status === "resolving_context") {
-    statusLabel = "Starting your search...";
+    statusLabel = "Getting oriented...";
   } else if (status === "checking_documents") {
     // Rotate through status messages based on progress in this phase
     // to show Scout is actively working on different aspects
@@ -907,11 +907,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 "Gathering activity reports...",
                 "Compiling control settings...",
               ]
-            : [
-                "Looking for local matches...",
-                "Checking nearby activity...",
-                "Getting next steps ready...",
-              ];
+            : ["Looking nearby...", "Checking local context...", "Getting options ready..."];
 
     // Cycle through messages based on progress (0-1 range maps to 0-messages.length)
     const messageIndex = Math.floor(progress * statusMessages.length);
@@ -1032,8 +1028,8 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 {statusLabel ?? "Starting your search..."}
               </div>
               <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--text-primary)" }}>
-                Tell me what kind of help you need, where you are, and how soon you need it. I’ll
-                narrow it down while I look.
+                Tell me what happened, where it is, and how soon you need it. I’ll narrow it down
+                while I look.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {(Array.isArray(pendingContextCards) && pendingContextCards.length > 0

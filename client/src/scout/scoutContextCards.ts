@@ -127,9 +127,9 @@ export function buildScoutContextCards(
       kind: "project",
       label:
         activeJobs.length === 1 ? `Continue ${job.name}` : `${activeJobs.length} open projects`,
-      description: "Keep the search tied to work you already started.",
+      description: "Keep this tied to work you already started.",
       action: { type: "NAVIGATE", label: "Open projects", to: "/direct-connect" },
-      prompt: `Help me continue this project and decide the safest next step: ${job.name}.`,
+      prompt: `Help me continue this project and choose the best next move: ${job.name}.`,
     });
   }
 
@@ -143,7 +143,7 @@ export function buildScoutContextCards(
           : `${activeInvoices.length} active invoices`,
       description: "Only show payments when there is an actual transaction.",
       action: { type: "NAVIGATE", label: "Open invoices", to: "/finances" },
-      prompt: `Help me review what to check before I act on this invoice or payment: ${rawQuery || "my invoice"}.`,
+      prompt: `Help me review what to check before I handle this invoice: ${rawQuery || "my invoice"}.`,
     });
   }
 
@@ -153,18 +153,18 @@ export function buildScoutContextCards(
       id: `home-${home.id}`,
       kind: "home",
       label: home.label || "Your home",
-      description: "Use saved home context without exposing private details.",
+      description: "Use saved home details only where they help.",
       action: { type: "NAVIGATE", label: "Open Home Vault", to: "/homes" },
-      prompt: `Use my saved home context to help with this: ${rawQuery || "home help"}.`,
+      prompt: `Use my saved home details to help with this: ${rawQuery || "home help"}.`,
     });
   } else if (wantsHome && homes.length === 0 && query) {
     cards.push({
       id: "home-add",
       kind: "home",
       label: "Add your home",
-      description: "Save home details once so Scout can tailor future searches.",
+      description: "Save home details once for better project help.",
       action: { type: "NAVIGATE", label: "Add home", to: "/homes" },
-      prompt: `Help me handle this home-related need without saved home details yet: ${rawQuery}.`,
+      prompt: `Help me with this home issue even though I have not saved home details yet: ${rawQuery}.`,
     });
   }
 
@@ -174,9 +174,9 @@ export function buildScoutContextCards(
       id: `vehicle-${vehicle.id}`,
       kind: "vehicle",
       label: vehicle.label || "Your vehicle",
-      description: "Use saved vehicle context for service, records, or listings.",
+      description: "Use saved vehicle details for service, records, or listings.",
       action: { type: "NAVIGATE", label: "Open Vehicle Vault", to: "/vehicles" },
-      prompt: `Use my saved vehicle context to help with this: ${rawQuery || "vehicle help"}.`,
+      prompt: `Use my saved vehicle details to help with this: ${rawQuery || "vehicle help"}.`,
     });
   } else if (wantsVehicle && vehicles.length === 0 && query) {
     cards.push({
@@ -185,7 +185,7 @@ export function buildScoutContextCards(
       label: "Add a vehicle",
       description: "Save service history, repairs, and documents in one place.",
       action: { type: "NAVIGATE", label: "Add vehicle", to: "/vehicles" },
-      prompt: `Help me handle this vehicle-related need without saved vehicle details yet: ${rawQuery}.`,
+      prompt: `Help me with this vehicle issue even though I have not saved vehicle details yet: ${rawQuery}.`,
     });
   }
 
@@ -199,7 +199,7 @@ export function buildScoutContextCards(
           : `${savedContractors.length} saved pros`,
       description: "Start with people you already saved.",
       action: { type: "NAVIGATE", label: "Saved pros", to: "/direct-connect/pros" },
-      prompt: `Help me decide whether one of my saved pros fits this need: ${rawQuery || "local help"}.`,
+      prompt: `Help me decide whether one of my saved pros fits this: ${rawQuery || "local help"}.`,
     });
   }
 
@@ -210,7 +210,7 @@ export function buildScoutContextCards(
       label: "Start a Supply Run",
       description: "Turn materials or supplier links into an order request.",
       action: { type: "NAVIGATE", label: "Open Supply Run", to: "/procurement" },
-      prompt: `Help me turn this into a Supply Run request: ${rawQuery || "materials or supplier order"}.`,
+      prompt: `Help me turn this into a Supply Run: ${rawQuery || "materials or supplier order"}.`,
     });
   }
 

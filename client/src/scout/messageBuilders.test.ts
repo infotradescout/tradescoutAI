@@ -35,8 +35,8 @@ describe("messageBuilders", () => {
 
     expect(message.role).toBe("assistant");
     expect(message.content.toLowerCase()).toContain("keep moving");
-    expect(message.content.toLowerCase()).toContain("results");
-    expect(message.clusters?.[0]?.title).toBe("Continue now");
+    expect(message.content.toLowerCase()).toContain("choose what fits");
+    expect(message.clusters?.[0]?.title).toBe("Keep moving");
     expect(actions.length).toBeGreaterThan(0);
     expect(message.suggestedActions?.[0]).toBe("Retry my question");
     expect(actions.some((action) => action.type === "ASK_SCOUT")).toBe(true);
@@ -86,7 +86,7 @@ describe("messageBuilders", () => {
     expect(actions.some((action) => action.to === "/community")).toBe(true);
     expect(actions.some((action) => action.type === "ASK_SCOUT")).toBe(true);
     const stayInScout = actions.find((action) => action.type === "ASK_SCOUT");
-    expect(stayInScout?.label).toBe("Keep this in Scout");
+    expect(stayInScout?.label).toBe("Stay here");
     expect(stayInScout?.prompt?.toLowerCase()).toContain("hire a roofer");
   });
 
@@ -132,7 +132,7 @@ describe("messageBuilders", () => {
       "I want to build a deck"
     );
 
-    expect(message.content.toLowerCase()).toContain("planning");
+    expect(message.content.toLowerCase()).toContain("scope");
     expect(actions.some((action) => action.to === "/project-tracker")).toBe(true);
     expect(actions.some((action) => action.to === "/direct-connect/pros")).toBe(true);
     expect(actions.some((action) => action.to === "/exchange/rental-equipment")).toBe(true);
