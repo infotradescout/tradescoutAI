@@ -109,13 +109,13 @@ export class ScoutToneAwareBuilder {
    * Convert technical fallback messages into local-action tone.
    */
   static wrapTechnicalFallback(message: string, countyLabel?: string): string {
-    const base = normalizeWhitespace(message || "Scout hit a routing issue.");
+    const base = normalizeWhitespace(message || "Scout hit a temporary issue.");
     const locality = countyLabel ? `in ${countyLabel}` : "around here";
 
     return normalizeWhitespace(
       `Quick reset: ${base.replace(/[.!]+$/g, "")}. ` +
         `Let's keep this ${COMMUNITY_TONE.transparency} with ${COMMUNITY_TONE.accountability} signals ${locality}. ` +
-        `Routing one concrete next step now.`
+        `Opening one clear next step now.`
     );
   }
 
@@ -147,7 +147,7 @@ export class ScoutToneAwareBuilder {
    */
   static templateForScenario(scenario: ToneScenario): string {
     if (scenario === "technical_fallback") {
-      return "Scout hit a temporary routing issue. We'll keep moving with one local next step.";
+      return "Scout hit a temporary issue. We'll keep moving with one local next step.";
     }
     if (scenario === "confidence_low") {
       return "Signal confidence is still forming. Let's verify local proof before action.";
@@ -177,7 +177,7 @@ export class ScoutToneAwareBuilder {
 
     if (input.scenario === "blocked_action") {
       return normalizeWhitespace(
-        `${incoming || fallback} I can route to the nearest allowed path.`
+        `${incoming || fallback} I can open the nearest allowed next step.`
       );
     }
 

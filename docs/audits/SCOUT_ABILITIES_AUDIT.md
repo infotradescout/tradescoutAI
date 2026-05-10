@@ -69,7 +69,7 @@ Scout must not claim it can:
 | Invoice/project tile variants changed text without changing destination. | high | fixed | Tile variants now support action overrides. |
 | Local explicit messages navigation used `/conversations` while Scout work area expected `/messages`. | medium | fixed | Explicit nav now uses `/messages`; validation allows both. |
 | Unknown `CALL_TOOL` names silently no-op after approval. | medium | fixed | `SUPPORTED_SCOUT_TOOLS` now blocks unsupported tool names with plain user-facing copy. |
-| Some server fallback copy still uses "route/routing" internally or in older flows. | medium | open | Continue copy sweep outside the primary normal user Scout path. |
+| Some server fallback copy still uses "route/routing" internally or in older flows. | medium | fixed | Server fallback and tone-builder user-facing copy now rewrites internal system words to plain next-step language. |
 | Direct supplier integrations are not yet true supplier APIs for all vendors. | high | policy_target | Keep URL/product resolver and tokenized supplier quote flow now; add vendor API connectors as signed supplier partnerships mature. |
 
 ## Supplier Integration Reality
@@ -85,6 +85,4 @@ Scout should phrase this as: "Send me the supplier link or material list and I w
 
 ## Next Hardening Pass
 
-1. Add end-to-end tests for Scout card click -> embedded workspace for `/utilities/supply-run`, `/homes`, `/vehicles`, `/messages`, `/direct-connect`, and `/finances`.
-2. Continue language audit for older server fallback strings that still say route/routing.
-3. Expand capability badges in code, not UI, so product can audit more abilities as answer-only, draft-only, open-work-area, approved-action, or blocked.
+1. Expand capability badges in code, not UI, so product can audit more abilities as answer-only, draft-only, open-work-area, approved-action, or blocked.

@@ -2,28 +2,7 @@ import React, { useEffect, useMemo } from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-
-function titleFromUrl(url: string): string {
-  if (!url) return "Workspace";
-  const path = url.split("?")[0] || url;
-  if (path.startsWith("/profile-settings")) return "Profile & settings";
-  if (path.startsWith("/settings")) return "Settings";
-  if (path.startsWith("/notifications")) return "Notifications";
-  if (path.startsWith("/utilities/supply-run")) return "Supply Run";
-  if (path.startsWith("/direct-connect")) return "Direct Connect";
-  if (path.startsWith("/finances")) return "Invoices & payments";
-  if (path.startsWith("/messages")) return "Messages";
-  if (path.startsWith("/procurement")) return "Supply Run";
-  if (path.startsWith("/marketplace") || path.startsWith("/vehicle-marketplace"))
-    return "Marketplace";
-  if (path.startsWith("/exchange")) return "Exchange";
-  if (path.startsWith("/community-feed") || path.startsWith("/community")) return "Community";
-  if (path.startsWith("/homes") || path.startsWith("/vehicles")) return "Asset Management";
-  if (path.startsWith("/homescout-listings") || path.startsWith("/homescout")) {
-    return "Exchange Real Estate";
-  }
-  return "Workspace";
-}
+import { titleFromScoutWorkAreaUrl } from "./scoutWorkAreas";
 
 export function ScoutWorkAreaSheet({
   open,
@@ -37,7 +16,7 @@ export function ScoutWorkAreaSheet({
   title?: string | null;
 }) {
   const resolvedTitle = useMemo(
-    () => title?.trim() || titleFromUrl(String(url || "")),
+    () => title?.trim() || titleFromScoutWorkAreaUrl(String(url || "")),
     [title, url]
   );
 

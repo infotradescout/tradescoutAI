@@ -10,7 +10,8 @@ describe("ScoutToneAwareBuilder", () => {
 
     expect(wrapped.toLowerCase()).toContain("quick reset");
     expect(wrapped.toLowerCase()).toContain("harris county");
-    expect(wrapped.toLowerCase()).toContain("routing one concrete next step now");
+    expect(wrapped.toLowerCase()).toContain("opening one clear next step now");
+    expect(wrapped.toLowerCase()).not.toContain("routing");
   });
 
   it("builds message with community tone metadata", () => {
@@ -81,7 +82,7 @@ describe("ScoutToneAwareBuilder", () => {
 
   it("provides scenario templates", () => {
     expect(ScoutToneAwareBuilder.templateForScenario("technical_fallback")).toContain(
-      "routing issue"
+      "temporary issue"
     );
     expect(ScoutToneAwareBuilder.templateForScenario("confidence_low")).toContain("verify");
     expect(ScoutToneAwareBuilder.templateForScenario("blocked_action")).toContain("gated");

@@ -48,6 +48,26 @@ const INTERNAL_LINE_RULES: Array<{ flag: string; pattern: RegExp }> = [
   { flag: "internal_logic_removed", pattern: /\bfake\s+homepage\b/i },
 ];
 
+const USER_FACING_REPLACEMENTS: Array<{ flag: string; pattern: RegExp; replacement: string }> = [
+  {
+    flag: "system_word_rewritten",
+    pattern: /\broute the strongest next step\b/gi,
+    replacement: "open the best next step",
+  },
+  {
+    flag: "system_word_rewritten",
+    pattern: /\brouting one concrete next step now\b/gi,
+    replacement: "opening one clear next step now",
+  },
+  { flag: "system_word_rewritten", pattern: /\brouting\b/gi, replacement: "matching" },
+  { flag: "system_word_rewritten", pattern: /\brouted\b/gi, replacement: "matched" },
+  { flag: "system_word_rewritten", pattern: /\broutes\b/gi, replacement: "guides" },
+  { flag: "system_word_rewritten", pattern: /\broute\b/gi, replacement: "open" },
+  { flag: "system_word_rewritten", pattern: /\bworkspaces\b/gi, replacement: "tools" },
+  { flag: "system_word_rewritten", pattern: /\bworkspace\b/gi, replacement: "page" },
+  { flag: "system_word_rewritten", pattern: /\btrust gates\b/gi, replacement: "contact rules" },
+];
+
 function normalizeWhitespace(input: string): string {
   return input
     .replace(/\r\n/g, "\n")
@@ -171,6 +191,13 @@ export function sanitizeScoutUserFacingText(
 
   let text = filteredLines.join("\n");
   text = normalizeWhitespace(text);
+  for (const replacement of USER_FACING_REPLACEMENTS) {
+    replacement.pattern.lastIndex = 0;
+    if (!replacement.pattern.test(text)) continue;
+    replacement.pattern.lastIndex = 0;
+    text = text.replace(replacement.pattern, replacement.replacement);
+    pushFlag(flags, replacement.flag);
+  }
   text = trimToMaxChars(text, maxChars);
 
   if (BLOCKED_RESPONSE_PATTERNS.some((pattern) => pattern.test(text))) {

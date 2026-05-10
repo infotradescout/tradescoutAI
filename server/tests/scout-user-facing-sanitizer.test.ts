@@ -50,6 +50,18 @@ describe("sanitizeScoutUserFacingText", () => {
     expect(result.flags).toEqual([]);
   });
 
+  it("rewrites internal routing and workspace words", () => {
+    const result = sanitizeScoutUserFacingText(
+      "Scout can route the strongest next step without bypassing trust gates. Open the Finances workspace."
+    );
+
+    expect(result.text.toLowerCase()).not.toContain("route");
+    expect(result.text.toLowerCase()).not.toContain("workspace");
+    expect(result.text.toLowerCase()).not.toContain("trust gates");
+    expect(result.text).toContain("open the best next step");
+    expect(result.flags).toContain("system_word_rewritten");
+  });
+
   it("replaces internal spec dumps with fallback", () => {
     const raw =
       "Shifts overhead: users feel ownership pressure. Safe Path (recommended by this analysis): Auto-persist. Trigger Examples: roof repair. Phase 1: Implementation trust signals.";

@@ -689,7 +689,7 @@ async function generateSmartSynthesis(
   if (!llmProviders.some((p) => p.isConfigured())) {
     return {
       message:
-        "Scout can orient you right now: TradeScout is your county operating system where Scout routes people to trusted next steps across Direct Connect, Community, and Exchange.",
+        "Scout can orient you right now: TradeScout helps people find trusted next steps across Direct Connect, Community, and Exchange.",
       provider: "fallback",
     };
   }
@@ -732,7 +732,7 @@ async function generateSmartSynthesis(
   5. HOW SCOUT HELPS RIGHT NOW
     - Explain that Scout can:
       * Understand what they are trying to do.
-      * Route them to the right part of the OS (contractors, marketplace, groups, dashboards, etc.).
+      * Open the right part of TradeScout (contractors, marketplace, groups, dashboards, etc.).
       * Help them plan, estimate, and keep track of projects or ideas over time.
 
   DO NOT:
@@ -775,7 +775,7 @@ async function generateSmartSynthesis(
     }
     return {
       message:
-        "TradeScout can help move local work forward through Community, Direct Connect, Exchange, and Community Builders. Tell me the outcome you want to move and I will route the strongest next step.",
+        "TradeScout can help move local work forward through Community, Direct Connect, Exchange, and Community Builders. Tell me the outcome you want to move and I will open the best next step.",
       provider: "fallback",
       degradationReason: "synthesis_system_error",
     };
@@ -839,11 +839,11 @@ function buildContextualSynthesisFallbackMessage(
 
   if (opts?.rateLimited) {
     return trimResponseToScreenFit(
-      "TradeScout can still move this forward through Community, Direct Connect, Exchange, or Community Builders. Choose the next step below and I will keep routing from there."
+      "TradeScout can still move this forward through Community, Direct Connect, Exchange, or Community Builders. Choose the next step below and I will keep going from there."
     );
   }
   return trimResponseToScreenFit(
-    "TradeScout can help move a local outcome forward through Community, Direct Connect, Exchange, and Community Builders without bypassing trust gates. Tell me the outcome you want to move and I will route the strongest next step."
+    "TradeScout can help move a local outcome forward through Community, Direct Connect, Exchange, and Community Builders without bypassing contact rules. Tell me the outcome you want to move and I will open the best next step."
   );
 }
 
@@ -3746,11 +3746,11 @@ router.post("/", async (req: Request, res: Response) => {
         if (!alreadyHasHelp) {
           actions.unshift({
             type: "NAVIGATE",
-            label: "See the Direct Connect routing workflow",
+            label: "See how Direct Connect works",
             to: helpPath,
             path: helpPath,
             subtitle: "Why messaging stays gated",
-            why: "Explains how routing + decision cards unlock contact safely.",
+            why: "Explains how decision cards unlock contact safely.",
             primary: true as any,
           });
         }
@@ -4150,7 +4150,7 @@ router.post("/", async (req: Request, res: Response) => {
         if (!alreadyHasFinancesNav) {
           actions.push({
             type: "NAVIGATE",
-            label: "Open Finances workspace",
+            label: "Open finances",
             to: "/finances",
           });
         }
@@ -4222,7 +4222,7 @@ router.post("/", async (req: Request, res: Response) => {
           financeLines.push(directionLine);
         } else if (wantsFinancesOverview) {
           directionLine =
-            "I'll open your Finances workspace so you can see invoices, expenses, and simple reports in one place.";
+            "I'll open Finances so you can see invoices, expenses, and simple reports in one place.";
           financeLines.push(directionLine);
         }
 
@@ -4862,7 +4862,7 @@ router.post("/", async (req: Request, res: Response) => {
     scoutTurnTelemetry.failureClass = "system_error";
     scoutTurnTelemetry.fallbackUsed = true;
     console.error("Scout API error:", error);
-    const fallbackMessage = "Scout is in navigation-only mode right now. Pick an action:";
+    const fallbackMessage = "Scout can still help. Pick a next step:";
 
     const fallbackActions = [
       {

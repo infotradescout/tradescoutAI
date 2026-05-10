@@ -66,6 +66,7 @@ import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext
 import { formatCityOnly } from "@/utils/locationDisplay";
 import { openFloatingNote } from "@/lib/floatingNotes";
 import { ScoutWorkAreaSheet } from "./ScoutWorkAreaSheet";
+import { canOpenScoutWorkArea } from "./scoutWorkAreas";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
 import { inferContextRoles, deriveModeFromContextRoles } from "./contextRoles";
 import { useScoutOnboarding } from "./useScoutOnboarding";
@@ -798,30 +799,7 @@ export default function ScoutOS() {
   const maybeOpenWorkAreaForRoute = useCallback(
     (to: string | null | undefined, label?: string) => {
       const raw = typeof to === "string" ? to : "";
-      if (!raw.startsWith("/")) return false;
-
-      // Tight allowlist: only embed pages that behave correctly without a full route swap.
-      const safePrefixes = [
-        "/profile-settings",
-        "/settings",
-        "/notifications",
-        "/utilities/supply-run",
-        "/direct-connect",
-        "/finances",
-        "/messages",
-        "/exchange",
-        "/community-feed",
-        "/community",
-        "/homescout-listings",
-        "/homescout",
-        "/homes",
-        "/vehicles",
-        "/vehicle-marketplace",
-        "/marketplace",
-        "/procurement",
-      ];
-
-      if (!safePrefixes.some((p) => raw.startsWith(p))) return false;
+      if (!canOpenScoutWorkArea(raw)) return false;
 
       openWorkArea({ url: raw, title: label });
       return true;
