@@ -169,9 +169,9 @@ describe("ScoutActionRouter structured prefill routing", () => {
       payload: { name: "messages.send", text: "Hello" },
     };
 
-    await executeScoutActions([action], helpers);
+    await expect(executeScoutActions([action], helpers)).rejects.toThrow("Scout can't do that yet");
 
-    expect(confirmAction).toHaveBeenCalledWith(action);
+    expect(confirmAction).not.toHaveBeenCalled();
   });
 
   it("does not require approval for normal local navigation", async () => {
@@ -229,5 +229,31 @@ describe("ScoutActionRouter structured prefill routing", () => {
 
     expect(confirmAction).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith("/finances");
+  });
+
+  it("executes supported Scout tool calls", async () => {
+    mockGuardAllowsActions();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: vi.fn().mockReturnValue(null),
+      },
+    });
+    const { helpers } = makeHelpers();
+
+    await executeScoutActions(
+      [
+        {
+          type: "CALL_TOOL",
+          label: "Helpful",
+          payload: { name: "ads.feedback", adId: "ad_1", rating: "helpful" },
+        },
+      ],
+      helpers
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/ads/feedback",
+      expect.objectContaining({ method: "POST" })
+    );
   });
 });

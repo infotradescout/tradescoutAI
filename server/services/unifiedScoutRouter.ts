@@ -11,6 +11,11 @@ import {
 } from "./scoutTrustIntegration";
 import { ScoutToneAwareBuilder, type ToneScenario } from "./scoutToneAwareBuilder";
 import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
+import {
+  UNSUPPORTED_SCOUT_TOOL_MESSAGE,
+  getScoutToolName,
+  isSupportedScoutToolName,
+} from "@shared/scoutSupportedTools";
 
 export interface UnifiedScoutUserContext {
   userId?: string;
@@ -417,6 +422,17 @@ export class UnifiedScoutRouter {
       }
     }
 
+    if (action.type === "CALL_TOOL") {
+      const toolName = getScoutToolName(action);
+      if (!toolName || !isSupportedScoutToolName(toolName)) {
+        return {
+          valid: false,
+          reason: UNSUPPORTED_SCOUT_TOOL_MESSAGE,
+          metadata: { blockedBy: "supported_scout_tools" },
+        };
+      }
+    }
+
     return { valid: true };
   }
 
@@ -428,7 +444,16 @@ export class UnifiedScoutRouter {
     const normalized = intent.toLowerCase().replace(/\s+/g, " ").trim();
     if (!normalized) return null;
 
-    for (const route of Object.values(FEATURE_ROUTING_MAP)) {
+    const routes = Object.values(FEATURE_ROUTING_MAP);
+    const supplyRunRoute = FEATURE_ROUTING_MAP.supply_run;
+    const hasSupplyRunIntent = supplyRunRoute.keywords.some((keyword) =>
+      normalized.includes(keyword)
+    );
+    const orderedRoutes = hasSupplyRunIntent
+      ? [supplyRunRoute, ...routes.filter((route) => route.featureId !== "supply_run")]
+      : routes;
+
+    for (const route of orderedRoutes) {
       const matchedKeyword = route.keywords.find((keyword) => normalized.includes(keyword));
       if (!matchedKeyword) continue;
       if (!ScoutTrustIntegration.canAccessFeature(route.featureId, options?.trust)) continue;

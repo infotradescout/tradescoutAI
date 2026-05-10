@@ -70,6 +70,24 @@ describe("UnifiedScoutRouter", () => {
       );
       expect(result.valid).toBe(false);
     });
+
+    it("allows only supported Scout tool names", () => {
+      expect(
+        UnifiedScoutRouter.validateAction(
+          { type: "CALL_TOOL", payload: { name: "ads.feedback", adId: "ad_1" } },
+          guest
+        ).valid
+      ).toBe(true);
+
+      const result = UnifiedScoutRouter.validateAction(
+        { type: "CALL_TOOL", payload: { name: "messages.send", text: "Hello" } },
+        guest
+      );
+
+      expect(result.valid).toBe(false);
+      expect(result.reason).toContain("Scout can't do that yet");
+      expect(result.metadata?.blockedBy).toBe("supported_scout_tools");
+    });
   });
 
   describe("resolveIntent", () => {
@@ -103,6 +121,32 @@ describe("UnifiedScoutRouter", () => {
       expect(result?.action.type).toBe("NAVIGATE");
       expect(result?.action.to).toBe("/finances/jobs");
       expect(result?.action.label).toBe("Open jobs workspace");
+    });
+
+    it("routes Supply Run intent to the public utility", () => {
+      const result = UnifiedScoutRouter.resolveIntent(
+        "I need to start a supply run for lumber",
+        homeowner
+      );
+
+      expect(result).not.toBeNull();
+      expect(result?.action.type).toBe("NAVIGATE");
+      expect(result?.action.to).toBe("/utilities/supply-run");
+      expect(result?.action.label).toBe("Open Supply Run");
+    });
+
+    it("routes supplier and material language to Supply Run", () => {
+      for (const prompt of [
+        "I have a supplier link for this project",
+        "help me with a Lowe's pickup",
+        "turn this material order into a run",
+      ]) {
+        const result = UnifiedScoutRouter.resolveIntent(prompt, homeowner);
+
+        expect(result).not.toBeNull();
+        expect(result?.action.type).toBe("NAVIGATE");
+        expect(result?.action.to).toBe("/utilities/supply-run");
+      }
     });
 
     it("scrubs routing reasoning before returning to user-facing surfaces", () => {

@@ -63,4 +63,14 @@ describe("actionValidation", () => {
 
     expect(action?.type).toBe("CALL_TOOL");
   });
+
+  it("blocks unsupported tool calls", () => {
+    const action = validateAction({
+      type: "CALL_TOOL",
+      label: "Send message",
+      payload: { name: "messages.send", text: "Hello" },
+    });
+
+    expect(action).toBeNull();
+  });
 });

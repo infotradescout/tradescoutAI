@@ -4,6 +4,7 @@
  */
 
 import type { ScoutAction, ScoutActionType } from "./state";
+import { getScoutToolName, isSupportedScoutToolName } from "@shared/scoutSupportedTools";
 
 const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set<ScoutActionType>([
   "NAVIGATE",
@@ -60,6 +61,15 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/homes",
   "/vehicles",
 ]);
+
+function isPaymentHandoffAction(action: ScoutAction): boolean {
+  const name = getScoutToolName(action).toLowerCase();
+  const label = String(action.label || "").toLowerCase();
+  const target = String(action.to || action.path || action.payload?.route || "").toLowerCase();
+  const text = `${name} ${label} ${target}`;
+
+  return /\b(pay|payment|charge|checkout|refund|donation|donate|support checkout)\b/.test(text);
+}
 
 /**
  * Validate and sanitize a Scout action before execution.
@@ -189,6 +199,14 @@ export function validateAction(action: ScoutAction): ScoutAction | null {
 
     if (!hasProfilePatch && !hasPreferencesPatch) {
       console.warn("[Scout] SAVE_PROFILE missing profile/preferences patch", action);
+      return null;
+    }
+  }
+
+  if (action.type === "CALL_TOOL") {
+    const toolName = getScoutToolName(action);
+    if ((!toolName || !isSupportedScoutToolName(toolName)) && !isPaymentHandoffAction(action)) {
+      console.warn("[Scout] Unsupported tool action blocked:", toolName || "(missing)");
       return null;
     }
   }

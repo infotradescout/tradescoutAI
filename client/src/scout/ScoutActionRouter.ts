@@ -6,6 +6,11 @@ import {
 import { followUser, unfollowUser } from "../agent/tools/connections";
 import { sendAdminBroadcast } from "../agent/tools/adminBroadcast";
 import { openFloatingNote } from "@/lib/floatingNotes";
+import {
+  UNSUPPORTED_SCOUT_TOOL_MESSAGE,
+  getScoutToolName,
+  isSupportedScoutToolName,
+} from "@shared/scoutSupportedTools";
 
 export interface ScoutActionHelpers {
   navigate: (to: string) => void;
@@ -49,7 +54,7 @@ function isSensitiveScoutAction(action: ScoutAction): boolean {
 }
 
 function isPaymentExecutionAction(action: ScoutAction): boolean {
-  const name = String((action as any).name || action.payload?.name || "").toLowerCase();
+  const name = getScoutToolName(action).toLowerCase();
   const label = String(action.label || "").toLowerCase();
   const target = String(action.to || action.path || "").toLowerCase();
   const text = `${name} ${label} ${target}`;
@@ -499,7 +504,7 @@ async function executeScoutActionLocal(action: ScoutAction, helpers: ScoutAction
     }
 
     case "CALL_TOOL": {
-      const name = typeof (action as any).name === "string" ? (action as any).name : "";
+      const name = getScoutToolName(action);
       const args = (action as any).args ?? action.payload ?? {};
 
       // Small feature flag so Scout feedback can be toggled without UI changes
@@ -547,15 +552,19 @@ export async function executeScoutActions(
       continue;
     }
 
-    const guarded = await executeActionViaServerGuard(action);
-    if (guarded.blocked) {
-      throw new Error(guarded.message || "This action is blocked right now.");
-    }
-
     if (isPaymentExecutionAction(action)) {
       const route = paymentRouteForAction(action);
       if (route) helpers.navigate(route);
       continue;
+    }
+
+    if (action.type === "CALL_TOOL" && !isSupportedScoutToolName(getScoutToolName(action))) {
+      throw new Error(UNSUPPORTED_SCOUT_TOOL_MESSAGE);
+    }
+
+    const guarded = await executeActionViaServerGuard(action);
+    if (guarded.blocked) {
+      throw new Error(guarded.message || "This action is blocked right now.");
     }
 
     const approved = await confirmSensitiveAction(action, helpers);

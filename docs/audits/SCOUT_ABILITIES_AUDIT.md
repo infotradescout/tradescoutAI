@@ -68,7 +68,7 @@ Scout must not claim it can:
 | Supply Run Scout card opened `/procurement`, which is not the public user route. | high | fixed | Card now opens `/utilities/supply-run`; embedded allowlist includes it. |
 | Invoice/project tile variants changed text without changing destination. | high | fixed | Tile variants now support action overrides. |
 | Local explicit messages navigation used `/conversations` while Scout work area expected `/messages`. | medium | fixed | Explicit nav now uses `/messages`; validation allows both. |
-| Unknown `CALL_TOOL` names silently no-op after approval. | medium | open | Add a supported-tool registry and user-facing "not available yet" response for unsupported tools. |
+| Unknown `CALL_TOOL` names silently no-op after approval. | medium | fixed | `SUPPORTED_SCOUT_TOOLS` now blocks unsupported tool names with plain user-facing copy. |
 | Some server fallback copy still uses "route/routing" internally or in older flows. | medium | open | Continue copy sweep outside the primary normal user Scout path. |
 | Direct supplier integrations are not yet true supplier APIs for all vendors. | high | policy_target | Keep URL/product resolver and tokenized supplier quote flow now; add vendor API connectors as signed supplier partnerships mature. |
 
@@ -85,8 +85,6 @@ Scout should phrase this as: "Send me the supplier link or material list and I w
 
 ## Next Hardening Pass
 
-1. Add a `SUPPORTED_SCOUT_TOOLS` registry so unsupported `CALL_TOOL` names are blocked with plain copy instead of no-op behavior.
-2. Add end-to-end tests for Scout card click -> embedded workspace for `/utilities/supply-run`, `/homes`, `/vehicles`, `/messages`, `/direct-connect`, and `/finances`.
-3. Add server-side Supply Run intent tests in `UnifiedScoutRouter`.
-4. Continue language audit for older server fallback strings that still say route/routing.
-5. Add capability badges in code, not UI, so product can audit: answer-only, draft-only, open-workspace, approved-action, blocked.
+1. Add end-to-end tests for Scout card click -> embedded workspace for `/utilities/supply-run`, `/homes`, `/vehicles`, `/messages`, `/direct-connect`, and `/finances`.
+2. Continue language audit for older server fallback strings that still say route/routing.
+3. Expand capability badges in code, not UI, so product can audit more abilities as answer-only, draft-only, open-work-area, approved-action, or blocked.
