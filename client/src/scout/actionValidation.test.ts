@@ -42,7 +42,7 @@ describe("actionValidation", () => {
     expect(action).toBeNull();
   });
 
-  it("allows Scout homeowner and Supply Run workspace routes", () => {
+  it("allows normal user Scout and Supply Run routes", () => {
     for (const to of ["/homes", "/vehicles", "/messages", "/utilities/supply-run"]) {
       const action = validateAction({
         type: "NAVIGATE",

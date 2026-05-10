@@ -2,11 +2,13 @@
 
 Date: 2026-05-10
 Owner: TradeScout product/engineering
-Scope: Scout homeowner surface, action execution, embedded work areas, Supply Run adjacency, and contact/payment guardrails.
+Scope: Scout normal user surface, action execution, embedded work areas, Supply Run adjacency, and contact/payment guardrails.
 
 ## Executive Summary
 
 Scout is already more than a chat box. It can answer, classify intent, show context-aware cards, open embedded work areas, prefill drafts, save approved profile updates, follow/unfollow users, send approved admin broadcasts, open notes, record ad feedback, and route users to payment or checkout pages.
+
+Normal user Scout and homeowner Scout are the same public surface. "Homeowner" can describe a user need, but it is not a separate Scout mode.
 
 The product law is mostly preserved, but the abilities contract needed tightening. Before this audit, some UI labels implied an action while the actual destination was wrong or blocked by validation. Those gaps are fixed in this pass:
 
@@ -32,7 +34,7 @@ The product law is mostly preserved, but the abilities contract needed tightenin
 
 | Ability | User-facing behavior | Execution path | Current status |
 | --- | --- | --- | --- |
-| Answer/help | Scout answers homeowner, contractor, community, and marketplace questions. | `POST /api/scout` plus client sanitizers. | enforced |
+| Answer/help | Scout answers regular user, contractor, community, and marketplace questions. | `POST /api/scout` plus client sanitizers. | enforced |
 | Context cards | Shows query-related project, home, vehicle, saved-pro, Supply Run, and nearby activity cards. | `buildScoutContextCards`. | enforced |
 | Embedded workspace | Opens safe app work areas inside Scout. | `maybeOpenWorkAreaForRoute`. | enforced |
 | Explicit navigation | User can ask to open a workspace. | `resolveExplicitNavigationIntent`. | enforced |
@@ -67,7 +69,7 @@ Scout must not claim it can:
 | Invoice/project tile variants changed text without changing destination. | high | fixed | Tile variants now support action overrides. |
 | Local explicit messages navigation used `/conversations` while Scout work area expected `/messages`. | medium | fixed | Explicit nav now uses `/messages`; validation allows both. |
 | Unknown `CALL_TOOL` names silently no-op after approval. | medium | open | Add a supported-tool registry and user-facing "not available yet" response for unsupported tools. |
-| Some server fallback copy still uses "route/routing" internally or in older flows. | medium | open | Continue copy sweep outside the primary homeowner Scout path. |
+| Some server fallback copy still uses "route/routing" internally or in older flows. | medium | open | Continue copy sweep outside the primary normal user Scout path. |
 | Direct supplier integrations are not yet true supplier APIs for all vendors. | high | policy_target | Keep URL/product resolver and tokenized supplier quote flow now; add vendor API connectors as signed supplier partnerships mature. |
 
 ## Supplier Integration Reality

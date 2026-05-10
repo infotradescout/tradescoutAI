@@ -8,7 +8,7 @@ const read = (relativePath: string) => {
 };
 
 describe("Scout entry framing contracts", () => {
-  it("header frames Scout as a plain homeowner assistant", () => {
+  it("header frames Scout as a plain normal user assistant", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
     expect(source).toContain("What do you need help with today?");
@@ -58,7 +58,7 @@ describe("Scout entry framing contracts", () => {
     expect(tilesSource).toContain('label: "Browse Exchange"');
   });
 
-  it("homeowner Scout copy hides internal system words", () => {
+  it("normal user Scout copy hides internal system words", () => {
     const extractQuotedText = (source: string) =>
       Array.from(source.matchAll(/(["'`])((?:\\.|(?!\1).)*)\1/g), (match) => match[2]).join("\n");
 
@@ -94,7 +94,7 @@ describe("Scout entry framing contracts", () => {
         .join("\n")
     );
 
-    const homeownerCopy = `${visibleCopySources}\n${scoutOs}`.toLowerCase();
+    const normalUserCopy = `${visibleCopySources}\n${scoutOs}`.toLowerCase();
     const banned = [
       /\broute\b/,
       /\brouting\b/,
@@ -112,7 +112,7 @@ describe("Scout entry framing contracts", () => {
     ];
 
     for (const term of banned) {
-      expect(homeownerCopy).not.toMatch(term);
+      expect(normalUserCopy).not.toMatch(term);
     }
 
     expect(scoutOsSource).toContain("How Scout helps");

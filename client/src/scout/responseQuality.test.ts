@@ -109,7 +109,7 @@ describe("enforceResponseQualityContract", () => {
     expect(result.toLowerCase()).not.toContain("couldn't find reliable information");
   });
 
-  it("turns no-live-results copy into a useful homeowner prompt", () => {
+  it("turns no-live-results copy into a useful normal user prompt", () => {
     const result = enforceResponseQualityContract({
       userMessage: "AC not cooling",
       content: "I don't have verified live TradeScout results for that yet.",
