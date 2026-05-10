@@ -27,16 +27,20 @@ export function ScoutHeader({ locationLabel }: ScoutHeaderProps) {
         className="max-w-2xl text-[13px] md:text-[15px] leading-relaxed"
         style={{ color: "var(--text-muted)" }}
       >
-        Scout helps you find local contractors, compare options, and know what to check before you
-        contact anyone{hasSpecificLocation && communityText ? ` near ${communityText}` : ""}.
+        Scout helps you find local help, compare options, and know what to check before contacting
+        anyone{hasSpecificLocation && communityText ? ` near ${communityText}` : ""}.
       </p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {[
-          ["Fix something", "AC, plumbing, electrical, roof, appliance"],
-          ["Start a project", "Concrete, remodel, fencing, land work"],
-          ["Compare prices", "See normal ranges before calling"],
-          ["Find trusted local help", "Verified pages and nearby signals"],
-          ["Ask a question", "Quotes, who handles this, what to do first"],
+          ["Find local help", "Contractors, services, and people nearby"],
+          ["Ask Scout", "Questions, next steps, and what to check first"],
+          ["Check prices", "Normal ranges before you call anyone"],
+          ["See nearby activity", "Local posts, requests, and useful signals"],
+          [
+            "Start a material run",
+            "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+          ],
+          ["Open messages", "Review conversations when contact is already open"],
         ].map(([label, detail]) => (
           <div
             key={label}

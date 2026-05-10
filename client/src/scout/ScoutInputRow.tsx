@@ -150,7 +150,7 @@ export function ScoutInputRow({
       <ScoutInput
         key={prefillKey}
         disabled={isBusy}
-        placeholder="Example: AC not cooling, need concrete driveway, or is this roofing quote fair?"
+        placeholder="Tell Scout what happened, what you need, or what you’re trying to figure out."
         onSend={onSend}
         onUserTyping={onTyping}
         prefillKey="scout-main"

@@ -87,7 +87,7 @@ describe("ScoutThread evidence strip", () => {
 
     const html = renderThread([assistantMessage], false);
 
-    expect(html).toContain("Options");
+    expect(html).toContain("Next steps");
     expect(html).toContain("scout-result-card");
     expect(html).toContain("Review and send");
     expect(html).toContain("Ask Scout");

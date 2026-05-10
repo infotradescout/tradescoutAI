@@ -44,6 +44,8 @@ import {
   Car,
   FolderOpen,
   Home,
+  MessageSquareText,
+  PackageSearch,
   Route,
   Search,
   Sparkles,
@@ -397,7 +399,8 @@ function sanitizeScoutMessage(raw: unknown): string {
 
   const trimmed = raw.trim();
 
-  const fallback = "Let's keep this practical and local. Pick a next step and I'll route it.";
+  const fallback =
+    "Let's keep this practical and local. Pick a next step and I'll help from there.";
 
   // If response looks like JSON, recover user-facing message fields.
   if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
@@ -786,7 +789,7 @@ export default function ScoutOS() {
         ts: new Date().toISOString(),
         path: location,
         to: url,
-        label: opts.title || "Workspace",
+        label: opts.title || "Page",
       } as any);
     },
     [location]
@@ -1270,7 +1273,7 @@ export default function ScoutOS() {
         break;
       case "contractors":
         base.push(
-          "Open my jobs workspace",
+          "Open my jobs",
           "Create an invoice for this job",
           "View invoices and payments",
           "Post a new job",
@@ -1615,7 +1618,7 @@ export default function ScoutOS() {
         if (sortedIntents.length > 0) {
           clusters.push({
             id: `sorted-summary-${Date.now()}`,
-            title: "A good place to start",
+            title: "Here are the best next steps",
             kind: "site",
             body:
               sortedIntents.length === 1
@@ -2865,7 +2868,7 @@ export default function ScoutOS() {
     { icon: React.ComponentType<{ className?: string }>; eyebrow: string }
   > = {
     start_project: { icon: ClipboardList, eyebrow: "Direct Connect" },
-    find_pros: { icon: Wrench, eyebrow: "Provider Routing" },
+    find_pros: { icon: Wrench, eyebrow: "Local help" },
     nearby: { icon: Users2, eyebrow: "Community" },
     manage: { icon: Sparkles, eyebrow: "Exchange" },
   };
@@ -2998,7 +3001,7 @@ export default function ScoutOS() {
   }> = [
     {
       id: "nearby",
-      label: "Find someone",
+      label: "Find local help",
       icon: Search,
       prompt:
         "I need local help. Help me find who handles this and what to check before contacting anyone.",
@@ -3017,7 +3020,7 @@ export default function ScoutOS() {
     },
     {
       id: "rules",
-      label: "Nearby",
+      label: "See nearby activity",
       icon: Route,
       prompt: "Show me local posts, recent requests, and useful activity near me.",
     },
@@ -3133,8 +3136,8 @@ export default function ScoutOS() {
     return [
       {
         id: "need-help",
-        label: "Fix something",
-        detail: "AC, plumbing, electrical, roof, appliance",
+        label: "Find local help",
+        detail: "Contractors, services, and people nearby",
         icon: Wrench,
         panel: "people" as const,
         type: "help" as const,
@@ -3142,8 +3145,8 @@ export default function ScoutOS() {
       },
       {
         id: "local-feed",
-        label: "Find trusted local help",
-        detail: "Verified pages, community signals, nearby results",
+        label: "See nearby activity",
+        detail: "Local posts, requests, and useful signals",
         icon: Users2,
         panel: "market" as const,
         type: "events" as const,
@@ -3151,8 +3154,8 @@ export default function ScoutOS() {
       },
       {
         id: "search-site",
-        label: "Ask a question",
-        detail: "Quotes, who handles this, what to do first",
+        label: "Ask Scout",
+        detail: "Questions, next steps, and what to check first",
         icon: Search,
         panel: "nearby" as const,
         type: "around_me" as const,
@@ -3161,24 +3164,49 @@ export default function ScoutOS() {
       },
       {
         id: "prices-rules",
-        label: "Compare prices",
-        detail: "See normal ranges before calling",
+        label: "Check prices",
+        detail: "Normal ranges before you call anyone",
         icon: BarChart3,
         panel: "rules" as const,
         type: "prices" as const,
         prompt: `Check prices, permits, rules, and local updates ${area}. Tell me what matters and what I can do next.`,
+      },
+      {
+        id: "material-run",
+        label: "Start a material run",
+        detail: "Send a material list or supplier link",
+        icon: PackageSearch,
+        panel: "market" as const,
+        type: "prices" as const,
+        prompt:
+          "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+      },
+      {
+        id: "open-messages",
+        label: "Open messages",
+        detail: "Review conversations when contact is already open",
+        icon: MessageSquareText,
+        panel: "people" as const,
+        type: "help" as const,
+        prompt: "Open messages.",
       },
     ];
   }, [heroLocationLabel]);
 
   const startDiscoveryLauncher = useCallback(
     (launcher: (typeof localDiscoveryLaunchers)[number]) => {
+      if (launcher.id === "open-messages") {
+        setHasGuestInteracted(true);
+        void handleClusterAction({ type: "NAVIGATE", label: "Open messages", to: "/messages" });
+        return;
+      }
+
       setActiveMissionPanel(launcher.panel);
       setMissionType(launcher.type);
       setHasGuestInteracted(true);
       prefillScoutMission(launcher.prompt);
     },
-    [localDiscoveryLaunchers, prefillScoutMission]
+    [handleClusterAction, localDiscoveryLaunchers, prefillScoutMission]
   );
 
   return (
@@ -3241,7 +3269,7 @@ export default function ScoutOS() {
                     </SheetTrigger>
                     <SheetContent side="right" className="w-[380px] max-w-[92vw]">
                       <SheetHeader>
-                        <SheetTitle>Saved requests</SheetTitle>
+                        <SheetTitle>Saved local requests</SheetTitle>
                       </SheetHeader>
                       <div className="mt-4 flex flex-col gap-3">
                         <ScoutDirectConnectPanel isAuthenticated={isAuthenticated} />
@@ -3551,7 +3579,7 @@ export default function ScoutOS() {
                         {hasUserMessages ? "Related to this" : "Keep working"}
                       </p>
                       <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                        Stay here or open the workspace
+                        Stay here or open it
                       </span>
                     </div>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -4648,14 +4676,14 @@ export default function ScoutOS() {
                     clusters: [
                       {
                         id: `dc-created-${Date.now()}`,
-                        title: "Saved request",
+                        title: "Saved local request",
                         kind: "generic",
                         body: createdId
                           ? "Your request is saved. Review it before you share it locally."
                           : "Your request is saved. Review it before you share it locally.",
                         primaryAction: {
                           type: "NAVIGATE",
-                          label: "Open saved requests",
+                          label: "Open local requests",
                           to: "/direct-connect",
                         },
                       },
@@ -4663,7 +4691,7 @@ export default function ScoutOS() {
                   };
 
                   applyServerResponse(msg, [
-                    { type: "NAVIGATE", label: "Open saved requests", to: "/direct-connect" },
+                    { type: "NAVIGATE", label: "Open local requests", to: "/direct-connect" },
                   ]);
 
                   recordActivity({
@@ -4675,7 +4703,7 @@ export default function ScoutOS() {
                 } catch (err: any) {
                   const message = formatUserFacingErrorMessage(
                     err,
-                    "Could not create the saved request."
+                    "Could not create the local request."
                   );
                   setError(message);
                 } finally {

@@ -299,14 +299,14 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
       ],
       body: "Scout can help you find the right place to go next.",
       actions: [
-        { type: "NAVIGATE", label: "Find someone", to: "/direct-connect/pros" },
-        { type: "NAVIGATE", label: "See local posts", to: "/community" },
+        { type: "NAVIGATE", label: "Review invoices", to: "/finances" },
+        { type: "NAVIGATE", label: "Open messages", to: "/messages" },
         askScoutAction("Ask Scout", `Help me find the right next step for: ${need}`),
       ],
     },
     {
       id: "nearby-activity",
-      label: "Nearby activity",
+      label: "See nearby activity",
       kind: "community",
       reason: "Looks like a local feed, post, group, event, or neighbor/community question.",
       keywords: [
@@ -384,7 +384,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
         "city requirement",
         "license",
       ],
-      body: "Scout can explain the likely rule path and keep local requirements separate from general advice.",
+      body: "Scout can explain what to check and keep local requirements separate from general advice.",
       actions: [
         askScoutAction(
           "Ask before calling",

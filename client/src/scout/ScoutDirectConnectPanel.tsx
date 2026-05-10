@@ -76,7 +76,7 @@ function ActiveCoordinationPanel({
             style={{ color: "var(--theme-accent-primary)" }}
           >
             <ListChecks className="h-3.5 w-3.5" />
-            Saved requests
+            Saved local requests
           </div>
           <button
             type="button"
@@ -131,7 +131,7 @@ function ActiveCoordinationPanel({
 
       {!isAuthenticated ? (
         <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          Sign in to view saved requests and pick up where you left off.
+          Sign in to view local requests and pick up where you left off.
         </div>
       ) : isLoading ? (
         <div className="space-y-2">
@@ -157,7 +157,7 @@ function ActiveCoordinationPanel({
           }}
         >
           <p className="font-medium" style={{ color: "var(--text-primary)" }}>
-            No saved requests yet.
+            No local requests yet.
           </p>
           <p className="mt-1">
             Create a local request from Scout and it will appear here before you share it.

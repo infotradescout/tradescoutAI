@@ -103,9 +103,9 @@ function clusterKindMeta(kind: ScoutCluster["kind"]) {
     case "marketplace":
       return { label: "Exchange", icon: Store };
     case "community":
-      return { label: "Nearby activity", icon: MessageSquareText };
+      return { label: "Local posts", icon: MessageSquareText };
     case "projects":
-      return { label: "Saved search", icon: ClipboardList };
+      return { label: "Saved local request", icon: ClipboardList };
     case "rules":
       return { label: "What to check", icon: BadgeCheck };
     case "site":
@@ -415,7 +415,7 @@ function MessageExtras({
         >
           <div className="mb-2 flex items-center justify-between gap-2">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-              Options
+              Next steps
             </div>
             <button
               type="button"

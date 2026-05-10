@@ -98,6 +98,7 @@ const QUICK_ACTION_NAV: Record<string, string> = {
   "open help center": ROUTES.HELP ?? "/help",
   "show recent finance invoicing ledger activity": "/admin/panel?tab=finance",
   "open my jobs workspace": "/finances/jobs",
+  "open my jobs": "/finances/jobs",
   "view invoices and payments": "/finances",
   "post a new job": "/lead-management?new=1",
   "help me send a targeted broadcast announcement from notification ops":
