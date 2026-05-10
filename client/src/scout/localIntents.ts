@@ -40,7 +40,7 @@ export function resolveExplicitNavigationIntent(message: string): LocalNavIntent
     return { to: ROUTES.EXCHANGE ?? "/exchange", label: "Exchange", confidence: 0.95 };
   }
   if (lower.includes("message") || lower.includes("inbox") || lower.includes("conversations")) {
-    return { to: "/conversations", label: "Messages", confidence: 0.95 };
+    return { to: "/messages", label: "Messages", confidence: 0.95 };
   }
   if (lower.includes("support") || lower.includes("help center")) {
     return { to: ROUTES.HELP ?? "/help", label: "Help", confidence: 0.95 };

@@ -802,6 +802,7 @@ export default function ScoutOS() {
         "/profile-settings",
         "/settings",
         "/notifications",
+        "/utilities/supply-run",
         "/direct-connect",
         "/finances",
         "/messages",

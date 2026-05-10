@@ -47,6 +47,8 @@ export type TileVariant = {
   label?: string | ((ctx: ScoutTileContext) => string);
   /** Override description if condition matches */
   description?: string | ((ctx: ScoutTileContext) => string);
+  /** Override action if condition changes the destination or ability */
+  action?: ScoutAction | ((ctx: ScoutTileContext) => ScoutAction);
 };
 
 export type ScoutActionTile = {
@@ -152,18 +154,21 @@ export const scoutActionTiles: ScoutActionTile[] = [
         },
         label: (ctx) => `Continue invoice for ${ctx.activeInvoices[0].jobName ?? "your project"}`,
         description: "Resume where you left off",
+        action: { type: "NAVIGATE", to: "/finances", label: "Open invoices" },
       },
       {
         // Proven by: GET /api/invoices → active invoices (when count > 1)
         when: (ctx) => ctx.activeInvoices.length > 1,
         label: (ctx) => `View ${ctx.activeInvoices.length} active invoices`,
         description: "Manage your pending payments",
+        action: { type: "NAVIGATE", to: "/finances", label: "Open invoices" },
       },
       {
         // Proven by: GET /api/dashboard → myProjects + no active invoices
         when: (ctx) => ctx.activeJobs.length > 0 && ctx.activeInvoices.length === 0,
         label: "View active projects",
         description: "Track your ongoing work",
+        action: { type: "NAVIGATE", to: "/direct-connect", label: "Open projects" },
       },
     ],
   },

@@ -30,6 +30,15 @@ describe("localIntents", () => {
         confidence: 0.95,
       });
     });
+
+    it("routes explicit message navigation to the primary messages workspace", () => {
+      const intent = resolveExplicitNavigationIntent("Open messages");
+      expect(intent).toEqual({
+        to: "/messages",
+        label: "Messages",
+        confidence: 0.95,
+      });
+    });
   });
 
   describe("resolveQuickActionIntent", () => {

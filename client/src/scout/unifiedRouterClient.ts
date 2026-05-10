@@ -325,6 +325,22 @@ export class UnifiedScoutRouterClient {
         sourceLayer: "fallback",
       };
     }
+    if (
+      lower.includes("supply run") ||
+      lower.includes("supplies") ||
+      lower.includes("materials") ||
+      lower.includes("supplier") ||
+      lower.includes("lowes") ||
+      lower.includes("home depot") ||
+      lower.includes("lumber")
+    ) {
+      return {
+        action: { type: "NAVIGATE", to: "/utilities/supply-run", label: "Open Supply Run" },
+        confidence: 0.65,
+        reasoning: "Local fallback matched Supply Run intent",
+        sourceLayer: "fallback",
+      };
+    }
     return null;
   }
 

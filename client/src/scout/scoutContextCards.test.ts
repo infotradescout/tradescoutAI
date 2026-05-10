@@ -68,7 +68,9 @@ describe("buildScoutContextCards", () => {
   it("relates material and supplier queries to Supply Run", () => {
     const cards = buildScoutContextCards(baseContext, "need lumber and concrete delivered");
 
-    expect(cards.some((card) => card.id === "supply-run")).toBe(true);
+    const supplyRun = cards.find((card) => card.id === "supply-run");
+    expect(supplyRun).toBeTruthy();
+    expect(supplyRun?.action.to).toBe("/utilities/supply-run");
   });
 
   it("provides both workspace and Scout actions for every card", () => {

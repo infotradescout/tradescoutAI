@@ -9,6 +9,7 @@ function titleFromUrl(url: string): string {
   if (path.startsWith("/profile-settings")) return "Profile & settings";
   if (path.startsWith("/settings")) return "Settings";
   if (path.startsWith("/notifications")) return "Notifications";
+  if (path.startsWith("/utilities/supply-run")) return "Supply Run";
   if (path.startsWith("/direct-connect")) return "Direct Connect";
   if (path.startsWith("/finances")) return "Invoices & payments";
   if (path.startsWith("/messages")) return "Messages";

@@ -320,6 +320,33 @@ export const FEATURE_ROUTING_MAP: Record<string, PlatformFeatureRoute> = {
     authRequired: false,
     keywords: ["exchange", "marketplace", "buy", "sell", "trade", "deals"],
   },
+  supply_run: {
+    featureId: "supply_run",
+    name: "Supply Run",
+    primaryAction: {
+      type: "NAVIGATE",
+      to: "/utilities/supply-run",
+      label: "Open Supply Run",
+    },
+    alternativeActions: [
+      { type: "NAVIGATE", to: "/utilities/supply-run/new", label: "Start Supply Run" },
+      { type: "NAVIGATE", to: "/direct-connect", label: "Open saved requests" },
+    ],
+    roleRequirements: [],
+    authRequired: false,
+    keywords: [
+      "supply run",
+      "supplies",
+      "materials",
+      "material order",
+      "supplier",
+      "lowes",
+      "home depot",
+      "lumber",
+      "pickup",
+      "delivery",
+    ],
+  },
   homescout: {
     featureId: "homescout",
     name: "HomeScout",

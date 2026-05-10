@@ -46,6 +46,7 @@ export function resolveTile(tile: ScoutActionTile, ctx: ScoutTileContext): Scout
           ...tile,
           label: resolveLabel(variant.label, safeCtx, tile.label),
           description: resolveDescription(variant.description, safeCtx, tile.description),
+          action: resolveAction(variant.action, safeCtx, tile.action),
         };
       }
     } catch (error) {
@@ -91,6 +92,21 @@ function resolveDescription(
     return description(ctx);
   } catch (error) {
     console.warn("[Scout] Description resolver error:", error);
+    return fallback;
+  }
+}
+
+function resolveAction(
+  action: TileVariant["action"] | undefined,
+  ctx: ScoutTileContext,
+  fallback: ScoutActionTile["action"]
+): ScoutActionTile["action"] {
+  if (!action) return fallback;
+  if (typeof action !== "function") return action;
+  try {
+    return action(ctx);
+  } catch (error) {
+    console.warn("[Scout] Action resolver error:", error);
     return fallback;
   }
 }

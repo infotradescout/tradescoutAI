@@ -209,7 +209,7 @@ export function buildScoutContextCards(
       kind: "project",
       label: "Start a Supply Run",
       description: "Turn materials or supplier links into an order request.",
-      action: { type: "NAVIGATE", label: "Open Supply Run", to: "/procurement" },
+      action: { type: "NAVIGATE", label: "Open Supply Run", to: "/utilities/supply-run" },
       prompt: `Help me turn this into a Supply Run: ${rawQuery || "materials or supplier order"}.`,
     });
   }

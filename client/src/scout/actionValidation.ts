@@ -13,6 +13,7 @@ const ALLOWED_ACTION_TYPES: Set<ScoutActionType> = new Set<ScoutActionType>([
   "ASK_SCOUT",
   "OPEN_FLOATING_NOTE",
   "EXTERNAL_LINK",
+  "CALL_TOOL",
   "NOOP",
   "FOLLOW_USER",
   "UNFOLLOW_USER",
@@ -31,6 +32,8 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/notes",
   "/direct-connect",
   "/direct-connect/pros",
+  "/utilities/supply-run",
+  "/utilities/supply-run/new",
   "/trade-deals",
   "/projects",
   "/request-quote",
@@ -39,6 +42,7 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/profile",
   "/profile-settings",
   "/connections",
+  "/conversations",
   "/messages",
   "/notifications",
   "/help",
@@ -53,6 +57,8 @@ const ALLOWED_NAVIGATION_PATHS = new Set([
   "/register",
   "/create-account",
   "/login",
+  "/homes",
+  "/vehicles",
 ]);
 
 /**

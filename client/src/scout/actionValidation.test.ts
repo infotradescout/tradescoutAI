@@ -41,4 +41,26 @@ describe("actionValidation", () => {
 
     expect(action).toBeNull();
   });
+
+  it("allows Scout homeowner and Supply Run workspace routes", () => {
+    for (const to of ["/homes", "/vehicles", "/messages", "/utilities/supply-run"]) {
+      const action = validateAction({
+        type: "NAVIGATE",
+        label: "Open",
+        to,
+      });
+
+      expect(action?.to).toBe(to);
+    }
+  });
+
+  it("allows tool calls that the Scout action router owns", () => {
+    const action = validateAction({
+      type: "CALL_TOOL",
+      label: "Helpful",
+      payload: { name: "ads.feedback", adId: "ad_1", rating: "helpful" },
+    });
+
+    expect(action?.type).toBe("CALL_TOOL");
+  });
 });

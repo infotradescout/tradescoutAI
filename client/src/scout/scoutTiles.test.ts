@@ -160,6 +160,7 @@ describe("Scout Contextual Tiles - Hard Invariants", () => {
       const resolved = resolveTile(tile, ctx);
       expect(resolved.label).toContain("Continue invoice");
       expect(resolved.label).toContain("Roof Repair");
+      expect(resolved.action.to).toBe("/finances");
     });
 
     it("should NOT apply invoice freshness rule if update is older than 14 days", () => {
@@ -193,6 +194,7 @@ describe("Scout Contextual Tiles - Hard Invariants", () => {
       const tile = scoutActionTiles.find((t) => t.id === "manage")!;
       const resolved = resolveTile(tile, ctx);
       expect(resolved.label).toContain("View 2 active invoices");
+      expect(resolved.action.to).toBe("/finances");
     });
 
     it("should fallback to default when invoices fetch yields empty array", () => {
