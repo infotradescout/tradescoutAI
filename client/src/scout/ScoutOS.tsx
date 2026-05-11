@@ -81,6 +81,7 @@ import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
 import { sortScoutInfoDump } from "./scoutIntentSorter";
+import { inferScoutIntentDetails } from "./intentDetails";
 import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
@@ -1568,6 +1569,10 @@ export default function ScoutOS() {
           mode,
           intent: urlIntent,
           knowledgeMode: "local-first",
+          filters: {
+            intentDetails: inferScoutIntentDetails(value, locality),
+            collectionSurface: "scout-summary-thread",
+          },
           roles: rolesForRequest,
           recentActivity,
           shownAdIds,
@@ -4157,6 +4162,7 @@ export default function ScoutOS() {
                     overridePendingScope={overridePendingScope}
                     onSendMessage={handleOnboardingMessage}
                     onPrefill={prefillScoutMission}
+                    locality={locality}
                     pendingContextCards={scoutContextCards}
                     onQuickAction={(text) => {
                       const trimmed = text.trim();

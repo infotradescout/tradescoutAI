@@ -11,12 +11,17 @@ import {
   Store,
   Users2,
 } from "lucide-react";
-import type { ScoutMode } from "./api";
+import type { ScoutLocality, ScoutMode } from "./api";
 import type { ScoutAction, ScoutCluster, ScoutMessage, ScoutStatus } from "./state";
 import type { ScoutContextCard } from "./scoutContextCards";
 import { validateAction } from "./actionValidation";
 import { CommunityCTA } from "@/components/community/CommunityCTA";
 import { OnboardingPrompt } from "./OnboardingPrompt";
+import {
+  buildIntentDetailPrompts,
+  formatIntentDetailChips,
+  inferScoutIntentDetails,
+} from "./intentDetails";
 
 type ScoutThreadProps = {
   messages: ScoutMessage[];
@@ -30,6 +35,7 @@ type ScoutThreadProps = {
   onSendMessage?: (payload: any) => void;
   onPrefill?: (text: string) => void;
   pendingContextCards?: ScoutContextCard[];
+  locality?: ScoutLocality;
 };
 
 function AssistantStreamedText({
@@ -109,61 +115,6 @@ function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
   return hasResultSurface && String(msg.content || "").trim().length > SUMMARY_MAX_CHARS;
 }
 
-function buildIntentDetailPrompts(userMessage?: string): Array<{ label: string; prompt: string }> {
-  const text = String(userMessage || "").toLowerCase();
-  if (!text.trim()) return [];
-
-  const prompts: Array<{ label: string; prompt: string }> = [];
-  const hasLocation =
-    /\b(near me|nearby|county|parish|city|zip|address|at my|in [a-z]+|around [a-z]+)\b/.test(text);
-  const hasTiming =
-    /\b(today|tomorrow|asap|urgent|soon|this week|next week|flexible|emergency)\b/.test(text);
-  const hasScope =
-    /\b(repair|replace|install|quote|compare|price|leak|broken|not working|material|supplier|project)\b/.test(
-      text
-    );
-  const materialIntent =
-    /\b(material|supplier|lowe|home depot|lumber|concrete|pipe|wire|hvac)\b/.test(text);
-  const vehicleIntent = /\b(car|truck|vehicle|vin|tire|brake|engine|transmission)\b/.test(text);
-
-  if (!hasScope) {
-    prompts.push({
-      label: "Add what happened",
-      prompt: "More detail: the issue is ",
-    });
-  }
-  if (!hasLocation) {
-    prompts.push({
-      label: "Add location",
-      prompt: "More detail: this is in ",
-    });
-  }
-  if (!hasTiming) {
-    prompts.push({
-      label: "Add timing",
-      prompt: "More detail: I need this ",
-    });
-  }
-  if (materialIntent) {
-    prompts.push({
-      label: "Add material list or link",
-      prompt: "Material list or supplier link: ",
-    });
-  } else if (vehicleIntent) {
-    prompts.push({
-      label: "Add vehicle details",
-      prompt: "Vehicle details: year, make, model, and issue are ",
-    });
-  } else {
-    prompts.push({
-      label: "Add home or project details",
-      prompt: "Home or project details: ",
-    });
-  }
-
-  return prompts.slice(0, 3);
-}
-
 function buildAssistantSummary(msg: ScoutMessage, displayContent: string): string {
   if (!shouldSummarizeAssistantMessage(msg)) return displayContent;
 
@@ -178,14 +129,24 @@ function buildAssistantSummary(msg: ScoutMessage, displayContent: string): strin
 
 function IntentDetailCollector({
   userMessage,
+  locality,
   status,
   onPrefill,
 }: {
   userMessage?: string;
+  locality?: ScoutLocality;
   status: ScoutStatus;
   onPrefill?: (text: string) => void;
 }) {
-  const prompts = React.useMemo(() => buildIntentDetailPrompts(userMessage), [userMessage]);
+  const detail = React.useMemo(
+    () => inferScoutIntentDetails(userMessage, locality),
+    [locality, userMessage]
+  );
+  const chips = React.useMemo(() => formatIntentDetailChips(detail), [detail]);
+  const prompts = React.useMemo(
+    () => buildIntentDetailPrompts(userMessage, locality),
+    [locality, userMessage]
+  );
   const shouldShow =
     prompts.length > 0 &&
     (status === "resolving_context" ||
@@ -199,7 +160,9 @@ function IntentDetailCollector({
     <div className="scout-intent-collector" aria-label="Details Scout can use">
       <div className="min-w-0">
         <p className="scout-intent-collector__title">Details Scout can use</p>
-        <p className="scout-intent-collector__copy">Add anything that matters. Scout will wait.</p>
+        <p className="scout-intent-collector__copy">
+          {chips.length > 0 ? chips.join(" | ") : "Add anything that matters. Scout will wait."}
+        </p>
       </div>
       <div className="scout-intent-collector__chips">
         {prompts.map((prompt) => (
@@ -957,6 +920,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onSendMessage,
   onPrefill,
   pendingContextCards,
+  locality,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const [progress, setProgress] = React.useState(0);
@@ -1192,6 +1156,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         <>
           <IntentDetailCollector
             userMessage={latestUserMessage?.content}
+            locality={locality}
             status={status}
             onPrefill={onPrefill}
           />
