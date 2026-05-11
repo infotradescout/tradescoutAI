@@ -372,6 +372,34 @@ function buildExpectationRealityItems(rawMessage: string, normalized: string): E
   };
 }
 
+function buildBaselineProjectItems(normalized: string): ScoutIntentItem[] {
+  const items: ScoutIntentItem[] = [
+    {
+      id: "project-baseline-materials",
+      label: "Materials, tools, and equipment",
+      description:
+        "Most jobs need some mix of products, fasteners, tools, rentals, delivery, or cleanup",
+    },
+    {
+      id: "project-baseline-site",
+      label: "Measurements and site conditions",
+      description:
+        "Size, access, ground, utilities, existing damage, and photos can change the path",
+    },
+  ];
+
+  if (/\b(deck|fence|roof|concrete|addition|remodel|electrical|plumbing|hvac)\b/.test(normalized)) {
+    items.push({
+      id: "project-baseline-plans-permits",
+      label: "Plans, rules, or permits",
+      description:
+        "Some work needs drawings, code checks, inspections, utility checks, or local approval",
+    });
+  }
+
+  return items;
+}
+
 function hasItemLike(items: ScoutIntentItem[], value: string): boolean {
   const target = normalize(value);
   return items.some((item) => {
@@ -509,6 +537,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
   const perspective = inferProjectPerspective(normalized);
   const materialRelevant = isMaterialRelevantProject(facts.jobType, normalized);
   const prioritizeLocalHelp = shouldPrioritizeLocalHelp(facts, normalized);
+  const baselineItems = buildBaselineProjectItems(normalized);
 
   if (perspective === "client") {
     return [
@@ -521,6 +550,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
         body: "Keep the scope, measurements, materials, permit checks, and client-ready next steps together before anything is sent.",
         items: [
           ...reality.items,
+          ...baselineItems,
           {
             id: "client-project-context",
             label: "This looks like client work",
@@ -612,11 +642,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
     body: "Scout can help you organize the details first so you are not guessing before you talk to anyone.",
     items: [
       ...reality.items,
-      {
-        id: "project-plan-scope",
-        label: "Scope, materials, and permit checks",
-        description: "Start with the facts that change price and who can do the work",
-      },
+      ...baselineItems,
       {
         id: "project-plan-contact-gate",
         label: "No contact opens until you choose it",

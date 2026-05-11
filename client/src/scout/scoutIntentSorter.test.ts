@@ -107,10 +107,13 @@ describe("sortScoutInfoDump", () => {
     expect(actions).toContain("Start a material run");
     expect(actions).toContain("Browse Exchange materials");
     expect(primaryItems).toContain("Set the expectation");
+    expect(primaryItems).toContain("Materials, tools, and equipment");
+    expect(primaryItems).toContain("Measurements and site conditions");
+    expect(primaryItems).toContain("Plans, rules, or permits");
     expect(primaryItems).not.toContain("What has to be covered");
     expect(primaryItems).not.toContain("What is realistic");
     expect(primaryItems).toContain("Materials and products");
-    expect(primaryItems).toContain("Rules or permits");
+    expect(primaryItems).not.toContain("Rules or permits");
   });
 
   it("puts the most confident path first while carrying secondary angles", () => {
@@ -119,7 +122,9 @@ describe("sortScoutInfoDump", () => {
     expect(intents[0].label).toBe("Plan this project");
     expect(intents[0].confidence).toBeGreaterThanOrEqual(intents[1]?.confidence || 0);
     expect(intents[0].cluster.items?.some((item) => item.label === "Price factors")).toBe(true);
-    expect(intents[0].cluster.items?.some((item) => item.label === "Rules or permits")).toBe(true);
+    expect(
+      intents[0].cluster.items?.some((item) => item.label === "Plans, rules, or permits")
+    ).toBe(true);
     expect(intents[0].cluster.items?.length || 0).toBeLessThanOrEqual(8);
   });
 
@@ -214,6 +219,9 @@ describe("sortScoutInfoDump", () => {
 
     expect(visibleCopy).toContain("set the expectation");
     expect(visibleCopy).toContain("before scout can judge what is required or realistic");
+    expect(visibleCopy).toContain("materials, tools, and equipment");
+    expect(visibleCopy).toContain("measurements and site conditions");
+    expect(visibleCopy).toContain("plans, rules, or permits");
     expect(visibleCopy).not.toContain("what has to be covered");
     expect(visibleCopy).not.toContain("what is realistic");
   });
