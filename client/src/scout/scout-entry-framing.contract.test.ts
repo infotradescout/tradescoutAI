@@ -58,6 +58,16 @@ describe("Scout entry framing contracts", () => {
     expect(tilesSource).toContain('label: "Browse Exchange"');
   });
 
+  it("active Scout conversations use a focused result layout", () => {
+    const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+
+    expect(scoutOsSource).toContain("const showDiscoveryRail = !isMobile && !hasUserMessages");
+    expect(scoutOsSource).toContain('showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"');
+    expect(scoutOsSource).toContain("{showDiscoveryRail && (");
+    expect(scoutOsSource).toContain("Findings and recommended paths");
+    expect(scoutOsSource).toContain("Recommended paths appear below");
+  });
+
   it("normal user Scout copy hides internal system words", () => {
     const extractQuotedText = (source: string) =>
       Array.from(source.matchAll(/(["'`])((?:\\.|(?!\1).)*)\1/g), (match) => match[2]).join("\n");

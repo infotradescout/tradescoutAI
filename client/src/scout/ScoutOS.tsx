@@ -3255,6 +3255,7 @@ export default function ScoutOS() {
     },
     [handleClusterAction, localDiscoveryLaunchers, prefillScoutMission]
   );
+  const showDiscoveryRail = !isMobile && !hasUserMessages;
 
   return (
     <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
@@ -3272,12 +3273,14 @@ export default function ScoutOS() {
             className={
               isMobile
                 ? "max-w-[32rem] mx-auto w-full flex flex-col min-h-0"
-                : "mx-auto w-full flex flex-1 min-h-0 max-w-7xl gap-5"
+                : `mx-auto w-full flex flex-1 min-h-0 gap-5 ${
+                    showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"
+                  }`
             }
           >
             <div
               className={`scout-panel scout-mobile-panel w-full flex flex-col min-h-0 rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
-                isMobile ? "" : "flex-1"
+                isMobile ? "" : showDiscoveryRail ? "flex-1" : "flex-1 max-w-4xl mx-auto"
               }`}
             >
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
@@ -3557,7 +3560,9 @@ export default function ScoutOS() {
               )}
 
               <div
-                className="scout-composer-dock scout-composer-refined mt-1.5 order-2 z-10 rounded-2xl border px-3 py-3 md:px-4 md:py-4"
+                className={`scout-composer-dock scout-composer-refined z-10 rounded-2xl border px-3 py-3 md:px-4 md:py-4 ${
+                  hasUserMessages ? "order-1 mb-3" : "order-2 mt-1.5"
+                }`}
                 style={{
                   borderColor: !hasUserMessages
                     ? "color-mix(in oklab, var(--theme-accent-primary) 25%, var(--border-subtle))"
@@ -3773,7 +3778,7 @@ export default function ScoutOS() {
                   </div>
                 )}
 
-                {!isMobile && (
+                {!isMobile && !hasUserMessages && (
                   <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                     <button
                       type="button"
@@ -3813,10 +3818,10 @@ export default function ScoutOS() {
                   </div>
                 )}
 
-                {!isMobile && (
+                {!isMobile && !hasUserMessages && (
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                      Results
+                      Recommended paths appear below
                     </p>
 
                     <div
@@ -3944,7 +3949,13 @@ export default function ScoutOS() {
               <div
                 className={`mt-1.5 flex flex-col min-h-0 ${
                   showThreadRegion ? "flex-1" : "flex-none"
-                } ${isMobile ? "space-y-2 order-1" : "space-y-2 order-1"}`}
+                } ${
+                  isMobile
+                    ? "space-y-2 order-1"
+                    : hasUserMessages
+                      ? "space-y-2 order-2"
+                      : "space-y-2 order-1"
+                }`}
                 style={{ paddingBottom: isMobile ? "0.75rem" : "1rem" }}
               >
                 {false && !hasUserMessages && (
@@ -4215,6 +4226,25 @@ export default function ScoutOS() {
                   />
                 )}
 
+                {hasUserMessages && (
+                  <div
+                    className="rounded-xl border px-3 py-2"
+                    style={{
+                      borderColor: "var(--border-subtle)",
+                      backgroundColor:
+                        "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                    }}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                      Findings and recommended paths
+                    </p>
+                    <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+                      Start with the strongest card below. Scout keeps the summary separate from the
+                      actions.
+                    </p>
+                  </div>
+                )}
+
                 {showThreadRegion && (
                   <ScoutThread
                     messages={state.messages}
@@ -4370,7 +4400,7 @@ export default function ScoutOS() {
               </div>
             </div>
 
-            {!isMobile && (
+            {showDiscoveryRail && (
               <aside className="scout-v2-command-rail">
                 <div className="scout-v2-rail-card scout-v2-rail-card--hero">
                   <div className="flex items-center justify-between gap-3">
