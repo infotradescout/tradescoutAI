@@ -21,13 +21,14 @@ export default {
       },
       colors: {
         // Shift core surfaces toward neutral blacks (less navy/blue cast).
-        tsBg: "#07090B",
-        tsCard: "#111418",
-        tsBorder: "#020617",
+        tsBg: "#050505",
+        tsCard: "#111111",
+        tsSurface: "#1A1A1A",
+        tsBorder: "rgba(255, 255, 255, 0.1)",
         tsAccent: "#f97316",
         tsAccentSoft: "#fb923c",
-        tsTextMain: "#f1f5f9",
-        tsTextMuted: "#94a3b8",
+        tsTextMain: "#FAFAFA",
+        tsTextMuted: "#71717A",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
 
