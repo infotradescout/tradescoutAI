@@ -38,6 +38,25 @@ describe("Scout learning options", () => {
     expect(cluster?.actions?.length).toBe(2);
   });
 
+  it("preloads supplier, product, marketplace, and material-run paths for material needs", () => {
+    const cluster = buildScoutLearningCluster({
+      message: "Need lumber and fasteners for a deck",
+      confidenceBand: "low",
+      intentDetails: { context: "materials", missing: ["perspective"] },
+    });
+
+    expect(cluster?.actions?.map((action) => action.label)).toEqual([
+      "This is for my home",
+      "This is for a client",
+      "Local suppliers",
+      "Products to compare",
+      "Exchange materials",
+    ]);
+    expect(JSON.stringify(cluster).toLowerCase()).toContain(
+      "nothing is sent, posted, ordered, or paid"
+    );
+  });
+
   it("turns taps into learning counts without exposing internal labels", () => {
     const next = mergeScoutLearningSignal(
       { signals: {}, lastSignals: [] },

@@ -2855,6 +2855,9 @@ export default function ScoutOS() {
     vehicle: { icon: Car, label: "Vehicle" },
     pro: { icon: Wrench, label: "Saved help" },
     nearby: { icon: Users2, label: "Nearby" },
+    supplier: { icon: Wrench, label: "Supplier" },
+    material: { icon: PackageSearch, label: "Materials" },
+    marketplace: { icon: Search, label: "Exchange" },
   };
 
   // Resolve tiles to contextual variants based on deterministic state

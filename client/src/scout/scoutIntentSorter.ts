@@ -1,5 +1,10 @@
 import type { ScoutAction, ScoutCluster, ScoutClusterKind } from "./state";
 import { optionBudgetForConfidence, type ScoutConfidenceBand } from "./scoutLearningOptions";
+import {
+  hasMaterialOrSupplierIntent,
+  inferMaterialCategory,
+  materialProductSummary,
+} from "./scoutMaterialSignals";
 
 export type SortedScoutIntent = {
   id: string;
@@ -309,6 +314,12 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
             to: "/utilities/supply-run",
             primary: true,
           },
+          {
+            type: "NAVIGATE",
+            label: "Find local suppliers",
+            to: "/direct-connect/pros?trade=supplier",
+          },
+          { type: "NAVIGATE", label: "Browse Exchange materials", to: "/exchange/construction" },
           askScoutAction(
             "Make a material checklist",
             `Make a deck material checklist I can review before using it for a client quote: ${need}`
@@ -350,6 +361,7 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
           "Check prices",
           `Help me compare normal price factors for this deck work: ${need}`
         ),
+        { type: "NAVIGATE", label: "Browse Exchange materials", to: "/exchange/construction" },
       ],
     }),
     createSortedIntent({
@@ -381,6 +393,142 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
       ],
     }),
   ];
+}
+
+function buildMaterialOptionIntents(
+  rawMessage: string,
+  normalized: string,
+  confidenceBand?: ScoutConfidenceBand | string | null
+): SortedScoutIntent[] {
+  if (!hasMaterialOrSupplierIntent(normalized)) return [];
+
+  const facts = buildFacts(rawMessage);
+  const need = facts.need;
+  const materialCategory = inferMaterialCategory(normalized);
+  const products = materialProductSummary(normalized);
+  const options = [
+    createSortedIntent({
+      id: "local-suppliers",
+      label: "Local suppliers",
+      kind: "marketplace",
+      confidence: 0.86,
+      reason: "Use this to find supplier options before anything is contacted or ordered.",
+      body: "Scout can help identify local supplier options and what to verify. Supplier stock and prices need confirmation from the supplier.",
+      items: [
+        {
+          id: "supplier-options",
+          label: "Supplier options",
+          description: "Nearby stores, yards, or suppliers to compare before contact",
+        },
+        {
+          id: "supplier-guardrail",
+          label: "You approve the next step",
+          description: "Scout does not contact, order, invoice, or pay on its own",
+        },
+      ],
+      actions: [
+        {
+          type: "NAVIGATE",
+          label: "Find local suppliers",
+          to: "/direct-connect/pros?trade=supplier",
+          primary: true,
+        },
+        {
+          type: "NAVIGATE",
+          label: "Start a material run",
+          to: "/utilities/supply-run",
+        },
+        askScoutAction(
+          "Ask what to verify",
+          `Help me check supplier options, availability questions, pickup or delivery details, and red flags for: ${need}`
+        ),
+      ],
+    }),
+    createSortedIntent({
+      id: "products-to-compare",
+      label: "Products to compare",
+      kind: "marketplace",
+      confidence: 0.84,
+      reason: "Use this to compare product types, specs, and quantities before buying.",
+      body: `Scout can help compare ${products}. Prices and availability should be verified with the supplier before you commit.`,
+      items: [
+        {
+          id: "product-categories",
+          label: materialCategory.label,
+          description: products,
+        },
+        {
+          id: "product-fit",
+          label: "Fit before price",
+          description: "Match sizes, grade, quantity, delivery, and return constraints first",
+        },
+      ],
+      actions: [
+        askScoutAction(
+          "Compare products",
+          `Compare product choices, quantities, specs, and gotchas for: ${need}`
+        ),
+        {
+          type: "NAVIGATE",
+          label: "Browse related listings",
+          to: materialCategory.exchangePath,
+        },
+      ],
+    }),
+    createSortedIntent({
+      id: "exchange-materials",
+      label: "Exchange materials",
+      kind: "marketplace",
+      confidence: 0.82,
+      reason: "Use this to check nearby material, tool, and equipment listings.",
+      body: "Scout can point you to appropriate Exchange categories for nearby materials, tools, or equipment without opening contact automatically.",
+      items: [
+        {
+          id: "exchange-fit",
+          label: "Appropriate local listings",
+          description: "Materials, tools, equipment, and job-adjacent items",
+        },
+      ],
+      actions: [
+        {
+          type: "NAVIGATE",
+          label: "Browse Exchange materials",
+          to: materialCategory.exchangePath,
+          primary: true,
+        },
+        askScoutAction("Search listings", `Help me search Exchange for items related to: ${need}`),
+      ],
+    }),
+    createSortedIntent({
+      id: "material-run",
+      label: "Material list or supplier link",
+      kind: "projects",
+      confidence: 0.8,
+      reason: "Use this when you have a list, link, cart, or rough materials to organize.",
+      body: "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+      items: [
+        {
+          id: "supply-run-input",
+          label: "Material list or supplier link",
+          description: "Scout organizes the request for review before any order step",
+        },
+      ],
+      actions: [
+        {
+          type: "NAVIGATE",
+          label: "Start a material run",
+          to: "/utilities/supply-run",
+          primary: true,
+        },
+        askScoutAction(
+          "Make a material checklist",
+          `Make a clean material checklist from this: ${need}`
+        ),
+      ],
+    }),
+  ];
+
+  return options.slice(0, optionBudgetForConfidence(confidenceBand ?? "medium"));
 }
 
 function matcherConfigs(rawMessage: string): MatcherConfig[] {
@@ -589,6 +737,13 @@ export function sortScoutInfoDump(
 
   const deckOptions = buildDeckOptionIntents(rawMessage, normalized);
   if (deckOptions.length > 0) return deckOptions;
+
+  const materialOptions = buildMaterialOptionIntents(
+    rawMessage,
+    normalized,
+    options.confidenceBand
+  );
+  if (materialOptions.length > 0) return materialOptions;
 
   const facts = buildFacts(rawMessage);
   const configs = matcherConfigs(rawMessage);

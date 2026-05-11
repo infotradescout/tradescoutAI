@@ -72,6 +72,41 @@ describe("sortScoutInfoDump", () => {
     expect(exchangeIntent?.actions.some((action) => action.to === "/exchange")).toBe(true);
   });
 
+  it("sorts material needs into suppliers, product comparison, Exchange, and Supply Run", () => {
+    const intents = sortScoutInfoDump("need lumber joist hangers and fasteners for a deck", {
+      confidenceBand: "low",
+    });
+    const labels = intents.map((intent) => intent.label);
+    const visibleCopy = visibleIntentCopy(intents);
+
+    expect(labels).toContain("Local suppliers");
+    expect(labels).toContain("Products to compare");
+    expect(labels).toContain("Exchange materials");
+    expect(labels).toContain("Material list or supplier link");
+    expect(
+      intents.some((intent) =>
+        intent.actions.some((action) => action.to === "/utilities/supply-run")
+      )
+    ).toBe(true);
+    expect(visibleCopy).toContain("supplier stock and prices need confirmation");
+    expect(visibleCopy).toContain("scout does not contact, order, invoice, or pay on its own");
+    expect(visibleCopy).not.toContain("live inventory");
+    expect(visibleCopy).not.toContain("order directly");
+    expect(visibleCopy).not.toContain("can pay");
+  });
+
+  it("keeps deck project options while exposing material paths inside them", () => {
+    const intents = sortScoutInfoDump("i need to build a deck");
+    const actions = intents.flatMap((intent) => intent.actions.map((action) => action.label));
+
+    expect(intents.map((intent) => intent.label)).toEqual([
+      "Plan the deck project",
+      "Find deck help",
+    ]);
+    expect(actions).toContain("Start a material run");
+    expect(actions).toContain("Browse Exchange materials");
+  });
+
   it("sorts permit and code language into rules", () => {
     const intents = sortScoutInfoDump("do I need a permit or inspection for this fence");
     const rulesIntent = intents.find((intent) => intent.id === "rules-permits");

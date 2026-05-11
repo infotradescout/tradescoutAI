@@ -1,5 +1,10 @@
 import type { ScoutAction, ScoutCluster } from "./state";
 import type { ScoutIntentDetail } from "./intentDetails";
+import {
+  hasMaterialOrSupplierIntent,
+  inferMaterialCategory,
+  materialProductSummary,
+} from "./scoutMaterialSignals";
 
 export type ScoutConfidenceBand = "low" | "medium" | "high" | "unknown";
 
@@ -172,6 +177,8 @@ export function buildScoutLearningCluster(args: {
   const existing = new Set((args.existingLabels || []).map((label) => label.toLowerCase()));
   const budget = optionBudgetForConfidence(args.confidenceBand);
   const actions: ScoutAction[] = [];
+  const isMaterialNeed = detail?.context === "materials" || hasMaterialOrSupplierIntent(message);
+  const materialCategory = inferMaterialCategory(message);
 
   if (detail?.perspective !== "self") {
     actions.push(
@@ -199,7 +206,48 @@ export function buildScoutLearningCluster(args: {
     );
   }
 
-  if (!existing.has("find local help")) {
+  if (isMaterialNeed) {
+    actions.push(
+      withLearning(
+        {
+          type: "NAVIGATE",
+          label: "Local suppliers",
+          to: "/direct-connect/pros?trade=supplier",
+        },
+        { key: "next.local_suppliers", label: "Local suppliers" }
+      ),
+      withLearning(
+        {
+          type: "ASK_SCOUT",
+          label: "Products to compare",
+          prompt: `Help me compare product choices, specs, quantities, and gotchas for: ${message}`,
+        },
+        {
+          key: "next.product_compare",
+          label: "Products to compare",
+          value: materialProductSummary(message),
+        }
+      ),
+      withLearning(
+        {
+          type: "NAVIGATE",
+          label: "Exchange materials",
+          to: materialCategory.exchangePath,
+        },
+        { key: "next.exchange_materials", label: "Exchange materials" }
+      ),
+      withLearning(
+        {
+          type: "NAVIGATE",
+          label: "Start a material run",
+          to: "/utilities/supply-run",
+        },
+        { key: "next.supply_run", label: "Start a material run" }
+      )
+    );
+  }
+
+  if (!isMaterialNeed && !existing.has("find local help")) {
     actions.push(
       withLearning(
         {
@@ -212,18 +260,20 @@ export function buildScoutLearningCluster(args: {
     );
   }
 
-  actions.push(
-    withLearning(
-      {
-        type: "ASK_SCOUT",
-        label: "Check prices",
-        prompt: `Help me compare normal price factors and what changes the range for: ${message}`,
-      },
-      { key: "next.price_guidance", label: "Check prices" }
-    )
-  );
+  if (!isMaterialNeed) {
+    actions.push(
+      withLearning(
+        {
+          type: "ASK_SCOUT",
+          label: "Check prices",
+          prompt: `Help me compare normal price factors and what changes the range for: ${message}`,
+        },
+        { key: "next.price_guidance", label: "Check prices" }
+      )
+    );
+  }
 
-  if (detail?.context !== "materials") {
+  if (!isMaterialNeed && detail?.context !== "materials") {
     actions.push(
       withLearning(
         {

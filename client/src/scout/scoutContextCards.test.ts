@@ -65,12 +65,21 @@ describe("buildScoutContextCards", () => {
     ).toBe(true);
   });
 
-  it("relates material and supplier queries to Supply Run", () => {
-    const cards = buildScoutContextCards(baseContext, "need lumber and concrete delivered");
+  it("relates material and supplier queries to suppliers, products, Exchange, and Supply Run", () => {
+    const cards = buildScoutContextCards(baseContext, "need concrete bags delivered", 5);
+    const labels = cards.map((card) => card.label);
+    const visibleCopy = JSON.stringify(cards).toLowerCase();
 
+    expect(labels).toContain("Local suppliers");
+    expect(labels).toContain("Concrete materials");
+    expect(labels).toContain("Exchange materials");
     const supplyRun = cards.find((card) => card.id === "supply-run");
     expect(supplyRun).toBeTruthy();
     expect(supplyRun?.action.to).toBe("/utilities/supply-run");
+    expect(visibleCopy).toContain("send a material list or supplier link");
+    expect(visibleCopy).not.toContain("live inventory");
+    expect(visibleCopy).not.toContain("order directly");
+    expect(visibleCopy).not.toContain("pay");
   });
 
   it("provides both workspace and Scout actions for every card", () => {

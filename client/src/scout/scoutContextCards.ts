@@ -1,7 +1,20 @@
 import type { ScoutAction } from "./state";
 import type { ScoutTileContext } from "./scoutActionTiles";
+import {
+  hasMaterialOrSupplierIntent,
+  inferMaterialCategory,
+  materialProductSummary,
+} from "./scoutMaterialSignals";
 
-export type ScoutContextCardKind = "project" | "home" | "vehicle" | "pro" | "nearby";
+export type ScoutContextCardKind =
+  | "project"
+  | "home"
+  | "vehicle"
+  | "pro"
+  | "nearby"
+  | "supplier"
+  | "material"
+  | "marketplace";
 
 export type ScoutContextCard = {
   id: string;
@@ -105,20 +118,7 @@ export function buildScoutContextCards(
   const wantsPro =
     !query ||
     hasAny(query, ["contractor", "pro", "help", "plumber", "electrician", "roofer", "handyman"]);
-  const wantsSupplyRun = hasAny(query, [
-    "material",
-    "materials",
-    "supply",
-    "supplies",
-    "parts",
-    "lowes",
-    "home depot",
-    "lumber",
-    "concrete bag",
-    "order",
-    "pickup",
-    "delivery",
-  ]);
+  const wantsSupplyRun = hasMaterialOrSupplierIntent(query);
 
   if (wantsProject && activeJobs.length > 0) {
     const job = activeJobs.find((item) => titleMatchesQuery(item.name, query)) || activeJobs[0];
@@ -145,6 +145,54 @@ export function buildScoutContextCards(
       action: { type: "NAVIGATE", label: "Open invoices", to: "/finances" },
       prompt: `Help me review what to check before I handle this invoice: ${rawQuery || "my invoice"}.`,
     });
+  }
+
+  if (wantsSupplyRun) {
+    const materialCategory = inferMaterialCategory(query);
+    const products = materialProductSummary(query);
+    cards.push(
+      {
+        id: "local-suppliers",
+        kind: "supplier",
+        label: "Local suppliers",
+        description: "Find nearby supplier options before anything is contacted or ordered.",
+        action: {
+          type: "NAVIGATE",
+          label: "Find local suppliers",
+          to: "/direct-connect/pros?trade=supplier",
+        },
+        prompt: `Help me identify local supplier options and what to verify before ordering: ${rawQuery || "materials"}.`,
+      },
+      {
+        id: "product-options",
+        kind: "material",
+        label: materialCategory.label,
+        description: `Compare products to check: ${products}.`,
+        action: {
+          type: "NAVIGATE",
+          label: "Compare products",
+          to: materialCategory.exchangePath,
+        },
+        prompt: `Help me compare product options and specs for: ${rawQuery || materialCategory.label}.`,
+      },
+      {
+        id: "exchange-materials",
+        kind: "marketplace",
+        label: "Exchange materials",
+        description: "Check nearby material, tool, and equipment listings.",
+        action: { type: "NAVIGATE", label: "Browse Exchange", to: materialCategory.exchangePath },
+        prompt: `Search appropriate Exchange categories for materials or tools related to: ${rawQuery || "this job"}.`,
+      },
+      {
+        id: "supply-run",
+        kind: "project",
+        label: "Start a material run",
+        description:
+          "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+        action: { type: "NAVIGATE", label: "Open Supply Run", to: "/utilities/supply-run" },
+        prompt: `Help me turn this into a Supply Run: ${rawQuery || "materials or supplier link"}.`,
+      }
+    );
   }
 
   if (wantsHome && homes.length > 0) {
@@ -200,17 +248,6 @@ export function buildScoutContextCards(
       description: "Start with people you already saved.",
       action: { type: "NAVIGATE", label: "Saved pros", to: "/direct-connect/pros" },
       prompt: `Help me decide whether one of my saved pros fits this: ${rawQuery || "local help"}.`,
-    });
-  }
-
-  if (wantsSupplyRun) {
-    cards.push({
-      id: "supply-run",
-      kind: "project",
-      label: "Start a Supply Run",
-      description: "Turn materials or supplier links into an order request.",
-      action: { type: "NAVIGATE", label: "Open Supply Run", to: "/utilities/supply-run" },
-      prompt: `Help me turn this into a Supply Run: ${rawQuery || "materials or supplier order"}.`,
     });
   }
 
