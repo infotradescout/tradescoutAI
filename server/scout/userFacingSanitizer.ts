@@ -58,7 +58,7 @@ const USER_FACING_REPLACEMENTS: Array<{ flag: string; pattern: RegExp; replaceme
   {
     flag: "choice_question_rewritten",
     pattern: /\bdo you want to start with ([^?]+?) or ([^?]+?)\?/gi,
-    replacement: "I can show both starting points as next steps.",
+    replacement: "I can put the strongest next step first and keep the other path ready.",
   },
   {
     flag: "system_word_rewritten",

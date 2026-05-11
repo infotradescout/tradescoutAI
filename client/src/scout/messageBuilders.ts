@@ -92,10 +92,10 @@ export function buildConnectionFallback(
 
   const stayInScoutPrompt = useAmbiguityBundle
     ? roofDomainAmbiguous
-      ? "Keep me in Scout and help me choose: should I hire a roofer, browse recent roofing materials, or check nearby posts first?"
+      ? "Keep me in Scout. Put the strongest roofing next step first, then show materials and nearby posts if they matter."
       : deckSignals
-        ? "Keep me in Scout and help me choose: should I plan the deck, look for deck builders, or check rental equipment first?"
-        : "Keep me in Scout and help me choose: should I start with trusted local help, recent listings, or nearby posts first?"
+        ? "Keep me in Scout. Put the strongest deck next step first, then show builders, materials, equipment, and nearby posts if they matter."
+        : "Keep me in Scout. Put the strongest local next step first, then show listings and nearby posts if they matter."
     : "Keep me here and walk me through the best next move.";
 
   const candidateActions: ScoutAction[] = [];
@@ -206,10 +206,10 @@ export function buildConnectionFallback(
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     role: "assistant",
     content: deckSignals
-      ? "For a deck project, start with scope, budget, and timing. Then compare local builders, rental equipment, and nearby posts. What do you want to check first?"
+      ? "For a deck project, start with scope, budget, and timing. Then compare deck builders, materials, rental equipment, and nearby posts."
       : homeProjectSignals
-        ? "Start with scope, budget, and timing. Then compare local help and nearby options. What do you want to check first?"
-        : "The connection hiccuped, but you can keep moving. Choose what fits or try again.",
+        ? "Start with scope, budget, and timing. Then compare local help, materials, prices, and nearby activity."
+        : "Scout can still keep this moving. The strongest next steps are ready below.",
     timestamp: new Date().toISOString(),
     clusters: [
       {
@@ -220,7 +220,7 @@ export function buildConnectionFallback(
           ? "Start with project planning, deck builders, rental equipment, or nearby posts."
           : homeProjectSignals
             ? "Start with project planning, local help, Exchange, or nearby posts."
-            : "Choose a result below. I can open it here or keep searching.",
+            : "Start with the strongest result below. I can open it here or keep searching.",
         actions,
       },
     ],

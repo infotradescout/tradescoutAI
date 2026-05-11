@@ -34,8 +34,9 @@ describe("messageBuilders", () => {
     );
 
     expect(message.role).toBe("assistant");
-    expect(message.content.toLowerCase()).toContain("keep moving");
-    expect(message.content.toLowerCase()).toContain("choose what fits");
+    expect(message.content.toLowerCase()).toContain("still keep this moving");
+    expect(message.content.toLowerCase()).toContain("strongest next steps");
+    expect(message.content.toLowerCase()).not.toContain("choose what fits");
     expect(message.clusters?.[0]?.title).toBe("Keep moving");
     expect(actions.length).toBeGreaterThan(0);
     expect(message.suggestedActions?.[0]).toBe("Retry my question");
@@ -87,7 +88,7 @@ describe("messageBuilders", () => {
     expect(actions.some((action) => action.type === "ASK_SCOUT")).toBe(true);
     const stayInScout = actions.find((action) => action.type === "ASK_SCOUT");
     expect(stayInScout?.label).toBe("Stay here");
-    expect(stayInScout?.prompt?.toLowerCase()).toContain("hire a roofer");
+    expect(stayInScout?.prompt?.toLowerCase()).toContain("strongest roofing next step");
   });
 
   it("shows multi-path options for keyword-only prompts without context", () => {
@@ -133,6 +134,8 @@ describe("messageBuilders", () => {
     );
 
     expect(message.content.toLowerCase()).toContain("scope");
+    expect(message.content.toLowerCase()).toContain("materials");
+    expect(message.content.toLowerCase()).not.toContain("what do you want");
     expect(actions.some((action) => action.to === "/project-tracker")).toBe(true);
     expect(actions.some((action) => action.to === "/direct-connect/pros")).toBe(true);
     expect(actions.some((action) => action.to === "/exchange/rental-equipment")).toBe(true);

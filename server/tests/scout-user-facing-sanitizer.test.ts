@@ -73,6 +73,17 @@ describe("sanitizeScoutUserFacingText", () => {
     expect(result.flags).toContain("choice_question_rewritten");
   });
 
+  it("rewrites generic either-or questions into strongest-path copy", () => {
+    const result = sanitizeScoutUserFacingText(
+      "Do you want to start with supplier options or marketplace materials?"
+    );
+
+    expect(result.text.toLowerCase()).not.toContain("do you want");
+    expect(result.text).toContain("strongest next step");
+    expect(result.text).toContain("other path ready");
+    expect(result.flags).toContain("choice_question_rewritten");
+  });
+
   it("replaces internal spec dumps with fallback", () => {
     const raw =
       "Shifts overhead: users feel ownership pressure. Safe Path (recommended by this analysis): Auto-persist. Trigger Examples: roof repair. Phase 1: Implementation trust signals.";
