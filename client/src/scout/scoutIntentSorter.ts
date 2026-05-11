@@ -38,6 +38,7 @@ type DumpFacts = {
 };
 
 type ProjectPerspective = "personal" | "client";
+type ScoutIntentItem = { id: string; label: string; description?: string };
 
 function normalize(input: string): string {
   return input
@@ -223,6 +224,96 @@ function inferProjectPerspective(normalized: string): ProjectPerspective {
     : "personal";
 }
 
+function hasItemLike(items: ScoutIntentItem[], value: string): boolean {
+  const target = normalize(value);
+  return items.some((item) => {
+    const label = normalize(item.label);
+    const description = normalize(item.description || "");
+    return label.includes(target) || description.includes(target);
+  });
+}
+
+function buildAngleItems(rawMessage: string, currentIntentId: string): ScoutIntentItem[] {
+  const normalized = normalize(rawMessage);
+  const items: ScoutIntentItem[] = [];
+
+  function add(id: string, label: string, description: string) {
+    if (items.length >= 3) return;
+    if (currentIntentId.includes(id)) return;
+    if (hasItemLike(items, label)) return;
+    items.push({ id: `angle-${id}`, label, description });
+  }
+
+  if (/\b(client|customer|bid|quote|invoice|my crew|for someone|for somebody)\b/.test(normalized)) {
+    add(
+      "approval",
+      "Client-ready review",
+      "Keep scope, price, messages, quotes, and invoices in review before anything is sent"
+    );
+  }
+
+  if (
+    hasMaterialOrSupplierIntent(normalized) ||
+    /\b(build|install|replace|repair|project)\b/.test(normalized)
+  ) {
+    add(
+      "materials",
+      "Materials and products",
+      "Check supplier options, product fit, Exchange listings, and Supply Run when materials matter"
+    );
+  }
+
+  if (
+    /\b(permit|inspection|code|deck|fence|roof|electrical|concrete|addition|remodel)\b/.test(
+      normalized
+    )
+  ) {
+    add(
+      "rules",
+      "Rules or permits",
+      "Some jobs need local code, permit, or inspection checks before work starts"
+    );
+  }
+
+  if (/\b(price|cost|budget|estimate|quote|fair|compare)\b/.test(normalized)) {
+    add(
+      "price",
+      "Price factors",
+      "Scope, timing, materials, access, and location can change the range"
+    );
+  }
+
+  if (
+    /\b(near me|nearby|local|recommend|trusted|contractor|pro|plumber|roofer|electrician)\b/.test(
+      normalized
+    )
+  ) {
+    add("trust", "Trust before contact", "Compare fit and local signals before opening contact");
+  }
+
+  if (
+    /\b(today|urgent|asap|emergency|now|leak|broken|no heat|no ac|flood|sparking)\b/.test(
+      normalized
+    )
+  ) {
+    add(
+      "timing",
+      "Timing changes priority",
+      "Urgent work should favor safety, availability, and clear contact steps"
+    );
+  }
+
+  if (items.length === 0) {
+    add(
+      "owner-context",
+      "Who this is for",
+      "Home, vehicle, client, rental, or job-site context can change the best next step"
+    );
+  }
+
+  return items;
+}
+
 function createSortedIntent(input: {
   id: string;
   label: string;
@@ -230,9 +321,15 @@ function createSortedIntent(input: {
   confidence: number;
   reason: string;
   body: string;
-  items: Array<{ id: string; label: string; description?: string }>;
+  items: ScoutIntentItem[];
+  angleItems?: ScoutIntentItem[];
   actions: ScoutAction[];
 }): SortedScoutIntent {
+  const items = [...input.items];
+  for (const item of input.angleItems || []) {
+    if (!hasItemLike(items, item.label)) items.push(item);
+  }
+
   return {
     id: input.id,
     label: input.label,
@@ -245,7 +342,7 @@ function createSortedIntent(input: {
       title: input.label,
       kind: input.kind,
       body: input.body,
-      items: input.items,
+      items,
       actions: input.actions,
     },
   };
@@ -279,6 +376,7 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
             description: "Messages, quotes, invoices, and posts stay gated",
           },
         ],
+        angleItems: buildAngleItems(rawMessage, "deck-client-scope"),
         actions: [
           askScoutAction(
             "Build the scope",
@@ -307,6 +405,7 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
             description: "Scout does not message, quote, invoice, order, or pay on its own",
           },
         ],
+        angleItems: buildAngleItems(rawMessage, "deck-material-quote-prep"),
         actions: [
           {
             type: "NAVIGATE",
@@ -351,6 +450,7 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
           description: "You stay in review before anything is shared",
         },
       ],
+      angleItems: buildAngleItems(rawMessage, "deck-project-plan"),
       actions: [
         askScoutAction(
           "Plan the project",
@@ -383,6 +483,7 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
           description: "Look at local options without opening contact automatically",
         },
       ],
+      angleItems: buildAngleItems(rawMessage, "deck-find-help"),
       actions: [
         requestAction(rawMessage),
         { type: "NAVIGATE", label: "Browse deck help", to: "/direct-connect/pros?trade=deck" },
@@ -426,6 +527,7 @@ function buildMaterialOptionIntents(
           description: "Scout does not contact, order, invoice, or pay on its own",
         },
       ],
+      angleItems: buildAngleItems(rawMessage, "local-suppliers"),
       actions: [
         {
           type: "NAVIGATE",
@@ -463,6 +565,7 @@ function buildMaterialOptionIntents(
           description: "Match sizes, grade, quantity, delivery, and return constraints first",
         },
       ],
+      angleItems: buildAngleItems(rawMessage, "products-to-compare"),
       actions: [
         askScoutAction(
           "Compare products",
@@ -489,6 +592,7 @@ function buildMaterialOptionIntents(
           description: "Materials, tools, equipment, and job-adjacent items",
         },
       ],
+      angleItems: buildAngleItems(rawMessage, "exchange-materials"),
       actions: [
         {
           type: "NAVIGATE",
@@ -513,6 +617,7 @@ function buildMaterialOptionIntents(
           description: "Scout organizes the request for review before any order step",
         },
       ],
+      angleItems: buildAngleItems(rawMessage, "material-run"),
       actions: [
         {
           type: "NAVIGATE",
@@ -776,6 +881,7 @@ export function sortScoutInfoDump(
           label: config.reason,
           description: confidence >= 0.8 ? "This is a good place to start" : "This may help",
         },
+        ...buildAngleItems(rawMessage, config.id),
       ],
       actions: config.actions,
     },

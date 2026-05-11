@@ -35,6 +35,9 @@ describe("sortScoutInfoDump", () => {
       tradeId: "roofing",
       urgency: "high",
     });
+    expect(intents[0].cluster.items?.some((item) => item.label === "Trust before contact")).toBe(
+      true
+    );
   });
 
   it("extracts budget ranges into the saved request prefill", () => {
@@ -98,6 +101,7 @@ describe("sortScoutInfoDump", () => {
   it("keeps deck project options while exposing material paths inside them", () => {
     const intents = sortScoutInfoDump("i need to build a deck");
     const actions = intents.flatMap((intent) => intent.actions.map((action) => action.label));
+    const primaryItems = intents[0].cluster.items?.map((item) => item.label) || [];
 
     expect(intents.map((intent) => intent.label)).toEqual([
       "Plan the deck project",
@@ -105,6 +109,18 @@ describe("sortScoutInfoDump", () => {
     ]);
     expect(actions).toContain("Start a material run");
     expect(actions).toContain("Browse Exchange materials");
+    expect(primaryItems).toContain("Materials and products");
+    expect(primaryItems).toContain("Rules or permits");
+  });
+
+  it("puts the most confident path first while carrying secondary angles", () => {
+    const intents = sortScoutInfoDump("need a contractor to build a fence and compare prices");
+
+    expect(intents[0].label).toBe("Local help");
+    expect(intents[0].confidence).toBeGreaterThanOrEqual(intents[1]?.confidence || 0);
+    expect(intents[0].cluster.items?.some((item) => item.label === "Price factors")).toBe(true);
+    expect(intents[0].cluster.items?.some((item) => item.label === "Rules or permits")).toBe(true);
+    expect(intents[0].cluster.items?.length || 0).toBeLessThanOrEqual(6);
   });
 
   it("sorts permit and code language into rules", () => {
