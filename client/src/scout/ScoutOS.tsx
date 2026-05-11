@@ -3452,156 +3452,123 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              <div
-                className={`scout-composer-dock scout-composer-refined z-10 rounded-2xl border px-3 py-3 md:px-4 md:py-4 ${
-                  hasUserMessages ? "order-1 mb-3" : "order-2 mt-1.5"
-                }`}
-                style={{
-                  borderColor: !hasUserMessages
-                    ? "color-mix(in oklab, var(--theme-accent-primary) 25%, var(--border-subtle))"
-                    : "var(--border-subtle)",
-                  backgroundColor: !hasUserMessages
-                    ? "color-mix(in oklab, var(--surface-card) 96%, black 4%)"
-                    : "color-mix(in oklab, var(--surface-card) 93%, transparent)",
-                  boxShadow: !hasUserMessages ? "0 18px 48px rgba(0,0,0,0.32)" : undefined,
-                  backdropFilter: "blur(8px)",
-                }}
-              >
-                {isMobile && (
-                  <div
-                    className="scout-step-card mb-2 rounded-md border px-2.5 py-2"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      backgroundColor:
-                        "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
-                    }}
-                  >
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-wide"
-                      style={{ color: "var(--text-secondary)" }}
-                    >
-                      Before you contact anyone
-                    </p>
-                    <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Scout searches first. You review the next step before sharing contact info or
-                      making a request.
-                    </p>
-                  </div>
-                )}
-
-                <ScoutInputRow
-                  isBusy={isBusy}
-                  prefillKey={prefillKey}
-                  heroLocationLabel={heroLocationLabel}
-                  isUpdatingGeo={isUpdatingGeo}
-                  onOpenLocationSettings={() => navigate("/settings")}
-                  onUseDeviceLocation={handleUseDeviceLocation}
-                  onSend={(value) => handleSend(value)}
-                  onTyping={() => {
-                    setHasGuestInteracted(true);
-                    recordActivity({
-                      type: "ask_scout",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      label: "typing",
-                    });
+              {!hasUserMessages && (
+                <div
+                  className="scout-composer-refined z-10 order-2 mt-1.5 rounded-2xl border px-3 py-3 md:px-4 md:py-4"
+                  style={{
+                    borderColor:
+                      "color-mix(in oklab, var(--theme-accent-primary) 25%, var(--border-subtle))",
+                    backgroundColor: "color-mix(in oklab, var(--surface-card) 96%, black 4%)",
+                    boxShadow: "0 18px 48px rgba(0,0,0,0.32)",
+                    backdropFilter: "blur(8px)",
                   }}
-                  quickStartPrompts={
-                    !hasMessages
-                      ? isMobile
-                        ? SCOUT_QUICK_START_PROMPTS.slice(0, 2)
-                        : [...SCOUT_QUICK_START_PROMPTS]
-                      : []
-                  }
-                  autoDemoText={introDemoText}
-                  enableAutoDemo={shouldPlayIntroDemo}
-                />
-
-                {scoutContextCards.length > 0 && (
-                  <div className="mt-3">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-secondary)]">
-                        {hasUserMessages ? "Related to this" : "Keep working"}
+                >
+                  {isMobile && (
+                    <div
+                      className="scout-step-card mb-2 rounded-md border px-2.5 py-2"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        backgroundColor:
+                          "color-mix(in oklab, var(--surface-intermediate) 90%, transparent)",
+                      }}
+                    >
+                      <p
+                        className="text-[10px] font-semibold uppercase tracking-wide"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        Before you contact anyone
                       </p>
-                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                        Stay here or open it
-                      </span>
+                      <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+                        Scout searches first. You review the next step before sharing contact info
+                        or making a request.
+                      </p>
                     </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {scoutContextCards.map((card) => {
-                        const meta = contextCardMeta[card.kind];
-                        const Icon = meta.icon;
+                  )}
 
-                        return (
-                          <div
-                            key={card.id}
-                            className="group flex min-h-[92px] items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
-                            style={{
-                              borderColor: "var(--border-subtle)",
-                              backgroundColor:
-                                "color-mix(in oklab, var(--surface-card) 88%, var(--surface-intermediate) 12%)",
-                              color: "var(--text-primary)",
-                            }}
-                          >
-                            <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ts-orange/10 text-ts-orange">
-                              <Icon className="h-4 w-4" />
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-ts-orange">
-                                {meta.label}
+                  {scoutContextCards.length > 0 && (
+                    <div className="mt-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--text-secondary)]">
+                          Keep working
+                        </p>
+                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                          Stay here or open it
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        {scoutContextCards.map((card) => {
+                          const meta = contextCardMeta[card.kind];
+                          const Icon = meta.icon;
+
+                          return (
+                            <div
+                              key={card.id}
+                              className="group flex min-h-[92px] items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors"
+                              style={{
+                                borderColor: "var(--border-subtle)",
+                                backgroundColor:
+                                  "color-mix(in oklab, var(--surface-card) 88%, var(--surface-intermediate) 12%)",
+                                color: "var(--text-primary)",
+                              }}
+                            >
+                              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ts-orange/10 text-ts-orange">
+                                <Icon className="h-4 w-4" />
                               </span>
-                              <span className="mt-0.5 block text-sm font-semibold leading-tight">
-                                {card.label}
-                              </span>
-                              <span
-                                className="mt-1 block text-[11px] leading-snug"
-                                style={{ color: "var(--text-secondary)" }}
-                              >
-                                {card.description}
-                              </span>
-                              <span className="mt-2 flex flex-wrap gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setHasGuestInteracted(true);
-                                    void handleClusterAction(card.action);
-                                  }}
-                                  className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-                                  style={{
-                                    borderColor: "var(--border-subtle)",
-                                    backgroundColor: "var(--surface-intermediate)",
-                                    color: "var(--text-primary)",
-                                  }}
+                              <span className="min-w-0">
+                                <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-ts-orange">
+                                  {meta.label}
+                                </span>
+                                <span className="mt-0.5 block text-sm font-semibold leading-tight">
+                                  {card.label}
+                                </span>
+                                <span
+                                  className="mt-1 block text-[11px] leading-snug"
+                                  style={{ color: "var(--text-secondary)" }}
                                 >
-                                  Open here
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setHasGuestInteracted(true);
-                                    void handleSend(card.prompt);
-                                  }}
-                                  className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-                                  style={{
-                                    borderColor:
-                                      "color-mix(in oklab, var(--theme-accent-primary) 42%, var(--border-subtle))",
-                                    backgroundColor:
-                                      "color-mix(in oklab, var(--theme-accent-primary) 8%, var(--surface-card))",
-                                    color: "var(--text-primary)",
-                                  }}
-                                >
-                                  Ask Scout
-                                </button>
+                                  {card.description}
+                                </span>
+                                <span className="mt-2 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setHasGuestInteracted(true);
+                                      void handleClusterAction(card.action);
+                                    }}
+                                    className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                                    style={{
+                                      borderColor: "var(--border-subtle)",
+                                      backgroundColor: "var(--surface-intermediate)",
+                                      color: "var(--text-primary)",
+                                    }}
+                                  >
+                                    Open here
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setHasGuestInteracted(true);
+                                      void handleSend(card.prompt);
+                                    }}
+                                    className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                                    style={{
+                                      borderColor:
+                                        "color-mix(in oklab, var(--theme-accent-primary) 42%, var(--border-subtle))",
+                                      backgroundColor:
+                                        "color-mix(in oklab, var(--theme-accent-primary) 8%, var(--surface-card))",
+                                      color: "var(--text-primary)",
+                                    }}
+                                  >
+                                    Ask Scout
+                                  </button>
+                                </span>
                               </span>
-                            </span>
-                          </div>
-                        );
-                      })}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {!hasUserMessages && (
                   <div className="mt-3">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
@@ -3654,191 +3621,182 @@ export default function ScoutOS() {
                       })}
                     </div>
                   </div>
-                )}
 
-                {!isAuthenticated && (
-                  <div className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                    Start here first.{" "}
-                    <button
-                      type="button"
-                      className="font-medium underline underline-offset-2"
-                      style={{ color: "var(--text-primary)" }}
-                      onClick={() => navigate("/login")}
-                    >
-                      Sign in
-                    </button>{" "}
-                    only when you want to save this or come back to it later.
-                  </div>
-                )}
-
-                {!isMobile && !hasUserMessages && (
-                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setShortcutsOpen((v) => !v)}
-                      className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
-                      style={{
-                        borderColor: "var(--border-subtle)",
-                        backgroundColor:
-                          "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                        color: "var(--text-secondary)",
-                      }}
-                      aria-expanded={shortcutsOpen}
-                    >
-                      {shortcutsOpen ? "Hide shortcuts" : "Shortcuts"}
-                    </button>
-
-                    {shortcutsOpen &&
-                      resolvedTiles.slice(0, isMobile ? 3 : 4).map((tile) => (
-                        <button
-                          key={`dock-${tile.id}`}
-                          type="button"
-                          onClick={() => {
-                            setHasGuestInteracted(true);
-                            handleActionTile(tile);
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
-                          style={{
-                            borderColor: "var(--border-subtle)",
-                            backgroundColor:
-                              "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                            color: "var(--text-secondary)",
-                          }}
-                        >
-                          <span>{tile.label}</span>
-                        </button>
-                      ))}
-                  </div>
-                )}
-
-                {!isMobile && !hasUserMessages && (
-                  <div className="mt-2 flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-                      Recommended paths appear below
-                    </p>
-
-                    <div
-                      className="inline-flex items-center gap-1 rounded-full border p-0.5"
-                      style={{
-                        borderColor: "var(--border-subtle)",
-                        backgroundColor:
-                          "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
-                      }}
-                    >
+                  {!isAuthenticated && (
+                    <div className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                      Start here first.{" "}
                       <button
                         type="button"
-                        onClick={() => setViewMode("chat_only")}
-                        className="rounded-full px-2 py-1 text-[10px] font-medium"
-                        style={{
-                          color:
-                            scoutViewMode === "chat_only"
-                              ? "var(--ts-text-on-accent, #0B0F14)"
-                              : "var(--text-secondary)",
-                          backgroundColor:
-                            scoutViewMode === "chat_only"
-                              ? "var(--theme-accent-primary)"
-                              : "transparent",
-                        }}
+                        className="font-medium underline underline-offset-2"
+                        style={{ color: "var(--text-primary)" }}
+                        onClick={() => navigate("/login")}
                       >
-                        Simple
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode("chat_plus_controller")}
-                        className="rounded-full px-2 py-1 text-[10px] font-medium"
-                        style={{
-                          color:
-                            scoutViewMode === "chat_plus_controller"
-                              ? "var(--ts-text-on-accent, #0B0F14)"
-                              : "var(--text-secondary)",
-                          backgroundColor:
-                            scoutViewMode === "chat_plus_controller"
-                              ? "var(--theme-accent-primary)"
-                              : "transparent",
-                        }}
-                      >
-                        With actions
-                      </button>
+                        Sign in
+                      </button>{" "}
+                      only when you want to save this or come back to it later.
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Avoid duplicated action lists: in action view, actions render per-message. */}
-                {false && effectiveViewMode === "chat_only" && controllerActions.length > 0 && (
-                  <div
-                    className="mt-2 rounded-lg border p-2"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      backgroundColor:
-                        "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
-                    }}
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p
-                        className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        Actions
-                      </p>
-
+                  {!isMobile && (
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
-                        className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                        onClick={() => setShortcutsOpen((v) => !v)}
+                        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
                         style={{
                           borderColor: "var(--border-subtle)",
+                          backgroundColor:
+                            "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
                           color: "var(--text-secondary)",
-                          backgroundColor: "transparent",
                         }}
-                        onClick={() => setControllerRailOpen((v) => !v)}
-                        aria-expanded={controllerRailOpen}
+                        aria-expanded={shortcutsOpen}
                       >
-                        {controllerRailOpen ? "Hide" : `Show (${controllerActions.length})`}
+                        {shortcutsOpen ? "Hide shortcuts" : "Shortcuts"}
                       </button>
-                    </div>
 
-                    {controllerRailOpen && (
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap gap-2">
-                          {visibleControllerActions.map((action, index) => (
-                            <button
-                              key={`controller-rail-${index}-${action.type}-${action.label || "action"}`}
-                              type="button"
-                              onClick={() => {
-                                setHasGuestInteracted(true);
-                                void handleClusterAction(action);
-                              }}
-                              className="scout-action-button"
-                            >
-                              {action.label || (action.type === "NAVIGATE" ? "Open" : "Run action")}
-                            </button>
-                          ))}
-                        </div>
-
-                        {controllerActions.length > 2 && (
+                      {shortcutsOpen &&
+                        resolvedTiles.slice(0, isMobile ? 3 : 4).map((tile) => (
                           <button
+                            key={`dock-${tile.id}`}
                             type="button"
-                            onClick={() => setControllerShowAll((v) => !v)}
-                            className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+                            onClick={() => {
+                              setHasGuestInteracted(true);
+                              handleActionTile(tile);
+                            }}
+                            className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors"
                             style={{
                               borderColor: "var(--border-subtle)",
+                              backgroundColor:
+                                "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
                               color: "var(--text-secondary)",
-                              backgroundColor: "transparent",
                             }}
                           >
-                            {controllerShowAll
-                              ? "Show fewer"
-                              : `More actions (${controllerActions.length - 2})`}
+                            <span>{tile.label}</span>
                           </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                        ))}
+                    </div>
+                  )}
 
-              {/* Thread + input in a single chat container that stretches toward
-                  the bottom of the viewport, with the input pinned just above
-                  the global bottom nav. */}
+                  {!isMobile && (
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+                        Recommended paths appear below
+                      </p>
+
+                      <div
+                        className="inline-flex items-center gap-1 rounded-full border p-0.5"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          backgroundColor:
+                            "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setViewMode("chat_only")}
+                          className="rounded-full px-2 py-1 text-[10px] font-medium"
+                          style={{
+                            color:
+                              scoutViewMode === "chat_only"
+                                ? "var(--ts-text-on-accent, #0B0F14)"
+                                : "var(--text-secondary)",
+                            backgroundColor:
+                              scoutViewMode === "chat_only"
+                                ? "var(--theme-accent-primary)"
+                                : "transparent",
+                          }}
+                        >
+                          Simple
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setViewMode("chat_plus_controller")}
+                          className="rounded-full px-2 py-1 text-[10px] font-medium"
+                          style={{
+                            color:
+                              scoutViewMode === "chat_plus_controller"
+                                ? "var(--ts-text-on-accent, #0B0F14)"
+                                : "var(--text-secondary)",
+                            backgroundColor:
+                              scoutViewMode === "chat_plus_controller"
+                                ? "var(--theme-accent-primary)"
+                                : "transparent",
+                          }}
+                        >
+                          With actions
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Avoid duplicated action lists: in action view, actions render per-message. */}
+                  {false && effectiveViewMode === "chat_only" && controllerActions.length > 0 && (
+                    <div className="mt-3">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p
+                          className="text-[10px] md:text-[11px] font-semibold uppercase tracking-wide"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          Actions
+                        </p>
+                        <button
+                          type="button"
+                          className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                          style={{
+                            borderColor: "var(--border-subtle)",
+                            color: "var(--text-secondary)",
+                            backgroundColor: "transparent",
+                          }}
+                          onClick={() => setControllerRailOpen((v) => !v)}
+                          aria-expanded={controllerRailOpen}
+                        >
+                          {controllerRailOpen ? "Hide" : `Show (${controllerActions.length})`}
+                        </button>
+                      </div>
+
+                      {controllerRailOpen && (
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-2">
+                            {visibleControllerActions.map((action, index) => (
+                              <button
+                                key={`controller-rail-${index}-${action.type}-${action.label || "action"}`}
+                                type="button"
+                                onClick={() => {
+                                  setHasGuestInteracted(true);
+                                  void handleClusterAction(action);
+                                }}
+                                className="scout-action-button"
+                              >
+                                {action.label ||
+                                  (action.type === "NAVIGATE" ? "Open" : "Run action")}
+                              </button>
+                            ))}
+                          </div>
+
+                          {controllerActions.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => setControllerShowAll((v) => !v)}
+                              className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+                              style={{
+                                borderColor: "var(--border-subtle)",
+                                color: "var(--text-secondary)",
+                                backgroundColor: "transparent",
+                              }}
+                            >
+                              {controllerShowAll
+                                ? "Show fewer"
+                                : `More actions (${controllerActions.length - 2})`}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Thread surface. The command bar lives in its own bottom-pinned wrapper below. */}
               <div
                 className={`mt-1.5 flex flex-col min-h-0 ${
                   showThreadRegion ? "flex-1" : "flex-none"
@@ -4290,6 +4248,36 @@ export default function ScoutOS() {
                     </div>
                   </Card>
                 )}
+              </div>
+
+              <div className="scout-input-bottom-pin order-3">
+                <ScoutInputRow
+                  isBusy={isBusy}
+                  prefillKey={prefillKey}
+                  heroLocationLabel={heroLocationLabel}
+                  isUpdatingGeo={isUpdatingGeo}
+                  onOpenLocationSettings={() => navigate("/settings")}
+                  onUseDeviceLocation={handleUseDeviceLocation}
+                  onSend={(value) => handleSend(value)}
+                  onTyping={() => {
+                    setHasGuestInteracted(true);
+                    recordActivity({
+                      type: "ask_scout",
+                      ts: new Date().toISOString(),
+                      path: location,
+                      label: "typing",
+                    });
+                  }}
+                  quickStartPrompts={
+                    !hasMessages
+                      ? isMobile
+                        ? SCOUT_QUICK_START_PROMPTS.slice(0, 2)
+                        : [...SCOUT_QUICK_START_PROMPTS]
+                      : []
+                  }
+                  autoDemoText={introDemoText}
+                  enableAutoDemo={shouldPlayIntroDemo}
+                />
               </div>
             </div>
 
