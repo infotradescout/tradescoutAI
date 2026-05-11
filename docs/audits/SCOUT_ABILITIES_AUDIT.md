@@ -17,6 +17,7 @@ The product law is mostly preserved, but the abilities contract needed tightenin
 - Messages explicit navigation now opens `/messages`.
 - The client action validator now recognizes the real Scout-owned abilities: `CALL_TOOL`, `/homes`, `/vehicles`, `/messages`, `/conversations`, and Supply Run routes.
 - Unified Scout routing now knows Supply Run as a first-class destination.
+- Scout action definitions now carry code-level capability tags: `answer-only`, `draft-only`, `open-work-area`, `approved-action`, or `blocked`.
 
 ## Law Reality
 
@@ -85,4 +86,4 @@ Scout should phrase this as: "Send me the supplier link or material list and I w
 
 ## Next Hardening Pass
 
-1. Expand capability badges in code, not UI, so product can audit more abilities as answer-only, draft-only, open-work-area, approved-action, or blocked.
+1. Run launch-path verification against a seeded county: normal user need -> Scout -> Direct Connect or Supply Run -> approval-safe next action -> tracked outcome.

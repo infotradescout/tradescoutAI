@@ -1500,6 +1500,17 @@ function DirectConnectInbox() {
     },
     enabled: isAuthenticated,
   });
+  const items = useMemo(() => data || [], [data]);
+  const normalizeInboxStatus = (status: string | null | undefined) => {
+    const value = String(status || "suggested").toLowerCase();
+    return value === "invited" ? "suggested" : value;
+  };
+  const filteredItems = items.filter((i) =>
+    inboxFilter === "all" ? true : normalizeInboxStatus(i.assignment.status) === inboxFilter
+  );
+  const visibleItems = filteredItems.filter(
+    (item) => !archivedAssignmentIds.includes(String(item.assignment.id || ""))
+  );
 
   const respondMutation = useMutation({
     mutationFn: async (payload: {
@@ -1535,6 +1546,25 @@ function DirectConnectInbox() {
     await respondMutation.mutateAsync({ id: assignmentId, decision, reason });
   };
 
+  useEffect(() => {
+    if (firstQualifiedReplyTrackedRef.current) return;
+    const firstQualified = (items || []).find((item) => {
+      const status = normalizeInboxStatus(item.assignment.status);
+      const id = String(item.assignment.id || "");
+      return status === "suggested" && !id.startsWith("request-");
+    });
+    if (!firstQualified) return;
+    trackShellEvent({
+      type: "scout_query",
+      payload: {
+        event: "direct_connect_first_qualified_reply",
+        assignmentId: String(firstQualified.assignment.id || ""),
+        requestId: String(firstQualified.assignment.workRequestId || ""),
+      },
+    });
+    firstQualifiedReplyTrackedRef.current = true;
+  }, [items]);
+
   if (!isAuthenticated || !user) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -1556,37 +1586,6 @@ function DirectConnectInbox() {
       </Card>
     );
   }
-
-  const items = data || [];
-  const normalizeInboxStatus = (status: string | null | undefined) => {
-    const value = String(status || "suggested").toLowerCase();
-    return value === "invited" ? "suggested" : value;
-  };
-  const filteredItems = items.filter((i) =>
-    inboxFilter === "all" ? true : normalizeInboxStatus(i.assignment.status) === inboxFilter
-  );
-  const visibleItems = filteredItems.filter(
-    (item) => !archivedAssignmentIds.includes(String(item.assignment.id || ""))
-  );
-
-  useEffect(() => {
-    if (firstQualifiedReplyTrackedRef.current) return;
-    const firstQualified = (items || []).find((item) => {
-      const status = normalizeInboxStatus(item.assignment.status);
-      const id = String(item.assignment.id || "");
-      return status === "suggested" && !id.startsWith("request-");
-    });
-    if (!firstQualified) return;
-    trackShellEvent({
-      type: "scout_query",
-      payload: {
-        event: "direct_connect_first_qualified_reply",
-        assignmentId: String(firstQualified.assignment.id || ""),
-        requestId: String(firstQualified.assignment.workRequestId || ""),
-      },
-    });
-    firstQualifiedReplyTrackedRef.current = true;
-  }, [items]);
 
   if (!items.length) {
     return (
@@ -3032,8 +3031,8 @@ export default function DirectConnectShell() {
     if (!shouldResolveDirectConnectEntry(directConnectEntry)) return;
     if (isInboxCountLoading || isRequestCountLoading) return;
 
-    const replyCount = navCounts.inbox ?? 0;
-    const openRequestCount = navCounts.engagements ?? 0;
+    const replyCount = directConnectEntry === "default" ? 0 : (navCounts.inbox ?? 0);
+    const openRequestCount = directConnectEntry === "default" ? 0 : (navCounts.engagements ?? 0);
     const targetSection: Section =
       replyCount > 0 ? "inbox" : openRequestCount > 0 ? "engagements" : "post";
     const reason =

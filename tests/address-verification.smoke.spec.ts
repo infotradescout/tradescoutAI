@@ -13,18 +13,29 @@ test("Address verification can start postcard flow (or is already verified)", as
     return;
   }
 
+  const verifiedState = page.getByText("Address Verified!");
+  const requiredState = page.getByRole("heading", { name: /Address Verification Required/i });
+
   // Some accounts may already be verified; that's still a pass for "flow not broken."
-  if (
-    await page
-      .getByText("Address Verified!")
-      .isVisible()
-      .catch(() => false)
-  ) {
-    await expect(page.getByText("Address Verified!")).toBeVisible();
+  const state = await Promise.any([
+    verifiedState
+      .waitFor({ state: "visible", timeout: 15_000 })
+      .then(() => "verified" as const)
+      .catch(() => Promise.reject()),
+    requiredState
+      .waitFor({ state: "visible", timeout: 15_000 })
+      .then(() => "required" as const)
+      .catch(() => Promise.reject()),
+  ]).catch(() => null);
+
+  expect(state, "address verification should show verified or required state").not.toBeNull();
+
+  if (state === "verified") {
+    await expect(verifiedState).toBeVisible();
     return;
   }
 
-  await expect(page.getByRole("heading", { name: /Address Verification Required/i })).toBeVisible();
+  await expect(requiredState).toBeVisible();
 
   await page.getByPlaceholder("123 Main Street, Apt 4B").fill("123 Main Street");
   await page.getByPlaceholder("Los Angeles").fill("Chicago");

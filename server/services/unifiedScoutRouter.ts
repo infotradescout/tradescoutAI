@@ -13,6 +13,7 @@ import { ScoutToneAwareBuilder, type ToneScenario } from "./scoutToneAwareBuilde
 import { sanitizeScoutUserFacingText } from "../scout/userFacingSanitizer";
 import {
   UNSUPPORTED_SCOUT_TOOL_MESSAGE,
+  type ScoutAbilityCapability,
   getScoutToolName,
   isSupportedScoutToolName,
 } from "@shared/scoutSupportedTools";
@@ -32,6 +33,7 @@ export interface UnifiedScoutUserContext {
 
 export interface ScoutActionDefinition {
   type: ScoutActionType;
+  capability: ScoutAbilityCapability;
   category: "navigation" | "ui" | "tool" | "payment" | "admin" | "profile" | "noop";
   requiresAuth: boolean;
   isSensitive: boolean;
@@ -105,6 +107,7 @@ const ADMINISH_ROLES = ["admin", "super_admin", "owner", "head_admin"];
 export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinition> = {
   NAVIGATE: {
     type: "NAVIGATE",
+    capability: "open-work-area",
     category: "navigation",
     requiresAuth: false,
     isSensitive: false,
@@ -114,6 +117,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   OPEN_APP_DRAWER: {
     type: "OPEN_APP_DRAWER",
+    capability: "open-work-area",
     category: "ui",
     requiresAuth: false,
     isSensitive: false,
@@ -123,6 +127,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   OPEN_TOOLS_DRAWER: {
     type: "OPEN_TOOLS_DRAWER",
+    capability: "open-work-area",
     category: "ui",
     requiresAuth: false,
     isSensitive: false,
@@ -132,6 +137,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   PREFILL_INPUT: {
     type: "PREFILL_INPUT",
+    capability: "draft-only",
     category: "ui",
     requiresAuth: false,
     isSensitive: false,
@@ -141,6 +147,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   ASK_SCOUT: {
     type: "ASK_SCOUT",
+    capability: "answer-only",
     category: "ui",
     requiresAuth: false,
     isSensitive: false,
@@ -150,6 +157,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   FOLLOW_USER: {
     type: "FOLLOW_USER",
+    capability: "approved-action",
     category: "tool",
     requiresAuth: true,
     isSensitive: true,
@@ -159,6 +167,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   UNFOLLOW_USER: {
     type: "UNFOLLOW_USER",
+    capability: "approved-action",
     category: "tool",
     requiresAuth: true,
     isSensitive: true,
@@ -168,6 +177,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   START_COMMUNITY_VAULT_DONATION: {
     type: "START_COMMUNITY_VAULT_DONATION",
+    capability: "open-work-area",
     category: "payment",
     requiresAuth: true,
     isSensitive: true,
@@ -177,6 +187,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   START_PLATFORM_SUPPORT: {
     type: "START_PLATFORM_SUPPORT",
+    capability: "open-work-area",
     category: "payment",
     requiresAuth: true,
     isSensitive: true,
@@ -186,6 +197,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   SEND_ADMIN_BROADCAST: {
     type: "SEND_ADMIN_BROADCAST",
+    capability: "approved-action",
     category: "admin",
     requiresAuth: true,
     isSensitive: true,
@@ -195,6 +207,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   SAVE_PROFILE: {
     type: "SAVE_PROFILE",
+    capability: "approved-action",
     category: "profile",
     requiresAuth: true,
     isSensitive: true,
@@ -204,6 +217,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   OPEN_FLOATING_NOTE: {
     type: "OPEN_FLOATING_NOTE",
+    capability: "open-work-area",
     category: "ui",
     requiresAuth: false,
     isSensitive: false,
@@ -213,6 +227,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   EXTERNAL_LINK: {
     type: "EXTERNAL_LINK",
+    capability: "open-work-area",
     category: "navigation",
     requiresAuth: false,
     isSensitive: false,
@@ -222,6 +237,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   CALL_TOOL: {
     type: "CALL_TOOL",
+    capability: "approved-action",
     category: "tool",
     requiresAuth: false,
     isSensitive: false,
@@ -231,6 +247,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
   },
   NOOP: {
     type: "NOOP",
+    capability: "blocked",
     category: "noop",
     requiresAuth: false,
     isSensitive: false,

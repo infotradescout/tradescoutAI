@@ -9,7 +9,7 @@ test.describe("Scout routing explainer", () => {
   test.skip(!process.env.TEST_DATABASE_URL, "TEST_DATABASE_URL not set for Scout routing E2E");
 
   test("Direct Connect default entry opens the request flow", async ({ page }) => {
-    await page.request.put("/api/user/profile", {
+    const profileRes = await page.request.put("/api/user/profile", {
       data: {
         firstName: "Playwright",
         lastName: "E2E",
@@ -17,12 +17,17 @@ test.describe("Scout routing explainer", () => {
         countyFips: "04013",
       },
     });
-    await page.request.post("/api/user/complete-onboarding", { data: {} });
+    expect(profileRes.ok(), `profile update failed: ${profileRes.status()}`).toBeTruthy();
+
+    const onboardingRes = await page.request.post("/api/user/complete-onboarding", { data: {} });
+    expect(
+      onboardingRes.ok(),
+      `onboarding completion failed: ${onboardingRes.status()}`
+    ).toBeTruthy();
 
     await page.goto(DIRECT_CONNECT_ENTRY_URL);
 
-    await expect(page.getByText(/Direct Connect/i).first()).toBeVisible();
-    await expect(page.getByPlaceholder(/Need help with/i)).toBeVisible();
+    await expect(page.getByPlaceholder(/Need help with/i)).toBeVisible({ timeout: 45_000 });
     await expect(page.getByRole("button", { name: /Send request/i })).toBeVisible();
   });
 

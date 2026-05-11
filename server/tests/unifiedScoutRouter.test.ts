@@ -188,6 +188,26 @@ describe("UnifiedScoutRouter", () => {
       }
     });
 
+    it("tags every action with an auditable capability", () => {
+      const allowed = new Set([
+        "answer-only",
+        "draft-only",
+        "open-work-area",
+        "approved-action",
+        "blocked",
+      ]);
+
+      for (const definition of Object.values(SCOUT_ACTION_REGISTRY)) {
+        expect(allowed.has(definition.capability)).toBe(true);
+      }
+
+      expect(SCOUT_ACTION_REGISTRY.ASK_SCOUT.capability).toBe("answer-only");
+      expect(SCOUT_ACTION_REGISTRY.PREFILL_INPUT.capability).toBe("draft-only");
+      expect(SCOUT_ACTION_REGISTRY.NAVIGATE.capability).toBe("open-work-area");
+      expect(SCOUT_ACTION_REGISTRY.SAVE_PROFILE.capability).toBe("approved-action");
+      expect(SCOUT_ACTION_REGISTRY.NOOP.capability).toBe("blocked");
+    });
+
     it("keeps feature routes keyed by feature id", () => {
       for (const [featureId, route] of Object.entries(FEATURE_ROUTING_MAP)) {
         expect(route.featureId).toBe(featureId);
