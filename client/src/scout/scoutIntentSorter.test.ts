@@ -106,6 +106,9 @@ describe("sortScoutInfoDump", () => {
     expect(intents.map((intent) => intent.label)).toEqual(["Plan this project", "Find local help"]);
     expect(actions).toContain("Start a material run");
     expect(actions).toContain("Browse Exchange materials");
+    expect(primaryItems).toContain("What you want");
+    expect(primaryItems).toContain("What has to be covered");
+    expect(primaryItems).toContain("What is realistic");
     expect(primaryItems).toContain("Materials and products");
     expect(primaryItems).toContain("Rules or permits");
   });
@@ -117,7 +120,7 @@ describe("sortScoutInfoDump", () => {
     expect(intents[0].confidence).toBeGreaterThanOrEqual(intents[1]?.confidence || 0);
     expect(intents[0].cluster.items?.some((item) => item.label === "Price factors")).toBe(true);
     expect(intents[0].cluster.items?.some((item) => item.label === "Rules or permits")).toBe(true);
-    expect(intents[0].cluster.items?.length || 0).toBeLessThanOrEqual(6);
+    expect(intents[0].cluster.items?.length || 0).toBeLessThanOrEqual(8);
   });
 
   it("sorts permit and code language into rules", () => {
@@ -189,7 +192,20 @@ describe("sortScoutInfoDump", () => {
       intents[0].actions.some((action) => action.to === "/direct-connect/pros?trade=roofing")
     ).toBe(true);
     expect(visibleCopy).toContain("scope before price");
+    expect(visibleCopy).toContain("what has to be covered");
     expect(visibleCopy).toContain("no contact opens automatically");
+  });
+
+  it("flags expectation, requirements, and feasibility when budget and outcome may conflict", () => {
+    const intents = sortScoutInfoDump("need the best fence build done right but budget is tight");
+    const visibleCopy = visibleIntentCopy(intents);
+
+    expect(intents[0].label).toBe("Plan this project");
+    expect(visibleCopy).toContain("what you want");
+    expect(visibleCopy).toContain("what has to be covered");
+    expect(visibleCopy).toContain("what is realistic");
+    expect(visibleCopy).toContain("budget may limit");
+    expect(visibleCopy).not.toContain("do you want");
   });
 
   it("switches project options when the user is building for a client", () => {

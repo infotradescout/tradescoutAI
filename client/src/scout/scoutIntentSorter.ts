@@ -49,6 +49,11 @@ type SituationProfile = {
   wantsMarketplace: boolean;
   wantsRules: boolean;
 };
+type ExpectationReality = {
+  expectation: ScoutIntentItem;
+  required: ScoutIntentItem;
+  feasible: ScoutIntentItem;
+};
 
 function normalize(input: string): string {
   return input
@@ -304,6 +309,47 @@ function shouldPrioritizeLocalHelp(facts: DumpFacts, normalized: string): boolea
   return /^(plumbing|electrical|hvac|roofing)$/.test(facts.jobType || "");
 }
 
+function buildExpectationRealityItems(rawMessage: string, normalized: string): ExpectationReality {
+  const facts = buildFacts(rawMessage);
+  const hasBudget = facts.budgetMin !== undefined || facts.budgetMax !== undefined;
+  const hasLowBudgetLanguage =
+    hasBudget ||
+    /\b(cheap|cheapest|low budget|tight budget|budget is tight|affordable)\b/.test(normalized);
+  const wantsPremiumOutcome =
+    /\b(best|perfect|grade a|high end|premium|done right|turnkey|handle everything)\b/.test(
+      normalized
+    );
+  const wantsMinimalInput =
+    /\b(just handle|take care of it|minimum input|not sure|don t know|figure it out)\b/.test(
+      normalized
+    );
+
+  return {
+    expectation: {
+      id: "reality-expectation",
+      label: "What you want",
+      description: wantsPremiumOutcome
+        ? "The goal sounds like a high-quality result, so scope and standards matter"
+        : wantsMinimalInput
+          ? "You may want someone to take limited details and turn them into a finished result"
+          : "Start by matching the result you want with the amount of detail you already have",
+    },
+    required: {
+      id: "reality-required",
+      label: "What has to be covered",
+      description:
+        "Materials, labor, measurements, access, timing, and any required permits or inspections can change the real path",
+    },
+    feasible: {
+      id: "reality-feasible",
+      label: "What is realistic",
+      description: hasLowBudgetLanguage
+        ? "Budget may limit finish level, timing, materials, or who can take the job"
+        : "Scout should separate must-haves from nice-to-haves before contact opens",
+    },
+  };
+}
+
 function hasItemLike(items: ScoutIntentItem[], value: string): boolean {
   const target = normalize(value);
   return items.some((item) => {
@@ -433,6 +479,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
 
   const facts = buildFacts(rawMessage);
   const need = facts.need;
+  const reality = buildExpectationRealityItems(rawMessage, normalized);
   const jobType = facts.jobType || "project";
   const projectLabel = jobType === "project" ? "project" : `${jobType} project`;
   const helpLabel = jobType === "project" ? "local help" : `${jobType} help`;
@@ -451,6 +498,9 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
         reason: "Use this when the work is for a client, customer, or job site.",
         body: "Keep the scope, measurements, materials, permit checks, and client-ready next steps together before anything is sent.",
         items: [
+          reality.expectation,
+          reality.required,
+          reality.feasible,
           {
             id: "client-project-context",
             label: "This looks like client work",
@@ -541,6 +591,9 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
       "Use this to understand scope, materials, permit checks, and what to ask before hiring.",
     body: "Scout can help you organize the details first so you are not guessing before you talk to anyone.",
     items: [
+      reality.expectation,
+      reality.required,
+      reality.feasible,
       {
         id: "project-plan-scope",
         label: "Scope, materials, and permit checks",
@@ -696,6 +749,7 @@ function buildPriceReviewOptionIntents(
 
   const facts = buildFacts(rawMessage);
   const need = facts.need;
+  const reality = buildExpectationRealityItems(rawMessage, normalized);
   const localHelpPath = facts.jobType
     ? `/direct-connect/pros?trade=${encodeURIComponent(facts.jobType)}`
     : "/direct-connect/pros";
@@ -709,6 +763,9 @@ function buildPriceReviewOptionIntents(
       reason: "Use this when the user is comparing cost, a quote, estimate, or bid.",
       body: "Scout can help compare the scope, materials, timing, and red flags before you contact anyone.",
       items: [
+        reality.expectation,
+        reality.required,
+        reality.feasible,
         {
           id: "price-scope",
           label: "Scope before price",
