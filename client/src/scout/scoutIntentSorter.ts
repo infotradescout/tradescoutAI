@@ -335,9 +335,9 @@ function buildExpectationRealityItems(rawMessage: string, normalized: string): E
       items: [
         {
           id: "reality-expectation-needed",
-          label: "Set the expectation",
+          label: "What Scout still needs",
           description:
-            "Before Scout can judge what is required or realistic, it needs the result, budget, timing, or quality level you have in mind",
+            "Based on what you told us, Scout can show common needs now. Add the result, budget, timing, or quality level to narrow the paths",
         },
       ],
     };
@@ -348,25 +348,25 @@ function buildExpectationRealityItems(rawMessage: string, normalized: string): E
     items: [
       {
         id: "reality-expectation",
-        label: "What you want",
+        label: "Your stated goal",
         description: wantsPremiumOutcome
-          ? "The goal sounds like a high-quality result, so scope and standards matter"
+          ? "You mentioned a high-quality result, so scope and standards should be captured"
           : wantsMinimalInput
-            ? "You may want someone to take limited details and turn them into a finished result"
-            : "Start by matching the result you want with the amount of detail you already have",
+            ? "You mentioned wanting help turning limited details into a finished result"
+            : "Scout has enough signal to organize the result, details, and next steps",
       },
       {
         id: "reality-required",
-        label: "What has to be covered",
+        label: "Known planning areas",
         description:
-          "Materials, labor, measurements, access, timing, and any required permits or inspections can change the real path",
+          "Materials, labor, measurements, access, timing, and permit checks are the areas to line up",
       },
       {
-        id: "reality-feasible",
-        label: "What is realistic",
+        id: "reality-constraints",
+        label: "Constraints to confirm",
         description: hasLowBudgetLanguage
-          ? "Budget may limit finish level, timing, materials, or who can take the job"
-          : "Scout should separate must-haves from nice-to-haves before contact opens",
+          ? "Budget, finish level, timing, materials, and availability should be checked together"
+          : "Scout can separate must-haves from nice-to-haves before contact opens",
       },
     ],
   };
@@ -639,7 +639,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
     confidence: prioritizeLocalHelp ? 0.84 : 0.9,
     reason:
       "Use this to understand scope, materials, permit checks, and what to ask before hiring.",
-    body: "Scout can help you organize the details first so you are not guessing before you talk to anyone.",
+    body: "Based on what you told us, these are the findings to review before you pick a path.",
     items: [
       ...reality.items,
       ...baselineItems,
@@ -684,7 +684,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
       : "Use this if you want a pro to build, inspect, or price the work.",
     body: prioritizeLocalHelp
       ? "Scout can help draft an urgent local request and keep contact gated for your review."
-      : "Scout can draft a local request and keep it gated for your review before contact opens.",
+      : "Scout can prepare a local-help path and keep contact gated for your review before contact opens.",
     items: helpItems,
     angleItems: buildAngleItems(rawMessage, "project-find-help"),
     actions: [

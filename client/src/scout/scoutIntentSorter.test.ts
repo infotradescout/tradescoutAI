@@ -106,7 +106,7 @@ describe("sortScoutInfoDump", () => {
     expect(intents.map((intent) => intent.label)).toEqual(["Plan this project", "Find local help"]);
     expect(actions).toContain("Start a material run");
     expect(actions).toContain("Browse Exchange materials");
-    expect(primaryItems).toContain("Set the expectation");
+    expect(primaryItems).toContain("What Scout still needs");
     expect(primaryItems).toContain("Materials, tools, and equipment");
     expect(primaryItems).toContain("Measurements and site conditions");
     expect(primaryItems).toContain("Plans, rules, or permits");
@@ -197,31 +197,36 @@ describe("sortScoutInfoDump", () => {
       intents[0].actions.some((action) => action.to === "/direct-connect/pros?trade=roofing")
     ).toBe(true);
     expect(visibleCopy).toContain("scope before price");
-    expect(visibleCopy).toContain("what has to be covered");
+    expect(visibleCopy).toContain("known planning areas");
     expect(visibleCopy).toContain("no contact opens automatically");
+    expect(visibleCopy).not.toContain("what has to be covered");
   });
 
-  it("flags expectation, requirements, and feasibility when budget and outcome may conflict", () => {
+  it("shows findings and constraints when budget and outcome need review together", () => {
     const intents = sortScoutInfoDump("need the best fence build done right but budget is tight");
     const visibleCopy = visibleIntentCopy(intents);
 
     expect(intents[0].label).toBe("Plan this project");
-    expect(visibleCopy).toContain("what you want");
-    expect(visibleCopy).toContain("what has to be covered");
-    expect(visibleCopy).toContain("what is realistic");
-    expect(visibleCopy).toContain("budget may limit");
+    expect(visibleCopy).toContain("your stated goal");
+    expect(visibleCopy).toContain("known planning areas");
+    expect(visibleCopy).toContain("constraints to confirm");
+    expect(visibleCopy).toContain("budget, finish level, timing, materials, and availability");
     expect(visibleCopy).not.toContain("do you want");
+    expect(visibleCopy).not.toContain("what is realistic");
+    expect(visibleCopy).not.toContain("budget may limit");
   });
 
-  it("does not infer requirements or feasibility before the expectation is known", () => {
+  it("shows findings without user-facing judgments when the expectation is unknown", () => {
     const intents = sortScoutInfoDump("i need to build a deck");
     const visibleCopy = visibleIntentCopy(intents);
 
-    expect(visibleCopy).toContain("set the expectation");
-    expect(visibleCopy).toContain("before scout can judge what is required or realistic");
+    expect(visibleCopy).toContain("what scout still needs");
+    expect(visibleCopy).toContain("based on what you told us");
     expect(visibleCopy).toContain("materials, tools, and equipment");
     expect(visibleCopy).toContain("measurements and site conditions");
     expect(visibleCopy).toContain("plans, rules, or permits");
+    expect(visibleCopy).not.toContain("judge");
+    expect(visibleCopy).not.toContain("feasible");
     expect(visibleCopy).not.toContain("what has to be covered");
     expect(visibleCopy).not.toContain("what is realistic");
   });
