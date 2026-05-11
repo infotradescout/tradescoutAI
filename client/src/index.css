@@ -3694,3 +3694,668 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
 }
 
 /* Deployment trigger: Mon Feb 23 12:50:43 EST 2026 */
+
+/* Morphic OS UI Refactor Utilities */
+.morphic-glass {
+  background: rgba(17, 17, 17, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.morphic-card {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.morphic-card:hover {
+  border-color: rgba(249, 115, 22, 0.3);
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.05);
+}
+
+.morphic-button-primary {
+  background: #f97316;
+  color: white;
+  font-weight: 600;
+  border-radius: 12px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.morphic-button-primary:active {
+  transform: scale(0.98);
+  background-color: #ea580c;
+}
+
+.morphic-button-secondary {
+  background: #1A1A1A;
+  color: #FAFAFA;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 600;
+  border-radius: 12px;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  transition: background-color 0.2s ease;
+}
+
+.morphic-button-secondary:hover {
+  background: #242424;
+}
+
+.morphic-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.morphic-status-badge.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.morphic-status-badge.warning {
+  background: rgba(249, 115, 22, 0.1);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+}
+
+.morphic-data-tile {
+  background: #161616;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.morphic-intelligence-line {
+  height: 2px;
+  background: linear-gradient(90deg, #f97316, transparent);
+  width: 100%;
+}
+
+/* ============================================================
+   SCOUT OS — MORPHIC UI SYSTEM v2
+   All classes below are reusable across the TradeScout platform.
+   Each block is annotated with @reusable tags for easy discovery.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   @reusable: scout-user-bubble
+   Use: User message bubble in any chat/thread surface.
+   Renders right-aligned with orange avatar and tinted bg.
+   ---------------------------------------------------------- */
+.scout-user-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.scout-user-bubble__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.scout-user-bubble__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.scout-user-bubble__name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f97316;
+  letter-spacing: 0.02em;
+}
+.scout-user-bubble__time {
+  font-size: 10px;
+  color: rgba(250, 250, 250, 0.35);
+}
+.scout-user-bubble__body {
+  background: #1a1a1a;
+  border: 1px solid rgba(249, 115, 22, 0.18);
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #fafafa;
+  max-width: 88%;
+  text-align: left;
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-assistant-bubble
+   Use: Scout/assistant message bubble in any chat/thread surface.
+   Renders left-aligned with dog avatar, name badge, and dark card.
+   ---------------------------------------------------------- */
+.scout-assistant-bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.scout-assistant-bubble__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scout-assistant-bubble__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: #1a1a1a;
+  border: 1.5px solid rgba(249, 115, 22, 0.4);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.scout-assistant-bubble__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scout-assistant-bubble__name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f97316;
+  letter-spacing: 0.01em;
+}
+.scout-assistant-bubble__badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(250, 250, 250, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  padding: 2px 8px;
+  letter-spacing: 0.04em;
+}
+.scout-assistant-bubble__time {
+  font-size: 10px;
+  color: rgba(250, 250, 250, 0.3);
+  margin-left: auto;
+}
+.scout-assistant-bubble__body {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px 16px 16px 16px;
+  padding: 14px 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #fafafa;
+  max-width: 92%;
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-live-status
+   Use: Orange heartbeat strip showing Scout's real-time processing state.
+   Place above the Intelligence Layer or at the top of any active Scout surface.
+   ---------------------------------------------------------- */
+.scout-live-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #111111;
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 250, 0.7);
+}
+.scout-live-status__icon {
+  color: #f97316;
+  flex-shrink: 0;
+}
+.scout-live-status__divider {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+.scout-live-status__text {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scout-live-status__highlight {
+  color: #f97316;
+}
+.scout-live-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #f97316;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.6);
+  animation: scout-pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes scout-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.85); }
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-intelligence-card
+   Use: Full-width Intelligence Layer card shown after any Scout response.
+   Replaces the plain text assistant message for structured, high-confidence answers.
+   ---------------------------------------------------------- */
+.scout-intelligence-card {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+.scout-intelligence-card__accent-line {
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(90deg, #f97316 0%, transparent 70%);
+}
+.scout-intelligence-card__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px 0;
+}
+.scout-intelligence-card__label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(249, 115, 22, 0.9);
+}
+.scout-intelligence-card__body {
+  padding: 12px 16px 14px;
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.scout-intelligence-card__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  background: #1a1a1a;
+  border: 1.5px solid rgba(249, 115, 22, 0.35);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.scout-intelligence-card__avatar img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  opacity: 0.85;
+}
+.scout-intelligence-card__content {
+  flex: 1;
+  min-width: 0;
+}
+.scout-intelligence-card__heading {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #fafafa;
+  margin-bottom: 8px;
+}
+.scout-intelligence-card__subtext {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(250, 250, 250, 0.7);
+}
+.scout-intelligence-card__footer {
+  padding: 10px 16px 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 250, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.scout-intelligence-card__footer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #f97316;
+  animation: scout-pulse 1.4s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-command-bar
+   Use: The persistent input/command bar at the bottom of any Scout surface.
+   Features orange border glow on focus, sparkle icon, mic button, send arrow.
+   ---------------------------------------------------------- */
+.scout-command-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #111111;
+  border: 1.5px solid rgba(249, 115, 22, 0.35);
+  border-radius: 16px;
+  padding: 10px 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.scout-command-bar:focus-within {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12), 0 0 20px rgba(249, 115, 22, 0.08);
+}
+.scout-command-bar__sparkle {
+  color: #f97316;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.scout-command-bar__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: #fafafa;
+  placeholder-color: rgba(250, 250, 250, 0.3);
+  resize: none;
+  min-height: 24px;
+  max-height: 120px;
+  line-height: 1.5;
+}
+.scout-command-bar__input::placeholder {
+  color: rgba(250, 250, 250, 0.3);
+}
+.scout-command-bar__mic {
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  color: rgba(250, 250, 250, 0.5);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.scout-command-bar__mic:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fafafa;
+}
+.scout-command-bar__send {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  background: #f97316;
+  border: none;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+}
+.scout-command-bar__send:hover {
+  background: #ea580c;
+}
+.scout-command-bar__send:active {
+  transform: scale(0.93);
+}
+.scout-command-bar__send:disabled {
+  background: #2a2a2a;
+  box-shadow: none;
+  cursor: not-allowed;
+  color: rgba(250, 250, 250, 0.3);
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-cluster-card (Morphic upgrade)
+   Use: Replaces the legacy .scout-result-card in any context.
+   Matches the dark card with hard orange border on featured items.
+   ---------------------------------------------------------- */
+.scout-cluster-card {
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  transition: border-color 0.18s ease;
+}
+.scout-cluster-card:hover {
+  border-color: rgba(249, 115, 22, 0.25);
+}
+.scout-cluster-card--featured {
+  border-color: #f97316;
+  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.15), 0 4px 20px rgba(249, 115, 22, 0.08);
+}
+.scout-cluster-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(249, 115, 22, 0.9);
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  margin-bottom: 10px;
+}
+.scout-cluster-card__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.scout-cluster-card__icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 22px;
+}
+.scout-cluster-card__title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fafafa;
+  line-height: 1.2;
+}
+.scout-cluster-card__subtitle {
+  font-size: 12px;
+  color: rgba(250, 250, 250, 0.5);
+  margin-top: 2px;
+}
+.scout-cluster-card__chevron {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  background: #1e1e1e;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: grid;
+  place-items: center;
+  color: rgba(250, 250, 250, 0.5);
+  flex-shrink: 0;
+}
+.scout-cluster-card__status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.scout-cluster-card__open-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 9999px;
+  padding: 3px 10px;
+  letter-spacing: 0.04em;
+}
+.scout-cluster-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: rgba(250, 250, 250, 0.45);
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.scout-cluster-card__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-tool-tray (Morphic upgrade)
+   Use: The 3-button action tray below any Scout result set.
+   Two dark secondary buttons + one solid orange primary button.
+   ---------------------------------------------------------- */
+.scout-tool-tray {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 8px;
+}
+.scout-tool-tray--2col {
+  grid-template-columns: 1fr 1fr;
+}
+.scout-tool-tray--1col {
+  grid-template-columns: 1fr;
+}
+.scout-tool-tray__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  border: none;
+  padding: 0 12px;
+}
+.scout-tool-tray__btn:active {
+  transform: scale(0.97);
+}
+.scout-tool-tray__btn--secondary {
+  background: #1a1a1a;
+  color: #fafafa;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.scout-tool-tray__btn--secondary:hover {
+  background: #222222;
+}
+.scout-tool-tray__btn--primary {
+  background: #f97316;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.3);
+}
+.scout-tool-tray__btn--primary:hover {
+  background: #ea580c;
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-section-label
+   Use: Small uppercase section label with icon, used above any Scout module.
+   e.g. "SERVICE DIRECTORY", "INTELLIGENCE LAYER", "UNIVERSAL TOOL TRAY"
+   ---------------------------------------------------------- */
+.scout-section-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(250, 250, 250, 0.45);
+  margin-bottom: 10px;
+}
+.scout-section-label__icon {
+  color: rgba(249, 115, 22, 0.7);
+}
+.scout-section-label__live {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #10b981;
+}
+.scout-section-label__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: #10b981;
+  animation: scout-pulse 1.4s ease-in-out infinite;
+}
+
+/* ----------------------------------------------------------
+   @reusable: scout-trust-footer
+   Use: Neutral attribution footer at the bottom of any Scout result surface.
+   Always shows the community-powered source attribution.
+   ---------------------------------------------------------- */
+.scout-trust-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0 0;
+  font-size: 11px;
+  color: rgba(250, 250, 250, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.scout-trust-footer__text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.scout-trust-footer__highlight {
+  color: #f97316;
+  font-weight: 600;
+}
