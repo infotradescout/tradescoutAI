@@ -2717,6 +2717,8 @@ body {
   background: transparent;
   position: relative;
   min-height: 100vh;
+  /* Override Tailwind overflow-hidden: use clip so sticky children (composer dock) work */
+  overflow: clip !important;
 }
 
 /* Scout content wrapper */
@@ -2729,7 +2731,9 @@ body {
 .scout-panel {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  /* overflow:clip instead of hidden — preserves visual clipping while allowing
+     position:sticky children (like the composer dock) to work correctly */
+  overflow: clip;
   border: 1px solid var(--border-subtle);
   background: color-mix(in oklab, var(--surface-card) 90%, transparent);
   box-shadow:
@@ -2783,7 +2787,52 @@ body {
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
   padding-right: 2px;
-  padding-bottom: 0.25rem;
+  /* Extra bottom padding so the last message is never hidden behind the sticky composer dock */
+  padding-bottom: 5rem;
+}
+
+/* @reusable: scout-section-label
+   Use: Uppercase section header label with optional icon.
+   Used in ScoutThread MessageExtras and IntelligenceLayer to label grouped sections.
+   ---------------------------------------------------------- */
+.scout-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(250, 250, 250, 0.5));
+  margin-bottom: 8px;
+}
+.scout-section-label__icon {
+  color: var(--ts-accent, #f97316);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+.scout-section-label__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #10b981;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.scout-section-label__live::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  animation: scout-live-pulse 2s ease-in-out infinite;
+}
+@keyframes scout-live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 .scout-row {
@@ -3163,8 +3212,21 @@ body {
   line-height: 1.35;
 }
 
+/* @reusable: scout-composer-dock
+   Use: The persistent command bar dock at the bottom of the Scout OS panel.
+   Sticky-positioned so it always stays visible at the bottom of the scroll container,
+   above the global bottom nav. Drop into any flex-col scroll container.
+   ---------------------------------------------------------- */
 .scout-composer-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
   margin-top: auto;
+  /* Backdrop blur so content scrolling behind it stays readable */
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  /* Fade-in bottom edge to soften the transition */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .scout-shell-refined .scout-mobile-panel {
