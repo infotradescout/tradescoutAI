@@ -4,8 +4,7 @@ import { UniversalToolTray, type ActionConfig } from "./UniversalToolTray";
 import { ServiceDirectoryModule } from "./modules/ServiceDirectoryModule";
 import { GasTrackerModule } from "./modules/GasTrackerModule";
 import { EventDiscoveryModule } from "./modules/EventDiscoveryModule";
-import type { ScoutMessage, ScoutCluster } from "./state";
-import type { ScoutAction } from "./api";
+import type { ScoutMessage, ScoutCluster, ScoutAction } from "./state";
 
 /* ----------------------------------------------------------
    MorphicRenderer — Morphic OS v2
@@ -50,9 +49,7 @@ export type MorphicModuleType =
    Can be used anywhere to classify a Scout response.
    ---------------------------------------------------------- */
 export function classifyIntent(msg: ScoutMessage): MorphicModuleType {
-  const intent = (msg.provenance as any)?.intent
-    || (msg as any)?.metadata?.intent
-    || "";
+  const intent = (msg.provenance as any)?.intent || (msg as any)?.metadata?.intent || "";
   const intentLower = intent.toLowerCase();
   const content = msg.content.toLowerCase();
   const clusterKinds = (msg.clusters || []).map((c: ScoutCluster) => c.kind);
@@ -61,13 +58,25 @@ export function classifyIntent(msg: ScoutMessage): MorphicModuleType {
   if (/gas|fuel|station|petrol|price.*gas|gas.*price/.test(intentLower + " " + content)) {
     return "GAS_TRACKER";
   }
-  if (/event|festival|market|concert|fair|activity|activities|things.*do|weekend/.test(intentLower + " " + content)) {
+  if (
+    /event|festival|market|concert|fair|activity|activities|things.*do|weekend/.test(
+      intentLower + " " + content
+    )
+  ) {
     return "EVENT_FEED";
   }
-  if (/notary|lawyer|attorney|bank|dmv|permit|license|document|notarize|insurance|accountant|tax|cpa/.test(intentLower + " " + content)) {
+  if (
+    /notary|lawyer|attorney|bank|dmv|permit|license|document|notarize|insurance|accountant|tax|cpa/.test(
+      intentLower + " " + content
+    )
+  ) {
     return "SERVICE_DIRECTORY";
   }
-  if (/contractor|roofer|plumber|electrician|hvac|handyman|painter|landscap|remodel|repair.*home|home.*repair/.test(intentLower + " " + content)) {
+  if (
+    /contractor|roofer|plumber|electrician|hvac|handyman|painter|landscap|remodel|repair.*home|home.*repair/.test(
+      intentLower + " " + content
+    )
+  ) {
     return "CONTRACTOR";
   }
 
@@ -78,8 +87,10 @@ export function classifyIntent(msg: ScoutMessage): MorphicModuleType {
 
   // 3. Content keyword heuristic (broad fallback)
   if (/\$.*\/gal|per gallon|cheapest gas|gas near/.test(content)) return "GAS_TRACKER";
-  if (/open now|hours|walk.in|appointment|available today/.test(content)) return "SERVICE_DIRECTORY";
-  if (/this (weekend|week|saturday|sunday)|tonight|happening|going on/.test(content)) return "EVENT_FEED";
+  if (/open now|hours|walk.in|appointment|available today/.test(content))
+    return "SERVICE_DIRECTORY";
+  if (/this (weekend|week|saturday|sunday)|tonight|happening|going on/.test(content))
+    return "EVENT_FEED";
   if (/for sale|listing|buy|sell|price.*item|item.*price/.test(content)) return "MARKETPLACE";
 
   return "DEFAULT";
@@ -103,7 +114,8 @@ export function buildIntelligenceHeading(msg: ScoutMessage): {
   if (sentenceEnd > 0 && sentenceEnd < 120) {
     const heading = content.slice(0, sentenceEnd + 1).trim();
     const rest = content.slice(sentenceEnd + 2).trim();
-    const subtext = rest.length > 0 ? rest.slice(0, 160) + (rest.length > 160 ? "…" : "") : undefined;
+    const subtext =
+      rest.length > 0 ? rest.slice(0, 160) + (rest.length > 160 ? "…" : "") : undefined;
     return { heading, subtext };
   }
 
@@ -159,7 +171,7 @@ export const MorphicRenderer: React.FC<MorphicRendererProps> = ({
     .flatMap((c: ScoutCluster) => c.actions || [])
     .slice(0, 3)
     .map((a: ScoutAction, i: number) => ({
-      label: a.label,
+      label: a.label || "Open",
       icon: a.type === "NAVIGATE" ? "map" : a.type === "PREFILL_INPUT" ? "search" : "plus",
       action: a.type,
       primary: i === 2,
@@ -182,11 +194,7 @@ export const MorphicRenderer: React.FC<MorphicRendererProps> = ({
           isTopRecommendation: idx === 0,
         }));
         if (services.length === 0) return null;
-        return (
-          <ServiceDirectoryModule
-            data={{ title: "Service Directory", services }}
-          />
-        );
+        return <ServiceDirectoryModule data={{ title: "Service Directory", services }} />;
       }
 
       case "GAS_TRACKER": {
@@ -194,17 +202,31 @@ export const MorphicRenderer: React.FC<MorphicRendererProps> = ({
         const stations = (msg.clusters || []).map((c: ScoutCluster) => ({
           id: c.id,
           name: c.title,
-          price: parseFloat(c.body?.match(/\$?([\d.]+)/)?.[1] || "0"),
+          address: c.body || "Address not verified",
+          price: c.body?.match(/\$?([\d.]+)/)?.[1] || "0.00",
           distance: (c.items || [])[0]?.label || "",
-          brand: c.title.split(" ")[0],
+          rating: 0,
+          reportCount: 0,
           isCheapest: false,
         }));
         if (stations.length > 0) {
-          const minPrice = Math.min(...stations.map((s) => s.price));
-          stations.forEach((s) => { s.isCheapest = s.price === minPrice && minPrice > 0; });
+          const minPrice = Math.min(
+            ...stations.map((s) => Number(s.price) || Number.POSITIVE_INFINITY)
+          );
+          stations.forEach((s) => {
+            s.isCheapest = Number(s.price) === minPrice && Number.isFinite(minPrice);
+          });
         }
         if (stations.length === 0) return null;
-        return <GasTrackerModule data={{ stations }} />;
+        return (
+          <GasTrackerModule
+            data={{
+              title: "Price Comparison",
+              trend: "Scout found these nearby options from the available local context.",
+              stations,
+            }}
+          />
+        );
       }
 
       case "EVENT_FEED": {
@@ -213,13 +235,18 @@ export const MorphicRenderer: React.FC<MorphicRendererProps> = ({
           id: c.id,
           title: c.title,
           description: c.body || "",
-          date: (c.items || [])[0]?.label || "",
+          time: (c.items || [])[0]?.label || "Time not listed",
           location: (c.items || [])[1]?.label || "",
-          attendees: 0,
-          category: c.kind,
+          rating: 0,
+          imageUrl: "",
+          tags: [c.kind],
         }));
         if (events.length === 0) return null;
-        return <EventDiscoveryModule data={{ events }} />;
+        return (
+          <EventDiscoveryModule
+            data={{ title: "Local Activity", locationLabel: locationLabel || "Your area", events }}
+          />
+        );
       }
 
       case "CONTRACTOR":
@@ -249,11 +276,7 @@ export const MorphicRenderer: React.FC<MorphicRendererProps> = ({
       )}
 
       {/* Adaptive module — only shown when a specific module is matched */}
-      {module && (
-        <div className="mt-3">
-          {module}
-        </div>
-      )}
+      {module && <div className="mt-3">{module}</div>}
 
       {/* Universal Tool Tray — shown when there are cluster actions */}
       {actionTrayConfig.length > 0 && onAction && (
