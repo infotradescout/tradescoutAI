@@ -646,7 +646,7 @@ html {
 
 .scout-v2-rail-card--hero {
   border-color: color-mix(in oklab, var(--theme-accent-primary) 20%, var(--border-subtle));
-  background: color-mix(in oklab, var(--surface-card) 92%, #fff7ed 8%);
+  background: color-mix(in oklab, var(--surface-card) 92%, transparent 8%);
 }
 
 .scout-v2-mini-card {
@@ -670,7 +670,7 @@ html {
 .scout-v2-mobile-console {
   border-radius: 14px;
   border: 1px solid color-mix(in oklab, var(--theme-accent-primary) 24%, var(--border-subtle));
-  background: color-mix(in oklab, var(--surface-card) 92%, #fff7ed 8%);
+  background: color-mix(in oklab, var(--surface-card) 92%, transparent 8%);
   padding: 0.8rem;
 }
 
@@ -695,7 +695,7 @@ html {
 .scout-shell-refined .scout-header-refined {
   border-radius: 1rem;
   border: 1px solid var(--border-subtle);
-  background: color-mix(in oklab, var(--surface-card) 94%, #fff7ed 6%);
+  background: color-mix(in oklab, var(--surface-card) 94%, transparent 6%);
   padding: 0.85rem;
 }
 
@@ -3764,20 +3764,21 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   }
 }
 
-/* Public homeowner Scout should feel like a local guide, not an ops console. */
+/* Scout OS — Morphic Dark Theme (replaces old light "local guide" override) */
 .scout-shell-refined {
-  --surface-card: #fffdf8;
-  --surface-intermediate: #fff7ed;
-  --surface-input: #ffffff;
-  --surface-card-border: rgba(68, 60, 49, 0.12);
-  --surface-card-border-hover: rgba(255, 112, 24, 0.28);
-  --surface-card-shadow: 0 12px 28px rgba(42, 35, 28, 0.08);
-  --surface-card-shadow-hover: 0 14px 30px rgba(42, 35, 28, 0.11);
-  --border-subtle: rgba(68, 60, 49, 0.14);
-  --border-primary: rgba(68, 60, 49, 0.2);
-  --text-primary: #26221d;
-  --text-secondary: #5f574d;
-  --text-muted: #766d61;
+  --surface-card: #111111;
+  --surface-intermediate: #1a1a1a;
+  --surface-input: #141414;
+  --surface-card-border: rgba(255, 255, 255, 0.06);
+  --surface-card-border-hover: rgba(249, 115, 22, 0.4);
+  --surface-card-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --surface-card-shadow-hover: 0 14px 30px rgba(0, 0, 0, 0.6);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-active: rgba(249, 115, 22, 0.5);
+  --text-primary: #f5f5f5;
+  --text-secondary: #a3a3a3;
+  --text-muted: #666666;
 }
 
 .scout-shell-refined .scout-mobile-panel,
@@ -3793,7 +3794,6 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
 .scout-shell-refined .scout-input-refined {
   border-color: var(--border-subtle) !important;
 }
-
 /* Deployment trigger: Mon Feb 23 12:50:43 EST 2026 */
 
 /* Morphic OS UI Refactor Utilities */
