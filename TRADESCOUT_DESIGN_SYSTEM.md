@@ -319,6 +319,7 @@ Design system is applied surface by surface in this order:
 | `client/src/pages/Home.tsx` | Reference Scout page implementation |
 | `client/index.html` | Font imports |
 | `TRADESCOUT_DESIGN_SYSTEM.md` | This document |
+| `docs/design/SCOUT_OS_VISUAL_REFERENCE.md` | Locked Scout OS visual reference for future UI direction |
 
 ---
 

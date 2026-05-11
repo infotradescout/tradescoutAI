@@ -333,6 +333,7 @@ Apply the design system to each surface in this sequence. Do not skip ahead.
 | File | Location | Purpose |
 |---|---|---|
 | Visual reference (live) | `scoutshowcase-e5cofgwp.manus.space` | Match this exactly |
+| Scout OS visual reference | `docs/design/SCOUT_OS_VISUAL_REFERENCE.md` | Locked May 2026 visual direction for Scout/action-card surfaces |
 | Design system doc | `scout-2-showcase/TRADESCOUT_DESIGN_SYSTEM.md` | Full spec |
 | This handoff | `scout-2-showcase/TRADESCOUT_DESIGN_SYSTEM_CODEX.md` | Codex instructions |
 | CSS tokens | `scout-2-showcase/client/src/index.css` | Token reference |
