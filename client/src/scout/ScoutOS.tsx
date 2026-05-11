@@ -78,6 +78,7 @@ import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
 import ToneAwareMessage from "./ToneAwareMessage";
+import { ScoutHome } from "./ScoutHome";
 import TrustAwareDecisionCard from "./TrustAwareDecisionCard";
 import WatchdogInterventionBanner from "./WatchdogInterventionBanner";
 import { UnifiedScoutRouterClient, type UnifiedRoutingDecision } from "./unifiedRouterClient";
@@ -3158,120 +3159,12 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              {isMobile && !hasUserMessages && (
-                <div className="scout-v2-mobile-console mb-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                      <Sparkles className="h-3.5 w-3.5" />
-                      Scout
-                    </div>
-                    <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-200">
-                      active
-                    </span>
-                  </div>
-                  <div className="mt-3 grid grid-cols-4 gap-1.5">
-                    {missionControlItems.map((item) => {
-                      const ConsoleIcon = item.icon;
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveMissionPanel(item.id);
-                            applyMissionDraft({ panel: item.id });
-                          }}
-                          className={`scout-v2-mobile-chip ${
-                            activeMissionPanel === item.id ? "active" : ""
-                          }`}
-                        >
-                          <ConsoleIcon className="h-3.5 w-3.5 text-ts-orange" />
-                          <span>{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-3 space-y-3">
-                    <div>
-                      <p className="scout-builder-label">What do you want to find?</p>
-                      <div className="mt-2 grid grid-cols-2 gap-1.5">
-                        {missionTypeOptions.map((option) => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => {
-                              setMissionType(option.id);
-                              applyMissionDraft({ type: option.id });
-                            }}
-                            className={`scout-builder-button ${
-                              missionType === option.id ? "active" : ""
-                            }`}
-                          >
-                            <span>{option.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-[1fr_0.8fr] gap-2">
-                      <div>
-                        <p className="scout-builder-label">Look in</p>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {sourceOptions.map((source) => (
-                            <button
-                              key={source.id}
-                              type="button"
-                              onClick={() => {
-                                const enabledCount =
-                                  Object.values(enabledMissionSources).filter(Boolean).length;
-                                const next = {
-                                  ...enabledMissionSources,
-                                  [source.id]:
-                                    enabledCount === 1 && enabledMissionSources[source.id]
-                                      ? true
-                                      : !enabledMissionSources[source.id],
-                                };
-                                setEnabledMissionSources(next);
-                                applyMissionDraft({ sources: next });
-                              }}
-                              className={`scout-source-toggle ${
-                                enabledMissionSources[source.id] ? "active" : ""
-                              }`}
-                            >
-                              {source.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="scout-builder-label">Timeframe</p>
-                        <div className="mt-2 flex flex-col gap-1.5">
-                          {urgencyOptions.map((option) => (
-                            <button
-                              key={option.id}
-                              type="button"
-                              onClick={() => {
-                                setMissionUrgency(option.id);
-                                applyMissionDraft({ urgency: option.id });
-                              }}
-                              className={`scout-source-toggle ${
-                                missionUrgency === option.id ? "active" : ""
-                              }`}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {!hasUserMessages && (
-                <ScoutHeader
-                  isAuthenticated={isAuthenticated}
-                  isFirstGuestVisit={isFirstGuestVisit}
-                  locationLabel={heroLocationLabel}
+                <ScoutHome
+                  onPromptSelect={(text) => {
+                    setHasGuestInteracted(true);
+                    handleSend(text);
+                  }}
                 />
               )}
 
