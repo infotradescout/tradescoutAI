@@ -4,12 +4,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ScoutThread from "./ScoutThread";
 import type { ScoutMessage } from "./state";
 
-function renderThread(messages: ScoutMessage[], showControllerExtras = false): string {
+function renderThread(
+  messages: ScoutMessage[],
+  showControllerExtras = false,
+  options?: { status?: "idle" | "resolving_context" | "checking_documents" | "ready" }
+): string {
   return renderToStaticMarkup(
     React.createElement(ScoutThread, {
       messages,
-      status: "idle",
+      status: options?.status ?? "idle",
       showControllerExtras,
+      onPrefill: () => undefined,
     })
   );
 }
@@ -115,5 +120,45 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Create request");
     expect(html).toContain("Browse local help");
     expect(html).toContain("Ask Scout");
+  });
+
+  it("summarizes long assistant answers when result cards carry the real next steps", () => {
+    const assistantMessage: ScoutMessage = {
+      id: "a_summary",
+      role: "assistant",
+      content:
+        "Here is the short version. The longer explanation includes multiple paragraphs, background, tradeoffs, and context that should not dominate the default chat bubble.\n\nSecond paragraph with extra detail that should stay behind the details toggle by default.",
+      timestamp: new Date().toISOString(),
+      clusters: [
+        {
+          id: "next",
+          title: "Best next step",
+          kind: "rules",
+          body: "Review what matters before contact.",
+        },
+      ],
+    };
+
+    const html = renderThread([assistantMessage]);
+
+    expect(html).toContain("Here is the short version.");
+    expect(html).toContain(">Details<");
+    expect(html).not.toContain("Second paragraph with extra detail");
+    expect(html).toContain("Best next step");
+  });
+
+  it("collects useful details outside the chat while Scout is working", () => {
+    const userMessage: ScoutMessage = {
+      id: "u_collect",
+      role: "user",
+      content: "My AC is not cooling",
+      timestamp: new Date().toISOString(),
+    };
+
+    const html = renderThread([userMessage], false, { status: "checking_documents" });
+
+    expect(html).toContain("Details Scout can use");
+    expect(html).toContain("Add location");
+    expect(html).toContain("Add timing");
   });
 });

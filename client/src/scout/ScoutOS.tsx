@@ -4156,6 +4156,7 @@ export default function ScoutOS() {
                     onOverride={handleOverride}
                     overridePendingScope={overridePendingScope}
                     onSendMessage={handleOnboardingMessage}
+                    onPrefill={prefillScoutMission}
                     pendingContextCards={scoutContextCards}
                     onQuickAction={(text) => {
                       const trimmed = text.trim();

@@ -28,6 +28,7 @@ type ScoutThreadProps = {
   onOverride?: (option: NonNullable<ScoutMessage["overrideOption"]>) => void;
   overridePendingScope?: string | null;
   onSendMessage?: (payload: any) => void;
+  onPrefill?: (text: string) => void;
   pendingContextCards?: ScoutContextCard[];
 };
 
@@ -39,7 +40,7 @@ function AssistantStreamedText({
   shouldAnimate: boolean;
 }) {
   const [visibleChars, setVisibleChars] = React.useState(() =>
-    shouldAnimate ? 0 : content.length
+    shouldAnimate && typeof window !== "undefined" ? 0 : content.length
   );
 
   React.useEffect(() => {
@@ -74,6 +75,185 @@ function AssistantStreamedText({
   }, [content, shouldAnimate]);
 
   return <>{content.slice(0, visibleChars)}</>;
+}
+
+const SUMMARY_MAX_CHARS = 220;
+
+function firstUsefulParagraph(content: string): string {
+  return (
+    String(content || "")
+      .split(/\n{2,}/)
+      .map((part) => part.trim())
+      .find((part) => part.length > 0) ?? ""
+  );
+}
+
+function trimToSummary(content: string): string {
+  const clean = firstUsefulParagraph(content).replace(/\s+/g, " ").trim();
+  if (clean.length <= SUMMARY_MAX_CHARS) return clean;
+
+  const sentenceMatch = clean.match(/^(.{80,220}?[.!?])\s/);
+  if (sentenceMatch?.[1]) return sentenceMatch[1].trim();
+
+  return `${clean.slice(0, SUMMARY_MAX_CHARS - 3).trim()}...`;
+}
+
+function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
+  const hasResultSurface = Boolean(
+    msg.frame ||
+    (Array.isArray(msg.clusters) && msg.clusters.length > 0) ||
+    (Array.isArray(msg.suggestedActions) && msg.suggestedActions.length > 0) ||
+    msg.overrideOption ||
+    msg.onboarding?.active
+  );
+  return hasResultSurface && String(msg.content || "").trim().length > SUMMARY_MAX_CHARS;
+}
+
+function buildIntentDetailPrompts(userMessage?: string): Array<{ label: string; prompt: string }> {
+  const text = String(userMessage || "").toLowerCase();
+  if (!text.trim()) return [];
+
+  const prompts: Array<{ label: string; prompt: string }> = [];
+  const hasLocation =
+    /\b(near me|nearby|county|parish|city|zip|address|at my|in [a-z]+|around [a-z]+)\b/.test(text);
+  const hasTiming =
+    /\b(today|tomorrow|asap|urgent|soon|this week|next week|flexible|emergency)\b/.test(text);
+  const hasScope =
+    /\b(repair|replace|install|quote|compare|price|leak|broken|not working|material|supplier|project)\b/.test(
+      text
+    );
+  const materialIntent =
+    /\b(material|supplier|lowe|home depot|lumber|concrete|pipe|wire|hvac)\b/.test(text);
+  const vehicleIntent = /\b(car|truck|vehicle|vin|tire|brake|engine|transmission)\b/.test(text);
+
+  if (!hasScope) {
+    prompts.push({
+      label: "Add what happened",
+      prompt: "More detail: the issue is ",
+    });
+  }
+  if (!hasLocation) {
+    prompts.push({
+      label: "Add location",
+      prompt: "More detail: this is in ",
+    });
+  }
+  if (!hasTiming) {
+    prompts.push({
+      label: "Add timing",
+      prompt: "More detail: I need this ",
+    });
+  }
+  if (materialIntent) {
+    prompts.push({
+      label: "Add material list or link",
+      prompt: "Material list or supplier link: ",
+    });
+  } else if (vehicleIntent) {
+    prompts.push({
+      label: "Add vehicle details",
+      prompt: "Vehicle details: year, make, model, and issue are ",
+    });
+  } else {
+    prompts.push({
+      label: "Add home or project details",
+      prompt: "Home or project details: ",
+    });
+  }
+
+  return prompts.slice(0, 3);
+}
+
+function buildAssistantSummary(msg: ScoutMessage, displayContent: string): string {
+  if (!shouldSummarizeAssistantMessage(msg)) return displayContent;
+
+  const frame = msg.frame;
+  const framedSummary =
+    frame?.directionLine?.trim() ||
+    frame?.meaningLine?.trim() ||
+    (Array.isArray(frame?.truthLines) ? frame?.truthLines?.find((line) => line.trim()) : "");
+
+  return trimToSummary(framedSummary || displayContent);
+}
+
+function IntentDetailCollector({
+  userMessage,
+  status,
+  onPrefill,
+}: {
+  userMessage?: string;
+  status: ScoutStatus;
+  onPrefill?: (text: string) => void;
+}) {
+  const prompts = React.useMemo(() => buildIntentDetailPrompts(userMessage), [userMessage]);
+  const shouldShow =
+    prompts.length > 0 &&
+    (status === "resolving_context" ||
+      status === "checking_documents" ||
+      status === "ready" ||
+      status === "executing_action");
+
+  if (!shouldShow) return null;
+
+  return (
+    <div className="scout-intent-collector" aria-label="Details Scout can use">
+      <div className="min-w-0">
+        <p className="scout-intent-collector__title">Details Scout can use</p>
+        <p className="scout-intent-collector__copy">Add anything that matters. Scout will wait.</p>
+      </div>
+      <div className="scout-intent-collector__chips">
+        {prompts.map((prompt) => (
+          <button
+            key={prompt.label}
+            type="button"
+            className="scout-intent-collector__chip"
+            onClick={() => onPrefill?.(prompt.prompt)}
+            disabled={!onPrefill}
+          >
+            {prompt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AssistantMessageBubble({
+  msg,
+  displayContent,
+  shouldAnimate,
+}: {
+  msg: ScoutMessage;
+  displayContent: string;
+  shouldAnimate: boolean;
+}) {
+  const [expanded, setExpanded] = React.useState(false);
+  const summary = React.useMemo(
+    () => buildAssistantSummary(msg, displayContent),
+    [displayContent, msg]
+  );
+  const hasDetails = summary.trim() !== displayContent.trim();
+  const content = expanded || !hasDetails ? displayContent : summary;
+
+  return (
+    <>
+      {content && (
+        <p className="whitespace-pre-line leading-relaxed">
+          <AssistantStreamedText content={content} shouldAnimate={shouldAnimate && !expanded} />
+        </p>
+      )}
+      {hasDetails && (
+        <button
+          type="button"
+          className="scout-message-details-toggle"
+          onClick={() => setExpanded((value) => !value)}
+          aria-expanded={expanded}
+        >
+          {expanded ? "Show summary" : "Details"}
+        </button>
+      )}
+    </>
+  );
 }
 
 function humanizeToken(value: string): string {
@@ -775,6 +955,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   onOverride,
   overridePendingScope,
   onSendMessage,
+  onPrefill,
   pendingContextCards,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -979,17 +1160,14 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   {isUser ? "You" : "Scout"}
                 </div>
                 <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
-                  {displayContent && (
-                    <p className="whitespace-pre-line leading-relaxed">
-                      {isUser ? (
-                        displayContent
-                      ) : (
-                        <AssistantStreamedText
-                          content={displayContent}
-                          shouldAnimate={msg.id === latestAssistantMessageId}
-                        />
-                      )}
-                    </p>
+                  {isUser ? (
+                    <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
+                  ) : (
+                    <AssistantMessageBubble
+                      msg={msg}
+                      displayContent={displayContent}
+                      shouldAnimate={msg.id === latestAssistantMessageId}
+                    />
                   )}
                 </div>
                 {!isUser && <EvidenceStrip msg={msg} enabled={showControllerExtras} />}
@@ -1011,57 +1189,67 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       })}
 
       {showProgress && (
-        <div
-          className="rounded-2xl border p-3"
-          style={{
-            borderColor: "var(--border-subtle)",
-            backgroundColor: "var(--surface-card)",
-            boxShadow: "var(--surface-card-shadow)",
-          }}
-        >
-          <div className="flex items-start gap-3">
-            <div className="scout-avatar mt-0.5" aria-hidden="true">
-              TS
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-xs font-semibold" style={statusStyles}>
-                {statusLabel ?? "Starting your search..."}
+        <>
+          <IntentDetailCollector
+            userMessage={latestUserMessage?.content}
+            status={status}
+            onPrefill={onPrefill}
+          />
+          <div
+            className="rounded-2xl border p-3"
+            style={{
+              borderColor: "var(--border-subtle)",
+              backgroundColor: "var(--surface-card)",
+              boxShadow: "var(--surface-card-shadow)",
+            }}
+          >
+            <div className="flex items-start gap-3">
+              <div className="scout-avatar mt-0.5" aria-hidden="true">
+                TS
               </div>
-              <p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--text-primary)" }}>
-                Tell me what happened, where it is, and how soon you need it. I’ll narrow it down
-                while I look.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {(Array.isArray(pendingContextCards) && pendingContextCards.length > 0
-                  ? pendingContextCards.slice(0, 3).map((card) => ({
-                      key: card.id,
-                      label: card.label,
-                      onClick: () => onAction && onAction(card.action),
-                    }))
-                  : quickStartsForPendingSearch(latestUserMessage?.content).map((label) => ({
-                      key: label,
-                      label,
-                      onClick: () => onQuickAction && onQuickAction(label),
-                    }))
-                ).map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={item.onClick}
-                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
-                    style={{
-                      borderColor: "var(--border-subtle)",
-                      backgroundColor: "var(--surface-intermediate)",
-                      color: "var(--text-primary)",
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold" style={statusStyles}>
+                  {statusLabel ?? "Starting your search..."}
+                </div>
+                <p
+                  className="mt-1 text-sm leading-relaxed"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  I’ll summarize what matters, then keep the next steps separate so this stays easy
+                  to scan.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(Array.isArray(pendingContextCards) && pendingContextCards.length > 0
+                    ? pendingContextCards.slice(0, 3).map((card) => ({
+                        key: card.id,
+                        label: card.label,
+                        onClick: () => onAction && onAction(card.action),
+                      }))
+                    : quickStartsForPendingSearch(latestUserMessage?.content).map((label) => ({
+                        key: label,
+                        label,
+                        onClick: () => onQuickAction && onQuickAction(label),
+                      }))
+                  ).map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={item.onClick}
+                      className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        backgroundColor: "var(--surface-intermediate)",
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
