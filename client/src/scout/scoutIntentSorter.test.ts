@@ -166,6 +166,32 @@ describe("sortScoutInfoDump", () => {
     expect(visibleCopy).toContain("contact gated");
   });
 
+  it("keeps vehicle issues out of generic home project handling", () => {
+    const intents = sortScoutInfoDump("brake noise on my truck asap");
+    const labels = intents.map((intent) => intent.label);
+    const actions = intents.flatMap((intent) => intent.actions.map((action) => action.label));
+    const visibleCopy = visibleIntentCopy(intents);
+
+    expect(labels[0]).toBe("Handle the vehicle issue");
+    expect(actions).toContain("Open vehicles");
+    expect(actions).not.toContain("Start a material run");
+    expect(visibleCopy).toContain("vehicle context");
+    expect(visibleCopy).not.toContain("plan this project");
+  });
+
+  it("treats quote fairness as review work before local contact", () => {
+    const intents = sortScoutInfoDump("is this roofing quote fair at $4500");
+    const visibleCopy = visibleIntentCopy(intents);
+
+    expect(intents.map((intent) => intent.label)).toEqual(["Check prices"]);
+    expect(intents[0].actions.some((action) => action.label === "Review this price")).toBe(true);
+    expect(
+      intents[0].actions.some((action) => action.to === "/direct-connect/pros?trade=roofing")
+    ).toBe(true);
+    expect(visibleCopy).toContain("scope before price");
+    expect(visibleCopy).toContain("no contact opens automatically");
+  });
+
   it("switches project options when the user is building for a client", () => {
     const intents = sortScoutInfoDump("I am a contractor building a deck for a client");
     const visibleCopy = visibleIntentCopy(intents);

@@ -39,6 +39,16 @@ type DumpFacts = {
 
 type ProjectPerspective = "personal" | "client";
 type ScoutIntentItem = { id: string; label: string; description?: string };
+type SituationProfile = {
+  context: "home" | "vehicle" | "materials" | "project" | "marketplace" | "general";
+  perspective: ProjectPerspective;
+  urgency: DumpFacts["urgency"];
+  hasMaterials: boolean;
+  wantsPriceReview: boolean;
+  wantsLocalHelp: boolean;
+  wantsMarketplace: boolean;
+  wantsRules: boolean;
+};
 
 function normalize(input: string): string {
   return input
@@ -213,6 +223,47 @@ function askScoutAction(label: string, prompt: string): ScoutAction {
     type: "ASK_SCOUT",
     label,
     prompt,
+  };
+}
+
+function buildSituationProfile(rawMessage: string, normalized: string): SituationProfile {
+  const facts = buildFacts(rawMessage);
+  const vehicle =
+    /\b(car|truck|vehicle|van|motorcycle|trailer|tire|brake|engine|transmission|alternator|battery|vin)\b/.test(
+      normalized
+    );
+  const hasMaterials = hasMaterialOrSupplierIntent(normalized);
+  const wantsMarketplace =
+    /\b(buy|sell|listing|marketplace|exchange|for sale|rent|rental|used|parts?)\b/.test(normalized);
+  const wantsPriceReview =
+    /\b(fair|quote|estimate|price|pricing|cost|bid|compare|overcharged|too high)\b/.test(
+      normalized
+    );
+  const wantsRules = /\b(permit|inspection|code|rule|allowed|legal|ordinance)\b/.test(normalized);
+  const wantsLocalHelp =
+    /\b(contractor|pro|mechanic|repair|replace|install|help|near me|nearby|local|trusted|service)\b/.test(
+      normalized
+    );
+
+  return {
+    context: vehicle
+      ? "vehicle"
+      : hasMaterials
+        ? "materials"
+        : wantsMarketplace
+          ? "marketplace"
+          : isProjectActionIntent(normalized)
+            ? "project"
+            : facts.jobType
+              ? "home"
+              : "general",
+    perspective: inferProjectPerspective(normalized),
+    urgency: facts.urgency,
+    hasMaterials,
+    wantsPriceReview,
+    wantsLocalHelp,
+    wantsMarketplace,
+    wantsRules,
   };
 }
 
@@ -550,6 +601,136 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
   });
 
   return prioritizeLocalHelp ? [helpIntent, planIntent] : [planIntent, helpIntent];
+}
+
+function buildVehicleOptionIntents(rawMessage: string, normalized: string): SortedScoutIntent[] {
+  const profile = buildSituationProfile(rawMessage, normalized);
+  if (profile.context !== "vehicle") return [];
+
+  const facts = buildFacts(rawMessage);
+  const need = facts.need;
+  const partsRelevant =
+    profile.wantsMarketplace ||
+    /\b(part|parts|tire|battery|alternator|brake pad|rotor|wheel|tool|tow|trailer)\b/.test(
+      normalized
+    );
+
+  const vehicleHelp = createSortedIntent({
+    id: "vehicle-help",
+    label: profile.urgency === "high" ? "Handle the vehicle issue" : "Vehicle help",
+    kind: "site",
+    confidence: profile.urgency === "high" ? 0.9 : 0.86,
+    reason:
+      profile.urgency === "high"
+        ? "Use this when the vehicle issue sounds time-sensitive."
+        : "Use this when the need is tied to a car, truck, trailer, or vehicle record.",
+    body:
+      profile.urgency === "high"
+        ? "Start with safety, symptoms, and what not to drive or touch. Then keep vehicle details ready."
+        : "Scout can organize the vehicle details, symptoms, and next checks before you contact anyone.",
+    items: [
+      {
+        id: "vehicle-context",
+        label: "Vehicle context",
+        description: "Year, make, model, symptoms, and timing change the next step",
+      },
+      {
+        id: "vehicle-review",
+        label: "Review before contact",
+        description: "Scout can help prepare details, but you choose before anything is shared",
+      },
+    ],
+    angleItems: buildAngleItems(rawMessage, "vehicle-help"),
+    actions: [
+      askScoutAction(
+        "Narrow the issue",
+        `Help me narrow this vehicle issue, what to check, and what details to save: ${need}`
+      ),
+      { type: "NAVIGATE", label: "Open vehicles", to: "/vehicles" },
+    ],
+  });
+
+  if (!partsRelevant) return [vehicleHelp];
+
+  return [
+    vehicleHelp,
+    createSortedIntent({
+      id: "vehicle-parts-market",
+      label: "Vehicle parts or listings",
+      kind: "marketplace",
+      confidence: 0.82,
+      reason: "Use this when parts, tools, vehicles, or related listings may matter.",
+      body: "Scout can point you toward vehicle listings or parts research without contacting anyone automatically.",
+      items: [
+        {
+          id: "vehicle-market-fit",
+          label: "Parts and vehicle listings",
+          description: "Compare fit, condition, price, pickup, and compatibility before buying",
+        },
+      ],
+      angleItems: buildAngleItems(rawMessage, "vehicle-parts-market"),
+      actions: [
+        { type: "NAVIGATE", label: "Open vehicle marketplace", to: "/vehicle-marketplace" },
+        askScoutAction("Compare fit", `Help me compare vehicle parts or listings for: ${need}`),
+      ],
+    }),
+  ];
+}
+
+function buildPriceReviewOptionIntents(
+  rawMessage: string,
+  normalized: string
+): SortedScoutIntent[] {
+  const profile = buildSituationProfile(rawMessage, normalized);
+  const explicitReview = /\b(fair|quote|estimate|bid|overcharged|too high)\b/.test(normalized);
+  const priceOnly =
+    /\b(price|pricing|cost)\b/.test(normalized) && !isProjectActionIntent(normalized);
+  if (
+    !profile.wantsPriceReview ||
+    (!explicitReview && !priceOnly) ||
+    profile.context === "materials" ||
+    profile.context === "vehicle"
+  ) {
+    return [];
+  }
+
+  const facts = buildFacts(rawMessage);
+  const need = facts.need;
+  const localHelpPath = facts.jobType
+    ? `/direct-connect/pros?trade=${encodeURIComponent(facts.jobType)}`
+    : "/direct-connect/pros";
+
+  return [
+    createSortedIntent({
+      id: "price-review",
+      label: "Check prices",
+      kind: "projects",
+      confidence: 0.89,
+      reason: "Use this when the user is comparing cost, a quote, estimate, or bid.",
+      body: "Scout can help compare the scope, materials, timing, and red flags before you contact anyone.",
+      items: [
+        {
+          id: "price-scope",
+          label: "Scope before price",
+          description:
+            "A quote is only useful when the work, materials, exclusions, and timing are clear",
+        },
+        {
+          id: "price-contact-gate",
+          label: "No contact opens automatically",
+          description: "Use this to review before asking anyone for more detail",
+        },
+      ],
+      angleItems: buildAngleItems(rawMessage, "price-review"),
+      actions: [
+        askScoutAction(
+          "Review this price",
+          `Help me review this price, quote, estimate, or bid and what to check next: ${need}`
+        ),
+        { type: "NAVIGATE", label: "Compare local help", to: localHelpPath },
+      ],
+    }),
+  ];
 }
 
 function buildMaterialOptionIntents(
@@ -895,6 +1076,12 @@ export function sortScoutInfoDump(
 ): SortedScoutIntent[] {
   const normalized = normalize(rawMessage);
   if (!normalized || normalized.length < 2) return [];
+
+  const vehicleOptions = buildVehicleOptionIntents(rawMessage, normalized);
+  if (vehicleOptions.length > 0) return vehicleOptions;
+
+  const priceOptions = buildPriceReviewOptionIntents(rawMessage, normalized);
+  if (priceOptions.length > 0) return priceOptions;
 
   const projectOptions = buildProjectOptionIntents(rawMessage, normalized);
   if (projectOptions.length > 0) return projectOptions;
