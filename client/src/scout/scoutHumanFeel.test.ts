@@ -91,7 +91,10 @@ describe("Scout Human Feel Acceptance", () => {
 
       const lower = turn.message.content.toLowerCase();
       expect(
-        lower.includes("got it") || lower.includes("next step") || lower.includes("keep moving")
+        lower.includes("got it") ||
+          lower.includes("next step") ||
+          lower.includes("keep moving") ||
+          lower.includes("start with")
       ).toBe(true);
 
       expect(lower.includes("i can help with that")).toBe(false);
@@ -101,11 +104,14 @@ describe("Scout Human Feel Acceptance", () => {
           lower.includes("next") ||
             lower.includes("open") ||
             lower.includes("choose") ||
-            lower.includes("continue")
+            lower.includes("continue") ||
+            lower.includes("start with")
         ).toBe(true);
       }
 
-      expect(turn.message.content.includes("?")).toBe(true);
+      expect(lower.includes("which option should i run first")).toBe(false);
+      expect(lower.includes("what should i help you with next")).toBe(false);
+      expect(lower.includes("do you want to start with")).toBe(false);
 
       expect(lower.includes("can't help")).toBe(false);
       expect(lower.includes("not sure what to do")).toBe(false);

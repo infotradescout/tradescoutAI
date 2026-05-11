@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ensureFollowUpQuestion } from "../scout/responseShape";
 
 describe("ensureFollowUpQuestion", () => {
-  it("adds follow-up question when none exists", () => {
+  it("keeps statement responses when no question exists", () => {
     const result = ensureFollowUpQuestion("I found the best path for your request.");
     expect(result).toBe("I found the best path for your request.");
   });

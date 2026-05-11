@@ -12,19 +12,26 @@ const checks = [
     file: "client/src/scout/responseQuality.ts",
     mustInclude: [
       "function appendFollowUpQuestion",
+      "function rewriteChoiceQuestions",
+      "function summarizeWhenActionsCarryTheWork",
       "output = appendFollowUpQuestion(output, hasActionOptions);",
     ],
   },
   {
     file: "client/src/scout/responseQuality.test.ts",
     mustInclude: [
-      "appends a follow-up question when response has no question",
+      "turns two-way choice questions into option summary copy when actions exist",
+      "keeps chat as a short summary when cards carry the result",
       "keeps existing follow-up questions without duplicating",
     ],
   },
   {
     file: "client/src/scout/scoutHumanFeel.test.ts",
-    mustInclude: ["expect(turn.message.content.includes(\"?\")).toBe(true);"],
+    mustInclude: [
+      'expect(lower.includes("which option should i run first")).toBe(false);',
+      'expect(lower.includes("what should i help you with next")).toBe(false);',
+      'expect(lower.includes("do you want to start with")).toBe(false);',
+    ],
   },
   {
     file: "server/routes/scout.ts",
@@ -43,7 +50,7 @@ const checks = [
   {
     file: "server/tests/scout-response-shape.test.ts",
     mustInclude: [
-      "adds follow-up question when none exists",
+      "keeps statement responses when no question exists",
       "preserves existing questions without duplication",
     ],
   },

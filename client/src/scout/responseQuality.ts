@@ -38,6 +38,7 @@ const BLOCKED_COPY_PATTERNS = [
   /\bnext:\s*pick a button below\b/i,
   /\bwhich option should i run first\b/i,
   /\bwhat should i help you with next\b/i,
+  /\bdo you want to start with\b/i,
 ];
 
 function collapseWhitespace(input: string): string {
@@ -137,6 +138,39 @@ function collapseRepeatedSentenceFragments(input: string): string {
   return deduped.join(" ");
 }
 
+function rewriteChoiceQuestions(input: string): string {
+  let output = input;
+  const replacements: Array<[RegExp, string]> = [
+    [
+      /\bdo you want to start with ([^?]+?) or ([^?]+?)\?/gi,
+      "Here are the best next steps: $1, or $2.",
+    ],
+    [/\bdo you want ([^?]+?) or ([^?]+?)\?/gi, "Here are the best next steps: $1, or $2."],
+    [/\bwhich option should i run first\?/gi, "Choose what fits."],
+    [/\bwhat should i help you with next\?/gi, "Choose what fits."],
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    output = output.replace(pattern, replacement);
+  }
+
+  return collapseWhitespace(output);
+}
+
+function summarizeWhenActionsCarryTheWork(input: string, hasActionOptions: boolean): string {
+  if (!hasActionOptions) return input;
+
+  const sentences = input
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length > 0);
+
+  if (sentences.length <= 2) return input;
+
+  const summary = sentences.slice(0, 2).join(" ");
+  return /[.!?]$/.test(summary) ? summary : `${summary}.`;
+}
+
 function appendFollowUpQuestion(input: string, hasActionOptions: boolean): string {
   const trimmed = collapseWhitespace(input);
   if (!trimmed)
@@ -144,10 +178,7 @@ function appendFollowUpQuestion(input: string, hasActionOptions: boolean): strin
       ? "Ready to open it?"
       : "I can still help you find the next local step.";
   if (trimmed.includes("?")) return trimmed;
-  // Only append a follow-up question for bare navigation phrases (e.g. "Got it - opening X.")
-  // Substantive answers (e.g. "I found strong options in your area.") are returned unchanged
-  const isBareNavPhrase = /^got it/i.test(trimmed) && trimmed.length < 80;
-  if (hasActionOptions && isBareNavPhrase) return `${trimmed} Ready to go?`;
+  if (hasActionOptions) return trimmed;
   if (!hasActionOptions) return `${trimmed} Want me to find the next local step?`;
   return trimmed;
 }
@@ -176,6 +207,8 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
   output = stripFiller(output);
   output = collapseRepeatedSentenceFragments(output);
   output = forceConciseAnswer(userMessage, output);
+  output = rewriteChoiceQuestions(output);
+  output = summarizeWhenActionsCarryTheWork(output, hasActionOptions);
 
   if (!output) {
     output = "I can still help you find the next local step.";
@@ -183,6 +216,8 @@ export function enforceResponseQualityContract(input: ResponseQualityInput): str
 
   const shouldUseBlockedFallback = appearsDeadEnd(output) || hasBlockedCopy(output);
   output = tuneScoutVoice(output);
+  output = rewriteChoiceQuestions(output);
+  output = summarizeWhenActionsCarryTheWork(output, hasActionOptions);
 
   if (shouldUseBlockedFallback) {
     output =

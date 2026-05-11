@@ -60,6 +60,31 @@ describe("enforceResponseQualityContract", () => {
     expect(result).toContain("Want me to open Direct Connect now?");
   });
 
+  it("turns two-way choice questions into option summary copy when actions exist", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "I need to build a deck",
+      content:
+        "Got it - building a deck could be your home project or a client job. Do you want to start with DIY guidance or contractor matching?",
+      hasActionOptions: true,
+    });
+
+    expect(result).toContain("Here are the best next steps");
+    expect(result.toLowerCase()).not.toContain("do you want");
+    expect(result.toLowerCase()).not.toContain("which option");
+  });
+
+  it("keeps chat as a short summary when cards carry the result", () => {
+    const result = enforceResponseQualityContract({
+      userMessage: "Need lumber for deck",
+      content:
+        "I found the material path. You have supplier, product, Exchange, and Supply Run options ready. Local stock and prices still need confirmation before you commit. You can also save this for later.",
+      hasActionOptions: true,
+    });
+
+    expect(result.split(/(?<=[.!?])\s+/)).toHaveLength(2);
+    expect(result).toContain("supplier, product, Exchange, and Supply Run options");
+  });
+
   it("collapses repeated next-step sentence spam", () => {
     const result = enforceResponseQualityContract({
       userMessage: "roofing repair",
