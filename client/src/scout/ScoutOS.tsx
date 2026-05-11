@@ -296,6 +296,15 @@ function upsertSavedScoutThread(
   return nextThread;
 }
 
+function removeSavedScoutThread(
+  userId: string | null | undefined,
+  threadId: string
+): SavedScoutThread[] {
+  const next = readSavedScoutThreads(userId).filter((thread) => thread.id !== threadId);
+  writeSavedScoutThreads(userId, next);
+  return next;
+}
+
 function mergeSavedScoutThreads(
   primary: SavedScoutThread[],
   secondary: SavedScoutThread[]
@@ -888,13 +897,67 @@ export default function ScoutOS() {
   );
 
   useEffect(() => {
-    const merged = mergeSavedScoutThreads(
-      readSavedScoutThreads(scoutSaveUserId),
-      remoteSavedScoutThreads
-    );
+    let cancelled = false;
+    const localThreads = readSavedScoutThreads(scoutSaveUserId);
+    const merged = mergeSavedScoutThreads(localThreads, remoteSavedScoutThreads);
     writeSavedScoutThreads(scoutSaveUserId, merged);
     setSavedScoutThreads(merged);
-  }, [remoteSavedScoutThreads, scoutSaveUserId]);
+
+    if (!user) return;
+
+    void fetch("/api/scout/conversations", {
+      method: "GET",
+      credentials: "include",
+    })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then((data) => {
+        if (cancelled || !data) return;
+        const serverThreads = normalizeSavedScoutThreads(data.conversations);
+        const next = mergeSavedScoutThreads(serverThreads, readSavedScoutThreads(scoutSaveUserId));
+        writeSavedScoutThreads(scoutSaveUserId, next);
+        setSavedScoutThreads(next);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteSavedScoutThreads, scoutSaveUserId, user]);
+
+  const persistSavedScoutThreadRemote = useCallback(
+    async (thread: SavedScoutThread) => {
+      if (!user) return;
+      try {
+        const response = await fetch("/api/scout/conversations", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: thread.id,
+            title: thread.title,
+            preview: thread.preview,
+            messageCount: thread.messageCount,
+            messages: thread.messages,
+            metadata: { source: "scout_os" },
+          }),
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const saved = normalizeSavedScoutThreads([data?.conversation])[0];
+        if (!saved) return;
+        const next = mergeSavedScoutThreads([saved], readSavedScoutThreads(scoutSaveUserId));
+        writeSavedScoutThreads(scoutSaveUserId, next);
+        setSavedScoutThreads(next);
+        setActiveSavedThreadId((current) => (current === thread.id ? saved.id : current));
+      } catch {
+        // Remote saves are best-effort; the local saved thread remains available.
+      }
+    },
+    [scoutSaveUserId, user]
+  );
 
   useEffect(() => {
     const hasUserThread = state.messages.some(
@@ -907,10 +970,11 @@ export default function ScoutOS() {
       if (!saved) return;
       setActiveSavedThreadId(saved.id);
       setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
+      void persistSavedScoutThreadRemote(saved);
     }, 450);
 
     return () => window.clearTimeout(timer);
-  }, [activeSavedThreadId, scoutSaveUserId, state.messages]);
+  }, [activeSavedThreadId, persistSavedScoutThreadRemote, scoutSaveUserId, state.messages]);
 
   // Log a lightweight "intro_shown" event the first time the Scout surface
   // renders without any prior messages. Keep hasMessages above this effect to
@@ -973,14 +1037,6 @@ export default function ScoutOS() {
     },
     [user]
   );
-
-  useEffect(() => {
-    if (!user || savedScoutThreads.length === 0) return;
-    const timer = window.setTimeout(() => {
-      void persistScoutResume({ savedThreads: savedScoutThreads });
-    }, 900);
-    return () => window.clearTimeout(timer);
-  }, [persistScoutResume, savedScoutThreads, user]);
 
   const openWorkArea = useCallback(
     (opts: { url: string; title?: string }) => {
@@ -1082,7 +1138,27 @@ export default function ScoutOS() {
     if (!saved) return;
     setActiveSavedThreadId(saved.id);
     setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
-  }, [activeSavedThreadId, scoutSaveUserId, state.messages]);
+    void persistSavedScoutThreadRemote(saved);
+  }, [activeSavedThreadId, persistSavedScoutThreadRemote, scoutSaveUserId, state.messages]);
+
+  const handleDeleteSavedThread = useCallback(
+    (threadId: string) => {
+      const next = removeSavedScoutThread(scoutSaveUserId, threadId);
+      setSavedScoutThreads(next);
+
+      if (activeSavedThreadId === threadId) {
+        handleStartNewScoutThread();
+      }
+
+      if (user) {
+        void fetch(`/api/scout/conversations/${encodeURIComponent(threadId)}`, {
+          method: "DELETE",
+          credentials: "include",
+        }).catch(() => undefined);
+      }
+    },
+    [activeSavedThreadId, handleStartNewScoutThread, scoutSaveUserId, user]
+  );
 
   // First-time guest state: controls the calm intro + auto-demo gating.
   const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasUserMessages;
@@ -3575,11 +3651,9 @@ export default function ScoutOS() {
                       </div>
                       <div className="grid gap-2">
                         {savedThreadPreview.map((thread) => (
-                          <button
+                          <div
                             key={thread.id}
-                            type="button"
-                            onClick={() => handleLoadSavedThread(thread)}
-                            className="rounded-xl border px-3 py-2 text-left transition-colors"
+                            className="rounded-xl border px-3 py-2"
                             style={{
                               borderColor: "var(--border-subtle)",
                               backgroundColor:
@@ -3587,16 +3661,30 @@ export default function ScoutOS() {
                               color: "var(--text-primary)",
                             }}
                           >
-                            <span className="block text-sm font-semibold leading-tight">
-                              {thread.title}
-                            </span>
-                            <span
-                              className="mt-1 block text-[11px] leading-snug"
-                              style={{ color: "var(--text-secondary)" }}
+                            <button
+                              type="button"
+                              onClick={() => handleLoadSavedThread(thread)}
+                              className="block w-full text-left"
                             >
-                              {thread.preview}
-                            </span>
-                          </button>
+                              <span className="block text-sm font-semibold leading-tight">
+                                {thread.title}
+                              </span>
+                              <span
+                                className="mt-1 block text-[11px] leading-snug"
+                                style={{ color: "var(--text-secondary)" }}
+                              >
+                                {thread.preview}
+                              </span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSavedThread(thread.id)}
+                              className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                              style={{ color: "var(--text-muted)" }}
+                            >
+                              Delete
+                            </button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -4384,6 +4472,20 @@ export default function ScoutOS() {
                         >
                           New
                         </button>
+                        {activeSavedThreadId && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSavedThread(activeSavedThreadId)}
+                            className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                            style={{
+                              borderColor: "var(--border-subtle)",
+                              backgroundColor: "transparent",
+                              color: "var(--text-muted)",
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
                       </span>
                     </div>
                   </div>

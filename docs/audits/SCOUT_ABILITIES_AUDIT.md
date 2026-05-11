@@ -47,6 +47,7 @@ The product law is mostly preserved, but the abilities contract needed tightenin
 | Admin broadcast | Scout can send an approved admin broadcast for admin roles. | `SEND_ADMIN_BROADCAST` through server guard. | enforced |
 | Open note | Scout can open floating notes. | `OPEN_FLOATING_NOTE`. | enforced |
 | Ad feedback | Scout can mark an ad helpful/not relevant/spam. | `CALL_TOOL` name `ads.feedback`. | enforced |
+| Saved conversations | Signed-in users can return to saved Scout threads; guests keep a local browser fallback. | `scout_conversations` plus `/api/scout/conversations`. | enforced |
 | Payments | Scout can open payment-related pages. It cannot pay. | Payment actions intercepted by `isPaymentExecutionAction`. | enforced |
 | Supply Run | Scout can open Supply Run from material/supplier queries. | `/utilities/supply-run`. | enforced |
 | Supplier ordering | Scout can help start the Supply Run flow; live supplier quote/order work happens in Procurement pages and server routes. | `server/routes/procurement.ts`. | enforced for TradeScout-managed order requests; policy_target for direct supplier API checkout. |
@@ -71,6 +72,7 @@ Scout must not claim it can:
 | Local explicit messages navigation used `/conversations` while Scout work area expected `/messages`. | medium | fixed | Explicit nav now uses `/messages`; validation allows both. |
 | Unknown `CALL_TOOL` names silently no-op after approval. | medium | fixed | `SUPPORTED_SCOUT_TOOLS` now blocks unsupported tool names with plain user-facing copy. |
 | Some server fallback copy still uses "route/routing" internally or in older flows. | medium | fixed | Server fallback and tone-builder user-facing copy now rewrites internal system words to plain next-step language. |
+| Scout conversations were local/preference-backed only. | medium | fixed | Saved Scout threads now persist in a user-owned `scout_conversations` table with delete support and guest local fallback. |
 | Direct supplier integrations are not yet true supplier APIs for all vendors. | high | policy_target | Keep URL/product resolver and tokenized supplier quote flow now; add vendor API connectors as signed supplier partnerships mature. |
 
 ## Supplier Integration Reality

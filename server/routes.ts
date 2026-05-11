@@ -188,6 +188,7 @@ import {
   propertyHomefaxSnapshots,
   commercialProjectBids,
   commercialProjects,
+  scoutConversations,
 } from "../shared/schema";
 
 function sanitizeContractorPublic<T extends Record<string, any>>(
@@ -414,6 +415,68 @@ function isValidCountyFips(value: unknown): value is string {
 
 function isValidStateCode(value: unknown): value is string {
   return typeof value === "string" && /^[A-Za-z]{2}$/.test(value.trim());
+}
+
+const SCOUT_CONVERSATION_LIMIT = 20;
+const SCOUT_CONVERSATION_MESSAGE_LIMIT = 40;
+const SCOUT_CONVERSATION_CONTENT_LIMIT = 4000;
+
+function safeText(value: unknown, maxLength: number): string | null {
+  if (typeof value !== "string") return null;
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (!clean) return null;
+  return clean.length > maxLength ? clean.slice(0, maxLength) : clean;
+}
+
+function safeScoutConversationId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const clean = value.trim();
+  if (!/^[A-Za-z0-9_-]{6,96}$/.test(clean)) return null;
+  return clean;
+}
+
+function compactScoutConversationMessages(input: unknown): any[] {
+  if (!Array.isArray(input)) return [];
+  return input.slice(-SCOUT_CONVERSATION_MESSAGE_LIMIT).map((message: any) => {
+    const role =
+      message?.role === "user" || message?.role === "assistant" || message?.role === "system"
+        ? message.role
+        : "assistant";
+    const rawContent = typeof message?.content === "string" ? message.content : "";
+    return {
+      ...message,
+      id:
+        typeof message?.id === "string" && message.id.trim()
+          ? message.id.trim().slice(0, 120)
+          : randomUUID(),
+      role,
+      content:
+        rawContent.length > SCOUT_CONVERSATION_CONTENT_LIMIT
+          ? `${rawContent.slice(0, SCOUT_CONVERSATION_CONTENT_LIMIT - 3)}...`
+          : rawContent,
+      timestamp:
+        typeof message?.timestamp === "string" && message.timestamp.trim()
+          ? message.timestamp.trim()
+          : new Date().toISOString(),
+    };
+  });
+}
+
+function scoutConversationPayload(row: any) {
+  return {
+    id: row.id,
+    title: row.title,
+    preview: row.preview ?? "",
+    summary: row.summary ?? "",
+    intent: row.intent ?? null,
+    countyFips: row.countyFips ?? null,
+    stateCode: row.stateCode ?? null,
+    messageCount: row.messageCount ?? 0,
+    messages: Array.isArray(row.messages) ? row.messages : [],
+    metadata: row.metadata && typeof row.metadata === "object" ? row.metadata : {},
+    updatedAt: row.updatedAt,
+    createdAt: row.createdAt,
+  };
 }
 import { paymentService } from "./payment-service";
 import { tutorialStorage } from "./tutorialStorage";
@@ -5644,6 +5707,134 @@ export async function registerRoutes(app: any) {
       res.status(500).json({ message: "Failed to update scout preferences" });
     }
   });
+
+  app.get("/api/scout/conversations", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const rows = await db
+        .select()
+        .from(scoutConversations)
+        .where(and(eq(scoutConversations.userId, userId), isNull(scoutConversations.archivedAt)))
+        .orderBy(desc(scoutConversations.updatedAt))
+        .limit(SCOUT_CONVERSATION_LIMIT);
+
+      res.json({ conversations: rows.map(scoutConversationPayload) });
+    } catch (error: any) {
+      console.error("Error loading Scout conversations:", error);
+      res.status(500).json({ message: "Failed to load Scout conversations" });
+    }
+  });
+
+  app.post("/api/scout/conversations", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+      const body: any = req.body ?? {};
+      const id = safeScoutConversationId(body.id);
+      const messages = compactScoutConversationMessages(body.messages);
+      const title = safeText(body.title, 160) || "Scout conversation";
+      const preview = safeText(body.preview, 1000);
+      const summary = safeText(body.summary, 2000);
+      const intent = safeText(body.intent, 80);
+      const countyFips = isValidCountyFips(body.countyFips) ? body.countyFips.trim() : null;
+      const stateCode = isValidStateCode(body.stateCode)
+        ? body.stateCode.trim().toUpperCase()
+        : null;
+      const messageCount =
+        typeof body.messageCount === "number" && Number.isFinite(body.messageCount)
+          ? Math.max(0, Math.min(500, Math.floor(body.messageCount)))
+          : messages.length;
+      const metadata =
+        body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
+          ? body.metadata
+          : {};
+      const now = new Date();
+
+      if (id) {
+        const [existingById] = await db
+          .select({ id: scoutConversations.id, userId: scoutConversations.userId })
+          .from(scoutConversations)
+          .where(eq(scoutConversations.id, id))
+          .limit(1);
+
+        if (existingById && existingById.userId !== userId) {
+          return res.status(403).json({ message: "Scout conversation belongs to another user" });
+        }
+
+        if (existingById) {
+          const [updated] = await db
+            .update(scoutConversations)
+            .set({
+              title,
+              preview,
+              summary,
+              intent,
+              countyFips,
+              stateCode,
+              messageCount,
+              messages,
+              metadata,
+              archivedAt: null,
+              updatedAt: now,
+            })
+            .where(and(eq(scoutConversations.id, id), eq(scoutConversations.userId, userId)))
+            .returning();
+
+          return res.json({ conversation: scoutConversationPayload(updated) });
+        }
+      }
+
+      const [created] = await db
+        .insert(scoutConversations)
+        .values({
+          ...(id ? { id } : {}),
+          userId,
+          title,
+          preview,
+          summary,
+          intent,
+          countyFips,
+          stateCode,
+          messageCount,
+          messages,
+          metadata,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .returning();
+
+      res.status(201).json({ conversation: scoutConversationPayload(created) });
+    } catch (error: any) {
+      console.error("Error saving Scout conversation:", error);
+      res.status(500).json({ message: "Failed to save Scout conversation" });
+    }
+  });
+
+  app.delete(
+    "/api/scout/conversations/:id",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const id = safeScoutConversationId(req.params.id);
+        if (!id) return res.status(400).json({ message: "Invalid Scout conversation id" });
+
+        await db
+          .delete(scoutConversations)
+          .where(and(eq(scoutConversations.id, id), eq(scoutConversations.userId, userId)));
+
+        res.json({ ok: true });
+      } catch (error: any) {
+        console.error("Error deleting Scout conversation:", error);
+        res.status(500).json({ message: "Failed to delete Scout conversation" });
+      }
+    }
+  );
 
   // Back-compat: mark onboarding completed (do NOT allow arbitrary updates)
   app.patch("/api/auth/user", isAuthenticated, async (req: Request, res: Response) => {

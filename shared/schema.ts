@@ -4203,6 +4203,40 @@ export const scoutMemory = pgTable(
   ]
 );
 
+// Scout conversations: user-owned saved Scout threads for return visits.
+export const scoutConversations = pgTable(
+  "scout_conversations",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: varchar("title", { length: 160 }).notNull(),
+    preview: text("preview"),
+    summary: text("summary"),
+    intent: varchar("intent", { length: 80 }),
+    countyFips: varchar("county_fips", { length: 5 }),
+    stateCode: varchar("state_code", { length: 2 }),
+    messageCount: integer("message_count").notNull().default(0),
+    messages: jsonb("messages")
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    metadata: jsonb("metadata")
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    archivedAt: timestamp("archived_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("scout_conversations_user_updated_idx").on(table.userId, table.updatedAt),
+    index("scout_conversations_user_archived_idx").on(table.userId, table.archivedAt),
+    index("scout_conversations_county_idx").on(table.countyFips),
+  ]
+);
+
 // Admin audit log: persistent record of all admin actions (impersonation, role changes, etc.)
 export const adminAuditLog = pgTable(
   "admin_audit_log",
@@ -4963,6 +4997,8 @@ export type InsertBotUiFinding = typeof botUiFindings.$inferInsert;
 export type BotUiFinding = typeof botUiFindings.$inferSelect;
 export type InsertScoutInteraction = typeof scoutInteractions.$inferInsert;
 export type ScoutInteraction = typeof scoutInteractions.$inferSelect;
+export type InsertScoutConversation = typeof scoutConversations.$inferInsert;
+export type ScoutConversation = typeof scoutConversations.$inferSelect;
 export type InsertMissionControlAction = typeof missionControlActions.$inferInsert;
 export type MissionControlAction = typeof missionControlActions.$inferSelect;
 export type InsertMissionControlDecision = typeof missionControlDecisions.$inferInsert;
