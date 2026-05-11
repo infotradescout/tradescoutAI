@@ -1,13 +1,21 @@
 import React from "react";
 import clsx from "clsx";
 import {
+  Activity,
   ArrowRight,
   BadgeCheck,
   Bookmark,
+  ChevronRight,
   ClipboardList,
   HelpCircle,
+  MapPin,
   MessageSquareText,
+  Mic,
   Search,
+  Send,
+  Shield,
+  Sparkles,
+  Star,
   Store,
   Users2,
 } from "lucide-react";
@@ -22,6 +30,12 @@ import {
   formatIntentDetailChips,
   inferScoutIntentDetails,
 } from "./intentDetails";
+
+/* ----------------------------------------------------------
+   ScoutThread — Morphic OS v2
+   All sub-components are annotated with @reusable tags.
+   They can be imported and used independently anywhere in the app.
+   ---------------------------------------------------------- */
 
 type ScoutThreadProps = {
   messages: ScoutMessage[];
@@ -38,6 +52,11 @@ type ScoutThreadProps = {
   locality?: ScoutLocality;
 };
 
+/* ----------------------------------------------------------
+   @reusable: AssistantStreamedText
+   Use: Animated character-by-character text reveal for any assistant response.
+   Respects prefers-reduced-motion. Pass shouldAnimate=false for instant display.
+   ---------------------------------------------------------- */
 function AssistantStreamedText({
   content,
   shouldAnimate,
@@ -54,7 +73,6 @@ function AssistantStreamedText({
       setVisibleChars(content.length);
       return;
     }
-
     const reducedMotion =
       typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
@@ -64,7 +82,6 @@ function AssistantStreamedText({
       setVisibleChars(content.length);
       return;
     }
-
     setVisibleChars(0);
     const step = Math.max(2, Math.ceil(content.length / 70));
     const timer = window.setInterval(() => {
@@ -76,7 +93,6 @@ function AssistantStreamedText({
         return Math.min(content.length, prev + step);
       });
     }, 12);
-
     return () => window.clearInterval(timer);
   }, [content, shouldAnimate]);
 
@@ -242,9 +258,9 @@ function actionTarget(action: ScoutAction): string {
 function clusterKindMeta(kind: ScoutCluster["kind"]) {
   switch (kind) {
     case "pros":
-      return { label: "Local help", icon: Users2 };
+      return { label: "Local help", icon: Users2, emoji: "🔧" };
     case "marketplace":
-      return { label: "Exchange", icon: Store };
+      return { label: "Exchange", icon: Store, emoji: "🛒" };
     case "community":
       return { label: "Local posts", icon: MessageSquareText };
     case "projects":
@@ -254,9 +270,9 @@ function clusterKindMeta(kind: ScoutCluster["kind"]) {
     case "site":
       return { label: "Ask Scout", icon: Search };
     case "account":
-      return { label: "Account", icon: BadgeCheck };
+      return { label: "Account", icon: BadgeCheck, emoji: "👤" };
     default:
-      return { label: "Result", icon: Search };
+      return { label: "Result", icon: Search, emoji: "📌" };
   }
 }
 
@@ -269,11 +285,7 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
         to: "/direct-connect",
         subtitle: "Review before sharing",
       },
-      {
-        type: "NAVIGATE",
-        label: "Browse local help",
-        to: "/direct-connect/pros",
-      },
+      { type: "NAVIGATE", label: "Browse local help", to: "/direct-connect/pros" },
     ];
   }
 
@@ -315,7 +327,6 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
 function buildAskScoutAction(cluster: ScoutCluster): ScoutAction {
   const title = cluster.title || "this result";
   const bodyHint = cluster.body ? ` Context: ${cluster.body.slice(0, 180)}` : "";
-
   return {
     type: "ASK_SCOUT",
     label: "Ask Scout",
@@ -332,7 +343,6 @@ function mergeClusterActions(cluster: ScoutCluster): ScoutAction[] {
   ];
   const seen = new Set<string>();
   const merged: ScoutAction[] = [];
-
   for (const action of candidates) {
     const key = [action.type, normalizeActionText(action.label || ""), actionTarget(action)].join(
       "|"
@@ -341,7 +351,6 @@ function mergeClusterActions(cluster: ScoutCluster): ScoutAction[] {
     seen.add(key);
     merged.push(action);
   }
-
   return merged;
 }
 
@@ -365,38 +374,27 @@ function quickStartsForPendingSearch(userMessage?: string): string[] {
 function buildEvidenceChips(msg: ScoutMessage): string[] {
   const provenance = msg.provenance;
   if (!provenance) return [];
-
   const chips: string[] = [];
-
-  if (provenance.sourceUsed) {
-    chips.push(`Source: ${humanizeToken(provenance.sourceUsed)}`);
-  }
-
-  if (provenance.confidenceBand) {
+  if (provenance.sourceUsed) chips.push(`Source: ${humanizeToken(provenance.sourceUsed)}`);
+  if (provenance.confidenceBand)
     chips.push(`Confidence: ${humanizeToken(provenance.confidenceBand)}`);
-  }
-
-  if (typeof provenance.knowledgeLayer === "number") {
+  if (typeof provenance.knowledgeLayer === "number")
     chips.push(`Layer: ${provenance.knowledgeLayer}`);
-  }
-
-  if (provenance.fallbackUsed) {
-    chips.push("Fallback: Active");
-  }
-
-  if (provenance.degradationReason) {
+  if (provenance.fallbackUsed) chips.push("Fallback: Active");
+  if (provenance.degradationReason)
     chips.push(`Degraded: ${humanizeToken(provenance.degradationReason)}`);
-  }
-
-  if (provenance.blockingReason) {
+  if (provenance.blockingReason)
     chips.push(`Authority: Gated (${humanizeToken(provenance.blockingReason)})`);
-  } else if (Array.isArray(provenance.allowedActions) && provenance.allowedActions.length > 0) {
+  else if (Array.isArray(provenance.allowedActions) && provenance.allowedActions.length > 0)
     chips.push("Authority: Clear");
-  }
-
   return chips;
 }
 
+/* ----------------------------------------------------------
+   @reusable: EvidenceStrip
+   Use: Collapsible "Why this answer" strip below any Scout assistant message.
+   Shows provenance chips and source titles when expanded.
+   ---------------------------------------------------------- */
 function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }) {
   const [open, setOpen] = React.useState(false);
   const chips = React.useMemo(() => buildEvidenceChips(msg), [msg]);
@@ -411,35 +409,246 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
   if (chips.length === 0 && evidenceSources.length === 0) return null;
 
   return (
-    <div className="scout-evidence-strip" aria-label="Scout evidence and authority">
+    <div className="mt-2 px-1" aria-label="Scout evidence and authority">
       <button
         type="button"
-        className="scout-evidence-chip"
+        className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-full px-3 py-1 transition-colors"
+        style={{
+          color: "rgba(249,115,22,0.7)",
+          background: "rgba(249,115,22,0.06)",
+          border: "1px solid rgba(249,115,22,0.15)",
+        }}
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
         {open ? "Hide details" : "Why this helps"}
+        <Shield size={10} />
+        {open ? "Hide details" : "Why this helps"}
       </button>
-
       {open && (
-        <>
+        <div
+          className="mt-2 space-y-1.5 rounded-xl p-3"
+          style={{ background: "#111", border: "1px solid rgba(255,255,255,0.07)" }}
+        >
           {chips.length > 0 && (
-            <div className="scout-evidence-chip-row">
+            <div className="flex flex-wrap gap-1.5">
               {chips.map((chip) => (
-                <span key={`${msg.id}-${chip}`} className="scout-evidence-chip">
+                <span
+                  key={`${msg.id}-${chip}`}
+                  className="text-[10px] px-2 py-0.5 rounded-full"
+                  style={{
+                    background: "rgba(255,255,255,0.05)",
+                    color: "rgba(250,250,250,0.5)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
                   {chip}
                 </span>
               ))}
             </div>
           )}
           {evidenceSources.length > 0 && (
-            <div className="scout-evidence-sources">Checked: {evidenceSources.join(" | ")}</div>
+            <div className="text-[10px]" style={{ color: "rgba(250,250,250,0.35)" }}>
+              Checked: {evidenceSources.join(" · ")}
+            </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
 }
+
+/* ----------------------------------------------------------
+   @reusable: ClusterCard (Morphic OS upgrade)
+   Use: Renders a single Scout result cluster as a dark card with optional
+   featured (orange border) treatment, status badges, meta rows, and action buttons.
+   Drop-in replacement for the legacy .scout-result-card anywhere in the app.
+   ---------------------------------------------------------- */
+function ClusterCard({
+  cluster,
+  onAction,
+}: {
+  cluster: ScoutCluster;
+  onAction?: (action: ScoutAction) => void;
+}) {
+  const handleAction = (action: ScoutAction) => {
+    if (onAction) {
+      const validated = validateAction(action);
+      if (validated) onAction(validated);
+    }
+  };
+
+  const [showAllActions, setShowAllActions] = React.useState(false);
+  const kindMeta = clusterKindMeta(cluster.kind);
+  const KindIcon = kindMeta.icon;
+  const isFeatured = Boolean(cluster.primaryAction);
+
+  const prioritizedActions = React.useMemo(() => {
+    const actions = mergeClusterActions(cluster);
+    return [...actions].sort((a, b) => {
+      if (a.primary !== b.primary) return a.primary ? -1 : 1;
+      const aIsNavigate = a.type === "NAVIGATE";
+      const bIsNavigate = b.type === "NAVIGATE";
+      if (aIsNavigate !== bIsNavigate) return aIsNavigate ? -1 : 1;
+      const aIsAsk = a.type === "ASK_SCOUT";
+      const bIsAsk = b.type === "ASK_SCOUT";
+      if (aIsAsk !== bIsAsk) return aIsAsk ? 1 : -1;
+      return 0;
+    });
+  }, [cluster]);
+
+  const visibleActions = React.useMemo(
+    () => (showAllActions ? prioritizedActions : prioritizedActions.slice(0, 3)),
+    [prioritizedActions, showAllActions]
+  );
+
+  return (
+    <article className={clsx("scout-cluster-card", isFeatured && "scout-cluster-card--featured")}>
+      {/* Featured tag */}
+      {isFeatured && (
+        <div className="scout-cluster-card__tag">
+          <Star size={10} />
+          Top Recommendation
+        </div>
+      )}
+
+      {/* Header row */}
+      <div className="scout-cluster-card__header">
+        <div className="scout-cluster-card__icon-wrap">
+          <span aria-hidden="true">{kindMeta.emoji}</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="scout-cluster-card__title">{cluster.title || kindMeta.label}</div>
+          <div className="scout-cluster-card__subtitle">{kindMeta.label}</div>
+        </div>
+        <div className="scout-cluster-card__chevron" aria-hidden="true">
+          <ChevronRight size={14} />
+        </div>
+      </div>
+
+      {/* Body text */}
+      {cluster.body && (
+        <p className="mt-2 text-[13px] leading-relaxed" style={{ color: "rgba(250,250,250,0.6)" }}>
+          {cluster.body}
+        </p>
+      )}
+
+      {/* Items list */}
+      {cluster.items && cluster.items.length > 0 && (
+        <ul className="mt-3 space-y-2 list-none p-0">
+          {cluster.items.map((item) => (
+            <li
+              key={item.id}
+              className="flex gap-2.5 rounded-xl p-2.5"
+              style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.05)" }}
+            >
+              <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ts-orange" />
+              <span className="min-w-0">
+                <span className="block text-[13px] font-semibold" style={{ color: "#fafafa" }}>
+                  {item.label}
+                </span>
+                {item.description && (
+                  <span
+                    className="mt-0.5 block text-[11px]"
+                    style={{ color: "rgba(250,250,250,0.45)" }}
+                  >
+                    {item.description}
+                  </span>
+                )}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Meta row */}
+      {(cluster as any).distance && (
+        <div className="scout-cluster-card__meta-row mt-3">
+          <span className="scout-cluster-card__meta-item">
+            <MapPin size={11} />
+            {(cluster as any).distance}
+          </span>
+          {(cluster as any).walkTime && (
+            <span className="scout-cluster-card__meta-item">{(cluster as any).walkTime}</span>
+          )}
+          {(cluster as any).availability && (
+            <span className="scout-cluster-card__meta-item">{(cluster as any).availability}</span>
+          )}
+        </div>
+      )}
+
+      {/* Action buttons */}
+      {prioritizedActions.length > 0 && (
+        <div className="mt-3 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {visibleActions.map((action) => (
+              <button
+                key={`${cluster.id}-${action.type}-${action.label}-${actionTarget(action)}`}
+                type="button"
+                onClick={() => handleAction(action)}
+                className={clsx(
+                  "inline-flex items-center gap-2 rounded-xl px-3 py-2 text-[12px] font-semibold transition-colors",
+                  action.primary
+                    ? "scout-tool-tray__btn--primary scout-tool-tray__btn"
+                    : "scout-tool-tray__btn--secondary scout-tool-tray__btn"
+                )}
+                style={{ minHeight: "36px", textTransform: "none", letterSpacing: "normal" }}
+              >
+                {action.type === "ASK_SCOUT" ? <HelpCircle size={13} /> : <ArrowRight size={13} />}
+                <span className="flex flex-col items-start text-left">
+                  <span>{action.label}</span>
+                  {action.subtitle && (
+                    <span className="text-[10px] opacity-75">{action.subtitle}</span>
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
+          {prioritizedActions.length > 3 && (
+            <button
+              type="button"
+              onClick={() => setShowAllActions((v) => !v)}
+              className="text-[10px] font-semibold rounded-full px-3 py-1"
+              style={{
+                color: "rgba(249,115,22,0.7)",
+                background: "rgba(249,115,22,0.06)",
+                border: "1px solid rgba(249,115,22,0.15)",
+              }}
+            >
+              {showAllActions ? "Show fewer" : `More actions (${prioritizedActions.length - 3})`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* CommunityCTA */}
+      {cluster.ctaSource && cluster.ctaContextId && (
+        <div className="mt-3 space-y-1">
+          {cluster.ctaLabel && cluster.ctaSource === "trade_deal" && (
+            <div className="text-[11px]" style={{ color: "rgba(250,250,250,0.4)" }}>
+              {cluster.ctaLabel}
+            </div>
+          )}
+          <CommunityCTA
+            layout="inline"
+            source={cluster.ctaSource}
+            contextId={cluster.ctaContextId}
+            ownerUserId={cluster.ctaOwnerUserId}
+            canDirectConnect={cluster.ctaCanDirectConnect}
+            canMessage={cluster.ctaCanMessage}
+            disableDirectConnect={cluster.ctaDisableDirectConnect}
+          />
+        </div>
+      )}
+    </article>
+  );
+}
+
+/* ----------------------------------------------------------
+   @reusable: MessageExtras
+   Use: Renders action chips, cluster cards, override options, suggestions,
+   and onboarding prompts below any Scout assistant message.
+   ---------------------------------------------------------- */
 function MessageExtras({
   msg,
   isUser,
@@ -485,88 +694,69 @@ function MessageExtras({
     });
   }, [msg.frame?.actionChips]);
 
-  const visibleActionChips = React.useMemo(() => {
-    if (controllerShowAll) return prioritizedActionChips;
-    return prioritizedActionChips.slice(0, 2);
-  }, [controllerShowAll, prioritizedActionChips]);
+  const visibleActionChips = React.useMemo(
+    () => (controllerShowAll ? prioritizedActionChips : prioritizedActionChips.slice(0, 2)),
+    [controllerShowAll, prioritizedActionChips]
+  );
 
   const visibleClusters = React.useMemo(() => {
     const clusters = Array.isArray(msg.clusters) ? msg.clusters : [];
-    if (controllerShowAll) return clusters;
-    return clusters.slice(0, 2);
+    return controllerShowAll ? clusters : clusters.slice(0, 2);
   }, [controllerShowAll, msg.clusters]);
 
   const dedupedSuggestions = React.useMemo(() => {
     const suggestions = Array.isArray(msg.suggestedActions) ? msg.suggestedActions : [];
     if (!suggestions.length) return [];
-
     const taken = new Set<string>();
-
     for (const chip of msg.frame?.actionChips || []) {
-      if (chip.label) {
-        taken.add(normalizeActionText(chip.label));
-      }
+      if (chip.label) taken.add(normalizeActionText(chip.label));
     }
-
     for (const cluster of msg.clusters || []) {
-      if (cluster.title) {
-        taken.add(normalizeActionText(cluster.title));
-      }
-      if (cluster.primaryAction?.label) {
-        taken.add(normalizeActionText(cluster.primaryAction.label));
-      }
+      if (cluster.title) taken.add(normalizeActionText(cluster.title));
+      if (cluster.primaryAction?.label) taken.add(normalizeActionText(cluster.primaryAction.label));
       for (const action of cluster.actions || []) {
-        if (action.label) {
-          taken.add(normalizeActionText(action.label));
-        }
+        if (action.label) taken.add(normalizeActionText(action.label));
       }
     }
-
     const seen = new Set<string>();
     const filtered: string[] = [];
     for (const suggestion of suggestions) {
       const key = normalizeActionText(suggestion);
-      if (!key) continue;
-      if (seen.has(key)) continue;
-      if (taken.has(key)) continue;
+      if (!key || seen.has(key) || taken.has(key)) continue;
       seen.add(key);
       filtered.push(suggestion);
     }
-
     return filtered;
   }, [msg.suggestedActions, msg.frame?.actionChips, msg.clusters]);
 
   const hasSuggestions = dedupedSuggestions.length > 0;
   const shouldShowSuggestions = hasSuggestions && !hasActionChips && !hasClusters;
-
   const hasAnything =
     hasActionChips || hasClusters || hasOverride || hasSuggestions || hasOnboardingPrompt;
 
   if (!hasAnything) return null;
 
   return (
-    <div className="mt-2 space-y-2">
-      {/* Keep the chat bubble clean: render actions/suggestions as separate blocks. */}
-
+    <div className="mt-3 space-y-3">
+      {/* Action chips + clusters block */}
       {(hasActionChips || hasClusters || (showControllerExtras && hasOverride)) && (
         <div
-          className="rounded-lg border p-2"
-          style={{
-            borderColor: "var(--border-subtle)",
-            backgroundColor: "color-mix(in oklab, var(--surface-intermediate) 84%, transparent)",
-          }}
+          className="rounded-2xl p-3 space-y-3"
+          style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.06)" }}
         >
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
-              Next steps
+          {/* Section label */}
+          <div className="flex items-center justify-between">
+            <div className="scout-section-label mb-0">
+              <Sparkles size={11} className="scout-section-label__icon" />
+              Scout's Local Insights
             </div>
             <button
               type="button"
-              className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+              className="text-[10px] font-semibold rounded-full px-2.5 py-0.5 transition-colors"
               style={{
-                borderColor: "var(--border-subtle)",
-                color: "var(--text-secondary)",
-                backgroundColor: "transparent",
+                color: "rgba(250,250,250,0.4)",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
               }}
               onClick={() => setControllerOpen((v) => !v)}
               aria-expanded={controllerOpen}
@@ -576,7 +766,8 @@ function MessageExtras({
           </div>
 
           {controllerOpen && (
-            <div className="space-y-2">
+            <div className="space-y-3">
+              {/* Action chips */}
               {!isUser && msg.frame?.actionChips && msg.frame.actionChips.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-2">
@@ -599,30 +790,34 @@ function MessageExtras({
                             });
                           }
                         }}
-                        className="scout-action-button"
+                        className="scout-tool-tray__btn scout-tool-tray__btn--secondary"
+                        style={{
+                          minHeight: "40px",
+                          fontSize: "12px",
+                          textTransform: "none",
+                          letterSpacing: "normal",
+                          padding: "0 14px",
+                        }}
                       >
+                        <ArrowRight size={12} />
                         <div className="flex flex-col items-start text-left">
                           <span>{chip.label}</span>
                           {chip.subtitle && (
-                            <span className="text-[11px] opacity-80">{chip.subtitle}</span>
-                          )}
-                          {(chip as any).why && (
-                            <span className="text-[10px] opacity-70">{(chip as any).why}</span>
+                            <span className="text-[10px] opacity-75">{chip.subtitle}</span>
                           )}
                         </div>
                       </button>
                     ))}
                   </div>
-
                   {prioritizedActionChips.length > 2 && (
                     <button
                       type="button"
                       onClick={() => setControllerShowAll((v) => !v)}
-                      className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+                      className="text-[10px] font-semibold rounded-full px-3 py-1"
                       style={{
-                        borderColor: "var(--border-subtle)",
-                        color: "var(--text-secondary)",
-                        backgroundColor: "transparent",
+                        color: "rgba(249,115,22,0.7)",
+                        background: "rgba(249,115,22,0.06)",
+                        border: "1px solid rgba(249,115,22,0.15)",
                       }}
                     >
                       {controllerShowAll
@@ -633,21 +828,21 @@ function MessageExtras({
                 </div>
               )}
 
+              {/* Cluster cards */}
               {msg.clusters && msg.clusters.length > 0 && (
                 <div className="space-y-2">
                   {visibleClusters.map((cluster) => (
                     <ClusterCard key={cluster.id} cluster={cluster} onAction={onAction} />
                   ))}
-
                   {msg.clusters.length > 2 && (
                     <button
                       type="button"
                       onClick={() => setControllerShowAll((v) => !v)}
-                      className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
+                      className="text-[10px] font-semibold rounded-full px-3 py-1"
                       style={{
-                        borderColor: "var(--border-subtle)",
-                        color: "var(--text-secondary)",
-                        backgroundColor: "transparent",
+                        color: "rgba(249,115,22,0.7)",
+                        background: "rgba(249,115,22,0.06)",
+                        border: "1px solid rgba(249,115,22,0.15)",
                       }}
                     >
                       {controllerShowAll
@@ -658,30 +853,32 @@ function MessageExtras({
                 </div>
               )}
 
+              {/* Override option */}
               {showControllerExtras && msg.overrideOption && (
                 <div
-                  className="rounded-lg border border-dashed p-3"
-                  style={{
-                    backgroundColor:
-                      "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                    borderColor: "var(--border-subtle)",
-                  }}
+                  className="rounded-xl p-3"
+                  style={{ background: "#111", border: "1px dashed rgba(249,115,22,0.25)" }}
                 >
-                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                  <div className="text-[12px] mb-2" style={{ color: "rgba(250,250,250,0.6)" }}>
                     {msg.overrideOption.message}
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onOverride && onOverride(msg.overrideOption!)}
-                      disabled={overridePendingScope === (msg.overrideOption.scope ?? "global")}
-                      className="scout-action-button"
-                    >
-                      {overridePendingScope === (msg.overrideOption.scope ?? "global")
-                        ? "Logging override..."
-                        : msg.overrideOption.label}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOverride && onOverride(msg.overrideOption!)}
+                    disabled={overridePendingScope === (msg.overrideOption.scope ?? "global")}
+                    className="scout-tool-tray__btn scout-tool-tray__btn--secondary"
+                    style={{
+                      minHeight: "36px",
+                      fontSize: "12px",
+                      textTransform: "none",
+                      letterSpacing: "normal",
+                      padding: "0 14px",
+                    }}
+                  >
+                    {overridePendingScope === (msg.overrideOption.scope ?? "global")
+                      ? "Logging override..."
+                      : msg.overrideOption.label}
+                  </button>
                 </div>
               )}
             </div>
@@ -689,25 +886,24 @@ function MessageExtras({
         </div>
       )}
 
+      {/* Suggestions block */}
       {shouldShowSuggestions && (
         <div
-          className="rounded-lg border p-2"
-          style={{
-            borderColor: "var(--border-subtle)",
-            backgroundColor: "color-mix(in oklab, var(--surface-card) 88%, transparent)",
-          }}
+          className="rounded-2xl p-3"
+          style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.06)" }}
         >
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
+          <div className="flex items-center justify-between mb-2">
+            <div className="scout-section-label mb-0">
+              <MessageSquareText size={11} className="scout-section-label__icon" />
               Keep going
             </div>
             <button
               type="button"
-              className="rounded-full border px-2 py-0.5 text-[10px] font-medium"
+              className="text-[10px] font-semibold rounded-full px-2.5 py-0.5"
               style={{
-                borderColor: "var(--border-subtle)",
-                color: "var(--text-secondary)",
-                backgroundColor: "transparent",
+                color: "rgba(250,250,250,0.4)",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.08)",
               }}
               onClick={() => setSuggestionsOpen((v) => !v)}
               aria-expanded={suggestionsOpen}
@@ -715,7 +911,6 @@ function MessageExtras({
               {suggestionsOpen ? "Hide" : `Show (${dedupedSuggestions.length})`}
             </button>
           </div>
-
           {suggestionsOpen && (
             <div className="flex flex-wrap gap-2">
               {dedupedSuggestions.map((act) => (
@@ -723,7 +918,12 @@ function MessageExtras({
                   key={act}
                   type="button"
                   onClick={() => onQuickAction && onQuickAction(act)}
-                  className="scout-suggestion px-3 py-1.5 text-[11px] rounded-full"
+                  className="rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors"
+                  style={{
+                    background: "#1a1a1a",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    color: "rgba(250,250,250,0.7)",
+                  }}
                 >
                   {act}
                 </button>
@@ -733,7 +933,7 @@ function MessageExtras({
         </div>
       )}
 
-      {/* Onboarding: Server-controlled, renders only when active + question exists */}
+      {/* Onboarding prompt */}
       {msg.onboarding?.active && msg.onboarding.question && onSendMessage && (
         <OnboardingPrompt
           onboarding={msg.onboarding}
@@ -762,152 +962,47 @@ function MessageExtras({
   );
 }
 
-function ClusterCard({
-  cluster,
-  onAction,
-}: {
-  cluster: ScoutCluster;
-  onAction?: (action: ScoutAction) => void;
-}) {
-  const handleAction = (action: ScoutAction) => {
-    if (onAction) {
-      const validated = validateAction(action);
-      if (validated) {
-        onAction(validated);
-      }
-    }
-  };
-
-  const [showAllActions, setShowAllActions] = React.useState(false);
-  const kindMeta = clusterKindMeta(cluster.kind);
-  const KindIcon = kindMeta.icon;
-  const prioritizedActions = React.useMemo(() => {
-    const actions = mergeClusterActions(cluster);
-    return [...actions].sort((a, b) => {
-      if (a.primary !== b.primary) return a.primary ? -1 : 1;
-      const aIsNavigate = a.type === "NAVIGATE";
-      const bIsNavigate = b.type === "NAVIGATE";
-      if (aIsNavigate !== bIsNavigate) return aIsNavigate ? -1 : 1;
-      const aIsAsk = a.type === "ASK_SCOUT";
-      const bIsAsk = b.type === "ASK_SCOUT";
-      if (aIsAsk !== bIsAsk) return aIsAsk ? 1 : -1;
-      return 0;
-    });
-  }, [cluster]);
-
-  const visibleActions = React.useMemo(() => {
-    if (showAllActions) return prioritizedActions;
-    return prioritizedActions.slice(0, 3);
-  }, [prioritizedActions, showAllActions]);
-
+/* ----------------------------------------------------------
+   @reusable: ScoutLiveStatus
+   Use: The orange heartbeat strip showing Scout's real-time processing state.
+   Place above the thread or at the top of any active Scout surface.
+   Props: status (ScoutStatus), label (string), progress (0-1)
+   ---------------------------------------------------------- */
+export function ScoutLiveStatus({ label, progress }: { label: string; progress: number }) {
   return (
-    <article className="scout-result-card">
-      <div className="scout-result-card__header">
-        <div className="scout-result-card__icon" aria-hidden="true">
-          <KindIcon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="scout-result-card__kind">{kindMeta.label}</div>
-          <h4 className="scout-result-card__title">{cluster.title || kindMeta.label}</h4>
-        </div>
-        {cluster.primaryAction && <BadgeCheck className="h-4 w-4 text-ts-orange" />}
+    <div className="space-y-1.5">
+      {/* Orange heartbeat bar */}
+      <div className="scout-live-status">
+        <Activity size={13} className="scout-live-status__icon" />
+        <div className="scout-live-status__divider" />
+        <span className="scout-live-status__text">
+          {label}{" "}
+          <span className="scout-live-status__highlight">
+            {Math.round(progress * 100)}% complete
+          </span>
+        </span>
+        <div className="scout-live-status__dot" />
       </div>
-
-      {cluster.body && <p className="scout-result-card__body">{cluster.body}</p>}
-
-      {cluster.items && cluster.items.length > 0 && (
-        <ul className="scout-result-card__items">
-          {cluster.items.map((item) => (
-            <li key={item.id} className="scout-result-card__item">
-              <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ts-orange" />
-              <span className="min-w-0">
-                <span className="block font-medium text-[var(--text-primary)]">{item.label}</span>
-                {item.description && (
-                  <span className="mt-0.5 block text-[11px] text-[var(--text-secondary)]">
-                    {item.description}
-                  </span>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {prioritizedActions.length > 0 && (
-        <div className="scout-result-card__actions">
-          <div className="flex flex-wrap gap-2">
-            {visibleActions.map((action) => (
-              <button
-                key={`${cluster.id}-${action.type}-${action.label}-${actionTarget(action)}`}
-                type="button"
-                onClick={() => handleAction(action)}
-                className={clsx(
-                  "scout-result-action",
-                  action.primary && "scout-result-action--primary",
-                  action.type === "ASK_SCOUT" && "scout-result-action--ask"
-                )}
-              >
-                <span className="scout-result-action__icon" aria-hidden="true">
-                  {action.type === "ASK_SCOUT" ? (
-                    <HelpCircle className="h-3.5 w-3.5" />
-                  ) : (
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  )}
-                </span>
-                <span className="flex min-w-0 flex-col items-start text-left">
-                  <span>{action.label}</span>
-                  {action.subtitle && (
-                    <span className="text-[11px] opacity-80">{action.subtitle}</span>
-                  )}
-                  {(action.why || (action as any)._scoutWhy) && (
-                    <span className="text-[10px] opacity-70">
-                      {action.why ?? (action as any)._scoutWhy}
-                    </span>
-                  )}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {prioritizedActions.length > 3 && (
-            <button
-              type="button"
-              onClick={() => setShowAllActions((v) => !v)}
-              className="inline-flex items-center rounded-full border px-2 py-1 text-[10px] font-medium"
-              style={{
-                borderColor: "var(--border-subtle)",
-                color: "var(--text-secondary)",
-                backgroundColor: "transparent",
-              }}
-            >
-              {showAllActions ? "Show fewer" : `More actions (${prioritizedActions.length - 3})`}
-            </button>
-          )}
-        </div>
-      )}
-
-      {cluster.ctaSource && cluster.ctaContextId && (
-        <div className="mt-2 space-y-1">
-          {cluster.ctaLabel && cluster.ctaSource === "trade_deal" && (
-            <div className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-              {cluster.ctaLabel}
-            </div>
-          )}
-          <CommunityCTA
-            layout="inline"
-            source={cluster.ctaSource}
-            contextId={cluster.ctaContextId}
-            ownerUserId={cluster.ctaOwnerUserId}
-            canDirectConnect={cluster.ctaCanDirectConnect}
-            canMessage={cluster.ctaCanMessage}
-            disableDirectConnect={cluster.ctaDisableDirectConnect}
-          />
-        </div>
-      )}
-    </article>
+      {/* Progress bar */}
+      <div
+        className="h-0.5 w-full rounded-full overflow-hidden"
+        style={{ background: "rgba(255,255,255,0.06)" }}
+      >
+        <div
+          className="h-full rounded-full transition-[width] duration-150 ease-out"
+          style={{
+            width: `${Math.max(5, Math.min(Math.round(progress * 100), 100))}%`,
+            background: "linear-gradient(to right, #f97316, #ea580c)",
+          }}
+        />
+      </div>
+    </div>
   );
 }
 
+/* ----------------------------------------------------------
+   Main ScoutThread component
+   ---------------------------------------------------------- */
 const ScoutThread: React.FC<ScoutThreadProps> = ({
   messages,
   status,
@@ -943,10 +1038,8 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   React.useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
-
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage) return;
-
     if (lastMessage.role === "assistant") {
       const target = node.querySelector<HTMLElement>(`[data-scout-message-id="${lastMessage.id}"]`);
       if (target) {
@@ -954,85 +1047,46 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
         return;
       }
     }
-
     node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Reset progress whenever Scout is fully idle or in an error state.
   React.useEffect(() => {
     if (status === "idle" || status === "error") {
       phaseStartRef.current = null;
       setProgress(0);
       return;
     }
-
-    // Record the start time for this phase so we can map elapsed
-    // time -> progress within that phase.
     phaseStartRef.current = performance.now();
   }, [status]);
 
   React.useEffect(() => {
-    if (status === "idle" || status === "error") {
-      return;
-    }
-
+    if (status === "idle" || status === "error") return;
     const interval = window.setInterval(() => {
       if (phaseStartRef.current == null) return;
-
       const now = performance.now();
       const elapsed = now - phaseStartRef.current;
-
-      // Each ScoutStatus maps to a real phase of work in ScoutOS
-      // and on the server. We treat progress as a function of time
-      // spent in that phase, capped so it never falsely reaches 100%
-      // before the phase actually changes. Phase ranges are tuned so
-      // context-checking feels quick, document review does the heavy
-      // lifting, and READY eases out smoothly.
       type PhaseConfig = { base: number; max: number; durationMs: number };
       const phaseConfig: Record<string, PhaseConfig> = {
-        // Quick snap into motion while Scout reads account + locality
         resolving_context: { base: 0.06, max: 0.18, durationMs: 550 },
-        // Heavier work: knowledge + documents. Slightly slower crawl so
-        // users attribute wait time to real reading. Variable max to avoid
-        // predictable stops.
         checking_documents: { base: 0.18, max: 0.75 + Math.random() * 0.15, durationMs: 4200 },
-        // When Scout is running tools or navigation actions, stay below
-        // 100% but show confident forward motion.
         executing_action: { base: 0.6, max: 0.95 + Math.random() * 0.02, durationMs: 1900 },
-        // Final synthesis on the client: short, smooth ease-out into 100%.
         ready: { base: 0.9, max: 1.0, durationMs: 750 },
       };
-
       const cfg: PhaseConfig = phaseConfig[status] ?? { base: 0.05, max: 0.8, durationMs: 2000 };
-
       const phaseSpan = Math.max(cfg.max - cfg.base, 0.01);
       let t = Math.min(1, elapsed / cfg.durationMs);
-
-      // READY should feel like a smooth glide to 100%, not a linear
-      // crawl. Use a simple ease-out curve for that phase only.
-      if (status === "ready") {
-        t = 1 - (1 - t) * (1 - t);
-      }
-
+      if (status === "ready") t = 1 - (1 - t) * (1 - t);
       const value = cfg.base + t * phaseSpan;
-
-      setProgress((prev) => {
-        // Never move backwards; only advance toward the current phase max.
-        const next = Math.max(prev, value);
-        return Math.min(next, 1);
-      });
+      setProgress((prev) => Math.min(Math.max(prev, value), 1));
     }, 140);
-
-    return () => {
-      window.clearInterval(interval);
-    };
+    return () => window.clearInterval(interval);
   }, [status]);
+
+  // Build live status label
   let statusLabel: string | null = null;
   if (status === "resolving_context") {
     statusLabel = "Getting oriented...";
   } else if (status === "checking_documents") {
-    // Rotate through status messages based on progress in this phase
-    // to show Scout is actively working on different aspects
     const statusMessages =
       mode === "contractors"
         ? [
@@ -1063,8 +1117,6 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     statusLabel = "Getting this ready...";
   }
 
-  // Show loader for any active phase so returning answers and actions
-  // still surface a visible state indicator.
   const showProgress = status !== "idle" && status !== "error";
 
   const statusStyles: React.CSSProperties =
@@ -1077,7 +1129,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   return (
     <div
       ref={containerRef}
-      className="scout-thread space-y-3 flex-1 min-h-0 overflow-y-auto"
+      className="scout-thread space-y-4 flex-1 min-h-0 overflow-y-auto"
       role="log"
       aria-live="polite"
       aria-relevant="additions text"
@@ -1085,10 +1137,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       {messages.map((msg) => {
         const isUser = msg.role === "user";
 
-        // When a structured frame is present, prefer rendering its
-        // truth/meaning/direction blocks explicitly and trim any
-        // overlapping paragraphs from the raw content so we stay
-        // within the tight, screen-fit answer budget.
+        // Strip frame-duplicated content from display
         let displayContent = msg.content;
         if (!isUser && msg.frame && typeof msg.content === "string") {
           const { truthLines, meaningLine, directionLine } = msg.frame;
@@ -1103,40 +1152,55 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
               .split(/\n{2,}/)
               .map((p) => p.trim())
               .filter((p) => p.length > 0);
-
             const filtered = paragraphs.filter((p) => !toStrip.some((line) => p === line.trim()));
-
             displayContent = filtered.join("\n\n");
           }
         }
 
-        return (
-          <div key={msg.id} className="space-y-2" data-scout-message-id={msg.id}>
-            <div className={clsx("scout-row", isUser ? "user" : "assistant")}>
-              {!isUser && (
-                <div className="scout-avatar" aria-hidden="true">
-                  TS
-                </div>
-              )}
+        const msgTime = msg.timestamp
+          ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+          : "";
 
-              <div className="min-w-0">
-                <div className={clsx("scout-sender", isUser ? "user" : "assistant")}>
-                  {isUser ? "You" : "Scout"}
+        return (
+          <div key={msg.id} className="space-y-3" data-scout-message-id={msg.id}>
+            {isUser ? (
+              /* ---- USER BUBBLE ---- */
+              /* @reusable: scout-user-bubble — see index.css */
+              <div className="scout-user-bubble">
+                <div className="scout-user-bubble__meta">
+                  <span className="scout-user-bubble__name">You</span>
+                  {msgTime && <span className="scout-user-bubble__time">{msgTime}</span>}
+                  <div className="scout-user-bubble__avatar" aria-hidden="true">
+                    U
+                  </div>
                 </div>
-                <div className={clsx("scout-message", isUser ? "user" : "assistant")}>
-                  {isUser ? (
-                    <p className="whitespace-pre-line leading-relaxed">{displayContent}</p>
-                  ) : (
-                    <AssistantMessageBubble
-                      msg={msg}
-                      displayContent={displayContent}
-                      shouldAnimate={msg.id === latestAssistantMessageId}
-                    />
-                  )}
-                </div>
-                {!isUser && <EvidenceStrip msg={msg} enabled={showControllerExtras} />}
+                <div className="scout-user-bubble__body">{displayContent}</div>
               </div>
-            </div>
+            ) : (
+              /* ---- ASSISTANT BUBBLE ---- */
+              /* @reusable: scout-assistant-bubble — see index.css */
+              <div className="scout-assistant-bubble">
+                <div className="scout-assistant-bubble__meta">
+                  <div className="scout-assistant-bubble__avatar" aria-hidden="true">
+                    <img src="/tradescout-logo.png" alt="Scout" />
+                  </div>
+                  <span className="scout-assistant-bubble__name">Scout</span>
+                  <span className="scout-assistant-bubble__badge">Community-Powered</span>
+                  {msgTime && <span className="scout-assistant-bubble__time">{msgTime}</span>}
+                </div>
+                {displayContent && (
+                  <div className="scout-assistant-bubble__body">
+                    <p className="whitespace-pre-line leading-relaxed">
+                      <AssistantStreamedText
+                        content={displayContent}
+                        shouldAnimate={msg.id === latestAssistantMessageId}
+                      />
+                    </p>
+                  </div>
+                )}
+                <EvidenceStrip msg={msg} enabled={showControllerExtras} />
+              </div>
+            )}
 
             <MessageExtras
               msg={msg}

@@ -2,6 +2,7 @@
 import scoutRoute from "./routes/scout";
 import scoutNormalizeRouter from "./routes/scout-normalize";
 import { scoutHeatmapRoutes } from "./routes/scout-heatmap";
+import { scoutHomeSnapshotRouter } from "./routes/scout-home-snapshot";
 import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
@@ -26485,6 +26486,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use("/api/scout", scoutHeatmapRoutes);
   app.use("/api/heatmap", scoutHeatmapRoutes);
   app.use("/", scoutNormalizeRouter);
+  app.use("/api/scout", scoutHomeSnapshotRouter);
   app.use("/api/scout", scoutRoute);
   app.use("/api/assistant", scoutRoute);
 
