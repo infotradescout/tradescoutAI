@@ -236,6 +236,23 @@ function inferProjectPerspective(normalized: string): ProjectPerspective {
     : "personal";
 }
 
+function isMaterialRelevantProject(jobType: string | undefined, normalized: string): boolean {
+  if (hasMaterialOrSupplierIntent(normalized)) return true;
+  return /^(deck|fencing|roofing|concrete|painting|landscaping)$/.test(jobType || "");
+}
+
+function shouldPrioritizeLocalHelp(facts: DumpFacts, normalized: string): boolean {
+  if (facts.urgency !== "high") return false;
+  if (
+    /\b(sparking|flood|flooding|no heat|no ac|leak|broken|emergency|asap|today|now)\b/.test(
+      normalized
+    )
+  ) {
+    return true;
+  }
+  return /^(plumbing|electrical|hvac|roofing)$/.test(facts.jobType || "");
+}
+
 function hasItemLike(items: ScoutIntentItem[], value: string): boolean {
   const target = normalize(value);
   return items.some((item) => {
@@ -370,6 +387,8 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
   const helpLabel = jobType === "project" ? "local help" : `${jobType} help`;
   const helpTrade = facts.jobType ? `?trade=${encodeURIComponent(facts.jobType)}` : "";
   const perspective = inferProjectPerspective(normalized);
+  const materialRelevant = isMaterialRelevantProject(facts.jobType, normalized);
+  const prioritizeLocalHelp = shouldPrioritizeLocalHelp(facts, normalized);
 
   if (perspective === "client") {
     return [
@@ -445,71 +464,92 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
     ];
   }
 
-  return [
-    createSortedIntent({
-      id: "project-plan",
-      label: "Plan this project",
-      kind: "projects",
-      confidence: 0.9,
-      reason:
-        "Use this to understand scope, materials, permit checks, and what to ask before hiring.",
-      body: "Scout can help you organize the details first so you are not guessing before you talk to anyone.",
-      items: [
-        {
-          id: "project-plan-scope",
-          label: "Scope, materials, and permit checks",
-          description: "Start with the facts that change price and who can do the work",
-        },
-        {
-          id: "project-plan-contact-gate",
-          label: "No contact opens until you choose it",
-          description: "You stay in review before anything is shared",
-        },
-      ],
-      angleItems: buildAngleItems(rawMessage, "project-plan"),
-      actions: [
-        askScoutAction(
-          "Plan the project",
-          `Help me plan this ${projectLabel} with scope, materials, permit checks, price factors, and next steps: ${need}`
-        ),
-        { type: "NAVIGATE", label: "Start a material run", to: "/utilities/supply-run" },
-        askScoutAction(
-          "Check prices",
-          `Help me compare normal price factors for this work: ${need}`
-        ),
-        { type: "NAVIGATE", label: "Browse Exchange materials", to: "/exchange/construction" },
-      ],
-    }),
-    createSortedIntent({
-      id: "project-find-help",
-      label: "Find local help",
-      kind: "pros",
-      confidence: 0.88,
-      reason: "Use this if you want a pro to build, inspect, or price the work.",
-      body: "Scout can draft a local request and keep it gated for your review before contact opens.",
-      items: [
-        {
-          id: "project-help-request",
-          label: `Draft a ${helpLabel} request`,
-          description: "Review the details before sharing locally",
-        },
-        {
-          id: "project-help-compare",
-          label: "Compare who fits the job",
-          description: "Look at local options without opening contact automatically",
-        },
-      ],
-      angleItems: buildAngleItems(rawMessage, "project-find-help"),
-      actions: [
-        requestAction(rawMessage),
-        { type: "NAVIGATE", label: "Browse local help", to: `/direct-connect/pros${helpTrade}` },
-        askScoutAction(
-          "Ask before calling",
-          `What should I check before contacting someone about: ${need}`
-        ),
-      ],
-    }),
+  const planActions: ScoutAction[] = [
+    askScoutAction(
+      "Plan the project",
+      `Help me plan this ${projectLabel} with scope, materials, permit checks, price factors, and next steps: ${need}`
+    ),
+    askScoutAction("Check prices", `Help me compare normal price factors for this work: ${need}`),
   ];
+
+  if (materialRelevant) {
+    planActions.splice(
+      1,
+      0,
+      { type: "NAVIGATE", label: "Start a material run", to: "/utilities/supply-run" },
+      { type: "NAVIGATE", label: "Browse Exchange materials", to: "/exchange/construction" }
+    );
+  }
+
+  const planIntent = createSortedIntent({
+    id: "project-plan",
+    label: "Plan this project",
+    kind: "projects",
+    confidence: prioritizeLocalHelp ? 0.84 : 0.9,
+    reason:
+      "Use this to understand scope, materials, permit checks, and what to ask before hiring.",
+    body: "Scout can help you organize the details first so you are not guessing before you talk to anyone.",
+    items: [
+      {
+        id: "project-plan-scope",
+        label: "Scope, materials, and permit checks",
+        description: "Start with the facts that change price and who can do the work",
+      },
+      {
+        id: "project-plan-contact-gate",
+        label: "No contact opens until you choose it",
+        description: "You stay in review before anything is shared",
+      },
+    ],
+    angleItems: buildAngleItems(rawMessage, "project-plan"),
+    actions: planActions,
+  });
+
+  const helpItems: ScoutIntentItem[] = [
+    {
+      id: "project-help-request",
+      label: `Draft a ${helpLabel} request`,
+      description: "Review the details before sharing locally",
+    },
+    {
+      id: "project-help-compare",
+      label: "Compare who fits the job",
+      description: "Look at local options without opening contact automatically",
+    },
+  ];
+
+  if (prioritizeLocalHelp) {
+    helpItems.unshift({
+      id: "urgent-service-fit",
+      label: "Safety and availability first",
+      description: "Urgent service work should focus on who can respond and what to avoid touching",
+    });
+  }
+
+  const helpIntent = createSortedIntent({
+    id: "project-find-help",
+    label: "Find local help",
+    kind: "pros",
+    confidence: prioritizeLocalHelp ? 0.92 : 0.88,
+    reason: prioritizeLocalHelp
+      ? "Use this when timing, safety, or availability matters more than planning."
+      : "Use this if you want a pro to build, inspect, or price the work.",
+    body: prioritizeLocalHelp
+      ? "Scout can help draft an urgent local request and keep contact gated for your review."
+      : "Scout can draft a local request and keep it gated for your review before contact opens.",
+    items: helpItems,
+    angleItems: buildAngleItems(rawMessage, "project-find-help"),
+    actions: [
+      requestAction(rawMessage),
+      { type: "NAVIGATE", label: "Browse local help", to: `/direct-connect/pros${helpTrade}` },
+      askScoutAction(
+        "Ask before calling",
+        `What should I check before contacting someone about: ${need}`
+      ),
+    ],
+  });
+
+  return prioritizeLocalHelp ? [helpIntent, planIntent] : [planIntent, helpIntent];
 }
 
 function buildMaterialOptionIntents(

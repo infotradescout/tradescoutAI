@@ -150,6 +150,22 @@ describe("sortScoutInfoDump", () => {
     ).toBe(true);
   });
 
+  it("prioritizes urgent service help instead of forcing a material/project bundle", () => {
+    const intents = sortScoutInfoDump("water leak under sink now need plumbing repair asap");
+    const labels = intents.map((intent) => intent.label);
+    const actions = intents.flatMap((intent) => intent.actions.map((action) => action.label));
+    const visibleCopy = visibleIntentCopy(intents);
+
+    expect(labels).toEqual(["Find local help", "Plan this project"]);
+    expect(
+      intents[0].actions.some((action) => action.to === "/direct-connect/pros?trade=plumbing")
+    ).toBe(true);
+    expect(actions).not.toContain("Start a material run");
+    expect(actions).not.toContain("Browse Exchange materials");
+    expect(visibleCopy).toContain("safety and availability first");
+    expect(visibleCopy).toContain("contact gated");
+  });
+
   it("switches project options when the user is building for a client", () => {
     const intents = sortScoutInfoDump("I am a contractor building a deck for a client");
     const visibleCopy = visibleIntentCopy(intents);
