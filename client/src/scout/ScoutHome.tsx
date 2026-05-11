@@ -62,11 +62,11 @@ function SkeletonTile() {
   return (
     <div
       className="rounded-xl p-3 animate-pulse"
-      style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
+      style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
     >
-      <div className="h-3 w-16 rounded mb-2" style={{ backgroundColor: "#2a2a2a" }} />
-      <div className="h-7 w-12 rounded mb-1" style={{ backgroundColor: "#2a2a2a" }} />
-      <div className="h-2 w-20 rounded" style={{ backgroundColor: "#2a2a2a" }} />
+      <div className="h-3 w-16 rounded mb-2" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
+      <div className="h-7 w-12 rounded mb-1" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
+      <div className="h-2 w-20 rounded" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
     </div>
   );
 }
@@ -75,12 +75,12 @@ function SkeletonPrompt() {
   return (
     <div
       className="rounded-xl px-3 py-2.5 animate-pulse flex items-center gap-3"
-      style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
+      style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
     >
-      <div className="h-8 w-8 rounded-lg flex-shrink-0" style={{ backgroundColor: "#2a2a2a" }} />
+      <div className="h-8 w-8 rounded-lg flex-shrink-0" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
       <div className="flex-1">
-        <div className="h-3 w-full rounded mb-1.5" style={{ backgroundColor: "#2a2a2a" }} />
-        <div className="h-2 w-24 rounded" style={{ backgroundColor: "#2a2a2a" }} />
+        <div className="h-3 w-full rounded mb-1.5" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
+        <div className="h-2 w-24 rounded" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
       </div>
     </div>
   );
@@ -115,9 +115,9 @@ function LocationPill({
       onClick={onChangeClick}
       className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all"
       style={{
-        backgroundColor: "#1a1a1a",
-        border: "1px solid #2a2a2a",
-        color: "#e5e5e5",
+        backgroundColor: "var(--surface-intermediate)",
+        border: "1px solid var(--border-primary)",
+        color: "var(--text-primary, #e5e5e5)",
       }}
       aria-label="Change location"
     >
@@ -149,7 +149,7 @@ function LocationInput({
   return (
     <div
       className="rounded-xl p-4 mb-4"
-      style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
+      style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
     >
       <p className="text-[12px] font-semibold text-white mb-3">Enter your city or zip code</p>
       <div className="flex gap-2">
@@ -164,7 +164,7 @@ function LocationInput({
           placeholder="e.g. Austin, TX or 78701"
           className="flex-1 rounded-lg px-3 py-2 text-[13px] text-white placeholder-[#555] outline-none"
           style={{
-            backgroundColor: "#111",
+            backgroundColor: "var(--surface-card)",
             border: "1px solid #333",
           }}
           autoFocus
@@ -181,7 +181,7 @@ function LocationInput({
           type="button"
           onClick={onCancel}
           className="rounded-lg px-3 py-2 text-[12px] font-medium"
-          style={{ backgroundColor: "#222", color: "#aaa" }}
+          style={{ backgroundColor: "var(--surface-intermediate, #222)", color: "var(--text-secondary, #aaa)" }}
         >
           Cancel
         </button>
@@ -209,8 +209,8 @@ function DataTile({
     <div
       className="rounded-xl p-3 flex flex-col gap-1"
       style={{
-        backgroundColor: "#141414",
-        border: `1px solid ${highlight ? "#f97316" : "#1e1e1e"}`,
+        backgroundColor: "var(--surface-card)",
+        border: `1px solid ${highlight ? "#f97316" : "var(--surface-intermediate, #1e1e1e)"}`,
         boxShadow: highlight ? "0 0 12px rgba(249,115,22,0.12)" : undefined,
       }}
     >
@@ -218,14 +218,14 @@ function DataTile({
         <Icon className="h-3 w-3" style={{ color: "#f97316" }} />
         <span
           className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-          style={{ color: "#666" }}
+          style={{ color: "var(--text-muted, #666)" }}
         >
           {label}
         </span>
       </div>
       <span
         className="text-[22px] font-bold leading-none"
-        style={{ color: "#fff", fontFamily: "'Sora', sans-serif" }}
+        style={{ color: "var(--text-primary, #fff)", fontFamily: "'Sora', sans-serif" }}
       >
         {value}
       </span>
@@ -257,29 +257,29 @@ function PromptChip({
       onClick={onClick}
       className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all group"
       style={{
-        backgroundColor: "#141414",
+        backgroundColor: "var(--surface-card)",
         border: "1px solid #1e1e1e",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.borderColor = "#f97316";
-        (e.currentTarget as HTMLElement).style.backgroundColor = "#1a1a1a";
+        (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-intermediate)";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "#1e1e1e";
-        (e.currentTarget as HTMLElement).style.backgroundColor = "#141414";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--surface-intermediate, #1e1e1e)";
+        (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
       }}
     >
       <span
         className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-base"
-        style={{ backgroundColor: "#1e1e1e" }}
+        style={{ backgroundColor: "var(--surface-intermediate, #1e1e1e)" }}
       >
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-medium leading-snug truncate" style={{ color: "#e5e5e5" }}>
+        <p className="text-[13px] font-medium leading-snug truncate" style={{ color: "var(--text-primary, #e5e5e5)" }}>
           {text}
         </p>
-        <p className="text-[10px] mt-0.5" style={{ color: "#555" }}>
+        <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted, #555)" }}>
           {category}
         </p>
       </div>
@@ -309,21 +309,21 @@ function ActivityItem({
       onClick={onClick}
       className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all"
       style={{
-        backgroundColor: "#0f0f0f",
+        backgroundColor: "var(--surface-card)",
         border: "1px solid #1a1a1a",
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "#2a2a2a";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--border-primary, #2a2a2a)";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = "#1a1a1a";
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--border-primary)";
       }}
     >
       <span className="text-base flex-shrink-0">{icon}</span>
-      <p className="flex-1 text-[12px] leading-snug truncate" style={{ color: "#aaa" }}>
+      <p className="flex-1 text-[12px] leading-snug truncate" style={{ color: "var(--text-secondary, #aaa)" }}>
         {query}
       </p>
-      <span className="text-[10px] flex-shrink-0" style={{ color: "#444" }}>
+      <span className="text-[10px] flex-shrink-0" style={{ color: "var(--text-muted, #444)" }}>
         {timeAgo(timestamp)}
       </span>
     </button>
@@ -335,10 +335,10 @@ function ActivityItem({
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-2">
-      <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "#555" }}>
+      <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--text-muted, #555)" }}>
         {children}
       </span>
-      <div className="flex-1 h-px" style={{ backgroundColor: "#1e1e1e" }} />
+      <div className="flex-1 h-px" style={{ backgroundColor: "var(--surface-intermediate, #1e1e1e)" }} />
     </div>
   );
 }
@@ -388,7 +388,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
             type="button"
             onClick={clearLocation}
             className="text-[10px] font-medium"
-            style={{ color: "#444" }}
+            style={{ color: "var(--text-muted, #444)" }}
           >
             Reset
           </button>
@@ -407,14 +407,14 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       {location.status === "error" && !showLocationInput && (
         <div
           className="rounded-xl px-4 py-3 flex items-center gap-3"
-          style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
+          style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
         >
           <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: "#f97316" }} />
           <div className="flex-1">
             <p className="text-[12px] font-medium text-white">
               We couldn't detect your location automatically.
             </p>
-            <p className="text-[11px] mt-0.5" style={{ color: "#666" }}>
+            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted, #666)" }}>
               Enter your city or zip to get local results.
             </p>
           </div>
@@ -433,7 +433,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       <div
         className="rounded-2xl px-4 py-4 relative overflow-hidden"
         style={{
-          backgroundColor: "#111",
+          backgroundColor: "var(--surface-card)",
           border: "1px solid #1e1e1e",
         }}
       >
@@ -461,7 +461,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
           >
             What are you scouting today?
           </h2>
-          <p className="text-[12px] leading-relaxed" style={{ color: "#666" }}>
+          <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-muted, #666)" }}>
             Ask anything local — services, prices, events, permits, food, jobs, and more.
             {countyDisplay ? ` Scout knows ${countyDisplay}.` : ""}
           </p>
@@ -555,12 +555,12 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       {/* ── Trust footer ────────────────────────────────────────────────── */}
       <div
         className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-        style={{ backgroundColor: "#0d0d0d", border: "1px solid #1a1a1a" }}
+        style={{ backgroundColor: "var(--surface-card, #0d0d0d)", border: "1px solid #1a1a1a" }}
       >
-        <span className="text-[11px]" style={{ color: "#444" }}>
+        <span className="text-[11px]" style={{ color: "var(--text-muted, #444)" }}>
           🛡
         </span>
-        <p className="text-[10px] leading-relaxed" style={{ color: "#444" }}>
+        <p className="text-[10px] leading-relaxed" style={{ color: "var(--text-muted, #444)" }}>
           Results sourced from verified providers and the{" "}
           <span style={{ color: "#f97316" }}>Trade Scout Community</span>. Scout never charges for
           placement or ranking.

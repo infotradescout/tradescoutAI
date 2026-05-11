@@ -223,7 +223,7 @@ export function ScoutInputRow({
               disabled={isBusy}
               className="rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
               style={{
-                background: "#1a1a1a",
+                background: "var(--surface-intermediate)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 color: "rgba(250,250,250,0.6)",
               }}

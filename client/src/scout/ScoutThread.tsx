@@ -428,7 +428,7 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
       {open && (
         <div
           className="mt-2 space-y-1.5 rounded-xl p-3"
-          style={{ background: "#111", border: "1px solid rgba(255,255,255,0.07)" }}
+          style={{ background: "var(--surface-card)", border: "1px solid var(--border-subtle)" }}
         >
           {chips.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
@@ -540,7 +540,7 @@ function ClusterCard({
             <li
               key={item.id}
               className="flex gap-2.5 rounded-xl p-2.5"
-              style={{ background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.05)" }}
+              style={{ background: "var(--surface-intermediate)", border: "1px solid var(--border-subtle)" }}
             >
               <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ts-orange" />
               <span className="min-w-0">
@@ -742,7 +742,7 @@ function MessageExtras({
       {(hasActionChips || hasClusters || (showControllerExtras && hasOverride)) && (
         <div
           className="rounded-2xl p-3 space-y-3"
-          style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ background: "var(--surface-card)", border: "1px solid var(--border-subtle)" }}
         >
           {/* Section label */}
           <div className="flex items-center justify-between">
@@ -857,7 +857,7 @@ function MessageExtras({
               {showControllerExtras && msg.overrideOption && (
                 <div
                   className="rounded-xl p-3"
-                  style={{ background: "#111", border: "1px dashed rgba(249,115,22,0.25)" }}
+                  style={{ background: "var(--surface-intermediate)", border: "1px dashed rgba(249,115,22,0.25)" }}
                 >
                   <div className="text-[12px] mb-2" style={{ color: "rgba(250,250,250,0.6)" }}>
                     {msg.overrideOption.message}
@@ -890,7 +890,7 @@ function MessageExtras({
       {shouldShowSuggestions && (
         <div
           className="rounded-2xl p-3"
-          style={{ background: "#0f0f0f", border: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ background: "var(--surface-card)", border: "1px solid var(--border-subtle)" }}
         >
           <div className="flex items-center justify-between mb-2">
             <div className="scout-section-label mb-0">
@@ -920,9 +920,9 @@ function MessageExtras({
                   onClick={() => onQuickAction && onQuickAction(act)}
                   className="rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors"
                   style={{
-                    background: "#1a1a1a",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    color: "rgba(250,250,250,0.7)",
+                    background: "var(--surface-intermediate)",
+                    border: "1px solid var(--border-subtle)",
+                    color: "var(--text-secondary, rgba(250,250,250,0.7))",
                   }}
                 >
                   {act}
