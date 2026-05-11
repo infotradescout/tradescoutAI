@@ -34,7 +34,16 @@ describe("Scout intent details", () => {
 
     expect(chips.join(" | ")).toContain("Need:");
     expect(chips.join(" | ")).toContain("Area: Maricopa County");
-    expect(chips.join(" | ")).toContain("Timing: asap");
+    expect(chips.join(" | ")).toContain("When: asap");
     expect(chips.join(" | ")).toContain("Context: vehicle");
+  });
+
+  it("keeps client job context separate from personal project context", () => {
+    const detail = inferScoutIntentDetails("I am a contractor building a deck for a client");
+    const chips = formatIntentDetailChips(detail);
+
+    expect(detail.context).toBe("home");
+    expect(detail.perspective).toBe("client");
+    expect(chips.join(" | ")).toContain("For: client job");
   });
 });

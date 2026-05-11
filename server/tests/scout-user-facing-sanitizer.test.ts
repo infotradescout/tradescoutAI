@@ -62,6 +62,17 @@ describe("sanitizeScoutUserFacingText", () => {
     expect(result.flags).toContain("system_word_rewritten");
   });
 
+  it("turns two-path prompts into next-step copy", () => {
+    const result = sanitizeScoutUserFacingText(
+      "Scout can route it correctly. Do you want to start with DIY-vs-hire-out guidance or contractor matching?"
+    );
+
+    expect(result.text.toLowerCase()).not.toContain("route");
+    expect(result.text.toLowerCase()).not.toContain("do you want");
+    expect(result.text).toContain("project planning and finding local help");
+    expect(result.flags).toContain("choice_question_rewritten");
+  });
+
   it("replaces internal spec dumps with fallback", () => {
     const raw =
       "Shifts overhead: users feel ownership pressure. Safe Path (recommended by this analysis): Auto-persist. Trigger Examples: roof repair. Phase 1: Implementation trust signals.";

@@ -132,7 +132,7 @@ export function maybeHandleHomeProjectRouting(args: {
       lower
     );
 
-  if (!tradeTopic || !homeownerProjectVerb || proBusinessContext) {
+  if (!tradeTopic || (!homeownerProjectVerb && !proBusinessContext)) {
     return null;
   }
 
@@ -162,18 +162,62 @@ export function maybeHandleHomeProjectRouting(args: {
   const prosPath = buildProsPath(tradeTopic, normalizedCounty, normalizedState);
 
   if (tradeTopic === "decking") {
+    if (proBusinessContext) {
+      return {
+        intent: "client_project_decking",
+        message:
+          "Got it. If this deck is for a client, start with the job scope and material/quote prep. Scout can help draft the pieces, but you approve anything before it is sent.",
+        suggestedActions: ["Scope the client deck job", "Start materials or quote prep"],
+        actions: [
+          {
+            type: "NAVIGATE",
+            label: "Scope the client deck job",
+            to: "/project-tracker",
+            path: "/project-tracker",
+            subtitle: "Open project planning",
+            primary: true,
+          },
+          {
+            type: "NAVIGATE",
+            label: "Start a material run",
+            to: "/utilities/supply-run",
+            path: "/utilities/supply-run",
+            subtitle: "Use a material list or supplier link",
+          },
+          {
+            type: "NAVIGATE",
+            label: "Open invoices",
+            to: "/finances",
+            path: "/finances",
+            subtitle: "Draft and review before sending",
+          },
+        ],
+        metadata: {
+          intent: "client_project_decking",
+          decision: "Handled through deterministic project support for client deck work.",
+        },
+      };
+    }
+
     return {
       intent: "home_project_decking",
-      message: `Got it. I can show deck builders${localityFragment} right now without requiring an account. You'll only be asked to sign in when you choose to open contact with a specific pro.`,
-      suggestedActions: ["Show deck builders in my area"],
+      message: `Got it. A deck can start two ways: plan the project first, or compare deck help${localityFragment}. Contact only opens when you choose a specific pro.`,
+      suggestedActions: ["Plan the deck project", "Find deck help"],
       actions: [
         {
           type: "NAVIGATE",
-          label: "Show deck builders",
+          label: "Plan the deck project",
+          to: "/project-tracker",
+          path: "/project-tracker",
+          subtitle: "Scope, materials, and permit checks",
+          primary: true,
+        },
+        {
+          type: "NAVIGATE",
+          label: "Find deck help",
           to: prosPath,
           path: prosPath,
-          subtitle: "Open directory",
-          primary: true,
+          subtitle: "Compare local options",
         },
       ],
       metadata: {
@@ -187,15 +231,15 @@ export function maybeHandleHomeProjectRouting(args: {
   return {
     intent: `home_project_${tradeTopic}`,
     message: `Got it. I can show ${tradeTopic} pros${localityFragment} right now without requiring an account. You'll only be asked to sign in when you choose to open contact with a specific pro.`,
-    suggestedActions: [`Show ${tradeTopic} pros in my area`],
+    suggestedActions: ["Start or plan this project", `Show ${tradeTopic} pros in my area`],
     actions: [
+      planningAction,
       {
         type: "NAVIGATE",
         label: `Show ${tradeTopic} pros`,
         to: prosPath,
         path: prosPath,
         subtitle: "Open directory",
-        primary: true,
       },
     ],
     metadata: {

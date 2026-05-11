@@ -31,6 +31,8 @@ type DumpFacts = {
   factItems: Array<{ id: string; label: string; description?: string }>;
 };
 
+type ProjectPerspective = "personal" | "client";
+
 function normalize(input: string): string {
   return input
     .toLowerCase()
@@ -197,6 +199,187 @@ function askScoutAction(label: string, prompt: string): ScoutAction {
     label,
     prompt,
   };
+}
+
+function isDeckBuildIntent(normalized: string): boolean {
+  const deck = /\b(deck|decking|porch|patio)\b/.test(normalized);
+  const build = /\b(build|building|built|install|replace|repair|scope|price|quote|bid)\b/.test(
+    normalized
+  );
+  return deck && build;
+}
+
+function inferProjectPerspective(normalized: string): ProjectPerspective {
+  return /\b(client|customer|homeowner|for someone|for somebody|for a customer|for my customer|my crew|my bid|bid this|price this|quote this|invoice|materials|supplier|subcontractor)\b/.test(
+    normalized
+  )
+    ? "client"
+    : "personal";
+}
+
+function createSortedIntent(input: {
+  id: string;
+  label: string;
+  kind: ScoutClusterKind;
+  confidence: number;
+  reason: string;
+  body: string;
+  items: Array<{ id: string; label: string; description?: string }>;
+  actions: ScoutAction[];
+}): SortedScoutIntent {
+  return {
+    id: input.id,
+    label: input.label,
+    kind: input.kind,
+    confidence: input.confidence,
+    reason: input.reason,
+    actions: input.actions,
+    cluster: {
+      id: `sorted-${input.id}`,
+      title: input.label,
+      kind: input.kind,
+      body: input.body,
+      items: input.items,
+      actions: input.actions,
+    },
+  };
+}
+
+function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedScoutIntent[] {
+  if (!isDeckBuildIntent(normalized)) return [];
+
+  const facts = buildFacts(rawMessage);
+  const need = facts.need;
+  const perspective = inferProjectPerspective(normalized);
+
+  if (perspective === "client") {
+    return [
+      createSortedIntent({
+        id: "deck-client-scope",
+        label: "Scope the client deck job",
+        kind: "projects",
+        confidence: 0.9,
+        reason: "Use this when you are building the deck for someone else.",
+        body: "Keep the scope, measurements, materials, permit checks, and client-ready next steps together before anything is sent.",
+        items: [
+          {
+            id: "deck-client-context",
+            label: "This looks like client work",
+            description: "Scout can help organize the job before you share anything",
+          },
+          {
+            id: "deck-client-approval",
+            label: "You approve anything that gets sent",
+            description: "Messages, quotes, invoices, and posts stay gated",
+          },
+        ],
+        actions: [
+          askScoutAction(
+            "Build the scope",
+            `Help me scope this client deck job with dimensions, materials, labor, permit checks, and next steps: ${need}`
+          ),
+          { type: "NAVIGATE", label: "Open project tools", to: "/project-tracker" },
+          { type: "NAVIGATE", label: "Open invoices", to: "/finances" },
+        ],
+      }),
+      createSortedIntent({
+        id: "deck-material-quote-prep",
+        label: "Start materials or quote prep",
+        kind: "marketplace",
+        confidence: 0.88,
+        reason: "Use this when you need a material list, supplier link, bid, or invoice draft.",
+        body: "Send a material list or supplier link and Scout can help turn it into a Supply Run. Quote and invoice drafts still need your approval.",
+        items: [
+          {
+            id: "deck-material-list",
+            label: "Material list or supplier link",
+            description: "Scout can help organize it into a Supply Run",
+          },
+          {
+            id: "deck-quote-approval",
+            label: "Draft first, approve before sending",
+            description: "Scout does not message, quote, invoice, order, or pay on its own",
+          },
+        ],
+        actions: [
+          {
+            type: "NAVIGATE",
+            label: "Start a material run",
+            to: "/utilities/supply-run",
+            primary: true,
+          },
+          askScoutAction(
+            "Make a material checklist",
+            `Make a deck material checklist I can review before using it for a client quote: ${need}`
+          ),
+          { type: "NAVIGATE", label: "Open invoices", to: "/finances" },
+        ],
+      }),
+    ];
+  }
+
+  return [
+    createSortedIntent({
+      id: "deck-project-plan",
+      label: "Plan the deck project",
+      kind: "projects",
+      confidence: 0.9,
+      reason:
+        "Use this to understand scope, materials, permit checks, and what to ask before hiring.",
+      body: "Scout can help you organize the deck details first so you are not guessing before you talk to anyone.",
+      items: [
+        {
+          id: "deck-plan-scope",
+          label: "Scope, materials, and permit checks",
+          description: "Start with the facts that change price and who can do the work",
+        },
+        {
+          id: "deck-plan-contact-gate",
+          label: "No contact opens until you choose it",
+          description: "You stay in review before anything is shared",
+        },
+      ],
+      actions: [
+        askScoutAction(
+          "Plan the project",
+          `Help me plan this deck project with scope, materials, permit checks, price factors, and next steps: ${need}`
+        ),
+        { type: "NAVIGATE", label: "Start a material run", to: "/utilities/supply-run" },
+        askScoutAction(
+          "Check prices",
+          `Help me compare normal price factors for this deck work: ${need}`
+        ),
+      ],
+    }),
+    createSortedIntent({
+      id: "deck-find-help",
+      label: "Find deck help",
+      kind: "pros",
+      confidence: 0.88,
+      reason: "Use this if you want a pro to build, inspect, or price the deck.",
+      body: "Scout can draft a local request and keep it gated for your review before contact opens.",
+      items: [
+        {
+          id: "deck-help-request",
+          label: "Draft a deck request",
+          description: "Review the details before sharing locally",
+        },
+        {
+          id: "deck-help-compare",
+          label: "Compare who fits the job",
+          description: "Look at local options without opening contact automatically",
+        },
+      ],
+      actions: [
+        requestAction(rawMessage),
+        { type: "NAVIGATE", label: "Browse deck help", to: "/direct-connect/pros?trade=deck" },
+        askScoutAction(
+          "Ask before calling",
+          `What should I check before contacting someone about: ${need}`
+        ),
+      ],
+    }),
+  ];
 }
 
 function matcherConfigs(rawMessage: string): MatcherConfig[] {
@@ -399,6 +582,9 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
 export function sortScoutInfoDump(rawMessage: string): SortedScoutIntent[] {
   const normalized = normalize(rawMessage);
   if (!normalized || normalized.length < 2) return [];
+
+  const deckOptions = buildDeckOptionIntents(rawMessage, normalized);
+  if (deckOptions.length > 0) return deckOptions;
 
   const facts = buildFacts(rawMessage);
   const configs = matcherConfigs(rawMessage);

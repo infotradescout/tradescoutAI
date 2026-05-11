@@ -50,6 +50,22 @@ const INTERNAL_LINE_RULES: Array<{ flag: string; pattern: RegExp }> = [
 
 const USER_FACING_REPLACEMENTS: Array<{ flag: string; pattern: RegExp; replacement: string }> = [
   {
+    flag: "choice_question_rewritten",
+    pattern:
+      /\bdo you want to start with diy[-\s]*vs[-\s]*hire[-\s]*out guidance or contractor matching\?/gi,
+    replacement: "I can show project planning and finding local help as separate next steps.",
+  },
+  {
+    flag: "choice_question_rewritten",
+    pattern: /\bdo you want to start with ([^?]+?) or ([^?]+?)\?/gi,
+    replacement: "I can show both starting points as next steps.",
+  },
+  {
+    flag: "system_word_rewritten",
+    pattern: /\broute it correctly\b/gi,
+    replacement: "point you to the right next step",
+  },
+  {
     flag: "system_word_rewritten",
     pattern: /\broute the strongest next step\b/gi,
     replacement: "open the best next step",
