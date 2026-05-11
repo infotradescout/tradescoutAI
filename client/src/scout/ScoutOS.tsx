@@ -119,6 +119,8 @@ const SCOUT_VIEW_MODE_KEY = "scout:view_mode:v1";
 const SCOUT_AUTO_START_SESSION_KEY = "scout:auto_profile_start:v1";
 const SCOUT_SAVED_THREADS_VERSION = 1;
 const SCOUT_SAVED_THREADS_LIMIT = 8;
+const SCOUT_SAVED_THREAD_MESSAGE_LIMIT = 40;
+const SCOUT_SAVED_THREAD_CONTENT_LIMIT = 4000;
 const AUTO_ROUTE_DEFAULT_ENABLED = false;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
@@ -202,6 +204,16 @@ function summarizeThreadText(value: string, fallback: string): string {
   return clean.length > 72 ? `${clean.slice(0, 69)}...` : clean;
 }
 
+function compactSavedScoutMessages(messages: ScoutMessage[]): ScoutMessage[] {
+  return messages.slice(-SCOUT_SAVED_THREAD_MESSAGE_LIMIT).map((message) => ({
+    ...message,
+    content:
+      message.content.length > SCOUT_SAVED_THREAD_CONTENT_LIMIT
+        ? `${message.content.slice(0, SCOUT_SAVED_THREAD_CONTENT_LIMIT - 3)}...`
+        : message.content,
+  }));
+}
+
 function buildSavedScoutThread(
   messages: ScoutMessage[],
   existingId?: string | null
@@ -221,8 +233,28 @@ function buildSavedScoutThread(
     ),
     updatedAt,
     messageCount: messages.length,
-    messages,
+    messages: compactSavedScoutMessages(messages),
   };
+}
+
+function normalizeSavedScoutThreads(input: unknown): SavedScoutThread[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((item): item is SavedScoutThread => {
+      return (
+        item &&
+        typeof item.id === "string" &&
+        typeof item.title === "string" &&
+        Array.isArray(item.messages)
+      );
+    })
+    .map((item) => ({
+      ...item,
+      messages: compactSavedScoutMessages(item.messages),
+      messageCount:
+        typeof item.messageCount === "number" ? item.messageCount : item.messages.length,
+    }))
+    .slice(0, SCOUT_SAVED_THREADS_LIMIT);
 }
 
 function readSavedScoutThreads(userId?: string | null): SavedScoutThread[] {
@@ -230,18 +262,7 @@ function readSavedScoutThreads(userId?: string | null): SavedScoutThread[] {
   try {
     const raw = window.localStorage.getItem(savedScoutThreadsKey(userId));
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item): item is SavedScoutThread => {
-        return (
-          item &&
-          typeof item.id === "string" &&
-          typeof item.title === "string" &&
-          Array.isArray(item.messages)
-        );
-      })
-      .slice(0, SCOUT_SAVED_THREADS_LIMIT);
+    return normalizeSavedScoutThreads(JSON.parse(raw));
   } catch {
     return [];
   }
@@ -273,6 +294,22 @@ function upsertSavedScoutThread(
   );
   writeSavedScoutThreads(userId, next);
   return nextThread;
+}
+
+function mergeSavedScoutThreads(
+  primary: SavedScoutThread[],
+  secondary: SavedScoutThread[]
+): SavedScoutThread[] {
+  const seen = new Set<string>();
+  const merged: SavedScoutThread[] = [];
+  for (const thread of [...primary, ...secondary]) {
+    if (seen.has(thread.id)) continue;
+    seen.add(thread.id);
+    merged.push(thread);
+  }
+  return merged
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, SCOUT_SAVED_THREADS_LIMIT);
 }
 
 function confidenceLabelToScore(label?: string | null): number {
@@ -845,10 +882,19 @@ export default function ScoutOS() {
     state.status === "executing_action";
   const scoutSaveUserId =
     isAuthenticated && typeof user?.id === "string" && user.id.trim().length > 0 ? user.id : null;
+  const remoteSavedScoutThreads = useMemo(
+    () => normalizeSavedScoutThreads((user as any)?.preferences?.scout?.savedThreads),
+    [user]
+  );
 
   useEffect(() => {
-    setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
-  }, [scoutSaveUserId]);
+    const merged = mergeSavedScoutThreads(
+      readSavedScoutThreads(scoutSaveUserId),
+      remoteSavedScoutThreads
+    );
+    writeSavedScoutThreads(scoutSaveUserId, merged);
+    setSavedScoutThreads(merged);
+  }, [remoteSavedScoutThreads, scoutSaveUserId]);
 
   useEffect(() => {
     const hasUserThread = state.messages.some(
@@ -927,6 +973,14 @@ export default function ScoutOS() {
     },
     [user]
   );
+
+  useEffect(() => {
+    if (!user || savedScoutThreads.length === 0) return;
+    const timer = window.setTimeout(() => {
+      void persistScoutResume({ savedThreads: savedScoutThreads });
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [persistScoutResume, savedScoutThreads, user]);
 
   const openWorkArea = useCallback(
     (opts: { url: string; title?: string }) => {
