@@ -70,7 +70,6 @@ export function buildConnectionFallback(
     /\b(build|repair|replace|install|remodel|renovate|quote|estimate|project|addition|patio|porch|deck|decking|fence|roof|roofing|siding|concrete|driveway|kitchen|bathroom|plumbing|electrical|hvac|landscap(?:e|ing)|pool)\b/.test(
       lower
     );
-  const deckSignals = /\b(deck|decking|porch|patio)\b/.test(lower);
 
   const signalCount = [prosSignals, marketplaceSignals, communitySignals].filter(Boolean).length;
   const keywordOnlyWithoutContext = signalCount > 0 && tokens.length <= 3 && !hasStrongIntentVerb;
@@ -85,7 +84,6 @@ export function buildConnectionFallback(
   const prioritizePros = wantsPros || wantsMarketplace;
   const useAmbiguityBundle =
     roofDomainAmbiguous ||
-    deckSignals ||
     homeProjectSignals ||
     keywordOnlyWithoutContext ||
     lowConfidenceWithContext;
@@ -93,8 +91,8 @@ export function buildConnectionFallback(
   const stayInScoutPrompt = useAmbiguityBundle
     ? roofDomainAmbiguous
       ? "Keep me in Scout. Put the strongest roofing next step first, then show materials and nearby posts if they matter."
-      : deckSignals
-        ? "Keep me in Scout. Put the strongest deck next step first, then show builders, materials, equipment, and nearby posts if they matter."
+      : homeProjectSignals
+        ? "Keep me in Scout. Put the strongest project next step first, then show local help, materials, prices, and nearby posts if they matter."
         : "Keep me in Scout. Put the strongest local next step first, then show listings and nearby posts if they matter."
     : "Keep me here and walk me through the best next move.";
 
@@ -117,34 +115,24 @@ export function buildConnectionFallback(
     candidateActions.push(
       {
         type: "NAVIGATE",
-        label: deckSignals ? "Plan this project" : "Plan this project",
+        label: "Plan this project",
         to: "/project-tracker",
       },
       {
         type: "NAVIGATE",
-        label: roofDomainAmbiguous
-          ? "Find trusted roofing pros"
-          : deckSignals
-            ? "Find deck builders"
-            : "Find trusted local help",
+        label: roofDomainAmbiguous ? "Find trusted roofing pros" : "Find trusted local help",
         to: "/direct-connect/pros",
       },
       {
         type: "NAVIGATE",
         label: roofDomainAmbiguous
           ? "Browse recent roofing materials"
-          : deckSignals
-            ? "Browse rental equipment"
-            : "Browse recent Exchange listings",
-        to: deckSignals ? "/exchange/rental-equipment" : payload.exchangeRoute || "/exchange",
+          : "Browse recent Exchange listings",
+        to: payload.exchangeRoute || "/exchange",
       },
       {
         type: "NAVIGATE",
-        label: roofDomainAmbiguous
-          ? "Check recent roofing posts"
-          : deckSignals
-            ? "Check local deck posts"
-            : "Check nearby posts",
+        label: roofDomainAmbiguous ? "Check recent roofing posts" : "Check nearby posts",
         to: payload.communityRoute,
       }
     );
@@ -205,22 +193,18 @@ export function buildConnectionFallback(
   const message: ScoutMessage = {
     id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
     role: "assistant",
-    content: deckSignals
-      ? "For a deck project, start with scope, budget, and timing. Then compare deck builders, materials, rental equipment, and nearby posts."
-      : homeProjectSignals
-        ? "Start with scope, budget, and timing. Then compare local help, materials, prices, and nearby activity."
-        : "Scout can still keep this moving. The strongest next steps are ready below.",
+    content: homeProjectSignals
+      ? "Start with scope, budget, and timing. Then compare local help, materials, prices, and nearby activity."
+      : "Scout can still keep this moving. The strongest next steps are ready below.",
     timestamp: new Date().toISOString(),
     clusters: [
       {
         id: `scout-fallback-${Date.now()}`,
         title: "Keep moving",
         kind: "generic",
-        body: deckSignals
-          ? "Start with project planning, deck builders, rental equipment, or nearby posts."
-          : homeProjectSignals
-            ? "Start with project planning, local help, Exchange, or nearby posts."
-            : "Start with the strongest result below. I can open it here or keep searching.",
+        body: homeProjectSignals
+          ? "Start with project planning, local help, Exchange, or nearby posts."
+          : "Start with the strongest result below. I can open it here or keep searching.",
         actions,
       },
     ],

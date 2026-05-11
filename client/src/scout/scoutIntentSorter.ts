@@ -63,6 +63,12 @@ function keywordScore(normalized: string, keywords: string[]): number {
   return score;
 }
 
+function hasNormalizedPhrase(normalized: string, phrase: string): boolean {
+  const normalizedPhrase = normalize(phrase);
+  if (!normalizedPhrase) return false;
+  return new RegExp(`(^|\\s)${normalizedPhrase.replace(/\s+/g, "\\s+")}(?=\\s|$)`).test(normalized);
+}
+
 function quotedNeed(rawMessage: string): string {
   const trimmed = rawMessage.replace(/\s+/g, " ").trim();
   if (!trimmed) return "what you need";
@@ -87,7 +93,9 @@ function inferJobType(rawMessage: string): string | undefined {
     ["cleaning", ["cleaner", "cleaning", "deep clean"]],
   ];
 
-  return tradeHints.find(([, hints]) => hints.some((hint) => normalized.includes(hint)))?.[0];
+  return tradeHints.find(([, hints]) =>
+    hints.some((hint) => hasNormalizedPhrase(normalized, hint))
+  )?.[0];
 }
 
 function inferBudget(rawMessage: string): { min?: number; max?: number } {
@@ -208,12 +216,16 @@ function askScoutAction(label: string, prompt: string): ScoutAction {
   };
 }
 
-function isDeckBuildIntent(normalized: string): boolean {
-  const deck = /\b(deck|decking|porch|patio)\b/.test(normalized);
-  const build = /\b(build|building|built|install|replace|repair|scope|price|quote|bid)\b/.test(
-    normalized
-  );
-  return deck && build;
+function isProjectActionIntent(normalized: string): boolean {
+  const projectNoun =
+    /\b(deck|decking|porch|patio|fence|roof|roofing|siding|concrete|driveway|kitchen|bathroom|addition|remodel|renovation|plumbing|electrical|hvac|landscaping|pool|garage|flooring|paint|painting)\b/.test(
+      normalized
+    );
+  const actionVerb =
+    /\b(build|building|built|install|replace|repair|scope|price|quote|bid|estimate|remodel|renovate|plan)\b/.test(
+      normalized
+    );
+  return projectNoun && actionVerb;
 }
 
 function inferProjectPerspective(normalized: string): ProjectPerspective {
@@ -348,46 +360,50 @@ function createSortedIntent(input: {
   };
 }
 
-function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedScoutIntent[] {
-  if (!isDeckBuildIntent(normalized)) return [];
+function buildProjectOptionIntents(rawMessage: string, normalized: string): SortedScoutIntent[] {
+  if (!isProjectActionIntent(normalized)) return [];
 
   const facts = buildFacts(rawMessage);
   const need = facts.need;
+  const jobType = facts.jobType || "project";
+  const projectLabel = jobType === "project" ? "project" : `${jobType} project`;
+  const helpLabel = jobType === "project" ? "local help" : `${jobType} help`;
+  const helpTrade = facts.jobType ? `?trade=${encodeURIComponent(facts.jobType)}` : "";
   const perspective = inferProjectPerspective(normalized);
 
   if (perspective === "client") {
     return [
       createSortedIntent({
-        id: "deck-client-scope",
-        label: "Scope the client deck job",
+        id: "client-project-scope",
+        label: "Scope the client job",
         kind: "projects",
         confidence: 0.9,
-        reason: "Use this when you are building the deck for someone else.",
+        reason: "Use this when the work is for a client, customer, or job site.",
         body: "Keep the scope, measurements, materials, permit checks, and client-ready next steps together before anything is sent.",
         items: [
           {
-            id: "deck-client-context",
+            id: "client-project-context",
             label: "This looks like client work",
             description: "Scout can help organize the job before you share anything",
           },
           {
-            id: "deck-client-approval",
+            id: "client-project-approval",
             label: "You approve anything that gets sent",
             description: "Messages, quotes, invoices, and posts stay gated",
           },
         ],
-        angleItems: buildAngleItems(rawMessage, "deck-client-scope"),
+        angleItems: buildAngleItems(rawMessage, "client-project-scope"),
         actions: [
           askScoutAction(
             "Build the scope",
-            `Help me scope this client deck job with dimensions, materials, labor, permit checks, and next steps: ${need}`
+            `Help me scope this client ${projectLabel} with dimensions, materials, labor, permit checks, and next steps: ${need}`
           ),
           { type: "NAVIGATE", label: "Open project tools", to: "/project-tracker" },
           { type: "NAVIGATE", label: "Open invoices", to: "/finances" },
         ],
       }),
       createSortedIntent({
-        id: "deck-material-quote-prep",
+        id: "material-quote-prep",
         label: "Start materials or quote prep",
         kind: "marketplace",
         confidence: 0.88,
@@ -395,17 +411,17 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
         body: "Send a material list or supplier link and Scout can help turn it into a Supply Run. Quote and invoice drafts still need your approval.",
         items: [
           {
-            id: "deck-material-list",
+            id: "project-material-list",
             label: "Material list or supplier link",
             description: "Scout can help organize it into a Supply Run",
           },
           {
-            id: "deck-quote-approval",
+            id: "project-quote-approval",
             label: "Draft first, approve before sending",
             description: "Scout does not message, quote, invoice, order, or pay on its own",
           },
         ],
-        angleItems: buildAngleItems(rawMessage, "deck-material-quote-prep"),
+        angleItems: buildAngleItems(rawMessage, "material-quote-prep"),
         actions: [
           {
             type: "NAVIGATE",
@@ -421,7 +437,7 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
           { type: "NAVIGATE", label: "Browse Exchange materials", to: "/exchange/construction" },
           askScoutAction(
             "Make a material checklist",
-            `Make a deck material checklist I can review before using it for a client quote: ${need}`
+            `Make a material checklist I can review before using it for a client quote: ${need}`
           ),
           { type: "NAVIGATE", label: "Open invoices", to: "/finances" },
         ],
@@ -431,62 +447,62 @@ function buildDeckOptionIntents(rawMessage: string, normalized: string): SortedS
 
   return [
     createSortedIntent({
-      id: "deck-project-plan",
-      label: "Plan the deck project",
+      id: "project-plan",
+      label: "Plan this project",
       kind: "projects",
       confidence: 0.9,
       reason:
         "Use this to understand scope, materials, permit checks, and what to ask before hiring.",
-      body: "Scout can help you organize the deck details first so you are not guessing before you talk to anyone.",
+      body: "Scout can help you organize the details first so you are not guessing before you talk to anyone.",
       items: [
         {
-          id: "deck-plan-scope",
+          id: "project-plan-scope",
           label: "Scope, materials, and permit checks",
           description: "Start with the facts that change price and who can do the work",
         },
         {
-          id: "deck-plan-contact-gate",
+          id: "project-plan-contact-gate",
           label: "No contact opens until you choose it",
           description: "You stay in review before anything is shared",
         },
       ],
-      angleItems: buildAngleItems(rawMessage, "deck-project-plan"),
+      angleItems: buildAngleItems(rawMessage, "project-plan"),
       actions: [
         askScoutAction(
           "Plan the project",
-          `Help me plan this deck project with scope, materials, permit checks, price factors, and next steps: ${need}`
+          `Help me plan this ${projectLabel} with scope, materials, permit checks, price factors, and next steps: ${need}`
         ),
         { type: "NAVIGATE", label: "Start a material run", to: "/utilities/supply-run" },
         askScoutAction(
           "Check prices",
-          `Help me compare normal price factors for this deck work: ${need}`
+          `Help me compare normal price factors for this work: ${need}`
         ),
         { type: "NAVIGATE", label: "Browse Exchange materials", to: "/exchange/construction" },
       ],
     }),
     createSortedIntent({
-      id: "deck-find-help",
-      label: "Find deck help",
+      id: "project-find-help",
+      label: "Find local help",
       kind: "pros",
       confidence: 0.88,
-      reason: "Use this if you want a pro to build, inspect, or price the deck.",
+      reason: "Use this if you want a pro to build, inspect, or price the work.",
       body: "Scout can draft a local request and keep it gated for your review before contact opens.",
       items: [
         {
-          id: "deck-help-request",
-          label: "Draft a deck request",
+          id: "project-help-request",
+          label: `Draft a ${helpLabel} request`,
           description: "Review the details before sharing locally",
         },
         {
-          id: "deck-help-compare",
+          id: "project-help-compare",
           label: "Compare who fits the job",
           description: "Look at local options without opening contact automatically",
         },
       ],
-      angleItems: buildAngleItems(rawMessage, "deck-find-help"),
+      angleItems: buildAngleItems(rawMessage, "project-find-help"),
       actions: [
         requestAction(rawMessage),
-        { type: "NAVIGATE", label: "Browse deck help", to: "/direct-connect/pros?trade=deck" },
+        { type: "NAVIGATE", label: "Browse local help", to: `/direct-connect/pros${helpTrade}` },
         askScoutAction(
           "Ask before calling",
           `What should I check before contacting someone about: ${need}`
@@ -840,8 +856,8 @@ export function sortScoutInfoDump(
   const normalized = normalize(rawMessage);
   if (!normalized || normalized.length < 2) return [];
 
-  const deckOptions = buildDeckOptionIntents(rawMessage, normalized);
-  if (deckOptions.length > 0) return deckOptions;
+  const projectOptions = buildProjectOptionIntents(rawMessage, normalized);
+  if (projectOptions.length > 0) return projectOptions;
 
   const materialOptions = buildMaterialOptionIntents(
     rawMessage,

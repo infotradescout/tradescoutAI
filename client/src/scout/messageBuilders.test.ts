@@ -123,7 +123,7 @@ describe("messageBuilders", () => {
     expect(actions.some((action) => action.type === "ASK_SCOUT")).toBe(true);
   });
 
-  it("prioritizes project planning for deck-project fallback prompts", () => {
+  it("prioritizes project planning for action fallback prompts", () => {
     const { message, actions } = buildConnectionFallback(
       {
         contractorsRoute: "/contractors",
@@ -138,7 +138,24 @@ describe("messageBuilders", () => {
     expect(message.content.toLowerCase()).not.toContain("what do you want");
     expect(actions.some((action) => action.to === "/project-tracker")).toBe(true);
     expect(actions.some((action) => action.to === "/direct-connect/pros")).toBe(true);
-    expect(actions.some((action) => action.to === "/exchange/rental-equipment")).toBe(true);
+    expect(actions.some((action) => action.to === "/exchange")).toBe(true);
+  });
+
+  it("uses the same project fallback pattern beyond deck examples", () => {
+    const { message, actions } = buildConnectionFallback(
+      {
+        contractorsRoute: "/contractors",
+        communityRoute: "/community",
+        exchangeRoute: "/exchange",
+      },
+      "I need to replace a fence"
+    );
+
+    expect(message.content.toLowerCase()).toContain("scope");
+    expect(message.content.toLowerCase()).toContain("materials");
+    expect(actions.some((action) => action.to === "/project-tracker")).toBe(true);
+    expect(actions.some((action) => action.to === "/direct-connect/pros")).toBe(true);
+    expect(actions.some((action) => action.to === "/exchange")).toBe(true);
   });
 
   it("includes routing workflow help when the prompt asks why routing is blocked", () => {

@@ -98,15 +98,12 @@ describe("sortScoutInfoDump", () => {
     expect(visibleCopy).not.toContain("can pay");
   });
 
-  it("keeps deck project options while exposing material paths inside them", () => {
+  it("keeps project options while exposing material paths inside them", () => {
     const intents = sortScoutInfoDump("i need to build a deck");
     const actions = intents.flatMap((intent) => intent.actions.map((action) => action.label));
     const primaryItems = intents[0].cluster.items?.map((item) => item.label) || [];
 
-    expect(intents.map((intent) => intent.label)).toEqual([
-      "Plan the deck project",
-      "Find deck help",
-    ]);
+    expect(intents.map((intent) => intent.label)).toEqual(["Plan this project", "Find local help"]);
     expect(actions).toContain("Start a material run");
     expect(actions).toContain("Browse Exchange materials");
     expect(primaryItems).toContain("Materials and products");
@@ -116,7 +113,7 @@ describe("sortScoutInfoDump", () => {
   it("puts the most confident path first while carrying secondary angles", () => {
     const intents = sortScoutInfoDump("need a contractor to build a fence and compare prices");
 
-    expect(intents[0].label).toBe("Local help");
+    expect(intents[0].label).toBe("Plan this project");
     expect(intents[0].confidence).toBeGreaterThanOrEqual(intents[1]?.confidence || 0);
     expect(intents[0].cluster.items?.some((item) => item.label === "Price factors")).toBe(true);
     expect(intents[0].cluster.items?.some((item) => item.label === "Rules or permits")).toBe(true);
@@ -132,26 +129,33 @@ describe("sortScoutInfoDump", () => {
     expect(rulesIntent?.actions.some((action) => action.type === "ASK_SCOUT")).toBe(true);
   });
 
-  it("returns two concrete deck options instead of asking the user to choose", () => {
+  it("returns two concrete project options instead of asking the user to choose", () => {
     const intents = sortScoutInfoDump("i need to build a deck");
     const visibleCopy = visibleIntentCopy(intents);
 
-    expect(intents.map((intent) => intent.label)).toEqual([
-      "Plan the deck project",
-      "Find deck help",
-    ]);
+    expect(intents.map((intent) => intent.label)).toEqual(["Plan this project", "Find local help"]);
     expect(visibleCopy).not.toContain("do you want");
     expect(visibleCopy).not.toContain("likely type");
     expect(visibleCopy).not.toContain("timing: normal");
     expect(visibleCopy).not.toContain("route");
   });
 
-  it("switches deck options when the user is building for a client", () => {
+  it("uses the same two-option pattern for other project actions", () => {
+    const intents = sortScoutInfoDump("i need to replace a fence");
+
+    expect(intents.map((intent) => intent.label)).toEqual(["Plan this project", "Find local help"]);
+    expect(intents[0].actions.some((action) => action.to === "/utilities/supply-run")).toBe(true);
+    expect(
+      intents[1].actions.some((action) => action.to === "/direct-connect/pros?trade=fencing")
+    ).toBe(true);
+  });
+
+  it("switches project options when the user is building for a client", () => {
     const intents = sortScoutInfoDump("I am a contractor building a deck for a client");
     const visibleCopy = visibleIntentCopy(intents);
 
     expect(intents.map((intent) => intent.label)).toEqual([
-      "Scope the client deck job",
+      "Scope the client job",
       "Start materials or quote prep",
     ]);
     expect(intents[1].actions.some((action) => action.to === "/utilities/supply-run")).toBe(true);

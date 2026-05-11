@@ -161,85 +161,55 @@ export function maybeHandleHomeProjectRouting(args: {
 
   const prosPath = buildProsPath(tradeTopic, normalizedCounty, normalizedState);
 
-  if (tradeTopic === "decking") {
-    if (proBusinessContext) {
-      return {
-        intent: "client_project_decking",
-        message:
-          "Got it. If this deck is for a client, start with the job scope and material/quote prep. Scout can help draft the pieces, but you approve anything before it is sent.",
-        suggestedActions: ["Scope the client deck job", "Start materials or quote prep"],
-        actions: [
-          {
-            type: "NAVIGATE",
-            label: "Scope the client deck job",
-            to: "/project-tracker",
-            path: "/project-tracker",
-            subtitle: "Open project planning",
-            primary: true,
-          },
-          {
-            type: "NAVIGATE",
-            label: "Start a material run",
-            to: "/utilities/supply-run",
-            path: "/utilities/supply-run",
-            subtitle: "Use a material list or supplier link",
-          },
-          {
-            type: "NAVIGATE",
-            label: "Open invoices",
-            to: "/finances",
-            path: "/finances",
-            subtitle: "Draft and review before sending",
-          },
-        ],
-        metadata: {
-          intent: "client_project_decking",
-          decision: "Handled through deterministic project support for client deck work.",
-        },
-      };
-    }
-
+  if (proBusinessContext) {
     return {
-      intent: "home_project_decking",
-      message: `Got it. A deck can start two ways: plan the project first, or compare deck help${localityFragment}. Contact only opens when you choose a specific pro.`,
-      suggestedActions: ["Plan the deck project", "Find deck help"],
+      intent: `client_project_${tradeTopic}`,
+      message:
+        "Got it. If this is for a client, start with the job scope and material/quote prep. Scout can help draft the pieces, but you approve anything before it is sent.",
+      suggestedActions: ["Scope the client job", "Start materials or quote prep"],
       actions: [
         {
           type: "NAVIGATE",
-          label: "Plan the deck project",
+          label: "Scope the client job",
           to: "/project-tracker",
           path: "/project-tracker",
-          subtitle: "Scope, materials, and permit checks",
+          subtitle: "Open project planning",
           primary: true,
         },
         {
           type: "NAVIGATE",
-          label: "Find deck help",
-          to: prosPath,
-          path: prosPath,
-          subtitle: "Compare local options",
+          label: "Start a material run",
+          to: "/utilities/supply-run",
+          path: "/utilities/supply-run",
+          subtitle: "Use a material list or supplier link",
+        },
+        {
+          type: "NAVIGATE",
+          label: "Open invoices",
+          to: "/finances",
+          path: "/finances",
+          subtitle: "Draft and review before sending",
         },
       ],
       metadata: {
-        intent: "home_project_decking",
-        decision:
-          "Handled through deterministic homeowner-project routing for deck/decking intent.",
+        intent: `client_project_${tradeTopic}`,
+        decision: `Handled through deterministic project support for client ${tradeTopic} work.`,
       },
     };
   }
 
   return {
     intent: `home_project_${tradeTopic}`,
-    message: `Got it. I can show ${tradeTopic} pros${localityFragment} right now without requiring an account. You'll only be asked to sign in when you choose to open contact with a specific pro.`,
-    suggestedActions: ["Start or plan this project", `Show ${tradeTopic} pros in my area`],
+    message: `Got it. Start by planning the project, or compare ${tradeTopic} help${localityFragment}. Contact only opens when you choose a specific pro.`,
+    suggestedActions: ["Plan this project", `Find ${tradeTopic} help`],
     actions: [
-      planningAction,
+      { ...planningAction, label: "Plan this project", subtitle: "Scope, materials, and timing" },
       {
         type: "NAVIGATE",
-        label: `Show ${tradeTopic} pros`,
+        label: `Find ${tradeTopic} help`,
         to: prosPath,
         path: prosPath,
-        subtitle: "Open directory",
+        subtitle: "Compare local options",
       },
     ],
     metadata: {
