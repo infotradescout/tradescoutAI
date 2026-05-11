@@ -173,6 +173,7 @@ export type ScoutEvent =
   | { type: "USER_MESSAGE"; content: string }
   | { type: "SERVER_RESPONSE"; message: ScoutMessage; actions?: ScoutAction[] }
   | { type: "ERROR"; error: string }
+  | { type: "LOAD_MESSAGES"; messages: ScoutMessage[] }
   | { type: "RESET" }
   | { type: "SET_STATUS"; status: ScoutStatus };
 
@@ -236,6 +237,13 @@ function reducer(state: ScoutState, event: ScoutEvent): ScoutState {
       };
     }
 
+    case "LOAD_MESSAGES": {
+      return {
+        ...initialState,
+        messages: event.messages,
+      };
+    }
+
     case "RESET": {
       return { ...initialState };
     }
@@ -269,6 +277,11 @@ export function useScoutState(initialMessages?: ScoutMessage[]) {
     []
   );
 
+  const loadMessages = useCallback(
+    (messages: ScoutMessage[]) => dispatch({ type: "LOAD_MESSAGES", messages }),
+    []
+  );
+
   const reset = useCallback(() => dispatch({ type: "RESET" }), []);
 
   return {
@@ -278,6 +291,7 @@ export function useScoutState(initialMessages?: ScoutMessage[]) {
     applyServerResponse,
     setError,
     setStatus,
+    loadMessages,
     reset,
   };
 }

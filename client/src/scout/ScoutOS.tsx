@@ -117,12 +117,23 @@ const COUNTY_EXPLAINED_FOLLOWUP_KEY = "scout:county_explained_followup_recorded"
 const AUTO_ROUTE_ENABLED_KEY = "scout:auto_route_enabled:v1";
 const SCOUT_VIEW_MODE_KEY = "scout:view_mode:v1";
 const SCOUT_AUTO_START_SESSION_KEY = "scout:auto_profile_start:v1";
+const SCOUT_SAVED_THREADS_VERSION = 1;
+const SCOUT_SAVED_THREADS_LIMIT = 8;
 const AUTO_ROUTE_DEFAULT_ENABLED = false;
 const AUTO_ROUTE_MIN_CONFIDENCE = 0.85;
 const AUTO_ROUTE_DELAY_MS = 1600;
 const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
 const SCOUT_EVOLUTION_SURFACES_ENABLED =
   String(import.meta.env.VITE_SCOUT_EVOLUTION_SURFACES_ENABLED ?? "false") === "true";
+
+type SavedScoutThread = {
+  id: string;
+  title: string;
+  preview: string;
+  updatedAt: string;
+  messageCount: number;
+  messages: ScoutMessage[];
+};
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -173,6 +184,95 @@ function censorProfanity(text: string) {
     cleaned = cleaned.replace(re, `${term[0]}***`);
   }
   return cleaned;
+}
+
+function savedScoutThreadsKey(userId?: string | null): string {
+  return `scout:saved_threads:v${SCOUT_SAVED_THREADS_VERSION}:${userId || "guest"}`;
+}
+
+function firstThreadUserMessage(messages: ScoutMessage[]): ScoutMessage | undefined {
+  return messages.find((message) => message.role === "user" && message.content.trim().length > 0);
+}
+
+function summarizeThreadText(value: string, fallback: string): string {
+  const clean = String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!clean) return fallback;
+  return clean.length > 72 ? `${clean.slice(0, 69)}...` : clean;
+}
+
+function buildSavedScoutThread(
+  messages: ScoutMessage[],
+  existingId?: string | null
+): SavedScoutThread | null {
+  const firstUserMessage = firstThreadUserMessage(messages);
+  if (!firstUserMessage) return null;
+
+  const lastMessage = [...messages].reverse().find((message) => message.content.trim().length > 0);
+  const updatedAt = new Date().toISOString();
+
+  return {
+    id: existingId || `thread_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    title: summarizeThreadText(firstUserMessage.content, "Scout conversation"),
+    preview: summarizeThreadText(
+      lastMessage?.content || firstUserMessage.content,
+      "Saved Scout conversation"
+    ),
+    updatedAt,
+    messageCount: messages.length,
+    messages,
+  };
+}
+
+function readSavedScoutThreads(userId?: string | null): SavedScoutThread[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(savedScoutThreadsKey(userId));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is SavedScoutThread => {
+        return (
+          item &&
+          typeof item.id === "string" &&
+          typeof item.title === "string" &&
+          Array.isArray(item.messages)
+        );
+      })
+      .slice(0, SCOUT_SAVED_THREADS_LIMIT);
+  } catch {
+    return [];
+  }
+}
+
+function writeSavedScoutThreads(userId: string | null | undefined, threads: SavedScoutThread[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(
+      savedScoutThreadsKey(userId),
+      JSON.stringify(threads.slice(0, SCOUT_SAVED_THREADS_LIMIT))
+    );
+  } catch {
+    // Local saves are a convenience layer; failing here should not block Scout.
+  }
+}
+
+function upsertSavedScoutThread(
+  userId: string | null | undefined,
+  messages: ScoutMessage[],
+  existingId?: string | null
+): SavedScoutThread | null {
+  const nextThread = buildSavedScoutThread(messages, existingId);
+  if (!nextThread) return null;
+  const threads = readSavedScoutThreads(userId);
+  const next = [nextThread, ...threads.filter((thread) => thread.id !== nextThread.id)].slice(
+    0,
+    SCOUT_SAVED_THREADS_LIMIT
+  );
+  writeSavedScoutThreads(userId, next);
+  return nextThread;
 }
 
 function confidenceLabelToScore(label?: string | null): number {
@@ -616,6 +716,8 @@ export default function ScoutOS() {
   const [dcBusy, setDcBusy] = useState(false);
   const [controllerRailOpen, setControllerRailOpen] = useState(true);
   const [controllerShowAll, setControllerShowAll] = useState(false);
+  const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
+  const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
   const [scoutViewMode, setScoutViewMode] = useState<"chat_only" | "chat_plus_controller">(() => {
     try {
       if (typeof window === "undefined") return "chat_only";
@@ -657,8 +759,15 @@ export default function ScoutOS() {
     }
   })();
 
-  const { state, recordUserMessage, applyServerResponse, setError, setStatus } =
-    useScoutController();
+  const {
+    state,
+    recordUserMessage,
+    applyServerResponse,
+    setError,
+    setStatus,
+    loadMessages,
+    reset,
+  } = useScoutController();
 
   // KPI: Track time-to-action from render to first action execution
   const renderStartRef = useRef<number | null>(null);
@@ -734,6 +843,28 @@ export default function ScoutOS() {
     state.status === "resolving_context" ||
     state.status === "checking_documents" ||
     state.status === "executing_action";
+  const scoutSaveUserId =
+    isAuthenticated && typeof user?.id === "string" && user.id.trim().length > 0 ? user.id : null;
+
+  useEffect(() => {
+    setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
+  }, [scoutSaveUserId]);
+
+  useEffect(() => {
+    const hasUserThread = state.messages.some(
+      (message) => message.role === "user" && message.content.trim().length > 0
+    );
+    if (!hasUserThread) return;
+
+    const timer = window.setTimeout(() => {
+      const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId);
+      if (!saved) return;
+      setActiveSavedThreadId(saved.id);
+      setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
+    }, 450);
+
+    return () => window.clearTimeout(timer);
+  }, [activeSavedThreadId, scoutSaveUserId, state.messages]);
 
   // Log a lightweight "intro_shown" event the first time the Scout surface
   // renders without any prior messages. Keep hasMessages above this effect to
@@ -867,6 +998,37 @@ export default function ScoutOS() {
     () => state.messages.some((m) => m.role === "user"),
     [state.messages]
   );
+  const savedThreadPreview = savedScoutThreads.slice(0, isMobile ? 2 : 3);
+
+  const handleLoadSavedThread = useCallback(
+    (thread: SavedScoutThread) => {
+      setActiveSavedThreadId(thread.id);
+      setHasGuestInteracted(true);
+      loadMessages(thread.messages);
+      recordActivity({
+        type: "ask_scout",
+        ts: new Date().toISOString(),
+        path: location,
+        label: "load_saved_scout_thread",
+      });
+    },
+    [loadMessages, location]
+  );
+
+  const handleStartNewScoutThread = useCallback(() => {
+    setActiveSavedThreadId(null);
+    reset();
+    setHasGuestInteracted(false);
+    setOverridePendingScope(null);
+    setAutoRoutePending(null);
+  }, [reset]);
+
+  const handleSaveScoutThreadNow = useCallback(() => {
+    const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId);
+    if (!saved) return;
+    setActiveSavedThreadId(saved.id);
+    setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
+  }, [activeSavedThreadId, scoutSaveUserId, state.messages]);
 
   // First-time guest state: controls the calm intro + auto-demo gating.
   const isFirstGuestVisit = isGuest && !hasGuestInteracted && !hasUserMessages;
@@ -3332,12 +3494,60 @@ export default function ScoutOS() {
               )}
 
               {!hasUserMessages && (
-                <ScoutHome
-                  onPromptSelect={(text) => {
-                    setHasGuestInteracted(true);
-                    handleSend(text);
-                  }}
-                />
+                <>
+                  <ScoutHome
+                    onPromptSelect={(text) => {
+                      setHasGuestInteracted(true);
+                      handleSend(text);
+                    }}
+                  />
+
+                  {savedThreadPreview.length > 0 && (
+                    <div
+                      className="mt-3 rounded-2xl border p-3"
+                      style={{
+                        borderColor: "var(--border-subtle)",
+                        backgroundColor:
+                          "color-mix(in oklab, var(--surface-card) 94%, transparent)",
+                      }}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
+                          Recent Scout conversations
+                        </p>
+                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                          Saved here
+                        </span>
+                      </div>
+                      <div className="grid gap-2">
+                        {savedThreadPreview.map((thread) => (
+                          <button
+                            key={thread.id}
+                            type="button"
+                            onClick={() => handleLoadSavedThread(thread)}
+                            className="rounded-xl border px-3 py-2 text-left transition-colors"
+                            style={{
+                              borderColor: "var(--border-subtle)",
+                              backgroundColor:
+                                "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            <span className="block text-sm font-semibold leading-tight">
+                              {thread.title}
+                            </span>
+                            <span
+                              className="mt-1 block text-[11px] leading-snug"
+                              style={{ color: "var(--text-secondary)" }}
+                            >
+                              {thread.preview}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
@@ -3452,7 +3662,7 @@ export default function ScoutOS() {
                 </div>
               )}
 
-              {!hasUserMessages && (
+              {false && !hasUserMessages && (
                 <div
                   className="scout-composer-refined z-10 order-2 mt-1.5 rounded-2xl border px-3 py-3 md:px-4 md:py-4"
                   style={{
@@ -4086,13 +4296,42 @@ export default function ScoutOS() {
                         "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
                     }}
                   >
-                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                      Findings and recommended paths
-                    </p>
-                    <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                      Start with the strongest card below. Scout keeps the summary separate from the
-                      actions.
-                    </p>
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                          Findings and recommended paths
+                        </p>
+                        <p className="mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
+                          This conversation is saved here so you can come back to it later.
+                        </p>
+                      </span>
+                      <span className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleSaveScoutThreadNow}
+                          className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                          style={{
+                            borderColor: "var(--border-subtle)",
+                            backgroundColor: "var(--surface-intermediate)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleStartNewScoutThread}
+                          className="rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                          style={{
+                            borderColor: "var(--border-subtle)",
+                            backgroundColor: "transparent",
+                            color: "var(--text-secondary)",
+                          }}
+                        >
+                          New
+                        </button>
+                      </span>
+                    </div>
                   </div>
                 )}
 
