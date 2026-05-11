@@ -12,6 +12,7 @@ export type RecentActivityEventType =
   | "county_explained_followup_action"
   | "county_explained_shown"
   | "scout_confusion_location"
+  | "scout_learning_signal"
   | "settings_location_saved"
   // Decision Card (canonical pre-action contract)
   | "decision_card_shown"
@@ -73,9 +74,7 @@ export function getSeenAdIds(): string[] {
     const raw = window.sessionStorage.getItem(SEEN_ADS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.map((v) => String(v)).filter(Boolean)
-      : [];
+    return Array.isArray(parsed) ? parsed.map((v) => String(v)).filter(Boolean) : [];
   } catch {
     return [];
   }

@@ -109,4 +109,14 @@ describe("sortScoutInfoDump", () => {
     expect(visibleCopy).not.toContain("find deck help");
     expect(visibleCopy).not.toContain("do you want");
   });
+
+  it("narrows result count as confidence gets stronger", () => {
+    const message =
+      "need contractor materials equipment nearby permit prices invoice messages for a project";
+    const low = sortScoutInfoDump(message, { confidenceBand: "low" });
+    const high = sortScoutInfoDump(message, { confidenceBand: "high" });
+
+    expect(low.length).toBeGreaterThan(high.length);
+    expect(high.length).toBeLessThanOrEqual(2);
+  });
 });

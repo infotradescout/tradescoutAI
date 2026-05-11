@@ -1,4 +1,5 @@
 import type { ScoutAction, ScoutCluster, ScoutClusterKind } from "./state";
+import { optionBudgetForConfidence, type ScoutConfidenceBand } from "./scoutLearningOptions";
 
 export type SortedScoutIntent = {
   id: string;
@@ -579,7 +580,10 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
   ];
 }
 
-export function sortScoutInfoDump(rawMessage: string): SortedScoutIntent[] {
+export function sortScoutInfoDump(
+  rawMessage: string,
+  options: { confidenceBand?: ScoutConfidenceBand | string | null } = {}
+): SortedScoutIntent[] {
   const normalized = normalize(rawMessage);
   if (!normalized || normalized.length < 2) return [];
 
@@ -596,7 +600,7 @@ export function sortScoutInfoDump(rawMessage: string): SortedScoutIntent[] {
     })
     .filter(({ config, score }) => score >= (config.minScore ?? 1))
     .sort((a, b) => b.score - a.score || b.confidence - a.confidence)
-    .slice(0, 3);
+    .slice(0, optionBudgetForConfidence(options.confidenceBand ?? "medium"));
 
   return scored.map(({ config, confidence }) => ({
     id: config.id,

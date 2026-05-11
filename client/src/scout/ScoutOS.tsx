@@ -82,6 +82,12 @@ import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./loc
 import { buildConnectionFallback, buildExplicitNavigationMessage } from "./messageBuilders";
 import { sortScoutInfoDump } from "./scoutIntentSorter";
 import { inferScoutIntentDetails } from "./intentDetails";
+import {
+  buildScoutLearningCluster,
+  persistScoutLearningSignalLocally,
+  readScoutLearningSnapshot,
+  type ScoutConfidenceBand,
+} from "./scoutLearningOptions";
 import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
@@ -139,6 +145,19 @@ function sanitizeSuggestionLabel(label: string) {
   }
 
   return out;
+}
+
+function scoutResponseConfidenceBand(res: {
+  metadata?: {
+    confidenceBand?: "low" | "medium" | "high" | "unknown";
+    resolvedContext?: { confidence?: string } | null;
+  };
+}): ScoutConfidenceBand {
+  const resolved = res.metadata?.resolvedContext?.confidence;
+  if (resolved === "low" || resolved === "medium" || resolved === "high") return resolved;
+  const direct = res.metadata?.confidenceBand;
+  if (direct === "low" || direct === "medium" || direct === "high") return direct;
+  return "unknown";
 }
 
 function containsProfanity(text: string) {
@@ -1561,6 +1580,8 @@ export default function ScoutOS() {
         setStatus("checking_documents");
         const recentActivity = getRecentActivity();
         const shownAdIds = getSeenAdIds();
+        const intentDetails = inferScoutIntentDetails(value, locality);
+        const scoutLearning = readScoutLearningSnapshot(user);
 
         const res = await sendToScout({
           history: state.messages.map((m) => ({ role: m.role, content: m.content })),
@@ -1570,7 +1591,8 @@ export default function ScoutOS() {
           intent: urlIntent,
           knowledgeMode: "local-first",
           filters: {
-            intentDetails: inferScoutIntentDetails(value, locality),
+            intentDetails,
+            scoutLearning,
             collectionSurface: "scout-summary-thread",
           },
           roles: rolesForRequest,
@@ -1594,7 +1616,14 @@ export default function ScoutOS() {
         });
 
         const dedupedServerActions = dedupeScoutActions(res.actions);
-        const sortedIntents = sortScoutInfoDump(value);
+        const confidenceBand = scoutResponseConfidenceBand(res);
+        const sortedIntents = sortScoutInfoDump(value, { confidenceBand });
+        const learningCluster = buildScoutLearningCluster({
+          message: value,
+          confidenceBand,
+          intentDetails,
+          existingLabels: sortedIntents.map((intent) => intent.label),
+        });
 
         let clusters: ScoutCluster[] = [];
 
@@ -1638,7 +1667,15 @@ export default function ScoutOS() {
               .slice(0, 5),
           });
 
+          if (learningCluster && (confidenceBand === "low" || confidenceBand === "unknown")) {
+            clusters.push(learningCluster);
+          }
+
           clusters.push(...sortedIntents.map((intent) => intent.cluster));
+        }
+
+        if (learningCluster && !clusters.some((cluster) => cluster.id === learningCluster.id)) {
+          clusters.push(learningCluster);
         }
 
         // Sponsored/affiliate guardrails:
@@ -2442,6 +2479,21 @@ export default function ScoutOS() {
 
   const handleClusterAction = useCallback(
     async (action: ScoutAction) => {
+      const learningSnapshot = persistScoutLearningSignalLocally(action, user);
+      if (learningSnapshot) {
+        recordActivity({
+          type: "scout_learning_signal",
+          ts: new Date().toISOString(),
+          path: location,
+          label: String(action.label || "Scout learning signal"),
+          meta: {
+            actionType: action.type,
+            signal: action.payload?.scoutLearning,
+          },
+        });
+        void persistScoutResume({ learning: learningSnapshot });
+      }
+
       if (action.type === "NAVIGATE") {
         const target = (action.to ?? action.path) as string | undefined;
         if (maybeOpenWorkAreaForRoute(target, action.label)) {
@@ -2518,7 +2570,16 @@ export default function ScoutOS() {
         setStatus("idle");
       }
     },
-    [location, maybeOpenWorkAreaForRoute, navigate, handleSend, setError, applyServerResponse]
+    [
+      location,
+      maybeOpenWorkAreaForRoute,
+      navigate,
+      handleSend,
+      setError,
+      applyServerResponse,
+      persistScoutResume,
+      user,
+    ]
   );
 
   const handleOverride = useCallback(
