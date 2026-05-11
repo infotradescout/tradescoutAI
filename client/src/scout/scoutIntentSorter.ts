@@ -50,9 +50,8 @@ type SituationProfile = {
   wantsRules: boolean;
 };
 type ExpectationReality = {
-  expectation: ScoutIntentItem;
-  required: ScoutIntentItem;
-  feasible: ScoutIntentItem;
+  known: boolean;
+  items: ScoutIntentItem[];
 };
 
 function normalize(input: string): string {
@@ -323,30 +322,53 @@ function buildExpectationRealityItems(rawMessage: string, normalized: string): E
     /\b(just handle|take care of it|minimum input|not sure|don t know|figure it out)\b/.test(
       normalized
     );
+  const hasExpectationSignal =
+    hasBudget ||
+    hasLowBudgetLanguage ||
+    wantsPremiumOutcome ||
+    wantsMinimalInput ||
+    /\b(fair|quote|estimate|bid|client|customer|for someone|for somebody)\b/.test(normalized);
+
+  if (!hasExpectationSignal) {
+    return {
+      known: false,
+      items: [
+        {
+          id: "reality-expectation-needed",
+          label: "Set the expectation",
+          description:
+            "Before Scout can judge what is required or realistic, it needs the result, budget, timing, or quality level you have in mind",
+        },
+      ],
+    };
+  }
 
   return {
-    expectation: {
-      id: "reality-expectation",
-      label: "What you want",
-      description: wantsPremiumOutcome
-        ? "The goal sounds like a high-quality result, so scope and standards matter"
-        : wantsMinimalInput
-          ? "You may want someone to take limited details and turn them into a finished result"
-          : "Start by matching the result you want with the amount of detail you already have",
-    },
-    required: {
-      id: "reality-required",
-      label: "What has to be covered",
-      description:
-        "Materials, labor, measurements, access, timing, and any required permits or inspections can change the real path",
-    },
-    feasible: {
-      id: "reality-feasible",
-      label: "What is realistic",
-      description: hasLowBudgetLanguage
-        ? "Budget may limit finish level, timing, materials, or who can take the job"
-        : "Scout should separate must-haves from nice-to-haves before contact opens",
-    },
+    known: true,
+    items: [
+      {
+        id: "reality-expectation",
+        label: "What you want",
+        description: wantsPremiumOutcome
+          ? "The goal sounds like a high-quality result, so scope and standards matter"
+          : wantsMinimalInput
+            ? "You may want someone to take limited details and turn them into a finished result"
+            : "Start by matching the result you want with the amount of detail you already have",
+      },
+      {
+        id: "reality-required",
+        label: "What has to be covered",
+        description:
+          "Materials, labor, measurements, access, timing, and any required permits or inspections can change the real path",
+      },
+      {
+        id: "reality-feasible",
+        label: "What is realistic",
+        description: hasLowBudgetLanguage
+          ? "Budget may limit finish level, timing, materials, or who can take the job"
+          : "Scout should separate must-haves from nice-to-haves before contact opens",
+      },
+    ],
   };
 }
 
@@ -498,9 +520,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
         reason: "Use this when the work is for a client, customer, or job site.",
         body: "Keep the scope, measurements, materials, permit checks, and client-ready next steps together before anything is sent.",
         items: [
-          reality.expectation,
-          reality.required,
-          reality.feasible,
+          ...reality.items,
           {
             id: "client-project-context",
             label: "This looks like client work",
@@ -591,9 +611,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
       "Use this to understand scope, materials, permit checks, and what to ask before hiring.",
     body: "Scout can help you organize the details first so you are not guessing before you talk to anyone.",
     items: [
-      reality.expectation,
-      reality.required,
-      reality.feasible,
+      ...reality.items,
       {
         id: "project-plan-scope",
         label: "Scope, materials, and permit checks",
@@ -763,9 +781,7 @@ function buildPriceReviewOptionIntents(
       reason: "Use this when the user is comparing cost, a quote, estimate, or bid.",
       body: "Scout can help compare the scope, materials, timing, and red flags before you contact anyone.",
       items: [
-        reality.expectation,
-        reality.required,
-        reality.feasible,
+        ...reality.items,
         {
           id: "price-scope",
           label: "Scope before price",

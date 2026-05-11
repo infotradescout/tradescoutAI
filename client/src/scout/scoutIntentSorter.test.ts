@@ -106,9 +106,9 @@ describe("sortScoutInfoDump", () => {
     expect(intents.map((intent) => intent.label)).toEqual(["Plan this project", "Find local help"]);
     expect(actions).toContain("Start a material run");
     expect(actions).toContain("Browse Exchange materials");
-    expect(primaryItems).toContain("What you want");
-    expect(primaryItems).toContain("What has to be covered");
-    expect(primaryItems).toContain("What is realistic");
+    expect(primaryItems).toContain("Set the expectation");
+    expect(primaryItems).not.toContain("What has to be covered");
+    expect(primaryItems).not.toContain("What is realistic");
     expect(primaryItems).toContain("Materials and products");
     expect(primaryItems).toContain("Rules or permits");
   });
@@ -206,6 +206,16 @@ describe("sortScoutInfoDump", () => {
     expect(visibleCopy).toContain("what is realistic");
     expect(visibleCopy).toContain("budget may limit");
     expect(visibleCopy).not.toContain("do you want");
+  });
+
+  it("does not infer requirements or feasibility before the expectation is known", () => {
+    const intents = sortScoutInfoDump("i need to build a deck");
+    const visibleCopy = visibleIntentCopy(intents);
+
+    expect(visibleCopy).toContain("set the expectation");
+    expect(visibleCopy).toContain("before scout can judge what is required or realistic");
+    expect(visibleCopy).not.toContain("what has to be covered");
+    expect(visibleCopy).not.toContain("what is realistic");
   });
 
   it("switches project options when the user is building for a client", () => {
