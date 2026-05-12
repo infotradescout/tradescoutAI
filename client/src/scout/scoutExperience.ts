@@ -24,6 +24,20 @@ export type ScoutCapabilityCopy = {
   prompt: string;
 };
 
+export type ScoutSupplierProductSnapshot = {
+  sourceUrl: string;
+  host: string;
+  title?: string;
+  brand?: string;
+  sku?: string;
+  imageUrl?: string;
+  priceCents?: number;
+  currency?: string;
+  availability?: string;
+  status?: "resolved" | "partial" | "unavailable";
+  message?: string;
+};
+
 export const SCOUT_CAPABILITY_COPY: ScoutCapabilityCopy[] = [
   {
     id: "plan",
@@ -118,8 +132,42 @@ function takeActions(actions: ScoutAction[], budget: number): ScoutAction[] {
   return actions.slice(0, budget);
 }
 
-function firstUrl(value: string): string | null {
+export function firstSupplierUrl(value: string): string | null {
   return value.match(/https?:\/\/[^\s)]+/i)?.[0] ?? null;
+}
+
+function formatProductPrice(product?: ScoutSupplierProductSnapshot | null): string | null {
+  if (!product || typeof product.priceCents !== "number") return null;
+  const currency = product.currency || "USD";
+  return (product.priceCents / 100).toLocaleString(undefined, {
+    style: "currency",
+    currency,
+  });
+}
+
+function supplierSnapshotItems(product?: ScoutSupplierProductSnapshot | null) {
+  if (!product) return [];
+  const price = formatProductPrice(product);
+  const title = product.title || product.host || "Supplier link";
+  const details = [
+    product.brand,
+    product.sku ? `SKU ${product.sku}` : null,
+    price ? `${price} listed` : null,
+    product.availability
+      ? String(product.availability).replace(/^https?:\/\/schema.org\//i, "")
+      : null,
+  ].filter(Boolean);
+
+  return [
+    {
+      id: "supplier-snapshot",
+      label: product.status === "unavailable" ? "Supplier page needs review" : "Supplier page read",
+      description:
+        product.status === "unavailable"
+          ? product.message || "Scout could not read product details from that link"
+          : `${title}${details.length ? ` | ${details.join(" | ")}` : ""}`,
+    },
+  ];
 }
 
 function hasPriceOrTrendIntent(value: string): boolean {
@@ -133,6 +181,7 @@ export function buildScoutExperienceClusters(args: {
   confidenceBand?: ScoutConfidenceBand | string | null;
   intentDetails?: ScoutIntentDetail;
   existingLabels?: string[];
+  supplierProduct?: ScoutSupplierProductSnapshot | null;
 }): ScoutCluster[] {
   const message = cleanMessage(args.message);
   if (!message) return [];
@@ -140,7 +189,8 @@ export function buildScoutExperienceClusters(args: {
   const existing = new Set((args.existingLabels || []).map((label) => label.toLowerCase()));
   const detail = args.intentDetails;
   const isMaterialNeed = detail?.context === "materials" || hasMaterialOrSupplierIntent(message);
-  const supplierUrl = firstUrl(message);
+  const supplierUrl = firstSupplierUrl(message);
+  const supplierProduct = args.supplierProduct;
   const materialCategory = inferMaterialCategory(message);
   const actionBudget = confidenceActionBudget(args.confidenceBand);
 
@@ -210,6 +260,7 @@ export function buildScoutExperienceClusters(args: {
       kind: "marketplace",
       body: "Scout can help organize products, supplier links, nearby supplier options, and Exchange materials before you order or share anything.",
       items: [
+        ...supplierSnapshotItems(supplierProduct),
         {
           id: "products",
           label: materialCategory.label,

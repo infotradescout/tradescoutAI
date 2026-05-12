@@ -66,6 +66,8 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Materials and local options");
     expect(experienceSource).toContain("Price and trend checks");
     expect(experienceSource).toContain("supplierUrl=");
+    expect(experienceSource).toContain("Supplier page read");
+    expect(experienceSource).toContain("Supplier page needs review");
     expect(experienceSource).toContain("/finances/materials");
     expect(experienceSource).toContain("Review before anything is sent");
     expect(experienceSource).not.toContain("Scout Vault");

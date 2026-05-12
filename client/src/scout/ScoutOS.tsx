@@ -88,7 +88,11 @@ import {
   readScoutLearningSnapshot,
   type ScoutConfidenceBand,
 } from "./scoutLearningOptions";
-import { buildScoutExperienceClusters } from "./scoutExperience";
+import {
+  buildScoutExperienceClusters,
+  firstSupplierUrl,
+  type ScoutSupplierProductSnapshot,
+} from "./scoutExperience";
 import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
@@ -424,6 +428,35 @@ function filterDuplicateSuggestions(
   }
 
   return deduped;
+}
+
+async function resolveSupplierProductForScout(
+  message: string
+): Promise<ScoutSupplierProductSnapshot | null> {
+  const url = firstSupplierUrl(message);
+  if (!url) return null;
+
+  try {
+    const data = await apiRequest("/api/procurement/products/resolve", {
+      method: "POST",
+      body: { url },
+      timeoutMs: 2800,
+    });
+    return data?.product || null;
+  } catch {
+    return {
+      sourceUrl: url,
+      host: (() => {
+        try {
+          return new URL(url).hostname;
+        } catch {
+          return "supplier link";
+        }
+      })(),
+      status: "unavailable",
+      message: "Scout could not read product details quickly. Supply Run can still use the link.",
+    };
+  }
 }
 
 const DOCTRINE_SENTENCE_PATTERNS = [
@@ -1980,11 +2013,13 @@ export default function ScoutOS() {
           clusters.push(learningCluster);
         }
 
+        const supplierProduct = await resolveSupplierProductForScout(value);
         const experienceClusters = buildScoutExperienceClusters({
           message: value,
           confidenceBand,
           intentDetails,
           existingLabels: clusters.map((cluster) => cluster.title),
+          supplierProduct,
         });
 
         if (experienceClusters.length > 0) {
