@@ -48,6 +48,7 @@ describe("Scout entry framing contracts", () => {
   it("Scout home exposes the production Scout 2 capability map honestly", () => {
     const homeSource = read("client/src/scout/ScoutHome.tsx");
     const experienceSource = read("client/src/scout/scoutExperience.ts");
+    const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
 
     expect(homeSource).toContain("What Scout can help with");
     expect(homeSource).toContain("SCOUT_CAPABILITY_COPY");
@@ -72,6 +73,10 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("/finances/materials");
     expect(experienceSource).toContain("Review before anything is sent");
     expect(experienceSource).toContain("Right details only");
+    expect(experienceSource).toContain("Exchange activity");
+    expect(experienceSource).toContain("Verified local help");
+    expect(experienceSource).toContain("Local trend signal");
+    expect(scoutOsSource).toContain("sourceSignals: scoutSourceSignalsQuery.data");
     expect(experienceSource).not.toContain("Scout Vault");
     expect(experienceSource).not.toContain("LISA");
   });

@@ -39,6 +39,17 @@ export type ScoutSupplierProductSnapshot = {
   message?: string;
 };
 
+export type ScoutSourceSignalSnapshot = {
+  countyName?: string | null;
+  stateName?: string | null;
+  activeListings?: number;
+  verifiedPros?: number;
+  eventsThisWeek?: number;
+  communityMembers?: number;
+  trendingPrompts?: Array<{ text?: string; category?: string; count?: number; intent?: string }>;
+  recentActivity?: Array<{ query?: string; timestamp?: string }>;
+};
+
 export const SCOUT_CAPABILITY_COPY: ScoutCapabilityCopy[] = [
   {
     id: "plan",
@@ -183,12 +194,93 @@ function hasPriceOrTrendIntent(value: string): boolean {
   );
 }
 
+function sourceBackedPriceItems(snapshot?: ScoutSourceSignalSnapshot | null) {
+  if (!snapshot) return [];
+  const items: Array<{ id: string; label: string; description: string }> = [];
+  const countyLabel = [snapshot.countyName, snapshot.stateName].filter(Boolean).join(", ");
+
+  if (typeof snapshot.activeListings === "number" && snapshot.activeListings > 0) {
+    items.push({
+      id: "active-listings-signal",
+      label: "Exchange activity",
+      description: `${snapshot.activeListings} active listing${snapshot.activeListings === 1 ? "" : "s"}${countyLabel ? ` around ${countyLabel}` : ""}`,
+    });
+  }
+
+  if (typeof snapshot.verifiedPros === "number" && snapshot.verifiedPros > 0) {
+    items.push({
+      id: "verified-pro-signal",
+      label: "Local help signal",
+      description: `${snapshot.verifiedPros} verified pro${snapshot.verifiedPros === 1 ? "" : "s"} in the current TradeScout snapshot`,
+    });
+  }
+
+  const trend = snapshot.trendingPrompts?.find((prompt) => {
+    const text = `${prompt.text || ""} ${prompt.category || ""} ${prompt.intent || ""}`;
+    return /\b(price|prices|cost|deal|market|contractor|material|gas)\b/i.test(text);
+  });
+  if (trend?.text) {
+    items.push({
+      id: "local-trend-signal",
+      label: "Local trend signal",
+      description: `${trend.text}${trend.count ? ` (${trend.count} recent signal${trend.count === 1 ? "" : "s"})` : ""}`,
+    });
+  }
+
+  if (typeof snapshot.eventsThisWeek === "number" && snapshot.eventsThisWeek > 0) {
+    items.push({
+      id: "event-demand-signal",
+      label: "Timing signal",
+      description: `${snapshot.eventsThisWeek} event${snapshot.eventsThisWeek === 1 ? "" : "s"} this week may affect availability and timing`,
+    });
+  }
+
+  return items.slice(0, 3);
+}
+
+function sourceBackedLocalItems(snapshot?: ScoutSourceSignalSnapshot | null) {
+  if (!snapshot) return [];
+  const items: Array<{ id: string; label: string; description: string }> = [];
+  const countyLabel = [snapshot.countyName, snapshot.stateName].filter(Boolean).join(", ");
+
+  if (typeof snapshot.verifiedPros === "number") {
+    items.push({
+      id: "verified-pro-count",
+      label: "Verified local help",
+      description:
+        snapshot.verifiedPros > 0
+          ? `${snapshot.verifiedPros} verified pro${snapshot.verifiedPros === 1 ? "" : "s"} found${countyLabel ? ` for ${countyLabel}` : ""}`
+          : "No verified pro count is available in this snapshot yet",
+    });
+  }
+
+  if (typeof snapshot.communityMembers === "number" && snapshot.communityMembers > 0) {
+    items.push({
+      id: "community-count",
+      label: "Community signal",
+      description: `${snapshot.communityMembers} local member${snapshot.communityMembers === 1 ? "" : "s"} in the current snapshot`,
+    });
+  }
+
+  const recent = snapshot.recentActivity?.[0];
+  if (recent?.query) {
+    items.push({
+      id: "recent-activity",
+      label: "Recent Scout activity",
+      description: recent.query,
+    });
+  }
+
+  return items.slice(0, 3);
+}
+
 export function buildScoutExperienceClusters(args: {
   message: string;
   confidenceBand?: ScoutConfidenceBand | string | null;
   intentDetails?: ScoutIntentDetail;
   existingLabels?: string[];
   supplierProduct?: ScoutSupplierProductSnapshot | null;
+  sourceSignals?: ScoutSourceSignalSnapshot | null;
 }): ScoutCluster[] {
   const message = cleanMessage(args.message);
   if (!message) return [];
@@ -198,6 +290,7 @@ export function buildScoutExperienceClusters(args: {
   const isMaterialNeed = detail?.context === "materials" || hasMaterialOrSupplierIntent(message);
   const supplierUrl = firstSupplierUrl(message);
   const supplierProduct = args.supplierProduct;
+  const sourceSignals = args.sourceSignals;
   const materialCategory = inferMaterialCategory(message);
   const actionBudget = confidenceActionBudget(args.confidenceBand);
 
@@ -254,6 +347,7 @@ export function buildScoutExperienceClusters(args: {
           label: "Right details only",
           description: "Scout collects details that change the path instead of forcing a long form",
         },
+        ...sourceBackedLocalItems(sourceSignals),
         {
           id: "feasible-paths",
           label: "Recommended paths",
@@ -334,6 +428,7 @@ export function buildScoutExperienceClusters(args: {
       kind: "rules",
       body: "Scout can compare price factors, material signals, nearby posts, and recent local activity before you call, quote, or order.",
       items: [
+        ...sourceBackedPriceItems(sourceSignals),
         {
           id: "materials-source",
           label: "Material price signals",

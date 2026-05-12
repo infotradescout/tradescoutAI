@@ -92,6 +92,7 @@ import {
   buildScoutExperienceClusters,
   firstSupplierUrl,
   type ScoutSupplierProductSnapshot,
+  type ScoutSourceSignalSnapshot,
 } from "./scoutExperience";
 import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
@@ -1045,6 +1046,38 @@ export default function ScoutOS() {
     locationCtx.lng,
     user?.zip,
   ]);
+
+  const scoutSourceSignalsQuery = useQuery<ScoutSourceSignalSnapshot | null>({
+    queryKey: [
+      "/api/scout/home-snapshot",
+      locality.county || "",
+      locality.stateCode || "",
+      locality.countyFips || "",
+    ],
+    enabled: Boolean(locality.county || locality.stateCode || locality.countyFips),
+    staleTime: 60_000,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (locality.county) params.set("county", String(locality.county));
+      if (locality.stateCode) params.set("state", String(locality.stateCode));
+      if (locality.countyFips) params.set("fips", String(locality.countyFips));
+      const response = await fetch(`/api/scout/home-snapshot?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return {
+        countyName: data?.snapshot?.countyName,
+        stateName: data?.snapshot?.stateName,
+        activeListings: data?.snapshot?.activeListings,
+        verifiedPros: data?.snapshot?.verifiedPros,
+        eventsThisWeek: data?.snapshot?.eventsThisWeek,
+        communityMembers: data?.snapshot?.communityMembers,
+        trendingPrompts: Array.isArray(data?.trendingPrompts) ? data.trendingPrompts : [],
+        recentActivity: Array.isArray(data?.recentActivity) ? data.recentActivity : [],
+      };
+    },
+  });
 
   const hasMessages = state.messages.length > 0;
   const showThreadRegion =
@@ -2230,6 +2263,7 @@ export default function ScoutOS() {
           intentDetails,
           existingLabels: clusters.map((cluster) => cluster.title),
           supplierProduct,
+          sourceSignals: scoutSourceSignalsQuery.data ?? null,
         });
 
         if (experienceClusters.length > 0) {

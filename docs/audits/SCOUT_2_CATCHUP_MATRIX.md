@@ -43,6 +43,7 @@ Scout should copy proven interaction patterns, not competitor business models. T
 - The normal Scout home now exposes a real capability map before chat starts.
 - Active Scout answers now add a "Full Scout view" result layer so users see planning, materials, prices, local help, trust checks, and alternatives after a query.
 - The Full Scout view now reflects the competitive adoption map: intake, local summaries, trust, materials, project continuity, and approval-gated action.
+- Active result cards now use real Scout home snapshot signals when available: active Exchange listings, verified pros, community count, events, local trend prompts, and recent Scout activity.
 - Material/supplier-style queries now get a dedicated "Materials and local options" result card with Supply Run, local supplier, Exchange material, and product comparison paths.
 - Supplier links now carry into `/utilities/supply-run/new` as a prefilled URL so the Supply Run product resolver can read the link instead of making the user paste it again.
 - Supplier links in Scout now get a fast product snapshot attempt inside the active result card; if the page cannot be read quickly, Scout says so and still preserves the link for Supply Run review.
@@ -55,6 +56,6 @@ Scout should copy proven interaction patterns, not competitor business models. T
 
 ## Fastest Next Work
 
-1. Add richer source-backed price/trend cards from county metrics, community activity, and material snapshots.
-2. Expand saved conversation recall into project, home, vehicle, and client records when those destination surfaces expose stable IDs.
-3. Add competitor-pattern regression checks for response quality: no form trap, no lead-selling copy, no fake booking, no unsupported order/payment claims.
+1. Expand saved conversation recall into project, home, vehicle, and client records when those destination surfaces expose stable IDs.
+2. Add competitor-pattern regression checks for response quality: no form trap, no lead-selling copy, no fake booking, no unsupported order/payment claims.
+3. Add deeper price intelligence from county metrics and completed first-party job snapshots once enough live data exists.
