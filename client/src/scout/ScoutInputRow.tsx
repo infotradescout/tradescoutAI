@@ -34,6 +34,8 @@ const AUTO_DEMO_START_DELAY_MS = 600;
 const AUTO_DEMO_TYPE_DELAY_MS = 45;
 const AUTO_DEMO_SEND_DELAY_MS = 400;
 const SCOUT_INPUT_ACTION_HINT = "Ask, Compare, Choose";
+const SCOUT_INPUT_ACCESSIBLE_PROMPT =
+  "Tell Scout what happened, what you need, or what you’re trying to figure out.";
 
 export function ScoutInputRow({
   isBusy,
@@ -181,7 +183,7 @@ export function ScoutInputRow({
   }, [enableAutoDemo, autoDemoText, prefillKey]);
 
   const isButtonDisabled = isBusy || isSubmitting || (!value.trim() && !isTypingDemo);
-  const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts.slice(0, 3) : [];
+  const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts.slice(0, 2) : [];
 
   return (
     <div className="space-y-2">
@@ -264,11 +266,10 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Tell Scout what happened, what you need, or what you’re trying to figure out."
+          placeholder="Tell Scout what happened..."
           rows={1}
           className="scout-command-bar__input"
-          style={{ height: "24px" }}
-          aria-label="Tell Scout what happened, what you need, or what you’re trying to figure out"
+          aria-label={SCOUT_INPUT_ACCESSIBLE_PROMPT}
         />
 
         {/* Mic button */}
