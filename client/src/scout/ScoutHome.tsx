@@ -62,11 +62,23 @@ function SkeletonTile() {
   return (
     <div
       className="rounded-xl p-3 animate-pulse"
-      style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
+      style={{
+        backgroundColor: "var(--surface-intermediate)",
+        border: "1px solid var(--border-primary)",
+      }}
     >
-      <div className="h-3 w-16 rounded mb-2" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
-      <div className="h-7 w-12 rounded mb-1" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
-      <div className="h-2 w-20 rounded" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
+      <div
+        className="h-3 w-16 rounded mb-2"
+        style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }}
+      />
+      <div
+        className="h-7 w-12 rounded mb-1"
+        style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }}
+      />
+      <div
+        className="h-2 w-20 rounded"
+        style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }}
+      />
     </div>
   );
 }
@@ -75,12 +87,24 @@ function SkeletonPrompt() {
   return (
     <div
       className="rounded-xl px-3 py-2.5 animate-pulse flex items-center gap-3"
-      style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
+      style={{
+        backgroundColor: "var(--surface-intermediate)",
+        border: "1px solid var(--border-primary)",
+      }}
     >
-      <div className="h-8 w-8 rounded-lg flex-shrink-0" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
+      <div
+        className="h-8 w-8 rounded-lg flex-shrink-0"
+        style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }}
+      />
       <div className="flex-1">
-        <div className="h-3 w-full rounded mb-1.5" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
-        <div className="h-2 w-24 rounded" style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }} />
+        <div
+          className="h-3 w-full rounded mb-1.5"
+          style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }}
+        />
+        <div
+          className="h-2 w-24 rounded"
+          style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }}
+        />
       </div>
     </div>
   );
@@ -149,7 +173,10 @@ function LocationInput({
   return (
     <div
       className="rounded-xl p-4 mb-4"
-      style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
+      style={{
+        backgroundColor: "var(--surface-intermediate)",
+        border: "1px solid var(--border-primary)",
+      }}
     >
       <p className="text-[12px] font-semibold text-white mb-3">Enter your city or zip code</p>
       <div className="flex gap-2">
@@ -181,7 +208,10 @@ function LocationInput({
           type="button"
           onClick={onCancel}
           className="rounded-lg px-3 py-2 text-[12px] font-medium"
-          style={{ backgroundColor: "var(--surface-intermediate, #222)", color: "var(--text-secondary, #aaa)" }}
+          style={{
+            backgroundColor: "var(--surface-intermediate, #222)",
+            color: "var(--text-secondary, #aaa)",
+          }}
         >
           Cancel
         </button>
@@ -276,7 +306,10 @@ function PromptChip({
         {icon}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-[13px] font-medium leading-snug truncate" style={{ color: "var(--text-primary, #e5e5e5)" }}>
+        <p
+          className="text-[13px] font-medium leading-snug truncate"
+          style={{ color: "var(--text-primary, #e5e5e5)" }}
+        >
           {text}
         </p>
         <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted, #555)" }}>
@@ -320,7 +353,10 @@ function ActivityItem({
       }}
     >
       <span className="text-base flex-shrink-0">{icon}</span>
-      <p className="flex-1 text-[12px] leading-snug truncate" style={{ color: "var(--text-secondary, #aaa)" }}>
+      <p
+        className="flex-1 text-[12px] leading-snug truncate"
+        style={{ color: "var(--text-secondary, #aaa)" }}
+      >
         {query}
       </p>
       <span className="text-[10px] flex-shrink-0" style={{ color: "var(--text-muted, #444)" }}>
@@ -335,10 +371,16 @@ function ActivityItem({
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2 mb-2">
-      <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "var(--text-muted, #555)" }}>
+      <span
+        className="text-[10px] font-bold uppercase tracking-[0.16em]"
+        style={{ color: "var(--text-muted, #555)" }}
+      >
         {children}
       </span>
-      <div className="flex-1 h-px" style={{ backgroundColor: "var(--surface-intermediate, #1e1e1e)" }} />
+      <div
+        className="flex-1 h-px"
+        style={{ backgroundColor: "var(--surface-intermediate, #1e1e1e)" }}
+      />
     </div>
   );
 }
@@ -407,7 +449,10 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       {location.status === "error" && !showLocationInput && (
         <div
           className="rounded-xl px-4 py-3 flex items-center gap-3"
-          style={{ backgroundColor: "var(--surface-intermediate)", border: "1px solid var(--border-primary)" }}
+          style={{
+            backgroundColor: "var(--surface-intermediate)",
+            border: "1px solid var(--border-primary)",
+          }}
         >
           <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: "#f97316" }} />
           <div className="flex-1">
@@ -452,17 +497,18 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
               className="text-[10px] font-bold uppercase tracking-[0.16em]"
               style={{ color: "#f97316" }}
             >
-              Scout OS · Ready
+              Scout is ready
             </span>
           </div>
           <h2
             className="text-[20px] font-bold leading-tight text-white mb-1"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            What are you scouting today?
+            What do you need help with today?
           </h2>
           <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-muted, #666)" }}>
-            Ask anything local — services, prices, events, permits, food, jobs, and more.
+            Scout helps you find local help, compare options, and know what to check before
+            contacting anyone.
             {countyDisplay ? ` Scout knows ${countyDisplay}.` : ""}
           </p>
         </div>
@@ -471,7 +517,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       {/* ── Local Snapshot ─────────────────────────────────────────────── */}
       {countyDisplay && (
         <>
-          <SectionLabel>Local Snapshot · {countyDisplay}</SectionLabel>
+          <SectionLabel>What Scout can check nearby · {countyDisplay}</SectionLabel>
           {isLoading ? (
             <div className="grid grid-cols-2 gap-2">
               <SkeletonTile />
@@ -482,25 +528,25 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
           ) : snapshot ? (
             <div className="grid grid-cols-2 gap-2">
               <DataTile
-                label="Active Listings"
+                label="Local listings"
                 value={formatCount(snapshot.activeListings)}
                 delta={formatDelta(snapshot.activeListingsDelta)}
                 icon={ShoppingBag}
                 highlight={snapshot.activeListings > 0}
               />
               <DataTile
-                label="Verified Pros"
+                label="Local help"
                 value={formatCount(snapshot.verifiedPros)}
                 icon={Wrench}
               />
               <DataTile
-                label="Events This Week"
+                label="This week"
                 value={snapshot.eventsThisWeek}
                 delta={snapshot.eventsToday > 0 ? `${snapshot.eventsToday} today` : undefined}
                 icon={Calendar}
               />
               <DataTile
-                label="Community Members"
+                label="Community"
                 value={formatCount(snapshot.communityMembers)}
                 icon={Users}
               />
