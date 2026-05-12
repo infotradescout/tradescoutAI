@@ -28,13 +28,15 @@ The Scout 2 showcase is the visual and product direction. The live `/scout` surf
 ## What Changed In This Pass
 
 - The normal Scout home now exposes a real capability map before chat starts.
+- Active Scout answers now add a "Full Scout view" result layer so users see planning, materials, prices, local help, trust checks, and alternatives after a query.
+- Material/supplier-style queries now get a dedicated "Materials and local options" result card with Supply Run, local supplier, Exchange material, and product comparison paths.
+- Client/customer work now gets a "Client job prep" card that keeps scope, quote prep, invoices, and approval boundaries separated.
 - The cards are action prompts, not fake dashboards.
 - User-facing copy avoids internal tags such as LISA, routing, validators, and tool names.
 - Saved conversations are described honestly instead of calling the feature a full Vault.
 
 ## Fastest Next Work
 
-1. Make Scout result cards pull from the same capability map after every user query.
-2. Add source-backed price/trend cards for material and supplier queries.
-3. Expand saved conversations into searchable project-linked history before using "Vault" publicly.
-4. Add production checks that every showcase capability has either a real user surface or a documented blocked state.
+1. Add source-backed price/trend cards for material and supplier queries.
+2. Expand saved conversations into searchable project-linked history before using "Vault" publicly.
+3. Add production checks that every showcase capability has either a real user surface or a documented blocked state.

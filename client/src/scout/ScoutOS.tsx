@@ -88,6 +88,7 @@ import {
   readScoutLearningSnapshot,
   type ScoutConfidenceBand,
 } from "./scoutLearningOptions";
+import { buildScoutExperienceClusters } from "./scoutExperience";
 import { useScoutLocalHandlers } from "./useScoutLocalHandlers";
 import ObjectiveChip from "./ObjectiveChip";
 import ObjectiveOnboardingFlow from "./ObjectiveOnboardingFlow";
@@ -1977,6 +1978,17 @@ export default function ScoutOS() {
           !clusters.some((cluster) => cluster.id === learningCluster.id)
         ) {
           clusters.push(learningCluster);
+        }
+
+        const experienceClusters = buildScoutExperienceClusters({
+          message: value,
+          confidenceBand,
+          intentDetails,
+          existingLabels: clusters.map((cluster) => cluster.title),
+        });
+
+        if (experienceClusters.length > 0) {
+          clusters.push(...experienceClusters);
         }
 
         // Sponsored/affiliate guardrails:

@@ -47,21 +47,25 @@ describe("Scout entry framing contracts", () => {
 
   it("Scout home exposes the production Scout 2 capability map honestly", () => {
     const homeSource = read("client/src/scout/ScoutHome.tsx");
+    const experienceSource = read("client/src/scout/scoutExperience.ts");
 
     expect(homeSource).toContain("What Scout can help with");
-    expect(homeSource).toContain("Plan work");
-    expect(homeSource).toContain("Find local help");
-    expect(homeSource).toContain("Materials");
-    expect(homeSource).toContain("Prices and trends");
-    expect(homeSource).toContain("Compare options");
-    expect(homeSource).toContain("Trust checks");
-    expect(homeSource).toContain("Saved conversations");
-    expect(homeSource).toContain("Community activity");
-    expect(homeSource).toContain(
+    expect(homeSource).toContain("SCOUT_CAPABILITY_COPY");
+    expect(experienceSource).toContain("Plan work");
+    expect(experienceSource).toContain("Find local help");
+    expect(experienceSource).toContain("Materials");
+    expect(experienceSource).toContain("Prices and trends");
+    expect(experienceSource).toContain("Compare options");
+    expect(experienceSource).toContain("Trust checks");
+    expect(experienceSource).toContain("Saved conversations");
+    expect(experienceSource).toContain("Community activity");
+    expect(experienceSource).toContain(
       "I can send a material list or supplier link and Scout can help turn it into a Supply Run."
     );
-    expect(homeSource).not.toContain("Scout Vault");
-    expect(homeSource).not.toContain("LISA");
+    expect(experienceSource).toContain("Full Scout view");
+    expect(experienceSource).toContain("Materials and local options");
+    expect(experienceSource).not.toContain("Scout Vault");
+    expect(experienceSource).not.toContain("LISA");
   });
 
   it("thread and quick-start actions avoid internal controller framing", () => {
@@ -116,6 +120,7 @@ describe("Scout entry framing contracts", () => {
       "client/src/scout/ScoutThread.tsx",
       "client/src/scout/ScoutDirectConnectPanel.tsx",
       "client/src/scout/scoutIntentSorter.ts",
+      "client/src/scout/scoutExperience.ts",
     ]
       .map(read)
       .map(extractQuotedText)

@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { useScoutLocation } from "./hooks/useScoutLocation";
 import { useScoutHomeSnapshot } from "./hooks/useScoutHomeSnapshot";
+import { SCOUT_CAPABILITY_COPY, type ScoutCapabilityId } from "./scoutExperience";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -465,63 +466,16 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
   const snapshot = data?.snapshot;
   const prompts = data?.trendingPrompts ?? [];
   const recentActivity = data?.recentActivity ?? [];
-  const scoutCapabilities = [
-    {
-      icon: ClipboardList,
-      title: "Plan work",
-      detail: "Scope, materials, permits, timing, and next steps",
-      prompt:
-        "Help me plan this work. Show findings, what has to be checked, and the best next paths.",
-    },
-    {
-      icon: Wrench,
-      title: "Find local help",
-      detail: "Pros, requests, saved options, and what to ask first",
-      prompt:
-        "Find local help for this. Show the best options and what I should know before contacting anyone.",
-    },
-    {
-      icon: PackageSearch,
-      title: "Materials",
-      detail: "Supply Run, supplier links, local products, and Exchange items",
-      prompt:
-        "Help with materials. I can send a material list or supplier link and Scout can help turn it into a Supply Run.",
-    },
-    {
-      icon: TrendingUp,
-      title: "Prices and trends",
-      detail: "Local ranges, recent signals, and changes worth checking",
-      prompt:
-        "Check prices and local trends for this. Show what looks normal, what changed, and what to verify.",
-    },
-    {
-      icon: Brain,
-      title: "Compare options",
-      detail: "When there are multiple paths, Scout lays them out",
-      prompt:
-        "Compare my options. Put the most likely path first and show the other reasonable choices.",
-    },
-    {
-      icon: ShieldCheck,
-      title: "Trust checks",
-      detail: "Before contact opens, Scout keeps the safety steps visible",
-      prompt: "Help me check trust and safety before I contact anyone. Show what to verify first.",
-    },
-    {
-      icon: Archive,
-      title: "Saved conversations",
-      detail: "Keep findings so you can come back later",
-      prompt:
-        "Help me continue or save this Scout conversation so I can come back to the findings later.",
-    },
-    {
-      icon: Users,
-      title: "Community activity",
-      detail: "Nearby posts, projects, events, and local signals",
-      prompt:
-        "Show what is happening near me: local posts, requests, projects, events, and recent changes.",
-    },
-  ];
+  const capabilityIcons: Record<ScoutCapabilityId, React.ElementType> = {
+    plan: ClipboardList,
+    local_help: Wrench,
+    materials: PackageSearch,
+    prices: TrendingUp,
+    compare: Brain,
+    trust: ShieldCheck,
+    saved: Archive,
+    community: Users,
+  };
 
   const countyDisplay = snapshot?.countyName
     ? `${snapshot.countyName}${snapshot.stateName ? `, ${snapshot.stateName}` : ""}`
@@ -631,10 +585,10 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       {/* ── Scout 2 capability map ─────────────────────────────────────── */}
       <SectionLabel>What Scout can help with</SectionLabel>
       <div className="grid grid-cols-2 gap-2">
-        {scoutCapabilities.map((capability) => (
+        {SCOUT_CAPABILITY_COPY.map((capability) => (
           <CapabilityCard
             key={capability.title}
-            icon={capability.icon}
+            icon={capabilityIcons[capability.id]}
             title={capability.title}
             detail={capability.detail}
             prompt={capability.prompt}
