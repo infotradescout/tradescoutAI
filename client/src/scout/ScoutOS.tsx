@@ -4511,7 +4511,6 @@ export default function ScoutOS() {
                     onSendMessage={handleOnboardingMessage}
                     onPrefill={prefillScoutMission}
                     locality={locality}
-                    pendingContextCards={scoutContextCards}
                     onQuickAction={(text) => {
                       const trimmed = text.trim();
                       setHasGuestInteracted(true);

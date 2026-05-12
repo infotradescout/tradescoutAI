@@ -68,9 +68,23 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("const showDiscoveryRail = !isMobile && !hasUserMessages");
     expect(scoutOsSource).toContain('showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"');
     expect(scoutOsSource).toContain("{showDiscoveryRail && (");
+    expect(scoutOsSource).not.toContain("pendingContextCards={scoutContextCards}");
+    expect(scoutOsSource).toContain('className="scout-input-bottom-pin order-3"');
     expect(scoutOsSource).toContain("Findings and recommended paths");
     expect(scoutOsSource).toContain("Recommended paths appear below");
     expect(scoutOsSource).toContain('title: "Recommended paths"');
+  });
+
+  it("Scout shell keeps the composer visible without ambient background bleed", () => {
+    const cssSource = read("client/src/index.css");
+
+    expect(cssSource).toContain(".scout-input-bottom-pin");
+    expect(cssSource).toContain("position: sticky");
+    expect(cssSource).toContain("bottom: 0");
+    expect(cssSource).toContain("z-index: 30");
+    expect(cssSource).toContain("overflow: clip !important");
+    expect(cssSource).toContain(".scout-section-label");
+    expect(cssSource).toContain(".scout-section-label__icon");
   });
 
   it("normal user Scout copy hides internal system words", () => {

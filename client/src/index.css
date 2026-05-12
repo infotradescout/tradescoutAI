@@ -2616,9 +2616,10 @@ body {
   background-image: none !important;
 }
 
-/* Scout shell: keep transparent so the global background shows through */
+/* Scout shell: own the dark canvas so ambient page color does not bleed through */
 .scout-shell {
-  background: transparent;
+  background: var(--background, #050607);
+  overflow: clip !important;
 }
 
 /* Theme-aware cards */
@@ -2712,9 +2713,9 @@ body {
    Scout Page Theme & Premium UI
    ============================================================================ */
 
-/* Scout shell - single, controlled gradient on the canvas */
+/* Scout shell - single, controlled dark canvas */
 .scout-shell {
-  background: transparent;
+  background: var(--background, #050607);
   position: relative;
   min-height: 100vh;
   /* Override Tailwind overflow-hidden: use clip so sticky children (composer dock) work */
@@ -2733,7 +2734,7 @@ body {
   isolation: isolate;
   /* overflow:clip instead of hidden — preserves visual clipping while allowing
      position:sticky children (like the composer dock) to work correctly */
-  overflow: clip;
+  overflow: clip !important;
   border: 1px solid var(--border-subtle);
   background: color-mix(in oklab, var(--surface-card) 90%, transparent);
   box-shadow:
