@@ -25,10 +25,24 @@ The Scout 2 showcase is the visual and product direction. The live `/scout` surf
 | Decision cards | enforced in contact/action paths | Scout next steps, community CTA, Direct Connect guardrails | Keep decision paths visible; do not let chat imply hidden writes. |
 | Supply/material runs | enforced for start flow, policy target for direct supplier APIs | `/utilities/supply-run`, procurement routes | Use exact honest copy: send a material list or supplier link and Scout can help turn it into a Supply Run. |
 
+## Competitive Adoption Map
+
+Scout should copy proven interaction patterns, not competitor business models. The product target is the best practical local action layer: answer enough to orient the user, then show clear paths that preserve Trust/CVS, county context, and contact gates.
+
+| Existing pattern | What to adopt | What TradeScout improves | Scout rule |
+| --- | --- | --- | --- |
+| Angi / HomeAdvisor | Fast service-request intake from plain language. | No lead selling, no paid exposure ranking, clearer approval before sharing. | Scout may draft a request, but contact stays gated until user approval. |
+| Thumbtack | Ask only the details needed to match the job. | Do not trap users in a form; show likely paths and let them continue in chat or app views. | Low confidence expands options; high confidence narrows options. |
+| Yelp | Summarize local signals so users do not read every review/post. | Tie summaries to TradeScout actions, saved context, and county surfaces. | Chat is a short summary; cards carry the real next steps. |
+| Google Local Services Ads | Trust badges and verification make users feel safer. | Trust/CVS governs exposure without pay-to-play placement. | Trust language must explain checks without implying paid rank. |
+| Houzz / Houzz Pro | Project planning, materials, estimates, and visual/job context belong together. | Bring materials, Supply Run, Exchange, Direct Connect, and saved Scout conversations into one flow. | Every project-like answer should consider expectation, required checks, feasible paths, materials, price, and local help. |
+| Taskrabbit / AI app connectors | AI can hand off to a booking/action surface when the task is narrow. | Scout should keep work on-page by default and route only when useful or requested. | Default action is embedded/drafted; never imply booking, ordering, messaging, invoicing, or payment without approval. |
+
 ## What Changed In This Pass
 
 - The normal Scout home now exposes a real capability map before chat starts.
 - Active Scout answers now add a "Full Scout view" result layer so users see planning, materials, prices, local help, trust checks, and alternatives after a query.
+- The Full Scout view now reflects the competitive adoption map: intake, local summaries, trust, materials, project continuity, and approval-gated action.
 - Material/supplier-style queries now get a dedicated "Materials and local options" result card with Supply Run, local supplier, Exchange material, and product comparison paths.
 - Supplier links now carry into `/utilities/supply-run/new` as a prefilled URL so the Supply Run product resolver can read the link instead of making the user paste it again.
 - Supplier links in Scout now get a fast product snapshot attempt inside the active result card; if the page cannot be read quickly, Scout says so and still preserves the link for Supply Run review.
@@ -41,6 +55,6 @@ The Scout 2 showcase is the visual and product direction. The live `/scout` surf
 
 ## Fastest Next Work
 
-1. Add production checks that every showcase capability has either a real user surface or a documented blocked state.
-2. Add richer source-backed price/trend cards from county metrics, community activity, and material snapshots.
-3. Expand saved conversation recall into project, home, vehicle, and client records when those destination surfaces expose stable IDs.
+1. Add richer source-backed price/trend cards from county metrics, community activity, and material snapshots.
+2. Expand saved conversation recall into project, home, vehicle, and client records when those destination surfaces expose stable IDs.
+3. Add competitor-pattern regression checks for response quality: no form trap, no lead-selling copy, no fake booking, no unsupported order/payment claims.

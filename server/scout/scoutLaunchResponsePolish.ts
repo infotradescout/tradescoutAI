@@ -16,6 +16,9 @@ const OFF_INTENT_ASSISTANCE_RE =
 const INTERNAL_OR_WEAK_RE =
   /\b(verified live results|i can(?:not|'t) browse|i do not have enough verified|i don't have enough verified|fallback|source layer|route this|routing)\b/i;
 
+const UNSUPPORTED_ACTION_CLAIM_RE =
+  /\b(i\s+(?:booked|ordered|paid|messaged|contacted|published|posted|sent|invoiced|quoted)|scout\s+(?:booked|ordered|paid|messaged|contacted|published|posted|sent|invoiced|quoted))\b/i;
+
 function compact(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -74,6 +77,14 @@ export function polishScoutLaunchResponse(
       message: buildPracticalLocalHelpMessage(request),
       changed: true,
       reason: "weak_or_internal_local_help_response",
+    };
+  }
+
+  if (UNSUPPORTED_ACTION_CLAIM_RE.test(message)) {
+    return {
+      message: `${message} You stay in control: nothing is booked, ordered, paid, messaged, posted, quoted, or invoiced unless you approve it first.`,
+      changed: true,
+      reason: "approval_boundary_added",
     };
   }
 

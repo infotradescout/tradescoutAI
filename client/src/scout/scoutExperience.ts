@@ -15,7 +15,8 @@ export type ScoutCapabilityId =
   | "compare"
   | "trust"
   | "saved"
-  | "community";
+  | "community"
+  | "intake";
 
 export type ScoutCapabilityCopy = {
   id: ScoutCapabilityId;
@@ -45,6 +46,12 @@ export const SCOUT_CAPABILITY_COPY: ScoutCapabilityCopy[] = [
     detail: "Scope, materials, permits, timing, and next steps",
     prompt:
       "Help me plan this work. Show findings, what has to be checked, and the best next paths.",
+  },
+  {
+    id: "intake",
+    title: "Collect the right details",
+    detail: "Scout narrows the job without trapping you in a long form",
+    prompt: "Help me collect the right details for this. Ask only what changes the best next path.",
   },
   {
     id: "local_help",
@@ -230,7 +237,7 @@ export function buildScoutExperienceClusters(args: {
       id: `full-scout-view-${Date.now()}`,
       title: "Full Scout view",
       kind: "site",
-      body: "Scout checks the main angles before you choose: expectation, required steps, feasible paths, local help, materials, prices, and trust.",
+      body: "Scout checks the main angles before you choose: what you expect, what has to be checked, feasible paths, local help, materials, prices, trust, and what details still matter.",
       items: [
         {
           id: "expectation",
@@ -241,6 +248,11 @@ export function buildScoutExperienceClusters(args: {
           id: "requirements",
           label: "Required checks",
           description: "Scope, materials, labor, rules, and safety can change the right answer",
+        },
+        {
+          id: "right-details",
+          label: "Right details only",
+          description: "Scout collects details that change the path instead of forcing a long form",
         },
         {
           id: "feasible-paths",

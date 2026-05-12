@@ -52,6 +52,7 @@ describe("Scout entry framing contracts", () => {
     expect(homeSource).toContain("What Scout can help with");
     expect(homeSource).toContain("SCOUT_CAPABILITY_COPY");
     expect(experienceSource).toContain("Plan work");
+    expect(experienceSource).toContain("Collect the right details");
     expect(experienceSource).toContain("Find local help");
     expect(experienceSource).toContain("Materials");
     expect(experienceSource).toContain("Prices and trends");
@@ -70,13 +71,38 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Supplier page needs review");
     expect(experienceSource).toContain("/finances/materials");
     expect(experienceSource).toContain("Review before anything is sent");
+    expect(experienceSource).toContain("Right details only");
     expect(experienceSource).not.toContain("Scout Vault");
     expect(experienceSource).not.toContain("LISA");
   });
 
+  it("documents competitive patterns without importing bad marketplace incentives", () => {
+    const matrixSource = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+    const routeSource = read("server/routes/scout.ts");
+    const polishSource = read("server/scout/scoutLaunchResponsePolish.ts");
+
+    expect(matrixSource).toContain("Competitive Adoption Map");
+    expect(matrixSource).toContain(
+      "copy proven interaction patterns, not competitor business models"
+    );
+    expect(matrixSource).toContain("No lead selling");
+    expect(routeSource).toContain("Like Thumbtack");
+    expect(routeSource).toContain("Like Yelp");
+    expect(routeSource).toContain("Like Google Local Services");
+    expect(routeSource).toContain("Like Houzz");
+    expect(routeSource).toContain("never imply Scout already booked");
+    expect(polishSource).toContain("approval_boundary_added");
+    expect(polishSource).toContain(
+      "nothing is booked, ordered, paid, messaged, posted, quoted, or invoiced"
+    );
+  });
+
   it("Scout 2 catch-up matrix keeps every showcase claim tied to a real state", () => {
     const matrixSource = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
-    const rows = matrixSource
+    const featureMatrix = matrixSource
+      .split("## Feature Matrix")[1]
+      .split("## Competitive Adoption Map")[0];
+    const rows = featureMatrix
       .split("\n")
       .filter((line) => line.startsWith("| ") && !line.includes("---"))
       .slice(1);

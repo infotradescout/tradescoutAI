@@ -23,6 +23,7 @@ import {
   Sparkles,
   TrendingUp,
   Clock,
+  ListChecks,
   Users,
   ShoppingBag,
   Wrench,
@@ -468,6 +469,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
   const recentActivity = data?.recentActivity ?? [];
   const capabilityIcons: Record<ScoutCapabilityId, React.ElementType> = {
     plan: ClipboardList,
+    intake: ListChecks,
     local_help: Wrench,
     materials: PackageSearch,
     prices: TrendingUp,
