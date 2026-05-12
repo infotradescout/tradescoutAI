@@ -45,6 +45,25 @@ describe("Scout entry framing contracts", () => {
     expect(promptsSource).toContain("What's my next step?");
   });
 
+  it("Scout home exposes the production Scout 2 capability map honestly", () => {
+    const homeSource = read("client/src/scout/ScoutHome.tsx");
+
+    expect(homeSource).toContain("What Scout can help with");
+    expect(homeSource).toContain("Plan work");
+    expect(homeSource).toContain("Find local help");
+    expect(homeSource).toContain("Materials");
+    expect(homeSource).toContain("Prices and trends");
+    expect(homeSource).toContain("Compare options");
+    expect(homeSource).toContain("Trust checks");
+    expect(homeSource).toContain("Saved conversations");
+    expect(homeSource).toContain("Community activity");
+    expect(homeSource).toContain(
+      "I can send a material list or supplier link and Scout can help turn it into a Supply Run."
+    );
+    expect(homeSource).not.toContain("Scout Vault");
+    expect(homeSource).not.toContain("LISA");
+  });
+
   it("thread and quick-start actions avoid internal controller framing", () => {
     const threadSource = read("client/src/scout/ScoutThread.tsx");
     const tilesSource = read("client/src/scout/scoutActionTiles.ts");
