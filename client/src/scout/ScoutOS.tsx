@@ -933,6 +933,14 @@ export default function ScoutOS() {
   const autoRouteTimerRef = useRef<number | null>(null);
   const { sessionRole } = useSession();
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.body.classList.add("ts-scout-active");
+    return () => {
+      document.body.classList.remove("ts-scout-active");
+    };
+  }, []);
+
   const hasPlayedDemoThisSession = (() => {
     try {
       const played =

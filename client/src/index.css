@@ -302,6 +302,24 @@ body.ts-ui-minimal .ts-admin-action-btn:hover {
   background: color-mix(in oklab, var(--surface-intermediate) 96%, transparent) !important;
 }
 
+/* Scout owns its own canvas. This prevents warm ambient page backgrounds from
+   bleeding around the mobile-sized Scout surface in responsive/browser shells. */
+html:has(body.ts-scout-active),
+body.ts-scout-active,
+body.ts-scout-active #root,
+body.ts-scout-active .app-root,
+body.ts-scout-active .app-shell,
+body.ts-scout-active .app-page,
+body.ts-scout-active #app-scroll-root {
+  background: #050607 !important;
+  background-color: #050607 !important;
+  background-image: none !important;
+}
+
+body.ts-scout-active .ts-bottom-nav {
+  background: #050607 !important;
+}
+
 /* stylelint-disable */
 @tailwind base;
 @tailwind components;
@@ -2718,8 +2736,36 @@ body {
   background: var(--background, #050607);
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   /* Override Tailwind overflow-hidden: use clip so sticky children (composer dock) work */
   overflow: clip !important;
+}
+
+body.ts-scout-active .scout-shell {
+  background: #050607 !important;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body.ts-scout-active .scout-content {
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  body.ts-scout-active .scout-shell {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  body.ts-scout-active .scout-content {
+    width: 100%;
+  }
+
+  body.ts-scout-active .scout-panel {
+    border-left-color: transparent;
+    border-right-color: transparent;
+    border-radius: 0.9rem;
+  }
 }
 
 /* Scout content wrapper */
