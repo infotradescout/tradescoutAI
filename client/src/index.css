@@ -2791,6 +2791,12 @@ body {
   padding-bottom: 5rem;
 }
 
+@media (max-width: 640px) {
+  .scout-thread {
+    padding-bottom: 12rem;
+  }
+}
+
 /* @reusable: scout-section-label
    Use: Uppercase section header label with optional icon.
    Used in ScoutThread MessageExtras and IntelligenceLayer to label grouped sections.
@@ -3245,6 +3251,13 @@ body {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 640px) {
+  .scout-input-bottom-pin {
+    padding-top: 0.65rem;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
 }
 
 .scout-shell-refined .scout-mobile-panel {
@@ -4082,6 +4095,15 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   color: var(--text-primary, #fafafa);
   max-width: 92%;
 }
+
+@media (max-width: 640px) {
+  .scout-assistant-bubble__body {
+    max-width: 100%;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 12px 14px;
+  }
+}
 /* ----------------------------------------------------------
    @reusable: scout-live-status
    Use: Orange heartbeat strip showing Scout's real-time processing state.
@@ -4458,6 +4480,38 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   width: 1px;
   height: 10px;
   background: var(--border-subtle);
+}
+
+@media (max-width: 640px) {
+  .scout-cluster-card {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .scout-cluster-card__header {
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .scout-cluster-card__icon-wrap {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    font-size: 16px;
+  }
+
+  .scout-cluster-card__title {
+    font-size: 16px;
+  }
+
+  .scout-cluster-card__subtitle {
+    font-size: 11px;
+  }
+
+  .scout-cluster-card__chevron {
+    width: 28px;
+    height: 28px;
+  }
 }
 /* ----------------------------------------------------------
    @reusable: scout-home-snapshot-tile

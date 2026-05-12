@@ -18,7 +18,7 @@ describe("Scout learning options", () => {
       intentDetails: { missing: ["timing", "context"], need: "project" },
     });
 
-    expect(cluster?.title).toBe("Make this fit you");
+    expect(cluster?.title).toBe("Other useful options");
     expect(cluster?.actions?.map((action) => action.label)).toEqual([
       "This is for my home",
       "This is for a client",

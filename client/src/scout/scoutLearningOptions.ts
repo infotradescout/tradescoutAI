@@ -315,9 +315,9 @@ export function buildScoutLearningCluster(args: {
 
   return {
     id: `learn-next-${Date.now()}`,
-    title: "Make this fit you",
+    title: "Other useful options",
     kind: "site",
-    body: "Tap what matches. Scout uses that signal to narrow this result and remember better defaults over time.",
+    body: "Tap anything that fits. Scout uses that signal quietly to improve your next result.",
     items: [
       {
         id: "learn-one-tap",

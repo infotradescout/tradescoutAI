@@ -93,7 +93,7 @@ describe("ScoutThread evidence strip", () => {
     const html = renderThread([assistantMessage], false);
 
     expect(html).toContain("Next steps");
-    expect(html).toContain("scout-result-card");
+    expect(html).toContain("scout-cluster-card");
     expect(html).toContain("Review and send");
     expect(html).toContain("Ask Scout");
   });
@@ -142,7 +142,7 @@ describe("ScoutThread evidence strip", () => {
     const html = renderThread([assistantMessage]);
 
     expect(html).toContain("Here is the short version.");
-    expect(html).toContain(">Details<");
+    expect(html).toContain(">More detail<");
     expect(html).not.toContain("Second paragraph with extra detail");
     expect(html).toContain("Best next step");
   });

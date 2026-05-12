@@ -70,6 +70,7 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("{showDiscoveryRail && (");
     expect(scoutOsSource).toContain("Findings and recommended paths");
     expect(scoutOsSource).toContain("Recommended paths appear below");
+    expect(scoutOsSource).toContain('title: "Recommended paths"');
   });
 
   it("normal user Scout copy hides internal system words", () => {
@@ -88,6 +89,7 @@ describe("Scout entry framing contracts", () => {
       .join("\n");
 
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+    const threadSource = read("client/src/scout/ScoutThread.tsx");
     const scoutOs = extractQuotedText(
       scoutOsSource
         .split("\n")
@@ -130,6 +132,6 @@ describe("Scout entry framing contracts", () => {
     }
 
     expect(scoutOsSource).toContain("How Scout helps");
-    expect(scoutOsSource).toContain("Here are the best next steps");
+    expect(threadSource).toContain("Here are the best next steps");
   });
 });

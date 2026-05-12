@@ -1923,7 +1923,7 @@ export default function ScoutOS() {
         if (sortedIntents.length > 0) {
           clusters.push({
             id: `sorted-summary-${Date.now()}`,
-            title: "Here are the best next steps",
+            title: "Recommended paths",
             kind: "site",
             body:
               sortedIntents.length === 1
@@ -1960,14 +1960,22 @@ export default function ScoutOS() {
               .slice(0, 5),
           });
 
-          if (learningCluster && (confidenceBand === "low" || confidenceBand === "unknown")) {
+          if (
+            learningCluster &&
+            !isMobile &&
+            (confidenceBand === "low" || confidenceBand === "unknown")
+          ) {
             clusters.push(learningCluster);
           }
 
           clusters.push(...sortedIntents.map((intent) => intent.cluster));
         }
 
-        if (learningCluster && !clusters.some((cluster) => cluster.id === learningCluster.id)) {
+        if (
+          learningCluster &&
+          !isMobile &&
+          !clusters.some((cluster) => cluster.id === learningCluster.id)
+        ) {
           clusters.push(learningCluster);
         }
 

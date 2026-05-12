@@ -99,7 +99,7 @@ function AssistantStreamedText({
   return <>{content.slice(0, visibleChars)}</>;
 }
 
-const SUMMARY_MAX_CHARS = 220;
+const SUMMARY_MAX_CHARS = 150;
 
 function firstUsefulParagraph(content: string): string {
   return (
@@ -114,7 +114,7 @@ function trimToSummary(content: string): string {
   const clean = firstUsefulParagraph(content).replace(/\s+/g, " ").trim();
   if (clean.length <= SUMMARY_MAX_CHARS) return clean;
 
-  const sentenceMatch = clean.match(/^(.{80,220}?[.!?])\s/);
+  const sentenceMatch = clean.match(/^(.{70,150}?[.!?])\s/);
   if (sentenceMatch?.[1]) return sentenceMatch[1].trim();
 
   return `${clean.slice(0, SUMMARY_MAX_CHARS - 3).trim()}...`;
@@ -228,7 +228,7 @@ function AssistantMessageBubble({
           onClick={() => setExpanded((value) => !value)}
           aria-expanded={expanded}
         >
-          {expanded ? "Show summary" : "Details"}
+          {expanded ? "Short version" : "More detail"}
         </button>
       )}
     </>
@@ -409,7 +409,7 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
   if (chips.length === 0 && evidenceSources.length === 0) return null;
 
   return (
-    <div className="mt-2 px-1" aria-label="Scout evidence and authority">
+    <div className="scout-evidence-strip mt-2 px-1" aria-label="Scout evidence and authority">
       <button
         type="button"
         className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-full px-3 py-1 transition-colors"
@@ -423,7 +423,6 @@ function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }
       >
         {open ? "Hide details" : "Why this helps"}
         <Shield size={10} />
-        {open ? "Hide details" : "Why this helps"}
       </button>
       {open && (
         <div
