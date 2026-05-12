@@ -273,14 +273,16 @@ function buildSituationProfile(rawMessage: string, normalized: string): Situatio
 
 function isProjectActionIntent(normalized: string): boolean {
   const projectNoun =
-    /\b(deck|decking|porch|patio|fence|roof|roofing|siding|concrete|driveway|kitchen|bathroom|addition|remodel|renovation|plumbing|electrical|hvac|landscaping|pool|garage|flooring|paint|painting)\b/.test(
+    /\b(deck|decking|porch|patio|fence|roof|roofing|siding|concrete|driveway|kitchen|bathroom|addition|remodel|renovation|plumbing|electrical|hvac|ac|heat|heating|furnace|landscaping|pool|garage|flooring|paint|painting)\b/.test(
       normalized
     );
   const actionVerb =
-    /\b(build|building|built|install|replace|repair|scope|price|quote|bid|estimate|remodel|renovate|plan)\b/.test(
+    /\b(need|want|looking|build|building|built|install|replace|repair|scope|price|quote|bid|estimate|remodel|renovate|plan)\b/.test(
       normalized
     );
-  return projectNoun && actionVerb;
+  const serviceSymptom =
+    /\b(not cooling|no heat|no ac|leak|broken|not working|flood|sparking)\b/.test(normalized);
+  return projectNoun && (actionVerb || serviceSymptom);
 }
 
 function inferProjectPerspective(normalized: string): ProjectPerspective {
@@ -294,6 +296,12 @@ function inferProjectPerspective(normalized: string): ProjectPerspective {
 function isMaterialRelevantProject(jobType: string | undefined, normalized: string): boolean {
   if (hasMaterialOrSupplierIntent(normalized)) return true;
   return /^(deck|fencing|roofing|concrete|painting|landscaping)$/.test(jobType || "");
+}
+
+function hasExplicitMaterialOrSupplierIntent(normalized: string): boolean {
+  return /\b(material|materials|supply|supplies|supplier|suppliers|parts|product|products|lowes|lowe s|home depot|lumber|joist|fastener|fasteners|pipe|wire|breaker|shingle|order|pickup|delivery|cart|link)\b/.test(
+    normalized
+  );
 }
 
 function shouldPrioritizeLocalHelp(facts: DumpFacts, normalized: string): boolean {
@@ -832,12 +840,56 @@ function buildPriceReviewOptionIntents(
   ];
 }
 
+function buildRulesOptionIntents(rawMessage: string, normalized: string): SortedScoutIntent[] {
+  if (
+    !/\b(permit|permits|inspection|inspector|code|codes|rule|rules|allowed|legal|ordinance|county requirement|city requirement|license)\b/.test(
+      normalized
+    )
+  ) {
+    return [];
+  }
+
+  const facts = buildFacts(rawMessage);
+  const need = facts.need;
+  return [
+    createSortedIntent({
+      id: "rules-permits",
+      label: "Rules and permits",
+      kind: "rules",
+      confidence: 0.9,
+      reason: "Use this for permit, inspection, code, rule, or local requirement questions.",
+      body: "Scout can explain what to check and keep local requirements separate from general advice.",
+      items: [
+        ...facts.factItems,
+        {
+          id: "rules-local-check",
+          label: "Local requirement check",
+          description: "Permits, inspections, utility checks, and code details can vary by area",
+        },
+        {
+          id: "rules-before-contact",
+          label: "Check before contact",
+          description: "Use this before hiring, quoting, or starting work",
+        },
+      ],
+      angleItems: buildAngleItems(rawMessage, "rules-permits"),
+      actions: [
+        askScoutAction(
+          "Ask before calling",
+          `Check what I should know before calling about: ${need}`
+        ),
+        { type: "NAVIGATE", label: "Find someone", to: "/direct-connect/pros" },
+      ],
+    }),
+  ];
+}
+
 function buildMaterialOptionIntents(
   rawMessage: string,
   normalized: string,
   confidenceBand?: ScoutConfidenceBand | string | null
 ): SortedScoutIntent[] {
-  if (!hasMaterialOrSupplierIntent(normalized)) return [];
+  if (!hasExplicitMaterialOrSupplierIntent(normalized)) return [];
 
   const facts = buildFacts(rawMessage);
   const need = facts.need;
@@ -979,7 +1031,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
   return [
     {
       id: "local-help",
-      label: "Local help",
+      label: "Find local help",
       kind: "pros",
       reason: "Looks like you need a person, service, contractor, or local recommendation.",
       keywords: [
@@ -1182,8 +1234,8 @@ export function sortScoutInfoDump(
   const priceOptions = buildPriceReviewOptionIntents(rawMessage, normalized);
   if (priceOptions.length > 0) return priceOptions;
 
-  const projectOptions = buildProjectOptionIntents(rawMessage, normalized);
-  if (projectOptions.length > 0) return projectOptions;
+  const rulesOptions = buildRulesOptionIntents(rawMessage, normalized);
+  if (rulesOptions.length > 0) return rulesOptions;
 
   const materialOptions = buildMaterialOptionIntents(
     rawMessage,
@@ -1191,6 +1243,9 @@ export function sortScoutInfoDump(
     options.confidenceBand
   );
   if (materialOptions.length > 0) return materialOptions;
+
+  const projectOptions = buildProjectOptionIntents(rawMessage, normalized);
+  if (projectOptions.length > 0) return projectOptions;
 
   const facts = buildFacts(rawMessage);
   const configs = matcherConfigs(rawMessage);

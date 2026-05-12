@@ -4,9 +4,11 @@ export type ScoutIntentDetail = {
   need?: string;
   area?: string;
   timing?: string;
+  expectation?: string;
+  budget?: string;
   context?: "home" | "vehicle" | "materials" | "project" | "general";
   perspective?: "client" | "self";
-  missing: Array<"need" | "area" | "timing" | "context">;
+  missing: Array<"need" | "area" | "timing" | "context" | "expectation" | "budget" | "perspective">;
 };
 
 export type ScoutIntentDetailPrompt = {
@@ -48,6 +50,35 @@ function inferPerspective(text: string): ScoutIntentDetail["perspective"] {
   return undefined;
 }
 
+function inferExpectation(text: string): string | undefined {
+  if (/\b(best|perfect|grade a|high end|premium|done right|turnkey)\b/.test(text)) {
+    return "high-quality result";
+  }
+  if (/\b(cheap|cheapest|low budget|tight budget|affordable)\b/.test(text)) {
+    return "cost-sensitive result";
+  }
+  if (/\b(just handle|take care of it|figure it out|minimum input|not sure)\b/.test(text)) {
+    return "help turning limited details into a plan";
+  }
+  if (/\b(fair|quote|estimate|bid|compare)\b/.test(text)) {
+    return "compare or review options";
+  }
+  return undefined;
+}
+
+function inferBudget(text: string): string | undefined {
+  const compact = text.replace(/,/g, "");
+  const range = compact.match(/\$?\s*(\d{2,7})\s*(?:-|to|through|and)\s*\$?\s*(\d{2,7})/i);
+  if (range) return `$${range[1]}-$${range[2]}`;
+  const under = compact.match(/\b(?:under|below|max|maximum|up to)\s*\$?\s*(\d{2,7})\b/i);
+  if (under) return `up to $${under[1]}`;
+  const over = compact.match(/\b(?:over|above|min|minimum|at least)\s*\$?\s*(\d{2,7})\b/i);
+  if (over) return `at least $${over[1]}`;
+  const dollars = compact.match(/\$\s*(\d{2,7})\b/);
+  if (dollars) return `$${dollars[1]}`;
+  return undefined;
+}
+
 export function inferScoutIntentDetails(
   message?: string,
   locality?: ScoutLocality
@@ -62,6 +93,8 @@ export function inferScoutIntentDetails(
     undefined;
   const context = inferContext(text);
   const perspective = inferPerspective(text);
+  const expectation = inferExpectation(text);
+  const budget = inferBudget(text);
   const hasNeed =
     /\b(repair|replace|install|quote|compare|price|leak|broken|not working|not cooling|material|supplier|project|help)\b/.test(
       text
@@ -71,6 +104,8 @@ export function inferScoutIntentDetails(
     need: hasNeed ? cleanSnippet(raw) : undefined,
     area,
     timing,
+    expectation,
+    budget,
     context,
     perspective,
     missing: [],
@@ -80,6 +115,11 @@ export function inferScoutIntentDetails(
   if (!detail.area) detail.missing.push("area");
   if (!detail.timing) detail.missing.push("timing");
   if (!detail.context) detail.missing.push("context");
+  if (!detail.expectation) detail.missing.push("expectation");
+  if (!detail.budget && (detail.context === "home" || detail.context === "project")) {
+    detail.missing.push("budget");
+  }
+  if (!detail.perspective && detail.context !== "vehicle") detail.missing.push("perspective");
 
   return detail;
 }
@@ -115,6 +155,21 @@ export function buildIntentDetailPrompts(
     prompts.push({ label: "Add home or project details", prompt: "Home or project details: " });
   }
 
+  if (detail.missing.includes("expectation")) {
+    prompts.push({
+      label: "Add expected result",
+      prompt: "Expected result: I want this to be ",
+    });
+  }
+
+  if (detail.missing.includes("budget")) {
+    prompts.push({ label: "Add budget", prompt: "Budget or range: " });
+  }
+
+  if (detail.missing.includes("perspective")) {
+    prompts.push({ label: "Who is this for?", prompt: "This is for " });
+  }
+
   return prompts.slice(0, 3);
 }
 
@@ -123,6 +178,8 @@ export function formatIntentDetailChips(detail: ScoutIntentDetail): string[] {
     detail.need ? `Need: ${detail.need}` : null,
     detail.area ? `Area: ${detail.area}` : null,
     detail.timing ? `When: ${detail.timing}` : null,
+    detail.expectation ? `Goal: ${detail.expectation}` : null,
+    detail.budget ? `Budget: ${detail.budget}` : null,
     detail.perspective === "client" ? "For: client job" : null,
     detail.context ? `Context: ${detail.context}` : null,
   ].filter((value): value is string => Boolean(value));

@@ -24,8 +24,8 @@ describe("sortScoutInfoDump", () => {
       "roof leak over the kitchen, probably need a roofer asap, budget is tight"
     );
 
-    expect(intents.map((intent) => intent.id)).toContain("local-help");
-    expect(intents.map((intent) => intent.id)).toContain("saved-request");
+    expect(intents.map((intent) => intent.id)).toContain("project-find-help");
+    expect(intents.map((intent) => intent.id)).toContain("project-plan");
     const requestAction = intents[0].cluster.actions?.find((action) =>
       String(action.label || "").includes("Create roofing request")
     );
@@ -247,12 +247,33 @@ describe("sortScoutInfoDump", () => {
   });
 
   it("narrows result count as confidence gets stronger", () => {
-    const message =
-      "need contractor materials equipment nearby permit prices invoice messages for a project";
+    const message = "need supplier products exchange supply run local materials";
     const low = sortScoutInfoDump(message, { confidenceBand: "low" });
     const high = sortScoutInfoDump(message, { confidenceBand: "high" });
 
     expect(low.length).toBeGreaterThan(high.length);
     expect(high.length).toBeLessThanOrEqual(2);
+  });
+
+  it("covers launch walkthrough queries with action-first paths", () => {
+    const scenarios = [
+      { query: "I need to build a deck", expected: ["Plan this project", "Find local help"] },
+      { query: "AC not cooling", expected: ["Find local help"] },
+      { query: "Need concrete driveway", expected: ["Plan this project", "Find local help"] },
+      { query: "Is this quote fair?", expected: ["Check prices"] },
+      {
+        query: "I need materials from Lowe's supplier link",
+        expected: ["Local suppliers", "Products to compare", "Exchange materials"],
+      },
+    ];
+
+    for (const scenario of scenarios) {
+      const labels = sortScoutInfoDump(scenario.query, { confidenceBand: "low" }).map(
+        (intent) => intent.label
+      );
+      for (const expected of scenario.expected) {
+        expect(labels).toContain(expected);
+      }
+    }
   });
 });

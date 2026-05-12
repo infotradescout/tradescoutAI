@@ -508,7 +508,7 @@ function ClusterCard({
       {isFeatured && (
         <div className="scout-cluster-card__tag">
           <Star size={10} />
-          Top Recommendation
+          Best next step
         </div>
       )}
 
@@ -540,7 +540,10 @@ function ClusterCard({
             <li
               key={item.id}
               className="flex gap-2.5 rounded-xl p-2.5"
-              style={{ background: "var(--surface-intermediate)", border: "1px solid var(--border-subtle)" }}
+              style={{
+                background: "var(--surface-intermediate)",
+                border: "1px solid var(--border-subtle)",
+              }}
             >
               <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ts-orange" />
               <span className="min-w-0">
@@ -741,6 +744,7 @@ function MessageExtras({
       {/* Action chips + clusters block */}
       {(hasActionChips || hasClusters || (showControllerExtras && hasOverride)) && (
         <div
+          aria-label="Next steps"
           className="rounded-2xl p-3 space-y-3"
           style={{ background: "var(--surface-card)", border: "1px solid var(--border-subtle)" }}
         >
@@ -748,7 +752,7 @@ function MessageExtras({
           <div className="flex items-center justify-between">
             <div className="scout-section-label mb-0">
               <Sparkles size={11} className="scout-section-label__icon" />
-              Scout's Local Insights
+              Here are the best next steps
             </div>
             <button
               type="button"
@@ -857,7 +861,10 @@ function MessageExtras({
               {showControllerExtras && msg.overrideOption && (
                 <div
                   className="rounded-xl p-3"
-                  style={{ background: "var(--surface-intermediate)", border: "1px dashed rgba(249,115,22,0.25)" }}
+                  style={{
+                    background: "var(--surface-intermediate)",
+                    border: "1px dashed rgba(249,115,22,0.25)",
+                  }}
                 >
                   <div className="text-[12px] mb-2" style={{ color: "rgba(250,250,250,0.6)" }}>
                     {msg.overrideOption.message}
@@ -1190,12 +1197,11 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 </div>
                 {displayContent && (
                   <div className="scout-assistant-bubble__body">
-                    <p className="whitespace-pre-line leading-relaxed">
-                      <AssistantStreamedText
-                        content={displayContent}
-                        shouldAnimate={msg.id === latestAssistantMessageId}
-                      />
-                    </p>
+                    <AssistantMessageBubble
+                      msg={msg}
+                      displayContent={displayContent}
+                      shouldAnimate={msg.id === latestAssistantMessageId}
+                    />
                   </div>
                 )}
                 <EvidenceStrip msg={msg} enabled={showControllerExtras} />

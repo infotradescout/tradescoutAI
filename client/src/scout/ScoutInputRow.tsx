@@ -33,6 +33,7 @@ const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 const AUTO_DEMO_START_DELAY_MS = 600;
 const AUTO_DEMO_TYPE_DELAY_MS = 45;
 const AUTO_DEMO_SEND_DELAY_MS = 400;
+const SCOUT_INPUT_ACTION_HINT = "Ask, Compare, Choose";
 
 export function ScoutInputRow({
   isBusy,
@@ -198,6 +199,7 @@ export function ScoutInputRow({
             }}
           >
             <MapPin size={10} />
+            <span>Your area:</span>
             {heroLocationLabel}
           </button>
           <button
@@ -207,14 +209,14 @@ export function ScoutInputRow({
             className="text-[10px] font-medium transition-colors disabled:opacity-50"
             style={{ color: "rgba(250,250,250,0.35)" }}
           >
-            {isUpdatingGeo ? "Updating..." : "Use current"}
+            {isUpdatingGeo ? "Updating..." : "Use current location"}
           </button>
         </div>
       )}
 
       {/* Quick-start prompts — shown only when no messages yet */}
       {promptList.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-1">
+        <div className="flex flex-wrap gap-1.5 px-1" aria-label={SCOUT_INPUT_ACTION_HINT}>
           {promptList.map((prompt) => (
             <button
               key={prompt}
@@ -262,11 +264,11 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Tell Scout what happened, what you need, or what you're trying to figure out."
+          placeholder="Tell Scout what happened, what you need, or what you’re trying to figure out."
           rows={1}
           className="scout-command-bar__input"
           style={{ height: "24px" }}
-          aria-label="Tell Scout what happened, what you need, or what you're trying to figure out"
+          aria-label="Tell Scout what happened, what you need, or what you’re trying to figure out"
         />
 
         {/* Mic button */}

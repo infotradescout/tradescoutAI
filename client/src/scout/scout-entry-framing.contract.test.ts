@@ -52,7 +52,11 @@ describe("Scout entry framing contracts", () => {
     expect(threadSource).toContain("Why this helps");
     expect(threadSource).toContain("Next steps");
     expect(threadSource).toContain("Keep going");
+    expect(threadSource).toContain("Here are the best next steps");
+    expect(threadSource).toContain("Best next step");
+    expect(threadSource).toContain("AssistantMessageBubble");
     expect(threadSource).not.toContain("Controller actions");
+    expect(threadSource).not.toContain("Top Recommendation");
     expect(tilesSource).toContain('label: "Create a local request"');
     expect(tilesSource).toContain('label: "Find local help"');
     expect(tilesSource).toContain('label: "Browse Exchange"');
