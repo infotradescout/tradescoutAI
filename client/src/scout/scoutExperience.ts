@@ -118,6 +118,16 @@ function takeActions(actions: ScoutAction[], budget: number): ScoutAction[] {
   return actions.slice(0, budget);
 }
 
+function firstUrl(value: string): string | null {
+  return value.match(/https?:\/\/[^\s)]+/i)?.[0] ?? null;
+}
+
+function hasPriceOrTrendIntent(value: string): boolean {
+  return /\b(price|prices|cost|costs|estimate|quote|bid|range|trend|trends|deal|deals|supplier|material|materials)\b/i.test(
+    value
+  );
+}
+
 export function buildScoutExperienceClusters(args: {
   message: string;
   confidenceBand?: ScoutConfidenceBand | string | null;
@@ -130,6 +140,7 @@ export function buildScoutExperienceClusters(args: {
   const existing = new Set((args.existingLabels || []).map((label) => label.toLowerCase()));
   const detail = args.intentDetails;
   const isMaterialNeed = detail?.context === "materials" || hasMaterialOrSupplierIntent(message);
+  const supplierUrl = firstUrl(message);
   const materialCategory = inferMaterialCategory(message);
   const actionBudget = confidenceActionBudget(args.confidenceBand);
 
@@ -149,12 +160,19 @@ export function buildScoutExperienceClusters(args: {
       `Check price factors, local ranges, and what could change the cost for: ${message}`
     ),
     { type: "NAVIGATE", label: "See nearby activity", to: "/community" },
-    {
-      type: "NAVIGATE",
-      label: "Start a material run",
-      to: "/utilities/supply-run",
-      subtitle: "Review before anything is sent",
-    },
+    supplierUrl
+      ? {
+          type: "NAVIGATE",
+          label: "Use supplier link",
+          to: `/utilities/supply-run/new?supplierUrl=${encodeURIComponent(supplierUrl)}`,
+          subtitle: "Review before anything is sent",
+        }
+      : {
+          type: "NAVIGATE",
+          label: "Start a material run",
+          to: "/utilities/supply-run/new",
+          subtitle: "Review before anything is sent",
+        },
   ]).slice(0, actionBudget);
 
   if (!existing.has("full scout view")) {
@@ -211,13 +229,21 @@ export function buildScoutExperienceClusters(args: {
       ],
       actions: takeActions(
         [
-          {
-            type: "NAVIGATE",
-            label: "Start a material run",
-            to: "/utilities/supply-run",
-            primary: true,
-            subtitle: "Review before anything is sent",
-          },
+          supplierUrl
+            ? {
+                type: "NAVIGATE",
+                label: "Use supplier link",
+                to: `/utilities/supply-run/new?supplierUrl=${encodeURIComponent(supplierUrl)}`,
+                primary: true,
+                subtitle: "Review before anything is sent",
+              }
+            : {
+                type: "NAVIGATE",
+                label: "Start a material run",
+                to: "/utilities/supply-run/new",
+                primary: true,
+                subtitle: "Review before anything is sent",
+              },
           {
             type: "NAVIGATE",
             label: "Find local suppliers",
@@ -231,6 +257,44 @@ export function buildScoutExperienceClusters(args: {
           askScout(
             "Compare products",
             `Compare product choices, quantities, specs, and gotchas for: ${message}`
+          ),
+        ],
+        actionBudget
+      ),
+    });
+  }
+
+  if (hasPriceOrTrendIntent(message) && !existing.has("price and trend checks")) {
+    clusters.push({
+      id: `price-trend-${Date.now()}`,
+      title: "Price and trend checks",
+      kind: "rules",
+      body: "Scout can compare price factors, material signals, nearby posts, and recent local activity before you call, quote, or order.",
+      items: [
+        {
+          id: "materials-source",
+          label: "Material price signals",
+          description:
+            "Use the materials view and supplier links as the source of truth when available",
+        },
+        {
+          id: "community-source",
+          label: "Nearby activity",
+          description: "Local posts and projects can explain timing, availability, and demand",
+        },
+        {
+          id: "verify-before-use",
+          label: "Verify before committing",
+          description: "Scout can guide the check, but a supplier or pro confirms the final number",
+        },
+      ],
+      actions: takeActions(
+        [
+          { type: "NAVIGATE", label: "Open materials view", to: "/finances/materials" },
+          { type: "NAVIGATE", label: "See nearby activity", to: "/community" },
+          askScout(
+            "Check price factors",
+            `Compare price factors, local signals, and what needs verification for: ${message}`
           ),
         ],
         actionBudget

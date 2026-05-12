@@ -117,6 +117,16 @@ function getOrderToken() {
   return new URLSearchParams(window.location.search).get("token") || "";
 }
 
+function getSupplyRunPrefill() {
+  if (typeof window === "undefined") return { supplierUrl: "", itemName: "", notes: "" };
+  const params = new URLSearchParams(window.location.search);
+  return {
+    supplierUrl: params.get("supplierUrl") || params.get("url") || "",
+    itemName: params.get("itemName") || params.get("material") || "",
+    notes: params.get("notes") || "",
+  };
+}
+
 function Shell({
   title,
   eyebrow,
@@ -228,10 +238,17 @@ function OrderList({ orders, basePath }: { orders: any[]; basePath: string }) {
 
 function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
   const [, navigate] = useLocation();
+  const prefill = useMemo(() => getSupplyRunPrefill(), []);
   const [orderType, setOrderType] = useState<ProcurementMode>("buy_deliver");
   const [urgency, setUrgency] = useState<ProcurementUrgency>("flexible");
   const [vehicleType, setVehicleType] = useState<ProcurementVehicleType>("unsure");
-  const [items, setItems] = useState<ItemDraft[]>([emptyItem()]);
+  const [items, setItems] = useState<ItemDraft[]>(() => [
+    {
+      ...emptyItem(),
+      itemName: prefill.itemName,
+      url: prefill.supplierUrl,
+    },
+  ]);
   const [files, setFiles] = useState<File[]>([]);
   const [resolvingItemIndex, setResolvingItemIndex] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -242,7 +259,7 @@ function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
     preferredSupplierAddress: "",
     pickupAddress: "",
     deliveryAddress: "",
-    notes: "",
+    notes: prefill.notes,
     budgetLimitCents: "",
   });
   const [error, setError] = useState("");

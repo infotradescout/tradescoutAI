@@ -43,7 +43,14 @@ describe("actionValidation", () => {
   });
 
   it("allows normal user Scout and Supply Run routes", () => {
-    for (const to of ["/homes", "/vehicles", "/messages", "/utilities/supply-run"]) {
+    for (const to of [
+      "/homes",
+      "/vehicles",
+      "/messages",
+      "/utilities/supply-run",
+      "/utilities/supply-run/new?supplierUrl=https%3A%2F%2Fexample.com%2Fproduct",
+      "/finances/materials",
+    ]) {
       const action = validateAction({
         type: "NAVIGATE",
         label: "Open",
