@@ -137,6 +137,13 @@ type SavedScoutThread = {
   id: string;
   title: string;
   preview: string;
+  summary?: string;
+  intent?: string | null;
+  relatedLabel?: string;
+  relatedPath?: string;
+  searchText?: string;
+  countyFips?: string | null;
+  stateCode?: string | null;
   updatedAt: string;
   messageCount: number;
   messages: ScoutMessage[];
@@ -209,6 +216,76 @@ function summarizeThreadText(value: string, fallback: string): string {
   return clean.length > 72 ? `${clean.slice(0, 69)}...` : clean;
 }
 
+function buildSavedThreadSummary(messages: ScoutMessage[]): string {
+  const userMessage = firstThreadUserMessage(messages);
+  const assistantMessage = messages.find(
+    (message) => message.role === "assistant" && message.content.trim().length > 0
+  );
+  const source = assistantMessage?.content || userMessage?.content || "";
+  return summarizeThreadText(source, "Saved Scout conversation");
+}
+
+function inferSavedThreadIntent(messages: ScoutMessage[]): {
+  intent: string;
+  relatedLabel: string;
+  relatedPath: string;
+} {
+  const text = messages
+    .map((message) => message.content)
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    /\b(material|materials|supplier|suppliers|lumber|concrete|decking|parts?|supply run)\b/.test(
+      text
+    )
+  ) {
+    return {
+      intent: "materials",
+      relatedLabel: "Materials",
+      relatedPath: "/utilities/supply-run",
+    };
+  }
+
+  if (/\b(price|prices|cost|costs|estimate|quote|bid|range|deal|deals)\b/.test(text)) {
+    return {
+      intent: "prices",
+      relatedLabel: "Prices",
+      relatedPath: "/finances/materials",
+    };
+  }
+
+  if (/\b(client|customer|invoice|invoices|job|quote|contract|business)\b/.test(text)) {
+    return {
+      intent: "client_work",
+      relatedLabel: "Client work",
+      relatedPath: "/direct-connect",
+    };
+  }
+
+  if (/\b(vehicle|car|truck|trailer|boat|motorcycle|atv)\b/.test(text)) {
+    return {
+      intent: "vehicle",
+      relatedLabel: "Vehicle",
+      relatedPath: "/vehicles",
+    };
+  }
+
+  if (/\b(home|house|roof|plumbing|electrical|hvac|ac|deck|fence|driveway|yard)\b/.test(text)) {
+    return {
+      intent: "home",
+      relatedLabel: "Home",
+      relatedPath: "/homes",
+    };
+  }
+
+  return {
+    intent: "local_help",
+    relatedLabel: "Local help",
+    relatedPath: "/direct-connect",
+  };
+}
+
 function compactSavedScoutMessages(messages: ScoutMessage[]): ScoutMessage[] {
   return messages.slice(-SCOUT_SAVED_THREAD_MESSAGE_LIMIT).map((message) => ({
     ...message,
@@ -221,13 +298,26 @@ function compactSavedScoutMessages(messages: ScoutMessage[]): ScoutMessage[] {
 
 function buildSavedScoutThread(
   messages: ScoutMessage[],
-  existingId?: string | null
+  existingId?: string | null,
+  location?: { countyFips?: string | null; stateCode?: string | null }
 ): SavedScoutThread | null {
   const firstUserMessage = firstThreadUserMessage(messages);
   if (!firstUserMessage) return null;
 
   const lastMessage = [...messages].reverse().find((message) => message.content.trim().length > 0);
   const updatedAt = new Date().toISOString();
+  const threadIntent = inferSavedThreadIntent(messages);
+  const summary = buildSavedThreadSummary(messages);
+  const searchText = [
+    firstUserMessage.content,
+    lastMessage?.content,
+    summary,
+    threadIntent.relatedLabel,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
 
   return {
     id: existingId || `thread_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -236,6 +326,13 @@ function buildSavedScoutThread(
       lastMessage?.content || firstUserMessage.content,
       "Saved Scout conversation"
     ),
+    summary,
+    intent: threadIntent.intent,
+    relatedLabel: threadIntent.relatedLabel,
+    relatedPath: threadIntent.relatedPath,
+    searchText,
+    countyFips: location?.countyFips || null,
+    stateCode: location?.stateCode || null,
     updatedAt,
     messageCount: messages.length,
     messages: compactSavedScoutMessages(messages),
@@ -255,6 +352,28 @@ function normalizeSavedScoutThreads(input: unknown): SavedScoutThread[] {
     })
     .map((item) => ({
       ...item,
+      summary: typeof item.summary === "string" ? item.summary : item.preview || "",
+      intent: typeof item.intent === "string" ? item.intent : null,
+      relatedLabel:
+        typeof item.relatedLabel === "string"
+          ? item.relatedLabel
+          : typeof (item as any).metadata?.relatedLabel === "string"
+            ? (item as any).metadata.relatedLabel
+            : "Saved",
+      relatedPath:
+        typeof item.relatedPath === "string"
+          ? item.relatedPath
+          : typeof (item as any).metadata?.relatedPath === "string"
+            ? (item as any).metadata.relatedPath
+            : "/scout",
+      searchText:
+        typeof item.searchText === "string"
+          ? item.searchText
+          : typeof (item as any).metadata?.searchText === "string"
+            ? (item as any).metadata.searchText
+            : [item.title, item.preview, item.summary].filter(Boolean).join(" "),
+      countyFips: typeof item.countyFips === "string" ? item.countyFips : null,
+      stateCode: typeof item.stateCode === "string" ? item.stateCode : null,
       messages: compactSavedScoutMessages(item.messages),
       messageCount:
         typeof item.messageCount === "number" ? item.messageCount : item.messages.length,
@@ -288,9 +407,10 @@ function writeSavedScoutThreads(userId: string | null | undefined, threads: Save
 function upsertSavedScoutThread(
   userId: string | null | undefined,
   messages: ScoutMessage[],
-  existingId?: string | null
+  existingId?: string | null,
+  location?: { countyFips?: string | null; stateCode?: string | null }
 ): SavedScoutThread | null {
-  const nextThread = buildSavedScoutThread(messages, existingId);
+  const nextThread = buildSavedScoutThread(messages, existingId, location);
   if (!nextThread) return null;
   const threads = readSavedScoutThreads(userId);
   const next = [nextThread, ...threads.filter((thread) => thread.id !== nextThread.id)].slice(
@@ -798,6 +918,7 @@ export default function ScoutOS() {
   const [controllerShowAll, setControllerShowAll] = useState(false);
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
+  const [savedScoutSearch, setSavedScoutSearch] = useState("");
   const [scoutViewMode, setScoutViewMode] = useState<"chat_only" | "chat_plus_controller">(() => {
     try {
       if (typeof window === "undefined") return "chat_only";
@@ -961,6 +1082,40 @@ export default function ScoutOS() {
     };
   }, [remoteSavedScoutThreads, scoutSaveUserId, user]);
 
+  useEffect(() => {
+    if (!user) return;
+    const query = savedScoutSearch.trim();
+    if (query.length < 2) return;
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void fetch(`/api/scout/conversations?q=${encodeURIComponent(query)}`, {
+        method: "GET",
+        credentials: "include",
+      })
+        .then(async (response) => {
+          if (!response.ok) return null;
+          return response.json();
+        })
+        .then((data) => {
+          if (cancelled || !data) return;
+          const serverThreads = normalizeSavedScoutThreads(data.conversations);
+          const next = mergeSavedScoutThreads(
+            serverThreads,
+            readSavedScoutThreads(scoutSaveUserId)
+          );
+          writeSavedScoutThreads(scoutSaveUserId, next);
+          setSavedScoutThreads(next);
+        })
+        .catch(() => undefined);
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [savedScoutSearch, scoutSaveUserId, user]);
+
   const persistSavedScoutThreadRemote = useCallback(
     async (thread: SavedScoutThread) => {
       if (!user) return;
@@ -973,9 +1128,18 @@ export default function ScoutOS() {
             id: thread.id,
             title: thread.title,
             preview: thread.preview,
+            summary: thread.summary,
+            intent: thread.intent,
+            countyFips: thread.countyFips || locationCtx.countyFips || undefined,
+            stateCode: thread.stateCode || locationCtx.stateCode || undefined,
             messageCount: thread.messageCount,
             messages: thread.messages,
-            metadata: { source: "scout_os" },
+            metadata: {
+              source: "scout_os",
+              relatedLabel: thread.relatedLabel,
+              relatedPath: thread.relatedPath,
+              searchText: thread.searchText,
+            },
           }),
         });
         if (!response.ok) return;
@@ -990,7 +1154,7 @@ export default function ScoutOS() {
         // Remote saves are best-effort; the local saved thread remains available.
       }
     },
-    [scoutSaveUserId, user]
+    [locationCtx.countyFips, locationCtx.stateCode, scoutSaveUserId, user]
   );
 
   useEffect(() => {
@@ -1000,7 +1164,10 @@ export default function ScoutOS() {
     if (!hasUserThread) return;
 
     const timer = window.setTimeout(() => {
-      const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId);
+      const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
+        countyFips: locationCtx.countyFips,
+        stateCode: locationCtx.stateCode,
+      });
       if (!saved) return;
       setActiveSavedThreadId(saved.id);
       setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
@@ -1008,7 +1175,14 @@ export default function ScoutOS() {
     }, 450);
 
     return () => window.clearTimeout(timer);
-  }, [activeSavedThreadId, persistSavedScoutThreadRemote, scoutSaveUserId, state.messages]);
+  }, [
+    activeSavedThreadId,
+    locationCtx.countyFips,
+    locationCtx.stateCode,
+    persistSavedScoutThreadRemote,
+    scoutSaveUserId,
+    state.messages,
+  ]);
 
   // Log a lightweight "intro_shown" event the first time the Scout surface
   // renders without any prior messages. Keep hasMessages above this effect to
@@ -1142,7 +1316,25 @@ export default function ScoutOS() {
     () => state.messages.some((m) => m.role === "user"),
     [state.messages]
   );
-  const savedThreadPreview = savedScoutThreads.slice(0, isMobile ? 2 : 3);
+  const savedThreadMatches = useMemo(() => {
+    const query = savedScoutSearch.trim().toLowerCase();
+    if (!query) return savedScoutThreads;
+    return savedScoutThreads.filter((thread) => {
+      const haystack = [
+        thread.title,
+        thread.preview,
+        thread.summary,
+        thread.relatedLabel,
+        thread.searchText,
+        ...thread.messages.map((message) => message.content),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [savedScoutSearch, savedScoutThreads]);
+  const savedThreadPreview = savedThreadMatches.slice(0, isMobile ? 2 : 3);
 
   const handleLoadSavedThread = useCallback(
     (thread: SavedScoutThread) => {
@@ -1168,12 +1360,22 @@ export default function ScoutOS() {
   }, [reset]);
 
   const handleSaveScoutThreadNow = useCallback(() => {
-    const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId);
+    const saved = upsertSavedScoutThread(scoutSaveUserId, state.messages, activeSavedThreadId, {
+      countyFips: locationCtx.countyFips,
+      stateCode: locationCtx.stateCode,
+    });
     if (!saved) return;
     setActiveSavedThreadId(saved.id);
     setSavedScoutThreads(readSavedScoutThreads(scoutSaveUserId));
     void persistSavedScoutThreadRemote(saved);
-  }, [activeSavedThreadId, persistSavedScoutThreadRemote, scoutSaveUserId, state.messages]);
+  }, [
+    activeSavedThreadId,
+    locationCtx.countyFips,
+    locationCtx.stateCode,
+    persistSavedScoutThreadRemote,
+    scoutSaveUserId,
+    state.messages,
+  ]);
 
   const handleDeleteSavedThread = useCallback(
     (threadId: string) => {
@@ -3704,6 +3906,24 @@ export default function ScoutOS() {
                           Saved here
                         </span>
                       </div>
+                      {savedScoutThreads.length > 2 && (
+                        <label className="mb-2 block">
+                          <span className="sr-only">Search saved conversations</span>
+                          <input
+                            type="search"
+                            value={savedScoutSearch}
+                            onChange={(event) => setSavedScoutSearch(event.target.value)}
+                            placeholder="Search saved conversations"
+                            className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
+                            style={{
+                              borderColor: "var(--border-subtle)",
+                              backgroundColor:
+                                "color-mix(in oklab, var(--surface-deep) 92%, transparent)",
+                              color: "var(--text-primary)",
+                            }}
+                          />
+                        </label>
+                      )}
                       <div className="grid gap-2">
                         {savedThreadPreview.map((thread) => (
                           <div
@@ -3721,6 +3941,15 @@ export default function ScoutOS() {
                               onClick={() => handleLoadSavedThread(thread)}
                               className="block w-full text-left"
                             >
+                              <span
+                                className="mb-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                                style={{
+                                  borderColor: "var(--border-subtle)",
+                                  color: "var(--text-secondary)",
+                                }}
+                              >
+                                Related to {thread.relatedLabel || "Saved work"}
+                              </span>
                               <span className="block text-sm font-semibold leading-tight">
                                 {thread.title}
                               </span>
@@ -3731,17 +3960,42 @@ export default function ScoutOS() {
                                 {thread.preview}
                               </span>
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteSavedThread(thread.id)}
-                              className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                              style={{ color: "var(--text-muted)" }}
-                            >
-                              Delete
-                            </button>
+                            <div className="mt-2 flex items-center gap-3">
+                              {thread.relatedPath && thread.relatedPath !== "/scout" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const relatedPath = thread.relatedPath;
+                                    if (!relatedPath) return;
+                                    if (
+                                      !maybeOpenWorkAreaForRoute(relatedPath, thread.relatedLabel)
+                                    ) {
+                                      navigate(relatedPath);
+                                    }
+                                  }}
+                                  className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                                  style={{ color: "var(--ts-orange)" }}
+                                >
+                                  Open related view
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSavedThread(thread.id)}
+                                className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                                style={{ color: "var(--text-muted)" }}
+                              >
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
+                      {savedScoutSearch.trim() && savedThreadPreview.length === 0 && (
+                        <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                          No saved conversations matched that search.
+                        </p>
+                      )}
                     </div>
                   )}
                 </>

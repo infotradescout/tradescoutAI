@@ -74,6 +74,29 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).not.toContain("LISA");
   });
 
+  it("Scout 2 catch-up matrix keeps every showcase claim tied to a real state", () => {
+    const matrixSource = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+    const rows = matrixSource
+      .split("\n")
+      .filter((line) => line.startsWith("| ") && !line.includes("---"))
+      .slice(1);
+
+    expect(rows.length).toBeGreaterThanOrEqual(10);
+
+    for (const row of rows) {
+      const cells = row
+        .split("|")
+        .map((cell) => cell.trim())
+        .filter(Boolean);
+
+      expect(cells).toHaveLength(4);
+      expect(cells[0]).not.toMatch(/\btbd\b|\bunknown\b/i);
+      expect(cells[1]).toMatch(/\b(enforced|partial|policy target|internal only)\b/i);
+      expect(cells[2]).not.toMatch(/\btbd\b|\bnone\b|\bunknown\b/i);
+      expect(cells[3]).not.toMatch(/\btbd\b|\bunknown\b/i);
+    }
+  });
+
   it("thread and quick-start actions avoid internal controller framing", () => {
     const threadSource = read("client/src/scout/ScoutThread.tsx");
     const tilesSource = read("client/src/scout/scoutActionTiles.ts");
@@ -101,6 +124,12 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain('className="scout-input-bottom-pin order-3"');
     expect(scoutOsSource).toContain("Findings and recommended paths");
     expect(scoutOsSource).toContain("Recommended paths appear below");
+    expect(scoutOsSource).toContain("Search saved conversations");
+    expect(scoutOsSource).toContain("Related to");
+    expect(scoutOsSource).toContain("Open related view");
+    expect(scoutOsSource).toContain("relatedPath");
+    expect(scoutOsSource).toContain("countyFips");
+    expect(scoutOsSource).toContain("/api/scout/conversations?q=");
     expect(scoutOsSource).toContain('title: "Recommended paths"');
   });
 

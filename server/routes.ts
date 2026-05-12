@@ -5712,11 +5712,29 @@ export async function registerRoutes(app: any) {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const query = safeText(req.query.q, 80);
+      const likeQuery = query ? `%${query.toLowerCase().replace(/[%_]/g, "\\$&")}%` : null;
+      const baseWhere = and(
+        eq(scoutConversations.userId, userId),
+        isNull(scoutConversations.archivedAt)
+      );
+      const searchWhere = likeQuery
+        ? and(
+            baseWhere,
+            or(
+              sql`lower(${scoutConversations.title}) like ${likeQuery} escape '\'`,
+              sql`lower(${scoutConversations.preview}) like ${likeQuery} escape '\'`,
+              sql`lower(${scoutConversations.summary}) like ${likeQuery} escape '\'`,
+              sql`lower(${scoutConversations.intent}) like ${likeQuery} escape '\'`,
+              sql`lower(${scoutConversations.metadata}::text) like ${likeQuery} escape '\'`
+            )
+          )
+        : baseWhere;
 
       const rows = await db
         .select()
         .from(scoutConversations)
-        .where(and(eq(scoutConversations.userId, userId), isNull(scoutConversations.archivedAt)))
+        .where(searchWhere)
         .orderBy(desc(scoutConversations.updatedAt))
         .limit(SCOUT_CONVERSATION_LIMIT);
 

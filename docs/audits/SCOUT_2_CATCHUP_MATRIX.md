@@ -34,12 +34,13 @@ The Scout 2 showcase is the visual and product direction. The live `/scout` surf
 - Supplier links in Scout now get a fast product snapshot attempt inside the active result card; if the page cannot be read quickly, Scout says so and still preserves the link for Supply Run review.
 - Price/trend-style queries now get a "Price and trend checks" result card that opens the materials view, nearby activity, or a Scout price-factor check.
 - Client/customer work now gets a "Client job prep" card that keeps scope, quote prep, invoices, and approval boundaries separated.
+- Saved conversations now carry quiet intent, county/state, and related-view metadata so users can search old Scout work and jump back into the relevant TradeScout surface.
 - The cards are action prompts, not fake dashboards.
 - User-facing copy avoids internal tags such as LISA, routing, validators, and tool names.
 - Saved conversations are described honestly instead of calling the feature a full Vault.
 
 ## Fastest Next Work
 
-1. Expand saved conversations into searchable project-linked history before using "Vault" publicly.
-2. Add production checks that every showcase capability has either a real user surface or a documented blocked state.
-3. Add richer source-backed price/trend cards from county metrics, community activity, and material snapshots.
+1. Add production checks that every showcase capability has either a real user surface or a documented blocked state.
+2. Add richer source-backed price/trend cards from county metrics, community activity, and material snapshots.
+3. Expand saved conversation recall into project, home, vehicle, and client records when those destination surfaces expose stable IDs.
