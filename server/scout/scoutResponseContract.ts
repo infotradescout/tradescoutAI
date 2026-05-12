@@ -1,5 +1,6 @@
 import type { ScoutActionContract, ScoutResponseContract } from "../../shared/types/scout";
 import { enforceTradeScoutIdentityBoundary } from "./brandGuard";
+import { polishScoutLaunchResponse } from "./scoutLaunchResponsePolish";
 
 type FinalizeOptions = {
   requestId?: string | null;
@@ -77,6 +78,7 @@ export function finalizeScoutResponse(payload: unknown, options: FinalizeOptions
     String(options.requestMessage || ""),
     safeMessage
   );
+  const polished = polishScoutLaunchResponse(options.requestMessage, identityBoundary.text);
 
   const actions = sanitizeActions(source.actions);
   const suggestedActions = sanitizeSuggestedActions(source.suggestedActions);
@@ -95,13 +97,18 @@ export function finalizeScoutResponse(payload: unknown, options: FinalizeOptions
     metadata.contractViolation = "identity_boundary_override";
   }
 
+  if (polished.changed) {
+    metadata.launchPolished = true;
+    if (polished.reason) metadata.launchPolishReason = polished.reason;
+  }
+
   if (options.requestId && !metadata.requestId) {
     metadata.requestId = options.requestId;
   }
 
   const normalized: ScoutResponseContract = {
     ...(source as ScoutResponseContract),
-    message: identityBoundary.text,
+    message: polished.message,
     ...(suggestedActions ? { suggestedActions } : {}),
     ...(actions ? { actions } : {}),
     metadata,

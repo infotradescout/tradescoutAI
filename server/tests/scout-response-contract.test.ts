@@ -45,6 +45,42 @@ describe("scout response contract guards", () => {
     expect(source).toContain("Enforce canonical Scout response contract");
   });
 
+  it("polishes bad local-help answers before they reach users", async () => {
+    const { finalizeScoutResponse } = await import("../scout/scoutResponseContract");
+
+    const result = finalizeScoutResponse(
+      {
+        message:
+          "Start with 211 Louisiana for free referrals, and TCAP if you may need help with housing, utilities, or emergency assistance; this info comes from w...",
+      },
+      {
+        requestMessage:
+          "Find local help for this. Show the best options and what I should know before contacting anyone.",
+      }
+    ) as { message: string; metadata?: Record<string, unknown> };
+
+    expect(result.message).toContain("I’m treating this as a local help need.");
+    expect(result.message).toContain("Nothing is sent, posted, or shared until you approve it.");
+    expect(result.message).not.toMatch(/211 Louisiana|TCAP|housing|utilities|w\.\.\./i);
+    expect(result.metadata?.launchPolished).toBe(true);
+  });
+
+  it("keeps assistance-resource answers when the user asked for assistance", async () => {
+    const { finalizeScoutResponse } = await import("../scout/scoutResponseContract");
+
+    const result = finalizeScoutResponse(
+      {
+        message:
+          "Start with 211 Louisiana for free referrals, and TCAP if you may need help with housing or utilities.",
+      },
+      {
+        requestMessage: "I need emergency housing and utility assistance near me.",
+      }
+    ) as { message: string };
+
+    expect(result.message).toContain("211 Louisiana");
+  });
+
   it("defines shared Scout request/decision/response types", () => {
     const source = read("shared/types/scout.ts");
 
