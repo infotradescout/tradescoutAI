@@ -36,10 +36,20 @@ export interface RecentActivity {
   timestamp: string;
 }
 
+export interface PriceSignal {
+  id: string;
+  label: string;
+  description: string;
+  metricKey: string;
+  value: number;
+  updatedAt: string | null;
+}
+
 export interface HomeSnapshotData {
   snapshot: LocalSnapshot;
   trendingPrompts: TrendingPrompt[];
   recentActivity: RecentActivity[];
+  priceSignals: PriceSignal[];
   locationResolved: boolean;
   locationSource: "user" | "ip" | "manual" | "default";
 }
@@ -141,6 +151,7 @@ export function useScoutHomeSnapshot(location: ScoutLocation) {
             },
             trendingPrompts: DEFAULT_PROMPTS,
             recentActivity: [],
+            priceSignals: [],
             locationResolved: false,
             locationSource: "default",
           });

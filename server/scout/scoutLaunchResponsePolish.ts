@@ -17,7 +17,29 @@ const INTERNAL_OR_WEAK_RE =
   /\b(verified live results|i can(?:not|'t) browse|i do not have enough verified|i don't have enough verified|fallback|source layer|route this|routing)\b/i;
 
 const UNSUPPORTED_ACTION_CLAIM_RE =
-  /\b(i\s+(?:booked|ordered|paid|messaged|contacted|published|posted|sent|invoiced|quoted)|scout\s+(?:booked|ordered|paid|messaged|contacted|published|posted|sent|invoiced|quoted))\b/i;
+  /\b(i(?:['’]ve\s+|\s+have\s+|\s+)(?:booked|ordered|paid|messaged|contacted|published|posted|sent|invoiced|quoted)|scout(?:\s+has\s+|\s+)(?:booked|ordered|paid|messaged|contacted|published|posted|sent|invoiced|quoted))\b/i;
+
+const FORM_TRAP_RE =
+  /\b(?:must|need to|required to)\s+(?:complete|fill out|finish)\s+(?:the\s+)?(?:entire|full|whole)?\s*form\b[\s\S]{0,80}\b(?:before|first)\b/i;
+
+const LEAD_SELLING_OR_PAID_RANK_RE =
+  /\b(?:sell(?:ing)?\s+(?:your\s+)?lead|sold\s+(?:your\s+)?lead|lead\s+(?:sold|resold)|highest\s+bidder|paid\s+(?:placement|ranking|rank|exposure)|pay(?:s|ing)?\s+to\s+rank|sponsored\s+(?:pro|provider|contractor|placement|ranking)|premium\s+(?:pro|provider|contractor)\s+(?:rank|placement|slot))\b/i;
+
+const APPROVAL_BOUNDARY =
+  "You stay in control: nothing is booked, ordered, paid, messaged, posted, quoted, or invoiced unless you approve it first.";
+
+function stripUnsupportedActionClaims(message: string): {
+  sanitized: string;
+  hadClaim: boolean;
+} {
+  if (!UNSUPPORTED_ACTION_CLAIM_RE.test(message)) {
+    return { sanitized: message, hadClaim: false };
+  }
+
+  const sanitized = "I can help prepare that action.";
+
+  return { sanitized, hadClaim: true };
+}
 
 function compact(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -51,6 +73,13 @@ function buildPracticalLocalHelpMessage(request: string): string {
   );
 }
 
+function buildCompetitivePatternFallback(request: string): string {
+  const need = inferNeedLabel(request);
+  return compact(
+    `I’m treating this as a ${need} need. You can keep going in chat or open a draft request, and I’ll only ask for the details needed for the next step. TradeScout does not sell leads or rank providers because they paid. Nothing is sent, booked, ordered, paid, posted, quoted, or invoiced unless you approve it first.`
+  );
+}
+
 export function polishScoutLaunchResponse(
   requestMessage: string | null | undefined,
   raw: string
@@ -80,9 +109,23 @@ export function polishScoutLaunchResponse(
     };
   }
 
-  if (UNSUPPORTED_ACTION_CLAIM_RE.test(message)) {
+  if (FORM_TRAP_RE.test(message) || LEAD_SELLING_OR_PAID_RANK_RE.test(message)) {
     return {
-      message: `${message} You stay in control: nothing is booked, ordered, paid, messaged, posted, quoted, or invoiced unless you approve it first.`,
+      message: buildCompetitivePatternFallback(request),
+      changed: true,
+      reason: "competitive_pattern_guard",
+    };
+  }
+
+  const unsupportedAction = stripUnsupportedActionClaims(message);
+
+  if (unsupportedAction.hadClaim) {
+    const nextMessage = unsupportedAction.sanitized.includes(APPROVAL_BOUNDARY)
+      ? unsupportedAction.sanitized
+      : `${unsupportedAction.sanitized} ${APPROVAL_BOUNDARY}`;
+
+    return {
+      message: compact(nextMessage),
       changed: true,
       reason: "approval_boundary_added",
     };

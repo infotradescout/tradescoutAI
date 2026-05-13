@@ -27,6 +27,10 @@ export enum MetricKey {
   TRADEDEALS_ACTIVE = "tradedeals_active",
   TRADEDEALS_CLAIMED_30D = "tradedeals_claimed_30d",
 
+  // Completed first-party job aggregates
+  COMPLETED_JOBS_30D = "completed_jobs_30d",
+  COMPLETED_JOB_MEDIAN_RECEIPT_USD_30D = "completed_job_median_receipt_usd_30d",
+
   // HomeScout aggregates
   HOMESCOUT_ACTIVE_LISTINGS = "homescout_active_listings",
   HOMESCOUT_MEDIAN_PRICE = "homescout_median_price",
@@ -107,6 +111,23 @@ const METRIC_DEFINITIONS: Record<MetricKey, MetricDefinition> = {
     dataType: "integer",
     minValue: 0,
     maxValue: 999_999_999,
+    acceptsNegative: false,
+  },
+  [MetricKey.COMPLETED_JOBS_30D]: {
+    key: MetricKey.COMPLETED_JOBS_30D,
+    description: "Count of first-party completed job receipts issued in the last 30 days in county",
+    dataType: "integer",
+    minValue: 0,
+    maxValue: 999_999_999,
+    acceptsNegative: false,
+  },
+  [MetricKey.COMPLETED_JOB_MEDIAN_RECEIPT_USD_30D]: {
+    key: MetricKey.COMPLETED_JOB_MEDIAN_RECEIPT_USD_30D,
+    description:
+      "Median issued receipt amount in USD for first-party completed jobs in county over the last 30 days",
+    dataType: "integer",
+    minValue: 0,
+    maxValue: 9_999_999_999,
     acceptsNegative: false,
   },
   [MetricKey.HOMESCOUT_ACTIVE_LISTINGS]: {

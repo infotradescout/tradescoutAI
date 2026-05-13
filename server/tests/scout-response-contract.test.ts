@@ -65,6 +65,58 @@ describe("scout response contract guards", () => {
     expect(result.metadata?.launchPolished).toBe(true);
   });
 
+  it("rewrites unsupported action claims before they reach users", async () => {
+    const { finalizeScoutResponse } = await import("../scout/scoutResponseContract");
+
+    const result = finalizeScoutResponse(
+      {
+        message: "Great, I’ve booked a local contractor for you already.",
+      },
+      {
+        requestMessage: "Need a plumber in my area.",
+      }
+    ) as { message: string };
+
+    expect(result.message).toContain("I can help prepare that action");
+    expect(result.message).toContain(
+      "You stay in control: nothing is booked, ordered, paid, messaged, posted, quoted, or invoiced unless you approve it first."
+    );
+    expect(result.message).not.toContain("a local contractor for you already");
+    expect(result.message).not.toMatch(
+      /\bi(?:['’]ve\s+|\s+have\s+|\s+)(?:booked|ordered|paid|messaged|contacted|published|posted|sent|invoiced|quoted)\b/i
+    );
+  });
+
+  it("blocks competitor-pattern drift around form traps, lead selling, and paid ranking", async () => {
+    const { finalizeScoutResponse } = await import("../scout/scoutResponseContract");
+
+    const samples = [
+      "You must complete the full form before I can help, then your lead is sold to the highest bidder.",
+      "These sponsored contractors rank first because they paid for premium provider placement.",
+    ];
+
+    for (const sample of samples) {
+      const result = finalizeScoutResponse(
+        {
+          message: sample,
+        },
+        {
+          requestMessage: "Need a roofer near me.",
+        }
+      ) as { message: string; metadata?: Record<string, unknown> };
+
+      expect(result.message).toContain("You can keep going in chat or open a draft request");
+      expect(result.message).toContain(
+        "TradeScout does not sell leads or rank providers because they paid."
+      );
+      expect(result.message).toContain("unless you approve it first");
+      expect(result.message).not.toMatch(
+        /must complete|full form|lead is sold|highest bidder|sponsored|premium provider placement/i
+      );
+      expect(result.metadata?.launchPolishReason).toBe("competitive_pattern_guard");
+    }
+  });
+
   it("keeps assistance-resource answers when the user asked for assistance", async () => {
     const { finalizeScoutResponse } = await import("../scout/scoutResponseContract");
 

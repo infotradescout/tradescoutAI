@@ -9,6 +9,7 @@ import { runHomeScoutMarketMetricsJob } from "./homeScoutMarketMetricsJob";
 import { runHomeScoutIngestionJob } from "./homeScoutIngestionJob";
 import { runHomeScoutBucketMetricsJob } from "./homeScoutBucketMetricsJob";
 import { runHomeScoutAlertsJob } from "./homeScoutAlertsJob";
+import { runCompletedJobPriceSnapshotJob } from "./completedJobPriceSnapshotJob";
 import { runPartnerCountyObservationSnapshotJob } from "./partnerCountyObservationSnapshotService";
 import { runPartnerIntelligenceBriefSnapshotJob } from "./partnerIntelligenceBriefSnapshotService";
 import { emitJobStart, emitJobEnd, emitJobError } from "../observability/metrics";
@@ -37,6 +38,7 @@ let homeScoutMarketMetricsTask: any = null;
 let homeScoutIngestionTask: any = null;
 let homeScoutBucketMetricsTask: any = null;
 let homeScoutAlertsTask: any = null;
+let completedJobPriceSnapshotTask: any = null;
 let seoPublicationPruneTask: any = null;
 let seoDirectoryScopeSnapshotTask: any = null;
 let partnerCountyObservationSnapshotsTask: any = null;
@@ -67,6 +69,7 @@ export function startCrawlerScheduler() {
   startHomeScoutIngestionScheduler();
   startHomeScoutBucketMetricsScheduler();
   startHomeScoutAlertsScheduler();
+  startCompletedJobPriceSnapshotScheduler();
   startTrustSnapshotsScheduler();
   startSeoPublicationPruneScheduler();
   startSeoDirectoryScopeSnapshotScheduler();
@@ -565,6 +568,45 @@ function startHomeScoutAggregationScheduler() {
 }
 
 /**
+ * Start nightly completed-job price snapshot job.
+ * Writes precomputed first-party completed-job facts to county_metrics.
+ */
+function startCompletedJobPriceSnapshotScheduler() {
+  if (process.env.DISABLE_COMPLETED_JOB_PRICE_SNAPSHOTS === "true") {
+    console.log(
+      "Completed job price snapshot job disabled via DISABLE_COMPLETED_JOB_PRICE_SNAPSHOTS env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.COMPLETED_JOB_PRICE_SNAPSHOT_SCHEDULE || "0 2 * * *";
+  console.log(`\n📊 Starting completed-job price snapshot scheduler with schedule: "${schedule}"`);
+
+  completedJobPriceSnapshotTask = cron.schedule(schedule, async () => {
+    const jobName = "completed_job_price_snapshots";
+    console.log(`\n📊 [${new Date().toISOString()}] Running completed-job price snapshot job...`);
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        runCompletedJobPriceSnapshotJob()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+      console.log("✅ Completed-job price snapshot job completed", result);
+      emitJobEnd(jobName, (result as any).metricsWritten || 0, false);
+    } catch (error) {
+      console.error("❌ Completed-job price snapshot job failed:", error);
+      emitJobError(jobName, error);
+    }
+  });
+
+  console.log("✅ Completed-job price snapshot scheduler started\n");
+}
+
+/**
  * Start nightly HomeScout market metrics job
  * Runs daily at 2 AM UTC by default (same window as other jobs)
  */
@@ -868,6 +910,13 @@ export function stopCrawlerScheduler() {
     console.log("🛑 HomeScout alerts scheduler stopped");
   }
 
+  if (completedJobPriceSnapshotTask) {
+    completedJobPriceSnapshotTask.stop();
+    completedJobPriceSnapshotTask.destroy();
+    completedJobPriceSnapshotTask = null;
+    console.log("🛑 Completed-job price snapshot scheduler stopped");
+  }
+
   if (seoPublicationPruneTask) {
     seoPublicationPruneTask.stop();
     seoPublicationPruneTask.destroy();
@@ -965,6 +1014,10 @@ export function getCrawlerSchedulerStatus() {
     homeScoutAlerts: {
       active: homeScoutAlertsTask !== null,
       schedule: process.env.HOMESCOUT_ALERTS_SCHEDULE || "*/15 * * * *",
+    },
+    completedJobPriceSnapshots: {
+      active: completedJobPriceSnapshotTask !== null,
+      schedule: process.env.COMPLETED_JOB_PRICE_SNAPSHOT_SCHEDULE || "0 2 * * *",
     },
     trustSnapshots: {
       active: trustSnapshotsTask !== null,

@@ -46,6 +46,14 @@ export type ScoutSourceSignalSnapshot = {
   verifiedPros?: number;
   eventsThisWeek?: number;
   communityMembers?: number;
+  priceSignals?: Array<{
+    id?: string;
+    label?: string;
+    description?: string;
+    metricKey?: string;
+    value?: number;
+    updatedAt?: string | null;
+  }>;
   trendingPrompts?: Array<{ text?: string; category?: string; count?: number; intent?: string }>;
   recentActivity?: Array<{ query?: string; timestamp?: string }>;
 };
@@ -198,6 +206,16 @@ function sourceBackedPriceItems(snapshot?: ScoutSourceSignalSnapshot | null) {
   if (!snapshot) return [];
   const items: Array<{ id: string; label: string; description: string }> = [];
   const countyLabel = [snapshot.countyName, snapshot.stateName].filter(Boolean).join(", ");
+
+  for (const signal of snapshot.priceSignals || []) {
+    if (!signal?.label || !signal.description) continue;
+    items.push({
+      id: signal.id || signal.metricKey || `price-signal-${items.length}`,
+      label: signal.label,
+      description: countyLabel ? `${signal.description} around ${countyLabel}` : signal.description,
+    });
+    if (items.length >= 3) return items;
+  }
 
   if (typeof snapshot.activeListings === "number" && snapshot.activeListings > 0) {
     items.push({

@@ -20,7 +20,7 @@ import {
   scoutInteractions,
   users,
 } from "../../shared/schema";
-import { eq, and, gte, count, sql, desc, ilike } from "drizzle-orm";
+import { eq, and, gte, count, sql, desc, ilike, inArray } from "drizzle-orm";
 
 export const scoutHomeSnapshotRouter = Router();
 
@@ -54,10 +54,20 @@ interface RecentActivity {
   timestamp: string;
 }
 
+interface PriceSignal {
+  id: string;
+  label: string;
+  description: string;
+  metricKey: string;
+  value: number;
+  updatedAt: string | null;
+}
+
 interface HomeSnapshotResponse {
   snapshot: LocalSnapshot;
   trendingPrompts: TrendingPrompt[];
   recentActivity: RecentActivity[];
+  priceSignals: PriceSignal[];
   locationResolved: boolean;
   locationSource: "user" | "ip" | "manual" | "default";
 }
@@ -422,6 +432,136 @@ async function getRecentActivity(userId: string): Promise<RecentActivity[]> {
   }
 }
 
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function buildPriceSignal(row: {
+  metricKey: string;
+  metricValue: string | number;
+  updatedAt: Date | null;
+}): PriceSignal | null {
+  const value = Number(row.metricValue);
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  const updatedAt = row.updatedAt ? row.updatedAt.toISOString() : null;
+
+  if (row.metricKey === "homescout_median_price") {
+    return {
+      id: "homescout-median-price",
+      label: "HomeScout median list price",
+      description: `${formatUsd(value)} median active listing price from county_metrics`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+    };
+  }
+
+  if (row.metricKey === "homescout_price_drops_7d") {
+    return {
+      id: "homescout-price-drops-7d",
+      label: "HomeScout price movement",
+      description: `${Math.round(value)} active listing price drop${Math.round(value) === 1 ? "" : "s"} in the last 7 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+    };
+  }
+
+  if (row.metricKey === "homescout_median_dom_days") {
+    return {
+      id: "homescout-median-dom",
+      label: "HomeScout timing signal",
+      description: `${Math.round(value)} median day${Math.round(value) === 1 ? "" : "s"} on market for active listings`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+    };
+  }
+
+  if (row.metricKey === "tradedeals_active") {
+    return {
+      id: "tradedeals-active",
+      label: "Active TradeDeals",
+      description: `${Math.round(value)} active county deal signal${Math.round(value) === 1 ? "" : "s"}`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+    };
+  }
+
+  if (row.metricKey === "tradedeals_claimed_30d") {
+    return {
+      id: "tradedeals-claimed-30d",
+      label: "Recent deal claims",
+      description: `${Math.round(value)} county deal claim${Math.round(value) === 1 ? "" : "s"} in the last 30 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+    };
+  }
+
+  if (row.metricKey === "completed_jobs_30d") {
+    return {
+      id: "completed-jobs-30d",
+      label: "Completed jobs",
+      description: `${Math.round(value)} first-party completed job receipt${Math.round(value) === 1 ? "" : "s"} in the last 30 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+    };
+  }
+
+  if (row.metricKey === "completed_job_median_receipt_usd_30d") {
+    return {
+      id: "completed-job-median-receipt",
+      label: "Completed job median receipt",
+      description: `${formatUsd(value)} median first-party completed job receipt in the last 30 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+    };
+  }
+
+  return null;
+}
+
+async function getCountyPriceSignals(fips: string | null): Promise<PriceSignal[]> {
+  if (!fips) return [];
+
+  try {
+    const rows = await db
+      .select({
+        metricKey: countyMetrics.metricKey,
+        metricValue: countyMetrics.metricValue,
+        updatedAt: countyMetrics.updatedAt,
+      })
+      .from(countyMetrics)
+      .where(
+        and(
+          eq(countyMetrics.countyFips, fips),
+          inArray(countyMetrics.metricKey, [
+            "homescout_median_price",
+            "homescout_price_drops_7d",
+            "homescout_median_dom_days",
+            "tradedeals_active",
+            "tradedeals_claimed_30d",
+            "completed_jobs_30d",
+            "completed_job_median_receipt_usd_30d",
+          ])
+        )
+      );
+
+    return rows.map(buildPriceSignal).filter((signal): signal is PriceSignal => !!signal);
+  } catch (_) {
+    return [];
+  }
+}
+
 // ── Main route ─────────────────────────────────────────────────────────────
 
 scoutHomeSnapshotRouter.get("/home-snapshot", async (req: Request, res: Response) => {
@@ -447,10 +587,11 @@ scoutHomeSnapshotRouter.get("/home-snapshot", async (req: Request, res: Response
       : "default";
 
   // 2. Fetch all data in parallel
-  const [snapshotStats, trendingPrompts, recentActivity] = await Promise.all([
+  const [snapshotStats, trendingPrompts, recentActivity, priceSignals] = await Promise.all([
     getLocalSnapshot(countyName, stateName, fips),
     getTrendingPrompts(fips, countyName),
     userId ? getRecentActivity(userId) : Promise.resolve([]),
+    getCountyPriceSignals(fips),
   ]);
 
   const response: HomeSnapshotResponse = {
@@ -462,6 +603,7 @@ scoutHomeSnapshotRouter.get("/home-snapshot", async (req: Request, res: Response
     },
     trendingPrompts,
     recentActivity,
+    priceSignals,
     locationResolved,
     locationSource,
   };

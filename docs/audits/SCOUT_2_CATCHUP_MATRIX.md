@@ -50,12 +50,18 @@ Scout should copy proven interaction patterns, not competitor business models. T
 - Price/trend-style queries now get a "Price and trend checks" result card that opens the materials view, nearby activity, or a Scout price-factor check.
 - Client/customer work now gets a "Client job prep" card that keeps scope, quote prep, invoices, and approval boundaries separated.
 - Saved conversations now carry quiet intent, county/state, and related-view metadata so users can search old Scout work and jump back into the relevant TradeScout surface.
+- Saved conversation recall now scans primary and secondary card actions, recognizes project/client/home/vehicle IDs from routes and payloads, and can reopen stable home and vehicle records through query-linked vault pages.
+- Saved conversation related labels now prefer available payload display names, home address fields, and vehicle year/make/model details before falling back to raw IDs.
 - The cards are action prompts, not fake dashboards.
 - User-facing copy avoids internal tags such as LISA, routing, validators, and tool names.
 - Saved conversations are described honestly instead of calling the feature a full Vault.
+- Unsupported action language claims are now rewritten before reaching users, and response tests now enforce approval-boundary language when a message implies Scout completed messaging, booking, payment, or posting actions.
+- Competitor-pattern regressions now cover form traps, lead-selling copy, paid-ranking copy, and unsupported action claims.
+- Price and trend cards now receive precomputed county price signals from `county_metrics` when available, including HomeScout median price, price drops, days-on-market, active TradeDeals, recent deal claims, completed-job count, and median completed-job receipt amount.
+- Completed-job price intelligence now has a scheduled snapshot job that writes 30-day issued receipt facts into `county_metrics` by the creator's canonical county; Scout home price-signal tests guard against UI read-time pricing/job-document derivation.
+- Completed-job price snapshots now have a manual backfill command (`npm run snapshot:completed-job-prices`) and ops runbook (`docs/runbooks/completed-job-price-snapshots.md`).
 
 ## Fastest Next Work
 
-1. Expand saved conversation recall into project, home, vehicle, and client records when those destination surfaces expose stable IDs.
-2. Add competitor-pattern regression checks for response quality: no form trap, no lead-selling copy, no fake booking, no unsupported order/payment claims.
-3. Add deeper price intelligence from county metrics and completed first-party job snapshots once enough live data exists.
+1. Add API-backed saved-conversation label refresh once project, home, vehicle, and client summary endpoints expose stable display names for Scout.
+2. Add freshness/last-updated UI treatment for county price signals so users can see when each snapshot was computed.
