@@ -9,13 +9,7 @@ let lastLoadedEnhanced: number | null = null;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const PROMPT_PATH = path.join(
-  __dirname,
-  "..",
-  "cache",
-  "manual",
-  "system_prompt.md"
-);
+const PROMPT_PATH = path.join(__dirname, "..", "cache", "manual", "system_prompt.md");
 
 const ENHANCED_PROMPT_PATH = path.join(
   __dirname,
@@ -35,15 +29,11 @@ const DEFAULT_PROMPT = `You are Scout, the TradeScout operating system.
 const DEFAULT_ENHANCED_PROMPT = `You are Scout, the intelligent operating system for the TradeScout ecosystem.
 You are designed to operate with increasing autonomy, leveraging structured reasoning, dynamic tool invocation, and continuous learning.
 
-You MUST respond with valid JSON including:
+You MUST respond with this JSON shape:
 - intent: classified user intent
 - state_acknowledgment: current system state
-- planning: analysis and approach
-- thought_flow: step-by-step reasoning
 - tool_calls: any tools to invoke
-- decision: what you decided and why
 - message: response to the user
-- reflection: confidence and learning points
 - suggestedActions: next steps for the user`;
 
 const RELOAD_INTERVAL_MS = 30_000; // 30s hot reload window
@@ -54,18 +44,28 @@ const RELOAD_INTERVAL_MS = 30_000; // 30s hot reload window
  * @param enhanced - If true, load the enhanced prompt; otherwise load the standard prompt
  * @returns System prompt content
  */
-export function loadSystemPrompt(force = false, enhanced = false): { content: string, version: string } {
+export function loadSystemPrompt(
+  force = false,
+  enhanced = false
+): { content: string; version: string } {
   const now = Date.now();
 
   if (enhanced) {
     // Return cached enhanced prompt if still within reload interval
-    if (!force && cachedEnhancedPrompt && lastLoadedEnhanced && now - lastLoadedEnhanced < RELOAD_INTERVAL_MS) {
+    if (
+      !force &&
+      cachedEnhancedPrompt &&
+      lastLoadedEnhanced &&
+      now - lastLoadedEnhanced < RELOAD_INTERVAL_MS
+    ) {
       return { content: cachedEnhancedPrompt, version: getEnhancedPromptVersion() };
     }
 
     // Verify file exists; if missing, fall back to safe default enhanced prompt
     if (!fs.existsSync(ENHANCED_PROMPT_PATH)) {
-      console.warn(`[PromptService] system_prompt_enhanced.md missing at ${ENHANCED_PROMPT_PATH}; using built-in default enhanced prompt`);
+      console.warn(
+        `[PromptService] system_prompt_enhanced.md missing at ${ENHANCED_PROMPT_PATH}; using built-in default enhanced prompt`
+      );
       cachedEnhancedPrompt = DEFAULT_ENHANCED_PROMPT;
       lastLoadedEnhanced = now;
       return { content: DEFAULT_ENHANCED_PROMPT, version: "default-enhanced" };
@@ -86,7 +86,9 @@ export function loadSystemPrompt(force = false, enhanced = false): { content: st
 
     // Verify file exists; if missing, fall back to safe default prompt
     if (!fs.existsSync(PROMPT_PATH)) {
-      console.warn(`[PromptService] system_prompt.md missing at ${PROMPT_PATH}; using built-in default prompt`);
+      console.warn(
+        `[PromptService] system_prompt.md missing at ${PROMPT_PATH}; using built-in default prompt`
+      );
       cachedPrompt = DEFAULT_PROMPT;
       lastLoaded = now;
       return { content: DEFAULT_PROMPT, version: "default" };
@@ -125,7 +127,7 @@ function getEnhancedPromptVersion(): string {
  * @param enhanced - If true, reload the enhanced prompt; otherwise reload the standard prompt
  * @returns System prompt content
  */
-export function reloadSystemPrompt(enhanced = false): { content: string, version: string } {
+export function reloadSystemPrompt(enhanced = false): { content: string; version: string } {
   console.log(`[PromptService] Force reloading ${enhanced ? "enhanced " : ""}system prompt...`);
   return loadSystemPrompt(true, enhanced);
 }
