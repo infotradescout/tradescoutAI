@@ -56,6 +56,9 @@ type SetItem = {
   name: string;
   description?: string;
   price?: number;
+  fallbackValue?: number;
+  condition?: string;
+  rarityTags?: string[];
   imageUrl?: string;
 };
 
@@ -79,6 +82,28 @@ type ListingDetail = {
   mileage?: number;
   brand?: string;
   model?: string;
+  listingType?: "single" | "bundle" | "collection";
+  bundlePurchaseMode?: "must_buy_all" | "seller_allows_split" | "buyer_can_choose_items";
+  bundleItems?: SetItem[];
+  valueGuidance?: {
+    suggestedRangeLow: number;
+    suggestedRangeHigh: number;
+    medianCompPrice: number | null;
+    confidence: "low" | "medium" | "high";
+    sampleSize: number;
+    undercutWarning?: { severity: "soft" | "strong"; message: string };
+  };
+  rarityTags?: string[];
+  rarityConfidence?: "low" | "medium" | "high";
+  rarityExplanation?: string;
+  shippingQuote?: {
+    carrier: "usps" | "ups" | "fedex" | "seller_created";
+    serviceName: string;
+    estimatedCost: number;
+    buyerPays: boolean;
+    sellerAbsorbs: boolean;
+    labelPurchaseMode: "seller_external" | "platform_label";
+  };
   specifications?: Record<string, any>;
   slug?: string;
   sourceType?: string;
@@ -188,6 +213,14 @@ export default function ExchangeListingDetail() {
         mileage: raw.mileage != null ? Number(raw.mileage) : undefined,
         brand: raw.brand ?? raw.make ?? undefined,
         model: raw.model ?? undefined,
+        listingType: raw.listingType ?? undefined,
+        bundlePurchaseMode: raw.bundlePurchaseMode ?? undefined,
+        bundleItems: Array.isArray(raw.bundleItems) ? raw.bundleItems : undefined,
+        valueGuidance: raw.valueGuidance ?? undefined,
+        rarityTags: Array.isArray(raw.rarityTags) ? raw.rarityTags : undefined,
+        rarityConfidence: raw.rarityConfidence ?? undefined,
+        rarityExplanation: raw.rarityExplanation ?? undefined,
+        shippingQuote: raw.shippingQuote ?? undefined,
         specifications: raw.specifications ?? undefined,
         slug: raw.slug ?? undefined,
         sourceType: raw.sourceType ?? raw.specifications?.source ?? undefined,
@@ -301,9 +334,9 @@ export default function ExchangeListingDetail() {
     return rows;
   }
 
-  const setItems: SetItem[] = listing?.specifications?.setItems ?? [];
+  const setItems: SetItem[] = listing?.bundleItems ?? listing?.specifications?.setItems ?? [];
   const isSetListing = setItems.length > 0;
-  const listingType: string = listing?.specifications?.listingType ?? "";
+  const listingType: string = listing?.listingType ?? listing?.specifications?.listingType ?? "";
 
   // ── Loading / error states ─────────────────────────────────────────────────
   if (isLoading) {
@@ -556,6 +589,50 @@ export default function ExchangeListingDetail() {
             </p>
           </div>
 
+          {(listing.valueGuidance || listing.rarityTags?.length || listing.shippingQuote) && (
+            <>
+              <Separator className="bg-white/10" />
+              <div className="grid gap-2 sm:grid-cols-3">
+                {listing.valueGuidance && (
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-white/40">Fair value</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {formatPrice(listing.valueGuidance.suggestedRangeLow)} -{" "}
+                      {formatPrice(listing.valueGuidance.suggestedRangeHigh)}
+                    </p>
+                    <p className="mt-1 text-[11px] text-white/50">
+                      {listing.valueGuidance.sampleSize} comps · {listing.valueGuidance.confidence}{" "}
+                      confidence
+                    </p>
+                  </div>
+                )}
+                {listing.rarityTags?.length ? (
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-white/40">Rarity</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {listing.rarityTags.slice(0, 3).join(", ")}
+                    </p>
+                    <p className="mt-1 text-[11px] text-white/50">
+                      {listing.rarityConfidence || "low"} confidence
+                    </p>
+                  </div>
+                ) : null}
+                {listing.shippingQuote && (
+                  <div className="rounded-lg border border-white/10 bg-white/5 p-3">
+                    <p className="text-[11px] uppercase tracking-wide text-white/40">Shipping</p>
+                    <p className="mt-1 text-sm font-semibold text-white">
+                      {listing.shippingQuote.serviceName}
+                    </p>
+                    <p className="mt-1 text-[11px] text-white/50">
+                      {listing.shippingQuote.buyerPays ? "Buyer pays" : "Included in price"} ·{" "}
+                      {formatPrice(listing.shippingQuote.estimatedCost)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
           {/* ── Spec table ── */}
           {specRows.length > 0 && (
             <>
@@ -609,9 +686,9 @@ export default function ExchangeListingDetail() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2">
                             <p className="text-sm font-medium text-white">{item.name}</p>
-                            {item.price != null && (
+                            {(item.price ?? item.fallbackValue) != null && (
                               <span className="text-sm font-semibold text-ts-orange shrink-0">
-                                {formatPrice(item.price)}
+                                {formatPrice((item.price ?? item.fallbackValue) as number)}
                               </span>
                             )}
                           </div>

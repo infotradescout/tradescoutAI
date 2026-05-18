@@ -2663,17 +2663,27 @@ export default function Exchange() {
                       // Set / Collection mode: embed items in specifications and use item photos as listing images
                       if (isSetMode && setItems.length >= 3) {
                         const listingType =
-                          sellCategorySlug === "collectibles" ? "collection" : "set";
-                        const mappedItems = setItems.map((it) => ({
+                          sellCategorySlug === "collectibles" ? "collection" : "bundle";
+                        const mappedItems = setItems.map((it, index) => ({
+                          id: `bundle-item-${index + 1}`,
                           name: it.name.trim(),
                           description: it.description.trim() || undefined,
-                          price: it.price ? Number(it.price) || undefined : undefined,
+                          condition: mappedCondition,
+                          fallbackValue: it.price ? Number(it.price) || undefined : undefined,
                           imageUrl: it.imageUrl,
                         }));
+                        body.listingType = listingType;
+                        body.bundlePurchaseMode = "must_buy_all";
+                        body.bundleItems = mappedItems;
                         body.specifications = {
                           ...(body.specifications || {}),
                           listingType,
-                          setItems: mappedItems,
+                          setItems: mappedItems.map((item) => ({
+                            name: item.name,
+                            description: item.description,
+                            price: item.fallbackValue,
+                            imageUrl: item.imageUrl,
+                          })),
                         };
                         // Use item images as the listing's image array (one per item)
                         body.images = mappedItems.map((it) => it.imageUrl);

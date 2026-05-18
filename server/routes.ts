@@ -2069,6 +2069,16 @@ export async function registerRoutes(app: any) {
     isLocalPickupOnly: body?.isLocalPickupOnly,
     willShip: body?.willShip,
     shippingCost: body?.shippingCost,
+    shippingQuote: body?.shippingQuote,
+    packageDetails: body?.packageDetails,
+    listingType: body?.listingType,
+    bundlePurchaseMode: body?.bundlePurchaseMode,
+    bundleItems: body?.bundleItems,
+    valueGuidance: body?.valueGuidance,
+    rarityTags: body?.rarityTags,
+    rarityConfidence: body?.rarityConfidence,
+    raritySampleSize: body?.raritySampleSize,
+    rarityExplanation: body?.rarityExplanation,
     condition: body?.condition,
     brand: body?.brand,
     model: body?.model,
@@ -2086,6 +2096,10 @@ export async function registerRoutes(app: any) {
 
   const normalizeMarketplaceWritableFields = (input: any) => {
     const sanitizedSpecifications = sanitizeContactBearingValue(input?.specifications);
+    const sanitizedBundleItems = sanitizeContactBearingValue(input?.bundleItems);
+    const sanitizedShippingQuote = sanitizeContactBearingValue(input?.shippingQuote);
+    const sanitizedPackageDetails = sanitizeContactBearingValue(input?.packageDetails);
+    const sanitizedValueGuidance = sanitizeContactBearingValue(input?.valueGuidance);
     const normalized: any = {
       ...input,
       title: normalizeRedactedText(input?.title, 200),
@@ -2101,7 +2115,22 @@ export async function registerRoutes(app: any) {
       tags: normalizeRedactedStringArray(input?.tags, 20, 64),
       images: normalizeStringArray(input?.images, 24, 1000),
       specifications: hasOwnKeys(sanitizedSpecifications) ? sanitizedSpecifications : null,
+      rarityTags: normalizeRedactedStringArray(input?.rarityTags, 12, 48),
+      rarityExplanation: normalizeOptionalRedactedText(input?.rarityExplanation, 600),
     };
+
+    if (Array.isArray(sanitizedBundleItems)) {
+      normalized.bundleItems = sanitizedBundleItems.slice(0, 100);
+    }
+    if (hasOwnKeys(sanitizedShippingQuote)) {
+      normalized.shippingQuote = sanitizedShippingQuote;
+    }
+    if (hasOwnKeys(sanitizedPackageDetails)) {
+      normalized.packageDetails = sanitizedPackageDetails;
+    }
+    if (hasOwnKeys(sanitizedValueGuidance)) {
+      normalized.valueGuidance = sanitizedValueGuidance;
+    }
 
     if (!normalized.state) {
       delete normalized.state;
@@ -2116,6 +2145,112 @@ export async function registerRoutes(app: any) {
     }
 
     return normalized;
+  };
+
+  const normalizeMarketplaceGuidanceInput = (body: any) => ({
+    categoryId: normalizeOptionalText(body?.categoryId),
+    title: normalizeRedactedText(body?.title, 200),
+    brand: normalizeOptionalRedactedText(body?.brand, 100),
+    model: normalizeOptionalRedactedText(body?.model, 100),
+    condition: normalizeOptionalText(body?.condition),
+    state: normalizeOptionalStateCode(body?.state),
+    county: normalizeWhitespace(body?.county),
+    price: Number(body?.price),
+    rarityTags: normalizeRedactedStringArray(body?.rarityTags, 12, 48),
+  });
+
+  const conditionValueFactor = (condition: string | null | undefined): number => {
+    switch (String(condition || "").toLowerCase()) {
+      case "new":
+        return 1.18;
+      case "like_new":
+        return 1.08;
+      case "excellent":
+        return 1;
+      case "good":
+        return 0.86;
+      case "fair":
+        return 0.68;
+      case "poor":
+        return 0.46;
+      case "parts_only":
+        return 0.28;
+      default:
+        return 0.8;
+    }
+  };
+
+  const buildListingValueGuidance = async (body: any) => {
+    const input = normalizeMarketplaceGuidanceInput(body);
+    const tokens = String(input.title || "")
+      .toLowerCase()
+      .split(/[^a-z0-9]+/)
+      .filter((token) => token.length >= 3)
+      .slice(0, 8);
+    const searchQuery = [input.brand, input.model, tokens.slice(0, 4).join(" ")]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    const comps = await storage.getMarketplaceListings({
+      categoryId: input.categoryId || undefined,
+      state: input.state || undefined,
+      searchQuery: searchQuery || tokens.slice(0, 4).join(" ") || undefined,
+      status: "active",
+      limit: 80,
+    });
+
+    const currentConditionFactor = conditionValueFactor(input.condition);
+    const prices = comps
+      .map((listing: any) => {
+        const rawPrice = Number(String(listing?.price || ""));
+        if (!Number.isFinite(rawPrice) || rawPrice <= 0) return null;
+        const compFactor = conditionValueFactor(String(listing?.condition || ""));
+        return rawPrice * (currentConditionFactor / Math.max(0.2, compFactor));
+      })
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+      .sort((a, b) => a - b);
+
+    const sampleSize = prices.length;
+    const medianCompPrice =
+      sampleSize === 0
+        ? null
+        : sampleSize % 2 === 1
+          ? prices[Math.floor(sampleSize / 2)]
+          : (prices[sampleSize / 2 - 1] + prices[sampleSize / 2]) / 2;
+    const confidence = sampleSize >= 12 ? "high" : sampleSize >= 4 ? "medium" : "low";
+    const rarityAdjustment = Math.min(0.18, input.rarityTags.length * 0.03);
+    const baseline =
+      medianCompPrice ?? (Number.isFinite(input.price) && input.price > 0 ? input.price : 0);
+    const adjustedMedian = baseline * (1 + rarityAdjustment);
+    const spread = confidence === "high" ? 0.18 : confidence === "medium" ? 0.28 : 0.4;
+    const suggestedRangeLow = Math.max(1, Math.round(adjustedMedian * (1 - spread)));
+    const suggestedRangeHigh = Math.max(
+      suggestedRangeLow,
+      Math.round(adjustedMedian * (1 + spread))
+    );
+    const price = Number.isFinite(input.price) ? input.price : 0;
+    const undercutPercent =
+      medianCompPrice && price > 0 ? (medianCompPrice - price) / Math.max(1, medianCompPrice) : 0;
+
+    return {
+      suggestedRangeLow,
+      suggestedRangeHigh,
+      medianCompPrice: medianCompPrice == null ? null : Math.round(medianCompPrice),
+      confidence,
+      sampleSize,
+      conditionAdjustment: Number(currentConditionFactor.toFixed(2)),
+      rarityAdjustment: Number(rarityAdjustment.toFixed(2)),
+      ...(undercutPercent >= 0.15
+        ? {
+            undercutWarning: {
+              severity: undercutPercent >= 0.28 ? "strong" : "soft",
+              message: `You are listing ${Math.round(undercutPercent * 100)}% below similar-condition comps.`,
+              expectedSellTimeImpact:
+                "Likely faster sale, but you may be leaving money on the table.",
+            },
+          }
+        : {}),
+    };
   };
 
   const buildManualHomeScoutSourceListingId = (input: {
@@ -19062,6 +19197,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
+  app.post(
+    "/api/marketplace/listings/value-guidance",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const guidance = await buildListingValueGuidance(req.body ?? {});
+        res.json(guidance);
+      } catch (error: any) {
+        console.error("Error building marketplace value guidance:", error);
+        res.status(500).json({ message: "Failed to build value guidance" });
+      }
+    }
+  );
+
   app.get("/api/marketplace/listings/:id", async (req: any, res: any) => {
     try {
       const { id } = req.params;
@@ -19376,6 +19525,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         normalizedData.isLocalPickupOnly = true;
       }
 
+      if (!normalizedData.valueGuidance) {
+        normalizedData.valueGuidance = await buildListingValueGuidance(normalizedData);
+      }
+
       const listing = await storage.createMarketplaceListing(normalizedData);
 
       res.status(201).json({
@@ -19651,6 +19804,37 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(403).json({ message: "Not authorized to update this listing" });
         }
         const updated = await storage.updateMarketplaceListing(id, { status: "sold" });
+        try {
+          const shippingQuoteJson = (listing as any).shippingQuote
+            ? JSON.stringify((listing as any).shippingQuote)
+            : null;
+          await db.execute(sql`
+            INSERT INTO marketplace_orders (
+              listing_id,
+              seller_id,
+              status,
+              shipping_quote,
+              payout_deduction_amount
+            )
+            VALUES (
+              ${id},
+              ${sellerId},
+              'item_sold',
+              ${shippingQuoteJson}::jsonb,
+              CASE
+                WHEN ${shippingQuoteJson}::jsonb->>'sellerAbsorbs' = 'true'
+                  THEN COALESCE(((${shippingQuoteJson}::jsonb->>'estimatedCost')::numeric), 0)
+                ELSE 0
+              END
+            )
+            ON CONFLICT (listing_id) DO UPDATE SET
+              status = marketplace_orders.status,
+              shipping_quote = COALESCE(marketplace_orders.shipping_quote, EXCLUDED.shipping_quote),
+              updated_at = now()
+          `);
+        } catch (orderError: any) {
+          console.warn("[marketplace] sold listing order lifecycle event skipped", orderError);
+        }
         res.json(updated);
       } catch (error: any) {
         console.error("Error marking listing as sold:", error);
