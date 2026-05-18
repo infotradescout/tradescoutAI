@@ -82,4 +82,31 @@ describe("public profile compatibility contracts", () => {
       "canonicalProfileUrlByProviderId.get(String(row.providerId)) ??"
     );
   });
+
+  it("legacy contractor profile API and page bridge to canonical business profiles", () => {
+    const routesSource = read("server/routes.ts");
+    const contractorProfile = read("client/src/pages/contractor-profile.tsx");
+    const migrationPlan = read("docs/audits/LEGACY_CONTRACTOR_NAMING_MIGRATION_PLAN.md");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(routesSource).toContain("await storage.getBusinessProfileByUserId(ownerUserId)");
+    expect(routesSource).toContain("canonicalBusinessProfileSlug");
+    expect(routesSource).toContain("canonicalBusinessProfileUrl:");
+    expect(routesSource).toContain(
+      "`/business/${encodeURIComponent(canonicalBusinessProfileSlug)}`"
+    );
+
+    expect(contractorProfile).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(contractorProfile).toContain("setLocation(canonicalUrl)");
+    expect(contractorProfile).toContain("Back to Find Local Help");
+    expect(contractorProfile).toContain("Verified Local Provider");
+    expect(contractorProfile).toContain("Contact stays gated through TradeScout");
+    expect(contractorProfile).not.toContain("Back to Find Contractors");
+    expect(contractorProfile).not.toContain("Verified Local Contractor");
+
+    expect(migrationPlan).toContain("the API now exposes `/business/:slug`");
+    expect(scoutMatrix).toContain(
+      "Public contractor profile compatibility now has a first canonical bridge"
+    );
+  });
 });

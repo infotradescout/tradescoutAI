@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,6 +26,8 @@ interface ContractorProfileData {
     average: number;
     count: number;
   };
+  canonicalBusinessProfileSlug?: string | null;
+  canonicalBusinessProfileUrl?: string | null;
 }
 
 export default function ContractorProfile() {
@@ -41,6 +44,16 @@ export default function ContractorProfile() {
     enabled: !!slug,
   });
 
+  useEffect(() => {
+    const canonicalUrl =
+      typeof contractorData?.canonicalBusinessProfileUrl === "string"
+        ? contractorData.canonicalBusinessProfileUrl.trim()
+        : "";
+    if (canonicalUrl) {
+      setLocation(canonicalUrl);
+    }
+  }, [contractorData?.canonicalBusinessProfileUrl, setLocation]);
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -56,10 +69,10 @@ export default function ContractorProfile() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Card className="bg-red-900/20 border-red-500/50">
           <CardContent className="p-6 text-center">
-            <p className="text-red-400">Contractor not found or failed to load.</p>
+            <p className="text-red-400">Business profile not found or failed to load.</p>
             <Link href="/contractors">
               <Button className="mt-4 bg-ts-orange hover:bg-ts-orange-dark">
-                Back to Find Contractors
+                Back to Find Local Help
               </Button>
             </Link>
           </CardContent>
@@ -69,6 +82,15 @@ export default function ContractorProfile() {
   }
 
   const { contractor, recommendations = [], ratingSummary } = contractorData;
+  if (contractorData.canonicalBusinessProfileUrl) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="flex items-center justify-center min-h-96">
+          <div className="animate-spin w-8 h-8 border-4 border-ts-orange/30 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
   const companyInitials =
     contractor.companyName
       ?.split(" ")
@@ -80,7 +102,7 @@ export default function ContractorProfile() {
   // SEO data generation
   const breadcrumbItems = [
     { name: "Home", url: "/" },
-    { name: "Find Contractors", url: "/contractors" },
+    { name: "Find Local Help", url: "/contractors" },
     { name: contractor.companyName, url: `/contractors/${slug}` },
   ];
 
@@ -88,23 +110,22 @@ export default function ContractorProfile() {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     name: contractor.companyName,
-    description:
-      contractor.about || `Professional contractor services by ${contractor.companyName}`,
+    description: contractor.about || `Local provider services by ${contractor.companyName}`,
     url: window.location.href,
     address: {
       "@type": "PostalAddress",
       addressCountry: "US",
     },
     priceRange: "$$",
-    serviceType: "Home Improvement Contractor",
+    serviceType: "Local Services",
     areaServed: "Local Area",
   };
 
-  const seoTitle = `${contractor.companyName} - Verified Local Contractor | TradeScout`;
+  const seoTitle = `${contractor.companyName} - Verified Local Provider | TradeScout`;
   const cvsScoreRaw = (contractor as any)?.cvsScore;
   const cvsScore =
     typeof cvsScoreRaw === "number" && Number.isFinite(cvsScoreRaw) ? cvsScoreRaw : null;
-  const seoDescription = `Hire ${contractor.companyName} for quality home improvement services. ${cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS pending"}${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ""}. Licensed and insured when applicable.`;
+  const seoDescription = `Review ${contractor.companyName} as a local provider on TradeScout. ${cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS pending"}${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ""}. Contact stays gated through TradeScout.`;
   const directConnectHref = `/direct-connect?intent=hire&contractor=${encodeURIComponent(String(slug || contractor.id))}`;
 
   return (
@@ -112,8 +133,8 @@ export default function ContractorProfile() {
       <SEOHelmet
         title={seoTitle}
         description={seoDescription}
-        keywords={`${contractor.companyName}, local contractor, home improvement, verified contractor, licensed contractor, free quotes`}
-        canonical={`https://www.thetradescout.com/contractor/${slug}`}
+        keywords={`${contractor.companyName}, local provider, local business, verified provider, TradeScout Direct Connect`}
+        canonical={`https://www.thetradescout.com/contractors/${slug}`}
         structuredData={contractorStructuredData}
       />
 

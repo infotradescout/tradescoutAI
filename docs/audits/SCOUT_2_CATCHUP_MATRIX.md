@@ -154,8 +154,9 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Legacy business-tool dashboard labels, request verification prompts, profile creation prompts, and broad local-help CTAs now use generic business/provider language; explicit contractor SEO and compatibility surfaces remain documented migration exceptions.
 - Remaining contractor-language surfaces are now classified: county SEO and public contractor-profile URLs stay temporary exceptions, comparison CTAs and legacy tool access copy use generic local-help/business-provider language, and the recommendation generator now checks business-provider capability instead of only `contractor_user`.
 - County SEO pages now split explicit contractor keyword targeting from visible local-help action copy: FAQ/metadata can still serve "contractors near me" intent, while coverage CTAs, Direct Connect headings, and community copy use local provider/business language.
+- Public contractor profile compatibility now has a first canonical bridge: `/api/contractors/:slug` returns `/business/:slug` when a public business profile exists, and the legacy client redirects there while using generic provider fallback copy.
 
 ## Fastest Next Work
 
 1. Expand Opportunity Radar beyond `county_metrics` only after `county_entities` and `county_notes` use has CVS/source/freshness handling.
-2. Plan the public profile URL migration from `/contractors/*` compatibility routes to generic business profile URLs.
+2. Replace more provider-discovery links with canonical `/business/:slug` URLs where API responses already provide them.

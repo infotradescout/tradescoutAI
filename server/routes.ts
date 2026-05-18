@@ -8064,6 +8064,16 @@ export async function registerRoutes(app: any) {
       // Get recommendations and ratings
       const recommendations = await storage.getRecommendations(contractor.id);
       const ratings = await storage.getContractorRatings(contractor.id);
+      const ownerUserId = String((contractor as any).userId || "").trim();
+      const canonicalBusinessProfile = ownerUserId
+        ? await storage.getBusinessProfileByUserId(ownerUserId)
+        : null;
+      const canonicalBusinessProfileSlug =
+        canonicalBusinessProfile?.visibility === "public" &&
+        typeof canonicalBusinessProfile.slug === "string" &&
+        canonicalBusinessProfile.slug.trim()
+          ? canonicalBusinessProfile.slug.trim()
+          : null;
       const viewerUserId =
         ((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim() || null;
       const [contractorWithConnectionCount] = await attachConnectionRecommendationCounts(
@@ -8075,6 +8085,10 @@ export async function registerRoutes(app: any) {
         contractor: contractorWithConnectionCount,
         recommendations,
         ratingSummary: ratings,
+        canonicalBusinessProfileSlug,
+        canonicalBusinessProfileUrl: canonicalBusinessProfileSlug
+          ? `/business/${encodeURIComponent(canonicalBusinessProfileSlug)}`
+          : null,
       });
     } catch (error: any) {
       console.error("Error fetching contractor:", error);
