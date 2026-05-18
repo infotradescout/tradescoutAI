@@ -2014,8 +2014,74 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Requester-facing: create/fetch a public share URL for a Direct Connect request
+  // Requester-facing: read-only fetch of an existing share URL for a Direct Connect request
   app.get(
+    "/api/direct-connect/requests/:id/share",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const requestId = String(req.params.id);
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+
+        if (!requestRow) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
+
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res
+            .status(400)
+            .json({ message: "Only Direct Connect requests can be shared here" });
+        }
+
+        if (!isShareableRequestStatus((requestRow as any).status)) {
+          if (String((requestRow as any).shareToken || "").trim()) {
+            await db
+              .update(workRequests)
+              .set({ shareToken: null, updatedAt: new Date() })
+              .where(eq(workRequests.id, requestId));
+          }
+          return res
+            .status(409)
+            .json({ message: "This request is closed and no longer shareable." });
+        }
+
+        if (String(requestRow.createdByUserId) !== String(userId)) {
+          return res.status(403).json({ message: "You can only share your own requests" });
+        }
+
+        const shareToken = String((requestRow as any).shareToken || "").trim();
+        if (!shareToken) {
+          return res.status(404).json({
+            message: "No share link has been created yet. Use POST to create one.",
+          });
+        }
+
+        const origin = resolveOrigin(req);
+        const shareUrl = `${origin}/r/${encodeURIComponent(shareToken)}`;
+
+        return res.status(200).json({
+          shareToken,
+          shareUrl,
+          policy: "scope_only_join_and_verify_required",
+        });
+      } catch (error: any) {
+        console.error("Error fetching direct connect share link:", error);
+        return res.status(500).json({
+          message: "Failed to fetch share link",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  // Requester-facing: create/fetch a public share URL for a Direct Connect request
+  app.post(
     "/api/direct-connect/requests/:id/share",
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {

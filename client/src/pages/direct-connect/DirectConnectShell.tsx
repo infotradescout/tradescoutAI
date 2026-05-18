@@ -53,6 +53,13 @@ import {
 
 const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"] as const;
 type Section = (typeof SECTIONS)[number];
+type RequestType =
+  | "service_request"
+  | "business_request"
+  | "customer_support"
+  | "employment"
+  | "buy_sell"
+  | "other";
 
 const DIRECT_CONNECT_TABS: Section[] = [
   "post",
@@ -79,6 +86,22 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
   inbox: "Replies",
   pros: "Directory",
   engagements: "Requests",
+};
+
+const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
+const DIRECT_CONNECT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+
+type DirectConnectDraftSnapshot = {
+  savedAt: number;
+  returnPath: string;
+  title: string;
+  description: string;
+  budgetMin: string;
+  budgetMax: string;
+  requestType: RequestType;
+  showOptional: boolean;
+  selectedProviderIds: string[];
+  attachmentKeys: string[];
 };
 
 type FlowMode = "start" | "manage";
@@ -484,6 +507,12 @@ type DirectoryCandidate = {
 };
 
 type DispatchMode = "top_count" | "direct_pick";
+type DirectConnectCreateDispatch = {
+  targetProviderIds?: string[];
+  autoRoute?: boolean;
+  dispatchMode?: DispatchMode;
+  dispatchCount?: number;
+};
 
 function parseNumberOrNull(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -601,6 +630,7 @@ function DirectConnectRequestComposer({
         ? `This request started from Community and is intended for ${initialTargetName}.`
         : "")
   );
+  const [draftAttachmentKeys, setDraftAttachmentKeys] = useState<string[]>([]);
   const [budgetMin, setBudgetMin] = useState(() => prefillBudgetMin?.trim() || "");
   const [budgetMax, setBudgetMax] = useState(() => prefillBudgetMax?.trim() || "");
   const [showOptional, setShowOptional] = useState(() =>
@@ -613,9 +643,116 @@ function DirectConnectRequestComposer({
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
   const requestStartedRef = useRef(false);
+  const draftInitializedRef = useRef(false);
   const currentReturnPath = () => {
     if (typeof window === "undefined") return location || "/direct-connect";
     return `${window.location.pathname}${window.location.search || ""}`;
+  };
+
+  const clearDirectConnectDraft = () => {
+    if (typeof window === "undefined") return;
+    window.sessionStorage.removeItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY);
+    window.localStorage.removeItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY);
+  };
+
+  const readDirectConnectDraft = () => {
+    if (typeof window === "undefined") return null;
+    return (
+      window.sessionStorage.getItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY) ||
+      window.localStorage.getItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY)
+    );
+  };
+
+  const hydrateDirectConnectDraft = () => {
+    if (typeof window === "undefined" || draftInitializedRef.current) return;
+    draftInitializedRef.current = true;
+
+    const raw = readDirectConnectDraft();
+    if (!raw) return;
+    let parsed: DirectConnectDraftSnapshot | null = null;
+
+    try {
+      const candidate = JSON.parse(raw) as unknown;
+      if (
+        typeof candidate === "object" &&
+        candidate !== null &&
+        typeof (candidate as DirectConnectDraftSnapshot).savedAt === "number" &&
+        typeof (candidate as DirectConnectDraftSnapshot).returnPath === "string"
+      ) {
+        parsed = candidate as DirectConnectDraftSnapshot;
+      }
+    } catch {
+      clearDirectConnectDraft();
+      return;
+    }
+
+    if (!parsed) return;
+    if (parsed.returnPath !== currentReturnPath()) return;
+    if (Date.now() - parsed.savedAt > DIRECT_CONNECT_DRAFT_TTL_MS) {
+      clearDirectConnectDraft();
+      return;
+    }
+
+    const parsedRequestType = parsed.requestType || "service_request";
+    const parsedAttachmentKeys = (parsed.attachmentKeys || []).filter(
+      (item) => typeof item === "string" && item.trim().length > 0
+    );
+    const parsedProviderIds = (parsed.selectedProviderIds || [])
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean);
+
+    setTitle(parsed.title || prefillTitle?.trim() || "");
+    setDescription(parsed.description || prefillDescription?.trim() || "");
+    setBudgetMin(parsed.budgetMin || "");
+    setBudgetMax(parsed.budgetMax || "");
+    if (
+      parsedRequestType === "service_request" ||
+      parsedRequestType === "business_request" ||
+      parsedRequestType === "customer_support" ||
+      parsedRequestType === "employment" ||
+      parsedRequestType === "buy_sell" ||
+      parsedRequestType === "other"
+    ) {
+      setRequestType(parsedRequestType);
+    }
+    setShowOptional(Boolean(parsed.showOptional));
+    setSelectedContractorIds(parsedProviderIds);
+    setDraftAttachmentKeys(Array.from(new Set(parsedAttachmentKeys)).slice(0, 6));
+    clearDirectConnectDraft();
+  };
+
+  const persistDirectConnectDraft = (payload: { selectedProviderIds?: string[] } = {}) => {
+    if (typeof window === "undefined") return;
+
+    const draft: DirectConnectDraftSnapshot = {
+      savedAt: Date.now(),
+      returnPath: currentReturnPath(),
+      requestType,
+      title: title.trim(),
+      description: description.trim(),
+      budgetMin: budgetMin.trim(),
+      budgetMax: budgetMax.trim(),
+      showOptional,
+      selectedProviderIds: Array.from(
+        new Set(
+          (payload.selectedProviderIds && Array.isArray(payload.selectedProviderIds)
+            ? payload.selectedProviderIds
+            : selectedContractorIds
+          )
+            .filter((item) => typeof item === "string")
+            .map((item) => item.trim())
+            .filter(Boolean)
+        )
+      ),
+      attachmentKeys: Array.from(
+        new Set(
+          (draftAttachmentKeys || []).filter((item) => typeof item === "string" && item.trim())
+        )
+      ),
+    };
+    const serialized = JSON.stringify(draft);
+    window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
+    window.localStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
   };
 
   const replaceAttachments = (next: DraftAttachment[]) => {
@@ -802,24 +939,29 @@ function DirectConnectRequestComposer({
     setSelectedContractorIds([]);
   }, [showDispatchSheet, dispatchMode, topCountSelectionKey]);
 
-  const createMutation = useMutation({
-    mutationFn: async (dispatch?: {
-      targetProviderIds?: string[];
-      autoRoute?: boolean;
-      dispatchMode?: DispatchMode;
-      dispatchCount?: number;
-    }) => {
-      const uploadedAttachmentKeys: string[] = [];
+  useEffect(() => {
+    hydrateDirectConnectDraft();
+  }, []);
+
+  const createMutation = useMutation<any, any, DirectConnectCreateDispatch | undefined>({
+    mutationFn: async (dispatch?: DirectConnectCreateDispatch) => {
+      const uploadedAttachmentKeys = new Set<string>(draftAttachmentKeys);
       for (const attachment of attachmentsRef.current) {
         const { objectKey } = await uploadPrivateObject(attachment.file);
-        uploadedAttachmentKeys.push(objectKey);
+        uploadedAttachmentKeys.add(objectKey);
       }
+      const nextDraftAttachmentKeys = Array.from(uploadedAttachmentKeys).filter(
+        (key) => typeof key === "string" && key.trim()
+      );
+      setDraftAttachmentKeys(Array.from(new Set(nextDraftAttachmentKeys)).slice(0, 8));
 
       const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim(),
         category: activeRequestMeta.category,
-        ...(uploadedAttachmentKeys.length > 0 ? { attachments: uploadedAttachmentKeys } : {}),
+        ...(nextDraftAttachmentKeys.length > 0
+          ? { attachments: nextDraftAttachmentKeys.slice(0, 8) }
+          : {}),
       };
 
       if (defaultCountyFips) payload.countyFips = defaultCountyFips;
@@ -888,10 +1030,15 @@ function DirectConnectRequestComposer({
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
+      clearDirectConnectDraft();
       navigate("/direct-connect/engagements");
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables: DirectConnectCreateDispatch | undefined) => {
+      const variables = _variables ?? {};
       if (error?.status === 401) {
+        persistDirectConnectDraft({
+          selectedProviderIds: variables?.targetProviderIds || selectedContractorIds,
+        });
         toast({
           title: "Sign in to send",
           description: "Your request draft is ready. Sign in to review and send it.",
@@ -968,6 +1115,7 @@ function DirectConnectRequestComposer({
   const handleOpenDispatchSheet = () => {
     if (!canSubmit || createMutation.isPending) return;
     if (!isAuthenticated) {
+      persistDirectConnectDraft({ selectedProviderIds: selectedContractorIds });
       toast({
         title: "Sign in to send",
         description: "Your request draft is ready. Sign in to review and send it.",
@@ -2118,7 +2266,7 @@ function MyDirectConnectRequests() {
 
   const shareLandingMutation = useMutation({
     mutationFn: async (requestId: string) => {
-      return apiRequest("GET", `/api/direct-connect/requests/${requestId}/share`);
+      return apiRequest("POST", `/api/direct-connect/requests/${requestId}/share`);
     },
   });
 
