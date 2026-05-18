@@ -16,7 +16,7 @@ const getFeatureSteps = (feature: string): TourStep[] => {
           target: "[data-testid='recommendation-form']",
           title: "Leave a Recommendation",
           description:
-            "Help other homeowners by sharing your experience with this contractor. Your feedback builds trust in the community.",
+            "Help other local customers by sharing your experience with this business. Your feedback builds trust in the community.",
           position: "top",
         },
         {
@@ -24,7 +24,7 @@ const getFeatureSteps = (feature: string): TourStep[] => {
           target: "[data-testid='recommendation-thumbs']",
           title: "Thumbs Up or Down",
           description:
-            "Simple but powerful - give a thumbs up for good work or thumbs down if you had issues. This directly affects contractor rankings.",
+            "Simple but powerful - give a thumbs up for good work or thumbs down if you had issues. This feeds trust and exposure signals.",
           position: "bottom",
         },
         {
@@ -55,9 +55,9 @@ const getFeatureSteps = (feature: string): TourStep[] => {
         {
           id: "search-intro",
           target: "[data-testid='contractor-search']",
-          title: "Smart Contractor Search",
+          title: "Smart Local Search",
           description:
-            "Find exactly the right contractor for your project using our advanced search and filtering system.",
+            "Find the right local business for your request using location, category, and trust context.",
           position: "bottom",
         },
         {
@@ -65,15 +65,14 @@ const getFeatureSteps = (feature: string): TourStep[] => {
           target: "[data-testid='location-filter']",
           title: "Search by Location",
           description:
-            "Start with your city or local area so you only see contractors who actually work there.",
+            "Start with your city or local area so you only see businesses that actually work there.",
           position: "bottom",
         },
         {
           id: "trade-filter",
           target: "[data-testid='trade-filter']",
           title: "Filter by Trade",
-          description:
-            "Narrow down to contractors who specialize in exactly what you need - from plumbing to roofing to electrical work.",
+          description: "Narrow down to businesses that specialize in exactly what you need.",
           position: "bottom",
         },
         {

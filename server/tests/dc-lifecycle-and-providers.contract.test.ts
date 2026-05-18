@@ -160,77 +160,78 @@ describe("DC server — complete endpoint", () => {
 describe("Scout → DC prefill handoff", () => {
   it("buildStructuredPrefillRoute routes to /direct-connect for DC requests", () => {
     const fnStart = SCOUT_ACTION_ROUTER.indexOf("buildStructuredPrefillRoute");
-    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 1500);
+    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 3500);
     expect(fnBody).toContain("/direct-connect");
   });
 
   it("does not route DC requests to /direct-connect/post", () => {
     const fnStart = SCOUT_ACTION_ROUTER.indexOf("buildStructuredPrefillRoute");
-    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 1500);
+    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 3500);
     expect(fnBody).not.toContain("/direct-connect/post");
   });
 
   it("appends source=scout param to the DC prefill URL", () => {
     const fnStart = SCOUT_ACTION_ROUTER.indexOf("buildStructuredPrefillRoute");
-    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 1500);
+    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 3500);
     expect(fnBody).toContain("source");
     expect(fnBody).toContain("scout");
   });
 
   it("appends title param from prefill.jobType", () => {
     const fnStart = SCOUT_ACTION_ROUTER.indexOf("buildStructuredPrefillRoute");
-    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 1500);
+    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 3500);
     expect(fnBody).toContain("title");
     expect(fnBody).toContain("jobType");
   });
 
   it("appends description param from prefill.scope", () => {
     const fnStart = SCOUT_ACTION_ROUTER.indexOf("buildStructuredPrefillRoute");
-    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 1500);
+    const fnBody = SCOUT_ACTION_ROUTER.slice(fnStart, fnStart + 3500);
     expect(fnBody).toContain("description");
     expect(fnBody).toContain("scope");
   });
 });
 
-// ─── /api/providers/search ────────────────────────────────────────────────────
+// ─── /api/business-providers/search ───────────────────────────────────────────
 
-describe("/api/providers/search universal endpoint", () => {
-  it("registers the /api/providers/search route in routes.ts", () => {
+describe("/api/business-providers/search universal endpoint", () => {
+  it("registers the generic business provider route while keeping legacy providers alias", () => {
+    expect(ROUTES_TS).toContain('"/api/business-providers/search"');
     expect(ROUTES_TS).toContain('"/api/providers/search"');
   });
 
   it("queries contractors table", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/providers/search"');
+    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
     const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
     expect(routeBody).toContain("contractors");
   });
 
   it("queries businesses via getProvidersByCountyAndCategory", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/providers/search"');
+    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
     const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
     expect(routeBody).toContain("getProvidersByCountyAndCategory");
   });
 
   it("deduplicates results with a seen Set", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/providers/search"');
+    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
     const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
     expect(routeBody).toContain("seen");
     expect(routeBody).toContain("new Set");
   });
 
   it("annotates each result with providerType", () => {
-    const routeStart = ROUTES_TS.indexOf('"/api/providers/search"');
+    const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
     const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
     expect(routeBody).toContain("providerType");
   });
 
-  it("DirectConnectPros uses /api/providers/search", () => {
-    expect(DC_PROS).toContain('"/api/providers/search"');
+  it("DirectConnectPros uses /api/business-providers/search", () => {
+    expect(DC_PROS).toContain('"/api/business-providers/search"');
     expect(DC_PROS).not.toContain('"/api/contractors/search"');
   });
 
-  it("DirectConnectShell dispatch sheet uses /api/providers/search", () => {
-    expect(DC_SHELL).toContain('"/api/providers/search"');
+  it("DirectConnectShell dispatch sheet uses /api/business-providers/search", () => {
+    expect(DC_SHELL).toContain('"/api/business-providers/search"');
     expect(DC_SHELL).not.toContain('"/api/contractors/search"');
   });
 });

@@ -137,7 +137,7 @@ export default function StoryGeneratorPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <Link href="/contractor-dashboard">
+            <Link href="/business-dashboard">
               <Button
                 variant="outline"
                 size="sm"

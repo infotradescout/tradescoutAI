@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { safeNavigate } from "@/lib/safeNavigate";
-import { hasAdminUiAccess } from "@/lib/roleChecks";
+import { hasAdminUiAccess, hasBusinessProviderToolAccess } from "@/lib/roleChecks";
 import { getRolePermissions } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import {
@@ -82,6 +82,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   roles?: UserRole[];
+  requiresBusinessProvider?: boolean;
   permission?: keyof ReturnType<typeof getRolePermissions>;
   children?: NavItem[];
 }
@@ -106,57 +107,57 @@ const ALL_NAVIGATION: NavItem[] = [
     ],
   },
 
-  // CONTRACTORS
+  // LOCAL BUSINESSES
   {
-    label: "Contractors",
-    href: "/contractors",
+    label: "Local Businesses",
+    href: "/direct-connect",
     icon: Hammer,
     children: [
-      { label: "Find Contractors", href: "/contractors", icon: Search },
+      { label: "Find Local Help", href: "/direct-connect", icon: Search },
       // { label: 'Scout Estimates', href: '/scout?intent=estimate', icon: Calculator }, // Hidden from nav, contextual only
-      { label: "Top Contractors", href: "/contractors/top", icon: Award },
+      { label: "Top Providers", href: "/contractors/top", icon: Award },
     ],
   },
 
-  // CONTRACTOR TOOLS
+  // BUSINESS PROVIDER TOOLS
   {
-    label: "Contractor Dashboard",
-    href: "/contractor-dashboard",
+    label: "Business Dashboard",
+    href: "/business-dashboard",
     icon: Wrench,
-    roles: ["contractor_user"],
+    requiresBusinessProvider: true,
     children: [
-      { label: "Dashboard", href: "/contractor-dashboard", icon: LayoutDashboard },
+      { label: "Dashboard", href: "/business-dashboard", icon: LayoutDashboard },
       {
-        label: "Project Requests",
-        href: "/contractor/leads",
+        label: "Local Requests",
+        href: "/business/requests",
         icon: ClipboardList,
-        roles: ["contractor_user"],
+        requiresBusinessProvider: true,
       },
       {
         label: "My Projects",
-        href: "/contractor/leads",
+        href: "/business/requests",
         icon: ListChecks,
-        roles: ["contractor_user"],
+        requiresBusinessProvider: true,
       },
       {
         label: "Promotions",
         href: "/promotions",
         icon: Megaphone,
-        roles: ["contractor_user"],
+        requiresBusinessProvider: true,
       },
       {
         label: "Performance Analytics",
-        href: "/contractor-dashboard",
+        href: "/business-dashboard",
         icon: ChartBar,
-        roles: ["contractor_user"],
+        requiresBusinessProvider: true,
       },
       {
         label: "Recommendations & Trust (CVS)",
-        href: "/contractor-dashboard",
+        href: "/business-dashboard",
         icon: Star,
-        roles: ["contractor_user"],
+        requiresBusinessProvider: true,
       },
-      { label: "Apply as Contractor", href: "/contractor-apply", icon: UserPlus },
+      { label: "Apply as Business", href: "/businesses/apply", icon: UserPlus },
     ],
   },
 
@@ -261,13 +262,13 @@ const ALL_NAVIGATION: NavItem[] = [
   // BUSINESS OWNER
   {
     label: "Business Owner",
-    href: "/business-owner-dashboard",
+    href: "/business-dashboard",
     icon: Building2,
     roles: ["business_owner"],
     children: [
       {
         label: "Business Dashboard",
-        href: "/business-owner-dashboard",
+        href: "/business-dashboard",
         icon: LayoutDashboard,
         roles: ["business_owner"],
       },
@@ -404,7 +405,11 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
   const isAdminUser = hasAdminUiAccess(user);
 
   const hasPermission = (item: NavItem): boolean => {
-    if (!user) return !item.roles && !item.permission;
+    if (!user) return !item.roles && !item.permission && !item.requiresBusinessProvider;
+
+    if (item.requiresBusinessProvider && !hasBusinessProviderToolAccess(user)) {
+      return false;
+    }
 
     // Check role requirement
     if (item.roles && item.roles.length > 0) {
@@ -428,7 +433,7 @@ const ComprehensiveNav = memo(function ComprehensiveNav() {
       if (
         isCommunityFirst &&
         [
-          "Contractor Dashboard",
+          "Business Dashboard",
           "Professional Tools",
           "HOA Management",
           "Business Owner",

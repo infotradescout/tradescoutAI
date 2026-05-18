@@ -102,6 +102,7 @@
     "lint": "eslint .",
     "pack:repo": "node scripts/pack-repo.mjs --out repo-pack.md",
     "homescout:bootstrap": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/homescout-bootstrap.ts",
+    "snapshot:completed-job-prices": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/run-completed-job-price-snapshot.ts",
     "ingest:observations": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/ingest-observations.ts",
     "agents:builder": "cross-env AGENTS_ENABLED=true AGENT_ROLE=builder AGENT_WRITE_SCOPE=branches_only AGENT_DB_SCOPE=seed_only AGENT_INTENT_BUDGET=10 AGENT_MAX_PARALLEL=1 AGENT_HEARTBEAT_SEC=30 SCHEDULER_ENABLED=false DISABLE_CRAWLER=true node agent-runtime/agent-supervisor.js",
     "deploy:render": "node scripts/trigger-render-deploy.mjs",

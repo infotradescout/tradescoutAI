@@ -74,6 +74,25 @@ export default function OnboardingProfile() {
   // Track whether the location was resolved via Google Places (vs. manual typing)
   const [locationSource, setLocationSource] = useState<"places" | "manual" | "none">("none");
 
+  const provisionalDraft = ((user as any)?.preferences?.provisional?.profileDraft || {}) as Record<
+    string,
+    any
+  >;
+  const setupPresenceType =
+    typeof provisionalDraft.presenceType === "string" ? provisionalDraft.presenceType : null;
+  const setupBusinessName =
+    typeof provisionalDraft.businessName === "string" ? provisionalDraft.businessName.trim() : "";
+  const setupModeLabel =
+    setupPresenceType === "represent_business"
+      ? setupBusinessName
+        ? `Setting up ${setupBusinessName}`
+        : "Setting up a business profile"
+      : "Setting up your local profile";
+  const setupModeDescription =
+    setupPresenceType === "represent_business"
+      ? "Next we will connect your business profile, fixed-price offers, verification, and bookkeeping review."
+      : "Next we will connect you to local help, community context, and Scout-guided requests.";
+
   // Hydrate from user record on mount
   useEffect(() => {
     if (!user || !isAuthenticated) return;
@@ -332,6 +351,12 @@ export default function OnboardingProfile() {
             <p className="text-sm text-white/70">
               We use this to keep local matching accurate from your first request.
             </p>
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              <div className="text-sm font-semibold text-white">{setupModeLabel}</div>
+              <div className="mt-1 text-xs leading-relaxed text-white/55">
+                {setupModeDescription}
+              </div>
+            </div>
           </CardHeader>
 
           <CardContent>

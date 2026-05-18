@@ -34,7 +34,7 @@ import {
 import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
-import { hasAdminUiAccess } from "@/lib/roleChecks";
+import { hasAdminUiAccess, hasBusinessProviderToolAccess } from "@/lib/roleChecks";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -53,7 +53,7 @@ export default function Navigation() {
   }, []);
 
   const isAdmin = hasAdminUiAccess(user);
-  const isContractor = user && user.role && ["contractor_user"].includes(user.role);
+  const isBusinessProvider = hasBusinessProviderToolAccess(user);
   const isHomeowner = user && user.role === "homeowner";
 
   const { data: walletBalanceData } = useQuery<{ balance: string } | null>({
@@ -80,11 +80,11 @@ export default function Navigation() {
     ...(!isHomeowner
       ? [
           {
-            href: "/contractor-apply",
-            label: "For Contractors",
+            href: "/businesses/apply",
+            label: "For Businesses",
             icon: Wrench,
             public: true,
-            description: "Join our contractor network",
+            description: "Join TradeScout as a business",
           },
         ]
       : []),
@@ -470,13 +470,13 @@ export default function Navigation() {
 
           {/* Mobile Navigation Buttons */}
           <div className="md:hidden flex items-center space-x-1">
-            {/* Find Contractors - Always visible */}
-            <Link href="/contractors">
+            {/* Find local help - Always visible */}
+            <Link href="/direct-connect">
               <Button
                 variant="ghost"
                 size="sm"
                 className={`text-[11px] px-2 py-1 rounded-md ${
-                  location === "/contractors"
+                  location === "/direct-connect"
                     ? "text-ts-orange bg-ts-orange/15"
                     : "text-white/70 hover:text-white"
                 }`}
@@ -486,14 +486,14 @@ export default function Navigation() {
               </Button>
             </Link>
 
-            {/* For Contractors - marketing entry point for non-homeowners */}
+            {/* For Businesses - marketing entry point for non-homeowners */}
             {!isHomeowner && (
-              <Link href="/contractor-apply">
+              <Link href="/businesses/apply">
                 <Button
                   variant="ghost"
                   size="sm"
                   className={`text-[11px] px-2 py-1 rounded-md ${
-                    location === "/contractor-apply"
+                    location === "/businesses/apply"
                       ? "text-ts-orange bg-ts-orange/15"
                       : "text-white/70 hover:text-white"
                   }`}

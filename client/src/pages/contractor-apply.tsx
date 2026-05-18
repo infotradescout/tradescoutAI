@@ -150,7 +150,7 @@ export default function ContractorApply() {
       <SEOHelmet
         title="Contractor Application | Join TradeScout's Verified Network"
         description="Apply to join TradeScout as a contractor. Submit your business details, licensing, and insurance information to get reviewed."
-        canonical="https://www.thetradescout.com/contractors/apply"
+        canonical="https://www.thetradescout.com/businesses/apply"
       />
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout's Contractor Network</h1>

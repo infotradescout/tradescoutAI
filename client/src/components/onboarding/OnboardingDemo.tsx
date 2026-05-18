@@ -19,18 +19,18 @@ export function OnboardingDemo() {
         <div className="text-sm text-white/70 mb-4">
           Learn how to use TradeScout with interactive guided tours:
         </div>
-        
+
         <div className="space-y-2">
-          <OnboardingTrigger 
+          <OnboardingTrigger
             tourKey="contractor-board-tour"
             variant="outline"
             className="w-full justify-start"
           >
             <Users className="h-4 w-4 mr-2" />
-            Explore Contractor Board
+            Explore Local Business Flow
           </OnboardingTrigger>
-          
-          <OnboardingTrigger 
+
+          <OnboardingTrigger
             tourKey="feature-tour-search"
             variant="outline"
             className="w-full justify-start"
@@ -38,8 +38,8 @@ export function OnboardingDemo() {
             <Search className="h-4 w-4 mr-2" />
             Learn Search & Filters
           </OnboardingTrigger>
-          
-          <OnboardingTrigger 
+
+          <OnboardingTrigger
             tourKey="feature-tour-quote-calculator"
             variant="outline"
             className="w-full justify-start"

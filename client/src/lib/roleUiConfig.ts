@@ -39,7 +39,7 @@ const BASE_ROLE_UI_CONFIG: Record<string, RoleUiConfig> = {
     userTypeId: "contractor",
     icon: Wrench,
     color: "bg-orange-500",
-    dashboard: "/contractor-dashboard",
+    dashboard: "/business-dashboard",
   },
   realtor: {
     userTypeId: "realtor",
@@ -63,25 +63,25 @@ const BASE_ROLE_UI_CONFIG: Record<string, RoleUiConfig> = {
     userTypeId: "business_owner",
     icon: Briefcase,
     color: "bg-indigo-500",
-    dashboard: "/business-owner-dashboard",
+    dashboard: "/business-dashboard",
   },
   restaurant_owner: {
     userTypeId: "restaurant_owner",
     icon: UtensilsCrossed,
     color: "bg-orange-500",
-    dashboard: "/business-owner-dashboard",
+    dashboard: "/business-dashboard",
   },
   food_truck_owner: {
     userTypeId: "food_truck_owner",
     icon: Truck,
     color: "bg-orange-500",
-    dashboard: "/business-owner-dashboard",
+    dashboard: "/business-dashboard",
   },
   bar_owner: {
     userTypeId: "bar_owner",
     icon: Wine,
     color: "bg-purple-600",
-    dashboard: "/business-owner-dashboard",
+    dashboard: "/business-dashboard",
   },
   insurance_agent: {
     userTypeId: "insurance_agent",

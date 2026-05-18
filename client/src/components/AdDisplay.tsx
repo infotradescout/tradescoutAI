@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X, Bookmark, ExternalLink, ThumbsUp, ThumbsDown, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { hasBusinessProviderToolAccess } from "@/lib/roleChecks";
 
 interface AdDisplayProps {
   className?: string;
@@ -33,9 +34,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
   const [hasInteracted, setHasInteracted] = useState(false);
 
   // Determine user type for ad targeting
-  const userType = user?.role && ['contractor_user', 'accelerator_member'].includes(user.role) 
-    ? 'contractors' 
-    : 'homeowners';
+  const userType = hasBusinessProviderToolAccess(user) ? "contractors" : "homeowners";
 
   // Fetch targeted ad for this site visit
   const { data: ad, isLoading } = useQuery<Advertisement>({
@@ -50,10 +49,10 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
     if (ad && !dismissedAds.includes(ad.id) && !currentAd) {
       setCurrentAd(ad);
       // Track impression
-      fetch('/api/ads/track-impression', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId: ad.id, source: 'site_visit' })
+      fetch("/api/ads/track-impression", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adId: ad.id, source: "site_visit" }),
       }).catch(console.error);
     }
   }, [ad, dismissedAds, currentAd]);
@@ -61,27 +60,27 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
   const handleAdClick = () => {
     if (currentAd?.linkUrl) {
       // Track click
-      fetch('/api/ads/track-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId: currentAd.id, source: 'site_visit' })
+      fetch("/api/ads/track-click", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adId: currentAd.id, source: "site_visit" }),
       }).catch(console.error);
 
       setHasInteracted(true);
-      
-      window.open(currentAd.linkUrl, '_blank');
+
+      window.open(currentAd.linkUrl, "_blank");
     }
   };
 
   // Save ad for later functionality
   const saveAdMutation = useMutation({
     mutationFn: async (adId: string) => {
-      const response = await fetch('/api/ads/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adId })
+      const response = await fetch("/api/ads/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adId }),
       });
-      if (!response.ok) throw new Error('Failed to save ad');
+      if (!response.ok) throw new Error("Failed to save ad");
       return response.json();
     },
     onSuccess: () => {
@@ -97,14 +96,14 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
         description: "Failed to save ad. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const handleSaveForLater = () => {
     if (currentAd) {
       if (user) {
         saveAdMutation.mutate(currentAd.id);
-        setDismissedAds(prev => [...prev, currentAd.id]);
+        setDismissedAds((prev) => [...prev, currentAd.id]);
         setCurrentAd(null);
       } else {
         toast({
@@ -118,7 +117,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
 
   const handleDismiss = () => {
     if (currentAd) {
-      setDismissedAds(prev => [...prev, currentAd.id]);
+      setDismissedAds((prev) => [...prev, currentAd.id]);
       setCurrentAd(null);
       setHasInteracted(true);
     }
@@ -142,7 +141,9 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
   }
 
   return (
-    <Card className={`${className} bg-gradient-to-r from-orange-50 to-blue-50 dark:from-orange-900/20 dark:to-blue-900/20 border-ts-orange/30 dark:border-ts-orange/30`}>
+    <Card
+      className={`${className} bg-gradient-to-r from-orange-50 to-blue-50 dark:from-orange-900/20 dark:to-blue-900/20 border-ts-orange/30 dark:border-ts-orange/30`}
+    >
       <CardContent className="p-4 relative">
         <Button
           variant="ghost"
@@ -152,29 +153,25 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
         >
           <X className="h-4 w-4" />
         </Button>
-        
+
         <div className="pr-8">
           {currentAd.imageUrl && (
             <div className="mb-3">
-              <img 
-                src={currentAd.imageUrl} 
+              <img
+                src={currentAd.imageUrl}
                 alt={currentAd.title}
                 className="w-full h-32 object-cover rounded-lg"
               />
             </div>
           )}
-          
-          <h3 className="font-semibold text-white dark:text-white mb-2">
-            {currentAd.title}
-          </h3>
-          
-          <p className="text-sm text-white/60 dark:text-white/70 mb-3">
-            {currentAd.content}
-          </p>
-          
+
+          <h3 className="font-semibold text-white dark:text-white mb-2">{currentAd.title}</h3>
+
+          <p className="text-sm text-white/60 dark:text-white/70 mb-3">{currentAd.content}</p>
+
           <div className="flex flex-wrap gap-2">
             {currentAd.linkUrl && (
-              <Button 
+              <Button
                 onClick={handleAdClick}
                 className="bg-ts-orange hover:bg-ts-orange-dark text-white text-sm"
                 size="sm"
@@ -183,8 +180,8 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
                 Learn More
               </Button>
             )}
-            
-            <Button 
+
+            <Button
               onClick={handleSaveForLater}
               variant="outline"
               size="sm"
@@ -192,7 +189,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
               disabled={saveAdMutation.isPending}
             >
               <Bookmark className="h-3 w-3 mr-1" />
-              {saveAdMutation.isPending ? 'Saving...' : 'Save for Later'}
+              {saveAdMutation.isPending ? "Saving..." : "Save for Later"}
             </Button>
           </div>
 
@@ -228,7 +225,7 @@ export function AdDisplay({ className = "", userLocation }: AdDisplayProps) {
               </Button>
             </div>
           )}
-          
+
           {currentAd.isAffiliate && (
             <div className="mt-2">
               <span className="text-xs text-white/60">Sponsored</span>

@@ -57,6 +57,93 @@ interface DirectConnectVerificationBypassContext {
   environmentRequested: boolean;
 }
 
+async function proposeAccountingAutomationFromDirectConnect(
+  tx: any,
+  input: {
+    workRequestId: string;
+    assignmentId: string;
+    requesterUserId: string;
+    providerUserId: string | null;
+    actorUserId: string;
+    conversationId: string | null;
+    requestTitle: string;
+    responseSummary: Record<string, any> | null;
+    contractorId: string | null;
+    responderUserId: string | null;
+  }
+) {
+  const sourceEventKey = `direct_connect:assignment_accepted:${input.assignmentId}`;
+  const metadata = {
+    title: input.requestTitle,
+    conversationId: input.conversationId,
+    contractorId: input.contractorId,
+    responderUserId: input.responderUserId,
+    responseSummary: input.responseSummary,
+    automationBoundary:
+      "Draft accounting work only. User review is required before posting, sending invoices, marking paid, or moving money.",
+  };
+
+  try {
+    await tx.execute(sql`
+      INSERT INTO accounting_automation_events (
+        profile_id,
+        created_by,
+        source_surface,
+        source_type,
+        source_id,
+        source_event_key,
+        work_request_id,
+        assignment_id,
+        requester_user_id,
+        provider_user_id,
+        automation_state,
+        reason,
+        metadata
+      )
+      VALUES (
+        (SELECT id FROM accounting_profiles WHERE created_by = ${input.requesterUserId} LIMIT 1),
+        ${input.actorUserId},
+        'direct_connect',
+        'assignment_accepted',
+        ${input.assignmentId},
+        ${sourceEventKey},
+        ${input.workRequestId},
+        ${input.assignmentId},
+        ${input.requesterUserId},
+        ${input.providerUserId},
+        'proposed',
+        'Provider accepted a Direct Connect request; prepare reviewable job accounting.',
+        ${JSON.stringify(metadata)}::jsonb
+      )
+      ON CONFLICT (source_event_key)
+      DO UPDATE SET
+        automation_state = CASE
+          WHEN accounting_automation_events.automation_state IN ('posted', 'skipped')
+            THEN accounting_automation_events.automation_state
+          ELSE 'proposed'
+        END,
+        profile_id = COALESCE(
+          accounting_automation_events.profile_id,
+          (SELECT id FROM accounting_profiles WHERE created_by = ${input.requesterUserId} LIMIT 1)
+        ),
+        metadata = EXCLUDED.metadata,
+        updated_at = now()
+    `);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || "");
+    if (
+      message.includes("accounting_automation_events") ||
+      message.includes("accounting_profiles")
+    ) {
+      console.warn(
+        "[direct-connect] accounting automation proposal skipped; books foundation migration missing"
+      );
+      return;
+    }
+    throw error;
+  }
+}
+
 function resolveDirectConnectVerificationBypass(
   req: Request,
   viewer: any
@@ -227,6 +314,7 @@ const directConnectRequestSchema = z.object({
   autoRoute: z.boolean().optional(),
   attachments: z.array(z.string().trim().min(10).max(600)).max(8).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
+  targetProviderIds: z.array(z.string().min(1)).optional(),
 });
 
 const ADMIN_DIRECT_CONNECT_CATEGORIES = [
@@ -275,7 +363,21 @@ const assignmentResponseSchema = z
 const directConnectRouteRequestSchema = z.object({
   autoRoute: z.boolean().optional(),
   targetContractorIds: z.array(z.string().min(1)).max(25).optional(),
+  targetProviderIds: z.array(z.string().min(1)).max(25).optional(),
 });
+
+function resolveTargetProviderIds(body: {
+  targetContractorIds?: string[];
+  targetProviderIds?: string[];
+}) {
+  const raw =
+    Array.isArray(body.targetProviderIds) && body.targetProviderIds.length > 0
+      ? body.targetProviderIds
+      : Array.isArray(body.targetContractorIds)
+        ? body.targetContractorIds
+        : [];
+  return Array.from(new Set(raw.map((value) => String(value || "").trim()).filter(Boolean)));
+}
 
 function hasExplicitTradeRequirements(requirements: any): boolean {
   if (!requirements) return false;
@@ -1177,9 +1279,7 @@ export function registerDirectConnectRoutes(app: Express) {
             .json({ message: "Invalid route request body", issues: parse.error.flatten() });
         }
         const routeBody = parse.data;
-        const requestedTargetIds = Array.from(
-          new Set((routeBody.targetContractorIds || []).map((value) => String(value || "").trim()))
-        ).filter(Boolean);
+        const requestedTargetIds = resolveTargetProviderIds(routeBody);
         const isDirectToProviders = requestedTargetIds.length > 0;
         const shouldAutoRoute = routeBody.autoRoute !== false && !isDirectToProviders;
 
@@ -1232,7 +1332,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
         if (isDirectToProviders) {
           // Resolve contractor IDs (legacy path) and business IDs (universal provider path).
-          // IDs from /api/providers/search may be contractor IDs or business IDs; we try both.
+          // IDs from /api/business-providers/search may be contractor IDs or business IDs; we try both.
           const invitedContractors = await db
             .select()
             .from(contractors)
@@ -1914,8 +2014,74 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
-  // Requester-facing: create/fetch a public share URL for a Direct Connect request
+  // Requester-facing: read-only fetch of an existing share URL for a Direct Connect request
   app.get(
+    "/api/direct-connect/requests/:id/share",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = req.user?.id || req.user?.claims?.sub;
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const requestId = String(req.params.id);
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+
+        if (!requestRow) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
+
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res
+            .status(400)
+            .json({ message: "Only Direct Connect requests can be shared here" });
+        }
+
+        if (!isShareableRequestStatus((requestRow as any).status)) {
+          if (String((requestRow as any).shareToken || "").trim()) {
+            await db
+              .update(workRequests)
+              .set({ shareToken: null, updatedAt: new Date() })
+              .where(eq(workRequests.id, requestId));
+          }
+          return res
+            .status(409)
+            .json({ message: "This request is closed and no longer shareable." });
+        }
+
+        if (String(requestRow.createdByUserId) !== String(userId)) {
+          return res.status(403).json({ message: "You can only share your own requests" });
+        }
+
+        const shareToken = String((requestRow as any).shareToken || "").trim();
+        if (!shareToken) {
+          return res.status(404).json({
+            message: "No share link has been created yet. Use POST to create one.",
+          });
+        }
+
+        const origin = resolveOrigin(req);
+        const shareUrl = `${origin}/r/${encodeURIComponent(shareToken)}`;
+
+        return res.status(200).json({
+          shareToken,
+          shareUrl,
+          policy: "scope_only_join_and_verify_required",
+        });
+      } catch (error: any) {
+        console.error("Error fetching direct connect share link:", error);
+        return res.status(500).json({
+          message: "Failed to fetch share link",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  // Requester-facing: create/fetch a public share URL for a Direct Connect request
+  app.post(
     "/api/direct-connect/requests/:id/share",
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
@@ -2596,8 +2762,8 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
 
-        const isDirectToProviders =
-          Array.isArray(body.targetContractorIds) && body.targetContractorIds.length > 0;
+        const targetProviderIds = resolveTargetProviderIds(body);
+        const isDirectToProviders = targetProviderIds.length > 0;
         const shouldAutoRoute = body.autoRoute !== false && !isDirectToProviders;
 
         const [created] = await db
@@ -2648,9 +2814,9 @@ export function registerDirectConnectRoutes(app: Express) {
         });
 
         // Explicit targeting preserves requester choice; this is not automatic routing.
-        if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
+        if (created && targetProviderIds.length > 0) {
           try {
-            const requestedIds = Array.from(new Set(body.targetContractorIds));
+            const requestedIds = targetProviderIds;
             // Resolve contractor IDs and business IDs from the universal provider search.
             const invitedContractors = await db
               .select()
@@ -3004,8 +3170,8 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyState) stateCode = bodyState;
 
         const resolvedTrade = await resolveOrCreateAdminTrade(body.tradeId);
-        const isDirectToProviders =
-          Array.isArray(body.targetContractorIds) && body.targetContractorIds.length > 0;
+        const targetProviderIds = resolveTargetProviderIds(body);
+        const isDirectToProviders = targetProviderIds.length > 0;
         const shouldAutoRoute = body.autoRoute !== false && !isDirectToProviders;
         const adminBypassContext = resolveDirectConnectVerificationBypass(req, req.user);
         const adminBypassVerification = adminBypassContext.active;
@@ -3098,9 +3264,9 @@ export function registerDirectConnectRoutes(app: Express) {
         });
 
         // Staff-directed explicit targeting preserves individual choice for this request.
-        if (created && body.targetContractorIds && body.targetContractorIds.length > 0) {
+        if (created && targetProviderIds.length > 0) {
           try {
-            const requestedIds = Array.from(new Set(body.targetContractorIds));
+            const requestedIds = targetProviderIds;
             // Resolve contractor IDs and business IDs from the universal provider search.
             const invitedContractors = await db
               .select()
@@ -3759,6 +3925,19 @@ export function registerDirectConnectRoutes(app: Express) {
                   conversationId,
                   responseSummary,
                 },
+              });
+
+              await proposeAccountingAutomationFromDirectConnect(tx, {
+                workRequestId: String(requestRow.id),
+                assignmentId: String(updatedAssignment.id),
+                requesterUserId: String(requestRow.createdByUserId),
+                providerUserId: String(userId),
+                actorUserId: String(userId),
+                conversationId,
+                requestTitle: String(requestRow.title || "Direct Connect request"),
+                responseSummary,
+                contractorId: isContractorAssignment ? contractor!.id : null,
+                responderUserId: isBusinessAssignment ? String(userId) : null,
               });
             } catch (e) {
               console.error(

@@ -54,8 +54,8 @@ const SimpleNavigation = memo(function SimpleNavigation() {
     },
     {
       icon: Wrench,
-      label: "Contractors",
-      path: "/contractors",
+      label: "Businesses",
+      path: "/direct-connect",
       testId: "nav-contractors",
       key: "contractors",
     },

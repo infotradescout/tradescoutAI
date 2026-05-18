@@ -127,9 +127,9 @@ export interface RoutingDecision {
 export function routeFromClaims(claims: ClaimType[]): RoutingDecision {
   const has = (c: ClaimType) => claims.includes(c);
 
-  // Empty or exploring only → community feed (neutral)
+  // Empty or exploring only → local board (neutral)
   if (!claims.length || (claims.length === 1 && has("exploring"))) {
-    return { path: "/community", reason: "exploring_only" };
+    return { path: "/direct-connect/board", reason: "exploring_only" };
   }
 
   // Business + services → business profile first
@@ -144,11 +144,11 @@ export function routeFromClaims(claims: ClaimType[]): RoutingDecision {
 
   // Primary routes
   if (has("offer_services")) {
-    return { path: "/contractor-dashboard", reason: "offer_services" };
+    return { path: "/business-dashboard", reason: "offer_services" };
   }
 
   if (has("find_help")) {
-    return { path: "/direct-connect", reason: "find_help" };
+    return { path: "/direct-connect?entry=onboarding", reason: "find_help" };
   }
 
   if (has("represent_business")) {
@@ -164,11 +164,11 @@ export function routeFromClaims(claims: ClaimType[]): RoutingDecision {
     has("wants_recommendations") ||
     has("gives_recommendations")
   ) {
-    return { path: "/community", reason: "community" };
+    return { path: "/direct-connect/board", reason: "community" };
   }
 
   // Fallback to neutral
-  return { path: "/community", reason: "fallback_neutral" };
+  return { path: "/direct-connect/board", reason: "fallback_neutral" };
 }
 
 /**

@@ -19,6 +19,8 @@ describe("onboarding flow contracts", () => {
     );
     // Deep-link must be persisted into sessionStorage before the intent step
     expect(profileSource).toContain("storeOnboardingNext");
+    expect(profileSource).toContain("Setting up a business profile");
+    expect(profileSource).toContain("fixed-price offers, verification, and bookkeeping review");
   });
 
   it("marks onboarding complete from the intent step", () => {
@@ -33,6 +35,8 @@ describe("onboarding flow contracts", () => {
     expect(intentSource).toContain("skipMutation");
     // Smart routing helper must be imported
     expect(intentSource).toContain("resolvePostOnboardingRoute");
+    expect(intentSource).toContain("Offer or Sell");
+    expect(intentSource).toContain("profile, offers, verification, and books");
   });
 
   it("enforces onboarding on authenticated routing until both completion + profile version are satisfied", () => {
@@ -87,5 +91,48 @@ describe("onboarding flow contracts", () => {
     expect(helperSource).toContain('"/offer-services"');
     // Personal default must be direct-connect
     expect(helperSource).toContain('"/direct-connect"');
+  });
+
+  it("turns offer-services into a provider launch hub instead of only verification", () => {
+    const offerServicesSource = read("client/src/pages/offer-services.tsx");
+
+    expect(offerServicesSource).toContain("Profile launch setup");
+    expect(offerServicesSource).toContain("Fixed-price services and items");
+    expect(offerServicesSource).toContain('queryKey: ["/api/profile-offers/mine"]');
+    expect(offerServicesSource).toContain(
+      'queryKey: ["/api/profile-offer-purchases/mine", "seller"]'
+    );
+    expect(offerServicesSource).toContain('"/api/profile-offers"');
+    expect(offerServicesSource).toContain("startEditingOffer");
+    expect(offerServicesSource).toContain("Save offer");
+    expect(offerServicesSource).toContain('queryKey: ["/api/profiles"]');
+    expect(offerServicesSource).toContain('queryKey: ["/api/business-profile/me"]');
+    expect(offerServicesSource).toContain('queryKey: ["/api/accounting/books-foundation"]');
+    expect(offerServicesSource).toContain('document.getElementById("fixed-price-offers")');
+    expect(offerServicesSource).toContain('method: "PATCH"');
+    expect(offerServicesSource).toContain("Pause");
+    expect(offerServicesSource).toContain("Resume");
+    expect(offerServicesSource).toContain("serviceCategory");
+    expect(offerServicesSource).toContain("serviceDurationMinutes");
+    expect(offerServicesSource).toContain("itemStockQuantity");
+    expect(offerServicesSource).toContain("itemFulfillmentMode");
+    expect(offerServicesSource).toContain("shippingCost");
+    expect(offerServicesSource).toContain("Profile purchase review");
+    expect(offerServicesSource).toContain("Review books");
+    expect(offerServicesSource).toContain("Service purchases create");
+    expect(offerServicesSource).toContain("No payment, contact release, posting, or shipping");
+    expect(offerServicesSource).not.toContain("premium Direct Connect job tiers");
+    expect(offerServicesSource).not.toContain("rank higher in search results");
+  });
+
+  it("routes post-onboarding provider actions into offers and finance setup", () => {
+    const actionSource = read("client/src/scout/resolvePostOnboardingActions.ts");
+
+    expect(actionSource).toContain("Set up profile, offers & verification");
+    expect(actionSource).toContain('destination: "/offer-services"');
+    expect(actionSource).toContain("Add fixed-price services or items");
+    expect(actionSource).toContain('destination: "/offer-services#fixed-price-offers"');
+    expect(actionSource).toContain("Review finance records");
+    expect(actionSource).toContain('destination: "/finances/records"');
   });
 });

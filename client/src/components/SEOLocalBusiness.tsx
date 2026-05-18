@@ -8,6 +8,7 @@ interface LocalBusinessSEOProps {
     yearsInBusiness?: number;
     verifiedLicensed?: boolean;
     verifiedInsured?: boolean;
+    canonicalBusinessProfileUrl?: string | null;
   };
   location?: {
     state?: string;
@@ -47,20 +48,31 @@ function getPublicOriginForStructuredData() {
 }
 
 /**
- * Component to inject local business structured data for individual contractor profiles
+ * Component to inject local business structured data for individual provider profiles
  * Helps with local SEO and Google My Business integration
  */
 export function LocalBusinessSEO({ contractor, location }: LocalBusinessSEOProps) {
   useEffect(() => {
     if (!contractor) return;
 
+    const canonicalBusinessProfileUrl =
+      typeof contractor.canonicalBusinessProfileUrl === "string" &&
+      contractor.canonicalBusinessProfileUrl.trim().length > 0
+        ? contractor.canonicalBusinessProfileUrl.trim()
+        : null;
+    const publicOrigin = getPublicOriginForStructuredData();
+    const publicUrl = canonicalBusinessProfileUrl
+      ? canonicalBusinessProfileUrl.startsWith("http")
+        ? canonicalBusinessProfileUrl
+        : `${publicOrigin}${canonicalBusinessProfileUrl}`
+      : window.location.href;
+
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       name: contractor.companyName,
-      description:
-        contractor.about || `Professional home improvement services by ${contractor.companyName}`,
-      url: window.location.href,
+      description: contractor.about || `Local provider services by ${contractor.companyName}`,
+      url: publicUrl,
       sameAs: contractor.website ? [contractor.website] : undefined,
       address: {
         "@type": "PostalAddress",
@@ -80,14 +92,14 @@ export function LocalBusinessSEO({ contractor, location }: LocalBusinessSEOProps
         },
         geoRadius: "50000",
       },
-      serviceType: "Home Improvement Contractor",
+      serviceType: "Local Services",
       hasCredential: contractor.verifiedLicensed
         ? {
             "@type": "EducationalOccupationalCredential",
             credentialCategory: "Professional License",
             recognizedBy: {
               "@type": "Organization",
-              name: "State Licensing Board",
+              name: "TradeScout verification records",
             },
           }
         : undefined,
@@ -95,9 +107,8 @@ export function LocalBusinessSEO({ contractor, location }: LocalBusinessSEOProps
         "@type": "Offer",
         itemOffered: {
           "@type": "Service",
-          name: "Home Improvement Services",
-          description:
-            "Professional contractor services including renovations, repairs, and installations",
+          name: "Local Services",
+          description: "Local provider services routed through TradeScout trust checks",
         },
         areaServed: location?.county || "Local Area",
       },

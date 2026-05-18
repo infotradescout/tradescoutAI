@@ -34,7 +34,7 @@ export default function PrivacyPolicy() {
                 <li>Physical address for shipping and verification</li>
                 <li>Payment information (processed securely by third-party providers)</li>
                 <li>Government-issued ID for verification (when required by law)</li>
-                <li>Business information for contractor accounts</li>
+                <li>Business information for business/provider accounts</li>
                 <li>Profile photos and other content you submit</li>
               </ul>
 

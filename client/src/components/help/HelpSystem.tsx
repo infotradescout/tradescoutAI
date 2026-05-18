@@ -42,36 +42,35 @@ const helpTopics: HelpTopic[] = [
   {
     id: "getting-started",
     title: "Getting Started",
-    description: "New to TradeScout? We'll get you up and running faster than installing drywall.",
+    description: "New to TradeScout? We'll get your business surface ready fast.",
     category: "getting-started",
     illustration: "hardhat",
     content: {
       overview:
         "Welcome to TradeScout! Think of us as your digital toolbox for connecting with customers and growing your business.",
       steps: [
-        "Complete your contractor profile - make it shine like a freshly waxed work truck",
-        "Upload your best work photos - show off those perfect miters and clean paint lines",
-        "Set your service areas - let customers know where you swing your hammer",
-        "Configure your availability - because even contractors need a weekend",
+        "Complete your business profile so customers can inspect your offer before acting",
+        "Upload your best proof, product, or work photos",
+        "Set your service areas so customers know where you operate",
+        "Configure your availability and fixed-price offers",
       ],
       tips: [
         "A complete profile gets 3x more customer inquiries",
         "High-quality photos increase conversion by 40%",
         "Responding within 2 hours improves your success rate",
       ],
-      wittyNote:
-        "Getting set up on TradeScout is easier than finding your tape measure when you need it – Scout can walk you through the first steps.",
+      wittyNote: "Scout can walk you through profile, offers, verification, and books setup.",
     },
   },
   {
     id: "project-tracker",
     title: "Managing Customer Requests",
-    description: "Handle customer inquiries like a pro - no more missed opportunities.",
+    description: "Handle customer inquiries and orders without losing the thread.",
     category: "features",
     illustration: "wrench",
     content: {
       overview:
-        "Your Direct Connect board is like having a project manager who never loses paperwork.",
+        "Direct Connect and profile purchases keep requests, orders, receipts, and review steps in one place.",
       steps: [
         "Receive notifications when customers request quotes",
         "Review project details and customer requirements",
@@ -79,19 +78,18 @@ const helpTopics: HelpTopic[] = [
         "Follow up with customers through our messaging system",
       ],
       tips: [
-        "Quick responses win more jobs than low prices",
+        "Quick responses and clear boundaries win trust",
         "Ask clarifying questions to provide accurate quotes",
         "Use our templates to save time on common projects",
       ],
-      wittyNote:
-        "Managing customer requests with TradeScout is smoother than buttering toast with a heated knife.",
+      wittyNote: "TradeScout keeps the next step visible without bypassing customer approval.",
     },
   },
   {
     id: "quote-calculator",
     title: "Using Scout for Estimates",
     description:
-      "Let Scout, your local helper on TradeScout, help you price projects accurately - no more guessing or losing money.",
+      "Let Scout help you price work, products, materials, and estimates with clearer context.",
     category: "features",
     illustration: "ruler",
     content: {
@@ -108,14 +106,13 @@ const helpTopics: HelpTopic[] = [
         "Factor in permit and inspection costs for larger projects",
         "Don't forget to account for cleanup, disposal, and travel time",
       ],
-      wittyNote:
-        'Scout is more reliable than your buddy who says "that\'ll take about 2 hours" for everything.',
+      wittyNote: "Scout helps turn rough intent into a reviewable quote, material list, or offer.",
     },
   },
   {
     id: "profile-optimization",
     title: "Optimizing Your Profile",
-    description: "Make your profile work harder than a framing crew on deadline.",
+    description: "Make your profile, proof, and offers work harder for your business.",
     category: "best-practices",
     illustration: "paintbrush",
     content: {
@@ -132,7 +129,8 @@ const helpTopics: HelpTopic[] = [
         "Mention any certifications or specializations",
         "Update your profile seasonally with relevant services",
       ],
-      wittyNote: "A great profile attracts customers like a new tool truck attracts contractors.",
+      wittyNote:
+        "A great profile helps customers understand what you sell and why they can trust it.",
     },
   },
   {

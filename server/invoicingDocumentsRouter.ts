@@ -5,6 +5,11 @@ import type { Pool } from "pg";
 import { isAuthenticated } from "./auth";
 import { storage } from "./storage";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
+import {
+  TRADESCOUT_TRANSACTION_FEE_LABEL,
+  TRADESCOUT_TRANSACTION_FEE_POLICY,
+  TRADESCOUT_TRANSACTION_FEE_USD,
+} from "../shared/platformRevenue";
 
 /**
  * HTTP error with status code - for centralized error handling
@@ -58,6 +63,317 @@ function preferPayloadText(payload: any, keys: string[]): string | null {
 function normalizeClientKey(value: unknown): string {
   if (typeof value !== "string") return "";
   return value.trim().toLowerCase();
+}
+
+function isMissingAccountingBooksFoundation(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return (
+    message.includes('relation "accounting_profiles" does not exist') ||
+    message.includes('relation "accounting_accounts" does not exist') ||
+    message.includes('relation "accounting_automation_events" does not exist') ||
+    message.includes("accounting_profiles") ||
+    message.includes("accounting_accounts")
+  );
+}
+
+function isMissingProfileOffers(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return (
+    message.includes('relation "profile_offers" does not exist') ||
+    message.includes('relation "profile_offer_purchases" does not exist') ||
+    message.includes("profile_offers") ||
+    message.includes("profile_offer_purchases")
+  );
+}
+
+function normalizeProfileOfferMetadata(input: unknown): Record<string, any> {
+  const source = input && typeof input === "object" && !Array.isArray(input) ? (input as any) : {};
+  const cleanText = (value: unknown, max = 500) =>
+    typeof value === "string" ? value.trim().slice(0, max) : "";
+  const imageUrls = Array.isArray(source.imageUrls || source.images)
+    ? (source.imageUrls || source.images)
+        .map((value: unknown) => cleanText(value, 1000))
+        .filter((value: string) => /^https?:\/\//i.test(value))
+        .slice(0, 6)
+    : [];
+  const exchangeCategorySlug = cleanText(source.exchangeCategorySlug || source.itemCategory, 80)
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return {
+    ...source,
+    itemCategory: cleanText(source.itemCategory, 120),
+    exchangeCategorySlug: exchangeCategorySlug || "other",
+    taxCategory: cleanText(source.taxCategory, 120),
+    fulfillmentPolicy: cleanText(source.fulfillmentPolicy, 1000),
+    returnPolicy: cleanText(source.returnPolicy, 1000),
+    imageUrls,
+    images: imageUrls,
+  };
+}
+
+function containsContactLeak(value: string): boolean {
+  return (
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(value) ||
+    /\b(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}\b/.test(value) ||
+    /\bhttps?:\/\/|\bwww\./i.test(value)
+  );
+}
+
+const DEFAULT_ACCOUNTING_ACCOUNTS = [
+  ["1000", "Cash", "asset", "bank", "debit", "cash"],
+  ["1100", "Accounts Receivable", "asset", "receivables", "debit", "accounts_receivable"],
+  ["1200", "Undeposited Funds", "asset", "clearing", "debit", "undeposited_funds"],
+  ["2000", "Accounts Payable", "liability", "payables", "credit", "accounts_payable"],
+  ["2100", "Sales Tax Payable", "liability", "tax", "credit", "sales_tax_payable"],
+  ["3000", "Owner Equity", "equity", "owner_equity", "credit", "owner_equity"],
+  ["4000", "Job Income", "income", "services", "credit", "job_income"],
+  ["5000", "Materials COGS", "cogs", "materials", "debit", "materials_cogs"],
+  ["5100", "Subcontractor COGS", "cogs", "subcontractors", "debit", "subcontractor_cogs"],
+  ["6000", "Operating Expense", "expense", "operations", "debit", "operating_expense"],
+] as const;
+
+async function ensureAccountingProfile(pool: Pool, userId: string) {
+  const profileRes = await pool.query(
+    `INSERT INTO accounting_profiles (created_by)
+     VALUES ($1)
+     ON CONFLICT (created_by)
+     DO UPDATE SET updated_at = now()
+     RETURNING id, accounting_basis, fiscal_year_start_month, default_currency, books_status`,
+    [userId]
+  );
+  const profile = profileRes.rows[0];
+  const profileId = String(profile.id);
+
+  for (const account of DEFAULT_ACCOUNTING_ACCOUNTS) {
+    await pool.query(
+      `INSERT INTO accounting_accounts
+         (profile_id, code, name, account_type, account_subtype, normal_balance, system_key)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (profile_id, code) DO NOTHING`,
+      [profileId, ...account]
+    );
+  }
+
+  return profile;
+}
+
+async function proposeAccountingAutomationFromDocument(
+  pool: Pool,
+  input: {
+    userId: string;
+    document: any;
+    sourceType: string;
+    reason: string;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    const profile = await ensureAccountingProfile(pool, input.userId);
+    const doc = input.document || {};
+    const payload = doc.payload || {};
+    const sourceEventKey = `finance:${input.sourceType}:${String(doc.id)}`;
+    await pool.query(
+      `INSERT INTO accounting_automation_events (
+         profile_id,
+         created_by,
+         source_surface,
+         source_type,
+         source_id,
+         source_event_key,
+         requester_user_id,
+         automation_state,
+         proposed_document_id,
+         reason,
+         metadata
+       )
+       VALUES ($1, $2, 'finance', $3, $4, $5, $2, 'proposed', $4, $6, $7::jsonb)
+       ON CONFLICT (source_event_key)
+       DO UPDATE SET
+         profile_id = EXCLUDED.profile_id,
+         proposed_document_id = EXCLUDED.proposed_document_id,
+         reason = EXCLUDED.reason,
+         metadata = EXCLUDED.metadata,
+         updated_at = now()`,
+      [
+        profile.id,
+        input.userId,
+        input.sourceType,
+        String(doc.id),
+        sourceEventKey,
+        input.reason,
+        JSON.stringify({
+          documentId: String(doc.id),
+          documentType: String(doc.type || ""),
+          jobId: doc.job_id ? String(doc.job_id) : null,
+          title: payload.projectTitle || payload.title || payload.name || null,
+          total: okNumber(payload.total ?? payload.totals ?? payload.amount),
+          currency: payload.currency || "USD",
+          ...input.metadata,
+          automationBoundary:
+            "Draft accounting work only. User review is required before posting, sending invoices, marking paid, or moving money.",
+        }),
+      ]
+    );
+  } catch (error) {
+    if (isMissingAccountingBooksFoundation(error)) return;
+    throw error;
+  }
+}
+
+async function proposeAccountingAutomationFromProfileOffer(
+  pool: Pool,
+  input: {
+    sellerUserId: string;
+    buyerUserId: string;
+    purchaseId: string;
+    offerId: string;
+    offerType: "service" | "item";
+    title: string;
+    total: number;
+    currency: string;
+    workRequestId?: string | null;
+    receiptDocumentId?: string | null;
+    reason: string;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    const profile = await ensureAccountingProfile(pool, input.sellerUserId);
+    const sourceEventKey = `profile_offer:${input.offerType}_purchase:${input.purchaseId}`;
+    const sourceType =
+      input.offerType === "service"
+        ? "profile_offer_service_purchase"
+        : "profile_offer_item_purchase";
+    await pool.query(
+      `INSERT INTO accounting_automation_events (
+         profile_id,
+         created_by,
+         source_surface,
+         source_type,
+         source_id,
+         source_event_key,
+         requester_user_id,
+         provider_user_id,
+         work_request_id,
+         automation_state,
+         proposed_document_id,
+         reason,
+         metadata
+       )
+       VALUES ($1, $2, 'connections', $3, $4, $5, $2, $2, $6, 'proposed', $7, $8, $9::jsonb)
+       ON CONFLICT (source_event_key)
+       DO UPDATE SET
+         profile_id = EXCLUDED.profile_id,
+         work_request_id = EXCLUDED.work_request_id,
+         proposed_document_id = EXCLUDED.proposed_document_id,
+         reason = EXCLUDED.reason,
+         metadata = EXCLUDED.metadata,
+         updated_at = now()`,
+      [
+        profile.id,
+        input.sellerUserId,
+        sourceType,
+        input.purchaseId,
+        sourceEventKey,
+        input.workRequestId || null,
+        input.receiptDocumentId || null,
+        input.reason,
+        JSON.stringify({
+          profileOfferId: input.offerId,
+          profileOfferPurchaseId: input.purchaseId,
+          buyerUserId: input.buyerUserId,
+          sellerUserId: input.sellerUserId,
+          offerType: input.offerType,
+          title: input.title,
+          total: input.total,
+          currency: input.currency,
+          sourcePath: "profile_purchase",
+          scoutActionPath:
+            "Scout may guide purchase review, job setup, fulfillment, and bookkeeping.",
+          ...input.metadata,
+          automationBoundary:
+            "Draft accounting and fulfillment work only. User review is required before posting, sending invoices, marking paid, shipping, contact release, or moving money.",
+        }),
+      ]
+    );
+  } catch (error) {
+    if (isMissingAccountingBooksFoundation(error)) return;
+    throw error;
+  }
+}
+
+async function proposeProfileOfferFulfillmentAutomation(
+  pool: Pool,
+  input: {
+    sellerUserId: string;
+    buyerUserId: string;
+    purchaseId: string;
+    offerId: string;
+    offerType: "service" | "item";
+    action: string;
+    purchaseStatus: string;
+    paymentStatus: string;
+    shippingStatus: string;
+    receiptDocumentId?: string | null;
+    metadata?: Record<string, any>;
+  }
+) {
+  try {
+    const profile = await ensureAccountingProfile(pool, input.sellerUserId);
+    const sourceEventKey = `profile_offer:fulfillment:${input.purchaseId}:${input.action}`;
+    await pool.query(
+      `INSERT INTO accounting_automation_events (
+         profile_id,
+         created_by,
+         source_surface,
+         source_type,
+         source_id,
+         source_event_key,
+         requester_user_id,
+         provider_user_id,
+         automation_state,
+         proposed_document_id,
+         reason,
+         metadata
+       )
+       VALUES ($1, $2, 'connections', 'profile_offer_fulfillment_action', $3, $4, $2, $2, 'proposed', $5, $6, $7::jsonb)
+       ON CONFLICT (source_event_key)
+       DO UPDATE SET
+         profile_id = EXCLUDED.profile_id,
+         proposed_document_id = EXCLUDED.proposed_document_id,
+         reason = EXCLUDED.reason,
+         metadata = EXCLUDED.metadata,
+         updated_at = now()`,
+      [
+        profile.id,
+        input.sellerUserId,
+        input.purchaseId,
+        sourceEventKey,
+        input.receiptDocumentId || null,
+        `Profile offer fulfillment action: ${input.action.replace(/_/g, " ")}.`,
+        JSON.stringify({
+          profileOfferId: input.offerId,
+          profileOfferPurchaseId: input.purchaseId,
+          buyerUserId: input.buyerUserId,
+          sellerUserId: input.sellerUserId,
+          offerType: input.offerType,
+          action: input.action,
+          purchaseStatus: input.purchaseStatus,
+          paymentStatus: input.paymentStatus,
+          shippingStatus: input.shippingStatus,
+          ...input.metadata,
+          automationBoundary:
+            "Draft accounting and fulfillment work only. User review is required before posting, sending invoices, marking paid, shipping, contact release, or moving money.",
+        }),
+      ]
+    );
+  } catch (error) {
+    if (isMissingAccountingBooksFoundation(error)) return;
+    throw error;
+  }
 }
 
 function resolveJobFlowStage(latestByType: Record<string, any>): string {
@@ -414,6 +730,953 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       }
     };
 
+  const mapProfileOffer = (row: any) => ({
+    id: String(row.id),
+    sellerUserId: String(row.seller_user_id),
+    title: String(row.title || ""),
+    description: row.description ? String(row.description) : null,
+    offerType: String(row.offer_type),
+    price: Number(row.price || 0),
+    currency: String(row.currency || "USD"),
+    serviceCategory: row.service_category ? String(row.service_category) : null,
+    serviceDurationMinutes: row.service_duration_minutes
+      ? Number(row.service_duration_minutes)
+      : null,
+    itemSku: row.item_sku ? String(row.item_sku) : null,
+    itemStockQuantity:
+      row.item_stock_quantity === null || row.item_stock_quantity === undefined
+        ? null
+        : Number(row.item_stock_quantity),
+    fulfillmentMode: String(row.fulfillment_mode || "manual_review"),
+    shippingCost: Number(row.shipping_cost || 0),
+    isActive: Boolean(row.is_active),
+    metadata: row.metadata || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+
+  const mapProfileOfferPurchase = (row: any) => ({
+    id: String(row.id),
+    offerId: String(row.offer_id),
+    buyerUserId: String(row.buyer_user_id),
+    sellerUserId: String(row.seller_user_id),
+    offerType: String(row.offer_type),
+    purchaseStatus: String(row.purchase_status),
+    paymentStatus: String(row.payment_status || "not_charged"),
+    quantity: Number(row.quantity || 1),
+    unitPrice: Number(row.unit_price || 0),
+    shippingCost: Number(row.shipping_cost || 0),
+    platformFee: Number(row.platform_fee ?? row.metadata?.platformFee ?? 0),
+    sellerAmount: Number(row.seller_amount ?? row.metadata?.sellerAmount ?? 0),
+    totalAmount: Number(row.total_amount || 0),
+    currency: String(row.currency || "USD"),
+    workRequestId: row.work_request_id ? String(row.work_request_id) : null,
+    receiptDocumentId: row.receipt_document_id ? String(row.receipt_document_id) : null,
+    shippingStatus: row.shipping_status ? String(row.shipping_status) : "not_required",
+    shippingAddress: row.shipping_address || null,
+    metadata: row.metadata || {},
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  });
+
+  r.get(
+    "/api/profile-offers",
+    wrap(async (req: AuthedRequest, res: Response) => {
+      const sellerUserId =
+        typeof req.query.sellerUserId === "string" ? req.query.sellerUserId.trim() : "";
+      if (!sellerUserId) throw new HttpError("SELLER_USER_ID_REQUIRED", 400);
+
+      try {
+        const offers = await pool.query(
+          `SELECT *
+           FROM profile_offers
+           WHERE seller_user_id = $1
+             AND is_active = true
+           ORDER BY updated_at DESC, created_at DESC
+           LIMIT 50`,
+          [sellerUserId]
+        );
+        res.json({ offers: offers.rows.map(mapProfileOffer) });
+      } catch (error) {
+        if (isMissingProfileOffers(error)) {
+          return res.json({ offers: [], migrationRequired: "0095_profile_offers_finance_bridge" });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.get(
+    "/api/profile-offers/mine",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+
+      try {
+        const offers = await pool.query(
+          `SELECT *
+           FROM profile_offers
+           WHERE seller_user_id = $1
+           ORDER BY is_active DESC, updated_at DESC, created_at DESC
+           LIMIT 100`,
+          [userId]
+        );
+        res.json({ offers: offers.rows.map(mapProfileOffer) });
+      } catch (error) {
+        if (isMissingProfileOffers(error)) {
+          return res.json({ offers: [], migrationRequired: "0095_profile_offers_finance_bridge" });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.post(
+    "/api/profile-offers",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const title = String(req.body?.title || "").trim();
+      const description = String(req.body?.description || "").trim() || null;
+      const offerType = String(req.body?.offerType || req.body?.offer_type || "").trim();
+      const price = Math.round(okNumber(req.body?.price) * 100) / 100;
+      const currency =
+        String(req.body?.currency || "USD")
+          .trim()
+          .toUpperCase()
+          .slice(0, 3) || "USD";
+      const fulfillmentMode = String(req.body?.fulfillmentMode || "manual_review").trim();
+      const serviceCategory = String(req.body?.serviceCategory || "").trim() || null;
+      const serviceDurationMinutes =
+        Math.max(0, Math.floor(okNumber(req.body?.serviceDurationMinutes))) || null;
+      const itemSku = String(req.body?.itemSku || "").trim() || null;
+      const itemStockQuantity =
+        req.body?.itemStockQuantity === undefined || req.body?.itemStockQuantity === null
+          ? null
+          : Math.max(0, Math.floor(okNumber(req.body?.itemStockQuantity)));
+      const shippingCost = Math.round(okNumber(req.body?.shippingCost) * 100) / 100;
+      const metadata = normalizeProfileOfferMetadata(req.body?.metadata);
+
+      const validTypes = new Set(["service", "item"]);
+      const validFulfillment = new Set([
+        "manual_review",
+        "scheduled_service",
+        "shipping",
+        "pickup",
+        "digital",
+      ]);
+      if (
+        !title ||
+        !validTypes.has(offerType) ||
+        price < 0 ||
+        !validFulfillment.has(fulfillmentMode)
+      ) {
+        throw new HttpError("INVALID_PROFILE_OFFER", 400);
+      }
+      if (offerType === "service" && fulfillmentMode === "shipping") {
+        throw new HttpError("INVALID_SERVICE_FULFILLMENT", 400);
+      }
+
+      const created = await pool.query(
+        `INSERT INTO profile_offers (
+           seller_user_id, title, description, offer_type, price, currency,
+           service_category, service_duration_minutes, item_sku, item_stock_quantity,
+           fulfillment_mode, shipping_cost, metadata
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
+         RETURNING *`,
+        [
+          userId,
+          title,
+          description,
+          offerType,
+          price,
+          currency,
+          serviceCategory,
+          serviceDurationMinutes,
+          itemSku,
+          itemStockQuantity,
+          fulfillmentMode,
+          shippingCost,
+          JSON.stringify({
+            ...metadata,
+            visibilityBoundary:
+              "Profile visibility does not grant contact. Purchases create reviewable fulfillment and accounting flows.",
+          }),
+        ]
+      );
+
+      res.status(201).json({ offer: mapProfileOffer(created.rows[0]) });
+    })
+  );
+
+  r.patch(
+    "/api/profile-offers/:id",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const offerId = String(req.params.id);
+      const title =
+        typeof req.body?.title === "string" && req.body.title.trim()
+          ? req.body.title.trim()
+          : undefined;
+      const description =
+        typeof req.body?.description === "string" ? req.body.description.trim() || null : undefined;
+      const price =
+        req.body?.price === undefined
+          ? undefined
+          : Math.round(okNumber(req.body.price) * 100) / 100;
+      const isActive =
+        typeof req.body?.isActive === "boolean"
+          ? req.body.isActive
+          : typeof req.body?.is_active === "boolean"
+            ? req.body.is_active
+            : undefined;
+      const fulfillmentMode =
+        typeof req.body?.fulfillmentMode === "string" ? req.body.fulfillmentMode.trim() : undefined;
+      const serviceCategory =
+        typeof req.body?.serviceCategory === "string"
+          ? req.body.serviceCategory.trim() || null
+          : undefined;
+      const serviceDurationMinutes =
+        req.body?.serviceDurationMinutes === undefined
+          ? undefined
+          : Math.max(0, Math.floor(okNumber(req.body.serviceDurationMinutes))) || null;
+      const itemSku =
+        typeof req.body?.itemSku === "string" ? req.body.itemSku.trim() || null : undefined;
+      const itemStockQuantity =
+        req.body?.itemStockQuantity === undefined
+          ? undefined
+          : Math.max(0, Math.floor(okNumber(req.body.itemStockQuantity)));
+      const shippingCost =
+        req.body?.shippingCost === undefined
+          ? undefined
+          : Math.round(okNumber(req.body.shippingCost) * 100) / 100;
+      const metadata =
+        req.body?.metadata === undefined
+          ? undefined
+          : normalizeProfileOfferMetadata(req.body.metadata);
+      const validFulfillment = new Set([
+        "manual_review",
+        "scheduled_service",
+        "shipping",
+        "pickup",
+        "digital",
+      ]);
+      if (price !== undefined && price < 0) throw new HttpError("INVALID_PROFILE_OFFER_PRICE", 400);
+      if (shippingCost !== undefined && shippingCost < 0) {
+        throw new HttpError("INVALID_PROFILE_OFFER_SHIPPING", 400);
+      }
+      if (fulfillmentMode !== undefined && !validFulfillment.has(fulfillmentMode)) {
+        throw new HttpError("INVALID_PROFILE_OFFER_FULFILLMENT", 400);
+      }
+
+      const updated = await pool.query(
+        `UPDATE profile_offers
+         SET title = COALESCE($3, title),
+             description = CASE WHEN $4::boolean THEN $5 ELSE description END,
+             price = COALESCE($6, price),
+             is_active = COALESCE($7, is_active),
+             fulfillment_mode = COALESCE($8, fulfillment_mode),
+             service_category = CASE WHEN $9::boolean THEN $10 ELSE service_category END,
+             service_duration_minutes = CASE WHEN $11::boolean THEN $12 ELSE service_duration_minutes END,
+             item_sku = CASE WHEN $13::boolean THEN $14 ELSE item_sku END,
+             item_stock_quantity = CASE WHEN $15::boolean THEN $16 ELSE item_stock_quantity END,
+             shipping_cost = COALESCE($17, shipping_cost),
+             metadata = CASE WHEN $18::boolean THEN metadata || $19::jsonb ELSE metadata END,
+             updated_at = now()
+         WHERE id = $1
+           AND seller_user_id = $2
+         RETURNING *`,
+        [
+          offerId,
+          userId,
+          title ?? null,
+          description !== undefined,
+          description ?? null,
+          price ?? null,
+          isActive ?? null,
+          fulfillmentMode ?? null,
+          serviceCategory !== undefined,
+          serviceCategory ?? null,
+          serviceDurationMinutes !== undefined,
+          serviceDurationMinutes ?? null,
+          itemSku !== undefined,
+          itemSku ?? null,
+          itemStockQuantity !== undefined,
+          itemStockQuantity ?? null,
+          shippingCost ?? null,
+          metadata !== undefined,
+          JSON.stringify({
+            ...(metadata || {}),
+            visibilityBoundary:
+              "Profile visibility does not grant contact. Purchases create reviewable fulfillment and accounting flows.",
+          }),
+        ]
+      );
+
+      if (!updated.rows.length) throw new HttpError("PROFILE_OFFER_NOT_FOUND", 404);
+      res.json({ offer: mapProfileOffer(updated.rows[0]) });
+    })
+  );
+
+  r.get(
+    "/api/profile-offer-purchases/mine",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const role = typeof req.query.role === "string" ? req.query.role : "all";
+      const params: any[] = [userId];
+      let ownerWhere = "(buyer_user_id = $1 OR seller_user_id = $1)";
+      if (role === "buyer") ownerWhere = "buyer_user_id = $1";
+      if (role === "seller") ownerWhere = "seller_user_id = $1";
+
+      try {
+        const purchases = await pool.query(
+          `SELECT *
+           FROM profile_offer_purchases
+           WHERE ${ownerWhere}
+           ORDER BY created_at DESC
+           LIMIT 100`,
+          params
+        );
+        res.json({ purchases: purchases.rows.map(mapProfileOfferPurchase) });
+      } catch (error) {
+        if (isMissingProfileOffers(error)) {
+          return res.json({
+            purchases: [],
+            migrationRequired: "0095_profile_offers_finance_bridge",
+          });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.get(
+    "/api/profile-offer-purchases/:id",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const purchaseId = String(req.params.id);
+
+      try {
+        const purchaseRes = await pool.query(
+          `SELECT p.*, o.title AS offer_title, o.description AS offer_description,
+                  o.fulfillment_mode AS offer_fulfillment_mode, o.metadata AS offer_metadata,
+                  o.item_sku AS offer_item_sku, o.item_stock_quantity AS offer_stock_remaining
+           FROM profile_offer_purchases p
+           JOIN profile_offers o ON o.id = p.offer_id
+           WHERE p.id = $1
+             AND (p.buyer_user_id = $2 OR p.seller_user_id = $2)
+           LIMIT 1`,
+          [purchaseId, userId]
+        );
+        const row = purchaseRes.rows[0];
+        if (!row) throw new HttpError("PROFILE_OFFER_PURCHASE_NOT_FOUND", 404);
+        res.json({
+          purchase: mapProfileOfferPurchase(row),
+          offer: {
+            id: String(row.offer_id),
+            title: String(row.offer_title || ""),
+            description: row.offer_description ? String(row.offer_description) : null,
+            fulfillmentMode: String(row.offer_fulfillment_mode || "manual_review"),
+            itemSku: row.offer_item_sku ? String(row.offer_item_sku) : null,
+            stockRemaining:
+              row.offer_stock_remaining === null || row.offer_stock_remaining === undefined
+                ? null
+                : Number(row.offer_stock_remaining),
+            metadata: row.offer_metadata || {},
+          },
+          viewerRole: String(row.buyer_user_id) === userId ? "buyer" : "seller",
+          reviewBoundary:
+            "Order status is visible to purchase participants only. Contact, payment movement, shipment handoff, and accounting posting remain review-gated.",
+        });
+      } catch (error) {
+        if (isMissingProfileOffers(error)) {
+          return res.status(503).json({
+            error: "PROFILE_OFFERS_MIGRATION_REQUIRED",
+            migrationRequired: "0095_profile_offers_finance_bridge",
+          });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.post(
+    "/api/profile-offer-purchases/:id/fulfillment-action",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const sellerUserId = String(req.user!.id);
+      const purchaseId = String(req.params.id);
+      const action = String(req.body?.action || "").trim();
+      const note = String(req.body?.note || "").trim();
+      const trackingNumber = String(req.body?.trackingNumber || "").trim();
+      const trackingCarrier = String(req.body?.trackingCarrier || "").trim();
+      const allowedActions = new Set([
+        "accept_order",
+        "mark_paid",
+        "ready_for_pickup",
+        "mark_shipped",
+        "mark_delivered",
+        "cancel_order",
+        "mark_refunded",
+      ]);
+      if (!allowedActions.has(action)) throw new HttpError("INVALID_FULFILLMENT_ACTION", 400);
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const purchaseRes = await client.query(
+          `SELECT *
+           FROM profile_offer_purchases
+           WHERE id = $1
+             AND seller_user_id = $2
+           FOR UPDATE`,
+          [purchaseId, sellerUserId]
+        );
+        const current = purchaseRes.rows[0];
+        if (!current) throw new HttpError("PROFILE_OFFER_PURCHASE_NOT_FOUND", 404);
+
+        const offerType = String(current.offer_type) as "service" | "item";
+        if (
+          offerType !== "item" &&
+          ["ready_for_pickup", "mark_shipped", "mark_delivered"].includes(action)
+        ) {
+          throw new HttpError("FULFILLMENT_ACTION_REQUIRES_ITEM_PURCHASE", 400);
+        }
+
+        const previousMetadata =
+          current.metadata && typeof current.metadata === "object" ? current.metadata : {};
+        const previousHistory = Array.isArray(previousMetadata.fulfillmentHistory)
+          ? previousMetadata.fulfillmentHistory
+          : [];
+        let purchaseStatus = String(current.purchase_status || "review_pending");
+        let paymentStatus = String(current.payment_status || "not_charged");
+        let shippingStatus = String(current.shipping_status || "not_required");
+
+        if (action === "accept_order") purchaseStatus = "accepted";
+        if (action === "mark_paid") {
+          purchaseStatus = purchaseStatus === "review_pending" ? "accepted" : purchaseStatus;
+          paymentStatus = "paid";
+        }
+        if (action === "ready_for_pickup") {
+          purchaseStatus = purchaseStatus === "review_pending" ? "accepted" : purchaseStatus;
+          shippingStatus = "ready";
+        }
+        if (action === "mark_shipped") {
+          purchaseStatus = purchaseStatus === "review_pending" ? "accepted" : purchaseStatus;
+          shippingStatus = "shipped";
+        }
+        if (action === "mark_delivered") {
+          purchaseStatus = "fulfilled";
+          shippingStatus = shippingStatus === "not_required" ? "not_required" : "delivered";
+        }
+        if (action === "cancel_order") {
+          purchaseStatus = "cancelled";
+          if (paymentStatus === "not_charged") paymentStatus = "not_charged";
+        }
+        if (action === "mark_refunded") {
+          purchaseStatus = "refunded";
+          paymentStatus = "refunded";
+        }
+
+        const nextMetadata = {
+          ...previousMetadata,
+          fulfillmentReviewRequired: true,
+          lastFulfillmentAction: action,
+          trackingNumber: trackingNumber || previousMetadata.trackingNumber || null,
+          trackingCarrier: trackingCarrier || previousMetadata.trackingCarrier || null,
+          fulfillmentHistory: [
+            ...previousHistory,
+            {
+              action,
+              actorUserId: sellerUserId,
+              note: note || null,
+              trackingNumber: trackingNumber || null,
+              trackingCarrier: trackingCarrier || null,
+              at: new Date().toISOString(),
+            },
+          ],
+          fulfillmentBoundary:
+            "Seller actions update review status only. Payment, contact release, shipment handoff, and accounting posting remain review-gated.",
+        };
+
+        const updatedRes = await client.query(
+          `UPDATE profile_offer_purchases
+           SET purchase_status = $1,
+               payment_status = $2,
+               shipping_status = $3,
+               metadata = $4::jsonb,
+               updated_at = now()
+           WHERE id = $5
+           RETURNING *`,
+          [purchaseStatus, paymentStatus, shippingStatus, JSON.stringify(nextMetadata), purchaseId]
+        );
+        const updated = updatedRes.rows[0];
+
+        if (updated?.receipt_document_id) {
+          await client.query(
+            `UPDATE documents
+             SET payload = COALESCE(payload, '{}'::jsonb) || $1::jsonb,
+                 updated_at = now()
+             WHERE id = $2
+               AND created_by = $3`,
+            [
+              JSON.stringify({
+                profileOfferPurchaseId: purchaseId,
+                purchaseStatus,
+                paymentStatus,
+                shippingStatus,
+                fulfillmentAction: action,
+                trackingNumber: nextMetadata.trackingNumber,
+                trackingCarrier: nextMetadata.trackingCarrier,
+                reviewRequired: true,
+              }),
+              updated.receipt_document_id,
+              sellerUserId,
+            ]
+          );
+        }
+
+        await client.query("COMMIT");
+
+        await proposeProfileOfferFulfillmentAutomation(pool, {
+          sellerUserId,
+          buyerUserId: String(updated.buyer_user_id),
+          purchaseId,
+          offerId: String(updated.offer_id),
+          offerType,
+          action,
+          purchaseStatus,
+          paymentStatus,
+          shippingStatus,
+          receiptDocumentId: updated.receipt_document_id
+            ? String(updated.receipt_document_id)
+            : null,
+          metadata: {
+            note: note || null,
+            trackingNumber: trackingNumber || null,
+            trackingCarrier: trackingCarrier || null,
+          },
+        });
+
+        res.json({ purchase: mapProfileOfferPurchase(updated) });
+      } catch (error) {
+        await client.query("ROLLBACK").catch(() => undefined);
+        if (isMissingProfileOffers(error)) {
+          return res.status(503).json({
+            error: "PROFILE_OFFERS_MIGRATION_REQUIRED",
+            migrationRequired: "0095_profile_offers_finance_bridge",
+          });
+        }
+        throw error;
+      } finally {
+        client.release();
+      }
+    })
+  );
+
+  r.post(
+    "/api/profile-offer-purchases/:id/order-message",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const actorUserId = String(req.user!.id);
+      const purchaseId = String(req.params.id);
+      const message = String(req.body?.message || "")
+        .trim()
+        .slice(0, 1000);
+      const messageType = String(req.body?.messageType || "status_update").trim();
+      const allowedTypes = new Set([
+        "status_update",
+        "buyer_question",
+        "pickup_coordination",
+        "fulfillment_issue",
+      ]);
+      if (!message || !allowedTypes.has(messageType))
+        throw new HttpError("INVALID_ORDER_MESSAGE", 400);
+      if (containsContactLeak(message))
+        throw new HttpError("ORDER_MESSAGE_CONTACT_DETAILS_BLOCKED", 400);
+
+      try {
+        const purchaseRes = await pool.query(
+          `SELECT *
+           FROM profile_offer_purchases
+           WHERE id = $1
+             AND (buyer_user_id = $2 OR seller_user_id = $2)
+           LIMIT 1`,
+          [purchaseId, actorUserId]
+        );
+        const current = purchaseRes.rows[0];
+        if (!current) throw new HttpError("PROFILE_OFFER_PURCHASE_NOT_FOUND", 404);
+        const actorRole = String(current.buyer_user_id) === actorUserId ? "buyer" : "seller";
+        const previousMetadata =
+          current.metadata && typeof current.metadata === "object" ? current.metadata : {};
+        const previousMessages = Array.isArray(previousMetadata.orderMessages)
+          ? previousMetadata.orderMessages
+          : [];
+        const nextMetadata = {
+          ...previousMetadata,
+          orderMessages: [
+            ...previousMessages,
+            {
+              id: token32(),
+              actorRole,
+              actorUserId,
+              messageType,
+              message,
+              at: new Date().toISOString(),
+            },
+          ].slice(-100),
+          orderMessageBoundary:
+            "Order messages are purchase-scoped. Phone, email, external links, payment movement, and off-platform contact are blocked.",
+        };
+        const updated = await pool.query(
+          `UPDATE profile_offer_purchases
+           SET metadata = $1::jsonb,
+               updated_at = now()
+           WHERE id = $2
+           RETURNING *`,
+          [JSON.stringify(nextMetadata), purchaseId]
+        );
+        res.json({ purchase: mapProfileOfferPurchase(updated.rows[0]) });
+      } catch (error) {
+        if (isMissingProfileOffers(error)) {
+          return res.status(503).json({
+            error: "PROFILE_OFFERS_MIGRATION_REQUIRED",
+            migrationRequired: "0095_profile_offers_finance_bridge",
+          });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.post(
+    "/api/profile-offers/:id/purchase",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const buyerUserId = String(req.user!.id);
+      const offerId = String(req.params.id);
+      const requestedQuantity = Math.max(1, Math.floor(okNumber(req.body?.quantity || 1)));
+      const shippingAddress =
+        req.body?.shippingAddress && typeof req.body.shippingAddress === "object"
+          ? req.body.shippingAddress
+          : null;
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const offerRes = await client.query(
+          `SELECT *
+           FROM profile_offers
+           WHERE id = $1
+             AND is_active = true
+           FOR UPDATE`,
+          [offerId]
+        );
+        const offer = offerRes.rows[0];
+        if (!offer) throw new HttpError("PROFILE_OFFER_NOT_FOUND", 404);
+
+        const sellerUserId = String(offer.seller_user_id);
+        if (sellerUserId === buyerUserId) throw new HttpError("CANNOT_PURCHASE_OWN_OFFER", 400);
+
+        const offerType = String(offer.offer_type) as "service" | "item";
+        const quantity = offerType === "service" ? 1 : requestedQuantity;
+        const stock =
+          offer.item_stock_quantity === null || offer.item_stock_quantity === undefined
+            ? null
+            : Number(offer.item_stock_quantity);
+        if (offerType === "item" && stock !== null && quantity > stock) {
+          throw new HttpError("INSUFFICIENT_PROFILE_OFFER_STOCK", 409);
+        }
+
+        const unitPrice = Math.round(Number(offer.price || 0) * 100) / 100;
+        const shippingCost =
+          offerType === "item" && String(offer.fulfillment_mode) === "shipping"
+            ? Math.round(Number(offer.shipping_cost || 0) * 100) / 100
+            : 0;
+        const sellerAmount = Math.round((unitPrice * quantity + shippingCost) * 100) / 100;
+        const platformFee = TRADESCOUT_TRANSACTION_FEE_USD;
+        const totalAmount = Math.round((sellerAmount + platformFee) * 100) / 100;
+        const shippingStatus =
+          offerType === "item" &&
+          ["shipping", "manual_review"].includes(String(offer.fulfillment_mode))
+            ? "pending"
+            : "not_required";
+        if (offerType === "item" && String(offer.fulfillment_mode) === "shipping") {
+          const safeShipping =
+            shippingAddress && typeof shippingAddress === "object" ? shippingAddress : {};
+          const requiredShippingFields = ["name", "line1", "city", "state", "postalCode"];
+          const missingShipping = requiredShippingFields.some((field) => {
+            const value = (safeShipping as Record<string, unknown>)[field];
+            return typeof value !== "string" || !value.trim();
+          });
+          if (missingShipping) throw new HttpError("SHIPPING_ADDRESS_REQUIRED", 400);
+        }
+
+        const purchaseRes = await client.query(
+          `INSERT INTO profile_offer_purchases (
+             offer_id, buyer_user_id, seller_user_id, offer_type, purchase_status, payment_status,
+             quantity, unit_price, shipping_cost, platform_fee, seller_amount, total_amount,
+             currency, shipping_status, shipping_address, metadata
+           )
+           VALUES ($1, $2, $3, $4, 'review_pending', 'not_charged', $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14::jsonb)
+           RETURNING *`,
+          [
+            offerId,
+            buyerUserId,
+            sellerUserId,
+            offerType,
+            quantity,
+            unitPrice,
+            shippingCost,
+            platformFee,
+            sellerAmount,
+            totalAmount,
+            offer.currency || "USD",
+            shippingStatus,
+            JSON.stringify(shippingAddress || {}),
+            JSON.stringify({
+              fulfillmentMode: offer.fulfillment_mode,
+              sellerAmount,
+              platformFee,
+              platformFeeLabel: TRADESCOUT_TRANSACTION_FEE_LABEL,
+              platformRevenueModel: TRADESCOUT_TRANSACTION_FEE_POLICY,
+              reviewRequired: true,
+              contactBoundary:
+                "Purchase intent does not release contact details. Decision/contact gates still apply.",
+            }),
+          ]
+        );
+        let purchase = purchaseRes.rows[0];
+
+        let workRequest: any = null;
+        let receiptDocument: any = null;
+        const safePurchaseId = String(purchase.id)
+          .replace(/[^a-zA-Z0-9_-]/g, "")
+          .slice(0, 48);
+
+        if (offerType === "service") {
+          const workRequestRes = await client.query(
+            `INSERT INTO work_requests (
+               created_by_user_id, title, description, category, source, source_ref_id, status,
+               visibility, exposure_mode, competition_mode, budget_min, budget_max
+             )
+             VALUES ($1, $2, $3, $4, 'scout', $5, 'draft', 'private', 'guided', 'none', $6, $6)
+             RETURNING *`,
+            [
+              buyerUserId,
+              String(offer.title || "Profile service purchase"),
+              String(
+                offer.description || "Fixed-price service purchase from a TradeScout profile."
+              ),
+              offer.service_category || "profile_service",
+              String(purchase.id),
+              totalAmount,
+            ]
+          );
+          workRequest = workRequestRes.rows[0];
+          await client
+            .query(
+              `UPDATE profile_offer_purchases
+             SET work_request_id = $1,
+                 updated_at = now()
+             WHERE id = $2
+             RETURNING *`,
+              [workRequest.id, purchase.id]
+            )
+            .then((updated) => {
+              purchase = updated.rows[0] || purchase;
+            });
+          await client
+            .query(
+              `INSERT INTO work_request_events (work_request_id, type, actor_user_id, metadata)
+             VALUES ($1, 'profile_offer_purchase_created', $2, $3::jsonb)`,
+              [
+                workRequest.id,
+                buyerUserId,
+                JSON.stringify({
+                  profileOfferId: offerId,
+                  profileOfferPurchaseId: purchase.id,
+                  sellerUserId,
+                  reviewRequired: true,
+                }),
+              ]
+            )
+            .catch(() => undefined);
+        } else {
+          const offerMetadata =
+            offer.metadata && typeof offer.metadata === "object" ? offer.metadata : {};
+          const receiptPayload = {
+            projectTitle: String(offer.title || "Profile item purchase"),
+            profileOfferId: offerId,
+            profileOfferPurchaseId: String(purchase.id),
+            buyerUserId,
+            sellerUserId,
+            lines: [
+              {
+                label: String(offer.title || "Profile item"),
+                quantity,
+                unitPrice,
+                amount: unitPrice * quantity,
+              },
+              ...(shippingCost > 0
+                ? [
+                    {
+                      label: "Shipping",
+                      quantity: 1,
+                      unitPrice: shippingCost,
+                      amount: shippingCost,
+                    },
+                  ]
+                : []),
+              {
+                label: TRADESCOUT_TRANSACTION_FEE_LABEL,
+                quantity: 1,
+                unitPrice: platformFee,
+                amount: platformFee,
+                revenueOwner: "tradescout",
+              },
+            ],
+            subtotal: unitPrice * quantity,
+            shipping: shippingCost,
+            sellerAmount,
+            platformFee,
+            tax: 0,
+            total: totalAmount,
+            currency: offer.currency || "USD",
+            fulfillmentMode: offer.fulfillment_mode,
+            itemCategory: offerMetadata.itemCategory || null,
+            taxCategory: offerMetadata.taxCategory || null,
+            fulfillmentPolicy: offerMetadata.fulfillmentPolicy || null,
+            returnPolicy: offerMetadata.returnPolicy || null,
+            imageUrls: Array.isArray(offerMetadata.imageUrls) ? offerMetadata.imageUrls : [],
+            shippingStatus,
+            shippingAddress: shippingAddress || {},
+            paymentStatus: "not_charged",
+            reviewRequired: true,
+          };
+
+          const receiptRes = await client.query(
+            `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+             VALUES ($1, 'RECEIPT', 'issued', 1, $2::jsonb, $3::jsonb, $4)
+             RETURNING *`,
+            [
+              `acct_profile_order_${safePurchaseId}`,
+              JSON.stringify(receiptPayload),
+              JSON.stringify({
+                reviewRequired: true,
+                source: "profile_offer_purchase",
+                contactGated: true,
+              }),
+              sellerUserId,
+            ]
+          );
+          receiptDocument = receiptRes.rows[0];
+
+          if (stock !== null) {
+            await client.query(
+              `UPDATE profile_offers
+               SET item_stock_quantity = GREATEST(item_stock_quantity - $2, 0),
+                   updated_at = now()
+               WHERE id = $1`,
+              [offerId, quantity]
+            );
+          }
+
+          await client
+            .query(
+              `UPDATE profile_offer_purchases
+             SET receipt_document_id = $1,
+                 updated_at = now()
+             WHERE id = $2
+             RETURNING *`,
+              [receiptDocument.id, purchase.id]
+            )
+            .then((updated) => {
+              purchase = updated.rows[0] || purchase;
+            });
+        }
+
+        await client.query("COMMIT");
+
+        await proposeAccountingAutomationFromProfileOffer(pool, {
+          sellerUserId,
+          buyerUserId,
+          purchaseId: String(purchase.id),
+          offerId,
+          offerType,
+          title: String(offer.title || ""),
+          total: totalAmount,
+          currency: String(offer.currency || "USD"),
+          workRequestId: workRequest?.id ? String(workRequest.id) : null,
+          receiptDocumentId: receiptDocument?.id ? String(receiptDocument.id) : null,
+          reason:
+            offerType === "service"
+              ? "Profile service purchased; prepare reviewable job accounting."
+              : "Profile item purchased; review receipt, shipping, and sales accounting.",
+          metadata: {
+            quantity,
+            unitPrice,
+            shippingCost,
+            sellerAmount,
+            platformFee,
+            platformFeeLabel: TRADESCOUT_TRANSACTION_FEE_LABEL,
+            fulfillmentMode: offer.fulfillment_mode,
+            itemCategory: (offer.metadata || {})?.itemCategory || null,
+            taxCategory: (offer.metadata || {})?.taxCategory || null,
+            shippingStatus,
+            receiptDocumentId: receiptDocument?.id ? String(receiptDocument.id) : null,
+          },
+        });
+
+        res.status(201).json({
+          purchase: mapProfileOfferPurchase(purchase),
+          workRequest: workRequest
+            ? {
+                id: String(workRequest.id),
+                status: String(workRequest.status),
+                source: String(workRequest.source),
+              }
+            : null,
+          receiptDocument: receiptDocument
+            ? {
+                id: String(receiptDocument.id),
+                type: String(receiptDocument.type),
+                status: String(receiptDocument.status),
+              }
+            : null,
+        });
+      } catch (error) {
+        await client.query("ROLLBACK").catch(() => undefined);
+        if (isMissingProfileOffers(error)) {
+          return res.status(503).json({
+            error: "PROFILE_OFFERS_MIGRATION_REQUIRED",
+            migrationRequired: "0095_profile_offers_finance_bridge",
+          });
+        }
+        throw error;
+      } finally {
+        client.release();
+      }
+    })
+  );
+
   // High-level accounting summary for deal-room style reporting
   r.get(
     "/api/accounting/reports/summary",
@@ -481,6 +1744,656 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
           paidAmount: Number(row.paid_amount) || 0,
         })),
       });
+    })
+  );
+
+  // Books foundation status for the QuickBooks-replacement rebuild.
+  // This initializes a lightweight profile + chart-of-accounts scaffold, then reports
+  // what is live, partial, or still missing without claiming full accounting automation.
+  r.get(
+    "/api/accounting/books-foundation",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+
+      try {
+        const result = await (async () => {
+          const profile = await ensureAccountingProfile(pool, userId);
+          const profileId = String(profile.id);
+
+          const countsRes = await pool.query(
+            `SELECT
+                 (SELECT COUNT(*)::int FROM accounting_accounts WHERE profile_id = $1 AND is_active = true) AS account_count,
+                 (SELECT COUNT(*)::int FROM accounting_journal_entries WHERE profile_id = $1) AS journal_entry_count,
+                 (SELECT COUNT(*)::int FROM accounting_journal_entries WHERE profile_id = $1 AND status = 'posted') AS posted_entry_count,
+                 (SELECT COUNT(*)::int FROM accounting_reconciliation_sessions WHERE profile_id = $1 AND status IN ('draft', 'in_review')) AS open_reconciliation_count,
+                 (SELECT COUNT(*)::int FROM accounting_automation_events WHERE requester_user_id = $2 AND automation_state = 'proposed') AS proposed_automation_count`,
+            [profileId, userId]
+          );
+
+          const sourceRes = await pool.query(
+            `SELECT source_surface, COUNT(*)::int AS count
+               FROM accounting_automation_events
+               WHERE requester_user_id = $1
+               GROUP BY source_surface
+               ORDER BY source_surface ASC`,
+            [userId]
+          );
+
+          const proposalRes = await pool.query(
+            `SELECT id, source_surface, source_type, source_id, work_request_id, assignment_id,
+                      automation_state, reason, metadata, created_at, updated_at
+               FROM accounting_automation_events
+               WHERE requester_user_id = $1
+                 AND automation_state = 'proposed'
+               ORDER BY updated_at DESC, created_at DESC
+               LIMIT 10`,
+            [userId]
+          );
+
+          const counts = countsRes.rows[0] || {};
+          return {
+            profile: {
+              id: profileId,
+              accountingBasis: profile.accounting_basis,
+              fiscalYearStartMonth: Number(profile.fiscal_year_start_month || 1),
+              defaultCurrency: profile.default_currency || "USD",
+              booksStatus: profile.books_status || "setup",
+            },
+            capabilities: {
+              chartOfAccounts: "live",
+              doubleEntryLedger:
+                Number(counts.journal_entry_count || 0) > 0 ? "partial" : "foundation",
+              bankReconciliation:
+                Number(counts.open_reconciliation_count || 0) > 0 ? "partial" : "needed",
+              arAp: "document_based",
+              taxPayroll: "needed",
+              accountantExports: "needed",
+              automation: "proposed_review",
+            },
+            counts: {
+              accounts: Number(counts.account_count || 0),
+              journalEntries: Number(counts.journal_entry_count || 0),
+              postedEntries: Number(counts.posted_entry_count || 0),
+              openReconciliations: Number(counts.open_reconciliation_count || 0),
+              proposedAutomation: Number(counts.proposed_automation_count || 0),
+            },
+            sourceCoverage: sourceRes.rows.map((row) => ({
+              sourceSurface: String(row.source_surface || ""),
+              count: Number(row.count || 0),
+            })),
+            proposals: proposalRes.rows.map((row) => ({
+              id: String(row.id),
+              sourceSurface: String(row.source_surface),
+              sourceType: String(row.source_type),
+              sourceId: String(row.source_id),
+              workRequestId: row.work_request_id ? String(row.work_request_id) : null,
+              assignmentId: row.assignment_id ? String(row.assignment_id) : null,
+              automationState: String(row.automation_state),
+              reason: row.reason ? String(row.reason) : null,
+              metadata: row.metadata || {},
+              createdAt: row.created_at,
+              updatedAt: row.updated_at,
+            })),
+          };
+        })();
+
+        res.json(result);
+      } catch (error) {
+        if (isMissingAccountingBooksFoundation(error)) {
+          return res.json({
+            profile: null,
+            capabilities: {
+              chartOfAccounts: "needed",
+              doubleEntryLedger: "needed",
+              bankReconciliation: "needed",
+              arAp: "document_based",
+              taxPayroll: "needed",
+              accountantExports: "needed",
+              automation: "needed",
+            },
+            counts: {
+              accounts: 0,
+              journalEntries: 0,
+              postedEntries: 0,
+              openReconciliations: 0,
+              proposedAutomation: 0,
+            },
+            sourceCoverage: [],
+            proposals: [],
+            migrationRequired: "0094_accounting_books_foundation",
+          });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.get(
+    "/api/accounting/automation-events",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const state = typeof req.query.state === "string" ? req.query.state : "proposed";
+      const allowedStates = new Set(["proposed", "reviewed", "posted", "skipped", "error", "all"]);
+      const safeState = allowedStates.has(state) ? state : "proposed";
+
+      try {
+        const params: any[] = [userId];
+        let stateWhere = "";
+        if (safeState !== "all") {
+          params.push(safeState);
+          stateWhere = "AND automation_state = $2";
+        }
+
+        const rows = await pool.query(
+          `SELECT id, source_surface, source_type, source_id, source_event_key, work_request_id,
+                  assignment_id, provider_user_id, automation_state, proposed_document_id,
+                  proposed_journal_entry_id, reason, metadata, created_at, updated_at
+           FROM accounting_automation_events
+           WHERE requester_user_id = $1
+             ${stateWhere}
+           ORDER BY updated_at DESC, created_at DESC
+           LIMIT 100`,
+          params
+        );
+
+        res.json({
+          events: rows.rows.map((row) => ({
+            id: String(row.id),
+            sourceSurface: String(row.source_surface),
+            sourceType: String(row.source_type),
+            sourceId: String(row.source_id),
+            sourceEventKey: String(row.source_event_key),
+            workRequestId: row.work_request_id ? String(row.work_request_id) : null,
+            assignmentId: row.assignment_id ? String(row.assignment_id) : null,
+            providerUserId: row.provider_user_id ? String(row.provider_user_id) : null,
+            automationState: String(row.automation_state),
+            proposedDocumentId: row.proposed_document_id ? String(row.proposed_document_id) : null,
+            proposedJournalEntryId: row.proposed_journal_entry_id
+              ? String(row.proposed_journal_entry_id)
+              : null,
+            reason: row.reason ? String(row.reason) : null,
+            metadata: row.metadata || {},
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+          })),
+        });
+      } catch (error) {
+        if (isMissingAccountingBooksFoundation(error)) {
+          return res.json({ events: [], migrationRequired: "0094_accounting_books_foundation" });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.get(
+    "/api/accounting/accounts",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+
+      try {
+        const profile = await ensureAccountingProfile(pool, userId);
+        const accountsRes = await pool.query(
+          `SELECT id, code, name, account_type, account_subtype, normal_balance, system_key, is_active
+           FROM accounting_accounts
+           WHERE profile_id = $1
+           ORDER BY code ASC`,
+          [profile.id]
+        );
+
+        res.json({
+          profileId: String(profile.id),
+          accounts: accountsRes.rows.map((row) => ({
+            id: String(row.id),
+            code: String(row.code),
+            name: String(row.name),
+            accountType: String(row.account_type),
+            accountSubtype: row.account_subtype ? String(row.account_subtype) : null,
+            normalBalance: String(row.normal_balance),
+            systemKey: row.system_key ? String(row.system_key) : null,
+            isActive: Boolean(row.is_active),
+          })),
+        });
+      } catch (error) {
+        if (isMissingAccountingBooksFoundation(error)) {
+          return res.json({
+            profileId: null,
+            accounts: [],
+            migrationRequired: "0094_accounting_books_foundation",
+          });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.post(
+    "/api/accounting/accounts",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const code = String(req.body?.code || "").trim();
+      const name = String(req.body?.name || "").trim();
+      const accountType = String(req.body?.accountType || "").trim();
+      const subtype = String(req.body?.accountSubtype || "").trim() || null;
+      const validTypes = new Set(["asset", "liability", "equity", "income", "cogs", "expense"]);
+      if (!code || !name || !validTypes.has(accountType)) {
+        throw new HttpError("INVALID_ACCOUNT", 400);
+      }
+      const normalBalance = ["asset", "cogs", "expense"].includes(accountType) ? "debit" : "credit";
+      const profile = await ensureAccountingProfile(pool, userId);
+      const created = await pool.query(
+        `INSERT INTO accounting_accounts
+           (profile_id, code, name, account_type, account_subtype, normal_balance)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, code, name, account_type, account_subtype, normal_balance, is_active`,
+        [profile.id, code, name, accountType, subtype, normalBalance]
+      );
+      res.status(201).json({ account: created.rows[0] });
+    })
+  );
+
+  r.post(
+    "/api/accounting/journal-entries",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const description = String(req.body?.description || "").trim();
+      const lines = Array.isArray(req.body?.lines) ? req.body.lines : [];
+      if (!description || lines.length < 2) throw new HttpError("INVALID_JOURNAL_ENTRY", 400);
+
+      const normalizedLines = lines.map((line: any) => ({
+        accountId: String(line.accountId || "").trim(),
+        description: String(line.description || "").trim(),
+        debit: Math.round(okNumber(line.debit) * 100) / 100,
+        credit: Math.round(okNumber(line.credit) * 100) / 100,
+      }));
+      if (
+        normalizedLines.some(
+          (line) =>
+            !line.accountId ||
+            (line.debit <= 0 && line.credit <= 0) ||
+            (line.debit > 0 && line.credit > 0)
+        )
+      ) {
+        throw new HttpError("INVALID_JOURNAL_LINES", 400);
+      }
+      const debitTotal =
+        Math.round(normalizedLines.reduce((sum, line) => sum + line.debit, 0) * 100) / 100;
+      const creditTotal =
+        Math.round(normalizedLines.reduce((sum, line) => sum + line.credit, 0) * 100) / 100;
+      if (debitTotal <= 0 || debitTotal !== creditTotal) {
+        throw new HttpError("JOURNAL_ENTRY_NOT_BALANCED", 400);
+      }
+
+      const profile = await ensureAccountingProfile(pool, userId);
+      const entryStatus = req.body?.post === true ? "posted" : "draft";
+      const entry = await pool.query(
+        `INSERT INTO accounting_journal_entries
+           (profile_id, status, source_surface, source_type, description, created_by, posted_by, posted_at, metadata)
+         VALUES ($1, $2, 'manual', 'manual_journal_entry', $3, $4, $5, CASE WHEN $2 = 'posted' THEN now() ELSE NULL END, $6::jsonb)
+         RETURNING *`,
+        [
+          profile.id,
+          entryStatus,
+          description,
+          userId,
+          entryStatus === "posted" ? userId : null,
+          JSON.stringify({ debitTotal, creditTotal, reviewBoundary: "manual_user_submitted" }),
+        ]
+      );
+      const entryId = entry.rows[0].id;
+      for (const line of normalizedLines) {
+        await pool.query(
+          `INSERT INTO accounting_journal_lines
+             (journal_entry_id, account_id, description, debit, credit)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [entryId, line.accountId, line.description || description, line.debit, line.credit]
+        );
+      }
+      await pool.query(
+        `INSERT INTO accounting_audit_events
+           (profile_id, actor_user_id, action, entity_type, entity_id, source_surface, after_state, metadata)
+         VALUES ($1, $2, 'manual_journal_entry_created', 'journal_entry', $3, 'manual', $4::jsonb, $5::jsonb)`,
+        [
+          profile.id,
+          userId,
+          entryId,
+          JSON.stringify(entry.rows[0]),
+          JSON.stringify({ debitTotal, creditTotal, lineCount: normalizedLines.length }),
+        ]
+      );
+      res.status(201).json({ entry: entry.rows[0], debitTotal, creditTotal });
+    })
+  );
+
+  r.get(
+    "/api/accounting/journal-entries",
+    isAuthenticated,
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+
+      try {
+        const profile = await ensureAccountingProfile(pool, userId);
+        const entriesRes = await pool.query(
+          `SELECT id, status, entry_date, source_surface, source_type, source_id,
+                  description, created_by, reviewed_by, posted_by, reviewed_at, posted_at,
+                  metadata, created_at, updated_at
+           FROM accounting_journal_entries
+           WHERE profile_id = $1
+           ORDER BY entry_date DESC, created_at DESC
+           LIMIT 100`,
+          [profile.id]
+        );
+        const entryIds = entriesRes.rows.map((row) => row.id);
+        const linesRes = entryIds.length
+          ? await pool.query(
+              `SELECT l.id, l.journal_entry_id, l.account_id, l.description, l.debit, l.credit,
+                      a.code AS account_code, a.name AS account_name, a.account_type
+               FROM accounting_journal_lines l
+               LEFT JOIN accounting_accounts a ON a.id = l.account_id
+               WHERE l.journal_entry_id = ANY($1::varchar[])
+               ORDER BY l.created_at ASC, l.id ASC`,
+              [entryIds]
+            )
+          : { rows: [] as any[] };
+
+        const linesByEntry = new Map<string, any[]>();
+        for (const line of linesRes.rows) {
+          const key = String(line.journal_entry_id);
+          const existing = linesByEntry.get(key) || [];
+          existing.push({
+            id: String(line.id),
+            accountId: line.account_id ? String(line.account_id) : null,
+            accountCode: line.account_code ? String(line.account_code) : null,
+            accountName: line.account_name ? String(line.account_name) : null,
+            accountType: line.account_type ? String(line.account_type) : null,
+            description: line.description ? String(line.description) : null,
+            debit: Number(line.debit || 0),
+            credit: Number(line.credit || 0),
+          });
+          linesByEntry.set(key, existing);
+        }
+
+        res.json({
+          entries: entriesRes.rows.map((row) => ({
+            id: String(row.id),
+            status: String(row.status),
+            entryDate: row.entry_date,
+            sourceSurface: String(row.source_surface),
+            sourceType: row.source_type ? String(row.source_type) : null,
+            sourceId: row.source_id ? String(row.source_id) : null,
+            description: row.description ? String(row.description) : null,
+            postedAt: row.posted_at,
+            metadata: row.metadata || {},
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+            lines: linesByEntry.get(String(row.id)) || [],
+          })),
+        });
+      } catch (error) {
+        if (isMissingAccountingBooksFoundation(error)) {
+          return res.json({
+            entries: [],
+            migrationRequired: "0094_accounting_books_foundation",
+          });
+        }
+        throw error;
+      }
+    })
+  );
+
+  r.post(
+    "/api/accounting/automation-events/:id/skip",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const id = String(req.params.id);
+
+      const updated = await pool.query(
+        `UPDATE accounting_automation_events
+         SET automation_state = 'skipped',
+             reason = COALESCE($3, reason),
+             updated_at = now()
+         WHERE id = $1
+           AND requester_user_id = $2
+           AND automation_state IN ('proposed', 'reviewed', 'error')
+         RETURNING *`,
+        [id, userId, typeof req.body?.reason === "string" ? req.body.reason : null]
+      );
+
+      if (!updated.rows.length) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
+      res.json({ event: updated.rows[0] });
+    })
+  );
+
+  r.post(
+    "/api/accounting/automation-events/:id/prepare-invoice",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const id = String(req.params.id);
+
+      const eventRes = await pool.query(
+        `SELECT *
+         FROM accounting_automation_events
+         WHERE id = $1
+           AND requester_user_id = $2
+           AND automation_state IN ('proposed', 'reviewed', 'error')
+         LIMIT 1`,
+        [id, userId]
+      );
+      const event = eventRes.rows[0];
+      if (!event) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
+
+      const metadata = event.metadata || {};
+      const responseSummary = metadata.responseSummary || {};
+      const requestedTotal = okNumber(req.body?.total);
+      const title =
+        typeof req.body?.projectTitle === "string" && req.body.projectTitle.trim()
+          ? req.body.projectTitle.trim()
+          : typeof metadata.title === "string" && metadata.title.trim()
+            ? metadata.title.trim()
+            : "Direct Connect job";
+      const notes = [
+        "Prepared from connected TradeScout activity.",
+        event.reason ? String(event.reason) : "",
+        responseSummary.scopeNote ? `Scope note: ${responseSummary.scopeNote}` : "",
+        responseSummary.availabilityWindow
+          ? `Availability: ${responseSummary.availabilityWindow}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const payload = {
+        projectTitle: title,
+        clientName: typeof req.body?.clientName === "string" ? req.body.clientName.trim() : "",
+        total: requestedTotal,
+        currency: "USD",
+        notes,
+        sourceSurface: event.source_surface,
+        sourceType: event.source_type,
+        sourceId: event.source_id,
+        workRequestId: event.work_request_id,
+        assignmentId: event.assignment_id,
+        reviewRequired: true,
+      };
+
+      const jobId =
+        event.work_request_id && String(event.work_request_id).trim()
+          ? `acct_dc_${String(event.work_request_id)
+              .replace(/[^a-zA-Z0-9_-]/g, "")
+              .slice(0, 48)}`
+          : `acct_auto_${String(event.id)
+              .replace(/[^a-zA-Z0-9_-]/g, "")
+              .slice(0, 48)}`;
+
+      const created = await pool.query(
+        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+         VALUES ($1, 'INVOICE', 'draft', 1, $2::jsonb, $3::jsonb, $4)
+         RETURNING *`,
+        [
+          jobId,
+          JSON.stringify(payload),
+          JSON.stringify({
+            reviewRequired: true,
+            source: "accounting_automation",
+          }),
+          userId,
+        ]
+      );
+      const document = created.rows[0];
+
+      const updated = await pool.query(
+        `UPDATE accounting_automation_events
+         SET automation_state = 'reviewed',
+             proposed_document_id = $3,
+             reason = 'Prepared draft invoice for review.',
+             updated_at = now()
+         WHERE id = $1
+           AND requester_user_id = $2
+         RETURNING *`,
+        [id, userId, document.id]
+      );
+
+      try {
+        await pool.query(
+          `INSERT INTO accounting_audit_events
+             (profile_id, actor_user_id, action, entity_type, entity_id, source_surface, source_id, after_state, metadata)
+           VALUES (
+             (SELECT id FROM accounting_profiles WHERE created_by = $1 LIMIT 1),
+             $1,
+             'automation_prepared_invoice',
+             'document',
+             $2,
+             $3,
+             $4,
+             $5::jsonb,
+             $6::jsonb
+           )`,
+          [
+            userId,
+            document.id,
+            event.source_surface,
+            event.source_id,
+            JSON.stringify(document),
+            JSON.stringify({ automationEventId: id, workRequestId: event.work_request_id }),
+          ]
+        );
+      } catch (auditError) {
+        console.warn("[accounting] Failed to write automation audit event", auditError);
+      }
+
+      res.status(201).json({ event: updated.rows[0], document });
+    })
+  );
+
+  r.post(
+    "/api/accounting/automation-events/:id/prepare-expense",
+    isAuthenticated,
+    express.json(),
+    wrap(async (req: AuthedRequest, res: Response) => {
+      requireAuth(req);
+      const userId = String(req.user!.id);
+      const id = String(req.params.id);
+
+      const eventRes = await pool.query(
+        `SELECT *
+         FROM accounting_automation_events
+         WHERE id = $1
+           AND requester_user_id = $2
+           AND automation_state IN ('proposed', 'reviewed', 'error')
+         LIMIT 1`,
+        [id, userId]
+      );
+      const event = eventRes.rows[0];
+      if (!event) throw new HttpError("AUTOMATION_EVENT_NOT_FOUND", 404);
+
+      const metadata = event.metadata || {};
+      const requestedTotal = okNumber(req.body?.total);
+      if (!Number.isFinite(requestedTotal) || requestedTotal <= 0) {
+        throw new HttpError("INVALID_EXPENSE_TOTAL", 400);
+      }
+
+      const title =
+        typeof req.body?.projectTitle === "string" && req.body.projectTitle.trim()
+          ? req.body.projectTitle.trim()
+          : typeof metadata.title === "string" && metadata.title.trim()
+            ? metadata.title.trim()
+            : "Connected expense";
+      const vendorName =
+        typeof req.body?.vendorName === "string" && req.body.vendorName.trim()
+          ? req.body.vendorName.trim()
+          : "Connected source";
+      const category =
+        typeof req.body?.category === "string" && req.body.category.trim()
+          ? req.body.category.trim()
+          : event.source_type === "material_list_created"
+            ? "Materials"
+            : "Job cost";
+
+      const jobId =
+        metadata.jobId && String(metadata.jobId).trim()
+          ? String(metadata.jobId)
+          : `acct_auto_${String(event.id)
+              .replace(/[^a-zA-Z0-9_-]/g, "")
+              .slice(0, 48)}`;
+
+      const payload = {
+        projectTitle: title,
+        vendorName,
+        category,
+        notes: "Prepared from connected TradeScout activity. Review before posting books.",
+        total: requestedTotal,
+        currency: "USD",
+        sourceSurface: event.source_surface,
+        sourceType: event.source_type,
+        sourceId: event.source_id,
+        reviewRequired: true,
+      };
+
+      const created = await pool.query(
+        `INSERT INTO documents (job_id, type, status, version, payload, permissions, created_by)
+         VALUES ($1, 'EXPENSE', 'recorded', 1, $2::jsonb, $3::jsonb, $4)
+         RETURNING *`,
+        [
+          jobId,
+          JSON.stringify(payload),
+          JSON.stringify({ reviewRequired: true, source: "accounting_automation" }),
+          userId,
+        ]
+      );
+      const document = created.rows[0];
+
+      const updated = await pool.query(
+        `UPDATE accounting_automation_events
+         SET automation_state = 'reviewed',
+             proposed_document_id = $3,
+             reason = 'Prepared expense record for review.',
+             updated_at = now()
+         WHERE id = $1
+           AND requester_user_id = $2
+         RETURNING *`,
+        [id, userId, document.id]
+      );
+
+      res.status(201).json({ event: updated.rows[0], document });
     })
   );
 
@@ -667,6 +2580,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       );
 
       const document = rows[0];
+      await proposeAccountingAutomationFromDocument(pool, {
+        userId: String(req.user.id),
+        document,
+        sourceType: "material_list_created",
+        reason: "Material list created; prepare purchase order or expense review.",
+        metadata: { targetRecordTypes: ["PURCHASE_ORDER", "EXPENSE"] },
+      });
       try {
         await storage.logEvent("finance.document_created", {
           userId: req.user.id,
@@ -1028,6 +2948,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
       );
       const invoice = created.rows[0];
+      await proposeAccountingAutomationFromDocument(pool, {
+        userId: String(req.user.id),
+        document: invoice,
+        sourceType: "invoice_created",
+        reason: "Invoice draft created; prepare accounts receivable journal review.",
+        metadata: { targetRecordTypes: ["JOURNAL_ENTRY", "RECEIPT"] },
+      });
       try {
         await storage.logEvent("finance.document_created", {
           userId: req.user.id,
@@ -1310,6 +3237,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
       );
       const estimate = created.rows[0];
+      await proposeAccountingAutomationFromDocument(pool, {
+        userId: String(req.user.id),
+        document: estimate,
+        sourceType: "estimate_created",
+        reason: "Estimate created; keep it ready for contract, invoice, and receivable review.",
+        metadata: { targetRecordTypes: ["CONTRACT", "INVOICE", "JOURNAL_ENTRY"] },
+      });
       try {
         await storage.logEvent("finance.document_created", {
           userId: req.user.id,
@@ -1406,6 +3340,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
       );
       const contract = created.rows[0];
+      await proposeAccountingAutomationFromDocument(pool, {
+        userId: String(req.user.id),
+        document: contract,
+        sourceType: "contract_created",
+        reason: "Contract draft created; keep it ready for invoice and receivable review.",
+        metadata: { targetRecordTypes: ["INVOICE", "JOURNAL_ENTRY"] },
+      });
       try {
         await storage.logEvent("finance.document_created", {
           userId: req.user.id,
@@ -1853,6 +3794,13 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         [jobId, JSON.stringify(payload), JSON.stringify({}), req.user.id]
       );
       const expense = created.rows[0];
+      await proposeAccountingAutomationFromDocument(pool, {
+        userId: String(req.user.id),
+        document: expense,
+        sourceType: "expense_created",
+        reason: "Expense recorded; prepare COGS or operating-expense journal review.",
+        metadata: { targetRecordTypes: ["JOURNAL_ENTRY"] },
+      });
       try {
         await storage.logEvent("finance.document_created", {
           userId: req.user.id,

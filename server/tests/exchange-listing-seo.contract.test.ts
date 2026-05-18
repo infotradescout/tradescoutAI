@@ -93,6 +93,21 @@ describe("publicExchangeListingHtml.ts", () => {
     expect(src).toContain("return null");
   });
 
+  it("loads profile offer item detail pages for Exchange SEO", () => {
+    expect(src).toContain("profile-offer-");
+    expect(src).toContain("getProfileOfferExchangeListing");
+    expect(src).toContain("profile_offers");
+    expect(src).toContain("offer_type = 'item'");
+  });
+
+  it("carries profile offer product metadata into Product JSON-LD", () => {
+    expect(src).toContain("additionalProperty");
+    expect(src).toContain("Item category");
+    expect(src).toContain("Tax category");
+    expect(src).toContain("Fulfillment policy");
+    expect(src).toContain("Return policy");
+  });
+
   it("includes Offer with price and priceCurrency", () => {
     expect(src).toContain('"Offer"');
     expect(src).toContain("priceCurrency");
@@ -155,6 +170,12 @@ describe("server/routes/profiles.ts sitemap-exchange-listings.xml", () => {
 
   it("calls storage.listActiveExchangeListingsForSitemap", () => {
     expect(src).toContain("listActiveExchangeListingsForSitemap");
+  });
+
+  it("includes active profile item offers in the Exchange listing sitemap", () => {
+    expect(src).toContain("profile_offers");
+    expect(src).toContain("profile-offer-");
+    expect(src).toContain("offer_type = 'item'");
   });
 
   it("uses getExchangeCategorySlugFromMarketplaceCategoryName to resolve slugs", () => {

@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { hasBusinessProviderToolAccess } from "@/lib/roleChecks";
 
 export default function RecommendationGeneratorPage() {
   const { user, isLoading } = useAuth();
@@ -44,17 +45,17 @@ export default function RecommendationGeneratorPage() {
     );
   }
 
-  if (user.role !== "contractor_user") {
+  if (!hasBusinessProviderToolAccess(user)) {
     return (
       <div className="container mx-auto p-6">
         <Card>
           <CardContent className="text-center py-12">
             <AlertCircle className="mx-auto h-12 w-12 text-ts-orange mb-4" />
-            <h2 className="text-xl font-semibold text-white mb-2">Contractor Access Only</h2>
+            <h2 className="text-xl font-semibold text-white mb-2">Business Provider Access Only</h2>
             <p className="text-white/60 mb-6">
-              The Smart Recommendation Generator is exclusively available to contractors. This
-              powerful tool helps contractors analyze their performance, set goals, and create
-              automated campaigns to increase customer recommendations.
+              The Smart Recommendation Generator is available to business providers. This tool helps
+              providers analyze performance, set goals, and create campaigns to increase customer
+              recommendations.
             </p>
             <div className="flex gap-4 justify-center">
               <Button variant="outline" asChild>
@@ -65,7 +66,7 @@ export default function RecommendationGeneratorPage() {
               </Button>
               {user.role === "homeowner" && (
                 <Button asChild>
-                  <Link href="/contractors">Find Contractors</Link>
+                  <Link href="/direct-connect">Find Local Help</Link>
                 </Button>
               )}
             </div>
@@ -87,16 +88,14 @@ export default function RecommendationGeneratorPage() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild>
-              <Link href="/contractor/dashboard">
+              <Link href="/business-dashboard">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Link>
             </Button>
             <div className="h-6 w-px bg-white/10" />
             <div>
-              <h1 className="text-lg font-semibold text-white">
-                Smart Recommendation Generator
-              </h1>
+              <h1 className="text-lg font-semibold text-white">Smart Recommendation Generator</h1>
               <p className="text-sm text-white/60">Grow your business with data-driven insights</p>
             </div>
           </div>

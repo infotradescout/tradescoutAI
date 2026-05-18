@@ -3,7 +3,7 @@ import { z } from "zod";
 import { isAuthenticated } from "../auth";
 import { storage } from "../storage";
 import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryScopeSnapshotJob";
-import { db } from "../db";
+import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
 import { and, desc, eq, sql } from "drizzle-orm";
@@ -611,6 +611,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       id: string;
       companyName: string;
       slug: string;
+      canonicalBusinessProfileUrl: string | null;
     };
   }> = [];
   let recommendationDirectorySummary = {
@@ -636,6 +637,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
           comment: recommendations.comment,
           projectType: recommendations.projectType,
           contractorId: contractors.id,
+          contractorUserId: contractors.userId,
           contractorCompanyName: contractors.companyName,
           contractorSlug: contractors.slug,
         })
@@ -650,6 +652,26 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         )
         .orderBy(desc(recommendations.createdAt))
         .limit(100);
+
+      const canonicalBusinessUrlByUserId = new Map<string, string>();
+      await Promise.all(
+        rows.map(async (row) => {
+          const contractorUserId = String(row.contractorUserId || "").trim();
+          if (!contractorUserId || canonicalBusinessUrlByUserId.has(contractorUserId)) return;
+
+          const businessProfile = await storage.getBusinessProfileByUserId(contractorUserId);
+          if (
+            businessProfile?.visibility === "public" &&
+            typeof businessProfile.slug === "string" &&
+            businessProfile.slug.trim()
+          ) {
+            canonicalBusinessUrlByUserId.set(
+              contractorUserId,
+              `/business/${encodeURIComponent(businessProfile.slug.trim())}`
+            );
+          }
+        })
+      );
 
       recommendationsDirectory = rows
         .filter((row) => {
@@ -668,6 +690,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
             id: String(row.contractorId),
             companyName: String(row.contractorCompanyName || "Service provider"),
             slug: String(row.contractorSlug || ""),
+            canonicalBusinessProfileUrl:
+              canonicalBusinessUrlByUserId.get(String(row.contractorUserId || "").trim()) ?? null,
           },
         }));
 
@@ -1925,7 +1949,9 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
   try {
     const baseUrl = getCanonicalBaseUrl(req);
     const today = getTodayYmd();
+    // Sitemap URLs are emitted as /exchange/:categorySlug/:id with encodeURIComponent path parts.
     let listings: Array<{ id: string; categoryName: string; updatedAt: Date | null }> = [];
+    let profileOfferItems: Array<{ id: string; categoryName: string; updatedAt: Date | null }> = [];
     try {
       const maybeListings = await storage.listActiveExchangeListingsForSitemap();
       listings = Array.isArray(maybeListings) ? maybeListings : [];
@@ -1934,11 +1960,33 @@ router.get("/sitemap-exchange-listings.xml", async (req, res) => {
       listings = [];
     }
 
+    try {
+      const offers = await pool.query(
+        `SELECT id, COALESCE(metadata->>'exchangeCategorySlug', 'other') AS category_slug, updated_at
+         FROM profile_offers
+         WHERE is_active = true
+           AND offer_type = 'item'
+         ORDER BY updated_at DESC
+         LIMIT 5000`
+      );
+      profileOfferItems = offers.rows.map((offer) => ({
+        id: `profile-offer-${String(offer.id)}`,
+        categoryName: String(offer.category_slug || "other"),
+        updatedAt: offer.updated_at ?? null,
+      }));
+    } catch (error: any) {
+      const message = String(error?.message || "").toLowerCase();
+      if (!message.includes("profile_offers") && error?.code !== "42P01") {
+        console.warn("Exchange listings sitemap fallback: failed to load profile offers", error);
+      }
+      profileOfferItems = [];
+    }
+
     // Build a categoryName → slug lookup using the shared mapping
     const { getExchangeCategorySlugFromMarketplaceCategoryName } =
       await import("../../shared/exchangeListingRules");
 
-    const urls = listings
+    const urls = [...listings, ...profileOfferItems]
       .filter((listing) => listing && typeof listing === "object")
       .map((listing) => {
         const id = String(listing.id || "").trim();

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { X, Users, Calculator, Search, Star, MessageCircle, Bug } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { X, Users, Calculator, Search, Star, MessageCircle, Bug } from "lucide-react";
 
 interface FeatureHint {
   id: string;
@@ -20,81 +20,83 @@ export function SubtleHints() {
   const [shownHints, setShownHints] = useState<Set<string>>(new Set());
 
   const getHintsForRole = (role: string): FeatureHint[] => {
-    if (role === 'contractor_user') {
+    if (role === "contractor_user") {
       return [
         {
-          id: 'contractor-welcome',
-          title: "Welcome, Contractor!",
-          description: "Complete your profile to showcase your business to homeowners",
+          id: "contractor-welcome",
+          title: "Welcome, Business Owner!",
+          description: "Complete your profile to showcase your business to local customers",
           icon: <Users className="w-5 h-5 text-ts-orange" />,
           action: "Complete Profile",
           actionUrl: "/profile",
-          delay: 2
+          delay: 2,
         },
         {
-          id: 'contractor-board',
-          title: "Get Listed",
-          description: "Your profile will appear on the contractor board once verified",
+          id: "contractor-board",
+          title: "Get Found",
+          description: "Your profile can appear in local business surfaces once verified",
           icon: <Search className="w-5 h-5 text-blue-500" />,
-          action: "View Board",
-          actionUrl: "/contractors",
-          delay: 8
+          action: "Open Direct Connect",
+          actionUrl: "/direct-connect",
+          delay: 8,
         },
         {
-          id: 'recommendations',
+          id: "recommendations",
           title: "Build Reputation",
           description: "Ask satisfied customers to leave recommendations",
           icon: <Star className="w-5 h-5 text-yellow-500" />,
-          delay: 14
+          delay: 14,
         },
         {
-          id: 'bug-report',
+          id: "bug-report",
           title: "Found a Bug?",
-          description: "Use the red bug report button (bottom-right) to send instant feedback with screenshots",
+          description:
+            "Use the red bug report button (bottom-right) to send instant feedback with screenshots",
           icon: <Bug className="w-5 h-5 text-red-500" />,
-          delay: 20
-        }
+          delay: 20,
+        },
       ];
     } else {
       return [
         {
-          id: 'homeowner-welcome',
+          id: "homeowner-welcome",
           title: "Welcome to TradeScout!",
           description: "Use Scout and Direct Connect to route jobs to trusted providers",
           icon: <Users className="w-5 h-5 text-ts-orange" />,
-          delay: 2
+          delay: 2,
         },
         {
-          id: 'find-contractors',
+          id: "find-contractors",
           title: "Route this job",
           description: "Describe your project and let Direct Connect reach the right providers",
           icon: <Search className="w-5 h-5 text-blue-500" />,
           action: "Browse Now",
           actionUrl: "/direct-connect",
-          delay: 8
+          delay: 8,
         },
         {
-          id: 'scout-estimates',
+          id: "scout-estimates",
           title: "Ask Scout for Estimates",
-          description: "Get a ballpark cost before contacting contractors",
+          description: "Get a ballpark cost before starting a request",
           icon: <Calculator className="w-5 h-5 text-green-500" />,
           action: "Ask Scout",
           actionUrl: "/scout?intent=estimate",
-          delay: 14
+          delay: 14,
         },
         {
-          id: 'bug-report',
+          id: "bug-report",
           title: "Found a Bug?",
-          description: "Use the red bug report button (bottom-right) to send instant feedback with screenshots",
+          description:
+            "Use the red bug report button (bottom-right) to send instant feedback with screenshots",
           icon: <Bug className="w-5 h-5 text-red-500" />,
-          delay: 20
-        }
+          delay: 20,
+        },
       ];
     }
   };
 
   useEffect(() => {
-    if (user && user.role && !user.preferences?.completedTours?.includes('subtle-hints')) {
+    if (user && user.role && !user.preferences?.completedTours?.includes("subtle-hints")) {
       const hints = getHintsForRole(user.role);
 
       const timers: number[] = [];
@@ -106,11 +108,11 @@ export function SubtleHints() {
         const timer = window.setTimeout(() => {
           if (!shownHints.has(hint.id)) {
             setActiveHint(hint);
-            setShownHints(prev => new Set([...Array.from(prev), hint.id]));
+            setShownHints((prev) => new Set([...Array.from(prev), hint.id]));
 
             // Auto-hide after 6 seconds
             window.setTimeout(() => {
-              setActiveHint(current => current?.id === hint.id ? null : current);
+              setActiveHint((current) => (current?.id === hint.id ? null : current));
             }, 6000);
           }
         }, hint.delay * 1000);
@@ -119,7 +121,7 @@ export function SubtleHints() {
       });
 
       return () => {
-        timers.forEach(timer => window.clearTimeout(timer));
+        timers.forEach((timer) => window.clearTimeout(timer));
         window.clearTimeout(finalTimer);
       };
     }
@@ -127,16 +129,16 @@ export function SubtleHints() {
 
   const markHintsCompleted = async () => {
     try {
-      await fetch('/api/users/preferences', {
-        method: 'PATCH',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/users/preferences", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          completedTours: [...(user?.preferences?.completedTours || []), 'subtle-hints']
-        })
+          completedTours: [...(user?.preferences?.completedTours || []), "subtle-hints"],
+        }),
       });
     } catch (error) {
-      console.error('Failed to update hints completion:', error);
+      console.error("Failed to update hints completion:", error);
     }
   };
 

@@ -104,7 +104,7 @@ const HOMEOWNER_TIPS: HomeownerTip[] = [
     urgency: "medium",
     icon: Home,
     gradient: "from-amber-500/10 to-amber-600/10",
-    actionText: "Find Contractors",
+    actionText: "Find Local Help",
     actionUrl: "/contractors?service=decking",
   },
 

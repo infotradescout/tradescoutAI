@@ -17,7 +17,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { safeNavigate } from "@/lib/safeNavigate";
 import { getRolePermissions, getRoleDisplayName } from "@shared/roles";
 import type { UserRole } from "@shared/roles";
-import { hasAdminUiAccess } from "@/lib/roleChecks";
+import { hasAdminUiAccess, hasBusinessProviderToolAccess } from "@/lib/roleChecks";
 import {
   Home,
   Users,
@@ -52,6 +52,7 @@ interface NavigationItem {
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   requiredRoles?: UserRole[];
+  requiresBusinessProvider?: boolean;
   requiredPermission?: keyof ReturnType<typeof getRolePermissions>;
   badge?: string;
   children?: NavigationItem[];
@@ -86,14 +87,14 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     children: [{ label: "HomeScout Listings", href: "/homescout-listings", icon: Building }],
   },
 
-  // Service Provider Features
+  // Business Provider Features
   {
-    label: "Contractor Tools",
-    href: "/contractor-dashboard",
+    label: "Business Tools",
+    href: "/business-dashboard",
     icon: Hammer,
-    requiredRoles: ["contractor_user"],
+    requiresBusinessProvider: true,
     children: [
-      { label: "Dashboard", href: "/contractor-dashboard", icon: Home },
+      { label: "Dashboard", href: "/business-dashboard", icon: Home },
       // Accelerator entry removed
       { label: "Promotions", href: "/promotions", icon: Star },
       // Growth Pack entry removed
@@ -193,7 +194,9 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
     // For community-first pilot users, soft-hide role hub/identity-heavy nav groups
     if (
       isCommunityFirst &&
-      (item.href === "/contractor-dashboard" ||
+      (item.href === "/business-dashboard" ||
+        item.href === "/business-owner-dashboard" ||
+        item.href === "/contractor-dashboard" ||
         item.href === "/realtor-application" ||
         item.href === "/car-salesman-application")
     ) {
@@ -205,6 +208,9 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
       item.requiredRoles &&
       !item.requiredRoles.some((role) => normalizedRoleTokens.includes(role))
     ) {
+      return false;
+    }
+    if (item.requiresBusinessProvider && !hasBusinessProviderToolAccess(user)) {
       return false;
     }
 

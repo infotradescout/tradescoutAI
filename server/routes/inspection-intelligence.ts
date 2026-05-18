@@ -9,6 +9,10 @@ import {
   type InspectionMode,
   type InspectionSurface,
 } from "@shared/inspectionIntelligence";
+import {
+  TRADESCOUT_TRANSACTION_FEE_MODEL,
+  TRADESCOUT_TRANSACTION_FEE_USD,
+} from "@shared/platformRevenue";
 
 const inspectionIntelligenceRouter = Router();
 
@@ -163,7 +167,9 @@ async function getCachedRequirements(params: {
     ORDER BY updated_at DESC
     LIMIT 1
     `,
-    stateCode ? [countyFips, stateCode, surface, mode, knowledgeKey] : [countyFips, surface, mode, knowledgeKey]
+    stateCode
+      ? [countyFips, stateCode, surface, mode, knowledgeKey]
+      : [countyFips, surface, mode, knowledgeKey]
   );
 
   const row = (result.rows[0] as Record<string, unknown> | undefined) || null;
@@ -193,14 +199,13 @@ async function upsertRequirementCache(params: {
   const mode = normalizeMode(params.mode || null);
   if (!countyFips || !surface || !mode) return;
 
-  const knowledgeKey = clean(params.knowledgeKey || "regulatory_requirements", 80) || "regulatory_requirements";
+  const knowledgeKey =
+    clean(params.knowledgeKey || "regulatory_requirements", 80) || "regulatory_requirements";
   const sourcePriority = clean(params.sourcePriority || "first_party", 80) || "first_party";
   const sourceCaseId = clean(params.sourceCaseId, 80) || null;
   const confidenceTier = clean(params.confidenceTier || "B", 8) || "B";
   const ttlDays = Math.max(1, Math.floor(params.ttlDays || 90));
-  const requirements = (params.requirements || [])
-    .map((item) => clean(item, 360))
-    .filter(Boolean);
+  const requirements = (params.requirements || []).map((item) => clean(item, 360)).filter(Boolean);
   const evidence = Array.isArray(params.evidence) ? params.evidence : [];
 
   if (!requirements.length) return;
@@ -614,15 +619,17 @@ async function createHomeScoutRecommendationSnapshot(params: {
         "Route to HomeScout listing flow, then service-request flow once report findings are confirmed.",
       ];
 
-  const stableRequirementCandidates = Array.isArray((cachedRequirementRow as any)?.requirements_json)
+  const stableRequirementCandidates = Array.isArray(
+    (cachedRequirementRow as any)?.requirements_json
+  )
     ? ((cachedRequirementRow as any).requirements_json as unknown[])
     : Array.isArray((reusableSnapshot as any)?.requirements_json)
       ? ((reusableSnapshot as any).requirements_json as unknown[])
       : [];
 
   const cachedRequirements = stableRequirementCandidates
-        .map((item) => clean(item, 320))
-        .filter(Boolean);
+    .map((item) => clean(item, 320))
+    .filter(Boolean);
   const cachedRequirementQualityScore = Number((cachedRequirementRow as any)?.quality?.score || 0);
   const allowStableRequirementReuse =
     !forceFresh && cachedRequirements.length > 0 && cachedRequirementQualityScore >= 65;
@@ -636,10 +643,7 @@ async function createHomeScoutRecommendationSnapshot(params: {
   ];
 
   const requirements = Array.from(
-    new Set([
-      ...baseRequirements,
-      ...(allowStableRequirementReuse ? cachedRequirements : []),
-    ])
+    new Set([...baseRequirements, ...(allowStableRequirementReuse ? cachedRequirements : [])])
   );
 
   const products = [
@@ -702,7 +706,9 @@ async function createHomeScoutRecommendationSnapshot(params: {
       { type: "home_scout_service_signal_count", value: countyServiceCount },
       { type: "listing_report_count", value: listingReportCount },
     ],
-    sourcePriority: hasFirstPartySignals ? "first_party_homescout_data" : "fallback_homescout_heuristic",
+    sourcePriority: hasFirstPartySignals
+      ? "first_party_homescout_data"
+      : "fallback_homescout_heuristic",
     sourceCaseId: caseId,
     confidenceTier: hasFirstPartySignals ? "A" : "B",
     ttlDays: stableWindowDays,
@@ -905,7 +911,9 @@ async function createDirectConnectRecommendationSnapshot(params: {
     }));
   }
 
-  const stableRequirementCandidates = Array.isArray((cachedRequirementRow as any)?.requirements_json)
+  const stableRequirementCandidates = Array.isArray(
+    (cachedRequirementRow as any)?.requirements_json
+  )
     ? ((cachedRequirementRow as any).requirements_json as unknown[])
     : [];
   const cachedRequirements = stableRequirementCandidates
@@ -1137,22 +1145,24 @@ inspectionIntelligenceRouter.get("/cases", async (req: Request, res: Response) =
   }
 });
 
-inspectionIntelligenceRouter.get("/county/:countyFips/folder", async (req: Request, res: Response) => {
-  try {
-    const userId = clean((req.user as any)?.id, 120);
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+inspectionIntelligenceRouter.get(
+  "/county/:countyFips/folder",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = clean((req.user as any)?.id, 120);
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    await ensurePolicyDefaults();
-    const countyFips = normalizeCountyFips(req.params.countyFips);
-    if (!countyFips) return res.status(400).json({ error: "Valid county FIPS is required." });
+      await ensurePolicyDefaults();
+      const countyFips = normalizeCountyFips(req.params.countyFips);
+      if (!countyFips) return res.status(400).json({ error: "Valid county FIPS is required." });
 
-    const stateCode = normalizeStateCode(req.query.stateCode);
-    const params: unknown[] = [countyFips];
-    const stateFilter = stateCode ? `AND c.state_code = $2` : "";
-    if (stateCode) params.push(stateCode);
+      const stateCode = normalizeStateCode(req.query.stateCode);
+      const params: unknown[] = [countyFips];
+      const stateFilter = stateCode ? `AND c.state_code = $2` : "";
+      if (stateCode) params.push(stateCode);
 
-    const rows = await pool.query(
-      `
+      const rows = await pool.query(
+        `
       SELECT
         c.id,
         c.surface,
@@ -1182,11 +1192,11 @@ inspectionIntelligenceRouter.get("/county/:countyFips/folder", async (req: Reque
       ${stateFilter}
       ORDER BY c.created_at DESC
       `,
-      params
-    );
+        params
+      );
 
-    const requirementCacheRows = await pool.query(
-      `
+      const requirementCacheRows = await pool.query(
+        `
       SELECT
         surface,
         mode,
@@ -1203,38 +1213,42 @@ inspectionIntelligenceRouter.get("/county/:countyFips/folder", async (req: Reque
       ORDER BY updated_at DESC
       LIMIT 50
       `,
-      params
-    );
+        params
+      );
 
-    const summaryMap = new Map<string, { surface: string; mode: string; cases: number; photos: number }>();
-    for (const row of rows.rows) {
-      const surface = clean((row as any).surface, 80) || "unknown";
-      const mode = clean((row as any).mode, 80) || "unknown";
-      const key = `${surface}::${mode}`;
-      const current = summaryMap.get(key) || { surface, mode, cases: 0, photos: 0 };
-      current.cases += 1;
-      current.photos += Number((row as any).total_photos || 0);
-      summaryMap.set(key, current);
+      const summaryMap = new Map<
+        string,
+        { surface: string; mode: string; cases: number; photos: number }
+      >();
+      for (const row of rows.rows) {
+        const surface = clean((row as any).surface, 80) || "unknown";
+        const mode = clean((row as any).mode, 80) || "unknown";
+        const key = `${surface}::${mode}`;
+        const current = summaryMap.get(key) || { surface, mode, cases: 0, photos: 0 };
+        current.cases += 1;
+        current.photos += Number((row as any).total_photos || 0);
+        summaryMap.set(key, current);
+      }
+
+      return res.json({
+        ok: true,
+        countyFips,
+        stateCode: stateCode || null,
+        summary: Array.from(summaryMap.values()).sort((a, b) => b.cases - a.cases),
+        cases: rows.rows,
+        requirementCache: requirementCacheRows.rows.map((row) => ({
+          ...row,
+          durabilityClass: "stable",
+          quality: calculateRequirementQuality(row as Record<string, unknown>),
+        })),
+        visibility: "staff_admin_test_only",
+      });
+    } catch (error) {
+      console.error("[inspection] county folder failed", error);
+      return res.status(500).json({ error: "Could not load county folder." });
     }
-
-    return res.json({
-      ok: true,
-      countyFips,
-      stateCode: stateCode || null,
-      summary: Array.from(summaryMap.values()).sort((a, b) => b.cases - a.cases),
-      cases: rows.rows,
-      requirementCache: requirementCacheRows.rows.map((row) => ({
-        ...row,
-        durabilityClass: "stable",
-        quality: calculateRequirementQuality(row as Record<string, unknown>),
-      })),
-      visibility: "staff_admin_test_only",
-    });
-  } catch (error) {
-    console.error("[inspection] county folder failed", error);
-    return res.status(500).json({ error: "Could not load county folder." });
   }
-});
+);
 
 inspectionIntelligenceRouter.post("/cases/:id/artifacts", async (req: Request, res: Response) => {
   try {
@@ -1305,7 +1319,8 @@ inspectionIntelligenceRouter.post("/cases/:id/artifacts", async (req: Request, r
     const captureOrder =
       providedOrder !== null && providedOrder > 0 ? Math.floor(providedOrder) : currentCount + 1;
     const qualityScore = toFiniteNumber(req.body?.qualityScore);
-    const metadata = req.body?.metadata && typeof req.body.metadata === "object" ? req.body.metadata : {};
+    const metadata =
+      req.body?.metadata && typeof req.body.metadata === "object" ? req.body.metadata : {};
 
     const inserted = await pool.query(
       `
@@ -1314,14 +1329,7 @@ inspectionIntelligenceRouter.post("/cases/:id/artifacts", async (req: Request, r
       VALUES ($1, $2, $3, $4, $5, $6::jsonb)
       RETURNING *
       `,
-      [
-        caseId,
-        artifactType,
-        captureOrder,
-        storageUrl,
-        qualityScore,
-        JSON.stringify(metadata),
-      ]
+      [caseId, artifactType, captureOrder, storageUrl, qualityScore, JSON.stringify(metadata)]
     );
 
     const totalAfterInsert = currentCount + 1;
@@ -1414,58 +1422,63 @@ inspectionIntelligenceRouter.post(
   }
 );
 
-inspectionIntelligenceRouter.post("/cases/:id/exchange-valuation", async (req: Request, res: Response) => {
-  try {
-    const userId = clean((req.user as any)?.id, 120);
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+inspectionIntelligenceRouter.post(
+  "/cases/:id/exchange-valuation",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = clean((req.user as any)?.id, 120);
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const caseId = clean(req.params.id, 80);
-    if (!caseId) return res.status(400).json({ error: "Case id is required." });
+      const caseId = clean(req.params.id, 80);
+      if (!caseId) return res.status(400).json({ error: "Case id is required." });
 
-    await ensurePolicyDefaults();
-    const caseResult = await pool.query(
-      `
+      await ensurePolicyDefaults();
+      const caseResult = await pool.query(
+        `
       SELECT id, surface, mode, listing_id
       FROM inspection_cases
       WHERE id = $1
         AND user_id = $2
       LIMIT 1
       `,
-      [caseId, userId]
-    );
-    const caseRow = caseResult.rows[0];
-    if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
+        [caseId, userId]
+      );
+      const caseRow = caseResult.rows[0];
+      if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
 
-    const listingId = clean(req.body?.listingId, 180) || clean(caseRow.listing_id, 180);
-    let listingRow: Record<string, unknown> | null = null;
-    if (listingId) {
-      const listingResult = await pool.query(
-        `
+      const listingId = clean(req.body?.listingId, 180) || clean(caseRow.listing_id, 180);
+      let listingRow: Record<string, unknown> | null = null;
+      if (listingId) {
+        const listingResult = await pool.query(
+          `
         SELECT id, title, category_id, county, state, condition, price::numeric AS price
         FROM marketplace_listings
         WHERE id = $1
         LIMIT 1
         `,
-        [listingId]
-      );
-      listingRow = (listingResult.rows[0] as Record<string, unknown> | undefined) || null;
-    }
+          [listingId]
+        );
+        listingRow = (listingResult.rows[0] as Record<string, unknown> | undefined) || null;
+      }
 
-    const categoryId =
-      clean(req.body?.categoryId, 180) || clean((listingRow as any)?.category_id, 180);
-    if (!categoryId) {
-      return res.status(400).json({ error: "categoryId (or case/listing category) is required." });
-    }
+      const categoryId =
+        clean(req.body?.categoryId, 180) || clean((listingRow as any)?.category_id, 180);
+      if (!categoryId) {
+        return res
+          .status(400)
+          .json({ error: "categoryId (or case/listing category) is required." });
+      }
 
-    const county = clean(req.body?.county, 120) || clean((listingRow as any)?.county, 120);
-    const state =
-      (clean(req.body?.state, 8) || clean((listingRow as any)?.state, 8)).toUpperCase();
-    const askPrice = toMoney(req.body?.askPrice) ?? toMoney((listingRow as any)?.price);
+      const county = clean(req.body?.county, 120) || clean((listingRow as any)?.county, 120);
+      const state = (
+        clean(req.body?.state, 8) || clean((listingRow as any)?.state, 8)
+      ).toUpperCase();
+      const askPrice = toMoney(req.body?.askPrice) ?? toMoney((listingRow as any)?.price);
 
-    const byCountyState =
-      county && state
-        ? await pool.query(
-            `
+      const byCountyState =
+        county && state
+          ? await pool.query(
+              `
             SELECT COUNT(*)::int AS count,
                    AVG(price::numeric)::numeric AS avg_price,
                    MIN(price::numeric)::numeric AS min_price,
@@ -1479,12 +1492,11 @@ inspectionIntelligenceRouter.post("/cases/:id/exchange-valuation", async (req: R
               AND price IS NOT NULL
               ${listingId ? "AND id <> $4" : ""}
             `,
-            listingId ? [categoryId, county, state, listingId] : [categoryId, county, state]
-          )
-        : null;
+              listingId ? [categoryId, county, state, listingId] : [categoryId, county, state]
+            )
+          : null;
 
-    const byState =
-      state
+      const byState = state
         ? await pool.query(
             `
             SELECT COUNT(*)::int AS count,
@@ -1503,8 +1515,8 @@ inspectionIntelligenceRouter.post("/cases/:id/exchange-valuation", async (req: R
           )
         : null;
 
-    const byCategory = await pool.query(
-      `
+      const byCategory = await pool.query(
+        `
       SELECT COUNT(*)::int AS count,
              AVG(price::numeric)::numeric AS avg_price,
              MIN(price::numeric)::numeric AS min_price,
@@ -1516,323 +1528,302 @@ inspectionIntelligenceRouter.post("/cases/:id/exchange-valuation", async (req: R
         AND price IS NOT NULL
         ${listingId ? "AND id <> $2" : ""}
       `,
-      listingId ? [categoryId, listingId] : [categoryId]
-    );
+        listingId ? [categoryId, listingId] : [categoryId]
+      );
 
-    const pickStats = (() => {
-      const countyStats = byCountyState?.rows?.[0] as any;
-      const countyCount = Number(countyStats?.count || 0);
-      if (countyCount >= 3) return { scope: "county_state", stats: countyStats };
+      const pickStats = (() => {
+        const countyStats = byCountyState?.rows?.[0] as any;
+        const countyCount = Number(countyStats?.count || 0);
+        if (countyCount >= 3) return { scope: "county_state", stats: countyStats };
 
-      const stateStats = byState?.rows?.[0] as any;
-      const stateCount = Number(stateStats?.count || 0);
-      if (stateCount >= 3) return { scope: "state", stats: stateStats };
+        const stateStats = byState?.rows?.[0] as any;
+        const stateCount = Number(stateStats?.count || 0);
+        if (stateCount >= 3) return { scope: "state", stats: stateStats };
 
-      return { scope: "category", stats: (byCategory.rows?.[0] as any) || {} };
-    })();
+        return { scope: "category", stats: (byCategory.rows?.[0] as any) || {} };
+      })();
 
-    const compCount = Number(pickStats.stats?.count || 0);
-    const min = toMoney(pickStats.stats?.min_price);
-    const median = toMoney(pickStats.stats?.median_price);
-    const avg = toMoney(pickStats.stats?.avg_price);
-    const max = toMoney(pickStats.stats?.max_price);
-    const fairCenter = toMoney(median ?? avg ?? askPrice ?? 0) || 0;
-    const fairLow = toMoney(fairCenter * 0.9);
-    const fairHigh = toMoney(fairCenter * 1.1);
+      const compCount = Number(pickStats.stats?.count || 0);
+      const min = toMoney(pickStats.stats?.min_price);
+      const median = toMoney(pickStats.stats?.median_price);
+      const avg = toMoney(pickStats.stats?.avg_price);
+      const max = toMoney(pickStats.stats?.max_price);
+      const fairCenter = toMoney(median ?? avg ?? askPrice ?? 0) || 0;
+      const fairLow = toMoney(fairCenter * 0.9);
+      const fairHigh = toMoney(fairCenter * 1.1);
 
-    const feeCfg = await pool.query(
-      `
-      SELECT platform_fee_type, platform_fee_value::numeric AS platform_fee_value,
-             platform_fee_min::numeric AS platform_fee_min, platform_fee_max::numeric AS platform_fee_max
-      FROM payment_configurations
-      WHERE config_type = 'marketplace_transaction'
-        AND is_active = true
-      ORDER BY updated_at DESC
-      LIMIT 1
-      `
-    );
-    const fee = feeCfg.rows[0] || {
-      platform_fee_type: "percentage",
-      platform_fee_value: "0.025",
-      platform_fee_min: "0.50",
-      platform_fee_max: "25.00",
-    };
+      const priceForFee = askPrice ?? fairCenter;
+      const platformFee = TRADESCOUT_TRANSACTION_FEE_USD;
+      const sellerNet = Math.round((priceForFee - platformFee) * 100) / 100;
 
-    const feeType = clean((fee as any).platform_fee_type, 40) || "percentage";
-    const feeValue = Number((fee as any).platform_fee_value || 0);
-    const feeMin = Number((fee as any).platform_fee_min || 0);
-    const feeMax = Number((fee as any).platform_fee_max || 0);
+      const valuationPayload = {
+        listingId: listingId || null,
+        categoryId,
+        comparables: {
+          scope: pickStats.scope,
+          count: compCount,
+          min,
+          median,
+          avg,
+          max,
+        },
+        fairPriceBand: {
+          low: fairLow,
+          center: toMoney(fairCenter),
+          high: fairHigh,
+        },
+        askPrice,
+        feePreview: {
+          platformFeeType: "fixed",
+          platformFeeValue: TRADESCOUT_TRANSACTION_FEE_USD,
+          platformFeeModel: TRADESCOUT_TRANSACTION_FEE_MODEL,
+          platformFee,
+          sellerNet,
+          note: "TradeScout earns a flat $1 fee on on-platform purchases.",
+        },
+        sourcePriority: compCount > 0 ? "first_party_exchange_data" : "fallback_heuristic",
+        fallbackUsed: compCount === 0,
+        generatedAt: new Date().toISOString(),
+      };
 
-    const priceForFee = askPrice ?? fairCenter;
-    let platformFee = 0;
-    if (feeType === "fixed") {
-      platformFee = feeValue;
-    } else {
-      platformFee = priceForFee * feeValue;
-      if (Number.isFinite(feeMin)) platformFee = Math.max(platformFee, feeMin);
-      if (Number.isFinite(feeMax) && feeMax > 0) platformFee = Math.min(platformFee, feeMax);
-    }
-    platformFee = Math.round(platformFee * 100) / 100;
-    const sellerNet = Math.round((priceForFee - platformFee) * 100) / 100;
+      const nextSteps = [
+        "Compare ask price against the fair-price center and adjust if needed.",
+        "Minimize photos to required minimum first, then add only when confidence is low.",
+        "Keep listing details complete to improve valuation confidence and close rate.",
+      ];
+      const costRanges = [
+        {
+          name: "exchange_transaction_fee_preview",
+          min: platformFee,
+          max: platformFee,
+          currency: "USD",
+          note: "TradeScout earns a flat $1 fee on on-platform purchases.",
+        },
+      ];
 
-    const valuationPayload = {
-      listingId: listingId || null,
-      categoryId,
-      comparables: {
-        scope: pickStats.scope,
-        count: compCount,
-        min,
-        median,
-        avg,
-        max,
-      },
-      fairPriceBand: {
-        low: fairLow,
-        center: toMoney(fairCenter),
-        high: fairHigh,
-      },
-      askPrice,
-      feePreview: {
-        platformFeeType: feeType,
-        platformFeeValue: feeValue,
-        platformFee,
-        sellerNet,
-        note: "Exchange fees always apply.",
-      },
-      sourcePriority: compCount > 0 ? "first_party_exchange_data" : "fallback_heuristic",
-      fallbackUsed: compCount === 0,
-      generatedAt: new Date().toISOString(),
-    };
-
-    const nextSteps = [
-      "Compare ask price against the fair-price center and adjust if needed.",
-      "Minimize photos to required minimum first, then add only when confidence is low.",
-      "Keep listing details complete to improve valuation confidence and close rate.",
-    ];
-    const costRanges = [
-      {
-        name: "exchange_transaction_fee_preview",
-        min: platformFee,
-        max: platformFee,
-        currency: "USD",
-        note: "Exchange fees always apply.",
-      },
-    ];
-
-    const inserted = await pool.query(
-      `
+      const inserted = await pool.query(
+        `
       INSERT INTO inspection_recommendation_snapshots
       (case_id, source_priority, fallback_used, next_steps_json, products_json, pros_json, requirements_json, cost_ranges_json)
       VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb, $7::jsonb, $8::jsonb)
       RETURNING *
       `,
-      [
+        [
+          caseId,
+          valuationPayload.sourcePriority,
+          valuationPayload.fallbackUsed,
+          JSON.stringify(nextSteps),
+          JSON.stringify([{ type: "exchange_valuation", payload: valuationPayload }]),
+          JSON.stringify([]),
+          JSON.stringify([
+            "Fair-price guidance uses first-party exchange comps first.",
+            "Fallback logic is only used when comps are insufficient.",
+          ]),
+          JSON.stringify(costRanges),
+        ]
+      );
+
+      return res.status(201).json({
+        ok: true,
+        valuation: valuationPayload,
+        snapshot: inserted.rows[0],
+        visibility: "staff_admin_test_only",
+      });
+    } catch (error) {
+      console.error("[inspection] exchange valuation failed", error);
+      return res.status(500).json({ error: "Could not run exchange valuation." });
+    }
+  }
+);
+
+inspectionIntelligenceRouter.post(
+  "/cases/:id/homescout-adapter",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = clean((req.user as any)?.id, 120);
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+      const caseId = clean(req.params.id, 80);
+      if (!caseId) return res.status(400).json({ error: "Case id is required." });
+
+      await ensurePolicyDefaults();
+      const caseResult = await pool.query(
+        `
+      SELECT id, county_fips, state_code, surface, mode, listing_id, objective_text
+      FROM inspection_cases
+      WHERE id = $1
+        AND user_id = $2
+      LIMIT 1
+      `,
+        [caseId, userId]
+      );
+      const caseRow = caseResult.rows[0];
+      if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
+
+      const listingIdOverride = clean(req.body?.listingId, 180) || null;
+      const adapterResult = await createHomeScoutRecommendationSnapshot({
         caseId,
-        valuationPayload.sourcePriority,
-        valuationPayload.fallbackUsed,
-        JSON.stringify(nextSteps),
-        JSON.stringify([{ type: "exchange_valuation", payload: valuationPayload }]),
-        JSON.stringify([]),
-        JSON.stringify([
-          "Fair-price guidance uses first-party exchange comps first.",
-          "Fallback logic is only used when comps are insufficient.",
-        ]),
-        JSON.stringify(costRanges),
-      ]
-    );
+        caseRow,
+        listingIdOverride,
+        forceFresh: Boolean(req.body?.forceFresh),
+      });
 
-    return res.status(201).json({
-      ok: true,
-      valuation: valuationPayload,
-      snapshot: inserted.rows[0],
-      visibility: "staff_admin_test_only",
-    });
-  } catch (error) {
-    console.error("[inspection] exchange valuation failed", error);
-    return res.status(500).json({ error: "Could not run exchange valuation." });
+      return res.status(201).json({
+        ok: true,
+        adapter: adapterResult.adapter,
+        snapshot: adapterResult.snapshot,
+        visibility: "staff_admin_test_only",
+      });
+    } catch (error) {
+      console.error("[inspection] homescout adapter failed", error);
+      return res.status(500).json({ error: "Could not run HomeScout adapter." });
+    }
   }
-});
+);
 
-inspectionIntelligenceRouter.post("/cases/:id/homescout-adapter", async (req: Request, res: Response) => {
-  try {
-    const userId = clean((req.user as any)?.id, 120);
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+inspectionIntelligenceRouter.post(
+  "/cases/:id/direct-connect-adapter",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = clean((req.user as any)?.id, 120);
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const caseId = clean(req.params.id, 80);
-    if (!caseId) return res.status(400).json({ error: "Case id is required." });
+      const caseId = clean(req.params.id, 80);
+      if (!caseId) return res.status(400).json({ error: "Case id is required." });
 
-    await ensurePolicyDefaults();
-    const caseResult = await pool.query(
-      `
+      await ensurePolicyDefaults();
+      const caseResult = await pool.query(
+        `
       SELECT id, county_fips, state_code, surface, mode, listing_id, objective_text
       FROM inspection_cases
       WHERE id = $1
         AND user_id = $2
       LIMIT 1
       `,
-      [caseId, userId]
-    );
-    const caseRow = caseResult.rows[0];
-    if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
+        [caseId, userId]
+      );
+      const caseRow = caseResult.rows[0];
+      if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
 
-    const listingIdOverride = clean(req.body?.listingId, 180) || null;
-    const adapterResult = await createHomeScoutRecommendationSnapshot({
-      caseId,
-      caseRow,
-      listingIdOverride,
-      forceFresh: Boolean(req.body?.forceFresh),
-    });
+      const adapterResult = await createDirectConnectRecommendationSnapshot({
+        caseId,
+        caseRow,
+        forceFresh: Boolean(req.body?.forceFresh),
+      });
 
-    return res.status(201).json({
-      ok: true,
-      adapter: adapterResult.adapter,
-      snapshot: adapterResult.snapshot,
-      visibility: "staff_admin_test_only",
-    });
-  } catch (error) {
-    console.error("[inspection] homescout adapter failed", error);
-    return res.status(500).json({ error: "Could not run HomeScout adapter." });
+      return res.status(201).json({
+        ok: true,
+        adapter: adapterResult.adapter,
+        snapshot: adapterResult.snapshot,
+        visibility: "staff_admin_test_only",
+      });
+    } catch (error) {
+      console.error("[inspection] direct-connect adapter failed", error);
+      return res.status(500).json({ error: "Could not run Direct Connect adapter." });
+    }
   }
-});
+);
 
-inspectionIntelligenceRouter.post("/cases/:id/direct-connect-adapter", async (req: Request, res: Response) => {
-  try {
-    const userId = clean((req.user as any)?.id, 120);
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+inspectionIntelligenceRouter.get(
+  "/cases/:id/recommendations",
+  async (req: Request, res: Response) => {
+    try {
+      const userId = clean((req.user as any)?.id, 120);
+      if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const caseId = clean(req.params.id, 80);
-    if (!caseId) return res.status(400).json({ error: "Case id is required." });
+      const caseId = clean(req.params.id, 80);
+      if (!caseId) return res.status(400).json({ error: "Case id is required." });
 
-    await ensurePolicyDefaults();
-    const caseResult = await pool.query(
-      `
-      SELECT id, county_fips, state_code, surface, mode, listing_id, objective_text
-      FROM inspection_cases
-      WHERE id = $1
-        AND user_id = $2
-      LIMIT 1
-      `,
-      [caseId, userId]
-    );
-    const caseRow = caseResult.rows[0];
-    if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
-
-    const adapterResult = await createDirectConnectRecommendationSnapshot({
-      caseId,
-      caseRow,
-      forceFresh: Boolean(req.body?.forceFresh),
-    });
-
-    return res.status(201).json({
-      ok: true,
-      adapter: adapterResult.adapter,
-      snapshot: adapterResult.snapshot,
-      visibility: "staff_admin_test_only",
-    });
-  } catch (error) {
-    console.error("[inspection] direct-connect adapter failed", error);
-    return res.status(500).json({ error: "Could not run Direct Connect adapter." });
-  }
-});
-
-inspectionIntelligenceRouter.get("/cases/:id/recommendations", async (req: Request, res: Response) => {
-  try {
-    const userId = clean((req.user as any)?.id, 120);
-    if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-    const caseId = clean(req.params.id, 80);
-    if (!caseId) return res.status(400).json({ error: "Case id is required." });
-
-    await ensurePolicyDefaults();
-    const caseResult = await pool.query(
-      `
+      await ensurePolicyDefaults();
+      const caseResult = await pool.query(
+        `
       SELECT id, county_fips, state_code, surface, mode, objective_text
       FROM inspection_cases
       WHERE id = $1
         AND user_id = $2
       LIMIT 1
       `,
-      [caseId, userId]
-    );
-    const caseRow = caseResult.rows[0];
-    if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
+        [caseId, userId]
+      );
+      const caseRow = caseResult.rows[0];
+      if (!caseRow) return res.status(404).json({ error: "Inspection case not found." });
 
-    const latest = await pool.query(
-      `
+      const latest = await pool.query(
+        `
       SELECT *
       FROM inspection_recommendation_snapshots
       WHERE case_id = $1
       ORDER BY created_at DESC
       LIMIT 1
       `,
-      [caseId]
-    );
+        [caseId]
+      );
 
-    let snapshot = latest.rows[0];
-    if (!snapshot) {
-      const caseSurface = clean((caseRow as any).surface, 80);
-      const caseMode = normalizeMode((caseRow as any).mode);
-      const countyFips = normalizeCountyFips((caseRow as any).county_fips);
-      const stateCode = normalizeStateCode((caseRow as any).state_code);
+      let snapshot = latest.rows[0];
+      if (!snapshot) {
+        const caseSurface = clean((caseRow as any).surface, 80);
+        const caseMode = normalizeMode((caseRow as any).mode);
+        const countyFips = normalizeCountyFips((caseRow as any).county_fips);
+        const stateCode = normalizeStateCode((caseRow as any).state_code);
 
-      if (countyFips && caseMode) {
-        const reusableSnapshot = await findReusableSnapshotForCase({
-          countyFips,
-          stateCode,
-          surface: normalizeSurface(caseSurface) || "scout",
-          mode: caseMode,
-          maxAgeHours: INSPECTION_GENERIC_DYNAMIC_CACHE_HOURS,
-        });
-        if (reusableSnapshot) {
-          snapshot = await cloneSnapshotToCase({
-            caseId,
-            sourceSnapshot: reusableSnapshot,
-            sourcePriority: "reused_surface_cache",
+        if (countyFips && caseMode) {
+          const reusableSnapshot = await findReusableSnapshotForCase({
+            countyFips,
+            stateCode,
+            surface: normalizeSurface(caseSurface) || "scout",
+            mode: caseMode,
+            maxAgeHours: INSPECTION_GENERIC_DYNAMIC_CACHE_HOURS,
           });
+          if (reusableSnapshot) {
+            snapshot = await cloneSnapshotToCase({
+              caseId,
+              sourceSnapshot: reusableSnapshot,
+              sourcePriority: "reused_surface_cache",
+            });
+          }
+        }
+
+        if (snapshot) {
+          // Snapshot already cloned from recent county+surface+mode learning.
+        } else if (caseSurface === "homescout") {
+          const adapterResult = await createHomeScoutRecommendationSnapshot({
+            caseId,
+            caseRow: caseRow as Record<string, unknown>,
+            listingIdOverride: clean((caseRow as any).listing_id, 180) || null,
+            forceFresh: false,
+          });
+          snapshot = adapterResult.snapshot;
+        } else if (caseSurface === "direct_connect") {
+          const adapterResult = await createDirectConnectRecommendationSnapshot({
+            caseId,
+            caseRow: caseRow as Record<string, unknown>,
+            forceFresh: false,
+          });
+          snapshot = adapterResult.snapshot;
         }
       }
 
-      if (snapshot) {
-        // Snapshot already cloned from recent county+surface+mode learning.
-      } else if (caseSurface === "homescout") {
-        const adapterResult = await createHomeScoutRecommendationSnapshot({
-          caseId,
-          caseRow: caseRow as Record<string, unknown>,
-          listingIdOverride: clean((caseRow as any).listing_id, 180) || null,
-          forceFresh: false,
-        });
-        snapshot = adapterResult.snapshot;
-      } else if (caseSurface === "direct_connect") {
-        const adapterResult = await createDirectConnectRecommendationSnapshot({
-          caseId,
-          caseRow: caseRow as Record<string, unknown>,
-          forceFresh: false,
-        });
-        snapshot = adapterResult.snapshot;
-      }
-    }
+      if (!snapshot) {
+        const countyFips = clean(caseRow.county_fips, 10);
 
-    if (!snapshot) {
-      const countyFips = clean(caseRow.county_fips, 10);
-
-      const metricsResult =
-        countyFips.length > 0
-          ? await pool.query(
-              `
+        const metricsResult =
+          countyFips.length > 0
+            ? await pool.query(
+                `
               SELECT metric_key, metric_value, updated_at
               FROM county_metrics
               WHERE county_fips = $1
               ORDER BY updated_at DESC
               LIMIT 8
               `,
-              [countyFips]
-            )
-          : { rows: [] as Array<Record<string, unknown>> };
+                [countyFips]
+              )
+            : { rows: [] as Array<Record<string, unknown>> };
 
-      const entitiesResult =
-        countyFips.length > 0
-          ? await pool.query(
-              `
+        const entitiesResult =
+          countyFips.length > 0
+            ? await pool.query(
+                `
               SELECT entity_type, label, status
               FROM county_entities
               WHERE county_fips = $1
@@ -1840,182 +1831,185 @@ inspectionIntelligenceRouter.get("/cases/:id/recommendations", async (req: Reque
               ORDER BY updated_at DESC
               LIMIT 8
               `,
-              [countyFips]
-            )
-          : { rows: [] as Array<Record<string, unknown>> };
+                [countyFips]
+              )
+            : { rows: [] as Array<Record<string, unknown>> };
 
-      const notesResult =
-        countyFips.length > 0
-          ? await pool.query(
-              `
+        const notesResult =
+          countyFips.length > 0
+            ? await pool.query(
+                `
               SELECT category, content, created_at
               FROM county_notes
               WHERE county_fips = $1
               ORDER BY created_at DESC
               LIMIT 3
               `,
-              [countyFips]
-            )
-          : { rows: [] as Array<Record<string, unknown>> };
+                [countyFips]
+              )
+            : { rows: [] as Array<Record<string, unknown>> };
 
-      const hasFirstPartyCountySignals =
-        metricsResult.rows.length > 0 || entitiesResult.rows.length > 0 || notesResult.rows.length > 0;
+        const hasFirstPartyCountySignals =
+          metricsResult.rows.length > 0 ||
+          entitiesResult.rows.length > 0 ||
+          notesResult.rows.length > 0;
 
-      if (hasFirstPartyCountySignals) {
-        const firstPartyNextSteps = [
-          "Use county intelligence containers first (metrics/entities/notes) before any fallback logic.",
-          "Capture only minimum required photos; request extras only if confidence is below target.",
-          "Route execution through the selected TradeScout surface with county-specific requirements.",
-        ];
-        const firstPartyProducts = metricsResult.rows.map((row) => ({
-          type: "county_metric",
-          key: clean((row as any).metric_key, 120),
-          value: String((row as any).metric_value ?? ""),
-          observedAt: (row as any).updated_at ?? null,
-        }));
-        const firstPartyPros = entitiesResult.rows.map((row) => ({
-          type: clean((row as any).entity_type, 80) || "county_entity",
-          label: clean((row as any).label, 255) || "County entity",
-          status: clean((row as any).status, 40) || "active",
-        }));
-        const firstPartyRequirements = [
-          "County container guidance included from site data snapshots.",
-          ...notesResult.rows.map((row) => {
-            const category = clean((row as any).category, 80) || "general";
-            const content = clean((row as any).content, 400);
-            return `${category}: ${content}`;
-          }),
-        ];
-        const costRanges = [
-          {
-            name: "capture_session",
-            min: 10,
-            max: 10,
-            currency: "USD",
-            note: "Base capture fee applies; photo caps prevent overcapture.",
-          },
-        ];
+        if (hasFirstPartyCountySignals) {
+          const firstPartyNextSteps = [
+            "Use county intelligence containers first (metrics/entities/notes) before any fallback logic.",
+            "Capture only minimum required photos; request extras only if confidence is below target.",
+            "Route execution through the selected TradeScout surface with county-specific requirements.",
+          ];
+          const firstPartyProducts = metricsResult.rows.map((row) => ({
+            type: "county_metric",
+            key: clean((row as any).metric_key, 120),
+            value: String((row as any).metric_value ?? ""),
+            observedAt: (row as any).updated_at ?? null,
+          }));
+          const firstPartyPros = entitiesResult.rows.map((row) => ({
+            type: clean((row as any).entity_type, 80) || "county_entity",
+            label: clean((row as any).label, 255) || "County entity",
+            status: clean((row as any).status, 40) || "active",
+          }));
+          const firstPartyRequirements = [
+            "County container guidance included from site data snapshots.",
+            ...notesResult.rows.map((row) => {
+              const category = clean((row as any).category, 80) || "general";
+              const content = clean((row as any).content, 400);
+              return `${category}: ${content}`;
+            }),
+          ];
+          const costRanges = [
+            {
+              name: "capture_session",
+              min: 10,
+              max: 10,
+              currency: "USD",
+              note: "Base capture fee applies; photo caps prevent overcapture.",
+            },
+          ];
 
-        const inserted = await pool.query(
-          `
+          const inserted = await pool.query(
+            `
           INSERT INTO inspection_recommendation_snapshots
           (case_id, source_priority, fallback_used, next_steps_json, products_json, pros_json, requirements_json, cost_ranges_json)
           VALUES ($1, 'first_party_site_data', false, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb)
           RETURNING *
           `,
-          [
-            caseId,
-            JSON.stringify(firstPartyNextSteps),
-            JSON.stringify(firstPartyProducts),
-            JSON.stringify(firstPartyPros),
-            JSON.stringify(firstPartyRequirements),
-            JSON.stringify(costRanges),
-          ]
-        );
-        snapshot = inserted.rows[0];
-      } else {
-        const fallbackNextSteps = [
-          "Validate scope and county-specific requirement checklist before submitting.",
-          "Capture minimum required photos first; add more only when confidence is below threshold.",
-          "Route to the correct TradeScout surface flow for execution and pricing.",
-        ];
-        const fallbackProducts = [
-          {
-            type: "reference_marker",
-            label: "ArUco marker sheet",
-            reason: "Primary calibration for highest measurement confidence.",
-          },
-        ];
-        const fallbackPros = [
-          {
-            type: "verified_pro",
-            label: "County-relevant pro shortlist",
-            reason: "Use Trust/CVS-governed matching for the next execution step.",
-          },
-        ];
-        const fallbackRequirements = [
-          "County permit and inspection requirements vary; confirm local municipality final rules.",
-          "Attach clear timestamp/GPS evidence and declared reference method.",
-        ];
-        const fallbackCosts = [
-          {
-            name: "capture_session",
-            min: 10,
-            max: 10,
-            currency: "USD",
-            note: "Base capture fee applies.",
-          },
-        ];
+            [
+              caseId,
+              JSON.stringify(firstPartyNextSteps),
+              JSON.stringify(firstPartyProducts),
+              JSON.stringify(firstPartyPros),
+              JSON.stringify(firstPartyRequirements),
+              JSON.stringify(costRanges),
+            ]
+          );
+          snapshot = inserted.rows[0];
+        } else {
+          const fallbackNextSteps = [
+            "Validate scope and county-specific requirement checklist before submitting.",
+            "Capture minimum required photos first; add more only when confidence is below threshold.",
+            "Route to the correct TradeScout surface flow for execution and pricing.",
+          ];
+          const fallbackProducts = [
+            {
+              type: "reference_marker",
+              label: "ArUco marker sheet",
+              reason: "Primary calibration for highest measurement confidence.",
+            },
+          ];
+          const fallbackPros = [
+            {
+              type: "verified_pro",
+              label: "County-relevant pro shortlist",
+              reason: "Use Trust/CVS-governed matching for the next execution step.",
+            },
+          ];
+          const fallbackRequirements = [
+            "County permit and inspection requirements vary; confirm local municipality final rules.",
+            "Attach clear timestamp/GPS evidence and declared reference method.",
+          ];
+          const fallbackCosts = [
+            {
+              name: "capture_session",
+              min: 10,
+              max: 10,
+              currency: "USD",
+              note: "Base capture fee applies.",
+            },
+          ];
 
-        const inserted = await pool.query(
-          `
+          const inserted = await pool.query(
+            `
           INSERT INTO inspection_recommendation_snapshots
           (case_id, source_priority, fallback_used, next_steps_json, products_json, pros_json, requirements_json, cost_ranges_json)
           VALUES ($1, 'fallback_heuristic', true, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, $6::jsonb)
           RETURNING *
           `,
-          [
-            caseId,
-            JSON.stringify(fallbackNextSteps),
-            JSON.stringify(fallbackProducts),
-            JSON.stringify(fallbackPros),
-            JSON.stringify(fallbackRequirements),
-            JSON.stringify(fallbackCosts),
-          ]
-        );
-        snapshot = inserted.rows[0];
+            [
+              caseId,
+              JSON.stringify(fallbackNextSteps),
+              JSON.stringify(fallbackProducts),
+              JSON.stringify(fallbackPros),
+              JSON.stringify(fallbackRequirements),
+              JSON.stringify(fallbackCosts),
+            ]
+          );
+          snapshot = inserted.rows[0];
+        }
       }
-    }
 
-    const artifactCount = await pool.query(
-      `SELECT COUNT(*)::int AS total, AVG(quality_score)::numeric AS avg_quality FROM inspection_case_artifacts WHERE case_id = $1`,
-      [caseId]
-    );
+      const artifactCount = await pool.query(
+        `SELECT COUNT(*)::int AS total, AVG(quality_score)::numeric AS avg_quality FROM inspection_case_artifacts WHERE case_id = $1`,
+        [caseId]
+      );
 
-    const policy = await pool.query(
-      `
+      const policy = await pool.query(
+        `
       SELECT min_photos, max_billable_photos, target_confidence_tier
       FROM inspection_capture_policies
       WHERE mode = $1
       LIMIT 1
       `,
-      [caseRow.mode]
-    );
+        [caseRow.mode]
+      );
 
-    const totalPhotos = Number(artifactCount.rows[0]?.total || 0);
-    const avgQuality = toFiniteNumber(artifactCount.rows[0]?.avg_quality) ?? null;
-    const minPhotos = Number(policy.rows[0]?.min_photos || 2);
-    const maxBillablePhotos = Number(policy.rows[0]?.max_billable_photos || 6);
-    const meetsMinimum = totalPhotos >= minPhotos;
-    const qualitySufficient = avgQuality === null ? true : avgQuality >= 0.75;
-    const canStopCapture = meetsMinimum && qualitySufficient;
+      const totalPhotos = Number(artifactCount.rows[0]?.total || 0);
+      const avgQuality = toFiniteNumber(artifactCount.rows[0]?.avg_quality) ?? null;
+      const minPhotos = Number(policy.rows[0]?.min_photos || 2);
+      const maxBillablePhotos = Number(policy.rows[0]?.max_billable_photos || 6);
+      const meetsMinimum = totalPhotos >= minPhotos;
+      const qualitySufficient = avgQuality === null ? true : avgQuality >= 0.75;
+      const canStopCapture = meetsMinimum && qualitySufficient;
 
-    return res.json({
-      ok: true,
-      case: caseRow,
-      snapshot,
-      captureProgress: {
-        totalPhotos,
-        remainingToMinimum: Math.max(minPhotos - totalPhotos, 0),
-        maxBillablePhotos,
-        capReached: totalPhotos >= maxBillablePhotos,
-        targetConfidenceTier: String(policy.rows[0]?.target_confidence_tier || "B"),
-      },
-      billingGuidance: {
-        canStopCapture,
-        additionalPhotosSuggested: canStopCapture ? 0 : Math.max(minPhotos - totalPhotos, 1),
-        reason: canStopCapture
-          ? "Minimum capture and quality threshold met."
-          : !meetsMinimum
-            ? "Minimum required photo count not met yet."
-            : "Quality threshold below target; one additional photo recommended.",
-      },
-      visibility: "staff_admin_test_only",
-    });
-  } catch (error) {
-    console.error("[inspection] recommendations failed", error);
-    return res.status(500).json({ error: "Could not get recommendations." });
+      return res.json({
+        ok: true,
+        case: caseRow,
+        snapshot,
+        captureProgress: {
+          totalPhotos,
+          remainingToMinimum: Math.max(minPhotos - totalPhotos, 0),
+          maxBillablePhotos,
+          capReached: totalPhotos >= maxBillablePhotos,
+          targetConfidenceTier: String(policy.rows[0]?.target_confidence_tier || "B"),
+        },
+        billingGuidance: {
+          canStopCapture,
+          additionalPhotosSuggested: canStopCapture ? 0 : Math.max(minPhotos - totalPhotos, 1),
+          reason: canStopCapture
+            ? "Minimum capture and quality threshold met."
+            : !meetsMinimum
+              ? "Minimum required photo count not met yet."
+              : "Quality threshold below target; one additional photo recommended.",
+        },
+        visibility: "staff_admin_test_only",
+      });
+    } catch (error) {
+      console.error("[inspection] recommendations failed", error);
+      return res.status(500).json({ error: "Could not get recommendations." });
+    }
   }
-});
+);
 
 export default inspectionIntelligenceRouter;

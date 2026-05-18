@@ -20,8 +20,11 @@ import {
 } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
 import { apiRequest } from "@/lib/queryClient";
-
-const SESSION_DONE_KEY = "ts:onboardingClaimsDone";
+import {
+  clearScoutOnboardingSession,
+  isScoutOnboardingCompleted,
+  markScoutOnboardingComplete,
+} from "./scoutOnboardingSession";
 
 function isValidCountyFips(value: unknown): value is string {
   return typeof value === "string" && /^\d{5}$/.test(value.trim());
@@ -108,14 +111,7 @@ export function useScoutOnboarding() {
         return false;
       }
 
-      // Check session guard
-      try {
-        if (sessionStorage.getItem(SESSION_DONE_KEY) === "1") {
-          return false;
-        }
-      } catch {
-        // Storage error - allow flow
-      }
+      if (isScoutOnboardingCompleted()) return false;
 
       return true;
     },
@@ -203,6 +199,7 @@ export function useScoutOnboarding() {
             phase: "confirming",
             error: "Finish local setup first so Scout can show the right nearby results.",
           }));
+          clearScoutOnboardingSession();
           return;
         }
 
@@ -234,7 +231,7 @@ export function useScoutOnboarding() {
 
         // Mark onboarding as done
         try {
-          sessionStorage.setItem(SESSION_DONE_KEY, "1");
+          markScoutOnboardingComplete({ claimsConfirmed: true, confirmedClaims });
         } catch {
           // ignore
         }
@@ -266,13 +263,9 @@ export function useScoutOnboarding() {
    */
   const skipOnboarding = useCallback(() => {
     console.log("[ONBOARDING] User skipped onboarding");
-    try {
-      sessionStorage.setItem(SESSION_DONE_KEY, "1");
-    } catch {
-      // ignore
-    }
+    markScoutOnboardingComplete({ claimsConfirmed: false, confirmedClaims: [] });
     setFlowState({ phase: "done", confirmationCard: null, error: null });
-    navigate("/community"); // Neutral fallback
+    navigate("/direct-connect/board"); // Neutral fallback
   }, [navigate]);
 
   /**

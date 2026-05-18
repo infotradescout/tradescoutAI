@@ -93,7 +93,7 @@ export function AdminDirectConnectRequestCard() {
       if (requestStateCode.trim()) payload.stateCode = requestStateCode.trim().toUpperCase();
       if (requestBudgetMin.trim()) payload.budgetMin = Number(requestBudgetMin);
       if (requestBudgetMax.trim()) payload.budgetMax = Number(requestBudgetMax);
-      if (contractorIds.length > 0) payload.targetContractorIds = contractorIds;
+      if (contractorIds.length > 0) payload.targetProviderIds = contractorIds;
       payload.autoRoute = options.autoRoute;
       if (forceSetupEmail) payload.forceSetupEmail = true;
 
@@ -269,12 +269,12 @@ export function AdminDirectConnectRequestCard() {
 
         <div>
           <label className="text-xs text-white/60">
-            Target contractor IDs (optional, comma-separated)
+            Target provider IDs (optional, comma-separated)
           </label>
           <Input
             value={targetContractorIds}
             onChange={(e) => setTargetContractorIds(e.target.value)}
-            placeholder="contractor-id-1, contractor-id-2"
+            placeholder="provider-id-1, provider-id-2"
             className="bg-black/30 border-[color:var(--border-subtle)] text-white"
           />
           <p className="mt-1 text-[11px] text-white/50">

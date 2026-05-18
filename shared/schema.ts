@@ -5075,6 +5075,67 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   isLocalPickupOnly: boolean("is_local_pickup_only").default(false),
   willShip: boolean("will_ship").default(false),
   shippingCost: decimal("shipping_cost", { precision: 10, scale: 2 }),
+  shippingQuote: jsonb("shipping_quote").$type<{
+    carrier: "usps" | "ups" | "fedex" | "seller_created";
+    serviceName: string;
+    estimatedCost: number;
+    estimatedDaysMin?: number;
+    estimatedDaysMax?: number;
+    buyerPays: boolean;
+    sellerAbsorbs: boolean;
+    labelPurchaseMode: "seller_external" | "platform_label";
+  }>(),
+  packageDetails: jsonb("package_details").$type<{
+    weightOz?: number;
+    lengthIn?: number;
+    widthIn?: number;
+    heightIn?: number;
+    fragile?: boolean;
+    insuredValue?: number;
+  }>(),
+
+  // Native bundle / collection support. Legacy listings may still store setItems
+  // inside specifications; readers should support both shapes.
+  listingType: varchar("listing_type", {
+    enum: ["single", "bundle", "collection"],
+  }).default("single"),
+  bundlePurchaseMode: varchar("bundle_purchase_mode", {
+    enum: ["must_buy_all", "seller_allows_split", "buyer_can_choose_items"],
+  }).default("must_buy_all"),
+  bundleItems: jsonb("bundle_items").$type<
+    Array<{
+      id?: string;
+      name: string;
+      description?: string;
+      condition?: "new" | "like_new" | "excellent" | "good" | "fair" | "poor" | "parts_only";
+      fallbackValue?: number;
+      rarityTags?: string[];
+      imageUrl: string;
+      weightOz?: number;
+    }>
+  >(),
+
+  // Fair-value and rarity guidance shown to sellers and buyers as advisory context.
+  valueGuidance: jsonb("value_guidance").$type<{
+    suggestedRangeLow: number;
+    suggestedRangeHigh: number;
+    medianCompPrice: number | null;
+    confidence: "low" | "medium" | "high";
+    sampleSize: number;
+    conditionAdjustment: number;
+    rarityAdjustment: number;
+    undercutWarning?: {
+      severity: "soft" | "strong";
+      message: string;
+      expectedSellTimeImpact: string;
+    };
+  }>(),
+  rarityTags: jsonb("rarity_tags").$type<string[]>().default([]),
+  rarityConfidence: varchar("rarity_confidence", {
+    enum: ["low", "medium", "high"],
+  }),
+  raritySampleSize: integer("rarity_sample_size").default(0),
+  rarityExplanation: text("rarity_explanation"),
 
   // Item details
   condition: varchar("condition", {
@@ -9413,6 +9474,16 @@ export const transactionStatusEnum = pgEnum("transaction_status", [
   "refunded",
 ]);
 
+export const marketplaceOrderStatusEnum = pgEnum("marketplace_order_status", [
+  "item_sold",
+  "payment_received",
+  "label_pending",
+  "label_purchased",
+  "in_transit",
+  "delivered",
+  "payout_reconciled",
+]);
+
 // Enhanced marketplace transactions with flexible payment options
 export const marketplaceTransactions = pgTable("marketplace_transactions", {
   id: varchar("id")
@@ -9476,6 +9547,38 @@ export const marketplaceTransactions = pgTable("marketplace_transactions", {
     enum: ["platform_messages", "email", "phone", "text"],
   }).default("platform_messages"),
 
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const marketplaceOrders = pgTable("marketplace_orders", {
+  id: varchar("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  listingId: varchar("listing_id")
+    .notNull()
+    .references(() => marketplaceListings.id),
+  transactionId: varchar("transaction_id").references(() => marketplaceTransactions.id),
+  buyerId: varchar("buyer_id").references(() => users.id),
+  sellerId: varchar("seller_id")
+    .notNull()
+    .references(() => users.id),
+  status: marketplaceOrderStatusEnum("status").notNull().default("item_sold"),
+  shippingQuote: jsonb("shipping_quote").$type<{
+    carrier: "usps" | "ups" | "fedex" | "seller_created";
+    serviceName: string;
+    estimatedCost: number;
+    estimatedDaysMin?: number;
+    estimatedDaysMax?: number;
+    buyerPays: boolean;
+    sellerAbsorbs: boolean;
+    labelPurchaseMode: "seller_external" | "platform_label";
+  }>(),
+  trackingNumber: varchar("tracking_number"),
+  labelUrl: varchar("label_url"),
+  payoutDeductionAmount: decimal("payout_deduction_amount", { precision: 10, scale: 2 }).default(
+    "0"
+  ),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -9614,10 +9717,10 @@ export const paymentConfigurations = pgTable("payment_configurations", {
   // Platform fees (TradeScout's revenue)
   platformFeeType: varchar("platform_fee_type", {
     enum: ["percentage", "fixed", "tiered"],
-  }).default("percentage"),
-  platformFeeValue: decimal("platform_fee_value", { precision: 5, scale: 4 }).default("0.025"), // 2.5% default
-  platformFeeMin: decimal("platform_fee_min", { precision: 10, scale: 2 }).default("0.50"),
-  platformFeeMax: decimal("platform_fee_max", { precision: 10, scale: 2 }).default("25.00"),
+  }).default("fixed"),
+  platformFeeValue: decimal("platform_fee_value", { precision: 5, scale: 4 }).default("1.0000"), // Flat $1 TradeScout transaction fee
+  platformFeeMin: decimal("platform_fee_min", { precision: 10, scale: 2 }).default("1.00"),
+  platformFeeMax: decimal("platform_fee_max", { precision: 10, scale: 2 }).default("1.00"),
 
   // Processing fee split (how Stripe fees are divided)
   processingFeeSplitType: varchar("processing_fee_split_type", {
@@ -9747,6 +9850,8 @@ export const platformAnalytics = pgTable("platform_analytics", {
 // Additional type exports
 export type MarketplaceTransaction = typeof marketplaceTransactions.$inferSelect;
 export type InsertMarketplaceTransaction = typeof marketplaceTransactions.$inferInsert;
+export type MarketplaceOrder = typeof marketplaceOrders.$inferSelect;
+export type InsertMarketplaceOrder = typeof marketplaceOrders.$inferInsert;
 export type ListingBoost = typeof listingBoosts.$inferSelect;
 export type InsertListingBoost = typeof listingBoosts.$inferInsert;
 export type TransactionDispute = typeof transactionDisputes.$inferSelect;

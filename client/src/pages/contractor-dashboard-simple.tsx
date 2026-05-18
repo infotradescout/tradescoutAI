@@ -51,10 +51,9 @@ export default function ContractorDashboardSimple() {
   return (
     <Page>
       <Section
-        title="Contractor Dashboard"
+        title="Business Dashboard"
         subtitle="Manage your business, track performance, and grow revenue"
       >
-
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">

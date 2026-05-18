@@ -9,6 +9,10 @@
  */
 
 import { SUPPORT_EMAIL_ALIASES } from "@shared/supportInbox";
+import {
+  isBusinessProviderRole as isSharedBusinessProviderRole,
+  userHasBusinessProviderTools,
+} from "@shared/roles";
 
 export type UserRole = string | undefined;
 
@@ -49,6 +53,10 @@ export const isOpsAdmin = (role: UserRole): boolean => {
  */
 export const isAdminTier = (role: UserRole): boolean => {
   return isSuperAdminLike(role) || isOpsAdmin(role);
+};
+
+export const isBusinessProviderRole = (role: UserRole): boolean => {
+  return isSharedBusinessProviderRole(role);
 };
 
 type AdminLikeUser = {
@@ -153,6 +161,12 @@ export const hasAdminUiAccess = (user: AdminLikeUser | null | undefined): boolea
   }
 
   return false;
+};
+
+export const hasBusinessProviderToolAccess = (
+  user: (AdminLikeUser & { activeRole?: UserRole }) | null | undefined
+): boolean => {
+  return userHasBusinessProviderTools(user);
 };
 
 /**

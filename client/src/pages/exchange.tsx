@@ -113,6 +113,9 @@ interface ExchangeItem {
   shippingCost?: number | null;
   state?: string;
   county?: string;
+  sourceType?: string;
+  profileOfferId?: string;
+  publicProfilePath?: string;
 }
 
 interface ExchangePromotion {
@@ -1317,12 +1320,18 @@ export default function Exchange() {
                   ) : filteredItems?.length > 0 ? (
                     filteredItems.map((item) => {
                       const IconComponent = getCategoryIcon(item.category);
+                      const isProfileOffer = item.sourceType === "profile_offer";
+                      const detailCategory = item.category || "other";
+                      const detailPath = `/exchange/${detailCategory}/${item.id}`;
                       return (
                         <Card
                           key={item.id}
                           className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors overflow-hidden"
                         >
-                          <div className="relative">
+                          <div
+                            className="relative cursor-pointer"
+                            onClick={() => navigate(detailPath)}
+                          >
                             {item.images && item.images.length > 0 ? (
                               <div className="aspect-square bg-tsCard overflow-hidden">
                                 <img
@@ -1351,7 +1360,10 @@ export default function Exchange() {
                             <p className="text-lg sm:text-xl font-bold text-white mb-1">
                               {formatPrice(item.price)}
                             </p>
-                            <h3 className="font-semibold text-white mb-1 line-clamp-2 leading-tight text-sm">
+                            <h3
+                              className="font-semibold text-white mb-1 line-clamp-2 leading-tight text-sm cursor-pointer hover:text-ts-orange transition-colors"
+                              onClick={() => navigate(detailPath)}
+                            >
                               {item.title}
                             </h3>
                             <div className="flex items-center justify-between text-xs text-white/60 mb-2">
@@ -1401,32 +1413,36 @@ export default function Exchange() {
                                 </div>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className={`h-8 w-8 p-0 ${
-                                    favoriteListingIds.has(String(item.id))
-                                      ? "text-rose-400 hover:text-rose-300"
-                                      : "text-white/70 hover:text-white"
-                                  }`}
-                                  onClick={() => {
-                                    if (!isAuthenticated) {
-                                      navigate("/pre-scout-setup?mode=signin");
-                                      return;
-                                    }
-                                    const wasSaved = favoriteListingIds.has(String(item.id));
-                                    toggleFavoriteMutation.mutate({
-                                      listingId: String(item.id),
-                                      wasSaved,
-                                    });
-                                  }}
-                                >
-                                  <Heart
-                                    className={`h-3 w-3 ${
-                                      favoriteListingIds.has(String(item.id)) ? "fill-current" : ""
+                                {!isProfileOffer && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className={`h-8 w-8 p-0 ${
+                                      favoriteListingIds.has(String(item.id))
+                                        ? "text-rose-400 hover:text-rose-300"
+                                        : "text-white/70 hover:text-white"
                                     }`}
-                                  />
-                                </Button>
+                                    onClick={() => {
+                                      if (!isAuthenticated) {
+                                        navigate("/pre-scout-setup?mode=signin");
+                                        return;
+                                      }
+                                      const wasSaved = favoriteListingIds.has(String(item.id));
+                                      toggleFavoriteMutation.mutate({
+                                        listingId: String(item.id),
+                                        wasSaved,
+                                      });
+                                    }}
+                                  >
+                                    <Heart
+                                      className={`h-3 w-3 ${
+                                        favoriteListingIds.has(String(item.id))
+                                          ? "fill-current"
+                                          : ""
+                                      }`}
+                                    />
+                                  </Button>
+                                )}
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -1445,6 +1461,10 @@ export default function Exchange() {
                                   size="sm"
                                   className="h-8 px-2.5 bg-ts-orange hover:bg-ts-orange-dark text-xs"
                                   onClick={() => {
+                                    if (isProfileOffer) {
+                                      navigate(detailPath);
+                                      return;
+                                    }
                                     if (!isAuthenticated) {
                                       navigate("/pre-scout-setup?mode=signin");
                                       return;
@@ -1455,7 +1475,7 @@ export default function Exchange() {
                                     );
                                   }}
                                 >
-                                  Request Quote
+                                  {isProfileOffer ? "Buy" : "Request Quote"}
                                 </Button>
                               </div>
                             </div>
@@ -2643,17 +2663,27 @@ export default function Exchange() {
                       // Set / Collection mode: embed items in specifications and use item photos as listing images
                       if (isSetMode && setItems.length >= 3) {
                         const listingType =
-                          sellCategorySlug === "collectibles" ? "collection" : "set";
-                        const mappedItems = setItems.map((it) => ({
+                          sellCategorySlug === "collectibles" ? "collection" : "bundle";
+                        const mappedItems = setItems.map((it, index) => ({
+                          id: `bundle-item-${index + 1}`,
                           name: it.name.trim(),
                           description: it.description.trim() || undefined,
-                          price: it.price ? Number(it.price) || undefined : undefined,
+                          condition: mappedCondition,
+                          fallbackValue: it.price ? Number(it.price) || undefined : undefined,
                           imageUrl: it.imageUrl,
                         }));
+                        body.listingType = listingType;
+                        body.bundlePurchaseMode = "must_buy_all";
+                        body.bundleItems = mappedItems;
                         body.specifications = {
                           ...(body.specifications || {}),
                           listingType,
-                          setItems: mappedItems,
+                          setItems: mappedItems.map((item) => ({
+                            name: item.name,
+                            description: item.description,
+                            price: item.fallbackValue,
+                            imageUrl: item.imageUrl,
+                          })),
                         };
                         // Use item images as the listing's image array (one per item)
                         body.images = mappedItems.map((it) => it.imageUrl);

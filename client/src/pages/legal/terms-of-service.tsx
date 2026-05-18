@@ -29,17 +29,17 @@ export default function TermsOfService() {
               <h3 className="text-xl font-medium mb-3">Service Description</h3>
               <p className="mb-4">
                 TradeScout operates as a marketplace and coordination platform that connects
-                residents, property stakeholders, community organizations, and verified service
-                providers (including contractors and other professionals) and facilitates the
-                exchange of valuable items, equipment, and services. We act as an intermediary and
-                are not a party to the actual transactions between users.
+                residents, property stakeholders, community organizations, verified businesses,
+                sellers, and service providers and facilitates the exchange of valuable items,
+                equipment, and services. We act as an intermediary and are not a party to the actual
+                transactions between users.
               </p>
 
               <h3 className="text-xl font-medium mb-3">Platform Role</h3>
               <ul className="list-disc pl-6 mb-6">
                 <li>We provide the technology platform for user interactions</li>
                 <li>We facilitate communication between buyers and sellers</li>
-                <li>We verify contractor credentials and user identities</li>
+                <li>We verify business/provider credentials and user identities where required</li>
                 <li>We do not own, sell, or warrant items listed by third-party sellers</li>
                 <li>We are not responsible for the quality, safety, or legality of listed items</li>
               </ul>

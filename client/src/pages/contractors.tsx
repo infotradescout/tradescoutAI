@@ -108,12 +108,12 @@ export default function ForContractors() {
           <Card className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors">
             <CardContent className="p-6 text-center">
               <Briefcase className="h-12 w-12 text-ts-orange mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-ts-orange mb-2">Contractor Dashboard</h3>
+              <h3 className="text-lg font-semibold text-ts-orange mb-2">Business Dashboard</h3>
               <p className="text-white/70 text-sm mb-4">
                 Manage your projects, track opportunities, and monitor your business performance.
               </p>
               {isContractor ? (
-                <Link href="/contractor-dashboard">
+                <Link href="/business-dashboard">
                   <Button
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white hover:text-white"
@@ -122,7 +122,7 @@ export default function ForContractors() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/contractors/apply">
+                <Link href="/businesses/apply">
                   <Button
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white hover:text-white"

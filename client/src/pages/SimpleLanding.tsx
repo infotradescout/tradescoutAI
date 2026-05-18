@@ -480,7 +480,7 @@ const SimpleLanding = memo(function SimpleLanding() {
                 data-testid="button-find-contractors"
               >
                 <span className="relative z-10 flex items-center justify-center gap-3">
-                  Find Contractors
+                  Find Local Help
                   <svg
                     className="w-6 h-6 group-hover:translate-x-1 transition-transform"
                     fill="none"

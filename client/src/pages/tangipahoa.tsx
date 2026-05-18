@@ -37,7 +37,7 @@ export default function TangipahoaPage() {
   const localSearchHref = `/direct-connect?county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch&intent=local_search`;
   const providerDemandHref = `/direct-connect?county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch&intent=provider_demand`;
   const createAccountHref = `/create-account?source=tangipahoa-launch&county=${TANGIPAHOA_COUNTY_CODE}`;
-  const applyHref = `/contractors/apply?state=LA&county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch`;
+  const applyHref = `/businesses/apply?state=LA&county=${TANGIPAHOA_COUNTY_CODE}&source=tangipahoa-launch`;
 
   const homeownerQueries = HOMEOWNER_POPULAR_QUERIES.filter(
     (item) => item.query.toLowerCase().includes("louisiana") || item.href.endsWith("/la")

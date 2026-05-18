@@ -75,8 +75,8 @@ export function LegalFooter() {
             </h4>
             <ul className="space-y-1.5 text-xs" style={{ color: "var(--text-secondary)" }}>
               <li>
-                <Link href="/contractors" className="hover:text-white transition-colors">
-                  Find Contractors
+                <Link href="/direct-connect" className="hover:text-white transition-colors">
+                  Find Local Help
                 </Link>
               </li>
               <li>

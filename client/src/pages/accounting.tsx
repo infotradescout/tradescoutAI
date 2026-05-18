@@ -29,6 +29,8 @@ import {
   Settings2,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
+  WalletCards,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Page } from "@/components/layout/PagePrimitives";
@@ -89,6 +91,39 @@ interface ExpensesResponse {
     totalCount: number;
     pageCount: number;
   };
+}
+
+interface BooksFoundationResponse {
+  profile: {
+    id: string;
+    accountingBasis: "cash" | "accrual";
+    fiscalYearStartMonth: number;
+    defaultCurrency: string;
+    booksStatus: string;
+  } | null;
+  capabilities: Record<string, string>;
+  counts: {
+    accounts: number;
+    journalEntries: number;
+    postedEntries: number;
+    openReconciliations: number;
+    proposedAutomation: number;
+  };
+  sourceCoverage: Array<{ sourceSurface: string; count: number }>;
+  proposals: Array<{
+    id: string;
+    sourceSurface: string;
+    sourceType: string;
+    sourceId: string;
+    workRequestId: string | null;
+    assignmentId: string | null;
+    automationState: string;
+    reason: string | null;
+    metadata: Record<string, any>;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  migrationRequired?: string;
 }
 
 function getDealRoomRole(user: any): DealRoomRole {
@@ -178,6 +213,20 @@ export default function AccountingWorkspace() {
         throw new Error(`Failed to load expenses (${res.status})`);
       }
       return (await res.json()) as ExpensesResponse;
+    },
+  });
+
+  const { data: booksFoundation } = useQuery<BooksFoundationResponse>({
+    queryKey: ["/api/accounting/books-foundation"],
+    queryFn: async () => {
+      const res = await fetch("/api/accounting/books-foundation", {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to load books foundation (${res.status})`);
+      }
+      return (await res.json()) as BooksFoundationResponse;
     },
   });
 
@@ -372,6 +421,125 @@ export default function AccountingWorkspace() {
       })
       .slice(0, 5);
   }, [invoices]);
+
+  const openInvoices = useMemo(
+    () => invoices.filter((inv) => String(inv.status || "").toLowerCase() !== "paid"),
+    [invoices]
+  );
+
+  const draftInvoices = useMemo(
+    () =>
+      invoices.filter((inv) =>
+        ["draft", "created"].includes(String(inv.status || "").toLowerCase())
+      ),
+    [invoices]
+  );
+
+  const expensesMissingDetails = useMemo(
+    () =>
+      expenses.filter((expense) => {
+        const payload = expense.payload || {};
+        return !expense.job_id || !payload.vendorName || !payload.category;
+      }),
+    [expenses]
+  );
+
+  const jobIdsWithInvoices = useMemo(
+    () => new Set(invoices.map((inv) => inv.job_id).filter(Boolean) as string[]),
+    [invoices]
+  );
+
+  const expenseOnlyJobIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const expense of expenses) {
+      const jobId = expense.job_id;
+      if (jobId && !jobIdsWithInvoices.has(jobId)) ids.add(jobId);
+    }
+    return Array.from(ids);
+  }, [expenses, jobIdsWithInvoices]);
+
+  const reviewQueue = [
+    {
+      label: "Unpaid invoices",
+      count: openInvoices.length,
+      detail: "Collect or record payment after review",
+      to: "/finances/invoices",
+    },
+    {
+      label: "Draft invoices",
+      count: draftInvoices.length,
+      detail: "Review before sending",
+      to: "/finances/invoices",
+    },
+    {
+      label: "Expenses missing details",
+      count: expensesMissingDetails.length,
+      detail: "Add vendor, category, or job link",
+      to: "/finances/expenses",
+    },
+    {
+      label: "Expense-only jobs",
+      count: expenseOnlyJobIds.length,
+      detail: "Costs exist without a linked invoice",
+      to: "/finances/jobs",
+    },
+    {
+      label: "Automation proposals",
+      count: booksFoundation?.counts.proposedAutomation ?? 0,
+      detail: "Hiring and Scout events waiting for accounting review",
+      to: "/finances/records",
+    },
+  ];
+
+  const booksStatusTiles = [
+    ["Document records", "Live"],
+    [
+      "Connected automation",
+      booksFoundation?.counts.proposedAutomation
+        ? `${booksFoundation.counts.proposedAutomation} proposed`
+        : booksFoundation?.capabilities.automation === "proposed_review"
+          ? "Ready"
+          : "Needed",
+    ],
+    [
+      "Chart of accounts",
+      booksFoundation?.capabilities.chartOfAccounts === "live"
+        ? `${booksFoundation.counts.accounts} accounts`
+        : "Needed",
+    ],
+    [
+      "Double-entry ledger",
+      booksFoundation?.capabilities.doubleEntryLedger === "partial"
+        ? `${booksFoundation.counts.journalEntries} entries`
+        : "Foundation",
+    ],
+    [
+      "Bank reconciliation",
+      booksFoundation?.capabilities.bankReconciliation === "partial" ? "Partial" : "Needed",
+    ],
+    ["Tax & payroll", "Needed"],
+  ];
+
+  const booksFoundationItems = [
+    [
+      "Chart of accounts",
+      booksFoundation?.counts.accounts
+        ? `${booksFoundation.counts.accounts} starter accounts are initialized`
+        : "Needed before real P&L and balance sheet",
+    ],
+    [
+      "Source-linked automation",
+      booksFoundation?.counts.proposedAutomation
+        ? `${booksFoundation.counts.proposedAutomation} Direct Connect hiring event${
+            booksFoundation.counts.proposedAutomation === 1 ? "" : "s"
+          } waiting for review`
+        : "Direct Connect, Connections, and Scout events can create reviewable accounting drafts",
+    ],
+    ["Double-entry ledger", "Needed before automated posting"],
+    ["Bank reconciliation", "Needed before cash accuracy claims"],
+    ["AR/AP aging", "Needed before collections and bills are complete"],
+    ["Tax and payroll boundaries", "Needed before compliance workflows"],
+  ];
 
   const filteredInvoicesForTable = useMemo(() => {
     if (!invoices.length) return [] as StandaloneInvoice[];
@@ -714,8 +882,12 @@ export default function AccountingWorkspace() {
         <section id="finances-dashboard" className="space-y-4">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Dashboard</h1>
-              <p className="text-sm text-white/60">Overview</p>
+              <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">
+                Finances command center
+              </h1>
+              <p className="text-sm text-white/60">
+                Job money, records, and the path toward full books.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -728,6 +900,79 @@ export default function AccountingWorkspace() {
               </Button>
             </div>
           </div>
+
+          <Card className="bg-tsCard border-ts-orange/25">
+            <CardContent className="p-4 md:p-5">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+                <div>
+                  <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-ts-orange">
+                    <WalletCards className="h-4 w-4" />
+                    QuickBooks replacement target
+                  </div>
+                  <h2 className="mt-2 text-lg font-semibold text-white">
+                    TradeScout is becoming the books layer for local work.
+                  </h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-white/65">
+                    What works today is document-centered: invoices, expenses, clients, records,
+                    reports, and job flows. Full replacement still needs chart of accounts,
+                    double-entry posting, bank reconciliation, tax handling, payroll boundaries,
+                    accountant access, and close-period controls.
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      className="h-8 px-3 text-[11px]"
+                      onClick={() => navigate("/finances/records")}
+                    >
+                      Open records
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 border-white/15 text-[11px] text-white/75"
+                      onClick={() => navigate("/finances/reports")}
+                    >
+                      Open reports
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 border-white/15 text-[11px] text-white/75"
+                      onClick={() => navigate("/finances/jobs")}
+                    >
+                      Review jobs
+                    </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  {booksStatusTiles.map(([label, state]) => (
+                    <div
+                      key={label}
+                      className="rounded-lg border border-white/10 bg-black/25 px-3 py-2"
+                    >
+                      <div className="text-white/55">{label}</div>
+                      <div
+                        className={
+                          state === "Live" ||
+                          state === "Ready" ||
+                          String(state).includes("accounts")
+                            ? "mt-1 font-semibold text-emerald-300"
+                            : state === "Partial" ||
+                                state === "Foundation" ||
+                                String(state).includes("proposed") ||
+                                String(state).includes("entries")
+                              ? "mt-1 font-semibold text-amber-200"
+                              : "mt-1 font-semibold text-white/75"
+                        }
+                      >
+                        {state}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <Card className="bg-tsCard border-white/10">
@@ -801,6 +1046,56 @@ export default function AccountingWorkspace() {
                 <p className="mt-1 text-[11px] text-white/60">
                   Based on invoices and expenses you track here.
                 </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
+            <Card className="bg-tsCard border-white/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-white">Review queue</CardTitle>
+                <CardDescription className="text-xs text-white/60">
+                  The dashboard should tell you what needs attention before money or records move.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {reviewQueue.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => navigate(item.to)}
+                    className="rounded-lg border border-white/10 bg-black/25 px-3 py-3 text-left transition-colors hover:border-ts-orange/40 hover:bg-ts-orange/10"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[12px] font-semibold text-white">{item.label}</span>
+                      <span className="text-lg font-semibold text-ts-orange">{item.count}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-snug text-white/55">{item.detail}</p>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="bg-tsCard border-white/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-white">Books foundation</CardTitle>
+                <CardDescription className="text-xs text-white/60">
+                  Required core before this can honestly replace full accounting software.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-[11px] text-white/65">
+                {booksFoundationItems.map(([label, detail]) => (
+                  <div
+                    key={label}
+                    className="flex items-start gap-3 rounded-lg border border-white/10 bg-black/25 px-3 py-2"
+                  >
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-amber-300" />
+                    <div>
+                      <div className="font-semibold text-white">{label}</div>
+                      <div className="mt-0.5 text-white/55">{detail}</div>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>
@@ -1588,7 +1883,7 @@ export default function AccountingWorkspace() {
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-white/60">
-                Manage hiring and crew from contractor tools.
+                Manage hiring and crew from business tools.
               </p>
             </CardContent>
           </Card>

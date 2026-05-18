@@ -240,7 +240,49 @@ export default function MarketplaceListing() {
   }, [categories]);
 
   const selectedCategoryId = form.watch("categoryId");
+  const watchedTitle = form.watch("title");
+  const watchedPrice = form.watch("price");
+  const watchedCondition = form.watch("condition");
   const isMetalsListing = Boolean(metalsCategoryId && selectedCategoryId === metalsCategoryId);
+
+  const { data: valueGuidance } = useQuery<{
+    suggestedRangeLow: number;
+    suggestedRangeHigh: number;
+    medianCompPrice: number | null;
+    confidence: "low" | "medium" | "high";
+    sampleSize: number;
+    undercutWarning?: {
+      severity: "soft" | "strong";
+      message: string;
+      expectedSellTimeImpact: string;
+    };
+  }>({
+    queryKey: [
+      "/api/marketplace/listings/value-guidance",
+      selectedCategoryId,
+      watchedTitle,
+      watchedPrice,
+      watchedCondition,
+    ],
+    enabled:
+      isAuthenticated &&
+      Boolean(selectedCategoryId) &&
+      String(watchedTitle || "").trim().length >= 5 &&
+      Number(watchedPrice) > 0,
+    queryFn: async () =>
+      apiRequest("POST", "/api/marketplace/listings/value-guidance", {
+        categoryId: selectedCategoryId,
+        title: watchedTitle,
+        price: watchedPrice,
+        condition: watchedCondition,
+        state: form.getValues("state"),
+        county:
+          (typeof (user as any)?.countyName === "string" && (user as any).countyName.trim()) ||
+          (typeof (user as any)?.county === "string" && (user as any).county.trim()) ||
+          "",
+      }),
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     if (!isMetalsListing) return;
@@ -278,6 +320,19 @@ export default function MarketplaceListing() {
         };
       }
 
+      const shippingCost = Number(data.shippingCost || 0);
+      const shippingQuote = data.willShip
+        ? {
+            carrier: "usps",
+            serviceName:
+              shippingCost > 0 ? "USPS seller-estimated label" : "USPS included shipping",
+            estimatedCost: Number.isFinite(shippingCost) && shippingCost > 0 ? shippingCost : 0,
+            buyerPays: Number.isFinite(shippingCost) && shippingCost > 0,
+            sellerAbsorbs: !Number.isFinite(shippingCost) || shippingCost <= 0,
+            labelPurchaseMode: "seller_external",
+          }
+        : undefined;
+
       return apiRequest("POST", "/api/marketplace/listings", {
         title: data.title,
         description: data.description,
@@ -294,6 +349,7 @@ export default function MarketplaceListing() {
         images: data.images,
         willShip: Boolean(data.willShip),
         shippingCost: data.shippingCost || undefined,
+        shippingQuote,
         sellerId: user?.id,
         county,
         isLocalPickupOnly: true,
@@ -790,6 +846,20 @@ export default function MarketplaceListing() {
                     )}
                   />
                 </div>
+
+                {valueGuidance && (
+                  <Alert className="border-ts-orange/30 bg-ts-orange/10">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-sm text-white/80">
+                      Fair value signal: ${valueGuidance.suggestedRangeLow.toLocaleString()} - $
+                      {valueGuidance.suggestedRangeHigh.toLocaleString()} based on{" "}
+                      {valueGuidance.sampleSize} comps ({valueGuidance.confidence} confidence).
+                      {valueGuidance.undercutWarning
+                        ? ` ${valueGuidance.undercutWarning.message} ${valueGuidance.undercutWarning.expectedSellTimeImpact}`
+                        : ""}
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Location */}
                 <div className="grid md:grid-cols-3 gap-6">

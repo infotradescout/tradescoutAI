@@ -22,8 +22,8 @@ export default function SafeLanding() {
 
             <div className="bg-white/5 p-6 rounded-lg border border-white/10">
               <div className="text-4xl mb-4">🔨</div>
-              <h3 className="text-xl font-semibold mb-2">Find Contractors</h3>
-              <p className="text-white/60">Discover verified local contractors for your projects</p>
+              <h3 className="text-xl font-semibold mb-2">Find Local Help</h3>
+              <p className="text-white/60">Discover verified local providers for your projects</p>
             </div>
 
             <div className="bg-white/5 p-6 rounded-lg border border-white/10">

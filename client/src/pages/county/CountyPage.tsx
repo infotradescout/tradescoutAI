@@ -325,13 +325,13 @@ const CountyPage = memo(function CountyPage() {
                   <div>
                     <h3 className="font-semibold text-green-900 mb-1">Fully Covered</h3>
                     <p className="text-green-800 mb-3">
-                      <strong>{coverage.affiliateCount}</strong> verified contractors +{" "}
+                      <strong>{coverage.affiliateCount}</strong> verified local providers +{" "}
                       <strong>{coverage.territoryManagerCount}</strong> territory manager
                       {coverage.territoryManagerCount !== 1 ? "s" : ""} serve {marketName}.
                     </p>
                     <Link href={`/direct-connect?county=${county.fipsCode}`}>
                       <a className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                        Find Contractors →
+                        Find Local Help →
                       </a>
                     </Link>
                   </div>
@@ -343,7 +343,7 @@ const CountyPage = memo(function CountyPage() {
                   <div>
                     <h3 className="font-semibold text-blue-900 mb-1">Partial Coverage</h3>
                     <p className="text-blue-800 mb-3">
-                      <strong>{coverage.affiliateCount}</strong> verified contractors currently
+                      <strong>{coverage.affiliateCount}</strong> verified local providers currently
                       serve {marketName}. Coverage is growing.
                     </p>
                     <Link href={`/direct-connect?county=${county.fipsCode}`}>
@@ -380,9 +380,9 @@ const CountyPage = memo(function CountyPage() {
         {/* Direct Connect Section */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Find contractors near {marketName}</h2>
+            <h2 className="text-2xl font-bold mb-4">Find local help near {marketName}</h2>
             <p className="text-white/70 mb-6">
-              Search verified contractors by trade, then narrow by city or neighborhood.{" "}
+              Search verified local providers by need or trade, then narrow by city or neighborhood.{" "}
               {protectedContactCopy()}
             </p>
             <Link href={`/direct-connect?county=${county.fipsCode}`}>
@@ -401,7 +401,7 @@ const CountyPage = memo(function CountyPage() {
               Community around {marketName}
             </h2>
             <p className="text-white/70 mb-6">
-              Join neighbors, contractors, and professionals. Share trusted local signals, post
+              Join neighbors, local businesses, and professionals. Share trusted local signals, post
               projects, and discover what's happening locally.
             </p>
             <Link href={`/community-feed?county=${county.fipsCode}`}>

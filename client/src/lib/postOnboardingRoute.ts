@@ -32,6 +32,9 @@ const SAFE_NEXT_PREFIXES = [
   "/dashboard",
   "/verification",
   "/admin/professional-verification",
+  "/admin/business-provider-settings",
+  "/admin/contractors",
+  "/admin/contractor-settings",
   "/contractor-verification",
   "/content-moderation",
   "/admin/dashboard",
@@ -55,6 +58,8 @@ const SAFE_NEXT_PREFIXES = [
   "/license-verification",
   "/settings",
 ];
+
+import { hasCompletedSetup } from "@/lib/setupState";
 
 export type DirectConnectEntry = "default" | "auth" | "setup" | "onboarding" | "intent";
 
@@ -81,6 +86,70 @@ export function isSafeNextPath(path: string): boolean {
   if (/^\/\/|:\/\//.test(path)) return false;
   return SAFE_NEXT_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(prefix + "/") || path.startsWith(prefix + "?")
+  );
+}
+
+export function userNeedsOnboarding(user: unknown): boolean {
+  if (!user || typeof user !== "object") return false;
+  return !hasCompletedSetup({
+    onboardingCompleted: (user as Record<string, any>).onboardingCompleted,
+    profileVersion: (user as Record<string, any>).profileVersion,
+    locationCommitted: (user as Record<string, any>).locationCommitted,
+    stateCode: (user as Record<string, any>).stateCode,
+    countyFips: (user as Record<string, any>).countyFips,
+  });
+}
+
+export function userHasProfileBasics(user: unknown): boolean {
+  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
+  if (!record) return false;
+
+  const firstName = typeof record.firstName === "string" ? record.firstName.trim() : "";
+  const lastName = typeof record.lastName === "string" ? record.lastName.trim() : "";
+  const stateCode =
+    typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
+  const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
+
+  return (
+    firstName.length > 0 &&
+    lastName.length > 0 &&
+    stateCode.length === 2 &&
+    /^\d{5}$/.test(countyFips)
+  );
+}
+
+export function getOnboardingEntryRoute(user: unknown): string {
+  return userHasProfileBasics(user) ? "/onboarding/intent" : "/onboarding/profile";
+}
+
+export function getPostLandingRoute(user: unknown): string {
+  if (userNeedsOnboarding(user)) return getOnboardingEntryRoute(user);
+
+  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
+  const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;
+  const isSuperAdmin = role === "super_admin" || role === "admin" || record?.isSuperAdmin === true;
+
+  const rolesValue = record?.roles;
+  const roles: string[] = Array.isArray(rolesValue)
+    ? rolesValue.filter((r: unknown): r is string => typeof r === "string")
+    : [];
+  const isAdmin =
+    Boolean(record?.isAdmin) || roles.some((r) => r === "admin" || r === "super_admin");
+
+  if (isSuperAdmin || isAdmin) return "/admin";
+  return "/direct-connect";
+}
+
+export function isOnboardingExemptPath(path: string): boolean {
+  return (
+    path.startsWith("/pre-scout-setup") ||
+    path.startsWith("/onboarding/profile") ||
+    path.startsWith("/onboarding/intent") ||
+    path.startsWith("/verify-email") ||
+    path.startsWith("/check-email") ||
+    path.startsWith("/reset-password") ||
+    path.startsWith("/logout") ||
+    path.startsWith("/auth/logout")
   );
 }
 

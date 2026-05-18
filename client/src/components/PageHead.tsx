@@ -12,7 +12,7 @@ interface PageHeadProps {
 export function PageHead({
   title = "TradeScout | Connection Without Compromise",
   description = "TradeScout helps people find trusted local help, make decisions, and move work forward. Connection without compromise.",
-  keywords = "scout, local helper, contractors, home improvement, quotes, local contractors, verified contractors",
+  keywords = "scout, local helper, local businesses, direct connect, exchange, local services, local products, business profiles",
   ogImage = "/tradescout-social-preview.png?v=10",
   canonicalUrl,
 }: PageHeadProps) {

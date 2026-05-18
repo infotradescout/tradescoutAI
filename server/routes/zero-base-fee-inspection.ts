@@ -8,6 +8,11 @@ import { pool } from "../db/pg";
 import { ensureZeroBaseFeeTables } from "../db/ensureZeroBaseFeeTables";
 import { emailService } from "../services/emailService";
 import { PRIMARY_SUPPORT_EMAIL } from "@shared/supportInbox";
+import {
+  TRADESCOUT_TRANSACTION_FEE_CENTS,
+  TRADESCOUT_TRANSACTION_FEE_LABEL,
+  TRADESCOUT_TRANSACTION_FEE_MODEL,
+} from "@shared/platformRevenue";
 
 const router = Router();
 
@@ -183,6 +188,7 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
 
   try {
     await ensureZeroBaseFeeTables();
+    const totalWithTradeScoutFeeCents = PRICE_CENTS + TRADESCOUT_TRANSACTION_FEE_CENTS;
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       success_url: successUrl,
@@ -201,10 +207,23 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
           },
           quantity: 1,
         },
+        {
+          price_data: {
+            currency: "usd",
+            unit_amount: TRADESCOUT_TRANSACTION_FEE_CENTS,
+            product_data: {
+              name: TRADESCOUT_TRANSACTION_FEE_LABEL,
+              description: "Flat TradeScout transaction fee on platform purchases.",
+            },
+          },
+          quantity: 1,
+        },
       ],
       metadata: {
         type: "zero_base_fee_measurement",
         userId,
+        platformFeeCents: String(TRADESCOUT_TRANSACTION_FEE_CENTS),
+        platformFeeModel: TRADESCOUT_TRANSACTION_FEE_MODEL,
       },
     });
 
@@ -218,7 +237,7 @@ router.post("/checkout-session", requireAuth, async (req: Request, res: Response
             status = 'created',
             updated_at = NOW()
       `,
-      [session.id, userId, PRICE_CENTS]
+      [session.id, userId, totalWithTradeScoutFeeCents]
     );
 
     res.json({ ok: true, url: session.url, sessionId: session.id });

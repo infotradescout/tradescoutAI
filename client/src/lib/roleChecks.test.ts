@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { hasAdminUiAccess } from "./roleChecks";
+import {
+  hasAdminUiAccess,
+  hasBusinessProviderToolAccess,
+  isBusinessProviderRole,
+} from "./roleChecks";
 
 describe("roleChecks admin UI access", () => {
   it("honors legacy admin flags", () => {
@@ -28,5 +32,22 @@ describe("roleChecks admin UI access", () => {
   it("honors both support inbox aliases for admin UI access", () => {
     expect(hasAdminUiAccess({ email: "contact@thetradescout.com" })).toBe(true);
     expect(hasAdminUiAccess({ email: "info.tradescout@gmail.com" })).toBe(true);
+  });
+});
+
+describe("roleChecks business provider access", () => {
+  it("recognizes generic and legacy provider roles", () => {
+    expect(isBusinessProviderRole("business_owner")).toBe(true);
+    expect(isBusinessProviderRole("contractor_user")).toBe(true);
+    expect(isBusinessProviderRole("accelerator_member")).toBe(true);
+    expect(isBusinessProviderRole("homeowner")).toBe(false);
+  });
+
+  it("checks role arrays and active role for business-provider tools", () => {
+    expect(hasBusinessProviderToolAccess({ role: "homeowner", activeRole: "business_owner" })).toBe(
+      true
+    );
+    expect(hasBusinessProviderToolAccess({ role: "homeowner", roles: ["helper"] })).toBe(true);
+    expect(hasBusinessProviderToolAccess({ role: "homeowner" })).toBe(false);
   });
 });

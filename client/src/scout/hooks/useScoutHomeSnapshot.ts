@@ -36,10 +36,37 @@ export interface RecentActivity {
   timestamp: string;
 }
 
+export interface PriceSignal {
+  id: string;
+  label: string;
+  description: string;
+  metricKey: string;
+  value: number;
+  updatedAt: string | null;
+  sourceLabel?: string;
+  sourceKind?: "homescout_inventory" | "tradedeals_activity" | "completed_job_receipts";
+  confidence?: "high" | "medium" | "low";
+}
+
+export interface OpportunityMove {
+  id: string;
+  type: "service_gap" | "underserved_area" | "fast_win" | "partnership_target" | "audit_target";
+  title: string;
+  whyItMatters: string;
+  actionLabel: string;
+  prompt: string;
+  sourceLabel: string;
+  sourceMetricKeys: string[];
+  confidence: "high" | "medium";
+  updatedAt: string | null;
+}
+
 export interface HomeSnapshotData {
   snapshot: LocalSnapshot;
   trendingPrompts: TrendingPrompt[];
   recentActivity: RecentActivity[];
+  priceSignals: PriceSignal[];
+  opportunityMoves: OpportunityMove[];
   locationResolved: boolean;
   locationSource: "user" | "ip" | "manual" | "default";
 }
@@ -108,7 +135,7 @@ export function useScoutHomeSnapshot(location: ScoutLocation) {
 
   useEffect(() => {
     // Don't fetch until location is resolved
-    if (location.status !== "resolved" && location.status !== "error") return;
+    if (location.status !== "resolved") return;
 
     let cancelled = false;
     setStatus("loading");
@@ -141,6 +168,8 @@ export function useScoutHomeSnapshot(location: ScoutLocation) {
             },
             trendingPrompts: DEFAULT_PROMPTS,
             recentActivity: [],
+            priceSignals: [],
+            opportunityMoves: [],
             locationResolved: false,
             locationSource: "default",
           });

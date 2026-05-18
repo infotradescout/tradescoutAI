@@ -47,6 +47,8 @@ describe("admin route alias contracts", () => {
     for (const entry of aliasPairs) {
       expect(source).toContain(`"${entry.legacy}": "${entry.canonical}"`);
     }
+    expect(source).toContain('"/admin/contractors": "/admin/business-provider-settings"');
+    expect(source).toContain('"/admin/contractor-settings": "/admin/business-provider-settings"');
   });
 
   it("allows onboarding deep-links for approved legacy admin aliases", () => {
@@ -54,6 +56,9 @@ describe("admin route alias contracts", () => {
 
     const requiredSafePrefixes = [
       "/admin/professional-verification",
+      "/admin/business-provider-settings",
+      "/admin/contractors",
+      "/admin/contractor-settings",
       "/contractor-verification",
       "/content-moderation",
       "/admin/dashboard",
@@ -84,6 +89,8 @@ describe("admin route alias contracts", () => {
     for (const entry of LEGACY_ALIAS_REDIRECTS) {
       expect(source).toContain(`"${entry.legacy}"`);
     }
+    expect(source).toContain('"/admin/contractors"');
+    expect(source).toContain('"/admin/contractor-settings"');
     expect(source).toContain('"client/src/AppRoutes.tsx"');
     expect(source).toContain('"client/src/admin/adminTools.tsx"');
     expect(source).toContain('"client/src/lib/postOnboardingRoute.ts"');

@@ -61,7 +61,6 @@ import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
 import { buildScoutContextCards, type ScoutContextCardKind } from "./scoutContextCards";
 import { applyCtasToClusters, type ScoutCtaHint } from "./ctaHelpers";
-import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { formatCityOnly } from "@/utils/locationDisplay";
 import { openFloatingNote } from "@/lib/floatingNotes";
@@ -76,6 +75,7 @@ import { enforceResponseQualityContract } from "./responseQuality";
 import type { ClaimType } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
 import { useScoutMode } from "./useScoutMode";
+import { isScoutOnboardingCompleted } from "./scoutOnboardingSession";
 import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
@@ -91,6 +91,7 @@ import {
 import {
   buildScoutExperienceClusters,
   firstSupplierUrl,
+  priceSignalEvidenceSources,
   type ScoutSupplierProductSnapshot,
   type ScoutSourceSignalSnapshot,
 } from "./scoutExperience";
@@ -134,6 +135,14 @@ const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "tr
 const SCOUT_EVOLUTION_SURFACES_ENABLED =
   String(import.meta.env.VITE_SCOUT_EVOLUTION_SURFACES_ENABLED ?? "false") === "true";
 
+type SavedScoutThreadRelatedTo = {
+  kind: "project" | "home" | "vehicle" | "client" | "generic";
+  id?: string;
+  label?: string;
+  homeId?: string;
+  surface?: "home_project" | "commercial_project";
+};
+
 type SavedScoutThread = {
   id: string;
   title: string;
@@ -142,6 +151,7 @@ type SavedScoutThread = {
   intent?: string | null;
   relatedLabel?: string;
   relatedPath?: string;
+  relatedTo?: SavedScoutThreadRelatedTo;
   searchText?: string;
   countyFips?: string | null;
   stateCode?: string | null;
@@ -149,6 +159,28 @@ type SavedScoutThread = {
   messageCount: number;
   messages: ScoutMessage[];
 };
+
+type SavedScoutSurfaceFilter =
+  | "all"
+  | "project"
+  | "home"
+  | "vehicle"
+  | "client"
+  | "materials"
+  | "prices";
+
+const SAVED_SCOUT_SURFACE_FILTERS: Array<{
+  value: SavedScoutSurfaceFilter;
+  label: string;
+}> = [
+  { value: "all", label: "All" },
+  { value: "project", label: "Projects" },
+  { value: "home", label: "Homes" },
+  { value: "vehicle", label: "Vehicles" },
+  { value: "client", label: "Clients" },
+  { value: "materials", label: "Materials" },
+  { value: "prices", label: "Prices" },
+];
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -217,6 +249,337 @@ function summarizeThreadText(value: string, fallback: string): string {
   return clean.length > 72 ? `${clean.slice(0, 69)}...` : clean;
 }
 
+function sanitizeRelatedId(value: string | null | undefined): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim().replace(/[#?].*$/, "");
+  return trimmed ? trimmed.slice(0, 120) : undefined;
+}
+
+function getRouteMatchId(route: string, pattern: RegExp): string | undefined {
+  const match = route.match(pattern);
+  if (!match?.[1]) return undefined;
+  return sanitizeRelatedId(decodeURIComponent(match[1]));
+}
+
+function cleanRelatedLabel(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const clean = value.replace(/\s+/g, " ").trim();
+  return clean ? clean.slice(0, 80) : undefined;
+}
+
+function firstPayloadLabel(data: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const label = cleanRelatedLabel(data[key]);
+    if (label) return label;
+  }
+  return undefined;
+}
+
+function homeLabelFromPayload(data: Record<string, unknown>, fallbackId?: string): string {
+  const nickname = firstPayloadLabel(data, ["homeName", "homeTitle", "nickname", "label", "title"]);
+  if (nickname) return nickname;
+
+  const address = [
+    cleanRelatedLabel(data.address1) || cleanRelatedLabel(data.address),
+    cleanRelatedLabel(data.city),
+    cleanRelatedLabel(data.stateCode) || cleanRelatedLabel(data.state),
+  ]
+    .filter(Boolean)
+    .join(", ");
+  if (address) return address;
+
+  return fallbackId ? `Home ${fallbackId}` : "Home";
+}
+
+function vehicleLabelFromPayload(data: Record<string, unknown>, fallbackId?: string): string {
+  const nickname = firstPayloadLabel(data, [
+    "vehicleName",
+    "vehicleTitle",
+    "nickname",
+    "label",
+    "title",
+  ]);
+  if (nickname) return nickname;
+
+  const details = [
+    data.year == null ? undefined : cleanRelatedLabel(String(data.year)),
+    cleanRelatedLabel(data.make),
+    cleanRelatedLabel(data.model),
+    cleanRelatedLabel(data.trim),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  if (details) return details;
+
+  return fallbackId ? `Vehicle ${fallbackId}` : "Vehicle";
+}
+
+function projectLabelFromPayload(data: Record<string, unknown>, fallbackId?: string): string {
+  return (
+    firstPayloadLabel(data, [
+      "projectName",
+      "projectTitle",
+      "jobName",
+      "jobTitle",
+      "name",
+      "title",
+      "label",
+    ]) || (fallbackId ? `Project ${fallbackId}` : "Project")
+  );
+}
+
+function clientLabelFromPayload(data: Record<string, unknown>, fallbackId?: string): string {
+  return (
+    firstPayloadLabel(data, [
+      "clientName",
+      "customerName",
+      "contactName",
+      "name",
+      "title",
+      "label",
+    ]) || (fallbackId ? `Client ${fallbackId}` : "Client work")
+  );
+}
+
+function inferRelatedFromRoute(route: string): SavedScoutThreadRelatedTo | undefined {
+  const clean = route.trim();
+  if (!clean) return undefined;
+
+  if (/\/project-tracker/.test(clean) || /\/finances\/jobs?/.test(clean)) {
+    const jobId =
+      getRouteMatchId(clean, /[?&]jobId=([^&/#?]+)/) || getRouteMatchId(clean, /\/jobs\/([^/?#]+)/);
+    return {
+      kind: "project",
+      id: jobId,
+      label: jobId ? `Project ${jobId}` : "Project",
+    };
+  }
+
+  if (/\/homes/.test(clean)) {
+    const homeId =
+      getRouteMatchId(clean, /[?&](?:homeId|id)=([^&/#?]+)/) ||
+      getRouteMatchId(clean, /\/homes\/([^/?#]+)/);
+    const projectId = getRouteMatchId(clean, /[?&]projectId=([^&/#?]+)/);
+    if (projectId) {
+      return {
+        kind: "project",
+        id: projectId,
+        homeId,
+        surface: "home_project",
+        label: `Home project ${projectId}`,
+      };
+    }
+    return {
+      kind: "home",
+      id: homeId,
+      label: homeId ? `Home ${homeId}` : "Home",
+    };
+  }
+
+  if (/\/vehicles/.test(clean)) {
+    const vehicleId =
+      getRouteMatchId(clean, /[?&](?:vehicleId|id)=([^&/#?]+)/) ||
+      getRouteMatchId(clean, /\/vehicles\/([^/?#]+)/);
+    return {
+      kind: "vehicle",
+      id: vehicleId,
+      label: vehicleId ? `Vehicle ${vehicleId}` : "Vehicle",
+    };
+  }
+
+  if (/\/direct-connect/.test(clean)) {
+    const clientId = getRouteMatchId(clean, /[?&](?:clientId|jobId)=([^&/#?]+)/);
+    return {
+      kind: "client",
+      id: clientId,
+      label: clientId ? `Client ${clientId}` : "Client work",
+    };
+  }
+
+  return undefined;
+}
+
+function resolveRelatedFromPayload(payload: unknown): SavedScoutThreadRelatedTo | undefined {
+  if (!payload || typeof payload !== "object") return undefined;
+  const data = payload as Record<string, unknown>;
+
+  if (typeof data.jobId === "string" && data.jobId.trim()) {
+    const id = sanitizeRelatedId(data.jobId);
+    return { kind: "project", id, label: projectLabelFromPayload(data, id) };
+  }
+
+  if (typeof data.projectId === "string" && data.projectId.trim()) {
+    const id = sanitizeRelatedId(data.projectId);
+    const homeId = typeof data.homeId === "string" ? sanitizeRelatedId(data.homeId) : undefined;
+    return {
+      kind: "project",
+      id,
+      homeId,
+      surface: homeId ? "home_project" : "commercial_project",
+      label: projectLabelFromPayload(data, id),
+    };
+  }
+
+  if (typeof data.homeId === "string" && data.homeId.trim()) {
+    const id = sanitizeRelatedId(data.homeId);
+    return { kind: "home", id, label: homeLabelFromPayload(data, id) };
+  }
+
+  if (typeof data.vehicleId === "string" && data.vehicleId.trim()) {
+    const id = sanitizeRelatedId(data.vehicleId);
+    return { kind: "vehicle", id, label: vehicleLabelFromPayload(data, id) };
+  }
+
+  if (typeof data.clientId === "string" && data.clientId.trim()) {
+    const id = sanitizeRelatedId(data.clientId);
+    return { kind: "client", id, label: clientLabelFromPayload(data, id) };
+  }
+
+  if (typeof data.contactId === "string" && data.contactId.trim()) {
+    const id = sanitizeRelatedId(data.contactId);
+    return { kind: "client", id, label: clientLabelFromPayload(data, id) };
+  }
+
+  const nestedRelatedTo =
+    data.relatedTo && typeof data.relatedTo === "object" && !Array.isArray(data.relatedTo)
+      ? (data.relatedTo as Record<string, unknown>)
+      : null;
+  if (nestedRelatedTo) {
+    const type = nestedRelatedTo.type || nestedRelatedTo.kind;
+    const id =
+      typeof nestedRelatedTo.id === "string" ? sanitizeRelatedId(nestedRelatedTo.id) : undefined;
+    const label =
+      cleanRelatedLabel(nestedRelatedTo.label) || cleanRelatedLabel(nestedRelatedTo.name);
+    if (type === "project") {
+      const homeId =
+        typeof nestedRelatedTo.homeId === "string"
+          ? sanitizeRelatedId(nestedRelatedTo.homeId)
+          : undefined;
+      const surface = nestedRelatedTo.surface === "home_project" ? "home_project" : undefined;
+      return {
+        kind: "project",
+        id,
+        homeId,
+        surface,
+        label: label || projectLabelFromPayload(data, id),
+      };
+    }
+    if (type === "home")
+      return { kind: "home", id, label: label || homeLabelFromPayload(data, id) };
+    if (type === "vehicle") {
+      return { kind: "vehicle", id, label: label || vehicleLabelFromPayload(data, id) };
+    }
+    if (type === "client" || type === "contact") {
+      return { kind: "client", id, label: label || clientLabelFromPayload(data, id) };
+    }
+  }
+
+  return undefined;
+}
+
+function relatedLabelFromKind(kind: SavedScoutThreadRelatedTo["kind"]): string {
+  if (kind === "project") return "Project";
+  if (kind === "home") return "Home";
+  if (kind === "vehicle") return "Vehicle";
+  if (kind === "client") return "Client work";
+  return "Saved work";
+}
+
+function savedThreadSurface(thread: SavedScoutThread): SavedScoutSurfaceFilter {
+  const kind = thread.relatedTo?.kind;
+  if (kind === "project" || kind === "home" || kind === "vehicle" || kind === "client") {
+    return kind;
+  }
+
+  const intent = String(thread.intent || "").toLowerCase();
+  const label = `${thread.relatedLabel || ""} ${thread.relatedTo?.label || ""}`.toLowerCase();
+  if (intent === "materials" || label.includes("material")) return "materials";
+  if (intent === "prices" || label.includes("price")) return "prices";
+  return "all";
+}
+
+function savedConversationQueryUrl(query: string, surface: SavedScoutSurfaceFilter): string {
+  const params = new URLSearchParams();
+  if (query.trim().length >= 2) params.set("q", query.trim());
+  if (surface !== "all") params.set("surface", surface);
+  const suffix = params.toString();
+  return suffix ? `/api/scout/conversations?${suffix}` : "/api/scout/conversations";
+}
+
+function isSavedScoutThreadRelatedKind(kind: unknown): kind is SavedScoutThreadRelatedTo["kind"] {
+  return (
+    kind === "project" ||
+    kind === "home" ||
+    kind === "vehicle" ||
+    kind === "client" ||
+    kind === "generic"
+  );
+}
+
+function relatedPathFromRelatedTo(relatedTo: SavedScoutThreadRelatedTo): string | undefined {
+  if (relatedTo.kind === "project" && relatedTo.id) {
+    if (relatedTo.surface === "home_project" && relatedTo.homeId) {
+      return `/homes?homeId=${encodeURIComponent(relatedTo.homeId)}&projectId=${encodeURIComponent(
+        relatedTo.id
+      )}`;
+    }
+    return `/project-tracker?jobId=${encodeURIComponent(relatedTo.id)}`;
+  }
+  if (relatedTo.kind === "home" && relatedTo.id) {
+    return `/homes?homeId=${encodeURIComponent(relatedTo.id)}`;
+  }
+  if (relatedTo.kind === "vehicle" && relatedTo.id) {
+    return `/vehicles?vehicleId=${encodeURIComponent(relatedTo.id)}`;
+  }
+  if (relatedTo.kind === "client" && relatedTo.id) {
+    return `/direct-connect?clientId=${encodeURIComponent(relatedTo.id)}`;
+  }
+  return undefined;
+}
+
+function labelForRelatedRoute(route: string): string {
+  const relatedFromRoute = inferRelatedFromRoute(route);
+  if (relatedFromRoute?.label) return relatedFromRoute.label;
+  return "Saved work";
+}
+
+function relatedFromAction(action: ScoutAction | undefined):
+  | {
+      relatedTo: SavedScoutThreadRelatedTo;
+      relatedPath: string;
+    }
+  | undefined {
+  if (!action) return undefined;
+
+  const relatedFromPayload = resolveRelatedFromPayload(action.payload);
+  if (relatedFromPayload) {
+    return {
+      relatedTo: relatedFromPayload,
+      relatedPath:
+        relatedPathFromRelatedTo(relatedFromPayload) ||
+        action.to ||
+        action.path ||
+        "/direct-connect",
+    };
+  }
+
+  const route =
+    typeof action.to === "string" && action.to.trim()
+      ? action.to
+      : typeof action.path === "string" && action.path.trim()
+        ? action.path
+        : "";
+  if (!route) return undefined;
+
+  const relatedFromRoute = inferRelatedFromRoute(route);
+  if (!relatedFromRoute) return undefined;
+
+  return {
+    relatedTo: relatedFromRoute,
+    relatedPath: relatedPathFromRelatedTo(relatedFromRoute) || route,
+  };
+}
+
 function buildSavedThreadSummary(messages: ScoutMessage[]): string {
   const userMessage = firstThreadUserMessage(messages);
   const assistantMessage = messages.find(
@@ -230,7 +593,63 @@ function inferSavedThreadIntent(messages: ScoutMessage[]): {
   intent: string;
   relatedLabel: string;
   relatedPath: string;
+  relatedTo?: SavedScoutThreadRelatedTo;
 } {
+  const latestFirst = messages.slice().reverse();
+
+  for (const message of latestFirst) {
+    if (typeof message.navTarget === "string" && message.navTarget.trim()) {
+      const relatedFromNav = inferRelatedFromRoute(message.navTarget);
+      if (relatedFromNav) {
+        return {
+          intent: relatedFromNav.kind === "project" ? "client_work" : "local_help",
+          relatedLabel: relatedFromNav.label || labelForRelatedRoute(message.navTarget),
+          relatedPath: relatedPathFromRelatedTo(relatedFromNav) || message.navTarget,
+          relatedTo: relatedFromNav,
+        };
+      }
+    }
+
+    const memoryJobId = message.memoryDelta?.lastJobId;
+    if (typeof memoryJobId === "string" && memoryJobId.trim()) {
+      const id = sanitizeRelatedId(memoryJobId);
+      if (id) {
+        const relatedTo: SavedScoutThreadRelatedTo = {
+          kind: "project",
+          id,
+          label: `Project ${id}`,
+        };
+        return {
+          intent: "client_work",
+          relatedLabel: relatedTo.label || "Project",
+          relatedPath: `/project-tracker?jobId=${encodeURIComponent(id)}`,
+          relatedTo,
+        };
+      }
+    }
+
+    if (Array.isArray(message.clusters)) {
+      for (const cluster of message.clusters) {
+        const actionsToScan = [
+          cluster.primaryAction,
+          ...(Array.isArray(cluster.actions) ? cluster.actions : []),
+        ];
+
+        for (const action of actionsToScan) {
+          const related = relatedFromAction(action);
+          if (!related) continue;
+          const relatedTo = related.relatedTo;
+          return {
+            intent: relatedTo.kind === "project" ? "client_work" : "local_help",
+            relatedLabel: relatedTo.label || relatedLabelFromKind(relatedTo.kind),
+            relatedPath: related.relatedPath,
+            relatedTo,
+          };
+        }
+      }
+    }
+  }
+
   const text = messages
     .map((message) => message.content)
     .join(" ")
@@ -314,6 +733,7 @@ function buildSavedScoutThread(
     lastMessage?.content,
     summary,
     threadIntent.relatedLabel,
+    threadIntent.relatedTo?.label,
   ]
     .filter(Boolean)
     .join(" ")
@@ -331,6 +751,7 @@ function buildSavedScoutThread(
     intent: threadIntent.intent,
     relatedLabel: threadIntent.relatedLabel,
     relatedPath: threadIntent.relatedPath,
+    relatedTo: threadIntent.relatedTo,
     searchText,
     countyFips: location?.countyFips || null,
     stateCode: location?.stateCode || null,
@@ -355,6 +776,56 @@ function normalizeSavedScoutThreads(input: unknown): SavedScoutThread[] {
       ...item,
       summary: typeof item.summary === "string" ? item.summary : item.preview || "",
       intent: typeof item.intent === "string" ? item.intent : null,
+      relatedTo: (() => {
+        const candidate =
+          item.relatedTo && typeof item.relatedTo === "object" && !Array.isArray(item.relatedTo)
+            ? (item.relatedTo as Record<string, unknown>)
+            : (item as any).metadata?.relatedTo;
+
+        if (
+          candidate &&
+          typeof candidate === "object" &&
+          !Array.isArray(candidate) &&
+          typeof (candidate as Record<string, unknown>).kind === "string"
+        ) {
+          const fromMetadata = candidate as Record<string, unknown>;
+          const kind = fromMetadata.kind;
+          if (isSavedScoutThreadRelatedKind(kind)) {
+            const id =
+              typeof fromMetadata.id === "string" ? sanitizeRelatedId(fromMetadata.id) : undefined;
+            const surface: SavedScoutThreadRelatedTo["surface"] =
+              fromMetadata.surface === "home_project" ||
+              fromMetadata.surface === "commercial_project"
+                ? fromMetadata.surface
+                : undefined;
+            return {
+              kind,
+              id,
+              label: typeof fromMetadata.label === "string" ? fromMetadata.label : undefined,
+              homeId:
+                typeof fromMetadata.homeId === "string"
+                  ? sanitizeRelatedId(fromMetadata.homeId)
+                  : undefined,
+              surface,
+            };
+          }
+        }
+
+        const candidatePath =
+          typeof item.relatedPath === "string"
+            ? item.relatedPath
+            : typeof (item as any).metadata?.relatedPath === "string"
+              ? (item as any).metadata.relatedPath
+              : "";
+        if (candidatePath) {
+          const inferred = inferRelatedFromRoute(candidatePath);
+          if (inferred) {
+            return inferred;
+          }
+        }
+
+        return undefined;
+      })(),
       relatedLabel:
         typeof item.relatedLabel === "string"
           ? item.relatedLabel
@@ -837,7 +1308,7 @@ function objectiveStatusToProgress(status: Objective["status"]): number {
 }
 
 export default function ScoutOS() {
-  const { user, isAuthenticated, refetch: refetchUser } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
@@ -865,7 +1336,6 @@ export default function ScoutOS() {
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
   const [overridePendingScope, setOverridePendingScope] = useState<string | null>(null);
   const [introDemoText, setIntroDemoText] = useState("");
-  const [isUpdatingGeo, setIsUpdatingGeo] = useState(false);
   const [autoRouteEnabled, setAutoRouteEnabled] = useState<boolean>(() => {
     try {
       if (typeof window === "undefined") return AUTO_ROUTE_DEFAULT_ENABLED;
@@ -920,6 +1390,8 @@ export default function ScoutOS() {
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
+  const [savedScoutSurfaceFilter, setSavedScoutSurfaceFilter] =
+    useState<SavedScoutSurfaceFilter>("all");
   const [scoutViewMode, setScoutViewMode] = useState<"chat_only" | "chat_plus_controller">(() => {
     try {
       if (typeof window === "undefined") return "chat_only";
@@ -1073,6 +1545,8 @@ export default function ScoutOS() {
         verifiedPros: data?.snapshot?.verifiedPros,
         eventsThisWeek: data?.snapshot?.eventsThisWeek,
         communityMembers: data?.snapshot?.communityMembers,
+        priceSignals: Array.isArray(data?.priceSignals) ? data.priceSignals : [],
+        opportunityMoves: Array.isArray(data?.opportunityMoves) ? data.opportunityMoves : [],
         trendingPrompts: Array.isArray(data?.trendingPrompts) ? data.trendingPrompts : [],
         recentActivity: Array.isArray(data?.recentActivity) ? data.recentActivity : [],
       };
@@ -1101,7 +1575,7 @@ export default function ScoutOS() {
 
     if (!user) return;
 
-    void fetch("/api/scout/conversations", {
+    void fetch(savedConversationQueryUrl("", savedScoutSurfaceFilter), {
       method: "GET",
       credentials: "include",
     })
@@ -1121,7 +1595,7 @@ export default function ScoutOS() {
     return () => {
       cancelled = true;
     };
-  }, [remoteSavedScoutThreads, scoutSaveUserId, user]);
+  }, [remoteSavedScoutThreads, savedScoutSurfaceFilter, scoutSaveUserId, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -1130,7 +1604,7 @@ export default function ScoutOS() {
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      void fetch(`/api/scout/conversations?q=${encodeURIComponent(query)}`, {
+      void fetch(savedConversationQueryUrl(query, savedScoutSurfaceFilter), {
         method: "GET",
         credentials: "include",
       })
@@ -1155,7 +1629,7 @@ export default function ScoutOS() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [savedScoutSearch, scoutSaveUserId, user]);
+  }, [savedScoutSearch, savedScoutSurfaceFilter, scoutSaveUserId, user]);
 
   const persistSavedScoutThreadRemote = useCallback(
     async (thread: SavedScoutThread) => {
@@ -1179,6 +1653,7 @@ export default function ScoutOS() {
               source: "scout_os",
               relatedLabel: thread.relatedLabel,
               relatedPath: thread.relatedPath,
+              relatedTo: thread.relatedTo,
               searchText: thread.searchText,
             },
           }),
@@ -1359,13 +1834,22 @@ export default function ScoutOS() {
   );
   const savedThreadMatches = useMemo(() => {
     const query = savedScoutSearch.trim().toLowerCase();
-    if (!query) return savedScoutThreads;
     return savedScoutThreads.filter((thread) => {
+      if (
+        savedScoutSurfaceFilter !== "all" &&
+        savedThreadSurface(thread) !== savedScoutSurfaceFilter
+      ) {
+        return false;
+      }
+      if (!query) return true;
       const haystack = [
         thread.title,
         thread.preview,
         thread.summary,
         thread.relatedLabel,
+        thread.relatedTo?.kind,
+        thread.relatedTo?.id,
+        thread.relatedTo?.label,
         thread.searchText,
         ...thread.messages.map((message) => message.content),
       ]
@@ -1374,7 +1858,7 @@ export default function ScoutOS() {
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [savedScoutSearch, savedScoutThreads]);
+  }, [savedScoutSearch, savedScoutSurfaceFilter, savedScoutThreads]);
   const savedThreadPreview = savedThreadMatches.slice(0, isMobile ? 2 : 3);
 
   const handleLoadSavedThread = useCallback(
@@ -1702,10 +2186,11 @@ export default function ScoutOS() {
     const provisional = (user as any)?.preferences?.provisional;
     const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
     const alreadyCompleted = (user as any)?.onboardingCompleted === true;
+    const hasSessionCompleted = isScoutOnboardingCompleted();
 
     // Once a user has completed onboarding, never auto-trigger it again
     // from lingering onboarding query params.
-    if (alreadyCompleted) return;
+    if (alreadyCompleted || hasSessionCompleted) return;
 
     if (!onboarding.shouldTriggerOnboarding(location, userId, provisional)) {
       return;
@@ -2499,6 +2984,17 @@ export default function ScoutOS() {
             }) || clusters;
         }
 
+        const priceEvidenceSources = priceSignalEvidenceSources(
+          scoutSourceSignalsQuery.data ?? null,
+          value
+        );
+        const provenance: NonNullable<ScoutMessage["provenance"]> = buildScoutProvenance(res) || {};
+        if (priceEvidenceSources.length > 0) {
+          provenance.sourceTitles = Array.from(
+            new Set([...(provenance.sourceTitles || []), ...priceEvidenceSources])
+          ).slice(0, 5);
+        }
+
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
@@ -2520,7 +3016,7 @@ export default function ScoutOS() {
                 return (nav?.to as string) || (nav?.path as string) || undefined;
               })()
             : undefined,
-          provenance: buildScoutProvenance(res),
+          provenance,
         };
 
         applyServerResponse(msg, dedupedServerActions);
@@ -3255,43 +3751,6 @@ export default function ScoutOS() {
 
   const heroLocationLabel = formatCityOnly({ label: locationCtx.label });
 
-  const handleUseDeviceLocation = useCallback(() => {
-    if (isUpdatingGeo) return;
-    if (typeof window === "undefined" || !("geolocation" in navigator)) {
-      console.warn("Geolocation is not available in this environment.");
-      return;
-    }
-
-    setIsUpdatingGeo(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          await updateGeoPreferencesFromDeviceLocation({
-            lat: latitude,
-            lng: longitude,
-            enableNearbyDeals: true,
-          });
-          // Refresh auth/user so Scout picks up the new geo prefs.
-          void refetchUser();
-        } catch (err) {
-          console.warn("Failed to update geo preferences from device location", err);
-        } finally {
-          setIsUpdatingGeo(false);
-        }
-      },
-      (error) => {
-        console.warn("Geolocation error", error);
-        setIsUpdatingGeo(false);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 15000,
-        maximumAge: 5 * 60 * 1000,
-      }
-    );
-  }, [isUpdatingGeo, refetchUser]);
-
   // Fetch saved contractors for tile context (deterministic personalization)
   const { data: savedContractorsData } = useQuery<
     Array<{ id: string; name: string; category?: string | null }>
@@ -3949,95 +4408,132 @@ export default function ScoutOS() {
                         </span>
                       </div>
                       {savedScoutThreads.length > 2 && (
-                        <label className="mb-2 block">
-                          <span className="sr-only">Search saved conversations</span>
-                          <input
-                            type="search"
-                            value={savedScoutSearch}
-                            onChange={(event) => setSavedScoutSearch(event.target.value)}
-                            placeholder="Search saved conversations"
-                            className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                            style={{
-                              borderColor: "var(--border-subtle)",
-                              backgroundColor:
-                                "color-mix(in oklab, var(--surface-deep) 92%, transparent)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </label>
-                      )}
-                      <div className="grid gap-2">
-                        {savedThreadPreview.map((thread) => (
-                          <div
-                            key={thread.id}
-                            className="rounded-xl border px-3 py-2"
-                            style={{
-                              borderColor: "var(--border-subtle)",
-                              backgroundColor:
-                                "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                              color: "var(--text-primary)",
-                            }}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleLoadSavedThread(thread)}
-                              className="block w-full text-left"
-                            >
-                              <span
-                                className="mb-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                        <div className="mb-2 space-y-2">
+                          <label className="block">
+                            <span className="sr-only">Search saved conversations</span>
+                            <input
+                              type="search"
+                              value={savedScoutSearch}
+                              onChange={(event) => setSavedScoutSearch(event.target.value)}
+                              placeholder="Search saved conversations"
+                              className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
+                              style={{
+                                borderColor: "var(--border-subtle)",
+                                backgroundColor:
+                                  "color-mix(in oklab, var(--surface-deep) 92%, transparent)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </label>
+                          <div className="flex gap-1 overflow-x-auto pb-1">
+                            {SAVED_SCOUT_SURFACE_FILTERS.map((filter) => (
+                              <button
+                                key={filter.value}
+                                type="button"
+                                onClick={() => setSavedScoutSurfaceFilter(filter.value)}
+                                className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold"
                                 style={{
-                                  borderColor: "var(--border-subtle)",
-                                  color: "var(--text-secondary)",
+                                  borderColor:
+                                    savedScoutSurfaceFilter === filter.value
+                                      ? "var(--ts-orange)"
+                                      : "var(--border-subtle)",
+                                  color:
+                                    savedScoutSurfaceFilter === filter.value
+                                      ? "var(--ts-orange)"
+                                      : "var(--text-secondary)",
+                                  backgroundColor:
+                                    savedScoutSurfaceFilter === filter.value
+                                      ? "color-mix(in oklab, var(--ts-orange) 12%, transparent)"
+                                      : "transparent",
                                 }}
                               >
-                                Related to {thread.relatedLabel || "Saved work"}
-                              </span>
-                              <span className="block text-sm font-semibold leading-tight">
-                                {thread.title}
-                              </span>
-                              <span
-                                className="mt-1 block text-[11px] leading-snug"
-                                style={{ color: "var(--text-secondary)" }}
-                              >
-                                {thread.preview}
-                              </span>
-                            </button>
-                            <div className="mt-2 flex items-center gap-3">
-                              {thread.relatedPath && thread.relatedPath !== "/scout" && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const relatedPath = thread.relatedPath;
-                                    if (!relatedPath) return;
-                                    if (
-                                      !maybeOpenWorkAreaForRoute(relatedPath, thread.relatedLabel)
-                                    ) {
-                                      navigate(relatedPath);
-                                    }
-                                  }}
-                                  className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-                                  style={{ color: "var(--ts-orange)" }}
-                                >
-                                  Open related view
-                                </button>
-                              )}
+                                {filter.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid gap-2">
+                        {savedThreadPreview.map((thread) => {
+                          const relatedLabel =
+                            thread.relatedLabel ||
+                            thread.relatedTo?.label ||
+                            relatedLabelFromKind(thread.relatedTo?.kind || "generic");
+                          const relatedPath =
+                            thread.relatedPath ||
+                            (thread.relatedTo ? relatedPathFromRelatedTo(thread.relatedTo) : "") ||
+                            "";
+
+                          return (
+                            <div
+                              key={thread.id}
+                              className="rounded-xl border px-3 py-2"
+                              style={{
+                                borderColor: "var(--border-subtle)",
+                                backgroundColor:
+                                  "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
+                                color: "var(--text-primary)",
+                              }}
+                            >
                               <button
                                 type="button"
-                                onClick={() => handleDeleteSavedThread(thread.id)}
-                                className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-                                style={{ color: "var(--text-muted)" }}
+                                onClick={() => handleLoadSavedThread(thread)}
+                                className="block w-full text-left"
                               >
-                                Delete
+                                <span
+                                  className="mb-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold"
+                                  style={{
+                                    borderColor: "var(--border-subtle)",
+                                    color: "var(--text-secondary)",
+                                  }}
+                                >
+                                  Related to {relatedLabel}
+                                </span>
+                                <span className="block text-sm font-semibold leading-tight">
+                                  {thread.title}
+                                </span>
+                                <span
+                                  className="mt-1 block text-[11px] leading-snug"
+                                  style={{ color: "var(--text-secondary)" }}
+                                >
+                                  {thread.preview}
+                                </span>
                               </button>
+                              <div className="mt-2 flex items-center gap-3">
+                                {relatedPath && relatedPath !== "/scout" && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (!relatedPath) return;
+                                      if (!maybeOpenWorkAreaForRoute(relatedPath, relatedLabel)) {
+                                        navigate(relatedPath);
+                                      }
+                                    }}
+                                    className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                                    style={{ color: "var(--ts-orange)" }}
+                                  >
+                                    Open related view
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSavedThread(thread.id)}
+                                  className="text-[10px] font-semibold uppercase tracking-[0.12em]"
+                                  style={{ color: "var(--text-muted)" }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
-                      {savedScoutSearch.trim() && savedThreadPreview.length === 0 && (
-                        <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                          No saved conversations matched that search.
-                        </p>
-                      )}
+                      {(savedScoutSearch.trim() || savedScoutSurfaceFilter !== "all") &&
+                        savedThreadPreview.length === 0 && (
+                          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                            No saved conversations matched that search.
+                          </p>
+                        )}
                     </div>
                   )}
                 </>
@@ -4999,10 +5495,6 @@ export default function ScoutOS() {
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
-                  heroLocationLabel={heroLocationLabel}
-                  isUpdatingGeo={isUpdatingGeo}
-                  onOpenLocationSettings={() => navigate("/settings")}
-                  onUseDeviceLocation={handleUseDeviceLocation}
                   onSend={(value) => handleSend(value)}
                   onTyping={() => {
                     setHasGuestInteracted(true);

@@ -83,8 +83,8 @@ describe("DC universal provider — routing engine", () => {
 
   it("routing engine skips compliance gate for odd-job and employment categories", () => {
     const dc = readRepoFile("server/routes/direct-connect.ts");
-    // OPEN_CATEGORIES set controls which categories bypass the license/insurance gate
-    expect(dc).toContain("OPEN_CATEGORIES");
+    // isOpenDirectConnectCategory controls which categories bypass the license/insurance gate.
+    expect(dc).toContain("isOpenDirectConnectCategory");
     expect(dc).toContain('"employment"');
     expect(dc).toContain('"odd_job"');
   });
@@ -265,32 +265,33 @@ describe("Employment Board UI", () => {
 // ---------------------------------------------------------------------------
 // 9. Universal provider search endpoint
 // ---------------------------------------------------------------------------
-describe("Universal provider search — /api/providers/search", () => {
-  it("routes.ts registers /api/providers/search endpoint", () => {
+describe("Universal provider search — /api/business-providers/search", () => {
+  it("routes.ts registers the generic endpoint and legacy alias", () => {
     const routes = readRepoFile("server/routes.ts");
+    expect(routes).toContain('"/api/business-providers/search"');
     expect(routes).toContain('"/api/providers/search"');
   });
 
-  it("providers/search merges contractors and businesses", () => {
+  it("business-providers/search merges contractors and businesses", () => {
     const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/providers/search"');
-    const section = routes.slice(idx, idx + 2500);
+    const idx = routes.indexOf('"/api/business-providers/search"');
+    const section = routes.slice(idx, idx + 5000);
     expect(section).toContain("contractorResults");
     expect(section).toContain("businessResults");
     expect(section).toContain("merged");
   });
 
-  it("providers/search deduplicates results by id", () => {
+  it("business-providers/search deduplicates results by id", () => {
     const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/providers/search"');
-    const section = routes.slice(idx, idx + 2500);
+    const idx = routes.indexOf('"/api/business-providers/search"');
+    const section = routes.slice(idx, idx + 5000);
     expect(section).toContain("seen");
   });
 
-  it("providers/search annotates results with providerType", () => {
+  it("business-providers/search annotates results with providerType", () => {
     const routes = readRepoFile("server/routes.ts");
-    const idx = routes.indexOf('"/api/providers/search"');
-    const section = routes.slice(idx, idx + 2500);
+    const idx = routes.indexOf('"/api/business-providers/search"');
+    const section = routes.slice(idx, idx + 5000);
     expect(section).toContain('"contractor"');
     expect(section).toContain('"business"');
   });

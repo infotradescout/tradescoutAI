@@ -5,10 +5,16 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
 
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
-import { hasAdminUiAccess, isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { hasAdminUiAccess } from "./lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
-import { storeOnboardingNext, isSafeNextPath } from "@/lib/postOnboardingRoute";
+import {
+  getOnboardingEntryRoute as routeGetOnboardingEntryRoute,
+  getPostLandingRoute as routeGetPostLandingRoute,
+  isOnboardingExemptPath,
+  isSafeNextPath,
+  storeOnboardingNext,
+  userNeedsOnboarding,
+} from "@/lib/postOnboardingRoute";
 import {
   evaluateFeatureUnlocks,
   isFeatureUnlocked,
@@ -20,57 +26,8 @@ const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
-export function userNeedsOnboarding(user: unknown): boolean {
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  if (!record) return false;
-
-  const onboardingCompleted = record.onboardingCompleted === true;
-  const profileVersion =
-    typeof record.profileVersion === "number" ? Number(record.profileVersion) : 0;
-  return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;
-}
-
-export function userHasProfileBasics(user: unknown): boolean {
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  if (!record) return false;
-
-  const firstName = typeof record.firstName === "string" ? record.firstName.trim() : "";
-  const lastName = typeof record.lastName === "string" ? record.lastName.trim() : "";
-  const stateCode =
-    typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
-  const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
-
-  return (
-    firstName.length > 0 &&
-    lastName.length > 0 &&
-    stateCode.length === 2 &&
-    /^\d{5}$/.test(countyFips)
-  );
-}
-
-export function getOnboardingEntryRoute(user: unknown): string {
-  return userHasProfileBasics(user) ? "/onboarding/intent" : "/onboarding/profile";
-}
-
-export function getPostLandingRoute(user: unknown): string {
-  if (userNeedsOnboarding(user)) return getOnboardingEntryRoute(user);
-
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;
-  const isSuperAdmin = isSuperAdminLike(role) || record?.isSuperAdmin === true;
-
-  const rolesValue = record?.roles;
-  const roles: string[] = Array.isArray(rolesValue)
-    ? rolesValue.filter((r: unknown): r is string => typeof r === "string")
-    : [];
-  const isAdmin =
-    record?.isAdmin === true ||
-    isAdminTier(role) ||
-    roles.some((r) => isAdminTier(r) || String(r).includes("admin"));
-
-  if (isSuperAdmin || isAdmin) return "/admin";
-  return "/direct-connect";
-}
+export const getOnboardingEntryRoute = routeGetOnboardingEntryRoute;
+export const getPostLandingRoute = routeGetPostLandingRoute;
 
 function isLegacyRootScoutQuery(rest: string): boolean {
   if (!rest || !rest.startsWith("?")) return false;
@@ -78,19 +35,6 @@ function isLegacyRootScoutQuery(rest: string): boolean {
   if (!query) return false;
   const params = new URLSearchParams(query);
   return params.has("prompt") || params.has("intent");
-}
-
-function isOnboardingExemptPath(path: string): boolean {
-  return (
-    path.startsWith("/pre-scout-setup") ||
-    path.startsWith("/onboarding/profile") ||
-    path.startsWith("/onboarding/intent") ||
-    path.startsWith("/verify-email") ||
-    path.startsWith("/check-email") ||
-    path.startsWith("/reset-password") ||
-    path.startsWith("/logout") ||
-    path.startsWith("/auth/logout")
-  );
 }
 
 const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
@@ -275,15 +219,7 @@ const SupplyRunNew = React.lazy(() => import("./pages/supply-run-new"));
 const SupplyRunDetail = React.lazy(() => import("./pages/supply-run-detail"));
 const GruntOrder = React.lazy(() => import("./pages/grunt-order"));
 const GruntOrderDetail = React.lazy(() => import("./pages/grunt-order-detail"));
-const GruntAdminOrders = React.lazy(() => import("./pages/grunt-admin-orders"));
-const GruntAdminOrderDetail = React.lazy(() => import("./pages/grunt-admin-order-detail"));
 const SupplierProcurementQuote = React.lazy(() => import("./pages/supplier-procurement-quote"));
-const AdminProcurement = React.lazy(() => import("./pages/admin-procurement"));
-const AdminProcurementDetail = React.lazy(() => import("./pages/admin-procurement-detail"));
-const AdminProcurementWorkspaces = React.lazy(() => import("./pages/admin-procurement-workspaces"));
-const AdminProcurementWorkspaceDetail = React.lazy(
-  () => import("./pages/admin-procurement-workspace-detail")
-);
 
 // Core Pages
 // Contractors: canonical path is the licensed/verified contractor search
@@ -310,8 +246,9 @@ const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
 const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 const BusinessDirectoryPage = React.lazy(() => import("./pages/business-directory"));
 
-// Contractor Features
+// Business/provider features. Some imported pages retain legacy contractor filenames.
 const OfferServices = React.lazy(() => import("./pages/offer-services"));
+const ProfilePurchaseStatus = React.lazy(() => import("./pages/profile-purchase-status"));
 const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
 const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
@@ -443,7 +380,6 @@ const RecommendationGeneratorPage = React.lazy(
 );
 
 // Role-specific Dashboards (heavy components)
-const ContractorDashboard = React.lazy(() => import("./pages/contractor-dashboard"));
 const HomeownerDashboard = React.lazy(() => import("./pages/homeowner-dashboard"));
 const RealtorDashboard = React.lazy(() => import("./pages/realtor-dashboard"));
 const StoryGeneratorPage = React.lazy(() => import("./pages/StoryGeneratorPage"));
@@ -746,12 +682,12 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/grunt/admin/orders">
                 <ProtectedRoute>
-                  <LazyPage Component={GruntAdminOrders} />
+                  <RedirectTo to="/admin/procurement" />
                 </ProtectedRoute>
               </Route>
               <Route path="/grunt/admin/orders/:id">
                 <ProtectedRoute>
-                  <LazyPage Component={GruntAdminOrderDetail} />
+                  <RedirectTo to="/admin/procurement" />
                 </ProtectedRoute>
               </Route>
               <Route path="/supplier/procurement/:token">
@@ -759,22 +695,22 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/admin/procurement">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurement} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/admin/procurement/workspaces">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurementWorkspaces} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/admin/procurement/workspaces/:id">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurementWorkspaceDetail} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/admin/procurement/:id">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurementDetail} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
 
@@ -886,9 +822,12 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
 
               {/* Core pages */}
-              {/* Contractors: profiles remain addressable; listing surfaces now route through Direct Connect */}
-              <Route path="/contractors/apply">
+              {/* Business/provider application. Legacy contractor routes remain compatibility aliases. */}
+              <Route path="/businesses/apply">
                 <LazyPage Component={ContractorApply} />
+              </Route>
+              <Route path="/contractors/apply">
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/contractors/top">
                 <LazyPage Component={ContractorsTop} />
@@ -904,14 +843,17 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/direct-connect" />
               </Route>
 
-              {/* Contractor project requests / leads */}
-              <Route path="/contractor-leads">
+              {/* Business/provider project requests. Legacy contractor paths remain compatibility aliases. */}
+              <Route path="/business/requests">
                 <ProtectedRoute>
                   <LazyPage Component={ContractorLeads} />
                 </ProtectedRoute>
               </Route>
+              <Route path="/contractor-leads">
+                <RedirectTo to="/business/requests" />
+              </Route>
               <Route path="/contractor/leads">
-                <RedirectTo to="/contractor-leads" />
+                <RedirectTo to="/business/requests" />
               </Route>
 
               {/* Helpers + Direct Connect */}
@@ -973,7 +915,7 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Business routes */}
               <Route path="/contractor-board">
-                <RedirectTo to="/contractor-dashboard" />
+                <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/commercial-directory">
                 <ProtectedRoute>
@@ -991,18 +933,26 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/contractor-apply">
-                <LazyPage Component={ContractorApply} />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/offer-services">
                 <ProtectedRoute>
                   <LazyPage Component={OfferServices} />
                 </ProtectedRoute>
               </Route>
+              <Route path="/profile-purchases/:id">
+                <ProtectedRoute>
+                  <LazyPage Component={ProfilePurchaseStatus} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/business-listing">
                 <LazyPage Component={BusinessListing} />
               </Route>
-              <Route path="/business-owner-dashboard">
+              <Route path="/business-dashboard">
                 <LazyPage Component={BusinessOwnerDashboard} />
+              </Route>
+              <Route path="/business-owner-dashboard">
+                <RedirectTo to="/business-dashboard" />
               </Route>
 
               {/* Marketplace routes */}
@@ -1294,9 +1244,7 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Dashboard routes (auth required) */}
               <Route path="/contractor-dashboard">
-                <ProtectedRoute>
-                  <LazyPage Component={ContractorDashboard} />
-                </ProtectedRoute>
+                <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/homeowner-dashboard">
                 <ProtectedRoute>
@@ -1989,7 +1937,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/settings?tab=profile" />
               </Route>
               <Route path="/contractor/dashboard">
-                <RedirectTo to="/contractor-dashboard" />
+                <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/contractor-profile">
                 <RedirectTo to="/contractors" />
@@ -2007,13 +1955,13 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/county-hub" />
               </Route>
               <Route path="/contractors/signup">
-                <RedirectTo to="/contractors/apply" />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/contractor-join">
-                <RedirectTo to="/contractors/apply" />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/contractors/accelerator">
-                <RedirectTo to="/contractors/apply" />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/payroll-helper">
                 <RedirectTo to="/finances/payroll" />

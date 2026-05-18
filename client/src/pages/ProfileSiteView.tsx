@@ -87,6 +87,7 @@ type PublicProfileResponse = {
       id: string;
       companyName: string;
       slug: string;
+      canonicalBusinessProfileUrl?: string | null;
     };
   }>;
   recommendationDirectorySummary?: {
@@ -439,7 +440,12 @@ export default function ProfileSiteView() {
                         </div>
                         <p className="text-sm text-white/80">{entry.comment}</p>
                         {entry.contractor?.slug ? (
-                          <Link href={`/contractors/${encodeURIComponent(entry.contractor.slug)}`}>
+                          <Link
+                            href={
+                              entry.contractor.canonicalBusinessProfileUrl ||
+                              `/contractors/${encodeURIComponent(entry.contractor.slug)}`
+                            }
+                          >
                             <Button
                               size="sm"
                               variant="outline"

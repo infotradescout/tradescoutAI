@@ -49,10 +49,25 @@ function formatHomeTitle(home: any): string {
   return bits.join(" - ") || "Home";
 }
 
+function initialHomeIdFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const id = new URLSearchParams(window.location.search).get("homeId");
+  return id?.trim() || null;
+}
+
+function initialProjectIdFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const id = new URLSearchParams(window.location.search).get("projectId");
+  return id?.trim() || null;
+}
+
 export default function HomesVault() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedHomeId, setSelectedHomeId] = useState<string | null>(null);
+  const [selectedHomeId, setSelectedHomeId] = useState<string | null>(() => initialHomeIdFromUrl());
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() =>
+    initialProjectIdFromUrl()
+  );
 
   const homesQuery = useQuery({ queryKey: ["/api/homes"] });
   const homes = Array.isArray((homesQuery.data as any)?.homes)
@@ -96,6 +111,13 @@ export default function HomesVault() {
   const projects = Array.isArray((projectsQuery.data as any)?.projects)
     ? (projectsQuery.data as any).projects
     : [];
+
+  useEffect(() => {
+    if (!selectedProjectId && projects.length > 0) return;
+    if (!selectedProjectId) return;
+    const exists = projects.some((project: any) => String(project?.id || "") === selectedProjectId);
+    if (!exists && !projectsQuery.isLoading) setSelectedProjectId(null);
+  }, [projects, projectsQuery.isLoading, selectedProjectId]);
 
   const [newHome, setNewHome] = useState({
     nickname: "",
@@ -450,757 +472,779 @@ export default function HomesVault() {
         title="Homes"
         subtitle="Private records for your properties: inspections, upgrades, appliances, and documents."
       >
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your homes</CardTitle>
-              <CardDescription>Only visible to you.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {homesQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground">Loading...</div>
-              ) : homes.length === 0 ? (
-                <div className="text-sm text-muted-foreground">Add your first home below.</div>
-              ) : (
-                homes.map((h: any) => {
-                  const id = String(h?.id || "");
-                  const active = id && selectedHomeId === id;
-                  return (
-                    <button
-                      key={id}
-                      className={[
-                        "w-full text-left rounded-md border px-3 py-2 transition",
-                        active
-                          ? "border-ts-orange/30 bg-ts-orange/10"
-                          : "border-border hover:bg-muted",
-                      ].join(" ")}
-                      onClick={() => setSelectedHomeId(id)}
-                    >
-                      <div className="text-sm font-medium">{formatHomeTitle(h)}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {typeof h?.propertyType === "string" && h.propertyType
-                          ? h.propertyType
-                          : "Property"}
-                        {typeof h?.yearBuilt === "number" ? ` - Built ${h.yearBuilt}` : ""}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Add a home</CardTitle>
-              <CardDescription>Keep it private, add details later.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 gap-3">
-                <div>
-                  <Label>Nickname (optional)</Label>
-                  <Input
-                    value={newHome.nickname}
-                    onChange={(e) => setNewHome((p) => ({ ...p, nickname: e.target.value }))}
-                    placeholder="e.g., Main house"
-                  />
-                </div>
-                <div>
-                  <Label>Address (optional)</Label>
-                  <Input
-                    value={newHome.address1}
-                    onChange={(e) => setNewHome((p) => ({ ...p, address1: e.target.value }))}
-                    placeholder="Street address"
-                  />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <Label>City</Label>
-                    <Input
-                      value={newHome.city}
-                      onChange={(e) => setNewHome((p) => ({ ...p, city: e.target.value }))}
-                      placeholder="City"
-                    />
-                  </div>
-                  <div>
-                    <Label>State</Label>
-                    <Input
-                      value={newHome.stateCode}
-                      onChange={(e) =>
-                        setNewHome((p) => ({ ...p, stateCode: e.target.value.toUpperCase() }))
-                      }
-                      placeholder="LA"
-                      maxLength={2}
-                    />
-                  </div>
-                  <div>
-                    <Label>ZIP</Label>
-                    <Input
-                      value={newHome.zipCode}
-                      onChange={(e) => setNewHome((p) => ({ ...p, zipCode: e.target.value }))}
-                      placeholder="70454"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <Label>Property type</Label>
-                    <Input
-                      value={newHome.propertyType}
-                      onChange={(e) => setNewHome((p) => ({ ...p, propertyType: e.target.value }))}
-                      placeholder="house, condo, etc"
-                    />
-                  </div>
-                  <div>
-                    <Label>Year built</Label>
-                    <Input
-                      value={newHome.yearBuilt}
-                      onChange={(e) => setNewHome((p) => ({ ...p, yearBuilt: e.target.value }))}
-                      placeholder="1998"
-                      inputMode="numeric"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={() => createHomeMutation.mutate()}
-                disabled={createHomeMutation.isPending}
-              >
-                Add home
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                {selectedHome ? formatHomeTitle(selectedHome) : "Select a home"}
-              </CardTitle>
-              <CardDescription>
-                Add records over time. This data will power home reports and suggestions later.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {!selectedHomeId ? (
-                <div className="text-sm text-muted-foreground">Choose a home to start.</div>
-              ) : homeDetailQuery.isLoading ? (
-                <div className="text-sm text-muted-foreground">Loading...</div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Add a record</CardTitle>
-                        <CardDescription className="text-xs">
-                          Inspection, maintenance, upgrades, notes.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div>
-                          <Label>Type</Label>
-                          <Select
-                            value={newRecord.recordType}
-                            onValueChange={(v) => setNewRecord((p) => ({ ...p, recordType: v }))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Record type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {RECORD_TYPES.map((rt) => (
-                                <SelectItem key={rt.value} value={rt.value}>
-                                  {rt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your homes</CardTitle>
+                <CardDescription>Only visible to you.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {homesQuery.isLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading...</div>
+                ) : homes.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">Add your first home below.</div>
+                ) : (
+                  homes.map((h: any) => {
+                    const id = String(h?.id || "");
+                    const active = id && selectedHomeId === id;
+                    return (
+                      <button
+                        key={id}
+                        className={[
+                          "w-full text-left rounded-md border px-3 py-2 transition",
+                          active
+                            ? "border-ts-orange/30 bg-ts-orange/10"
+                            : "border-border hover:bg-muted",
+                        ].join(" ")}
+                        onClick={() => setSelectedHomeId(id)}
+                      >
+                        <div className="text-sm font-medium">{formatHomeTitle(h)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {typeof h?.propertyType === "string" && h.propertyType
+                            ? h.propertyType
+                            : "Property"}
+                          {typeof h?.yearBuilt === "number" ? ` - Built ${h.yearBuilt}` : ""}
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      </button>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Add a home</CardTitle>
+                <CardDescription>Keep it private, add details later.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 gap-3">
+                  <div>
+                    <Label>Nickname (optional)</Label>
+                    <Input
+                      value={newHome.nickname}
+                      onChange={(e) => setNewHome((p) => ({ ...p, nickname: e.target.value }))}
+                      placeholder="e.g., Main house"
+                    />
+                  </div>
+                  <div>
+                    <Label>Address (optional)</Label>
+                    <Input
+                      value={newHome.address1}
+                      onChange={(e) => setNewHome((p) => ({ ...p, address1: e.target.value }))}
+                      placeholder="Street address"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <Label>City</Label>
+                      <Input
+                        value={newHome.city}
+                        onChange={(e) => setNewHome((p) => ({ ...p, city: e.target.value }))}
+                        placeholder="City"
+                      />
+                    </div>
+                    <div>
+                      <Label>State</Label>
+                      <Input
+                        value={newHome.stateCode}
+                        onChange={(e) =>
+                          setNewHome((p) => ({ ...p, stateCode: e.target.value.toUpperCase() }))
+                        }
+                        placeholder="LA"
+                        maxLength={2}
+                      />
+                    </div>
+                    <div>
+                      <Label>ZIP</Label>
+                      <Input
+                        value={newHome.zipCode}
+                        onChange={(e) => setNewHome((p) => ({ ...p, zipCode: e.target.value }))}
+                        placeholder="70454"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <Label>Property type</Label>
+                      <Input
+                        value={newHome.propertyType}
+                        onChange={(e) =>
+                          setNewHome((p) => ({ ...p, propertyType: e.target.value }))
+                        }
+                        placeholder="house, condo, etc"
+                      />
+                    </div>
+                    <div>
+                      <Label>Year built</Label>
+                      <Input
+                        value={newHome.yearBuilt}
+                        onChange={(e) => setNewHome((p) => ({ ...p, yearBuilt: e.target.value }))}
+                        placeholder="1998"
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full"
+                  onClick={() => createHomeMutation.mutate()}
+                  disabled={createHomeMutation.isPending}
+                >
+                  Add home
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>
+                  {selectedHome ? formatHomeTitle(selectedHome) : "Select a home"}
+                </CardTitle>
+                <CardDescription>
+                  Add records over time. This data will power home reports and suggestions later.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!selectedHomeId ? (
+                  <div className="text-sm text-muted-foreground">Choose a home to start.</div>
+                ) : homeDetailQuery.isLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading...</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Add a record</CardTitle>
+                          <CardDescription className="text-xs">
+                            Inspection, maintenance, upgrades, notes.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
                           <div>
-                            <Label>Date (optional)</Label>
+                            <Label>Type</Label>
+                            <Select
+                              value={newRecord.recordType}
+                              onValueChange={(v) => setNewRecord((p) => ({ ...p, recordType: v }))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Record type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {RECORD_TYPES.map((rt) => (
+                                  <SelectItem key={rt.value} value={rt.value}>
+                                    {rt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label>Date (optional)</Label>
+                              <Input
+                                type="date"
+                                value={newRecord.occurredAt}
+                                onChange={(e) =>
+                                  setNewRecord((p) => ({ ...p, occurredAt: e.target.value }))
+                                }
+                              />
+                            </div>
+                            <div>
+                              <Label>Cost (optional)</Label>
+                              <Input
+                                value={newRecord.cost}
+                                onChange={(e) =>
+                                  setNewRecord((p) => ({ ...p, cost: e.target.value }))
+                                }
+                                placeholder="0.00"
+                                inputMode="decimal"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label>Title</Label>
                             <Input
-                              type="date"
-                              value={newRecord.occurredAt}
+                              value={newRecord.title}
                               onChange={(e) =>
-                                setNewRecord((p) => ({ ...p, occurredAt: e.target.value }))
+                                setNewRecord((p) => ({ ...p, title: e.target.value }))
                               }
+                              placeholder="e.g., Replaced water heater"
                             />
                           </div>
                           <div>
-                            <Label>Cost (optional)</Label>
-                            <Input
-                              value={newRecord.cost}
+                            <Label>Details (optional)</Label>
+                            <Textarea
+                              value={newRecord.details}
                               onChange={(e) =>
-                                setNewRecord((p) => ({ ...p, cost: e.target.value }))
+                                setNewRecord((p) => ({ ...p, details: e.target.value }))
                               }
-                              placeholder="0.00"
+                              placeholder="Notes, parts, warranty info..."
+                            />
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={() => addRecordMutation.mutate()}
+                            disabled={addRecordMutation.isPending}
+                          >
+                            Add record
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Add an appliance</CardTitle>
+                          <CardDescription className="text-xs">
+                            Brand, model, serial, install date.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div>
+                            <Label>Category</Label>
+                            <Input
+                              value={newAppliance.category}
+                              onChange={(e) =>
+                                setNewAppliance((p) => ({ ...p, category: e.target.value }))
+                              }
+                              placeholder="HVAC, Water heater, Refrigerator..."
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label>Brand</Label>
+                              <Input
+                                value={newAppliance.brand}
+                                onChange={(e) =>
+                                  setNewAppliance((p) => ({ ...p, brand: e.target.value }))
+                                }
+                                placeholder="Brand"
+                              />
+                            </div>
+                            <div>
+                              <Label>Model</Label>
+                              <Input
+                                value={newAppliance.model}
+                                onChange={(e) =>
+                                  setNewAppliance((p) => ({ ...p, model: e.target.value }))
+                                }
+                                placeholder="Model"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label>Serial (optional)</Label>
+                              <Input
+                                value={newAppliance.serial}
+                                onChange={(e) =>
+                                  setNewAppliance((p) => ({ ...p, serial: e.target.value }))
+                                }
+                                placeholder="Serial"
+                              />
+                            </div>
+                            <div>
+                              <Label>Installed (optional)</Label>
+                              <Input
+                                type="date"
+                                value={newAppliance.installedAt}
+                                onChange={(e) =>
+                                  setNewAppliance((p) => ({ ...p, installedAt: e.target.value }))
+                                }
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <Label>Notes (optional)</Label>
+                            <Textarea
+                              value={newAppliance.notes}
+                              onChange={(e) =>
+                                setNewAppliance((p) => ({ ...p, notes: e.target.value }))
+                              }
+                              placeholder="Filter sizes, warranty, installer..."
+                            />
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={() => addApplianceMutation.mutate()}
+                            disabled={addApplianceMutation.isPending}
+                          >
+                            Save appliance
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Sell this home</CardTitle>
+                        <CardDescription className="text-xs">
+                          Starts a HomeScout listing draft using your saved Home Vault info.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Button
+                          onClick={() => startSaleMutation.mutate()}
+                          disabled={startSaleMutation.isPending}
+                        >
+                          {startSaleMutation.isPending ? "Starting..." : "Start sale listing"}
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Projects</CardTitle>
+                        <CardDescription className="text-xs">
+                          Start a home project and track planning. If you don't have budget yet,
+                          make a savings plan.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label>Project title</Label>
+                            <Input
+                              value={newProject.title}
+                              onChange={(e) =>
+                                setNewProject((p) => ({ ...p, title: e.target.value }))
+                              }
+                              placeholder="Build a deck"
+                            />
+                          </div>
+                          <div>
+                            <Label>Type (optional)</Label>
+                            <Input
+                              value={newProject.projectType}
+                              onChange={(e) =>
+                                setNewProject((p) => ({ ...p, projectType: e.target.value }))
+                              }
+                              placeholder="carpentry, roofing, HVAC..."
+                            />
+                          </div>
+                          <div>
+                            <Label>Estimated cost (optional)</Label>
+                            <Input
+                              value={newProject.estimatedCost}
+                              onChange={(e) =>
+                                setNewProject((p) => ({ ...p, estimatedCost: e.target.value }))
+                              }
+                              placeholder="5000"
                               inputMode="decimal"
                             />
                           </div>
-                        </div>
-                        <div>
-                          <Label>Title</Label>
-                          <Input
-                            value={newRecord.title}
-                            onChange={(e) => setNewRecord((p) => ({ ...p, title: e.target.value }))}
-                            placeholder="e.g., Replaced water heater"
-                          />
+                          <div>
+                            <Label>Desired start (optional)</Label>
+                            <Input
+                              type="date"
+                              value={newProject.desiredStartAt}
+                              onChange={(e) =>
+                                setNewProject((p) => ({ ...p, desiredStartAt: e.target.value }))
+                              }
+                            />
+                          </div>
                         </div>
                         <div>
                           <Label>Details (optional)</Label>
                           <Textarea
-                            value={newRecord.details}
+                            value={newProject.description}
                             onChange={(e) =>
-                              setNewRecord((p) => ({ ...p, details: e.target.value }))
+                              setNewProject((p) => ({ ...p, description: e.target.value }))
                             }
-                            placeholder="Notes, parts, warranty info..."
+                            placeholder="Size, materials, constraints, HOA rules..."
                           />
                         </div>
-                        <Button
-                          className="w-full"
-                          onClick={() => addRecordMutation.mutate()}
-                          disabled={addRecordMutation.isPending}
-                        >
-                          Add record
-                        </Button>
-                      </CardContent>
-                    </Card>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Add an appliance</CardTitle>
-                        <CardDescription className="text-xs">
-                          Brand, model, serial, install date.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div>
-                          <Label>Category</Label>
-                          <Input
-                            value={newAppliance.category}
-                            onChange={(e) =>
-                              setNewAppliance((p) => ({ ...p, category: e.target.value }))
-                            }
-                            placeholder="HVAC, Water heater, Refrigerator..."
-                          />
-                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
-                            <Label>Brand</Label>
-                            <Input
-                              value={newAppliance.brand}
-                              onChange={(e) =>
-                                setNewAppliance((p) => ({ ...p, brand: e.target.value }))
+                            <Label>Do you have budget now?</Label>
+                            <Select
+                              value={newProject.hasBudgetNow}
+                              onValueChange={(v) =>
+                                setNewProject((p) => ({ ...p, hasBudgetNow: v as any }))
                               }
-                              placeholder="Brand"
-                            />
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="no">Not yet</SelectItem>
+                                <SelectItem value="yes">Yes</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-                          <div>
-                            <Label>Model</Label>
-                            <Input
-                              value={newAppliance.model}
-                              onChange={(e) =>
-                                setNewAppliance((p) => ({ ...p, model: e.target.value }))
-                              }
-                              placeholder="Model"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <Label>Serial (optional)</Label>
-                            <Input
-                              value={newAppliance.serial}
-                              onChange={(e) =>
-                                setNewAppliance((p) => ({ ...p, serial: e.target.value }))
-                              }
-                              placeholder="Serial"
-                            />
-                          </div>
-                          <div>
-                            <Label>Installed (optional)</Label>
-                            <Input
-                              type="date"
-                              value={newAppliance.installedAt}
-                              onChange={(e) =>
-                                setNewAppliance((p) => ({ ...p, installedAt: e.target.value }))
-                              }
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label>Notes (optional)</Label>
-                          <Textarea
-                            value={newAppliance.notes}
-                            onChange={(e) =>
-                              setNewAppliance((p) => ({ ...p, notes: e.target.value }))
-                            }
-                            placeholder="Filter sizes, warranty, installer..."
-                          />
-                        </div>
-                        <Button
-                          className="w-full"
-                          onClick={() => addApplianceMutation.mutate()}
-                          disabled={addApplianceMutation.isPending}
-                        >
-                          Save appliance
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Sell this home</CardTitle>
-                      <CardDescription className="text-xs">
-                        Starts a HomeScout listing draft using your saved Home Vault info.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        onClick={() => startSaleMutation.mutate()}
-                        disabled={startSaleMutation.isPending}
-                      >
-                        {startSaleMutation.isPending ? "Starting..." : "Start sale listing"}
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Projects</CardTitle>
-                      <CardDescription className="text-xs">
-                        Start a home project and track planning. If you don't have budget yet, make
-                        a savings plan.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <Label>Project title</Label>
-                          <Input
-                            value={newProject.title}
-                            onChange={(e) =>
-                              setNewProject((p) => ({ ...p, title: e.target.value }))
-                            }
-                            placeholder="Build a deck"
-                          />
-                        </div>
-                        <div>
-                          <Label>Type (optional)</Label>
-                          <Input
-                            value={newProject.projectType}
-                            onChange={(e) =>
-                              setNewProject((p) => ({ ...p, projectType: e.target.value }))
-                            }
-                            placeholder="carpentry, roofing, HVAC..."
-                          />
-                        </div>
-                        <div>
-                          <Label>Estimated cost (optional)</Label>
-                          <Input
-                            value={newProject.estimatedCost}
-                            onChange={(e) =>
-                              setNewProject((p) => ({ ...p, estimatedCost: e.target.value }))
-                            }
-                            placeholder="5000"
-                            inputMode="decimal"
-                          />
-                        </div>
-                        <div>
-                          <Label>Desired start (optional)</Label>
-                          <Input
-                            type="date"
-                            value={newProject.desiredStartAt}
-                            onChange={(e) =>
-                              setNewProject((p) => ({ ...p, desiredStartAt: e.target.value }))
-                            }
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <Label>Details (optional)</Label>
-                        <Textarea
-                          value={newProject.description}
-                          onChange={(e) =>
-                            setNewProject((p) => ({ ...p, description: e.target.value }))
-                          }
-                          placeholder="Size, materials, constraints, HOA rules..."
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <Label>Do you have budget now?</Label>
-                          <Select
-                            value={newProject.hasBudgetNow}
-                            onValueChange={(v) =>
-                              setNewProject((p) => ({ ...p, hasBudgetNow: v as any }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Choose" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="no">Not yet</SelectItem>
-                              <SelectItem value="yes">Yes</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          {newProject.hasBudgetNow === "no" ? (
+                            <div>
+                              <Label>Monthly savings (optional)</Label>
+                              <Input
+                                value={newProject.monthlySavings}
+                                onChange={(e) =>
+                                  setNewProject((p) => ({ ...p, monthlySavings: e.target.value }))
+                                }
+                                placeholder="250"
+                                inputMode="decimal"
+                              />
+                            </div>
+                          ) : (
+                            <div />
+                          )}
                         </div>
                         {newProject.hasBudgetNow === "no" ? (
                           <div>
-                            <Label>Monthly savings (optional)</Label>
+                            <Label>Possible funding sources (optional)</Label>
                             <Input
-                              value={newProject.monthlySavings}
+                              value={newProject.fundingSources}
                               onChange={(e) =>
-                                setNewProject((p) => ({ ...p, monthlySavings: e.target.value }))
+                                setNewProject((p) => ({ ...p, fundingSources: e.target.value }))
                               }
-                              placeholder="250"
-                              inputMode="decimal"
+                              placeholder="savings, HELOC, credit union loan, insurance... (comma separated)"
                             />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Informational only. TradeScout does not sell leads or charge to
+                              connect.
+                            </p>
                           </div>
-                        ) : (
-                          <div />
-                        )}
-                      </div>
-                      {newProject.hasBudgetNow === "no" ? (
-                        <div>
-                          <Label>Possible funding sources (optional)</Label>
-                          <Input
-                            value={newProject.fundingSources}
-                            onChange={(e) =>
-                              setNewProject((p) => ({ ...p, fundingSources: e.target.value }))
-                            }
-                            placeholder="savings, HELOC, credit union loan, insurance... (comma separated)"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Informational only. TradeScout does not sell leads or charge to connect.
-                          </p>
-                        </div>
-                      ) : null}
+                        ) : null}
 
-                      <Button
-                        onClick={() => createProjectMutation.mutate()}
-                        disabled={createProjectMutation.isPending}
-                      >
-                        {createProjectMutation.isPending ? "Starting..." : "Start project"}
-                      </Button>
+                        <Button
+                          onClick={() => createProjectMutation.mutate()}
+                          disabled={createProjectMutation.isPending}
+                        >
+                          {createProjectMutation.isPending ? "Starting..." : "Start project"}
+                        </Button>
 
-                      <div className="pt-2 border-t space-y-2">
-                        {projectsQuery.isLoading ? (
-                          <div className="text-sm text-muted-foreground">Loading projects...</div>
-                        ) : projects.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">No projects yet.</div>
-                        ) : (
-                          projects.slice(0, 10).map((p: any) => {
-                            const id = String(p?.id || "");
-                            const title =
-                              typeof p?.title === "string" && p.title ? p.title : "Project";
-                            const status =
-                              typeof p?.status === "string" && p.status ? p.status : "planning";
-                            const est = p?.estimatedCost ? String(p.estimatedCost) : "";
-                            const plan = p?.plan || null;
-                            return (
-                              <div
-                                key={id}
-                                className="rounded-md border px-3 py-2 flex items-start justify-between gap-3"
-                              >
-                                <div className="min-w-0">
-                                  <div className="text-sm font-medium truncate">{title}</div>
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    Status: {status}
-                                    {est ? ` • Est: $${est}` : ""}
-                                    {plan?.monthlyContribution
-                                      ? ` • Save: $${plan.monthlyContribution}/mo`
-                                      : ""}
+                        <div className="pt-2 border-t space-y-2">
+                          {projectsQuery.isLoading ? (
+                            <div className="text-sm text-muted-foreground">Loading projects...</div>
+                          ) : projects.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">No projects yet.</div>
+                          ) : (
+                            projects.slice(0, 10).map((p: any) => {
+                              const id = String(p?.id || "");
+                              const isSelectedProject = id && id === selectedProjectId;
+                              const title =
+                                typeof p?.title === "string" && p.title ? p.title : "Project";
+                              const status =
+                                typeof p?.status === "string" && p.status ? p.status : "planning";
+                              const est = p?.estimatedCost ? String(p.estimatedCost) : "";
+                              const plan = p?.plan || null;
+                              return (
+                                <div
+                                  key={id}
+                                  data-project-id={id}
+                                  className={`rounded-md border px-3 py-2 flex items-start justify-between gap-3 ${
+                                    isSelectedProject ? "border-ts-orange/70 bg-ts-orange/10" : ""
+                                  }`}
+                                >
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-medium truncate">{title}</div>
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      Status: {status}
+                                      {est ? ` • Est: $${est}` : ""}
+                                      {plan?.monthlyContribution
+                                        ? ` • Save: $${plan.monthlyContribution}/mo`
+                                        : ""}
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-base">Maintenance schedules</CardTitle>
-                      <CardDescription className="text-xs">
-                        Recurring maintenance for this home. If you assign a provider business and
-                        enable sharing, it can sync to them without exposing your address by
-                        default.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <Label>Title</Label>
-                          <Input
-                            value={newSchedule.title}
-                            onChange={(e) =>
-                              setNewSchedule((p) => ({ ...p, title: e.target.value }))
-                            }
-                            placeholder="HVAC tune-up"
-                          />
+                              );
+                            })
+                          )}
                         </div>
-                        <div>
-                          <Label>Cadence (days)</Label>
-                          <Input
-                            value={newSchedule.cadenceDays}
-                            onChange={(e) =>
-                              setNewSchedule((p) => ({ ...p, cadenceDays: e.target.value }))
-                            }
-                            placeholder="90"
-                            inputMode="numeric"
-                          />
-                        </div>
-                        <div>
-                          <Label>Next due (optional ISO)</Label>
-                          <Input
-                            value={newSchedule.nextDueAt}
-                            onChange={(e) =>
-                              setNewSchedule((p) => ({ ...p, nextDueAt: e.target.value }))
-                            }
-                            placeholder="2026-03-30T12:00:00.000Z"
-                          />
-                        </div>
-                        <div>
-                          <Label>Provider business slug (optional)</Label>
-                          <Input
-                            value={newSchedule.assignedBusinessSlug}
-                            onChange={(e) =>
-                              setNewSchedule((p) => ({
-                                ...p,
-                                assignedBusinessSlug: e.target.value,
-                              }))
-                            }
-                            placeholder="acme-hvac"
-                          />
-                        </div>
-                      </div>
+                      </CardContent>
+                    </Card>
 
-                      <div className="flex items-center gap-2">
-                        <input
-                          id="shareWithProvider"
-                          type="checkbox"
-                          checked={newSchedule.shareWithAssignedProvider === true}
-                          onChange={(e) =>
-                            setNewSchedule((p) => ({
-                              ...p,
-                              shareWithAssignedProvider: e.target.checked,
-                            }))
-                          }
-                        />
-                        <Label htmlFor="shareWithProvider">
-                          Share schedule with assigned provider
-                        </Label>
-                      </div>
-
-                      <Button
-                        onClick={() => createScheduleMutation.mutate()}
-                        disabled={createScheduleMutation.isPending}
-                      >
-                        Create schedule
-                      </Button>
-
-                      <div className="space-y-2">
-                        {schedulesQuery.isLoading ? (
-                          <div className="text-sm text-muted-foreground">Loading schedules...</div>
-                        ) : schedules.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">No schedules yet.</div>
-                        ) : (
-                          schedules.map((s: any) => (
-                            <div
-                              key={String(s.id)}
-                              className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
-                            >
-                              <div className="min-w-0">
-                                <div className="text-sm font-medium truncate">{s.title}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  Next due:{" "}
-                                  {s.nextDueAt ? new Date(s.nextDueAt).toLocaleDateString() : "n/a"}
-                                  {s.assignedBusiness?.slug
-                                    ? ` | Provider: ${s.assignedBusiness.slug}`
-                                    : ""}
-                                </div>
-                              </div>
-                              <Button
-                                variant="outline"
-                                onClick={() => completeScheduleMutation.mutate(String(s.id))}
-                                disabled={completeScheduleMutation.isPending}
-                              >
-                                Mark complete
-                              </Button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-base">Upload a document</CardTitle>
+                        <CardTitle className="text-base">Maintenance schedules</CardTitle>
                         <CardDescription className="text-xs">
-                          Stored privately in your account.
+                          Recurring maintenance for this home. If you assign a provider business and
+                          enable sharing, it can sync to them without exposing your address by
+                          default.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-3">
-                        <div>
-                          <Label>Type</Label>
-                          <Select value={docType} onValueChange={(v: any) => setDocType(v)}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Document type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {DOCUMENT_TYPES.map((dt) => (
-                                <SelectItem key={dt.value} value={dt.value}>
-                                  {dt.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label>File</Label>
-                          <Input
-                            type="file"
-                            onChange={(e) => setDocFile(e.target.files?.[0] || null)}
-                            accept=".pdf,image/*"
-                          />
-                        </div>
-                        <Button
-                          className="w-full"
-                          onClick={() => uploadDocMutation.mutate()}
-                          disabled={uploadDocMutation.isPending}
-                        >
-                          Upload
-                        </Button>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Documents</CardTitle>
-                        <CardDescription className="text-xs">
-                          {documents.length ? `${documents.length} saved` : "No documents yet"}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {documents.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">
-                            Upload receipts, reports, manuals...
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label>Title</Label>
+                            <Input
+                              value={newSchedule.title}
+                              onChange={(e) =>
+                                setNewSchedule((p) => ({ ...p, title: e.target.value }))
+                              }
+                              placeholder="HVAC tune-up"
+                            />
                           </div>
-                        ) : (
-                          documents.slice(0, 12).map((d: any) => {
-                            const name =
-                              typeof d?.originalName === "string" && d.originalName
-                                ? d.originalName
-                                : "Document";
-                            const id = String(d?.id || "");
-                            const homeId = String(selectedHomeId || "");
-                            return (
+                          <div>
+                            <Label>Cadence (days)</Label>
+                            <Input
+                              value={newSchedule.cadenceDays}
+                              onChange={(e) =>
+                                setNewSchedule((p) => ({ ...p, cadenceDays: e.target.value }))
+                              }
+                              placeholder="90"
+                              inputMode="numeric"
+                            />
+                          </div>
+                          <div>
+                            <Label>Next due (optional ISO)</Label>
+                            <Input
+                              value={newSchedule.nextDueAt}
+                              onChange={(e) =>
+                                setNewSchedule((p) => ({ ...p, nextDueAt: e.target.value }))
+                              }
+                              placeholder="2026-03-30T12:00:00.000Z"
+                            />
+                          </div>
+                          <div>
+                            <Label>Provider business slug (optional)</Label>
+                            <Input
+                              value={newSchedule.assignedBusinessSlug}
+                              onChange={(e) =>
+                                setNewSchedule((p) => ({
+                                  ...p,
+                                  assignedBusinessSlug: e.target.value,
+                                }))
+                              }
+                              placeholder="acme-hvac"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="shareWithProvider"
+                            type="checkbox"
+                            checked={newSchedule.shareWithAssignedProvider === true}
+                            onChange={(e) =>
+                              setNewSchedule((p) => ({
+                                ...p,
+                                shareWithAssignedProvider: e.target.checked,
+                              }))
+                            }
+                          />
+                          <Label htmlFor="shareWithProvider">
+                            Share schedule with assigned provider
+                          </Label>
+                        </div>
+
+                        <Button
+                          onClick={() => createScheduleMutation.mutate()}
+                          disabled={createScheduleMutation.isPending}
+                        >
+                          Create schedule
+                        </Button>
+
+                        <div className="space-y-2">
+                          {schedulesQuery.isLoading ? (
+                            <div className="text-sm text-muted-foreground">
+                              Loading schedules...
+                            </div>
+                          ) : schedules.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">No schedules yet.</div>
+                          ) : (
+                            schedules.map((s: any) => (
                               <div
-                                key={id}
+                                key={String(s.id)}
                                 className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
                               >
                                 <div className="min-w-0">
-                                  <div className="text-sm font-medium truncate">{name}</div>
-                                  <div className="text-xs text-muted-foreground truncate">
-                                    {typeof d?.documentType === "string" ? d.documentType : "other"}
+                                  <div className="text-sm font-medium truncate">{s.title}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    Next due:{" "}
+                                    {s.nextDueAt
+                                      ? new Date(s.nextDueAt).toLocaleDateString()
+                                      : "n/a"}
+                                    {s.assignedBusiness?.slug
+                                      ? ` | Provider: ${s.assignedBusiness.slug}`
+                                      : ""}
                                   </div>
                                 </div>
-                                <Button asChild variant="secondary" size="sm">
-                                  <a
-                                    href={`/api/homes/${homeId}/documents/${id}/download`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Download
-                                  </a>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => completeScheduleMutation.mutate(String(s.id))}
+                                  disabled={completeScheduleMutation.isPending}
+                                >
+                                  Mark complete
                                 </Button>
                               </div>
-                            );
-                          })
-                        )}
+                            ))
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Timeline</CardTitle>
-                        <CardDescription className="text-xs">
-                          {records.length ? `${records.length} records` : "No records yet"}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {records.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">
-                            Add your first record above.
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Upload a document</CardTitle>
+                          <CardDescription className="text-xs">
+                            Stored privately in your account.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div>
+                            <Label>Type</Label>
+                            <Select value={docType} onValueChange={(v: any) => setDocType(v)}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Document type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {DOCUMENT_TYPES.map((dt) => (
+                                  <SelectItem key={dt.value} value={dt.value}>
+                                    {dt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
-                        ) : (
-                          records.slice(0, 12).map((r: any) => (
-                            <div key={String(r?.id || "")} className="rounded-md border px-3 py-2">
-                              <div className="flex items-center justify-between gap-3">
-                                <div className="text-sm font-medium truncate">
-                                  {String(r?.title || "Record")}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {typeof r?.occurredAt === "string" && r.occurredAt
-                                    ? r.occurredAt
-                                    : ""}
-                                </div>
-                              </div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {typeof r?.recordType === "string" ? r.recordType : "note"}
-                                {r?.cost ? ` - $${String(r.cost)}` : ""}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </CardContent>
-                    </Card>
+                          <div>
+                            <Label>File</Label>
+                            <Input
+                              type="file"
+                              onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                              accept=".pdf,image/*"
+                            />
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={() => uploadDocMutation.mutate()}
+                            disabled={uploadDocMutation.isPending}
+                          >
+                            Upload
+                          </Button>
+                        </CardContent>
+                      </Card>
 
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">Appliances</CardTitle>
-                        <CardDescription className="text-xs">
-                          {appliances.length ? `${appliances.length} saved` : "No appliances yet"}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        {appliances.length === 0 ? (
-                          <div className="text-sm text-muted-foreground">Add appliances above.</div>
-                        ) : (
-                          appliances.slice(0, 12).map((a: any) => (
-                            <div key={String(a?.id || "")} className="rounded-md border px-3 py-2">
-                              <div className="text-sm font-medium truncate">
-                                {String(a?.category || "Appliance")}
-                              </div>
-                              <div className="text-xs text-muted-foreground truncate">
-                                {[a?.brand, a?.model, a?.serial].filter(Boolean).join(" - ")}
-                              </div>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Documents</CardTitle>
+                          <CardDescription className="text-xs">
+                            {documents.length ? `${documents.length} saved` : "No documents yet"}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {documents.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">
+                              Upload receipts, reports, manuals...
                             </div>
-                          ))
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                          ) : (
+                            documents.slice(0, 12).map((d: any) => {
+                              const name =
+                                typeof d?.originalName === "string" && d.originalName
+                                  ? d.originalName
+                                  : "Document";
+                              const id = String(d?.id || "");
+                              const homeId = String(selectedHomeId || "");
+                              return (
+                                <div
+                                  key={id}
+                                  className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-medium truncate">{name}</div>
+                                    <div className="text-xs text-muted-foreground truncate">
+                                      {typeof d?.documentType === "string"
+                                        ? d.documentType
+                                        : "other"}
+                                    </div>
+                                  </div>
+                                  <Button asChild variant="secondary" size="sm">
+                                    <a
+                                      href={`/api/homes/${homeId}/documents/${id}/download`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      Download
+                                    </a>
+                                  </Button>
+                                </div>
+                              );
+                            })
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Timeline</CardTitle>
+                          <CardDescription className="text-xs">
+                            {records.length ? `${records.length} records` : "No records yet"}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {records.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">
+                              Add your first record above.
+                            </div>
+                          ) : (
+                            records.slice(0, 12).map((r: any) => (
+                              <div
+                                key={String(r?.id || "")}
+                                className="rounded-md border px-3 py-2"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="text-sm font-medium truncate">
+                                    {String(r?.title || "Record")}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {typeof r?.occurredAt === "string" && r.occurredAt
+                                      ? r.occurredAt
+                                      : ""}
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {typeof r?.recordType === "string" ? r.recordType : "note"}
+                                  {r?.cost ? ` - $${String(r.cost)}` : ""}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Appliances</CardTitle>
+                          <CardDescription className="text-xs">
+                            {appliances.length ? `${appliances.length} saved` : "No appliances yet"}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {appliances.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">
+                              Add appliances above.
+                            </div>
+                          ) : (
+                            appliances.slice(0, 12).map((a: any) => (
+                              <div
+                                key={String(a?.id || "")}
+                                className="rounded-md border px-3 py-2"
+                              >
+                                <div className="text-sm font-medium truncate">
+                                  {String(a?.category || "Appliance")}
+                                </div>
+                                <div className="text-xs text-muted-foreground truncate">
+                                  {[a?.brand, a?.model, a?.serial].filter(Boolean).join(" - ")}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
       </Section>
     </Page>
   );

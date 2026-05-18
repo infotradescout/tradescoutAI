@@ -9,7 +9,12 @@ import crypto from "node:crypto";
 import { db, pool } from "./db";
 import { storage } from "./storage";
 import { users, type User } from "@shared/schema";
-import { getRolePermissions, getRoleHierarchyLevel, canUserPerformAction } from "@shared/roles";
+import {
+  getRolePermissions,
+  getRoleHierarchyLevel,
+  canUserPerformAction,
+  userHasBusinessProviderTools,
+} from "@shared/roles";
 import type { UserRole } from "@shared/roles";
 import { CURRENT_PROFILE_VERSION } from "../shared/profile";
 import { desc, sql } from "drizzle-orm";
@@ -565,7 +570,33 @@ export const isStaff: RequestHandler = requireRole([
   "ops_admin",
   "super_admin",
 ]);
-export const isContractor: RequestHandler = requireRole(["contractor_user", "accelerator_member"]);
+export const isBusinessProvider: RequestHandler = (req, res, next) => {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Authentication required" });
+  }
+
+  const user = (req.user || {}) as any;
+  const isAdminFlag = user.isAdmin === true;
+  const isAliasSuperAdmin =
+    isPrivilegedAliasEmail(user?.email) || isPrivilegedAliasEmail(user?.claims?.email);
+  const normalizedRoles = [
+    normalizeLegacyRole(user.role),
+    normalizeLegacyRole(user.activeRole),
+    ...(Array.isArray(user.roles)
+      ? user.roles.map((role: unknown) => normalizeLegacyRole(role))
+      : []),
+  ].filter(Boolean);
+  const hasAdminRole = normalizedRoles.some((role) =>
+    ["moderator", "ops_admin", "super_admin"].includes(String(role))
+  );
+
+  if (isAdminFlag || isAliasSuperAdmin || hasAdminRole || userHasBusinessProviderTools(user)) {
+    return next();
+  }
+
+  return res.status(403).json({ message: "Business provider access required" });
+};
+export const isContractor: RequestHandler = isBusinessProvider;
 export const isCommunityModerator: RequestHandler = requireRole([
   "community_moderator",
   "community_leader",

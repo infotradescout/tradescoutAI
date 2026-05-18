@@ -1,5 +1,5 @@
 import React from "react";
-import { MapPin, Mic, Send, Sparkles } from "lucide-react";
+import { Mic, Send, Sparkles } from "lucide-react";
 
 /* ----------------------------------------------------------
    ScoutInputRow — Morphic OS v2 Command Bar
@@ -18,10 +18,6 @@ import { MapPin, Mic, Send, Sparkles } from "lucide-react";
 interface ScoutInputRowProps {
   isBusy: boolean;
   prefillKey: number;
-  heroLocationLabel?: string;
-  isUpdatingGeo: boolean;
-  onOpenLocationSettings: () => void;
-  onUseDeviceLocation: () => void;
   onSend: (value: string) => void;
   onTyping: () => void;
   quickStartPrompts?: string[];
@@ -40,10 +36,6 @@ const SCOUT_INPUT_ACCESSIBLE_PROMPT =
 export function ScoutInputRow({
   isBusy,
   prefillKey,
-  heroLocationLabel,
-  isUpdatingGeo,
-  onOpenLocationSettings,
-  onUseDeviceLocation,
   onSend,
   onTyping,
   quickStartPrompts,
@@ -187,35 +179,6 @@ export function ScoutInputRow({
 
   return (
     <div className="space-y-2">
-      {/* Location pill — compact, shown only when location is known */}
-      {heroLocationLabel && (
-        <div className="flex items-center gap-2 px-1">
-          <button
-            type="button"
-            onClick={onOpenLocationSettings}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium transition-colors"
-            style={{
-              background: "rgba(249,115,22,0.08)",
-              border: "1px solid rgba(249,115,22,0.2)",
-              color: "rgba(249,115,22,0.85)",
-            }}
-          >
-            <MapPin size={10} />
-            <span>Your area:</span>
-            {heroLocationLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onUseDeviceLocation}
-            disabled={isUpdatingGeo}
-            className="text-[10px] font-medium transition-colors disabled:opacity-50"
-            style={{ color: "rgba(250,250,250,0.35)" }}
-          >
-            {isUpdatingGeo ? "Updating..." : "Use current location"}
-          </button>
-        </div>
-      )}
-
       {/* Quick-start prompts — shown only when no messages yet */}
       {promptList.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-1" aria-label={SCOUT_INPUT_ACTION_HINT}>

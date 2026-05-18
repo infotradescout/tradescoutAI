@@ -82,4 +82,88 @@ describe("public profile compatibility contracts", () => {
       "canonicalProfileUrlByProviderId.get(String(row.providerId)) ??"
     );
   });
+
+  it("legacy contractor profile API and page bridge to canonical business profiles", () => {
+    const routesSource = read("server/routes.ts");
+    const contractorProfile = read("client/src/pages/contractor-profile.tsx");
+    const migrationPlan = read("docs/audits/LEGACY_CONTRACTOR_NAMING_MIGRATION_PLAN.md");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(routesSource).toContain("await storage.getBusinessProfileByUserId(ownerUserId)");
+    expect(routesSource).toContain("canonicalBusinessProfileSlug");
+    expect(routesSource).toContain("canonicalBusinessProfileUrl:");
+    expect(routesSource).toContain(
+      "`/business/${encodeURIComponent(canonicalBusinessProfileSlug)}`"
+    );
+
+    expect(contractorProfile).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(contractorProfile).toContain("setLocation(canonicalUrl)");
+    expect(contractorProfile).toContain("Back to Find Local Help");
+    expect(contractorProfile).toContain("Verified Local Provider");
+    expect(contractorProfile).toContain("Contact stays gated through TradeScout");
+    expect(contractorProfile).not.toContain("Back to Find Contractors");
+    expect(contractorProfile).not.toContain("Verified Local Contractor");
+
+    expect(migrationPlan).toContain("the API now exposes `/business/:slug`");
+    expect(scoutMatrix).toContain(
+      "Public contractor profile compatibility now has a first canonical bridge"
+    );
+  });
+
+  it("provider discovery links prefer canonical business profile URLs when available", () => {
+    const routesSource = read("server/routes.ts");
+    const findContractors = read("client/src/pages/find-contractors.tsx");
+    const contractorCard = read("client/src/components/contractor-card.tsx");
+    const scoutTools = read("client/src/agent/tools/scoutTools.ts");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(routesSource).toContain("await storage.getBusinessProfileByUserId(contractor.userId)");
+    expect(routesSource).toContain("canonicalBusinessProfileUrl:");
+    expect(findContractors).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(findContractors).toContain("contractor.canonicalBusinessProfileUrl ||");
+    expect(contractorCard).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(contractorCard).toContain("const profileHref =");
+    expect(contractorCard).toContain("contractor.canonicalBusinessProfileUrl.trim()");
+    expect(scoutTools).toContain("c.canonicalBusinessProfileUrl.trim()");
+    expect(scoutTools).toContain('c.providerType === "business"');
+    expect(scoutMatrix).toContain("Provider discovery links now prefer canonical");
+  });
+
+  it("public recommendation directories prefer canonical business profile URLs", () => {
+    const profilesRoute = read("server/routes/profiles.ts");
+    const profileSiteView = read("client/src/pages/ProfileSiteView.tsx");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(profilesRoute).toContain("contractorUserId: contractors.userId");
+    expect(profilesRoute).toContain(
+      "const canonicalBusinessUrlByUserId = new Map<string, string>()"
+    );
+    expect(profilesRoute).toContain("await storage.getBusinessProfileByUserId(contractorUserId)");
+    expect(profilesRoute).toContain("canonicalBusinessProfileUrl:");
+    expect(profileSiteView).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(profileSiteView).toContain("entry.contractor.canonicalBusinessProfileUrl ||");
+    expect(profileSiteView).toContain(
+      "`/contractors/${encodeURIComponent(entry.contractor.slug)}`"
+    );
+    expect(scoutMatrix).toContain("Public profile recommendation directories now carry");
+  });
+
+  it("older SEO helpers support canonical business profile URLs before contractor fallbacks", () => {
+    const seoHelmet = read("client/src/components/SEOHelmet.tsx");
+    const seoLocalBusiness = read("client/src/components/SEOLocalBusiness.tsx");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(seoHelmet).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(seoHelmet).toContain("const publicUrl = canonicalBusinessProfileUrl");
+    expect(seoHelmet).toContain("`${origin}/contractors/${contractor.id}`");
+    expect(seoHelmet).toContain('"@id": publicUrl');
+    expect(seoHelmet).toContain("Verified Local Provider");
+
+    expect(seoLocalBusiness).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(seoLocalBusiness).toContain("const publicUrl = canonicalBusinessProfileUrl");
+    expect(seoLocalBusiness).toContain("Local provider services");
+    expect(seoLocalBusiness).toContain('serviceType: "Local Services"');
+    expect(seoLocalBusiness).toContain("TradeScout verification records");
+    expect(scoutMatrix).toContain("Older SEO helpers now accept canonical");
+  });
 });

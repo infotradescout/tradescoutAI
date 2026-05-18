@@ -43,10 +43,12 @@ export default memo(function Terms() {
 
           <section>
             <h2 className="text-base font-semibold text-ts-orange mb-2">
-              Contractor Responsibilities
+              Business Provider Responsibilities
             </h2>
             <ul className="list-disc list-inside text-sm text-white/70 space-y-1.5 ml-2">
-              <li>Provide accurate information about your services and qualifications</li>
+              <li>
+                Provide accurate information about your services, products, and qualifications
+              </li>
               <li>Maintain proper licensing and insurance as required by law</li>
               <li>Respond to customer inquiries in a timely manner</li>
               <li>Complete work professionally and according to agreed specifications</li>

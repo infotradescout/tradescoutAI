@@ -28,9 +28,19 @@ export function resolvePostOnboardingActions(
   if (claims.includes("offer_services")) {
     actions.push({
       id: "setup_services",
-      label: "Set up services & availability",
-      destination: `/business/${profile.slug}/edit?tab=services`,
+      label: "Set up profile, offers & verification",
+      destination: "/offer-services",
       primary: true,
+    });
+    actions.push({
+      id: "setup_fixed_price_offers",
+      label: "Add fixed-price services or items",
+      destination: "/offer-services#fixed-price-offers",
+    });
+    actions.push({
+      id: "review_finance_records",
+      label: "Review finance records",
+      destination: "/finances/records",
     });
     actions.push({
       id: "view_page",
@@ -44,13 +54,13 @@ export function resolvePostOnboardingActions(
     actions.push({
       id: "post_request",
       label: "Post a request",
-      destination: "/direct-connect/new",
+      destination: "/direct-connect?entry=post_onboarding",
       primary: !claims.includes("offer_services"), // Primary only if not offering services
     });
     actions.push({
       id: "browse_providers",
       label: "Find local help",
-      destination: "/community",
+      destination: "/direct-connect/board?entry=post_onboarding",
     });
   }
 
@@ -68,8 +78,8 @@ export function resolvePostOnboardingActions(
   if (!actions.some((a) => a.id === "explore")) {
     actions.push({
       id: "explore",
-      label: "Explore the community",
-      destination: "/community",
+      label: "Explore local requests",
+      destination: "/direct-connect/board",
     });
   }
 

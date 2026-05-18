@@ -384,13 +384,13 @@ const About = memo(function About() {
                   href="/register"
                   className="inline-flex items-center justify-center bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-6 h-11 rounded-lg shadow-xl shadow-ts-orange/25 transition-all hover:scale-[1.02]"
                 >
-                  Find Contractors
+                  Find Local Help
                 </a>
                 <a
                   href="/register"
                   className="inline-flex items-center justify-center border border-white/20 text-white hover:bg-white/10 font-semibold px-6 h-11 rounded-lg transition-all"
                 >
-                  Become a Contractor
+                  Become a Business Provider
                 </a>
               </div>
             </div>

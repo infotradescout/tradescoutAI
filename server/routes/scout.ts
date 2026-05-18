@@ -789,7 +789,7 @@ async function generateSmartSynthesis(
  * Returns structured response with message and suggestedActions
  *
  * ENFORCES MANDATORY EXECUTION CONTRACT:
- * - Required response schema with intent, thought_flow, decision, message, suggestedActions
+ * - Required response schema with intent, message, suggestedActions
  * - Comprehensive state injection every turn
  * - No fallback paths - schema is mandatory
  */
@@ -870,8 +870,6 @@ async function synthesizeResponse(
   message: string;
   suggestedActions: string[];
   intent?: string;
-  thought_flow?: string[];
-  decision?: string;
   provider?: string;
   degradationReason?: ScoutDegradationReason;
 }> {
@@ -991,16 +989,10 @@ COMPETITIVE PATTERN RULES:
 - Like Houzz: keep project planning, materials, price factors, and pros together when the user is doing work.
 - Like app connectors: open or draft the right action surface only when useful, and never imply Scout already booked, ordered, paid, messaged, posted, quoted, invoiced, or contacted anyone.
 
-**YOU MUST RESPOND WITH THIS EXACT JSON SCHEMA - NO EXCEPTIONS:**
+**YOU MUST RESPOND WITH THIS JSON SHAPE - NO EXCEPTIONS:**
 
 {
   "intent": "string - classified user intent (e.g., find_contractor, ask_pricing, list_item, get_help)",
-  "thought_flow": [
-    "Step 1: What I'm checking/understanding",
-    "Step 2: What data I found or didn't find",
-    "Step 3: How I'm making my decision"
-  ],
-  "decision": "string - what I decided to do and why (e.g., 'Showing contractors because user is authenticated and in Harris County')",
   "message": "string - your actual response to the user (max 3 short sentences; no bullet lists unless user explicitly asked for a list; must follow SCOUT VOICE; should read as findings + recommended paths, not a long answer)",
   "suggestedActions": [
     "Action prompt 1",
@@ -1010,13 +1002,12 @@ COMPETITIVE PATTERN RULES:
 }
 
 CRITICAL EXECUTION RULES:
-1. You MUST expose your reasoning in thought_flow - show your work
-2. You MUST classify user intent explicitly
-3. You MUST explain your decision before giving the message
+1. You MUST classify user intent explicitly
+2. Do not expose internal reasoning to the user-facing response
 4. If user is not authenticated (auth: guest) and asks for action that requires login, you MUST:
    - Set intent to "auth_required"
-   - Explain in thought_flow why auth is needed
-   - In message, tell user to create account and provide direct link to /pre-scout-setup?mode=create
+   - Explain briefly why auth is needed in the message
+   - Include the direct link to /pre-scout-setup?mode=create in the message
 5. Keep message brief (max 3 sentences; no bullet or numbered lists unless the user explicitly asked you to list things)
 6. Focus the message on: what Scout understood, the best next paths, and what is protected before anything is sent/shared. Avoid ending with a question unless the user explicitly asked Scout to choose between two unknowns.
 7. Always generate exactly 3 suggestedActions
@@ -1063,13 +1054,11 @@ AUTH-REQUIRED ACTIONS:
 
 If user requests auth-required action while guest:
 - intent: "auth_required"
-- thought_flow: ["User asked to [action]", "This requires authentication", "Will redirect to account creation"]
-- decision: "Directing user to create account at /pre-scout-setup?mode=create"
 - message: "To [do that action], you'll need a TradeScout account. [Click here to create one](/pre-scout-setup?mode=create) - it takes less than a minute!"
 
 ${knowledge.layer === 1 || knowledge.layer === 2 ? "This is TradeScout data - speak with confidence and authority." : ""}
 ${knowledge.layer === 3 ? "This is from the internet, not local TradeScout data - be clear about that." : ""}
-${knowledge.layer === 4 ? "You don't have reliable info - be honest about it in your thought_flow and decision." : ""}
+${knowledge.layer === 4 ? "You don't have reliable info - return the safest next-step guidance." : ""}
 
 RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
@@ -1103,31 +1092,20 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
       }
 
       // Validate schema — only message is a hard requirement.
-      // intent / thought_flow / decision are soft-required: auto-fill if missing
-      // rather than hard-failing to a generic fallback message.
+      // intent is soft-required: auto-fill if missing rather than hard-failing to fallback.
       if (!parsed.message) {
         console.warn("[Scout] LLM response missing required 'message' field, using fallback");
         recordFallback("schema_violation");
         return {
           intent: "unknown",
-          thought_flow: [
-            "Schema validation failed",
-            "LLM response had no message field",
-            "Returning contextual fallback",
-          ],
-          decision: "Schema violation fallback",
           message: buildContextualSynthesisFallbackMessage(knowledge.answer),
           suggestedActions: DEFAULT_ACTIONS,
           provider: "fallback",
           degradationReason: "schema_violation",
         };
       }
-      // Auto-fill optional reasoning fields so downstream telemetry never crashes
+      // Auto-fill intent so downstream telemetry never crashes
       if (!parsed.intent) parsed.intent = "general";
-      if (!Array.isArray(parsed.thought_flow) || parsed.thought_flow.length === 0) {
-        parsed.thought_flow = ["Response received", "Delivering to user"];
-      }
-      if (!parsed.decision) parsed.decision = "Responding to user message";
 
       // Enforce length limit on message
       parsed.message = trimResponseToScreenFit(parsed.message);
@@ -1160,8 +1138,6 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
 
       return {
         intent: parsed.intent,
-        thought_flow: parsed.thought_flow,
-        decision: parsed.decision,
         message: parsed.message,
         suggestedActions: finalActions,
         provider,
@@ -1174,12 +1150,6 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
       // NO FALLBACK PATHS - Return structured error
       return {
         intent: "parse_error",
-        thought_flow: [
-          "LLM response was not valid JSON",
-          "This violates the execution contract",
-          "Returning contextual fallback response",
-        ],
-        decision: "Cannot process JSON contract - using contextual fallback",
         message: buildContextualSynthesisFallbackMessage(knowledge.answer),
         suggestedActions: DEFAULT_ACTIONS,
         provider: "fallback",
@@ -1194,16 +1164,6 @@ RESPOND WITH VALID JSON ONLY - NO MARKDOWN, NO CODE FENCES, JUST RAW JSON.`;
     // Even errors must follow the contract
     return {
       intent: isRateLimited ? "llm_rate_limited" : "system_error",
-      thought_flow: isRateLimited
-        ? [
-            "Gemini returned rate-limit signals",
-            "Switching to contextual local fallback",
-            "Returning actionable next steps without bypassing trust gates",
-          ]
-        : ["System error occurred during synthesis", "Returning safe fallback"],
-      decision: isRateLimited
-        ? "Rate-limit fallback using knowledge context"
-        : "System error fallback",
       message: buildContextualSynthesisFallbackMessage(knowledge.answer, {
         rateLimited: isRateLimited,
       }),
@@ -1657,7 +1617,6 @@ export interface ScoutResponse {
   };
   metadata?: {
     intent?: string;
-    thought_flow?: string[];
     decision?: string;
     scaffoldDecision?: string;
     scaffoldReason?: string;
@@ -1681,6 +1640,18 @@ export interface ScoutResponse {
     };
     outcomeGraph?: import("../scout/governor").OutcomeGraph | null;
   };
+}
+
+function getClientSafeScoutMetadata(metadata: ScoutResponse["metadata"] | undefined) {
+  if (!metadata) return undefined;
+  const {
+    thought_flow: _thoughtFlow,
+    decision: _decision,
+    reasoning: _reasoning,
+    analysis: _analysis,
+    ...clientMetadata
+  } = metadata as Record<string, unknown>;
+  return clientMetadata as ScoutResponse["metadata"];
 }
 
 function isTaskOrProblemIntent(message: string): boolean {
@@ -3546,7 +3517,7 @@ router.post("/", async (req: Request, res: Response) => {
           communityPrefill: buildCommunityPrefill(message, countyCode, stateCode),
         }),
         sponsored: null,
-        metadata: deterministic.metadata as any,
+        metadata: getClientSafeScoutMetadata(deterministic.metadata as any),
       };
 
       await syncObjectiveBestEffort({ intent });
@@ -4759,16 +4730,17 @@ router.post("/", async (req: Request, res: Response) => {
       console.error("[Scout] failed to log outcome generation telemetry", telemetryErr);
     }
 
-    const safeMetadata = aiResponse.metadata
+    const clientSafeMetadata = getClientSafeScoutMetadata(aiResponse.metadata);
+    const safeMetadata = clientSafeMetadata
       ? {
-          intent: aiResponse.metadata.intent,
-          sourceUsed: aiResponse.metadata.sourceUsed,
-          attemptedSource: aiResponse.metadata.attemptedSource,
-          fallbackUsed: aiResponse.metadata.fallbackUsed,
-          degradationReason: aiResponse.metadata.degradationReason,
-          confidenceBand: aiResponse.metadata.confidenceBand,
-          currentJobId: aiResponse.metadata.currentJobId,
-          resolvedContext: aiResponse.metadata.resolvedContext ?? null,
+          intent: clientSafeMetadata.intent,
+          sourceUsed: clientSafeMetadata.sourceUsed,
+          attemptedSource: clientSafeMetadata.attemptedSource,
+          fallbackUsed: clientSafeMetadata.fallbackUsed,
+          degradationReason: clientSafeMetadata.degradationReason,
+          confidenceBand: clientSafeMetadata.confidenceBand,
+          currentJobId: clientSafeMetadata.currentJobId,
+          resolvedContext: clientSafeMetadata.resolvedContext ?? null,
         }
       : undefined;
 

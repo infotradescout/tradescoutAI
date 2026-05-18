@@ -20,7 +20,7 @@ import {
   scoutInteractions,
   users,
 } from "../../shared/schema";
-import { eq, and, gte, count, sql, desc, ilike } from "drizzle-orm";
+import { eq, and, gte, count, sql, desc, ilike, inArray } from "drizzle-orm";
 
 export const scoutHomeSnapshotRouter = Router();
 
@@ -54,10 +54,37 @@ interface RecentActivity {
   timestamp: string;
 }
 
+interface PriceSignal {
+  id: string;
+  label: string;
+  description: string;
+  metricKey: string;
+  value: number;
+  updatedAt: string | null;
+  sourceLabel: string;
+  sourceKind: "homescout_inventory" | "tradedeals_activity" | "completed_job_receipts";
+  confidence: "high" | "medium";
+}
+
+interface OpportunityMove {
+  id: string;
+  type: "service_gap" | "underserved_area" | "fast_win" | "partnership_target" | "audit_target";
+  title: string;
+  whyItMatters: string;
+  actionLabel: string;
+  prompt: string;
+  sourceLabel: string;
+  sourceMetricKeys: string[];
+  confidence: "high" | "medium";
+  updatedAt: string | null;
+}
+
 interface HomeSnapshotResponse {
   snapshot: LocalSnapshot;
   trendingPrompts: TrendingPrompt[];
   recentActivity: RecentActivity[];
+  priceSignals: PriceSignal[];
+  opportunityMoves: OpportunityMove[];
   locationResolved: boolean;
   locationSource: "user" | "ip" | "manual" | "default";
 }
@@ -422,6 +449,301 @@ async function getRecentActivity(userId: string): Promise<RecentActivity[]> {
   }
 }
 
+function formatUsd(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function buildPriceSignal(row: {
+  metricKey: string;
+  metricValue: string | number;
+  updatedAt: Date | null;
+}): PriceSignal | null {
+  const value = Number(row.metricValue);
+  if (!Number.isFinite(value) || value <= 0) return null;
+
+  const updatedAt = row.updatedAt ? row.updatedAt.toISOString() : null;
+  const homeScoutSource = {
+    sourceLabel: "HomeScout inventory",
+    sourceKind: "homescout_inventory" as const,
+    confidence: "medium" as const,
+  };
+  const tradeDealsSource = {
+    sourceLabel: "TradeDeals activity",
+    sourceKind: "tradedeals_activity" as const,
+    confidence: "medium" as const,
+  };
+  const completedJobSource = {
+    sourceLabel: "First-party completed-job receipts",
+    sourceKind: "completed_job_receipts" as const,
+    confidence: "high" as const,
+  };
+
+  if (row.metricKey === "homescout_median_price") {
+    return {
+      id: "homescout-median-price",
+      label: "HomeScout median list price",
+      description: `${formatUsd(value)} median active listing price from county_metrics`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+      ...homeScoutSource,
+    };
+  }
+
+  if (row.metricKey === "homescout_price_drops_7d") {
+    return {
+      id: "homescout-price-drops-7d",
+      label: "HomeScout price movement",
+      description: `${Math.round(value)} active listing price drop${Math.round(value) === 1 ? "" : "s"} in the last 7 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+      ...homeScoutSource,
+    };
+  }
+
+  if (row.metricKey === "homescout_median_dom_days") {
+    return {
+      id: "homescout-median-dom",
+      label: "HomeScout timing signal",
+      description: `${Math.round(value)} median day${Math.round(value) === 1 ? "" : "s"} on market for active listings`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+      ...homeScoutSource,
+    };
+  }
+
+  if (row.metricKey === "tradedeals_active") {
+    return {
+      id: "tradedeals-active",
+      label: "Active TradeDeals",
+      description: `${Math.round(value)} active county deal signal${Math.round(value) === 1 ? "" : "s"}`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+      ...tradeDealsSource,
+    };
+  }
+
+  if (row.metricKey === "tradedeals_claimed_30d") {
+    return {
+      id: "tradedeals-claimed-30d",
+      label: "Recent deal claims",
+      description: `${Math.round(value)} county deal claim${Math.round(value) === 1 ? "" : "s"} in the last 30 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+      ...tradeDealsSource,
+    };
+  }
+
+  if (row.metricKey === "completed_jobs_30d") {
+    return {
+      id: "completed-jobs-30d",
+      label: "Completed jobs",
+      description: `${Math.round(value)} first-party completed job receipt${Math.round(value) === 1 ? "" : "s"} in the last 30 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+      ...completedJobSource,
+    };
+  }
+
+  if (row.metricKey === "completed_job_median_receipt_usd_30d") {
+    return {
+      id: "completed-job-median-receipt",
+      label: "Completed job median receipt",
+      description: `${formatUsd(value)} median first-party completed job receipt in the last 30 days`,
+      metricKey: row.metricKey,
+      value,
+      updatedAt,
+      ...completedJobSource,
+    };
+  }
+
+  return null;
+}
+
+async function getCountyPriceSignals(fips: string | null): Promise<PriceSignal[]> {
+  if (!fips) return [];
+
+  try {
+    const rows = await db
+      .select({
+        metricKey: countyMetrics.metricKey,
+        metricValue: countyMetrics.metricValue,
+        updatedAt: countyMetrics.updatedAt,
+      })
+      .from(countyMetrics)
+      .where(
+        and(
+          eq(countyMetrics.countyFips, fips),
+          inArray(countyMetrics.metricKey, [
+            "homescout_median_price",
+            "homescout_price_drops_7d",
+            "homescout_median_dom_days",
+            "tradedeals_active",
+            "tradedeals_claimed_30d",
+            "completed_jobs_30d",
+            "completed_job_median_receipt_usd_30d",
+          ])
+        )
+      );
+
+    return rows.map(buildPriceSignal).filter((signal): signal is PriceSignal => !!signal);
+  } catch (_) {
+    return [];
+  }
+}
+
+function newestUpdatedAt(rows: Array<{ updatedAt: Date | null }>): string | null {
+  const timestamps = rows
+    .map((row) => row.updatedAt?.getTime())
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+
+  if (timestamps.length === 0) return null;
+  return new Date(Math.max(...timestamps)).toISOString();
+}
+
+async function getCountyOpportunityMoves(fips: string | null): Promise<OpportunityMove[]> {
+  if (!fips) return [];
+
+  try {
+    const rows = await db
+      .select({
+        metricKey: countyMetrics.metricKey,
+        metricValue: countyMetrics.metricValue,
+        updatedAt: countyMetrics.updatedAt,
+      })
+      .from(countyMetrics)
+      .where(
+        and(
+          eq(countyMetrics.countyFips, fips),
+          inArray(countyMetrics.metricKey, [
+            "homescout_price_drops_7d",
+            "homescout_median_dom_days",
+            "tradedeals_active",
+            "tradedeals_claimed_30d",
+            "completed_jobs_30d",
+            "completed_job_median_receipt_usd_30d",
+            "events_this_week",
+          ])
+        )
+      );
+
+    const byKey = new Map<string, { value: number; updatedAt: Date | null }>(
+      rows.map((row) => [
+        row.metricKey,
+        {
+          value: Number(row.metricValue),
+          updatedAt: row.updatedAt,
+        },
+      ])
+    );
+
+    const moves: OpportunityMove[] = [];
+    const completedJobs = byKey.get("completed_jobs_30d")?.value ?? 0;
+    const medianReceipt = byKey.get("completed_job_median_receipt_usd_30d")?.value ?? 0;
+    const priceDrops = byKey.get("homescout_price_drops_7d")?.value ?? 0;
+    const medianDom = byKey.get("homescout_median_dom_days")?.value ?? 0;
+    const activeDeals = byKey.get("tradedeals_active")?.value ?? 0;
+    const claimedDeals = byKey.get("tradedeals_claimed_30d")?.value ?? 0;
+    const eventsThisWeek = byKey.get("events_this_week")?.value ?? 0;
+
+    if (completedJobs > 0 || medianReceipt > 0) {
+      moves.push({
+        id: "completed-job-demand",
+        type: "service_gap",
+        title: "Review local job demand",
+        whyItMatters:
+          medianReceipt > 0
+            ? `${Math.round(completedJobs)} completed-job receipt signal${Math.round(completedJobs) === 1 ? "" : "s"} with a ${formatUsd(medianReceipt)} median receipt.`
+            : `${Math.round(completedJobs)} completed-job receipt signal${Math.round(completedJobs) === 1 ? "" : "s"} in the last 30 days.`,
+        actionLabel: "Build offer",
+        prompt:
+          "Use the completed-job county metrics to find a practical local service offer I could launch.",
+        sourceLabel: "First-party completed-job receipts",
+        sourceMetricKeys: ["completed_jobs_30d", "completed_job_median_receipt_usd_30d"],
+        confidence: medianReceipt > 0 ? "high" : "medium",
+        updatedAt: newestUpdatedAt(
+          rows.filter((row) =>
+            ["completed_jobs_30d", "completed_job_median_receipt_usd_30d"].includes(row.metricKey)
+          )
+        ),
+      });
+    }
+
+    if (priceDrops > 0 || medianDom >= 45) {
+      moves.push({
+        id: "homescout-seller-audit",
+        type: "audit_target",
+        title: "Audit stale property demand",
+        whyItMatters:
+          medianDom >= 45
+            ? `HomeScout shows a ${Math.round(medianDom)} day median market-time signal.`
+            : `${Math.round(priceDrops)} HomeScout price-drop signal${Math.round(priceDrops) === 1 ? "" : "s"} appeared in the last 7 days.`,
+        actionLabel: "Create report",
+        prompt: "Create a source-backed local report from the HomeScout price and timing signals.",
+        sourceLabel: "HomeScout inventory",
+        sourceMetricKeys: ["homescout_price_drops_7d", "homescout_median_dom_days"],
+        confidence: "medium",
+        updatedAt: newestUpdatedAt(
+          rows.filter((row) =>
+            ["homescout_price_drops_7d", "homescout_median_dom_days"].includes(row.metricKey)
+          )
+        ),
+      });
+    }
+
+    if (claimedDeals > 0 || activeDeals > 0) {
+      moves.push({
+        id: "tradedeals-fast-win",
+        type: "fast_win",
+        title: "Package a fast local offer",
+        whyItMatters:
+          claimedDeals > 0
+            ? `${Math.round(claimedDeals)} TradeDeals claim signal${Math.round(claimedDeals) === 1 ? "" : "s"} in the last 30 days.`
+            : `${Math.round(activeDeals)} active TradeDeals signal${Math.round(activeDeals) === 1 ? "" : "s"} in this county.`,
+        actionLabel: "Build offer",
+        prompt: "Help me package a fast local offer using the current TradeDeals county activity.",
+        sourceLabel: "TradeDeals activity",
+        sourceMetricKeys: ["tradedeals_active", "tradedeals_claimed_30d"],
+        confidence: "medium",
+        updatedAt: newestUpdatedAt(
+          rows.filter((row) =>
+            ["tradedeals_active", "tradedeals_claimed_30d"].includes(row.metricKey)
+          )
+        ),
+      });
+    }
+
+    if (eventsThisWeek > 0) {
+      moves.push({
+        id: "community-partnership-window",
+        type: "partnership_target",
+        title: "Find partnership windows",
+        whyItMatters: `${Math.round(eventsThisWeek)} local event signal${Math.round(eventsThisWeek) === 1 ? "" : "s"} this week can create timely business-adjacent outreach.`,
+        actionLabel: "Draft message",
+        prompt:
+          "Find governed partnership angles from this week's local activity without bypassing contact gates.",
+        sourceLabel: "County event metrics",
+        sourceMetricKeys: ["events_this_week"],
+        confidence: "medium",
+        updatedAt: newestUpdatedAt(rows.filter((row) => row.metricKey === "events_this_week")),
+      });
+    }
+
+    return moves.slice(0, 4);
+  } catch (_) {
+    return [];
+  }
+}
+
 // ── Main route ─────────────────────────────────────────────────────────────
 
 scoutHomeSnapshotRouter.get("/home-snapshot", async (req: Request, res: Response) => {
@@ -447,11 +769,14 @@ scoutHomeSnapshotRouter.get("/home-snapshot", async (req: Request, res: Response
       : "default";
 
   // 2. Fetch all data in parallel
-  const [snapshotStats, trendingPrompts, recentActivity] = await Promise.all([
-    getLocalSnapshot(countyName, stateName, fips),
-    getTrendingPrompts(fips, countyName),
-    userId ? getRecentActivity(userId) : Promise.resolve([]),
-  ]);
+  const [snapshotStats, trendingPrompts, recentActivity, priceSignals, opportunityMoves] =
+    await Promise.all([
+      getLocalSnapshot(countyName, stateName, fips),
+      getTrendingPrompts(fips, countyName),
+      userId ? getRecentActivity(userId) : Promise.resolve([]),
+      getCountyPriceSignals(fips),
+      getCountyOpportunityMoves(fips),
+    ]);
 
   const response: HomeSnapshotResponse = {
     snapshot: {
@@ -462,6 +787,8 @@ scoutHomeSnapshotRouter.get("/home-snapshot", async (req: Request, res: Response
     },
     trendingPrompts,
     recentActivity,
+    priceSignals,
+    opportunityMoves,
     locationResolved,
     locationSource,
   };

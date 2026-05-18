@@ -62,11 +62,6 @@ const SCOUT_SYNTHESIS_RESPONSE_SCHEMA = {
   required: ["message"],
   properties: {
     intent: { type: "string" },
-    thought_flow: {
-      type: "array",
-      items: { type: "string" },
-    },
-    decision: { type: "string" },
     message: { type: "string" },
     suggestedActions: {
       type: "array",
