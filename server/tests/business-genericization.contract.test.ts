@@ -13,7 +13,7 @@ describe("generic business profile and tool contracts", () => {
     expect(source).toContain("Business Profile Setup");
     expect(source).toContain("I sell services, products, or local expertise");
     expect(source).toContain("Publish services or items people can buy");
-    expect(source).toContain('setLocation("/business-owner-dashboard")');
+    expect(source).toContain('setLocation("/business-dashboard")');
     expect(source).toContain('"contractor_user"');
     expect(source).not.toContain("I'm a Contractor");
     expect(source).not.toContain("Contractor Profile Setup");
@@ -55,7 +55,37 @@ describe("generic business profile and tool contracts", () => {
     expect(scoutMatrix).toContain("Business profile/tool language is now being genericized");
     expect(routes).toContain('path="/businesses/apply"');
     expect(routes).toContain('path="/business-dashboard"');
-    expect(routes).toContain('to="/business-owner-dashboard"');
+    expect(routes).toContain('path="/business/requests"');
+    expect(routes).toContain('to="/businesses/apply"');
+    expect(routes).toContain('to="/business-dashboard"');
+    expect(routes).toContain('to="/business/requests"');
+  });
+
+  it("prefers generic business routes while preserving legacy contractor compatibility", () => {
+    const routes = read("client/src/AppRoutes.tsx");
+    const routeConstants = read("client/src/lib/routes.ts");
+
+    expect(routes).toContain('path="/businesses/apply"');
+    expect(routes).toContain("<LazyPage Component={ContractorApply} />");
+    expect(routes).toContain('path="/contractors/apply"');
+    expect(routes).toContain('<RedirectTo to="/businesses/apply" />');
+    expect(routes).toContain('path="/contractor-apply"');
+    expect(routes).toContain('path="/business-dashboard"');
+    expect(routes).toContain("<LazyPage Component={BusinessOwnerDashboard} />");
+    expect(routes).toContain('path="/business-owner-dashboard"');
+    expect(routes).toContain('<RedirectTo to="/business-dashboard" />');
+    expect(routes).toContain('path="/business/requests"');
+    expect(routes).toContain("<LazyPage Component={ContractorLeads} />");
+    expect(routes).toContain('path="/contractor-leads"');
+    expect(routes).toContain('path="/contractor/leads"');
+    expect(routes).toContain('<RedirectTo to="/business/requests" />');
+
+    expect(routeConstants).toContain('BUSINESS_DASHBOARD: "/business-dashboard"');
+    expect(routeConstants).toContain('BUSINESS_APPLY: "/businesses/apply"');
+    expect(routeConstants).toContain('BUSINESS_REQUESTS: "/business/requests"');
+    expect(routeConstants).toContain('"/contractors/apply": "/businesses/apply"');
+    expect(routeConstants).toContain('"/contractor-leads": "/business/requests"');
+    expect(routeConstants).toContain('"/business-owner-dashboard": "/business-dashboard"');
   });
 
   it("genericizes visible business/provider navigation and admin labels", () => {

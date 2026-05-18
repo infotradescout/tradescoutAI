@@ -101,7 +101,7 @@ export default function ProfileSetup() {
       }
 
       // Fallbacks if API didn't return a slug
-      if (selectedRole === "contractor_user") setLocation("/business-owner-dashboard");
+      if (selectedRole === "contractor_user") setLocation("/business-dashboard");
       else if (selectedRole === "realtor") setLocation("/realtor-dashboard");
       else if (selectedRole === "vehicle_dealer") setLocation("/car-salesman-dashboard");
       else if (selectedRole === "helper") setLocation("/helper-dashboard");

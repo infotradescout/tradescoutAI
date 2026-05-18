@@ -444,7 +444,6 @@ const RecommendationGeneratorPage = React.lazy(
 );
 
 // Role-specific Dashboards (heavy components)
-const ContractorDashboard = React.lazy(() => import("./pages/contractor-dashboard"));
 const HomeownerDashboard = React.lazy(() => import("./pages/homeowner-dashboard"));
 const RealtorDashboard = React.lazy(() => import("./pages/realtor-dashboard"));
 const StoryGeneratorPage = React.lazy(() => import("./pages/StoryGeneratorPage"));
@@ -889,10 +888,10 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Core pages */}
               {/* Business/provider application. Legacy contractor routes remain compatibility aliases. */}
               <Route path="/businesses/apply">
-                <RedirectTo to="/contractors/apply" />
+                <LazyPage Component={ContractorApply} />
               </Route>
               <Route path="/contractors/apply">
-                <LazyPage Component={ContractorApply} />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/contractors/top">
                 <LazyPage Component={ContractorsTop} />
@@ -908,14 +907,17 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/direct-connect" />
               </Route>
 
-              {/* Contractor project requests / leads */}
-              <Route path="/contractor-leads">
+              {/* Business/provider project requests. Legacy contractor paths remain compatibility aliases. */}
+              <Route path="/business/requests">
                 <ProtectedRoute>
                   <LazyPage Component={ContractorLeads} />
                 </ProtectedRoute>
               </Route>
+              <Route path="/contractor-leads">
+                <RedirectTo to="/business/requests" />
+              </Route>
               <Route path="/contractor/leads">
-                <RedirectTo to="/contractor-leads" />
+                <RedirectTo to="/business/requests" />
               </Route>
 
               {/* Helpers + Direct Connect */}
@@ -995,7 +997,7 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/contractor-apply">
-                <LazyPage Component={ContractorApply} />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/offer-services">
                 <ProtectedRoute>
@@ -1010,11 +1012,11 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/business-listing">
                 <LazyPage Component={BusinessListing} />
               </Route>
-              <Route path="/business-owner-dashboard">
+              <Route path="/business-dashboard">
                 <LazyPage Component={BusinessOwnerDashboard} />
               </Route>
-              <Route path="/business-dashboard">
-                <RedirectTo to="/business-owner-dashboard" />
+              <Route path="/business-owner-dashboard">
+                <RedirectTo to="/business-dashboard" />
               </Route>
 
               {/* Marketplace routes */}
@@ -1306,9 +1308,7 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Dashboard routes (auth required) */}
               <Route path="/contractor-dashboard">
-                <ProtectedRoute>
-                  <LazyPage Component={ContractorDashboard} />
-                </ProtectedRoute>
+                <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/homeowner-dashboard">
                 <ProtectedRoute>
@@ -2001,7 +2001,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/settings?tab=profile" />
               </Route>
               <Route path="/contractor/dashboard">
-                <RedirectTo to="/business-owner-dashboard" />
+                <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/contractor-profile">
                 <RedirectTo to="/contractors" />
