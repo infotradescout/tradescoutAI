@@ -135,7 +135,7 @@ export function useScoutHomeSnapshot(location: ScoutLocation) {
 
   useEffect(() => {
     // Don't fetch until location is resolved
-    if (location.status !== "resolved" && location.status !== "error") return;
+    if (location.status !== "resolved") return;
 
     let cancelled = false;
     setStatus("loading");

@@ -61,7 +61,6 @@ import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
 import { buildScoutContextCards, type ScoutContextCardKind } from "./scoutContextCards";
 import { applyCtasToClusters, type ScoutCtaHint } from "./ctaHelpers";
-import { updateGeoPreferencesFromDeviceLocation } from "../agent/tools/geoPreferences";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { formatCityOnly } from "@/utils/locationDisplay";
 import { openFloatingNote } from "@/lib/floatingNotes";
@@ -1308,7 +1307,7 @@ function objectiveStatusToProgress(status: Objective["status"]): number {
 }
 
 export default function ScoutOS() {
-  const { user, isAuthenticated, refetch: refetchUser } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
 
@@ -1336,7 +1335,6 @@ export default function ScoutOS() {
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
   const [overridePendingScope, setOverridePendingScope] = useState<string | null>(null);
   const [introDemoText, setIntroDemoText] = useState("");
-  const [isUpdatingGeo, setIsUpdatingGeo] = useState(false);
   const [autoRouteEnabled, setAutoRouteEnabled] = useState<boolean>(() => {
     try {
       if (typeof window === "undefined") return AUTO_ROUTE_DEFAULT_ENABLED;
@@ -3751,43 +3749,6 @@ export default function ScoutOS() {
 
   const heroLocationLabel = formatCityOnly({ label: locationCtx.label });
 
-  const handleUseDeviceLocation = useCallback(() => {
-    if (isUpdatingGeo) return;
-    if (typeof window === "undefined" || !("geolocation" in navigator)) {
-      console.warn("Geolocation is not available in this environment.");
-      return;
-    }
-
-    setIsUpdatingGeo(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          await updateGeoPreferencesFromDeviceLocation({
-            lat: latitude,
-            lng: longitude,
-            enableNearbyDeals: true,
-          });
-          // Refresh auth/user so Scout picks up the new geo prefs.
-          void refetchUser();
-        } catch (err) {
-          console.warn("Failed to update geo preferences from device location", err);
-        } finally {
-          setIsUpdatingGeo(false);
-        }
-      },
-      (error) => {
-        console.warn("Geolocation error", error);
-        setIsUpdatingGeo(false);
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 15000,
-        maximumAge: 5 * 60 * 1000,
-      }
-    );
-  }, [isUpdatingGeo, refetchUser]);
-
   // Fetch saved contractors for tile context (deterministic personalization)
   const { data: savedContractorsData } = useQuery<
     Array<{ id: string; name: string; category?: string | null }>
@@ -5532,10 +5493,6 @@ export default function ScoutOS() {
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
-                  heroLocationLabel={heroLocationLabel}
-                  isUpdatingGeo={isUpdatingGeo}
-                  onOpenLocationSettings={() => navigate("/settings")}
-                  onUseDeviceLocation={handleUseDeviceLocation}
                   onSend={(value) => handleSend(value)}
                   onTyping={() => {
                     setHasGuestInteracted(true);

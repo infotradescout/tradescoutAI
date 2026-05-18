@@ -28,4 +28,31 @@ describe("Scout location authority contracts", () => {
       "countyFips && countyName && stateCode ? `${countyName}, ${stateCode}` : undefined"
     );
   });
+
+  it("Scout home does not render a standalone location collection panel", () => {
+    const homeSource = read("client/src/scout/ScoutHome.tsx");
+
+    expect(homeSource).toContain("const { location } = useScoutLocation();");
+    expect(homeSource).not.toContain("Enter your city or zip code");
+    expect(homeSource).not.toContain("Set Location");
+    expect(homeSource).not.toContain("Reset");
+    expect(homeSource).not.toContain("setManualLocation");
+    expect(homeSource).not.toContain("clearLocation");
+    expect(homeSource).not.toContain("showLocationInput");
+  });
+
+  it("Scout location hook only reads canonical profile or session context", () => {
+    const hookSource = read("client/src/scout/hooks/useScoutLocation.ts");
+
+    expect(hookSource).toContain("useLocationContext");
+    expect(hookSource).toContain("return { location };");
+    expect(hookSource).not.toContain("navigator.geolocation");
+    expect(hookSource).not.toContain("ipapi.co");
+    expect(hookSource).not.toContain("reverseGeocode");
+    expect(hookSource).not.toContain("resolveFromIP");
+    expect(hookSource).not.toContain("setSessionLocationOverride");
+    expect(hookSource).not.toContain("clearSessionLocationOverride");
+    expect(hookSource).not.toContain("setManualLocation");
+    expect(hookSource).not.toContain("clearLocation");
+  });
 });

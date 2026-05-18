@@ -158,6 +158,7 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Provider discovery links now prefer canonical `/business/:slug` URLs where available: top-provider results expose `canonicalBusinessProfileUrl`, trust-match cards and shared provider cards use it, and Scout provider-search tool results preserve canonical profile links.
 - Public profile recommendation directories now carry `canonicalBusinessProfileUrl` for recommended providers when available, so recommendation badges link to `/business/:slug` before falling back to legacy `/contractors/:slug`.
 - Older SEO helpers now accept canonical `/business/:slug` profile URLs before falling back to `/contractors/:id`, and their structured-data copy uses local provider language where the surface is not explicitly contractor SEO.
+- Scout no longer renders standalone location collection controls on the Scout page. Saved account/session location still feeds local context silently, and missing location should be requested conversationally inside Scout only when a task actually needs it.
 
 ## Fastest Next Work
 

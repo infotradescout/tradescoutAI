@@ -37,8 +37,8 @@ describe("Scout entry framing contracts", () => {
     expect(inputSource).toContain("Ask");
     expect(inputSource).toContain("Compare");
     expect(inputSource).toContain("Choose");
-    expect(inputSource).toContain("Your area:");
-    expect(inputSource).toContain("Use current location");
+    expect(inputSource).not.toContain("Your area:");
+    expect(inputSource).not.toContain("Use current location");
     expect(promptsSource).toContain("What's happening near me today?");
     expect(promptsSource).toContain("Who nearby can help with this?");
     expect(promptsSource).toContain("Any local prices or deals I should know about?");

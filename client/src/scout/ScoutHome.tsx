@@ -6,22 +6,19 @@
  * your location, and ready to work.
  *
  * Data flow:
- *   useScoutLocation → resolves county/state/fips via browser geo / IP / manual
+ *   useScoutLocation → reads canonical profile/session location when available
  *   useScoutHomeSnapshot → fetches real local stats + trending prompts from API
  *
  * Visual design: matches the "Morphic Universal OS" mockup screenshots exactly.
  * Pure black background, dark gray cards, hard orange borders, Sora typography.
  */
 
-import { useState, useCallback } from "react";
 import {
   Archive,
   ArrowRight,
   Brain,
   ClipboardList,
   Home,
-  MapPin,
-  ChevronDown,
   Radar,
   Sparkles,
   TrendingUp,
@@ -124,116 +121,6 @@ function SkeletonPrompt() {
           className="h-2 w-24 rounded"
           style={{ backgroundColor: "var(--border-primary, #2a2a2a)" }}
         />
-      </div>
-    </div>
-  );
-}
-
-// ── Location pill ──────────────────────────────────────────────────────────
-
-function LocationPill({
-  county,
-  state,
-  status,
-  onChangeClick,
-}: {
-  county: string;
-  state: string;
-  status: string;
-  onChangeClick: () => void;
-}) {
-  const isResolving = status === "resolving";
-  const label =
-    county && state
-      ? `${county} County, ${state}`
-      : county
-        ? county
-        : isResolving
-          ? "Detecting location..."
-          : "Set your location";
-
-  return (
-    <button
-      type="button"
-      onClick={onChangeClick}
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-medium transition-all"
-      style={{
-        backgroundColor: "var(--surface-intermediate)",
-        border: "1px solid var(--border-primary)",
-        color: "var(--text-primary, #e5e5e5)",
-      }}
-      aria-label="Change location"
-    >
-      <span
-        className="h-2 w-2 rounded-full flex-shrink-0"
-        style={{
-          backgroundColor: isResolving ? "#f97316" : "#22c55e",
-          boxShadow: isResolving ? "0 0 6px #f97316" : "0 0 6px #22c55e",
-        }}
-      />
-      <MapPin className="h-3 w-3 flex-shrink-0" style={{ color: "#f97316" }} />
-      <span className="truncate max-w-[160px]">{label}</span>
-      <ChevronDown className="h-3 w-3 flex-shrink-0 opacity-50" />
-    </button>
-  );
-}
-
-// ── Manual location input ──────────────────────────────────────────────────
-
-function LocationInput({
-  onSubmit,
-  onCancel,
-}: {
-  onSubmit: (value: string) => void;
-  onCancel: () => void;
-}) {
-  const [value, setValue] = useState("");
-
-  return (
-    <div
-      className="rounded-xl p-4 mb-4"
-      style={{
-        backgroundColor: "var(--surface-intermediate)",
-        border: "1px solid var(--border-primary)",
-      }}
-    >
-      <p className="text-[12px] font-semibold text-white mb-3">Enter your city or zip code</p>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && value.trim()) onSubmit(value.trim());
-            if (e.key === "Escape") onCancel();
-          }}
-          placeholder="e.g. Austin, TX or 78701"
-          className="flex-1 rounded-lg px-3 py-2 text-[13px] text-white placeholder-[#555] outline-none"
-          style={{
-            backgroundColor: "var(--surface-card)",
-            border: "1px solid #333",
-          }}
-          autoFocus
-        />
-        <button
-          type="button"
-          onClick={() => value.trim() && onSubmit(value.trim())}
-          className="rounded-lg px-4 py-2 text-[12px] font-semibold transition-opacity"
-          style={{ backgroundColor: "#f97316", color: "#000" }}
-        >
-          Go
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-lg px-3 py-2 text-[12px] font-medium"
-          style={{
-            backgroundColor: "var(--surface-intermediate, #222)",
-            color: "var(--text-secondary, #aaa)",
-          }}
-        >
-          Cancel
-        </button>
       </div>
     </div>
   );
@@ -576,23 +463,10 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
-  const { location, setManualLocation, clearLocation } = useScoutLocation();
+  const { location } = useScoutLocation();
   const { status: fetchStatus, data } = useScoutHomeSnapshot(location);
-  const [showLocationInput, setShowLocationInput] = useState(false);
 
-  const handleLocationChange = useCallback(() => {
-    setShowLocationInput(true);
-  }, []);
-
-  const handleLocationSubmit = useCallback(
-    (value: string) => {
-      setShowLocationInput(false);
-      setManualLocation(value);
-    },
-    [setManualLocation]
-  );
-
-  const isLoading = fetchStatus === "loading" || location.status === "resolving";
+  const isLoading = fetchStatus === "loading";
   const snapshot = data?.snapshot;
   const prompts = data?.trendingPrompts ?? [];
   const recentActivity = data?.recentActivity ?? [];
@@ -622,63 +496,6 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
 
   return (
     <div className="flex flex-col gap-4 w-full pb-2">
-      {/* ── Location pill ──────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <LocationPill
-          county={snapshot?.countyName ?? location.county}
-          state={snapshot?.stateName ?? location.state}
-          status={location.status}
-          onChangeClick={handleLocationChange}
-        />
-        {location.source !== "default" && location.status === "resolved" && (
-          <button
-            type="button"
-            onClick={clearLocation}
-            className="text-[10px] font-medium"
-            style={{ color: "var(--text-muted, #444)" }}
-          >
-            Reset
-          </button>
-        )}
-      </div>
-
-      {/* ── Manual location input ───────────────────────────────────────── */}
-      {showLocationInput && (
-        <LocationInput
-          onSubmit={handleLocationSubmit}
-          onCancel={() => setShowLocationInput(false)}
-        />
-      )}
-
-      {/* ── Location error prompt ───────────────────────────────────────── */}
-      {location.status === "error" && !showLocationInput && (
-        <div
-          className="rounded-xl px-4 py-3 flex items-center gap-3"
-          style={{
-            backgroundColor: "var(--surface-intermediate)",
-            border: "1px solid var(--border-primary)",
-          }}
-        >
-          <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: "#f97316" }} />
-          <div className="flex-1">
-            <p className="text-[12px] font-medium text-white">
-              We couldn't detect your location automatically.
-            </p>
-            <p className="text-[11px] mt-0.5" style={{ color: "var(--text-muted, #666)" }}>
-              Enter your city or zip to get local results.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowLocationInput(true)}
-            className="rounded-lg px-3 py-1.5 text-[11px] font-semibold flex-shrink-0"
-            style={{ backgroundColor: "#f97316", color: "#000" }}
-          >
-            Set Location
-          </button>
-        </div>
-      )}
-
       {/* ── Ready card ─────────────────────────────────────────────────── */}
       <div
         className="rounded-2xl px-4 py-4 relative overflow-hidden"

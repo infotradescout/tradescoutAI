@@ -70,13 +70,12 @@ The Morphic command bar. Orange border glow on focus, sparkle icon, auto-growing
 
 **Key props:**
 - `isBusy: boolean` — disables input during processing
-- `heroLocationLabel?: string` — shows location pill above bar
 - `onSend: (value: string) => void` — called on submit
 - `quickStartPrompts?: string[]` — shows up to 3 prompt chips above bar
 - `enableAutoDemo?: boolean` + `autoDemoText?: string` — auto-types a demo query on first visit
 
 ### `ScoutHome` (`client/src/scout/ScoutHome.tsx`)
-The default home surface (no-query state). Location pill, ready card, local snapshot tiles, trending prompts, recent activity, trust footer.
+The default home surface (no-query state). Ready card, local snapshot tiles, trending prompts, recent activity, trust footer.
 
 **Key props:**
 - `onPromptSelect: (text: string) => void` — called when user taps a prompt chip
@@ -90,8 +89,8 @@ The full-width Intelligence Layer card shown after a Scout response. Orange acce
 ## Hooks
 
 ### `useScoutLocation` (`client/src/scout/hooks/useScoutLocation.ts`)
-Bridges `useLocationContext` (profile/session) with browser → IP → manual fallback chain.
-Returns: `{ county, state, city, displayLabel, isLoading, error, requestBrowserGeo, setManual }`
+Reads `useLocationContext` (profile/session) for Scout home context.
+Returns: `{ location }`
 
 ### `useScoutHomeSnapshot` (`client/src/scout/hooks/useScoutHomeSnapshot.ts`)
 Fetches real local data for the home surface (listings, pros, events, members, trending prompts).
