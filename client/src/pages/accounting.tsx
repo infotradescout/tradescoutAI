@@ -1883,7 +1883,7 @@ export default function AccountingWorkspace() {
             </CardHeader>
             <CardContent>
               <p className="text-[11px] text-white/60">
-                Manage hiring and crew from contractor tools.
+                Manage hiring and crew from business tools.
               </p>
             </CardContent>
           </Card>

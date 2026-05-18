@@ -182,9 +182,9 @@ export default function Home() {
                       <MapPin className="h-6 w-6 text-ts-orange" />
                     </div>
                     <div>
-                      <h3 className="text-white font-semibold">Find Contractors</h3>
+                      <h3 className="text-white font-semibold">Find Local Help</h3>
                       <p className="text-white/60 text-sm">
-                        Search verified contractors in your area
+                        Search verified local providers in your area
                       </p>
                     </div>
                   </div>

@@ -470,11 +470,11 @@ export default function CommercialDirectoryPage() {
               ) : (
                 <>
                   <p className="text-sm text-amber-100">
-                    You can browse commercial jobs now, but you need a contractor profile before you
+                    You can browse commercial jobs now, but you need a business profile before you
                     can start verification for a project you want to pursue.
                   </p>
                   <Button asChild variant="outline">
-                    <a href="/pre-scout-setup?mode=create">Create Contractor Profile</a>
+                    <a href="/pre-scout-setup?mode=create">Create Business Profile</a>
                   </Button>
                 </>
               )}

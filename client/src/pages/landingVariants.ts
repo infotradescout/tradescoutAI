@@ -87,13 +87,13 @@ const DEFAULT_VARIANT: LandingVariant = {
 
 const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
   contractor: {
-    displayName: "Contractors",
+    displayName: "Business Providers",
     badgeText: "Trusted Work Pipeline",
     headlineLines: ["Operate Inside", "The Trusted", "Local Work System"],
     subhead:
       "TradeScout helps serious businesses get better local opportunities without bidding chaos or lead reselling.",
     audience: {
-      sectionLabel: "For Contractors",
+      sectionLabel: "For Businesses",
       sectionTitle: "Get Better Jobs, Not Bigger Spam Lists",
       sectionDesc:
         "TradeScout helps you compete on trust and delivery. Visibility comes from verified work, not ad spend.",

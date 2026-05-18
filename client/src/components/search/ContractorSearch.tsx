@@ -329,7 +329,7 @@ export function ContractorSearch({ onSearch, className = "" }: ContractorSearchP
                 ) : (
                   <Search className="h-5 w-5" />
                 )}
-                {isSearching ? "Searching..." : "Find Contractors"}
+                {isSearching ? "Searching..." : "Find Local Help"}
               </Button>
             </div>
           </form>

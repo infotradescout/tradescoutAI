@@ -128,6 +128,79 @@ describe("generic business profile and tool contracts", () => {
     expect(preferenceNav).not.toContain('label: "Contractor Dashboard"');
   });
 
+  it("genericizes legacy business-tool dashboard, request, and profile prompts", () => {
+    const accounting = read("client/src/pages/accounting.tsx");
+    const contractors = read("client/src/pages/contractors.tsx");
+    const contractorSignup = read("client/src/pages/contractor-signup.tsx");
+    const contractorDashboard = read("client/src/pages/contractor-dashboard-simple.tsx");
+    const myTradeScout = read("client/src/pages/my-tradescout.tsx");
+    const tasks = read("client/src/pages/tasks.tsx");
+    const commercialDirectory = read("client/src/pages/commercial-directory.tsx");
+
+    const source = [
+      accounting,
+      contractors,
+      contractorSignup,
+      contractorDashboard,
+      myTradeScout,
+      tasks,
+      commercialDirectory,
+    ].join("\n");
+
+    expect(source).toContain("business tools");
+    expect(source).toContain("Business Dashboard");
+    expect(source).toContain("local business network");
+    expect(source).toContain("business provider");
+    expect(source).toContain("Browse local requests");
+    expect(source).toContain("provider requests through Direct Connect");
+    expect(source).toContain("business profile");
+    expect(source).toContain("Create Business Profile");
+    expect(source).not.toContain("contractor tools");
+    expect(source).not.toContain("Contractor Dashboard");
+    expect(source).not.toContain("contractor board");
+    expect(source).not.toContain("contractor leads");
+    expect(source).not.toContain("contractor requests through Direct Connect");
+    expect(source).not.toContain("contractor profile before");
+    expect(source).not.toContain("Create Contractor Profile");
+  });
+
+  it("genericizes local-help calls to action outside explicit contractor SEO surfaces", () => {
+    const homeTips = read("client/src/components/HomeownerTipsRotator.tsx");
+    const contractorSearch = read("client/src/components/search/ContractorSearch.tsx");
+    const advancedSearch = read("client/src/pages/advanced-search.tsx");
+    const simpleHome = read("client/src/pages/SimpleHome.tsx");
+    const home = read("client/src/pages/home.tsx");
+    const safeLanding = read("client/src/pages/safe-landing.tsx");
+    const propertyManagerDashboard = read("client/src/pages/property-manager-dashboard.tsx");
+    const about = read("client/src/pages/about.tsx");
+    const simpleLanding = read("client/src/pages/SimpleLanding.tsx");
+    const landingVariants = read("client/src/pages/landingVariants.ts");
+
+    const source = [
+      homeTips,
+      contractorSearch,
+      advancedSearch,
+      simpleHome,
+      home,
+      safeLanding,
+      propertyManagerDashboard,
+      about,
+      simpleLanding,
+      landingVariants,
+    ].join("\n");
+
+    expect(source).toContain("Find Local Help");
+    expect(source).toContain("Local Help Search");
+    expect(source).toContain("verified local providers");
+    expect(source).toContain("Become a Business Provider");
+    expect(source).toContain("For Businesses");
+    expect(source).not.toContain("Find Contractors");
+    expect(source).not.toContain("Contractor Search");
+    expect(source).not.toContain("Discover verified local contractors");
+    expect(source).not.toContain("Become a Contractor");
+    expect(source).not.toContain("For Contractors");
+  });
+
   it("genericizes stale help, onboarding, and tour copy", () => {
     const files = [
       "client/src/components/help/HelpSystem.tsx",

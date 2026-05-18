@@ -120,9 +120,9 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
     if (isContractor && !snapshot?.myProjects?.length) {
       recommendedActions.push({
         id: "browse-leads",
-        reason: "You are set up as a contractor but have no active projects here yet.",
+        reason: "You are set up as a business provider but have no active projects here yet.",
         action: {
-          label: "Browse contractor leads",
+          label: "Browse local requests",
           path: "/business/requests",
         },
       });

@@ -396,7 +396,7 @@ export default function TasksHub({
           title: "Address verification required",
           description:
             data?.message ||
-            "Complete verification to send contractor requests through Direct Connect.",
+            "Complete verification to send provider requests through Direct Connect.",
           variant: "destructive",
         });
         navigate("/verification");
@@ -430,7 +430,7 @@ export default function TasksHub({
           title: "Address verification required",
           description: formatUserFacingErrorMessage(
             err,
-            "Complete verification to send contractor requests through Direct Connect."
+            "Complete verification to send provider requests through Direct Connect."
           ),
           variant: "destructive",
         });

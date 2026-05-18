@@ -512,7 +512,7 @@ const SimpleHome = memo(function SimpleHome() {
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full justify-start"
                       >
                         <Wrench className="h-4 w-4 mr-2" />
-                        Find Contractors
+                        Find Local Help
                       </Button>
                     </Link>
                     <Link href="/request-quote">

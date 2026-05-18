@@ -211,12 +211,12 @@ export default function ContractorSignup() {
                   <li>• We'll verify your license and insurance</li>
                   <li>• Our team will review your business information</li>
                   <li>• You'll receive an email with your approval status</li>
-                  <li>• Once approved, you'll be live on the contractor board</li>
+                  <li>• Once approved, you'll be live on the local business network</li>
                 </ul>
               </div>
               <Link href="/business-dashboard">
                 <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  Go to Contractor Dashboard
+                  Go to Business Dashboard
                 </Button>
               </Link>
             </CardContent>
@@ -229,9 +229,9 @@ export default function ContractorSignup() {
   return (
     <div className="h-full bg-background py-12">
       <SEOHelmet
-        title="Join TradeScout - Contractor Registration"
-        description="Join TradeScout's verified contractor network. Build trust visibility, showcase your work, and grow your business without lead fees, monthly subscriptions, or post-job contractor fees."
-        keywords="contractor registration, verified contractor network, trust-based matching, contractor profile"
+        title="Join TradeScout - Business Registration"
+        description="Join TradeScout's verified local business network. Build trust visibility, showcase your work, and grow your business without lead fees, monthly subscriptions, or post-job platform fees."
+        keywords="business registration, verified local business network, trust-based matching, business profile"
         canonical="https://www.thetradescout.com/businesses/apply"
       />
 

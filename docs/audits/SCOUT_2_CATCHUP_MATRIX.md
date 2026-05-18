@@ -151,8 +151,9 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Generic business routes are now preferred at the route layer: `/businesses/apply`, `/business-dashboard`, and `/business/requests` render the live surfaces, while legacy contractor URLs redirect to those canonical paths.
 - Admin business-provider settings now prefer `/admin/business-provider-settings` and `/api/admin/business-provider-settings`, while legacy `/admin/contractors`, `/admin/contractor-settings`, and `/api/admin/contractor-settings` remain compatibility aliases.
 - Business/provider navigation, onboarding fallbacks, regional application links, and dashboard/request links now prefer `/business-dashboard`, `/businesses/apply`, and `/business/requests` while preserving legacy compatibility aliases.
+- Legacy business-tool dashboard labels, request verification prompts, profile creation prompts, and broad local-help CTAs now use generic business/provider language; explicit contractor SEO and compatibility surfaces remain documented migration exceptions.
 
 ## Fastest Next Work
 
 1. Expand Opportunity Radar beyond `county_metrics` only after `county_entities` and `county_notes` use has CVS/source/freshness handling.
-2. Replace remaining user-facing contractor-only dashboard labels in legacy business-tool surfaces with generic business/provider language.
+2. Audit explicit contractor SEO and compatibility surfaces to decide which should remain trade-specific and which should redirect into generic business/provider copy.
