@@ -13,7 +13,8 @@ import {
   isOnboardingExemptPath,
   isSafeNextPath,
   storeOnboardingNext,
-  userNeedsOnboarding,
+  userHasProfileBasics as routeUserHasProfileBasics,
+  userNeedsOnboarding as routeUserNeedsOnboarding,
 } from "@/lib/postOnboardingRoute";
 import {
   evaluateFeatureUnlocks,
@@ -28,6 +29,8 @@ const PageLoader = memo(function PageLoader() {
 
 export const getOnboardingEntryRoute = routeGetOnboardingEntryRoute;
 export const getPostLandingRoute = routeGetPostLandingRoute;
+export const userNeedsOnboarding = routeUserNeedsOnboarding;
+export const userHasProfileBasics = routeUserHasProfileBasics;
 
 function isLegacyRootScoutQuery(rest: string): boolean {
   if (!rest || !rest.startsWith("?")) return false;

@@ -19787,6 +19787,107 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
+  app.get("/api/marketplace/orders/mine", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const user = req.user as any;
+      const sellerId: string = user?.id || user?.claims?.sub;
+      const result = await pool.query(
+        `
+          SELECT
+            mo.id,
+            mo.listing_id AS "listingId",
+            mo.transaction_id AS "transactionId",
+            mo.buyer_id AS "buyerId",
+            mo.seller_id AS "sellerId",
+            mo.status,
+            mo.shipping_quote AS "shippingQuote",
+            mo.tracking_number AS "trackingNumber",
+            mo.label_url AS "labelUrl",
+            mo.payout_deduction_amount AS "payoutDeductionAmount",
+            mo.created_at AS "createdAt",
+            mo.updated_at AS "updatedAt",
+            ml.title AS "listingTitle",
+            ml.price AS "listingPrice",
+            ml.images AS "listingImages",
+            ml.status AS "listingStatus"
+          FROM marketplace_orders mo
+          JOIN marketplace_listings ml ON ml.id = mo.listing_id
+          WHERE mo.seller_id = $1
+          ORDER BY mo.updated_at DESC NULLS LAST, mo.created_at DESC
+        `,
+        [sellerId]
+      );
+      res.json(result.rows);
+    } catch (error: any) {
+      console.error("Error fetching marketplace seller orders:", error);
+      res.status(500).json({ message: "Failed to fetch marketplace orders" });
+    }
+  });
+
+  app.post("/api/marketplace/orders/:id/status", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const user = req.user as any;
+      const sellerId: string = user?.id || user?.claims?.sub;
+      const { id } = req.params;
+      const nextStatus = String(req.body?.status || "").trim();
+      const allowedStatuses = new Set([
+        "item_sold",
+        "payment_received",
+        "label_pending",
+        "label_purchased",
+        "in_transit",
+        "delivered",
+        "payout_reconciled",
+      ]);
+      if (!allowedStatuses.has(nextStatus)) {
+        return res.status(400).json({ message: "Invalid marketplace order status" });
+      }
+
+      const trackingNumber =
+        typeof req.body?.trackingNumber === "string" && req.body.trackingNumber.trim()
+          ? req.body.trackingNumber.trim().slice(0, 120)
+          : null;
+      const labelUrl =
+        typeof req.body?.labelUrl === "string" && req.body.labelUrl.trim()
+          ? req.body.labelUrl.trim().slice(0, 500)
+          : null;
+
+      const result = await pool.query(
+        `
+          UPDATE marketplace_orders
+          SET
+            status = $3,
+            tracking_number = COALESCE($4, tracking_number),
+            label_url = COALESCE($5, label_url),
+            updated_at = now()
+          WHERE id = $1
+            AND seller_id = $2
+          RETURNING
+            id,
+            listing_id AS "listingId",
+            transaction_id AS "transactionId",
+            buyer_id AS "buyerId",
+            seller_id AS "sellerId",
+            status,
+            shipping_quote AS "shippingQuote",
+            tracking_number AS "trackingNumber",
+            label_url AS "labelUrl",
+            payout_deduction_amount AS "payoutDeductionAmount",
+            created_at AS "createdAt",
+            updated_at AS "updatedAt"
+        `,
+        [id, sellerId, nextStatus, trackingNumber, labelUrl]
+      );
+      if (!result.rows[0]) {
+        return res.status(404).json({ message: "Marketplace order not found" });
+      }
+      res.json(result.rows[0]);
+    } catch (error: any) {
+      console.error("Error updating marketplace seller order:", error);
+      res.status(500).json({ message: "Failed to update marketplace order" });
+    }
+  });
+
   // Mark a listing as sold (seller-only)
   app.post(
     "/api/marketplace/listings/:id/mark-sold",

@@ -41,10 +41,13 @@ import {
   Plus,
   Tag,
   Clock,
+  CreditCard,
+  DollarSign,
   AlertTriangle,
   XCircle,
   RefreshCw,
   ChevronRight,
+  Truck,
 } from "lucide-react";
 import { getExchangeCategorySlugFromMarketplaceCategoryName } from "@shared/exchangeListingRules";
 
@@ -90,6 +93,39 @@ type Conversation = {
     lastName: string | null;
     profileImageUrl: string | null;
   };
+};
+
+type MarketplaceOrderStatus =
+  | "item_sold"
+  | "payment_received"
+  | "label_pending"
+  | "label_purchased"
+  | "in_transit"
+  | "delivered"
+  | "payout_reconciled";
+
+type MarketplaceOrder = {
+  id: string;
+  listingId: string;
+  sellerId: string;
+  status: MarketplaceOrderStatus;
+  shippingQuote?: {
+    carrier?: string;
+    serviceName?: string;
+    estimatedCost?: number;
+    buyerPays?: boolean;
+    sellerAbsorbs?: boolean;
+    labelPurchaseMode?: string;
+  } | null;
+  trackingNumber?: string | null;
+  labelUrl?: string | null;
+  payoutDeductionAmount?: string | number | null;
+  createdAt: string;
+  updatedAt?: string | null;
+  listingTitle?: string | null;
+  listingPrice?: string | number | null;
+  listingImages?: string[] | null;
+  listingStatus?: string | null;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -141,6 +177,30 @@ function timeAgo(dateStr: string): string {
   if (hrs < 24) return `${hrs}h ago`;
   const days = Math.floor(hrs / 24);
   return `${days}d ago`;
+}
+
+const ORDER_STEPS: Array<{
+  status: MarketplaceOrderStatus;
+  label: string;
+  icon: typeof CheckCircle2;
+}> = [
+  { status: "item_sold", label: "Sold", icon: CheckCircle2 },
+  { status: "payment_received", label: "Payment received", icon: CreditCard },
+  { status: "label_pending", label: "Label pending", icon: Package },
+  { status: "label_purchased", label: "Label purchased", icon: Tag },
+  { status: "in_transit", label: "In transit", icon: Truck },
+  { status: "delivered", label: "Delivered", icon: CheckCircle2 },
+  { status: "payout_reconciled", label: "Payout reconciled", icon: DollarSign },
+];
+
+function getNextOrderStatus(status: MarketplaceOrderStatus): MarketplaceOrderStatus | null {
+  const idx = ORDER_STEPS.findIndex((step) => step.status === status);
+  if (idx < 0 || idx >= ORDER_STEPS.length - 1) return null;
+  return ORDER_STEPS[idx + 1].status;
+}
+
+function orderStatusLabel(status: MarketplaceOrderStatus): string {
+  return ORDER_STEPS.find((step) => step.status === status)?.label ?? status;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -319,6 +379,110 @@ function ConversationRow({ conv, currentUserId }: { conv: Conversation; currentU
   );
 }
 
+function OrderLifecycleCard({
+  order,
+  onAdvance,
+  isAdvancing,
+}: {
+  order: MarketplaceOrder;
+  onAdvance: (order: MarketplaceOrder, status: MarketplaceOrderStatus) => void;
+  isAdvancing: boolean;
+}) {
+  const currentIdx = Math.max(
+    0,
+    ORDER_STEPS.findIndex((step) => step.status === order.status)
+  );
+  const nextStatus = getNextOrderStatus(order.status);
+  const thumb =
+    Array.isArray(order.listingImages) && order.listingImages.length > 0
+      ? order.listingImages[0]
+      : null;
+  const shipping = order.shippingQuote;
+
+  return (
+    <Card className="overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex gap-3">
+          <div className="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-gray-100">
+            {thumb ? (
+              <img
+                src={thumb}
+                alt={order.listingTitle || "Sold listing"}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <Package className="w-7 h-7" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-semibold text-sm truncate">
+                  {order.listingTitle || "Sold listing"}
+                </p>
+                <p className="text-sm font-bold text-green-700">
+                  {formatPrice(order.listingPrice)}
+                </p>
+              </div>
+              <Badge variant="secondary">{orderStatusLabel(order.status)}</Badge>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Sold {timeAgo(order.createdAt)}
+              {shipping?.serviceName ? ` • ${shipping.serviceName}` : ""}
+              {shipping?.estimatedCost != null
+                ? ` • ${formatPrice(shipping.estimatedCost)} shipping`
+                : ""}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {ORDER_STEPS.map((step, idx) => {
+            const Icon = step.icon;
+            const complete = idx <= currentIdx;
+            return (
+              <div
+                key={step.status}
+                className={`rounded-lg border p-2 text-xs ${
+                  complete
+                    ? "border-green-200 bg-green-50 text-green-900"
+                    : "border-gray-200 bg-gray-50 text-muted-foreground"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5 mb-1" />
+                <span className="font-medium">{step.label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-xs text-muted-foreground">
+            {order.trackingNumber ? `Tracking: ${order.trackingNumber}` : "Tracking not added yet"}
+            {Number(order.payoutDeductionAmount || 0) > 0
+              ? ` • Label deduction ${formatPrice(order.payoutDeductionAmount)}`
+              : ""}
+          </div>
+          {nextStatus ? (
+            <Button
+              size="sm"
+              className="h-8"
+              onClick={() => onAdvance(order, nextStatus)}
+              disabled={isAdvancing}
+            >
+              Advance to {orderStatusLabel(nextStatus)}
+            </Button>
+          ) : (
+            <Badge variant="outline">Lifecycle complete</Badge>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function ExchangeSellerDashboard() {
   const { user, isAuthenticated } = useAuth();
@@ -349,6 +513,11 @@ export default function ExchangeSellerDashboard() {
     queryFn: () => apiRequest("GET", "/api/marketplace/conversations"),
   });
 
+  const { data: orders = [], isLoading: ordersLoading } = useQuery<MarketplaceOrder[]>({
+    queryKey: ["/api/marketplace/orders/mine"],
+    queryFn: () => apiRequest("GET", "/api/marketplace/orders/mine"),
+  });
+
   // Enrich inquiries with listing titles
   const listingMap = new Map(listings.map((l) => [l.id, l]));
   const enrichedInquiries: Inquiry[] = inquiries.map((inq) => ({
@@ -366,6 +535,7 @@ export default function ExchangeSellerDashboard() {
         description: "It has been removed from active listings.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/my-listings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace/orders/mine"] });
       setMarkSoldId(null);
     },
     onError: (err: any) => {
@@ -377,10 +547,30 @@ export default function ExchangeSellerDashboard() {
     },
   });
 
+  const orderStatusMutation = useMutation({
+    mutationFn: ({ orderId, status }: { orderId: string; status: MarketplaceOrderStatus }) =>
+      apiRequest("POST", `/api/marketplace/orders/${orderId}/status`, { status }),
+    onSuccess: () => {
+      toast({
+        title: "Order updated",
+        description: "The post-sale lifecycle has been updated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace/orders/mine"] });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to update order",
+        description: formatUserFacingErrorMessage(err, "Could not update this order."),
+        variant: "destructive",
+      });
+    },
+  });
+
   // ── Stats ────────────────────────────────────────────────────────────────
   const activeCount = listings.filter((l) => l.status === "active").length;
   const soldCount = listings.filter((l) => l.status === "sold").length;
   const pendingCount = listings.filter((l) => l.status === "pending_approval").length;
+  const openOrders = orders.filter((o) => o.status !== "payout_reconciled").length;
   const pendingInquiries = inquiries.filter((i) => i.status === "pending").length;
   const unreadConvs = (conversations as Conversation[]).filter(
     (c) => !c.isReadBySeller && c.sellerId === (user as any)?.id
@@ -416,7 +606,7 @@ export default function ExchangeSellerDashboard() {
         </div>
 
         {/* Summary stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-4 gap-3 mb-6">
           <Card>
             <CardContent className="p-3 text-center">
               <p className="text-2xl font-bold text-green-700">{activeCount}</p>
@@ -433,6 +623,12 @@ export default function ExchangeSellerDashboard() {
             <CardContent className="p-3 text-center">
               <p className="text-2xl font-bold text-blue-600">{unreadConvs}</p>
               <p className="text-xs text-muted-foreground">Unread Msgs</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <p className="text-2xl font-bold text-purple-700">{openOrders}</p>
+              <p className="text-xs text-muted-foreground">Open Orders</p>
             </CardContent>
           </Card>
         </div>
@@ -458,6 +654,12 @@ export default function ExchangeSellerDashboard() {
               Messages
               {unreadConvs > 0 && (
                 <Badge className="ml-1.5 h-4 px-1 text-xs bg-orange-500">{unreadConvs}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex-1">
+              Orders
+              {openOrders > 0 && (
+                <Badge className="ml-1.5 h-4 px-1 text-xs bg-green-600">{openOrders}</Badge>
               )}
             </TabsTrigger>
           </TabsList>
@@ -552,6 +754,39 @@ export default function ExchangeSellerDashboard() {
                   ))}
                 </CardContent>
               </Card>
+            )}
+          </TabsContent>
+
+          {/* ── Post-sale Orders ── */}
+          <TabsContent value="orders">
+            {ordersLoading ? (
+              <div className="space-y-3">
+                {[1, 2].map((i) => (
+                  <div key={i} className="h-40 rounded-lg bg-muted animate-pulse" />
+                ))}
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-12">
+                <Truck className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="font-medium">No sold orders yet</p>
+                <p className="text-sm text-muted-foreground">
+                  When you mark a listing sold, its payment, label, delivery, and payout steps will
+                  appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {orders.map((order) => (
+                  <OrderLifecycleCard
+                    key={order.id}
+                    order={order}
+                    onAdvance={(currentOrder, status) =>
+                      orderStatusMutation.mutate({ orderId: currentOrder.id, status })
+                    }
+                    isAdvancing={orderStatusMutation.isPending}
+                  />
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>

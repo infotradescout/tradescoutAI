@@ -91,12 +91,14 @@ export function isSafeNextPath(path: string): boolean {
 
 export function userNeedsOnboarding(user: unknown): boolean {
   if (!user || typeof user !== "object") return false;
+  const record = user as Record<string, any>;
+  const locationCommitted = record.locationCommitted === true;
   return !hasCompletedSetup({
-    onboardingCompleted: (user as Record<string, any>).onboardingCompleted,
-    profileVersion: (user as Record<string, any>).profileVersion,
-    locationCommitted: (user as Record<string, any>).locationCommitted,
-    stateCode: (user as Record<string, any>).stateCode,
-    countyFips: (user as Record<string, any>).countyFips,
+    onboardingCompleted: record.onboardingCompleted,
+    profileVersion: record.profileVersion,
+    locationCommitted,
+    stateCode: locationCommitted ? record.stateCode : null,
+    countyFips: locationCommitted ? record.countyFips : null,
   });
 }
 
