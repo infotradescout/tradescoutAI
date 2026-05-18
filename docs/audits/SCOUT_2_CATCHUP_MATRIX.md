@@ -103,6 +103,7 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Scout home snapshot now exposes an `opportunityMoves` field built only from `county_metrics` rows, keeping Radar signals precomputed and source-labeled.
 - Scout home now renders an Opportunity Radar feed when real county move signals exist, with each card routing back into Scout prompts instead of direct contact.
 - Active Scout answers now receive `opportunityMoves` from the home snapshot and can render an Opportunity Radar result card that explains source-backed moves without exposing contact.
+- `docs/reference/scout/OPPORTUNITY_RADAR_CONTRACT.md` now records the Radar authority boundary, move shape, current `county_metrics` projection, and future expansion rules.
 - The normal Scout home now exposes a real capability map before chat starts.
 - Active Scout answers now add a "Full Scout view" result layer so users see planning, materials, prices, local help, trust checks, and alternatives after a query.
 - The Full Scout view now reflects the competitive adoption map: intake, local summaries, trust, materials, project continuity, and approval-gated action.
@@ -150,7 +151,7 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 
 ## Fastest Next Work
 
-1. Define a first `opportunity_moves` contract or county intelligence projection backed by `county_metrics`, `county_entities`, and `county_notes`.
+1. Expand Opportunity Radar beyond `county_metrics` only after `county_entities` and `county_notes` use has CVS/source/freshness handling.
 2. Add route-level canonical preference tests for `/businesses/apply`, `/business-dashboard`, and future `/business/requests`.
 3. Add generic admin/provider route aliases for business requests and settings while keeping legacy contractor URLs as redirects.
 4. Replace remaining user-facing contractor-only dashboard labels in legacy business-tool surfaces with generic business/provider language.
