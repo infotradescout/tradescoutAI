@@ -37,9 +37,10 @@ Scope: Business profiles, business tools, fixed-price offers, and legacy contrac
 - Legacy route/API/table migration is captured in `docs/audits/LEGACY_CONTRACTOR_NAMING_MIGRATION_PLAN.md`.
 - Generic business-provider API aliases are now preferred for provider search and Direct Connect targeting: `/api/business-providers/search`, `/api/business-providers/top`, and `targetProviderIds` are wired while legacy provider/contractor aliases remain compatibility handles.
 - Business-provider role/capability helpers now let server gates and navigation check for business-provider tool access instead of only checking the legacy `contractor_user` role string.
+- Remaining contractor-language surfaces are now classified in `docs/audits/LEGACY_CONTRACTOR_NAMING_MIGRATION_PLAN.md`, separating explicit trade SEO/compatibility exceptions from generic business/provider UI targets.
 
 ## Next Work
 
-1. Add route-level canonical preference tests for `/businesses/apply`, `/business-dashboard`, and future `/business/requests`.
-2. Add generic admin/provider route aliases for business requests and settings while keeping legacy contractor URLs as redirects.
-3. Replace remaining user-facing contractor-only dashboard labels in legacy business-tool surfaces with generic business/provider language.
+1. Split county SEO pages so generic local-help CTAs can coexist with explicit contractor keyword targeting.
+2. Plan the public profile URL migration from `/contractors/*` compatibility routes to generic business profile URLs.
+3. Continue replacing raw role checks with business-provider capability helpers in legacy tool routes.

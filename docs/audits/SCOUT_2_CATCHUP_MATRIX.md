@@ -152,8 +152,9 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Admin business-provider settings now prefer `/admin/business-provider-settings` and `/api/admin/business-provider-settings`, while legacy `/admin/contractors`, `/admin/contractor-settings`, and `/api/admin/contractor-settings` remain compatibility aliases.
 - Business/provider navigation, onboarding fallbacks, regional application links, and dashboard/request links now prefer `/business-dashboard`, `/businesses/apply`, and `/business/requests` while preserving legacy compatibility aliases.
 - Legacy business-tool dashboard labels, request verification prompts, profile creation prompts, and broad local-help CTAs now use generic business/provider language; explicit contractor SEO and compatibility surfaces remain documented migration exceptions.
+- Remaining contractor-language surfaces are now classified: county SEO and public contractor-profile URLs stay temporary exceptions, comparison CTAs and legacy tool access copy use generic local-help/business-provider language, and the recommendation generator now checks business-provider capability instead of only `contractor_user`.
 
 ## Fastest Next Work
 
 1. Expand Opportunity Radar beyond `county_metrics` only after `county_entities` and `county_notes` use has CVS/source/freshness handling.
-2. Audit explicit contractor SEO and compatibility surfaces to decide which should remain trade-specific and which should redirect into generic business/provider copy.
+2. Split county SEO pages so explicit contractor keyword targeting and generic local-help action copy can be tested independently.

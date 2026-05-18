@@ -342,7 +342,7 @@ const Documentation = memo(function Documentation() {
                       </div>
                       <h3 className="font-semibold text-white mb-2">Business Checklist</h3>
                       <p className="text-white/60 text-sm mb-4">
-                        Complete checklist for setting up your contractor profile
+                        Complete checklist for setting up your business profile
                       </p>
                       <Button size="sm" variant="outline" className="w-full">
                         <Download className="w-4 h-4 mr-2" />

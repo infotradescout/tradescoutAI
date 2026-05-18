@@ -311,7 +311,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                 </Link>
                 <Link href="/direct-connect">
                   <a className="inline-flex items-center gap-2 border border-white/20 text-white hover:bg-white/10 font-semibold px-5 h-10 rounded-lg transition-all text-sm">
-                    Find Contractors
+                    Find Local Help
                   </a>
                 </Link>
               </div>

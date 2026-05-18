@@ -201,6 +201,34 @@ describe("generic business profile and tool contracts", () => {
     expect(source).not.toContain("For Contractors");
   });
 
+  it("genericizes comparison CTAs and legacy provider tool access copy", () => {
+    const compareAngi = read("client/src/pages/compare-angi.tsx");
+    const compareHomeAdvisor = read("client/src/pages/compare-homeadvisor.tsx");
+    const compareLeadGeneration = read("client/src/pages/compare-lead-generation.tsx");
+    const recommendationGenerator = read(
+      "client/src/pages/contractor/recommendation-generator.tsx"
+    );
+    const documentation = read("client/src/pages/documentation.tsx");
+
+    const source = [
+      compareAngi,
+      compareHomeAdvisor,
+      compareLeadGeneration,
+      recommendationGenerator,
+      documentation,
+    ].join("\n");
+
+    expect(source).toContain("Find Local Help");
+    expect(source).toContain("Business Provider Access Only");
+    expect(source).toContain("hasBusinessProviderToolAccess(user)");
+    expect(source).toContain('Link href="/business-dashboard"');
+    expect(source).toContain("business profile");
+    expect(source).not.toContain(">Find Contractors<");
+    expect(source).not.toContain("Contractor Access Only");
+    expect(source).not.toContain('user.role !== "contractor_user"');
+    expect(source).not.toContain("contractor profile");
+  });
+
   it("genericizes stale help, onboarding, and tour copy", () => {
     const files = [
       "client/src/components/help/HelpSystem.tsx",
@@ -274,8 +302,15 @@ describe("generic business profile and tool contracts", () => {
     );
     expect(migrationPlan).toContain("Helper predicates such as `isBusinessProviderRole`");
     expect(migrationPlan).toContain("Do not break `/contractors/*` routes");
+    expect(migrationPlan).toContain("Remaining Contractor-Language Classification");
+    expect(migrationPlan).toContain("County SEO pages");
+    expect(migrationPlan).toContain("Public contractor profile pages");
+    expect(migrationPlan).toContain("Competitor comparison pages");
+    expect(migrationPlan).toContain("Genericize broad discovery CTAs");
     expect(audit).toContain("LEGACY_CONTRACTOR_NAMING_MIGRATION_PLAN.md");
+    expect(audit).toContain("Remaining contractor-language surfaces are now classified");
     expect(scoutMatrix).toContain("Business-provider API aliases are now the preferred path");
+    expect(scoutMatrix).toContain("Remaining contractor-language surfaces are now classified");
   });
 
   it("prefers business-provider API aliases while keeping legacy compatibility", () => {

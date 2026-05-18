@@ -23,6 +23,16 @@ Scope: Route, API, table, role, and UI names that still use contractor terminolo
 | APIs | `/api/contractors/*`, `targetContractorIds` | `/api/business-providers/*`, `targetProviderIds` | Initial aliases are in place for provider search/top-provider lookup and Direct Connect targeting; old API remains deprecated compatibility. |
 | SEO pages | trade pages with `Contractors` titles | trade-specific pages may retain contractor/trade language | Keep contractor wording only where query intent is explicitly trade/contractor. |
 
+## Remaining Contractor-Language Classification
+
+| Surface | Classification | Decision |
+| --- | --- | --- |
+| County SEO pages (`client/src/pages/county/CountyPage.tsx`) | temporary_exception | Keep contractor wording for explicit "contractors near me" search intent until county landing pages split generic local-help CTAs from trade SEO content. Owner: engineering. Removal/review date: 2026-08-31. |
+| Public contractor profile pages (`client/src/pages/contractor-profile.tsx`) | temporary_exception | Keep contractor wording while `/contractors/*` public profile URLs remain indexed compatibility surfaces. Owner: engineering. Removal/review date: 2026-08-31. |
+| Competitor comparison pages | policy_target | Genericize broad discovery CTAs to "Find Local Help" while allowing competitor/trade context in body copy where the page compares contractor lead models. |
+| Business-provider tools under legacy `/contractor/*` paths | policy_target | User-facing copy should say business provider/business dashboard; route/file names remain compatibility handles. |
+| Tests, comments, demos, and structured-data helper comments | temporary_exception | Keep only when documenting legacy behavior, test names, or implementation compatibility. Owner: engineering. Removal/review date: 2026-08-31. |
+
 ## Ordered Migration
 
 1. **Surface copy complete**
