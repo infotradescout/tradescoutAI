@@ -41,8 +41,8 @@ const professionalRoles = [
   {
     id: "contractor" as const,
     icon: Wrench,
-    title: "Contractor",
-    description: "Plumber, Electrician, HVAC, etc.",
+    title: "Business",
+    description: "Services, products, or local expertise",
     color: "orange",
   },
   {
@@ -222,7 +222,7 @@ export function RoleSelection({ onRoleSelect, userInfo, initialType }: RoleSelec
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">Homeowner Account</h3>
                   <p className="text-sm text-muted-foreground">
-                    Find contractors, get quotes, join your community
+                    Find local businesses, get quotes, join your community
                   </p>
                 </div>
               </div>

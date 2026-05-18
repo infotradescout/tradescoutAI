@@ -36,11 +36,11 @@ export default function Navigation() {
   const authNavItems = [
     { href: "/direct-connect", label: "Direct Connect", icon: ClipboardList },
     { href: "/scout", label: "Scout", icon: Calculator },
-    // Contractor-specific navigation keeps contractor tools available
+    // Business/provider navigation keeps provider tools available
     ...(isContractor
       ? [
-          { href: "/contractor-dashboard", label: "My Dashboard", icon: Building },
-          { href: "/contractors", label: "Contractors", icon: Users },
+          { href: "/business-owner-dashboard", label: "My Dashboard", icon: Building },
+          { href: "/direct-connect", label: "Local Requests", icon: Users },
         ]
       : []),
     ...(isAdmin ? [{ href: "/admin", label: "Admin", icon: BarChart3 }] : []),
@@ -93,7 +93,7 @@ export default function Navigation() {
                       Welcome, {user.firstName || user.email}
                     </span>
                     {isContractor && (
-                      <Badge className="bg-ts-orange/20 text-ts-orange text-xs">Contractor</Badge>
+                      <Badge className="bg-ts-orange/20 text-ts-orange text-xs">Business</Badge>
                     )}
                   </div>
                 )}
@@ -108,13 +108,13 @@ export default function Navigation() {
               </>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link href="/contractors/apply">
+                <Link href="/businesses/apply">
                   <Button
                     variant="outline"
                     size="sm"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                   >
-                    Join as Contractor
+                    Join as Business
                   </Button>
                 </Link>
                 <Button
@@ -176,7 +176,7 @@ export default function Navigation() {
                     Welcome, {user.firstName || user.email}
                     {isContractor && (
                       <Badge className="ml-2 bg-ts-orange/20 text-ts-orange text-xs">
-                        Contractor
+                        Business
                       </Badge>
                     )}
                   </div>
@@ -192,14 +192,14 @@ export default function Navigation() {
               </>
             ) : (
               <div className="space-y-2">
-                <Link href="/contractors/apply">
+                <Link href="/businesses/apply">
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"
                     onClick={() => setIsOpen(false)}
                   >
-                    Join as Contractor
+                    Join as Business
                   </Button>
                 </Link>
                 <Button

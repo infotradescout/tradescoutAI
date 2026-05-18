@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, X, BookOpen, Play, Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { useHelpSystemContext } from '@/components/help-system-provider';
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { HelpCircle, X, BookOpen, Play, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useHelpSystemContext } from "@/components/help-system-provider";
 
 export function FloatingHelpButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,7 +12,7 @@ export function FloatingHelpButton() {
     config: { enableTooltips: true, contextualHints: true, showOnboardingTour: false },
     updateConfig: () => {},
     startTour: () => {},
-    tours: {}
+    tours: {},
   };
   const context = useHelpSystemContext?.();
   const { config, updateConfig, startTour } = context || helpSystem;
@@ -29,26 +29,26 @@ export function FloatingHelpButton() {
 
   const helpOptions = [
     {
-      id: 'contractor-search',
-      title: 'Contractor Search Tour',
-      description: 'Learn how to find and connect with contractors',
+      id: "contractor-search",
+      title: "Local Help Tour",
+      description: "Learn how to find and connect with local businesses",
       icon: <Play className="w-4 h-4" />,
-      available: true
+      available: true,
     },
     {
-      id: 'daily-deals',
-      title: 'TradeDeals Tour', 
-      description: 'See how exclusive TradeDeals support real projects',
+      id: "daily-deals",
+      title: "TradeDeals Tour",
+      description: "See how exclusive TradeDeals support real projects",
       icon: <Play className="w-4 h-4" />,
-      available: true
+      available: true,
     },
     {
-      id: 'groups',
-      title: 'Groups Tour',
-      description: 'Join community discussions and groups',
+      id: "groups",
+      title: "Groups Tour",
+      description: "Join community discussions and groups",
       icon: <Play className="w-4 h-4" />,
-      available: true
-    }
+      available: true,
+    },
   ];
 
   return (
@@ -94,9 +94,7 @@ export function FloatingHelpButton() {
                           <div className="text-sm font-medium text-white group-hover:text-blue-400">
                             {option.title}
                           </div>
-                          <div className="text-xs text-white/60">
-                            {option.description}
-                          </div>
+                          <div className="text-xs text-white/60">{option.description}</div>
                         </div>
                       </div>
                     </button>

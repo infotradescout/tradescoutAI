@@ -21,6 +21,7 @@ import {
   getExchangeCategorySlugFromMarketplaceCategoryName,
 } from "@shared/exchangeListingRules";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
+import { pool } from "./db";
 import { storage } from "./storage";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -53,6 +54,66 @@ function formatPrice(price: number | string | null | undefined): string {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+const PROFILE_OFFER_EXCHANGE_ID_PREFIX = "profile-offer-";
+
+function fromProfileOfferExchangeId(id: string): string {
+  const value = String(id || "").trim();
+  return value.startsWith(PROFILE_OFFER_EXCHANGE_ID_PREFIX)
+    ? value.slice(PROFILE_OFFER_EXCHANGE_ID_PREFIX.length)
+    : "";
+}
+
+async function getProfileOfferExchangeListing(listingId: string): Promise<any | null> {
+  const profileOfferId = fromProfileOfferExchangeId(listingId);
+  if (!profileOfferId) return null;
+
+  try {
+    const result = await pool.query(
+      `SELECT po.*, u.first_name, u.last_name, u.city, u.state, u.state_code,
+              u.county, u.county_name, u.county_fips
+       FROM profile_offers po
+       JOIN users u ON u.id = po.seller_user_id
+       WHERE po.id = $1
+         AND po.is_active = true
+         AND po.offer_type = 'item'
+       LIMIT 1`,
+      [profileOfferId]
+    );
+    const row = result.rows[0];
+    if (!row) return null;
+    const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+    return {
+      id: listingId,
+      title: row.title,
+      description: row.description || "Fixed-price item available from this TradeScout profile.",
+      price: row.price,
+      city: row.city,
+      state: row.state_code || row.state,
+      county: row.county_name || row.county,
+      condition: metadata.condition || "new",
+      images: Array.isArray(metadata.images) ? metadata.images : [],
+      specifications: {
+        source: "profile_offer",
+        profileOfferId,
+        fulfillmentMode: row.fulfillment_mode,
+        itemSku: row.item_sku || undefined,
+        itemCategory: metadata.itemCategory || metadata.exchangeCategorySlug || undefined,
+        taxCategory: metadata.taxCategory || undefined,
+        fulfillmentPolicy: metadata.fulfillmentPolicy || undefined,
+        returnPolicy: metadata.returnPolicy || undefined,
+        reviewRequired: true,
+      },
+      sellerName:
+        `${String(row.first_name || "").trim()} ${String(row.last_name || "").trim()}`.trim(),
+      sourceType: "profile_offer",
+    };
+  } catch (error: any) {
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("profile_offers") || error?.code === "42P01") return null;
+    throw error;
+  }
 }
 
 // ─── category name → slug resolution ─────────────────────────────────────────
@@ -220,6 +281,22 @@ function buildProductJsonLd(listing: any, origin: string, listingUrl: string, im
 
   if (listing.brand) jsonLd.brand = { "@type": "Brand", name: listing.brand };
   if (listing.model) jsonLd.model = listing.model;
+  const specs = listing.specifications || {};
+  const extraProperties = [
+    specs.itemCategory
+      ? { "@type": "PropertyValue", name: "Item category", value: specs.itemCategory }
+      : null,
+    specs.taxCategory
+      ? { "@type": "PropertyValue", name: "Tax category", value: specs.taxCategory }
+      : null,
+    specs.fulfillmentPolicy
+      ? { "@type": "PropertyValue", name: "Fulfillment policy", value: specs.fulfillmentPolicy }
+      : null,
+    specs.returnPolicy
+      ? { "@type": "PropertyValue", name: "Return policy", value: specs.returnPolicy }
+      : null,
+  ].filter(Boolean);
+  if (extraProperties.length) jsonLd.additionalProperty = extraProperties;
   if (listing.condition) {
     const condMap: Record<string, string> = {
       new: "https://schema.org/NewCondition",
@@ -267,7 +344,9 @@ export async function buildPublicExchangeListingHtml(
   // Fetch the listing from the database
   let listing: any;
   try {
-    listing = await storage.getMarketplaceListing(listingId);
+    listing =
+      (await getProfileOfferExchangeListing(listingId)) ||
+      (await storage.getMarketplaceListing(listingId));
   } catch {
     return null;
   }

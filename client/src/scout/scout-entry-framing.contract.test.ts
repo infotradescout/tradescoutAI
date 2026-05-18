@@ -57,6 +57,10 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Find local help");
     expect(experienceSource).toContain("Materials");
     expect(experienceSource).toContain("Prices and trends");
+    expect(experienceSource).toContain("Exchange");
+    expect(experienceSource).toContain("HomeScout");
+    expect(experienceSource).toContain("Community Vault");
+    expect(experienceSource).toContain("Finance tools");
     expect(experienceSource).toContain("Compare options");
     expect(experienceSource).toContain("Trust checks");
     expect(experienceSource).toContain("Saved conversations");
@@ -67,6 +71,14 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Full Scout view");
     expect(experienceSource).toContain("Materials and local options");
     expect(experienceSource).toContain("Price and trend checks");
+    expect(experienceSource).toContain("Exchange options");
+    expect(experienceSource).toContain("HomeScout and Home Vault");
+    expect(experienceSource).toContain("Community Vault context");
+    expect(experienceSource).toContain("Finance tools and bookkeeping");
+    expect(experienceSource).toContain("/homescout-listings");
+    expect(experienceSource).toContain("/foundation");
+    expect(experienceSource).toContain("/finances/records");
+    expect(experienceSource).toContain("bookkeeping system still needs rebuild work");
     expect(experienceSource).toContain("supplierUrl=");
     expect(experienceSource).toContain("Supplier page read");
     expect(experienceSource).toContain("Supplier page needs review");
@@ -77,8 +89,19 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Verified local help");
     expect(experienceSource).toContain("Local trend signal");
     expect(experienceSource).toContain("priceSignals");
+    expect(experienceSource).toContain("formatPriceSignalFreshness");
+    expect(experienceSource).toContain("formatPriceSignalSource");
+    expect(experienceSource).toContain("priceSignalEvidenceSources");
+    expect(experienceSource).toContain("Snapshot freshness unavailable");
+    expect(homeSource).toContain("Price signal freshness");
+    expect(homeSource).toContain("Opportunity Radar");
+    expect(homeSource).toContain("OpportunityMoveItem");
+    expect(homeSource).toContain("formatPriceSignalFreshness(signal.updatedAt)");
+    expect(homeSource).toContain("formatPriceSignalSource(signal)");
     expect(scoutOsSource).toContain("priceSignals: Array.isArray(data?.priceSignals)");
     expect(scoutOsSource).toContain("sourceSignals: scoutSourceSignalsQuery.data");
+    expect(scoutOsSource).toContain("priceSignalEvidenceSources");
+    expect(scoutOsSource).toContain("provenance.sourceTitles");
     expect(experienceSource).not.toContain("Scout Vault");
     expect(experienceSource).not.toContain("LISA");
   });
@@ -109,14 +132,26 @@ describe("Scout entry framing contracts", () => {
     const routeSource = read("server/routes/scout-home-snapshot.ts");
 
     expect(routeSource).toContain("interface PriceSignal");
+    expect(routeSource).toContain("interface OpportunityMove");
     expect(routeSource).toContain("getCountyPriceSignals");
+    expect(routeSource).toContain("getCountyOpportunityMoves");
     expect(routeSource).toContain(".from(countyMetrics)");
     expect(routeSource).toContain("homescout_median_price");
     expect(routeSource).toContain("tradedeals_claimed_30d");
     expect(routeSource).toContain("completed_jobs_30d");
     expect(routeSource).toContain("completed_job_median_receipt_usd_30d");
     expect(routeSource).toContain("Completed job median receipt");
+    expect(routeSource).toContain("updatedAt: countyMetrics.updatedAt");
+    expect(routeSource).toContain("sourceLabel");
+    expect(routeSource).toContain("sourceKind");
+    expect(routeSource).toContain("confidence");
+    expect(routeSource).toContain("First-party completed-job receipts");
     expect(routeSource).toContain("priceSignals");
+    expect(routeSource).toContain("opportunityMoves");
+    expect(routeSource).toContain("sourceMetricKeys");
+    expect(routeSource).toContain("completed-job-demand");
+    expect(routeSource).toContain("tradedeals-fast-win");
+    expect(routeSource).toContain("community-partnership-window");
     expect(routeSource).not.toContain("pricingData");
     expect(routeSource).not.toContain("from(documents)");
     expect(routeSource).not.toContain("job_id");
@@ -142,6 +177,27 @@ describe("Scout entry framing contracts", () => {
     expect(scheduler).toContain("completed_job_price_snapshots");
     expect(packageJson).toContain("snapshot:completed-job-prices");
     expect(runbook).toContain("Do not derive completed-job pricing directly from `documents`");
+  });
+
+  it("saved Scout conversation labels refresh from owned summary endpoints without changing storage shape", () => {
+    const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+    const routeSource = read("server/routes.ts");
+
+    expect(scoutOsSource).toContain("metadata: {");
+    expect(scoutOsSource).toContain("relatedLabel: thread.relatedLabel");
+    expect(scoutOsSource).toContain("relatedTo: thread.relatedTo");
+    expect(routeSource).toContain("refreshScoutConversationRelatedLabels");
+    expect(routeSource).toContain("loadScoutConversationRelatedLabels");
+    expect(routeSource).toContain("scoutConversationSurfaceFilter");
+    expect(routeSource).toContain("scoutConversationSurfaceWhere");
+    expect(routeSource).toContain("req.query.surface");
+    expect(routeSource).toContain("userHomes.ownerUserId");
+    expect(routeSource).toContain("userVehicles.ownerUserId");
+    expect(routeSource).toContain("commercialProjects.createdByUserId");
+    expect(routeSource).toContain("homeProjects.ownerUserId");
+    expect(routeSource).toContain("homeProjectSavedConversationLabel");
+    expect(routeSource).toContain("FROM accounting_clients");
+    expect(routeSource).toContain("relatedLabelRefreshedAt");
   });
 
   it("Scout 2 catch-up matrix keeps every showcase claim tied to a real state", () => {
@@ -198,6 +254,10 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("Findings and recommended paths");
     expect(scoutOsSource).toContain("Recommended paths appear below");
     expect(scoutOsSource).toContain("Search saved conversations");
+    expect(scoutOsSource).toContain("SAVED_SCOUT_SURFACE_FILTERS");
+    expect(scoutOsSource).toContain("savedScoutSurfaceFilter");
+    expect(scoutOsSource).toContain("savedConversationQueryUrl");
+    expect(scoutOsSource).toContain('params.set("surface", surface)');
     expect(scoutOsSource).toContain("Related to");
     expect(scoutOsSource).toContain("Open related view");
     expect(scoutOsSource).toContain("relatedPath");
@@ -205,6 +265,7 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("cluster.primaryAction");
     expect(scoutOsSource).toContain("...(Array.isArray(cluster.actions) ? cluster.actions : [])");
     expect(scoutOsSource).toContain("projectId");
+    expect(scoutOsSource).toContain('surface: "home_project"');
     expect(scoutOsSource).toContain("contactId");
     expect(scoutOsSource).toContain("data.relatedTo");
     expect(scoutOsSource).toContain("projectLabelFromPayload");
@@ -212,9 +273,10 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain("vehicleLabelFromPayload");
     expect(scoutOsSource).toContain("clientLabelFromPayload");
     expect(scoutOsSource).toContain("/homes?homeId=");
+    expect(scoutOsSource).toContain("&projectId=");
     expect(scoutOsSource).toContain("/vehicles?vehicleId=");
     expect(scoutOsSource).toContain("countyFips");
-    expect(scoutOsSource).toContain("/api/scout/conversations?q=");
+    expect(scoutOsSource).toContain("savedConversationQueryUrl");
     expect(scoutOsSource).toContain('title: "Recommended paths"');
   });
 
@@ -224,6 +286,9 @@ describe("Scout entry framing contracts", () => {
 
     expect(homesSource).toContain("initialHomeIdFromUrl");
     expect(homesSource).toContain('get("homeId")');
+    expect(homesSource).toContain("initialProjectIdFromUrl");
+    expect(homesSource).toContain('get("projectId")');
+    expect(homesSource).toContain("data-project-id");
     expect(vehiclesSource).toContain("initialVehicleIdFromUrl");
     expect(vehiclesSource).toContain('get("vehicleId")');
   });

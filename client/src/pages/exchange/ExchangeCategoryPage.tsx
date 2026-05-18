@@ -67,6 +67,9 @@ type ExchangeItem = {
   favorites: number;
   isLocalPickupOnly: boolean;
   shippingCost: number | null;
+  sourceType?: string;
+  profileOfferId?: string;
+  publicProfilePath?: string;
   // Category-specific spec fields
   year?: number;
   mileage?: number;
@@ -591,6 +594,8 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {filteredItems.map((item) => {
                   const isFaved = favoriteSet.has(item.id);
+                  const isProfileOffer = item.sourceType === "profile_offer";
+                  const detailPath = `/exchange/${config.slug}/${item.id}`;
                   return (
                     <Card
                       key={item.id}
@@ -599,10 +604,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                       }`}
                     >
                       {/* Image — click to open detail page */}
-                      <div
-                        className="cursor-pointer"
-                        onClick={() => navigate(`/exchange/${config.slug}/${item.id}`)}
-                      >
+                      <div className="cursor-pointer" onClick={() => navigate(detailPath)}>
                         {item.images.length > 0 ? (
                           <div className="aspect-video bg-black/40 overflow-hidden">
                             <img
@@ -631,7 +633,7 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <h3
                             className="text-sm font-semibold text-white line-clamp-2 leading-snug flex-1 cursor-pointer hover:text-ts-orange transition-colors"
-                            onClick={() => navigate(`/exchange/${config.slug}/${item.id}`)}
+                            onClick={() => navigate(detailPath)}
                           >
                             {item.title}
                           </h3>
@@ -764,23 +766,25 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
 
                           {/* Action buttons */}
                           <div className="flex items-center gap-1 shrink-0">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className={`h-7 w-7 p-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
-                              onClick={() => {
-                                if (!isAuthenticated) {
-                                  navigate("/pre-scout-setup?mode=signin");
-                                  return;
-                                }
-                                toggleFavoriteMutation.mutate({
-                                  listingId: item.id,
-                                  wasSaved: isFaved,
-                                });
-                              }}
-                            >
-                              <Heart className={`h-3.5 w-3.5 ${isFaved ? "fill-current" : ""}`} />
-                            </Button>
+                            {!isProfileOffer && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className={`h-7 w-7 p-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
+                                onClick={() => {
+                                  if (!isAuthenticated) {
+                                    navigate("/pre-scout-setup?mode=signin");
+                                    return;
+                                  }
+                                  toggleFavoriteMutation.mutate({
+                                    listingId: item.id,
+                                    wasSaved: isFaved,
+                                  });
+                                }}
+                              >
+                                <Heart className={`h-3.5 w-3.5 ${isFaved ? "fill-current" : ""}`} />
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="ghost"
@@ -792,10 +796,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                             <Button
                               size="sm"
                               className="h-7 px-2.5 bg-ts-orange hover:bg-ts-orange-dark text-[11px]"
-                              onClick={() => navigate(`/exchange/${config.slug}/${item.id}`)}
+                              onClick={() => navigate(detailPath)}
                             >
                               <MessageSquare className="h-3 w-3 mr-1" />
-                              View
+                              {isProfileOffer ? "Buy" : "View"}
                             </Button>
                           </div>
                         </div>

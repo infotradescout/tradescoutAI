@@ -753,7 +753,7 @@ function DirectConnectRequestComposer({
     DirectoryCandidate[]
   >({
     queryKey: [
-      "/api/providers/search",
+      "/api/business-providers/search",
       "direct-connect-send-selector",
       defaultCountyFips,
       directorySearch,
@@ -769,7 +769,10 @@ function DirectConnectRequestComposer({
       const fallbackQuery = title.trim().length >= 2 ? title.trim() : "";
       const query = directorySearch.trim().length > 0 ? directorySearch.trim() : fallbackQuery;
       if (query) params.set("query", query);
-      const payload = await apiRequest("GET", `/api/providers/search?${params.toString()}`);
+      const payload = await apiRequest(
+        "GET",
+        `/api/business-providers/search?${params.toString()}`
+      );
       return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
     },
   });
@@ -801,7 +804,7 @@ function DirectConnectRequestComposer({
 
   const createMutation = useMutation({
     mutationFn: async (dispatch?: {
-      targetContractorIds?: string[];
+      targetProviderIds?: string[];
       autoRoute?: boolean;
       dispatchMode?: DispatchMode;
       dispatchCount?: number;
@@ -829,8 +832,8 @@ function DirectConnectRequestComposer({
       if (Number.isFinite(min) && min > 0) payload.budgetMin = min;
       if (Number.isFinite(max) && max > 0) payload.budgetMax = max;
       if (prefillTradeId?.trim()) payload.tradeId = prefillTradeId.trim();
-      if (dispatch?.targetContractorIds?.length) {
-        payload.targetContractorIds = Array.from(new Set(dispatch.targetContractorIds));
+      if (dispatch?.targetProviderIds?.length) {
+        payload.targetProviderIds = Array.from(new Set(dispatch.targetProviderIds));
         payload.autoRoute = false;
       } else if (typeof dispatch?.autoRoute === "boolean") {
         payload.autoRoute = dispatch.autoRoute;
@@ -840,8 +843,8 @@ function DirectConnectRequestComposer({
     },
     onSuccess: (_, variables) => {
       const attachmentCount = attachmentsRef.current.length;
-      const selectedCount = Array.isArray(variables?.targetContractorIds)
-        ? variables.targetContractorIds.length
+      const selectedCount = Array.isArray(variables?.targetProviderIds)
+        ? variables.targetProviderIds.length
         : 0;
       trackShellEvent({
         type: "scout_query",
@@ -977,18 +980,18 @@ function DirectConnectRequestComposer({
   };
 
   const handleSendWithSelection = () => {
-    const targetContractorIds = Array.from(new Set(selectedContractorIds));
+    const targetProviderIds = Array.from(new Set(selectedContractorIds));
     createMutation.mutate({
-      targetContractorIds,
+      targetProviderIds,
       autoRoute: false,
       dispatchMode,
-      dispatchCount: dispatchMode === "top_count" ? dispatchCount : targetContractorIds.length,
+      dispatchCount: dispatchMode === "top_count" ? dispatchCount : targetProviderIds.length,
     });
   };
 
   const handleSkipAndAutoRoute = () => {
     createMutation.mutate({
-      targetContractorIds: [],
+      targetProviderIds: [],
       autoRoute: true,
       dispatchMode,
       dispatchCount: 0,
@@ -1974,7 +1977,7 @@ function MyDirectConnectRequests() {
     DirectoryCandidate[]
   >({
     queryKey: [
-      "/api/providers/search",
+      "/api/business-providers/search",
       "direct-connect-reroute-selector",
       activeRouteRequest?.id || null,
       activeRouteRequest?.countyFips || null,
@@ -1991,7 +1994,10 @@ function MyDirectConnectRequests() {
       if (activeRouteRequest?.tradeId) params.set("trade", String(activeRouteRequest.tradeId));
       const query = routeDirectorySearch.trim();
       if (query) params.set("query", query);
-      const payload = await apiRequest("GET", `/api/providers/search?${params.toString()}`);
+      const payload = await apiRequest(
+        "GET",
+        `/api/business-providers/search?${params.toString()}`
+      );
       return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
     },
   });
@@ -2024,11 +2030,11 @@ function MyDirectConnectRequests() {
   const routeMutation = useMutation({
     mutationFn: async (payload: {
       requestId: string;
-      targetContractorIds?: string[];
+      targetProviderIds?: string[];
       autoRoute?: boolean;
     }) => {
       return apiRequest("POST", `/api/direct-connect/requests/${payload.requestId}/route`, {
-        targetContractorIds: payload.targetContractorIds,
+        targetProviderIds: payload.targetProviderIds,
         autoRoute: payload.autoRoute,
       });
     },
@@ -2142,7 +2148,7 @@ function MyDirectConnectRequests() {
     if (!activeRouteRequest?.id) return;
     routeMutation.mutate({
       requestId: activeRouteRequest.id,
-      targetContractorIds: Array.from(new Set(selectedRouteContractorIds)),
+      targetProviderIds: Array.from(new Set(selectedRouteContractorIds)),
       autoRoute: false,
     });
   };
@@ -2151,7 +2157,7 @@ function MyDirectConnectRequests() {
     if (!activeRouteRequest?.id) return;
     routeMutation.mutate({
       requestId: activeRouteRequest.id,
-      targetContractorIds: [],
+      targetProviderIds: [],
       autoRoute: true,
     });
   };

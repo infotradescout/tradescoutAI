@@ -3,6 +3,7 @@ import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getUserColorScheme } from "@shared/colorPresets";
 import { ThemeScope } from "@/components/theme/ThemeScope";
 import { UserBadges } from "@/components/user-badges";
@@ -19,6 +20,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { USER_TYPES } from "@shared/userTypes";
+import {
+  TRADESCOUT_TRANSACTION_FEE_LABEL,
+  TRADESCOUT_TRANSACTION_FEE_USD,
+} from "@shared/platformRevenue";
 import {
   MapPin,
   Calendar,
@@ -112,8 +117,29 @@ interface CommunityPostSummary {
   category?: string | null;
 }
 
+interface ProfileOfferSummary {
+  id: string;
+  title: string;
+  description?: string | null;
+  offerType: "service" | "item";
+  price: number;
+  currency: string;
+  fulfillmentMode: string;
+  shippingCost: number;
+  itemStockQuantity?: number | null;
+  metadata?: {
+    itemCategory?: string;
+    taxCategory?: string;
+    fulfillmentPolicy?: string;
+    returnPolicy?: string;
+    imageUrls?: string[];
+    images?: string[];
+  };
+}
+
 const COMMUNITY_BUILDER_BADGE_LABEL = "Community Builder Badge";
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const TRADESCOUT_TRANSACTION_FEE = TRADESCOUT_TRANSACTION_FEE_USD;
 
 export default function PublicProfileView() {
   const { user } = useAuth();
@@ -124,6 +150,7 @@ export default function PublicProfileView() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [sellerProducts, setSellerProducts] = useState<SellerProductSummary[]>([]);
+  const [profileOffers, setProfileOffers] = useState<ProfileOfferSummary[]>([]);
   const [sellerRatings, setSellerRatings] = useState<SellerRatingsSummary | null>(null);
   const [communityPosts, setCommunityPosts] = useState<CommunityPostSummary[]>([]);
   const profileThemeIdRef = useRef<string | null>(null);
@@ -131,6 +158,14 @@ export default function PublicProfileView() {
   const [kickReason, setKickReason] = useState("");
   const [kicking, setKicking] = useState(false);
   const [isUpdatingConnection, setIsUpdatingConnection] = useState(false);
+  const [purchasingOfferId, setPurchasingOfferId] = useState<string | null>(null);
+  const [purchaseDialogOffer, setPurchaseDialogOffer] = useState<ProfileOfferSummary | null>(null);
+  const [purchaseQuantity, setPurchaseQuantity] = useState("1");
+  const [shippingName, setShippingName] = useState("");
+  const [shippingLine1, setShippingLine1] = useState("");
+  const [shippingCity, setShippingCity] = useState("");
+  const [shippingState, setShippingState] = useState("");
+  const [shippingPostalCode, setShippingPostalCode] = useState("");
   const [badgeModalOpen, setBadgeModalOpen] = useState(false);
 
   useEffect(() => {
@@ -182,6 +217,12 @@ export default function PublicProfileView() {
   }, [params?.userId, navigate]);
 
   const profileThemeId = profileThemeIdRef.current;
+  const purchaseDialogQuantity = Math.max(1, Math.floor(Number(purchaseQuantity) || 1));
+  const purchaseDialogTotal = purchaseDialogOffer
+    ? purchaseDialogOffer.price * purchaseDialogQuantity +
+      (purchaseDialogOffer.fulfillmentMode === "shipping" ? purchaseDialogOffer.shippingCost : 0) +
+      TRADESCOUT_TRANSACTION_FEE
+    : 0;
 
   const roleTokens = (() => {
     const tokens: string[] = [];
@@ -295,6 +336,44 @@ export default function PublicProfileView() {
         } catch (err) {
           if (!(err instanceof DOMException && err.name === "AbortError")) {
             console.error("Error fetching seller trust summary for profile:", err);
+          }
+        }
+
+        // Fixed-price profile offers. Services create guided work requests; items create receipt
+        // and fulfillment/accounting review records after buyer intent.
+        try {
+          const res = await fetch(
+            `/api/profile-offers?sellerUserId=${encodeURIComponent(userId)}`,
+            {
+              credentials: "include",
+              signal,
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.offers)) {
+              setProfileOffers(
+                data.offers.map((offer: any) => ({
+                  id: String(offer.id),
+                  title: String(offer.title || ""),
+                  description: offer.description || null,
+                  offerType: offer.offerType === "item" ? "item" : "service",
+                  price: Number(offer.price || 0),
+                  currency: String(offer.currency || "USD"),
+                  fulfillmentMode: String(offer.fulfillmentMode || "manual_review"),
+                  shippingCost: Number(offer.shippingCost || 0),
+                  itemStockQuantity:
+                    offer.itemStockQuantity === null || offer.itemStockQuantity === undefined
+                      ? null
+                      : Number(offer.itemStockQuantity),
+                  metadata: offer.metadata || {},
+                }))
+              );
+            }
+          }
+        } catch (err) {
+          if (!(err instanceof DOMException && err.name === "AbortError")) {
+            console.error("Error fetching fixed-price profile offers:", err);
           }
         }
 
@@ -481,6 +560,117 @@ export default function PublicProfileView() {
     if (!paidBookings || bookingPriceUsd <= 0 || !profile?.id) return;
     const description = encodeURIComponent(`Booking deposit for ${displayName}`);
     window.location.href = `/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${description}`;
+  };
+
+  const handlePurchaseProfileOffer = async (
+    offer: ProfileOfferSummary,
+    options?: { quantity?: number; shippingAddress?: Record<string, string> | null }
+  ) => {
+    if (!profile?.id) return;
+    if (!user) {
+      window.location.href = `/pre-scout-setup?mode=create&next=${encodeURIComponent(
+        `/profile/${profile.id}`
+      )}`;
+      return;
+    }
+    if (viewerIsSelf || purchasingOfferId) return;
+
+    setPurchasingOfferId(offer.id);
+    try {
+      const response = await fetch(`/api/profile-offers/${encodeURIComponent(offer.id)}/purchase`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          quantity: options?.quantity || 1,
+          shippingAddress: options?.shippingAddress || undefined,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data?.error || data?.message || "Purchase request failed");
+      }
+
+      toast({
+        title: offer.offerType === "service" ? "Job flow created" : "Purchase recorded",
+        description:
+          offer.offerType === "service"
+            ? "TradeScout created a guided work request and seller accounting review."
+            : "TradeScout created receipt, fulfillment, and seller accounting review records.",
+      });
+      if (offer.offerType === "item" && data?.purchase?.id) {
+        navigate(`/profile-purchases/${encodeURIComponent(String(data.purchase.id))}`);
+      }
+      setPurchaseDialogOffer(null);
+      setPurchaseQuantity("1");
+      setShippingName("");
+      setShippingLine1("");
+      setShippingCity("");
+      setShippingState("");
+      setShippingPostalCode("");
+    } catch (err: any) {
+      toast({
+        title: "Purchase request failed",
+        description: formatUserFacingErrorMessage(err, "Failed to start purchase"),
+        variant: "destructive",
+      });
+    } finally {
+      setPurchasingOfferId(null);
+    }
+  };
+
+  const openPurchaseDialog = (offer: ProfileOfferSummary) => {
+    if (!user) {
+      void handlePurchaseProfileOffer(offer);
+      return;
+    }
+    setPurchaseDialogOffer(offer);
+    setPurchaseQuantity("1");
+  };
+
+  const submitPurchaseDialog = () => {
+    if (!purchaseDialogOffer) return;
+    const quantity = Math.max(1, Math.floor(Number(purchaseQuantity) || 1));
+    const needsShipping = purchaseDialogOffer.fulfillmentMode === "shipping";
+    const shippingAddress = needsShipping
+      ? {
+          name: shippingName.trim(),
+          line1: shippingLine1.trim(),
+          city: shippingCity.trim(),
+          state: shippingState.trim(),
+          postalCode: shippingPostalCode.trim(),
+        }
+      : null;
+
+    if (
+      needsShipping &&
+      (!shippingAddress?.name ||
+        !shippingAddress.line1 ||
+        !shippingAddress.city ||
+        !shippingAddress.state ||
+        !shippingAddress.postalCode)
+    ) {
+      toast({
+        title: "Shipping details needed",
+        description: "Add a shipping name and address before continuing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (
+      purchaseDialogOffer.itemStockQuantity !== null &&
+      purchaseDialogOffer.itemStockQuantity !== undefined &&
+      quantity > purchaseDialogOffer.itemStockQuantity
+    ) {
+      toast({
+        title: "Not enough stock",
+        description: `This seller has ${purchaseDialogOffer.itemStockQuantity} available.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    void handlePurchaseProfileOffer(purchaseDialogOffer, { quantity, shippingAddress });
   };
 
   const handleToggleConnection = async () => {
@@ -917,59 +1107,170 @@ export default function PublicProfileView() {
             </Card>
 
             {/* Services / offerings */}
-            {showServices && (servicesDescription || sellerProducts.length > 0) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShoppingBag
-                      className="h-5 w-5"
-                      style={{ color: "var(--user-primary, #f97316)" }}
-                    />
-                    Services & offerings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm">
-                    {servicesDescription && (
-                      <p className="whitespace-pre-wrap">{servicesDescription}</p>
-                    )}
+            {showServices &&
+              (servicesDescription || profileOffers.length > 0 || sellerProducts.length > 0) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ShoppingBag
+                        className="h-5 w-5"
+                        style={{ color: "var(--user-primary, #f97316)" }}
+                      />
+                      Services & offerings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 text-sm">
+                      {servicesDescription && (
+                        <p className="whitespace-pre-wrap">{servicesDescription}</p>
+                      )}
 
-                    {sellerProducts.length > 0 && (
-                      <>
-                        {servicesDescription && (
-                          <p className="text-xs opacity-70 mt-2">
-                            Examples from this member&apos;s marketplace listings:
-                          </p>
-                        )}
-                        {sellerProducts.slice(0, 3).map((product) => (
-                          <div key={product.id} className="flex justify-between items-center gap-3">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{product.title}</p>
-                              {(product.city || product.stateCode) && (
-                                <p className="text-xs opacity-70 truncate flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  <span>
-                                    {[product.city, product.stateCode].filter(Boolean).join(", ")}
-                                  </span>
-                                </p>
-                              )}
+                      {profileOffers.length > 0 && (
+                        <div className="space-y-2">
+                          {profileOffers.slice(0, 6).map((offer) => {
+                            const amount = new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: offer.currency || "USD",
+                            }).format(offer.price);
+                            const fulfillmentLabel =
+                              offer.offerType === "service"
+                                ? "Service"
+                                : offer.fulfillmentMode === "shipping"
+                                  ? "Item plus shipping"
+                                  : "Item";
+                            const offerImages =
+                              offer.metadata?.imageUrls || offer.metadata?.images || [];
+                            return (
+                              <div
+                                key={offer.id}
+                                className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  {offerImages[0] ? (
+                                    <div className="h-16 w-20 shrink-0 overflow-hidden rounded-md border border-[color:var(--border-subtle)] bg-black/10">
+                                      <img
+                                        src={offerImages[0]}
+                                        alt={offer.title}
+                                        className="h-full w-full object-cover"
+                                        loading="lazy"
+                                      />
+                                    </div>
+                                  ) : null}
+                                  <div className="min-w-0">
+                                    <div className="font-semibold break-words">{offer.title}</div>
+                                    {offer.description ? (
+                                      <p className="mt-1 line-clamp-2 text-xs opacity-75">
+                                        {offer.description}
+                                      </p>
+                                    ) : null}
+                                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs opacity-75">
+                                      <Badge variant="outline">{fulfillmentLabel}</Badge>
+                                      {offer.offerType === "item" &&
+                                      offer.metadata?.itemCategory ? (
+                                        <Badge variant="outline">
+                                          {offer.metadata.itemCategory}
+                                        </Badge>
+                                      ) : null}
+                                      {offer.shippingCost > 0 ? (
+                                        <span>
+                                          Shipping{" "}
+                                          {new Intl.NumberFormat("en-US", {
+                                            style: "currency",
+                                            currency: offer.currency || "USD",
+                                          }).format(offer.shippingCost)}
+                                        </span>
+                                      ) : null}
+                                      {offer.offerType === "item" &&
+                                      offer.itemStockQuantity !== null &&
+                                      offer.itemStockQuantity !== undefined ? (
+                                        <span>{offer.itemStockQuantity} available</span>
+                                      ) : null}
+                                      {offer.offerType === "item" && offer.metadata?.taxCategory ? (
+                                        <span>Tax: {offer.metadata.taxCategory}</span>
+                                      ) : null}
+                                    </div>
+                                    {offer.offerType === "item" &&
+                                    (offer.metadata?.fulfillmentPolicy ||
+                                      offer.metadata?.returnPolicy) ? (
+                                      <div className="mt-2 space-y-1 text-xs opacity-70">
+                                        {offer.metadata.fulfillmentPolicy ? (
+                                          <p className="line-clamp-2">
+                                            Fulfillment: {offer.metadata.fulfillmentPolicy}
+                                          </p>
+                                        ) : null}
+                                        {offer.metadata.returnPolicy ? (
+                                          <p className="line-clamp-2">
+                                            Returns: {offer.metadata.returnPolicy}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                  <div className="shrink-0 text-right">
+                                    <div className="font-bold">{amount}</div>
+                                    <Button
+                                      size="sm"
+                                      className="mt-2"
+                                      onClick={() =>
+                                        offer.offerType === "service"
+                                          ? handlePurchaseProfileOffer(offer)
+                                          : openPurchaseDialog(offer)
+                                      }
+                                      disabled={viewerIsSelf || purchasingOfferId === offer.id}
+                                    >
+                                      {purchasingOfferId === offer.id
+                                        ? "Starting..."
+                                        : offer.offerType === "service"
+                                          ? "Start Job"
+                                          : "Buy"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {sellerProducts.length > 0 && (
+                        <>
+                          {(servicesDescription || profileOffers.length > 0) && (
+                            <p className="text-xs opacity-70 mt-2">
+                              Examples from this member&apos;s marketplace listings:
+                            </p>
+                          )}
+                          {sellerProducts.slice(0, 3).map((product) => (
+                            <div
+                              key={product.id}
+                              className="flex justify-between items-center gap-3"
+                            >
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{product.title}</p>
+                                {(product.city || product.stateCode) && (
+                                  <p className="text-xs opacity-70 truncate flex items-center gap-1">
+                                    <MapPin className="h-3 w-3" />
+                                    <span>
+                                      {[product.city, product.stateCode].filter(Boolean).join(", ")}
+                                    </span>
+                                  </p>
+                                )}
+                              </div>
+                              <div className="ml-2 text-right">
+                                <span className="text-sm font-semibold">
+                                  {new Intl.NumberFormat("en-US", {
+                                    style: "currency",
+                                    currency: "USD",
+                                  }).format(parseFloat(product.price || "0"))}
+                                </span>
+                              </div>
                             </div>
-                            <div className="ml-2 text-right">
-                              <span className="text-sm font-semibold">
-                                {new Intl.NumberFormat("en-US", {
-                                  style: "currency",
-                                  currency: "USD",
-                                }).format(parseFloat(product.price || "0"))}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
             {/* Marketplace summary (handmade listings) */}
             {showMarketplaceListings && sellerProducts.length > 0 && (
@@ -1143,6 +1444,155 @@ export default function PublicProfileView() {
               </div>
             )}
           </div>
+
+          <Dialog
+            open={Boolean(purchaseDialogOffer)}
+            onOpenChange={(open) => !open && setPurchaseDialogOffer(null)}
+          >
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Review purchase</DialogTitle>
+                <DialogDescription>
+                  TradeScout will create receipt, fulfillment, and seller accounting review records.
+                </DialogDescription>
+              </DialogHeader>
+              {purchaseDialogOffer ? (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                    <div className="font-semibold">{purchaseDialogOffer.title}</div>
+                    <div className="mt-1 text-sm opacity-70">
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: purchaseDialogOffer.currency || "USD",
+                      }).format(purchaseDialogOffer.price)}
+                      {purchaseDialogOffer.shippingCost > 0
+                        ? ` + ${new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: purchaseDialogOffer.currency || "USD",
+                          }).format(purchaseDialogOffer.shippingCost)} shipping`
+                        : ""}
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="purchase-quantity">Quantity</Label>
+                    <Input
+                      id="purchase-quantity"
+                      value={purchaseQuantity}
+                      onChange={(event) => setPurchaseQuantity(event.target.value)}
+                      inputMode="numeric"
+                      className="mt-1"
+                    />
+                    {purchaseDialogOffer.itemStockQuantity !== null &&
+                    purchaseDialogOffer.itemStockQuantity !== undefined ? (
+                      <p className="mt-1 text-xs opacity-60">
+                        {purchaseDialogOffer.itemStockQuantity} available
+                      </p>
+                    ) : null}
+                  </div>
+                  {purchaseDialogOffer.fulfillmentMode === "shipping" ? (
+                    <div className="grid gap-3">
+                      <div>
+                        <Label htmlFor="shipping-name">Shipping name</Label>
+                        <Input
+                          id="shipping-name"
+                          value={shippingName}
+                          onChange={(event) => setShippingName(event.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="shipping-line1">Address</Label>
+                        <Input
+                          id="shipping-line1"
+                          value={shippingLine1}
+                          onChange={(event) => setShippingLine1(event.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_80px_120px]">
+                        <div>
+                          <Label htmlFor="shipping-city">City</Label>
+                          <Input
+                            id="shipping-city"
+                            value={shippingCity}
+                            onChange={(event) => setShippingCity(event.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="shipping-state">State</Label>
+                          <Input
+                            id="shipping-state"
+                            value={shippingState}
+                            onChange={(event) => setShippingState(event.target.value)}
+                            maxLength={2}
+                            className="mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="shipping-postal">ZIP</Label>
+                          <Input
+                            id="shipping-postal"
+                            value={shippingPostalCode}
+                            onChange={(event) => setShippingPostalCode(event.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                  <p className="text-xs opacity-70">
+                    No payment, contact release, posting, or shipping happens automatically.
+                  </p>
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-black/20 p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span>Seller subtotal</span>
+                      <span>
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: purchaseDialogOffer.currency || "USD",
+                        }).format(
+                          purchaseDialogOffer.price * purchaseDialogQuantity +
+                            (purchaseDialogOffer.fulfillmentMode === "shipping"
+                              ? purchaseDialogOffer.shippingCost
+                              : 0)
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>{TRADESCOUT_TRANSACTION_FEE_LABEL}</span>
+                      <span>
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: purchaseDialogOffer.currency || "USD",
+                        }).format(TRADESCOUT_TRANSACTION_FEE)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-white/10 pt-2">
+                      <span>Total for review</span>
+                      <span className="font-semibold">
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: purchaseDialogOffer.currency || "USD",
+                        }).format(purchaseDialogTotal)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setPurchaseDialogOffer(null)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={submitPurchaseDialog}
+                      disabled={purchasingOfferId === purchaseDialogOffer.id}
+                    >
+                      {purchasingOfferId === purchaseDialogOffer.id ? "Starting..." : "Confirm"}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </DialogContent>
+          </Dialog>
         </ThemeScope>
       </div>
     </div>

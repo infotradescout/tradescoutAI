@@ -310,8 +310,9 @@ const ClaimMyBusiness = React.lazy(() => import("./pages/claim-my-business"));
 const ResetPassword = React.lazy(() => import("./pages/reset-password"));
 const BusinessDirectoryPage = React.lazy(() => import("./pages/business-directory"));
 
-// Contractor Features
+// Business/provider features. Some imported pages retain legacy contractor filenames.
 const OfferServices = React.lazy(() => import("./pages/offer-services"));
+const ProfilePurchaseStatus = React.lazy(() => import("./pages/profile-purchase-status"));
 const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
 const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
@@ -886,7 +887,10 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
 
               {/* Core pages */}
-              {/* Contractors: profiles remain addressable; listing surfaces now route through Direct Connect */}
+              {/* Business/provider application. Legacy contractor routes remain compatibility aliases. */}
+              <Route path="/businesses/apply">
+                <RedirectTo to="/contractors/apply" />
+              </Route>
               <Route path="/contractors/apply">
                 <LazyPage Component={ContractorApply} />
               </Route>
@@ -973,7 +977,7 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Business routes */}
               <Route path="/contractor-board">
-                <RedirectTo to="/contractor-dashboard" />
+                <RedirectTo to="/business-owner-dashboard" />
               </Route>
               <Route path="/commercial-directory">
                 <ProtectedRoute>
@@ -998,11 +1002,19 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={OfferServices} />
                 </ProtectedRoute>
               </Route>
+              <Route path="/profile-purchases/:id">
+                <ProtectedRoute>
+                  <LazyPage Component={ProfilePurchaseStatus} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/business-listing">
                 <LazyPage Component={BusinessListing} />
               </Route>
               <Route path="/business-owner-dashboard">
                 <LazyPage Component={BusinessOwnerDashboard} />
+              </Route>
+              <Route path="/business-dashboard">
+                <RedirectTo to="/business-owner-dashboard" />
               </Route>
 
               {/* Marketplace routes */}
@@ -1989,7 +2001,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/settings?tab=profile" />
               </Route>
               <Route path="/contractor/dashboard">
-                <RedirectTo to="/contractor-dashboard" />
+                <RedirectTo to="/business-owner-dashboard" />
               </Route>
               <Route path="/contractor-profile">
                 <RedirectTo to="/contractors" />
@@ -2007,13 +2019,13 @@ export const AppRoutes = memo(function AppRoutes({
                 <RedirectTo to="/county-hub" />
               </Route>
               <Route path="/contractors/signup">
-                <RedirectTo to="/contractors/apply" />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/contractor-join">
-                <RedirectTo to="/contractors/apply" />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/contractors/accelerator">
-                <RedirectTo to="/contractors/apply" />
+                <RedirectTo to="/businesses/apply" />
               </Route>
               <Route path="/payroll-helper">
                 <RedirectTo to="/finances/payroll" />

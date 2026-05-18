@@ -71,6 +71,10 @@ import {
   getExchangeCategorySlugFromMarketplaceCategoryName,
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
+import {
+  TRADESCOUT_TRANSACTION_FEE_CENTS,
+  TRADESCOUT_TRANSACTION_FEE_MODEL,
+} from "../shared/platformRevenue";
 import { sendAutoClassifiedError } from "./utils/httpErrors";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import {
@@ -178,6 +182,7 @@ import {
   // Home Vault + Property Lifecycle OS (used by intent-gated home report sharing in messages)
   homeReportShares,
   userHomes,
+  userVehicles,
   userHomeRecords,
   userHomeAppliances,
   userHomeDocuments,
@@ -477,6 +482,272 @@ function scoutConversationPayload(row: any) {
     updatedAt: row.updatedAt,
     createdAt: row.createdAt,
   };
+}
+
+type ScoutConversationRelatedKind = "project" | "home" | "vehicle" | "client";
+
+function scoutConversationRelatedTo(metadata: any): {
+  kind: ScoutConversationRelatedKind;
+  id: string;
+  homeId?: string;
+  surface?: string;
+} | null {
+  const relatedTo =
+    metadata && typeof metadata === "object" && !Array.isArray(metadata)
+      ? (metadata as any).relatedTo
+      : null;
+  if (!relatedTo || typeof relatedTo !== "object" || Array.isArray(relatedTo)) return null;
+
+  const kind = String((relatedTo as any).kind || "").trim();
+  const id = String((relatedTo as any).id || "").trim();
+  const homeId = String((relatedTo as any).homeId || "").trim();
+  const surface = String((relatedTo as any).surface || "").trim();
+  if (!id) return null;
+  if (kind === "project" || kind === "home" || kind === "vehicle" || kind === "client") {
+    return {
+      kind,
+      id: id.slice(0, 120),
+      homeId: homeId ? homeId.slice(0, 120) : undefined,
+      surface: surface ? surface.slice(0, 80) : undefined,
+    };
+  }
+  return null;
+}
+
+function homeSavedConversationLabel(home: any): string | null {
+  const nickname = safeText(home?.nickname, 120);
+  if (nickname) return nickname;
+
+  const address = [home?.address1, home?.city, home?.stateCode]
+    .map((part) => safeText(part, 80))
+    .filter(Boolean)
+    .join(", ");
+  return address || null;
+}
+
+function vehicleSavedConversationLabel(vehicle: any): string | null {
+  const nickname = safeText(vehicle?.nickname, 120);
+  if (nickname) return nickname;
+
+  const details = [vehicle?.year, vehicle?.make, vehicle?.model, vehicle?.trim]
+    .map((part) => (part == null ? null : safeText(String(part), 80)))
+    .filter(Boolean)
+    .join(" ");
+  return details || null;
+}
+
+function homeProjectSavedConversationLabel(project: any): string | null {
+  const title = safeText(project?.title, 120);
+  if (title) return title;
+
+  const projectType = safeText(project?.projectType, 80);
+  return projectType ? `${projectType} project` : null;
+}
+
+async function loadScoutConversationRelatedLabels(
+  userId: string,
+  relatedItems: Array<{
+    kind: ScoutConversationRelatedKind;
+    id: string;
+    homeId?: string;
+    surface?: string;
+  }>
+): Promise<Map<string, string>> {
+  const labels = new Map<string, string>();
+  const idsByKind = relatedItems.reduce(
+    (acc, item) => {
+      acc[item.kind].add(item.id);
+      return acc;
+    },
+    {
+      project: new Set<string>(),
+      home: new Set<string>(),
+      vehicle: new Set<string>(),
+      client: new Set<string>(),
+    } as Record<ScoutConversationRelatedKind, Set<string>>
+  );
+
+  const homeIds = Array.from(idsByKind.home);
+  if (homeIds.length) {
+    const homes = await db
+      .select({
+        id: userHomes.id,
+        nickname: userHomes.nickname,
+        address1: userHomes.address1,
+        city: userHomes.city,
+        stateCode: userHomes.stateCode,
+      })
+      .from(userHomes)
+      .where(and(eq(userHomes.ownerUserId, userId), inArray(userHomes.id, homeIds)));
+    for (const home of homes) {
+      const label = homeSavedConversationLabel(home);
+      if (label) labels.set(`home:${home.id}`, label);
+    }
+  }
+
+  const vehicleIds = Array.from(idsByKind.vehicle);
+  if (vehicleIds.length) {
+    const vehicles = await db
+      .select({
+        id: userVehicles.id,
+        nickname: userVehicles.nickname,
+        year: userVehicles.year,
+        make: userVehicles.make,
+        model: userVehicles.model,
+        trim: userVehicles.trim,
+      })
+      .from(userVehicles)
+      .where(and(eq(userVehicles.ownerUserId, userId), inArray(userVehicles.id, vehicleIds)));
+    for (const vehicle of vehicles) {
+      const label = vehicleSavedConversationLabel(vehicle);
+      if (label) labels.set(`vehicle:${vehicle.id}`, label);
+    }
+  }
+
+  const projectIds = Array.from(idsByKind.project);
+  if (projectIds.length) {
+    const projects = await db
+      .select({ id: commercialProjects.id, title: commercialProjects.title })
+      .from(commercialProjects)
+      .where(
+        and(
+          eq(commercialProjects.createdByUserId, userId),
+          inArray(commercialProjects.id, projectIds)
+        )
+      );
+    for (const project of projects) {
+      const label = safeText(project.title, 120);
+      if (label) labels.set(`project:${project.id}`, label);
+    }
+
+    const homeProjectRows = await db
+      .select({
+        id: homeProjects.id,
+        title: homeProjects.title,
+        projectType: homeProjects.projectType,
+        userHomeId: homeProjects.userHomeId,
+      })
+      .from(homeProjects)
+      .where(and(eq(homeProjects.ownerUserId, userId), inArray(homeProjects.id, projectIds)));
+    for (const project of homeProjectRows) {
+      const label = homeProjectSavedConversationLabel(project);
+      if (label) labels.set(`project:${project.id}`, label);
+    }
+  }
+
+  const clientIds = Array.from(idsByKind.client);
+  if (clientIds.length) {
+    try {
+      const clientRows = await db.execute(sql`
+        SELECT id, display_name
+        FROM accounting_clients
+        WHERE created_by = ${userId}
+          AND id IN (${sql.join(
+            clientIds.map((clientId) => sql`${clientId}`),
+            sql`, `
+          )})
+      `);
+      for (const row of (clientRows as any).rows || []) {
+        const id = safeText(row?.id, 120);
+        const label = safeText(row?.display_name, 120);
+        if (id && label) labels.set(`client:${id}`, label);
+      }
+    } catch (error: any) {
+      if (!String(error?.message || "").includes('relation "accounting_clients" does not exist')) {
+        console.warn("[scout-conversations] client label refresh failed:", error);
+      }
+    }
+  }
+
+  return labels;
+}
+
+async function refreshScoutConversationRelatedLabels(userId: string, rows: any[]): Promise<any[]> {
+  const relatedItems = rows
+    .map((row) => scoutConversationRelatedTo(row?.metadata))
+    .filter(
+      (
+        item
+      ): item is {
+        kind: ScoutConversationRelatedKind;
+        id: string;
+        homeId?: string;
+        surface?: string;
+      } => !!item
+    );
+  if (!relatedItems.length) return rows;
+
+  const labels = await loadScoutConversationRelatedLabels(userId, relatedItems);
+  if (!labels.size) return rows;
+
+  return rows.map((row) => {
+    const related = scoutConversationRelatedTo(row?.metadata);
+    if (!related) return row;
+    const label = labels.get(`${related.kind}:${related.id}`);
+    if (!label) return row;
+
+    const metadata =
+      row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? { ...row.metadata }
+        : {};
+    const relatedTo =
+      metadata.relatedTo &&
+      typeof metadata.relatedTo === "object" &&
+      !Array.isArray(metadata.relatedTo)
+        ? { ...metadata.relatedTo, label }
+        : { kind: related.kind, id: related.id, label };
+
+    return {
+      ...row,
+      metadata: {
+        ...metadata,
+        relatedLabel: label,
+        relatedTo,
+        relatedLabelRefreshedAt: new Date().toISOString(),
+      },
+    };
+  });
+}
+
+type ScoutConversationSurfaceFilter =
+  | "project"
+  | "home"
+  | "vehicle"
+  | "client"
+  | "materials"
+  | "prices";
+
+function scoutConversationSurfaceFilter(value: unknown): ScoutConversationSurfaceFilter | null {
+  const normalized = (safeText(value, 40) || "").toLowerCase();
+  if (
+    normalized === "project" ||
+    normalized === "home" ||
+    normalized === "vehicle" ||
+    normalized === "client" ||
+    normalized === "materials" ||
+    normalized === "prices"
+  ) {
+    return normalized;
+  }
+  return null;
+}
+
+function scoutConversationSurfaceWhere(surface: ScoutConversationSurfaceFilter) {
+  if (surface === "materials") {
+    return or(
+      eq(scoutConversations.intent, "materials"),
+      sql`lower(${scoutConversations.metadata}->>'relatedLabel') = 'materials'`
+    );
+  }
+
+  if (surface === "prices") {
+    return or(
+      eq(scoutConversations.intent, "prices"),
+      sql`lower(${scoutConversations.metadata}->>'relatedLabel') in ('prices', 'price signals')`
+    );
+  }
+
+  return sql`${scoutConversations.metadata}->'relatedTo'->>'kind' = ${surface}`;
 }
 import { paymentService } from "./payment-service";
 import { tutorialStorage } from "./tutorialStorage";
@@ -5713,10 +5984,12 @@ export async function registerRoutes(app: any) {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
       if (!userId) return res.status(401).json({ message: "Authentication required" });
       const query = safeText(req.query.q, 80);
+      const surface = scoutConversationSurfaceFilter(req.query.surface);
       const likeQuery = query ? `%${query.toLowerCase().replace(/[%_]/g, "\\$&")}%` : null;
       const baseWhere = and(
         eq(scoutConversations.userId, userId),
-        isNull(scoutConversations.archivedAt)
+        isNull(scoutConversations.archivedAt),
+        surface ? scoutConversationSurfaceWhere(surface) : undefined
       );
       const searchWhere = likeQuery
         ? and(
@@ -5737,8 +6010,9 @@ export async function registerRoutes(app: any) {
         .where(searchWhere)
         .orderBy(desc(scoutConversations.updatedAt))
         .limit(SCOUT_CONVERSATION_LIMIT);
+      const refreshedRows = await refreshScoutConversationRelatedLabels(userId, rows);
 
-      res.json({ conversations: rows.map(scoutConversationPayload) });
+      res.json({ conversations: refreshedRows.map(scoutConversationPayload) });
     } catch (error: any) {
       console.error("Error loading Scout conversations:", error);
       res.status(500).json({ message: "Failed to load Scout conversations" });
@@ -5800,8 +6074,9 @@ export async function registerRoutes(app: any) {
             })
             .where(and(eq(scoutConversations.id, id), eq(scoutConversations.userId, userId)))
             .returning();
+          const [refreshed] = await refreshScoutConversationRelatedLabels(userId, [updated]);
 
-          return res.json({ conversation: scoutConversationPayload(updated) });
+          return res.json({ conversation: scoutConversationPayload(refreshed || updated) });
         }
       }
 
@@ -5823,8 +6098,9 @@ export async function registerRoutes(app: any) {
           updatedAt: now,
         })
         .returning();
+      const [refreshed] = await refreshScoutConversationRelatedLabels(userId, [created]);
 
-      res.status(201).json({ conversation: scoutConversationPayload(created) });
+      res.status(201).json({ conversation: scoutConversationPayload(refreshed || created) });
     } catch (error: any) {
       console.error("Error saving Scout conversation:", error);
       res.status(500).json({ message: "Failed to save Scout conversation" });
@@ -7518,83 +7794,87 @@ export async function registerRoutes(app: any) {
 
   // Universal provider search — returns contractors + active businesses in a county.
   // Used by the Direct Connect pros section so any business type is discoverable.
-  app.get("/api/providers/search", contractorSearchLimiter, async (req: any, res: any) => {
-    try {
-      const { county, trade, query, limit = 30, offset = 0 } = req.query;
-      const parsedLimit = Math.min(parseInt(String(limit)) || 30, 100);
-      const parsedOffset = parseInt(String(offset)) || 0;
+  app.get(
+    ["/api/providers/search", "/api/business-providers/search"],
+    contractorSearchLimiter,
+    async (req: any, res: any) => {
+      try {
+        const { county, trade, query, limit = 30, offset = 0 } = req.query;
+        const parsedLimit = Math.min(parseInt(String(limit)) || 30, 100);
+        const parsedOffset = parseInt(String(offset)) || 0;
 
-      let countyRecord: any = null;
-      if (county) {
-        countyRecord = await storage.findCountyByNameOrFips({ query: String(county) });
-        if (!countyRecord) return res.json([]);
-      }
-
-      // 1. Contractors (existing path)
-      const contractorFilters: any = { limit: parsedLimit, offset: parsedOffset };
-      if (countyRecord) contractorFilters.countyId = countyRecord.id;
-      if (trade) {
-        const tradeRecord = await storage.getTradeBySlug(trade as string);
-        if (tradeRecord) contractorFilters.tradeIds = [tradeRecord.id];
-      }
-      if (query && typeof query === "string" && query.trim()) {
-        contractorFilters.query = query.trim();
-      }
-      const contractors = await storage.getContractors(contractorFilters);
-      const contractorResults = contractors.map((c: any) => ({
-        ...sanitizeContractorPublic(c),
-        providerType: "contractor" as const,
-      }));
-
-      // 2. Active businesses in the same county
-      let businessResults: any[] = [];
-      if (countyRecord) {
-        const countyId = String(countyRecord.id || "").trim();
-        if (countyId) {
-          const biz = await storage.getProvidersByCountyAndCategory({
-            countyId,
-            limit: parsedLimit,
-          });
-          const q = typeof query === "string" ? query.trim().toLowerCase() : "";
-          businessResults = biz
-            .filter((b: any) => {
-              if (!q) return true;
-              const name = String(b.name || "").toLowerCase();
-              return name.includes(q);
-            })
-            .slice(parsedOffset, parsedOffset + parsedLimit)
-            .map((b: any) => ({
-              id: b.businessId,
-              businessId: b.businessId,
-              companyName: b.name || null,
-              name: b.name || null,
-              roleContext: b.roleContext || null,
-              slug: b.slug || null,
-              providerType: "business" as const,
-            }));
+        let countyRecord: any = null;
+        if (county) {
+          countyRecord = await storage.findCountyByNameOrFips({ query: String(county) });
+          if (!countyRecord) return res.json([]);
         }
-      }
 
-      // Merge: contractors first, then businesses (dedup by id)
-      const seen = new Set<string>();
-      const merged: any[] = [];
-      for (const r of [...contractorResults, ...businessResults]) {
-        const key = String(r.id || "");
-        if (key && !seen.has(key)) {
-          seen.add(key);
-          merged.push(r);
+        // 1. Contractors (existing path)
+        const contractorFilters: any = { limit: parsedLimit, offset: parsedOffset };
+        if (countyRecord) contractorFilters.countyId = countyRecord.id;
+        if (trade) {
+          const tradeRecord = await storage.getTradeBySlug(trade as string);
+          if (tradeRecord) contractorFilters.tradeIds = [tradeRecord.id];
         }
-      }
+        if (query && typeof query === "string" && query.trim()) {
+          contractorFilters.query = query.trim();
+        }
+        const contractors = await storage.getContractors(contractorFilters);
+        const contractorResults = contractors.map((c: any) => ({
+          ...sanitizeContractorPublic(c),
+          providerType: "contractor" as const,
+        }));
 
-      res.json(merged.slice(0, parsedLimit));
-    } catch (error: any) {
-      console.error("Error searching providers:", error);
-      res.status(500).json({ message: "Failed to search providers" });
+        // 2. Active businesses in the same county
+        let businessResults: any[] = [];
+        if (countyRecord) {
+          const countyId = String(countyRecord.id || "").trim();
+          if (countyId) {
+            const biz = await storage.getProvidersByCountyAndCategory({
+              countyId,
+              limit: parsedLimit,
+            });
+            const q = typeof query === "string" ? query.trim().toLowerCase() : "";
+            businessResults = biz
+              .filter((b: any) => {
+                if (!q) return true;
+                const name = String(b.name || "").toLowerCase();
+                return name.includes(q);
+              })
+              .slice(parsedOffset, parsedOffset + parsedLimit)
+              .map((b: any) => ({
+                id: b.businessId,
+                businessId: b.businessId,
+                companyName: b.name || null,
+                name: b.name || null,
+                roleContext: b.roleContext || null,
+                slug: b.slug || null,
+                providerType: "business" as const,
+              }));
+          }
+        }
+
+        // Merge: contractors first, then businesses (dedup by id)
+        const seen = new Set<string>();
+        const merged: any[] = [];
+        for (const r of [...contractorResults, ...businessResults]) {
+          const key = String(r.id || "");
+          if (key && !seen.has(key)) {
+            seen.add(key);
+            merged.push(r);
+          }
+        }
+
+        res.json(merged.slice(0, parsedLimit));
+      } catch (error: any) {
+        console.error("Error searching providers:", error);
+        res.status(500).json({ message: "Failed to search providers" });
+      }
     }
-  });
+  );
 
   // Get top contractors in area (for lead assignment)
-  app.get("/api/contractors/top", async (req: any, res: any) => {
+  app.get(["/api/contractors/top", "/api/business-providers/top"], async (req: any, res: any) => {
     try {
       const { county, trade, limit = 3 } = req.query;
 
@@ -11455,6 +11735,168 @@ export async function registerRoutes(app: any) {
   });
 
   // Exchange routes
+  const PROFILE_OFFER_EXCHANGE_ID_PREFIX = "profile-offer-";
+
+  const isMissingProfileOffersTable = (error: unknown): boolean => {
+    const message = String((error as any)?.message || "").toLowerCase();
+    return (
+      message.includes('relation "profile_offers" does not exist') ||
+      message.includes("profile_offers") ||
+      (error as any)?.code === "42P01"
+    );
+  };
+
+  const toProfileOfferExchangeId = (id: string) => `${PROFILE_OFFER_EXCHANGE_ID_PREFIX}${id}`;
+
+  const fromProfileOfferExchangeId = (id: string) => {
+    const value = String(id || "").trim();
+    return value.startsWith(PROFILE_OFFER_EXCHANGE_ID_PREFIX)
+      ? value.slice(PROFILE_OFFER_EXCHANGE_ID_PREFIX.length)
+      : "";
+  };
+
+  const buildProfileOfferExchangeItem = (row: any, rawCategoryId = "") => {
+    const firstName = String(row.first_name || "").trim();
+    const lastName = String(row.last_name || "").trim();
+    const sellerName =
+      `${firstName} ${lastName}`.trim() ||
+      (String(row.seller_user_id || "").trim() ? "TradeScout Member" : "Unknown seller");
+    const trustScore = Number(row.trust_score ?? 10);
+    const rating = Number.isFinite(trustScore) ? Math.max(3, Math.min(5, 3 + trustScore / 20)) : 4;
+    const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+    const categorySlug = String(metadata.exchangeCategorySlug || rawCategoryId || "other").trim();
+    const fulfillmentMode = String(row.fulfillment_mode || "manual_review");
+    const city = String(row.city || "").trim();
+    const state = String(row.state_code || row.state || "").trim();
+    const county = String(row.county_name || row.county || "").trim();
+    const location = city
+      ? `${city}${state ? `, ${state}` : ""}`
+      : `${county || "Profile offer"}${state ? `, ${state}` : ""}`.trim();
+
+    return {
+      id: toProfileOfferExchangeId(String(row.id)),
+      profileOfferId: String(row.id),
+      sourceType: "profile_offer",
+      title: row.title,
+      description: row.description || "Fixed-price item available from this TradeScout profile.",
+      price: Number(row.price || 0),
+      category: categorySlug || "other",
+      condition: String(metadata.condition || "new"),
+      images: Array.isArray(metadata.images) ? metadata.images : [],
+      location,
+      state,
+      county,
+      seller: {
+        id: String(row.seller_user_id),
+        name: sellerName,
+        rating,
+        verified: Boolean(row.verified_badge || (row.email_verified && row.address_verified)),
+      },
+      sellerId: String(row.seller_user_id),
+      sellerName,
+      sellerRating: rating,
+      sellerVerified: Boolean(row.verified_badge || (row.email_verified && row.address_verified)),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      featured: false,
+      views: 0,
+      favorites: 0,
+      viewCount: 0,
+      favoriteCount: 0,
+      isLocalPickupOnly: fulfillmentMode !== "shipping",
+      localPickupOnly: fulfillmentMode !== "shipping",
+      shippingCost:
+        row.shipping_cost == null
+          ? null
+          : Number.isFinite(Number(row.shipping_cost))
+            ? Number(row.shipping_cost)
+            : null,
+      specifications: {
+        source: "profile_offer",
+        profileOfferId: String(row.id),
+        fulfillmentMode,
+        itemSku: row.item_sku || undefined,
+        stockQuantity: row.item_stock_quantity ?? undefined,
+        reviewRequired: true,
+      },
+      slug: toProfileOfferExchangeId(String(row.id)),
+      publicProfilePath: `/profile/${encodeURIComponent(String(row.seller_user_id))}?offer=${encodeURIComponent(String(row.id))}`,
+    };
+  };
+
+  const listProfileOfferExchangeItems = async (req: any, rawCategoryId = "") => {
+    const requestedCategory = String(rawCategoryId || "").trim();
+    const search = String(req.query.search || "")
+      .trim()
+      .toLowerCase();
+    const condition = String(req.query.condition || "")
+      .trim()
+      .toLowerCase();
+    if (condition && condition !== "new") return [];
+
+    const clauses = ["po.is_active = true", "po.offer_type = 'item'"];
+    const params: any[] = [];
+    const addParam = (value: any) => {
+      params.push(value);
+      return `$${params.length}`;
+    };
+
+    if (requestedCategory && requestedCategory !== "other") {
+      clauses.push(
+        `COALESCE(po.metadata->>'exchangeCategorySlug', '') = ${addParam(requestedCategory)}`
+      );
+    } else if (requestedCategory === "other") {
+      clauses.push(`COALESCE(po.metadata->>'exchangeCategorySlug', 'other') = 'other'`);
+    }
+
+    if (req.query.priceMin) clauses.push(`po.price >= ${addParam(Number(req.query.priceMin))}`);
+    if (req.query.priceMax) clauses.push(`po.price <= ${addParam(Number(req.query.priceMax))}`);
+    if (search) {
+      clauses.push(
+        `(LOWER(po.title) LIKE ${addParam(`%${search}%`)} OR LOWER(COALESCE(po.description, '')) LIKE ${addParam(`%${search}%`)} OR LOWER(COALESCE(po.item_sku, '')) LIKE ${addParam(`%${search}%`)})`
+      );
+    }
+    if (typeof req.query.filterState === "string" && req.query.filterState.trim()) {
+      clauses.push(
+        `(LOWER(COALESCE(u.state_code, '')) = LOWER(${addParam(req.query.filterState.trim())}) OR LOWER(COALESCE(u.state, '')) = LOWER(${addParam(req.query.filterState.trim())}))`
+      );
+    }
+    if (typeof req.query.filterCounty === "string" && req.query.filterCounty.trim()) {
+      clauses.push(
+        `(COALESCE(u.county_fips, '') = ${addParam(req.query.filterCounty.trim())} OR LOWER(COALESCE(u.county, u.county_name, '')) = LOWER(${addParam(req.query.filterCounty.trim())}))`
+      );
+    }
+
+    const sort = String(req.query.sort || "date_desc");
+    const orderBy =
+      sort === "price_asc"
+        ? "po.price ASC, po.updated_at DESC"
+        : sort === "price_desc"
+          ? "po.price DESC, po.updated_at DESC"
+          : sort === "date_asc"
+            ? "po.updated_at ASC, po.created_at ASC"
+            : "po.updated_at DESC, po.created_at DESC";
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 100);
+
+    try {
+      const result = await pool.query(
+        `SELECT po.*, u.first_name, u.last_name, u.trust_score, u.verified_badge,
+                u.email_verified, u.address_verified, u.city, u.state, u.state_code,
+                u.county, u.county_name, u.county_fips
+         FROM profile_offers po
+         JOIN users u ON u.id = po.seller_user_id
+         WHERE ${clauses.join(" AND ")}
+         ORDER BY ${orderBy}
+         LIMIT ${addParam(limit)}`,
+        params
+      );
+      return result.rows.map((row) => buildProfileOfferExchangeItem(row, requestedCategory));
+    } catch (error) {
+      if (isMissingProfileOffersTable(error)) return [];
+      throw error;
+    }
+  };
+
   app.get("/api/exchange/items", async (req: any, res: any) => {
     try {
       const EXCHANGE_FORBIDDEN_TEXT =
@@ -11692,7 +12134,24 @@ export async function registerRoutes(app: any) {
           };
         });
 
-      res.json(mapped);
+      const profileOfferItems = await listProfileOfferExchangeItems(req, rawCategoryId);
+      const merged = [...mapped, ...profileOfferItems];
+      const sort = String(req.query.sort || "date_desc");
+      if (sort === "price_asc") merged.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+      else if (sort === "price_desc")
+        merged.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+      else if (sort === "date_asc")
+        merged.sort(
+          (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
+        );
+      else
+        merged.sort(
+          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+
+      const offset = req.query.offset ? Math.max(0, Number(req.query.offset)) : 0;
+      const limit = req.query.limit ? Math.max(1, Number(req.query.limit)) : undefined;
+      res.json(limit ? merged.slice(offset, offset + limit) : merged);
     } catch (error: any) {
       console.error("Error fetching exchange items:", error);
       res.status(500).json({ message: "Failed to fetch items" });
@@ -13477,11 +13936,15 @@ export async function registerRoutes(app: any) {
         return res.status(400).json({ message: "title and description are required" });
       }
 
-      const rawTargetIds = Array.isArray(body.targetContractorIds)
-        ? body.targetContractorIds
-        : typeof body.targetContractorIds === "string"
-          ? [body.targetContractorIds]
-          : [];
+      const rawTargetIds = Array.isArray(body.targetProviderIds)
+        ? body.targetProviderIds
+        : typeof body.targetProviderIds === "string"
+          ? [body.targetProviderIds]
+          : Array.isArray(body.targetContractorIds)
+            ? body.targetContractorIds
+            : typeof body.targetContractorIds === "string"
+              ? [body.targetContractorIds]
+              : [];
 
       const targetContractorIds = rawTargetIds
         .map((id: any) => (typeof id === "string" ? id.trim() : String(id)))
@@ -18576,6 +19039,31 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/marketplace/listings/:id", async (req: any, res: any) => {
     try {
       const { id } = req.params;
+      const profileOfferId = fromProfileOfferExchangeId(id);
+      if (profileOfferId) {
+        try {
+          const result = await pool.query(
+            `SELECT po.*, u.first_name, u.last_name, u.trust_score, u.verified_badge,
+                    u.email_verified, u.address_verified, u.city, u.state, u.state_code,
+                    u.county, u.county_name, u.county_fips
+             FROM profile_offers po
+             JOIN users u ON u.id = po.seller_user_id
+             WHERE po.id = $1
+               AND po.is_active = true
+               AND po.offer_type = 'item'
+             LIMIT 1`,
+            [profileOfferId]
+          );
+          if (!result.rows[0]) return res.status(404).json({ message: "Listing not found" });
+          return res.json(buildProfileOfferExchangeItem(result.rows[0], "other"));
+        } catch (error) {
+          if (isMissingProfileOffersTable(error)) {
+            return res.status(404).json({ message: "Listing not found" });
+          }
+          throw error;
+        }
+      }
+
       const listing = await storage.getMarketplaceListing(id);
 
       if (!listing) {
@@ -23203,7 +23691,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
 
       const listingPrice = Number(listing.price ?? 0);
-      const platformFee = Math.round(listingPrice * 0.05 * 100); // 5% platform fee in cents
+      const platformFee = TRADESCOUT_TRANSACTION_FEE_CENTS; // Flat $1 TradeScout transaction fee; no lead sale or paid access.
       const totalAmount = Math.round(listingPrice * 100) + platformFee; // Total in cents
 
       const paymentIntent = await stripe.paymentIntents.create({
@@ -23214,6 +23702,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           sellerId: listing.sellerId,
           buyerId: (req.user as any)?.claims?.sub || (req.user as any)?.id,
           platformFee: platformFee.toString(),
+          platformFeeModel: TRADESCOUT_TRANSACTION_FEE_MODEL,
         },
       });
 

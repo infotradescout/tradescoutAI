@@ -60,7 +60,7 @@ const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResu
     if (input.limit != null) params.set("limit", String(input.limit));
     if (input.offset != null) params.set("offset", String(input.offset));
 
-    const url = `/api/contractors/search?${params.toString()}`;
+    const url = `/api/business-providers/search?${params.toString()}`;
 
     const res = await fetch(url, {
       credentials: "include",
@@ -69,7 +69,7 @@ const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResu
 
     if (!res.ok) {
       const detail = await safeErrorText(res);
-      throw new Error(`Contractor search HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
+      throw new Error(`Business provider search HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
     }
 
     const data = await res.json();

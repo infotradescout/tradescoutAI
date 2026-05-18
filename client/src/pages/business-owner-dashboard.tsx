@@ -1,28 +1,22 @@
-import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Briefcase,
   DollarSign,
   Users,
   TrendingUp,
-  Phone,
   Calendar,
   FileText,
-  AlertTriangle,
-  CheckCircle,
-  Target,
   Building,
   Plus,
   BarChart3,
   Store,
+  ShoppingBag,
+  ReceiptText,
 } from "lucide-react";
 
 export default function BusinessOwnerDashboard() {
-  const { user } = useAuth();
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
@@ -98,39 +92,65 @@ export default function BusinessOwnerDashboard() {
             <CardContent>
               <div className="space-y-6">
                 <div>
-                  <h3 className="text-white font-semibold mb-3">Find Business Services</h3>
+                  <h3 className="text-white font-semibold mb-3">Business demand surfaces</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Button className="bg-purple-500 hover:bg-purple-600 text-white justify-start">
-                      <Building className="h-4 w-4 mr-2" />
-                      Find Contractors
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-white/15 text-white/70 justify-start"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Business Services
-                    </Button>
+                    <Link href="/business-directory">
+                      <Button className="bg-purple-500 hover:bg-purple-600 text-white justify-start w-full">
+                        <Building className="h-4 w-4 mr-2" />
+                        Browse Businesses
+                      </Button>
+                    </Link>
+                    <Link href="/direct-connect">
+                      <Button
+                        variant="outline"
+                        className="border-white/15 text-white/70 justify-start w-full"
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        Direct Connect
+                      </Button>
+                    </Link>
                   </div>
                 </div>
 
                 <div>
                   <h3 className="text-white font-semibold mb-3">Business Tools</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Button
-                      variant="outline"
-                      className="border-white/15 text-white/70 justify-start"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Project Calculator
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="border-white/15 text-white/70 justify-start"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Schedule Management
-                    </Button>
+                    <Link href="/offer-services">
+                      <Button
+                        variant="outline"
+                        className="border-white/15 text-white/70 justify-start w-full"
+                      >
+                        <ShoppingBag className="h-4 w-4 mr-2" />
+                        Services & Items
+                      </Button>
+                    </Link>
+                    <Link href="/finances/records">
+                      <Button
+                        variant="outline"
+                        className="border-white/15 text-white/70 justify-start w-full"
+                      >
+                        <ReceiptText className="h-4 w-4 mr-2" />
+                        Books & Records
+                      </Button>
+                    </Link>
+                    <Link href="/utilities/supply-run">
+                      <Button
+                        variant="outline"
+                        className="border-white/15 text-white/70 justify-start w-full"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Estimates & Materials
+                      </Button>
+                    </Link>
+                    <Link href="/business-listing">
+                      <Button
+                        variant="outline"
+                        className="border-white/15 text-white/70 justify-start w-full"
+                      >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Profile & Availability
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -146,24 +166,30 @@ export default function BusinessOwnerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white justify-start">
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Project
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-white/15 text-white/70 justify-start"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  Hire Services
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-white/15 text-white/70 justify-start"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  View Analytics
-                </Button>
+                <Link href="/business-listing">
+                  <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white justify-start">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Business Profile
+                  </Button>
+                </Link>
+                <Link href="/offer-services">
+                  <Button
+                    variant="outline"
+                    className="w-full border-white/15 text-white/70 justify-start"
+                  >
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Add Offer
+                  </Button>
+                </Link>
+                <Link href="/analytics">
+                  <Button
+                    variant="outline"
+                    className="w-full border-white/15 text-white/70 justify-start"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    View Analytics
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>

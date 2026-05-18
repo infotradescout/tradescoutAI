@@ -29,6 +29,17 @@ Run once against the configured database:
 npm run snapshot:completed-job-prices
 ```
 
+Admins can also trigger the same snapshot job from the observability dashboard. In
+the Snapshot Status panel, use the refresh action on the Completed Jobs county
+price family. The protected route is:
+
+```http
+POST /api/admin/observability/completed-job-price-snapshots/refresh
+```
+
+For the full county price signal family runbook, including HomeScout and
+TradeDeals refresh routes, see `docs/runbooks/county-price-signal-snapshots.md`.
+
 ## Scout Contract
 
 Scout home price cards may read these metrics through `/api/scout/home-snapshot`. Do not derive completed-job pricing directly from `documents`, `pricing_data`, or job-specific read-time queries in user-facing Scout surfaces.

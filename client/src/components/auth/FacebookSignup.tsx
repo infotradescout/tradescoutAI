@@ -128,7 +128,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
               </div>
               <h3 className="text-white font-semibold mb-2">Trusted Network</h3>
               <p className="text-white/60 text-sm">
-                Connect with verified contractors and real homeowners
+                Connect with verified local businesses and real customers
               </p>
             </CardContent>
           </Card>
@@ -140,7 +140,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
               </div>
               <h3 className="text-white font-semibold mb-2">Local Community</h3>
               <p className="text-white/60 text-sm">
-                Find contractors and customers in your specific area
+                Find businesses and customers in your specific area
               </p>
             </CardContent>
           </Card>
@@ -148,7 +148,7 @@ export function FacebookSignup({ onFacebookSignup, onSkipToRegular }: FacebookSi
 
         {/* Success Stats */}
         <div className="mt-12 text-center">
-          <p className="text-white/60 mb-6">Why contractors choose Facebook signup:</p>
+          <p className="text-white/60 mb-6">Why businesses choose Facebook signup:</p>
           <div className="flex justify-center gap-8 text-center">
             <div>
               <div className="text-2xl font-bold text-green-400">3x</div>

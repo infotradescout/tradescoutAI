@@ -680,6 +680,20 @@
       "when": 1778533260000,
       "tag": "0093_scout_conversations",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1778667180000,
+      "tag": "0094_accounting_books_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1778667240000,
+      "tag": "0095_profile_offers_finance_bridge",
+      "breakpoints": true
     }
   ]
 }

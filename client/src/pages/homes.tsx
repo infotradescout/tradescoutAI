@@ -55,10 +55,19 @@ function initialHomeIdFromUrl(): string | null {
   return id?.trim() || null;
 }
 
+function initialProjectIdFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  const id = new URLSearchParams(window.location.search).get("projectId");
+  return id?.trim() || null;
+}
+
 export default function HomesVault() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedHomeId, setSelectedHomeId] = useState<string | null>(() => initialHomeIdFromUrl());
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() =>
+    initialProjectIdFromUrl()
+  );
 
   const homesQuery = useQuery({ queryKey: ["/api/homes"] });
   const homes = Array.isArray((homesQuery.data as any)?.homes)
@@ -102,6 +111,13 @@ export default function HomesVault() {
   const projects = Array.isArray((projectsQuery.data as any)?.projects)
     ? (projectsQuery.data as any).projects
     : [];
+
+  useEffect(() => {
+    if (!selectedProjectId && projects.length > 0) return;
+    if (!selectedProjectId) return;
+    const exists = projects.some((project: any) => String(project?.id || "") === selectedProjectId);
+    if (!exists && !projectsQuery.isLoading) setSelectedProjectId(null);
+  }, [projects, projectsQuery.isLoading, selectedProjectId]);
 
   const [newHome, setNewHome] = useState({
     nickname: "",
@@ -909,6 +925,7 @@ export default function HomesVault() {
                           ) : (
                             projects.slice(0, 10).map((p: any) => {
                               const id = String(p?.id || "");
+                              const isSelectedProject = id && id === selectedProjectId;
                               const title =
                                 typeof p?.title === "string" && p.title ? p.title : "Project";
                               const status =
@@ -918,7 +935,10 @@ export default function HomesVault() {
                               return (
                                 <div
                                   key={id}
-                                  className="rounded-md border px-3 py-2 flex items-start justify-between gap-3"
+                                  data-project-id={id}
+                                  className={`rounded-md border px-3 py-2 flex items-start justify-between gap-3 ${
+                                    isSelectedProject ? "border-ts-orange/70 bg-ts-orange/10" : ""
+                                  }`}
                                 >
                                   <div className="min-w-0">
                                     <div className="text-sm font-medium truncate">{title}</div>

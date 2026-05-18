@@ -123,9 +123,8 @@ describe("direct-connect gate regressions", () => {
     expect(routeFile).toContain(
       "Staff-directed explicit targeting preserves individual choice for this request."
     );
-    expect(routeFile).toContain(
-      "if (created && body.targetContractorIds && body.targetContractorIds.length > 0)"
-    );
+    expect(routeFile).toContain("if (created && targetProviderIds.length > 0)");
+    expect(routeFile).toContain("resolveTargetProviderIds(body)");
   });
 
   it("scopes direct-connect request listing to direct_connect source", () => {
@@ -259,7 +258,7 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("How many companies should receive this request?");
     expect(directConnectShellFile).toContain("Ordered by location fit first, then CVS score.");
     expect(directConnectShellFile).toContain("Let Scout decide");
-    expect(directConnectShellFile).toContain("targetContractorIds");
+    expect(directConnectShellFile).toContain("targetProviderIds");
   });
 
   it("keeps admin/staff request creation manual by default with explicit auto-route skip", () => {

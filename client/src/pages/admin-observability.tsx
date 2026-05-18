@@ -189,6 +189,9 @@ interface SnapshotStatusSummary {
     rowCount: number;
     staleAfterMinutes: number;
     isStale: boolean;
+    metricKeys?: string[];
+    countyCount?: number;
+    staleCountyCount?: number;
   }>;
 }
 
@@ -207,6 +210,21 @@ function coerceBaselines(payload: any): ObservabilityBaselines | null {
   if (!http || typeof http !== "object") return null;
 
   return candidate as ObservabilityBaselines;
+}
+
+function snapshotRefreshEndpoint(key: string): string | null {
+  const endpointMap: Record<string, string> = {
+    partner_county_observation: "/api/admin/cumulus-intelligence/refresh",
+    partner_intelligence_brief: "/api/admin/cumulus-intelligence/refresh",
+    live_stream: "/api/admin/observability/live-stream/refresh",
+    county_price_homescout: "/api/admin/observability/homescout-price-snapshots/refresh",
+    county_price_tradedeals: "/api/admin/observability/tradedeals-price-snapshots/refresh",
+    county_price_completed_jobs: "/api/admin/observability/completed-job-price-snapshots/refresh",
+    seo_trade_county_pages: "/api/admin/seo-directory-scope/refresh",
+    seo_trade_city_pages: "/api/admin/seo-directory-scope/refresh",
+  };
+
+  return endpointMap[key] || null;
 }
 
 export default function ObservabilityDashboard() {
@@ -394,15 +412,7 @@ export default function ObservabilityDashboard() {
   };
 
   const refreshSnapshot = async (key: string) => {
-    const endpointMap: Record<string, string> = {
-      partner_county_observation: "/api/admin/cumulus-intelligence/refresh",
-      partner_intelligence_brief: "/api/admin/cumulus-intelligence/refresh",
-      live_stream: "/api/admin/observability/live-stream/refresh",
-      seo_trade_county_pages: "/api/admin/seo-directory-scope/refresh",
-      seo_trade_city_pages: "/api/admin/seo-directory-scope/refresh",
-    };
-
-    const endpoint = endpointMap[key];
+    const endpoint = snapshotRefreshEndpoint(key);
     if (!endpoint) return;
 
     setRefreshingSnapshotKey(key);
@@ -645,43 +655,70 @@ export default function ObservabilityDashboard() {
           </div>
         ) : null}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {snapshotStatus.statuses.map((item) => (
-            <div key={item.key} className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-white">{item.label}</div>
-                  <div className="mt-1 text-xs text-white/55">{item.rowCount} rows</div>
+          {snapshotStatus.statuses.map((item) => {
+            const refreshEndpoint = snapshotRefreshEndpoint(item.key);
+            return (
+              <div key={item.key} className="rounded-lg border border-white/10 bg-black/20 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-white">{item.label}</div>
+                    <div className="mt-1 text-xs text-white/55">{item.rowCount} rows</div>
+                    {typeof item.countyCount === "number" && (
+                      <div className="mt-1 text-xs text-white/55">
+                        {item.countyCount} counties tracked
+                        {typeof item.staleCountyCount === "number"
+                          ? ` · ${item.staleCountyCount} stale`
+                          : ""}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs ${
+                      item.isStale
+                        ? "border border-yellow-500/30 bg-yellow-500/20 text-yellow-200"
+                        : "border border-emerald-500/30 bg-emerald-500/20 text-emerald-200"
+                    }`}
+                  >
+                    {item.isStale ? "stale" : "fresh"}
+                  </span>
                 </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs ${
-                    item.isStale
-                      ? "border border-yellow-500/30 bg-yellow-500/20 text-yellow-200"
-                      : "border border-emerald-500/30 bg-emerald-500/20 text-emerald-200"
-                  }`}
-                >
-                  {item.isStale ? "stale" : "fresh"}
-                </span>
+                <div className="mt-3 text-sm text-white/80">
+                  {item.latestComputedAt
+                    ? `Updated ${new Date(item.latestComputedAt).toLocaleString()}`
+                    : "No snapshot computed yet"}
+                </div>
+                <div className="mt-1 text-xs text-white/55">
+                  Stale after {item.staleAfterMinutes} minutes
+                </div>
+                {Array.isArray(item.metricKeys) && item.metricKeys.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {item.metricKeys.map((metricKey) => (
+                      <span
+                        key={metricKey}
+                        className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] text-white/60"
+                      >
+                        {metricKey}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => refreshSnapshot(item.key)}
+                    disabled={!refreshEndpoint || refreshingSnapshotKey === item.key}
+                    className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/85 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {!refreshEndpoint
+                      ? "Refresh via source job"
+                      : refreshingSnapshotKey === item.key
+                        ? "Refreshing..."
+                        : "Refresh Snapshot"}
+                  </button>
+                </div>
               </div>
-              <div className="mt-3 text-sm text-white/80">
-                {item.latestComputedAt
-                  ? `Updated ${new Date(item.latestComputedAt).toLocaleString()}`
-                  : "No snapshot computed yet"}
-              </div>
-              <div className="mt-1 text-xs text-white/55">
-                Stale after {item.staleAfterMinutes} minutes
-              </div>
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => refreshSnapshot(item.key)}
-                  disabled={refreshingSnapshotKey === item.key}
-                  className="rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/85 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {refreshingSnapshotKey === item.key ? "Refreshing..." : "Refresh Snapshot"}
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 

@@ -20,7 +20,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Users, HardHat, Phone, MapPin, Building, Car, Wrench } from "lucide-react";
+import { Users, Store, Phone, MapPin, Building, Car, Wrench } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useLocation } from "wouter";
 
@@ -31,7 +31,7 @@ const profileSetupSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
-  // Contractor-specific fields
+  // Business/provider fields. Some legacy API names are preserved for compatibility.
   companyName: z.string().optional(),
   businessDescription: z.string().optional(),
   licenseNumber: z.string().optional(),
@@ -83,14 +83,14 @@ export default function ProfileSetup() {
         title: "Profile Setup Complete!",
         description:
           selectedRole === "contractor_user"
-            ? "Welcome to TradeScout! Your contractor profile has been created."
+            ? "Welcome to TradeScout! Your business profile has been created."
             : selectedRole === "realtor"
               ? "Welcome to TradeScout! Your realtor profile has been created."
               : selectedRole === "vehicle_dealer"
                 ? "Welcome to TradeScout! Your dealer profile has been created."
                 : selectedRole === "helper"
                   ? "Welcome to TradeScout! Your helper profile has been created."
-                  : "Welcome to TradeScout! You can now find and connect with contractors.",
+                  : "Welcome to TradeScout! You can now find and connect with local businesses.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       // Redirect to Profile Editor (website surface)
@@ -101,7 +101,7 @@ export default function ProfileSetup() {
       }
 
       // Fallbacks if API didn't return a slug
-      if (selectedRole === "contractor_user") setLocation("/contractor-dashboard");
+      if (selectedRole === "contractor_user") setLocation("/business-owner-dashboard");
       else if (selectedRole === "realtor") setLocation("/realtor-dashboard");
       else if (selectedRole === "vehicle_dealer") setLocation("/car-salesman-dashboard");
       else if (selectedRole === "helper") setLocation("/helper-dashboard");
@@ -160,13 +160,13 @@ export default function ProfileSetup() {
                 </div>
                 <CardTitle className="text-card-foreground">I'm a Homeowner</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  I need contractors for home improvement projects
+                  I need local help, products, or services
                 </CardDescription>
               </CardHeader>
               <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Find verified local contractors</li>
-                  <li>• Get free project estimates</li>
+                  <li>• Find verified local businesses</li>
+                  <li>• Request estimates or fixed-price offers</li>
                   <li>• Check recommendations and CVS</li>
                   <li>• Compare multiple quotes</li>
                 </ul>
@@ -179,18 +179,18 @@ export default function ProfileSetup() {
             >
               <CardHeader className="text-center">
                 <div className="mx-auto w-16 h-16 bg-ts-orange/10 rounded-full flex items-center justify-center mb-4">
-                  <HardHat className="w-8 h-8 text-ts-orange" />
+                  <Store className="w-8 h-8 text-ts-orange" />
                 </div>
-                <CardTitle className="text-card-foreground">I'm a Contractor</CardTitle>
+                <CardTitle className="text-card-foreground">I'm a Business</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  I provide home improvement services
+                  I sell services, products, or local expertise
                 </CardDescription>
               </CardHeader>
               <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Get qualified project connections</li>
+                  <li>• Get qualified local requests</li>
                   <li>• Build your online presence</li>
-                  <li>• Connect with homeowners</li>
+                  <li>• Publish services or items people can buy</li>
                   <li>• Grow your business</li>
                 </ul>
               </CardContent>
@@ -212,7 +212,7 @@ export default function ProfileSetup() {
               </CardHeader>
               <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Connect with trusted contractors</li>
+                  <li>• Connect with trusted local businesses</li>
                   <li>• Refer clients to quality professionals</li>
                   <li>• Build referral partnerships</li>
                   <li>• Enhance property value insights</li>
@@ -237,7 +237,7 @@ export default function ProfileSetup() {
               <CardContent className="role-card-details">
                 <ul className="space-y-2 text-sm text-muted-foreground">
                   <li>• Connect with homeowner customers</li>
-                  <li>• Partner with contractors for financing</li>
+                  <li>• Partner with local businesses for financing</li>
                   <li>• Build referral networks</li>
                   <li>• Grow vehicle sales business</li>
                 </ul>
@@ -274,8 +274,8 @@ export default function ProfileSetup() {
               <CardTitle className="text-card-foreground flex items-center gap-2">
                 {selectedRole === "contractor_user" ? (
                   <>
-                    <HardHat className="w-5 h-5" />
-                    Contractor Profile Setup
+                    <Store className="w-5 h-5" />
+                    Business Profile Setup
                   </>
                 ) : selectedRole === "realtor" ? (
                   <>
@@ -301,14 +301,14 @@ export default function ProfileSetup() {
               </CardTitle>
               <CardDescription className="text-muted-foreground">
                 {selectedRole === "contractor_user"
-                  ? "Tell us about your contracting business"
+                  ? "Tell us about your business"
                   : selectedRole === "realtor"
                     ? "Tell us about your real estate business"
                     : selectedRole === "vehicle_dealer"
                       ? "Tell us about your dealership"
                       : selectedRole === "helper"
                         ? "Tell us about your skills and availability"
-                        : "Tell us about your home improvement needs"}
+                        : "Tell us what you are looking for locally"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -416,7 +416,7 @@ export default function ProfileSetup() {
                     />
                   </div>
 
-                  {/* Contractor-specific fields */}
+                  {/* Business/provider fields */}
                   {selectedRole === "contractor_user" && (
                     <>
                       <div className="border-t border-border pt-6">
@@ -436,7 +436,7 @@ export default function ProfileSetup() {
                                 </FormLabel>
                                 <FormControl>
                                   <Input
-                                    placeholder="ABC Construction LLC"
+                                    placeholder="Your Business LLC"
                                     {...field}
                                     className="bg-background border-input text-foreground placeholder:text-muted-foreground"
                                   />
@@ -487,10 +487,10 @@ export default function ProfileSetup() {
                           )}
                         />
 
-                        {/* Contractor Type */}
+                        {/* Business fit */}
                         <div className="border-t border-border pt-4">
                           <h4 className="text-md font-semibold text-foreground mb-3">
-                            Contractor Type
+                            Business Fit
                           </h4>
                           <p className="text-muted-foreground text-sm mb-4">
                             Select all that apply to describe your business
@@ -510,11 +510,10 @@ export default function ProfileSetup() {
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel className="text-muted-foreground">
-                                      General Contractor
+                                      Project-based services
                                     </FormLabel>
                                     <p className="text-sm text-muted-foreground">
-                                      I manage complete construction projects and coordinate with
-                                      other trades
+                                      I manage larger jobs, bookings, or multi-step customer work
                                     </p>
                                   </div>
                                 </FormItem>
@@ -534,10 +533,10 @@ export default function ProfileSetup() {
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel className="text-muted-foreground">
-                                      Residential Contractor
+                                      Residential or consumer-facing
                                     </FormLabel>
                                     <p className="text-sm text-muted-foreground">
-                                      I specialize in home improvement and residential projects
+                                      I primarily serve households, residents, or walk-in customers
                                     </p>
                                   </div>
                                 </FormItem>
@@ -557,10 +556,10 @@ export default function ProfileSetup() {
                                   </FormControl>
                                   <div className="space-y-1 leading-none">
                                     <FormLabel className="text-muted-foreground">
-                                      Accept Subcontract Work
+                                      Accept partner work
                                     </FormLabel>
                                     <p className="text-sm text-muted-foreground">
-                                      I'm available to work as a subcontractor for other contractors
+                                      I'm available for referrals, partnerships, or overflow work
                                     </p>
                                   </div>
                                 </FormItem>

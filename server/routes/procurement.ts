@@ -16,6 +16,11 @@ import {
   procurementVehicleTypes,
   procurementWorkspaceTypes,
 } from "@shared/procurement";
+import {
+  TRADESCOUT_TRANSACTION_FEE_CENTS,
+  TRADESCOUT_TRANSACTION_FEE_LABEL,
+  TRADESCOUT_TRANSACTION_FEE_MODEL,
+} from "@shared/platformRevenue";
 
 const adminRoles = new Set([
   "moderator",
@@ -1239,6 +1244,7 @@ export function registerProcurementRoutes(app: Express) {
     if (!quote || !Number.isFinite(amountCents) || amountCents <= 0) {
       return res.status(400).json({ message: "A sent quote is required before checkout" });
     }
+    const totalWithTradeScoutFeeCents = amountCents + TRADESCOUT_TRANSACTION_FEE_CENTS;
     if (!["quote_sent", "approved"].includes(String(order.status || ""))) {
       return res.status(409).json({ message: "This order is not ready for checkout" });
     }
@@ -1272,12 +1278,25 @@ export function registerProcurementRoutes(app: Express) {
             },
             quantity: 1,
           },
+          {
+            price_data: {
+              currency: "usd",
+              unit_amount: TRADESCOUT_TRANSACTION_FEE_CENTS,
+              product_data: {
+                name: TRADESCOUT_TRANSACTION_FEE_LABEL,
+                description: "Flat TradeScout transaction fee on platform purchases.",
+              },
+            },
+            quantity: 1,
+          },
         ],
         metadata: {
           type: "procurement_supply_run",
           procurementOrderId: String(order.id),
           procurementQuoteId: String((quote as any).id),
           sourceChannel: String(order.source_channel || ""),
+          platformFeeCents: String(TRADESCOUT_TRANSACTION_FEE_CENTS),
+          platformFeeModel: TRADESCOUT_TRANSACTION_FEE_MODEL,
         },
         customer_email: order.customer_email || undefined,
       });
@@ -1290,13 +1309,21 @@ export function registerProcurementRoutes(app: Express) {
         [
           req.params.id,
           session.id,
-          amountCents,
-          JSON.stringify({ checkoutUrl: session.url, quoteId: (quote as any).id }),
+          totalWithTradeScoutFeeCents,
+          JSON.stringify({
+            checkoutUrl: session.url,
+            quoteId: (quote as any).id,
+            sellerAmountCents: amountCents,
+            platformFeeCents: TRADESCOUT_TRANSACTION_FEE_CENTS,
+            platformFeeModel: TRADESCOUT_TRANSACTION_FEE_MODEL,
+          }),
         ]
       );
       await recordEvent(req.params.id, "quote_sent", "Checkout session created.", req, "system", {
         sessionId: session.id,
-        amountCents,
+        amountCents: totalWithTradeScoutFeeCents,
+        sellerAmountCents: amountCents,
+        platformFeeCents: TRADESCOUT_TRANSACTION_FEE_CENTS,
       });
       res.json({ url: session.url, sessionId: session.id });
     } catch (error) {

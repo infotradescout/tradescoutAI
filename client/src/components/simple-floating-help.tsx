@@ -12,8 +12,8 @@ export function SimpleFloatingHelp() {
   const helpOptions = [
     {
       id: "contractor-search",
-      title: "Find Contractors",
-      description: "Learn how to search and filter contractors",
+      title: "Find Local Help",
+      description: "Learn how Direct Connect routes requests to local businesses",
     },
     {
       id: "messaging",

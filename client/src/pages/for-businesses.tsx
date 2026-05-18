@@ -10,9 +10,9 @@ import { BUSINESS_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
 
 const faqItems = [
   {
-    question: "How does TradeScout help contractors and local businesses get work?",
+    question: "How does TradeScout help local businesses get work or sales?",
     answer:
-      "TradeScout routes real local requests through Direct Connect and keeps contact intent-gated. Businesses get matched on trust and fit instead of pay-to-play lead buying.",
+      "TradeScout routes real local requests and profile purchases through gated flows. Businesses get matched on trust and fit instead of pay-to-play lead buying.",
   },
   {
     question: "Does paying more increase ranking on TradeScout?",
@@ -25,14 +25,14 @@ const faqItems = [
       "Yes. County routing is core to TradeScout. You can focus where you operate and respond to requests in those service areas.",
   },
   {
-    question: "How do I join as a contractor or business?",
+    question: "How do I join as a business?",
     answer:
-      "Use the contractor/business onboarding flow, complete your profile and verification prompts, then begin responding to matched local requests in Direct Connect.",
+      "Use business onboarding, complete your profile and verification prompts, publish fixed-price services or items if you want, then respond to matched local requests in Direct Connect.",
   },
 ];
 
 export default function ForBusinessesPage() {
-  const tangipahoaApplyHref = "/contractors/apply?state=LA&county=22105&source=tangipahoa-launch";
+  const tangipahoaApplyHref = "/businesses/apply?state=LA&county=22105&source=tangipahoa-launch";
   const tangipahoaDemandHref =
     "/direct-connect?county=22105&source=tangipahoa-launch&intent=provider_demand";
   const topQueries = BUSINESS_POPULAR_QUERIES.slice(0, 16);
@@ -42,9 +42,9 @@ export default function ForBusinessesPage() {
     "@graph": [
       {
         "@type": "WebPage",
-        name: "TradeScout for Small Local Service Businesses",
+        name: "TradeScout for Local Businesses",
         description:
-          "TradeScout helps small local service businesses earn trusted local demand without pay-to-play lead selling. Build trust, respond to real requests, and grow county by county.",
+          "TradeScout helps local businesses earn trusted demand without pay-to-play lead selling. Build trust, sell services or items, respond to real requests, and grow county by county.",
         url: "https://www.thetradescout.com/for-businesses",
       },
       createBreadcrumbStructuredData([
@@ -58,9 +58,9 @@ export default function ForBusinessesPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <SEOHelmet
-        title="TradeScout for Small Local Service Businesses"
-        description="TradeScout helps small local service businesses win more trusted local work without pay-to-play lead selling. Build trust, respond to real requests, and grow county by county."
-        keywords="small business marketing for contractors, small local service business growth, local contractor leads, how to get more local jobs, direct connect requests, trades business platform"
+        title="TradeScout for Local Businesses"
+        description="TradeScout helps local businesses win more trusted local work and sales without pay-to-play lead selling. Build trust, publish offers, respond to real requests, and grow county by county."
+        keywords="local business growth, small business marketing, local service business growth, sell local services online, sell local products online, direct connect requests, business profile platform"
         canonical="https://www.thetradescout.com/for-businesses"
         structuredData={structuredData}
       />
@@ -70,8 +70,8 @@ export default function ForBusinessesPage() {
           Grow your business with trust-first local demand
         </h1>
         <p className="text-white/70 max-w-3xl">
-          TradeScout helps contractors and local service businesses get in front of people who are
-          actively looking for help. Contact is gated by intent and trust, not bought rankings.
+          TradeScout helps local businesses get in front of people who are actively looking for
+          help, services, or products. Contact is gated by intent and trust, not bought rankings.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href={tangipahoaApplyHref}>
@@ -151,17 +151,25 @@ export default function ForBusinessesPage() {
           can activate now to get early local visibility and county-level demand coverage.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Link href={`/contractors/apply?state=FL&county=12033&source=pensacola-launch`}>
-            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">Start Pensacola onboarding</Button>
+          <Link href={`/businesses/apply?state=FL&county=12033&source=pensacola-launch`}>
+            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+              Start Pensacola onboarding
+            </Button>
           </Link>
           <Link href="/pensacola">
-            <Button variant="outline" className="border-white/20 text-white">Pensacola hub</Button>
+            <Button variant="outline" className="border-white/20 text-white">
+              Pensacola hub
+            </Button>
           </Link>
           <Link href="/pensacola/electrical-contractors">
-            <Button variant="outline" className="border-white/20 text-white">Electrical contractors</Button>
+            <Button variant="outline" className="border-white/20 text-white">
+              Electrical services
+            </Button>
           </Link>
           <Link href="/pensacola/hvac-repair">
-            <Button variant="outline" className="border-white/20 text-white">HVAC repair</Button>
+            <Button variant="outline" className="border-white/20 text-white">
+              HVAC repair
+            </Button>
           </Link>
         </div>
       </section>

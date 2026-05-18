@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { isBusinessProviderRole } from "@/lib/roleChecks";
 import {
   GripVertical,
   Eye,
@@ -104,9 +105,9 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
     },
     {
       id: "contractors",
-      label: "Find Contractors",
+      label: "Find Local Help",
       icon: "Search",
-      href: "/contractors",
+      href: "/direct-connect",
       visible: true,
     },
     {
@@ -219,20 +220,20 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
     });
   }
 
-  if (userRole === "contractor_user" || userRole === "accelerator_member") {
+  if (isBusinessProviderRole(userRole)) {
     baseItems.push(
       {
         id: "contractor-network",
-        label: "For Contractors",
+        label: "For Businesses",
         icon: "Wrench",
-        href: "/contractors",
+        href: "/businesses/apply",
         visible: true,
       },
       {
         id: "contractor-dashboard",
-        label: "Contractor Dashboard",
+        label: "Business Dashboard",
         icon: "Layout",
-        href: "/contractor-dashboard",
+        href: "/business-owner-dashboard",
         visible: true,
       },
       {
@@ -247,7 +248,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
     if (userRole === "accelerator_member") {
       baseItems.push({
         id: "accelerator",
-        label: "Contractor Access",
+        label: "Business Access",
         icon: "Zap",
         href: "/accelerator",
         visible: true,

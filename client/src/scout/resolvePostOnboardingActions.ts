@@ -28,9 +28,19 @@ export function resolvePostOnboardingActions(
   if (claims.includes("offer_services")) {
     actions.push({
       id: "setup_services",
-      label: "Set up services & availability",
-      destination: `/business/${profile.slug}/edit?tab=services`,
+      label: "Set up profile, offers & verification",
+      destination: "/offer-services",
       primary: true,
+    });
+    actions.push({
+      id: "setup_fixed_price_offers",
+      label: "Add fixed-price services or items",
+      destination: "/offer-services#fixed-price-offers",
+    });
+    actions.push({
+      id: "review_finance_records",
+      label: "Review finance records",
+      destination: "/finances/records",
     });
     actions.push({
       id: "view_page",

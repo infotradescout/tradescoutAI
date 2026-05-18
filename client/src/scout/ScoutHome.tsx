@@ -16,10 +16,13 @@
 import { useState, useCallback } from "react";
 import {
   Archive,
+  ArrowRight,
   Brain,
   ClipboardList,
+  Home,
   MapPin,
   ChevronDown,
+  Radar,
   Sparkles,
   TrendingUp,
   Clock,
@@ -32,8 +35,17 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useScoutLocation } from "./hooks/useScoutLocation";
-import { useScoutHomeSnapshot } from "./hooks/useScoutHomeSnapshot";
-import { SCOUT_CAPABILITY_COPY, type ScoutCapabilityId } from "./scoutExperience";
+import {
+  useScoutHomeSnapshot,
+  type OpportunityMove,
+  type PriceSignal,
+} from "./hooks/useScoutHomeSnapshot";
+import {
+  SCOUT_CAPABILITY_COPY,
+  formatPriceSignalFreshness,
+  formatPriceSignalSource,
+  type ScoutCapabilityId,
+} from "./scoutExperience";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -275,6 +287,123 @@ function DataTile({
   );
 }
 
+// ── County price signal item ───────────────────────────────────────────────
+
+function PriceSignalItem({ signal, onClick }: { signal: PriceSignal; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-all"
+      style={{
+        backgroundColor: "var(--surface-card)",
+        border: "1px solid #1e1e1e",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = "#f97316";
+        (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-intermediate)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--surface-intermediate, #1e1e1e)";
+        (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
+      }}
+    >
+      <span
+        className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center"
+        style={{ backgroundColor: "var(--surface-intermediate, #1e1e1e)", color: "#f97316" }}
+      >
+        <TrendingUp className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[12px] font-semibold leading-snug" style={{ color: "#f5f5f5" }}>
+          {signal.label}
+        </p>
+        <p className="mt-0.5 text-[11px] leading-snug" style={{ color: "var(--text-muted, #666)" }}>
+          {signal.description}
+        </p>
+        <p className="mt-1 text-[10px] font-medium" style={{ color: "#f97316" }}>
+          {formatPriceSignalFreshness(signal.updatedAt)}
+        </p>
+        <p className="mt-1 text-[10px] font-medium" style={{ color: "var(--text-muted, #777)" }}>
+          {formatPriceSignalSource(signal)}
+        </p>
+      </div>
+    </button>
+  );
+}
+
+// ── Opportunity Radar move item ───────────────────────────────────────────
+
+function moveTypeLabel(type: OpportunityMove["type"]): string {
+  const labels: Record<OpportunityMove["type"], string> = {
+    service_gap: "Service gap",
+    underserved_area: "Underserved area",
+    fast_win: "Fast win",
+    partnership_target: "Partnership",
+    audit_target: "Audit target",
+  };
+  return labels[type];
+}
+
+function OpportunityMoveItem({ move, onClick }: { move: OpportunityMove; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full rounded-xl px-3 py-3 text-left transition-all"
+      style={{
+        backgroundColor: "var(--surface-card)",
+        border: "1px solid #1e1e1e",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = "#f97316";
+        (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-intermediate)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.borderColor = "var(--surface-intermediate, #1e1e1e)";
+        (e.currentTarget as HTMLElement).style.backgroundColor = "var(--surface-card)";
+      }}
+    >
+      <div className="flex items-start gap-3">
+        <span
+          className="flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center"
+          style={{ backgroundColor: "var(--surface-intermediate, #1e1e1e)", color: "#f97316" }}
+        >
+          <Radar className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase" style={{ color: "#f97316" }}>
+              {moveTypeLabel(move.type)}
+            </span>
+            <span className="text-[10px]" style={{ color: "var(--text-muted, #555)" }}>
+              {move.confidence} confidence
+            </span>
+          </div>
+          <p className="mt-1 text-[13px] font-semibold leading-snug" style={{ color: "#f5f5f5" }}>
+            {move.title}
+          </p>
+          <p className="mt-1 text-[11px] leading-snug" style={{ color: "var(--text-muted, #666)" }}>
+            {move.whyItMatters}
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-[10px] font-medium" style={{ color: "var(--text-muted, #777)" }}>
+              {move.sourceLabel}
+            </span>
+            <span
+              className="inline-flex items-center gap-1 text-[11px] font-semibold"
+              style={{ color: "#f97316" }}
+            >
+              {move.actionLabel}
+              <ArrowRight className="h-3 w-3" />
+            </span>
+          </div>
+        </div>
+      </div>
+    </button>
+  );
+}
+
 // ── Trending prompt chip ───────────────────────────────────────────────────
 
 function PromptChip({
@@ -467,6 +596,8 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
   const snapshot = data?.snapshot;
   const prompts = data?.trendingPrompts ?? [];
   const recentActivity = data?.recentActivity ?? [];
+  const priceSignals = data?.priceSignals ?? [];
+  const opportunityMoves = data?.opportunityMoves ?? [];
   const capabilityIcons: Record<ScoutCapabilityId, React.ElementType> = {
     plan: ClipboardList,
     intake: ListChecks,
@@ -477,6 +608,10 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
     trust: ShieldCheck,
     saved: Archive,
     community: Users,
+    exchange: ShoppingBag,
+    homescout: Home,
+    community_vault: ShieldCheck,
+    finance: ClipboardList,
   };
 
   const countyDisplay = snapshot?.countyName
@@ -637,6 +772,48 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
               />
             </div>
           ) : null}
+        </>
+      )}
+
+      {/* ── Opportunity Radar ─────────────────────────────────────────── */}
+      {countyDisplay && opportunityMoves.length > 0 && (
+        <>
+          <SectionLabel>
+            <Radar className="h-3 w-3 inline mr-1" style={{ color: "#f97316" }} />
+            Opportunity Radar
+          </SectionLabel>
+          <div className="flex flex-col gap-2">
+            {opportunityMoves.map((move) => (
+              <OpportunityMoveItem
+                key={move.id}
+                move={move}
+                onClick={() => onPromptSelect(move.prompt)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Price Signal Freshness ─────────────────────────────────────── */}
+      {countyDisplay && priceSignals.length > 0 && (
+        <>
+          <SectionLabel>
+            <Clock className="h-3 w-3 inline mr-1" style={{ color: "#f97316" }} />
+            Price signal freshness
+          </SectionLabel>
+          <div className="flex flex-col gap-2">
+            {priceSignals.slice(0, 3).map((signal) => (
+              <PriceSignalItem
+                key={signal.id}
+                signal={signal}
+                onClick={() =>
+                  onPromptSelect(
+                    `Check prices and local trends using the latest ${signal.label} snapshot.`
+                  )
+                }
+              />
+            ))}
+          </div>
         </>
       )}
 

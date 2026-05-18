@@ -37,9 +37,9 @@ const getNewUserSteps = (userRole: string): TourStep[] => {
       {
         id: "contractor-board",
         target: "[data-testid='nav-contractor-board']",
-        title: "Contractor Board",
+        title: "Business Requests",
         description:
-          "This is where homeowners find contractors. Complete your profile to appear higher in search results!",
+          "This is where local customers can discover trusted businesses and start gated requests. Complete your profile to improve trust context.",
         position: "bottom",
       },
       {
@@ -55,7 +55,7 @@ const getNewUserSteps = (userRole: string): TourStep[] => {
         target: "[data-testid='user-dropdown']",
         title: "Complete Your Profile",
         description:
-          "Ready to start? Click here and complete your contractor profile to begin attracting customers!",
+          "Ready to start? Complete your business profile, offers, and verification to begin attracting customers.",
         position: "left",
       },
     ];
@@ -65,17 +65,15 @@ const getNewUserSteps = (userRole: string): TourStep[] => {
       {
         id: "find-contractors",
         target: "[data-testid='nav-contractor-board']",
-        title: "Find Contractors",
-        description:
-          "Browse verified contractors in your area. Use filters to find specialists for your specific project.",
+        title: "Find Local Help",
+        description: "Use Direct Connect and Scout to route requests to trusted local businesses.",
         position: "bottom",
       },
       {
         id: "get-quotes",
         target: "[data-nav-item='scout']",
         title: "Ask Scout for Estimates",
-        description:
-          "Use Scout to get a quick ballpark for your project before you start contacting contractors.",
+        description: "Use Scout to get a quick ballpark before you start a gated request.",
         position: "bottom",
       },
       {
@@ -83,7 +81,7 @@ const getNewUserSteps = (userRole: string): TourStep[] => {
         target: "[data-testid='nav-contractor-board']",
         title: "Leave Recommendations",
         description:
-          "After working with a contractor, come back to leave a recommendation to help other homeowners.",
+          "After working with a business, come back to leave a recommendation to help other local customers.",
         position: "bottom",
       },
     ];

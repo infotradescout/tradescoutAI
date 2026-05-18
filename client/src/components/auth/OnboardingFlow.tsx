@@ -6,22 +6,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  CheckCircle, 
-  MapPin, 
-  Shield, 
-  Upload, 
-  Building, 
-  Phone, 
-  Mail, 
+import {
+  CheckCircle,
+  MapPin,
+  Shield,
+  Upload,
+  Building,
+  Phone,
+  Mail,
   FileText,
   AlertCircle,
-  Clock
+  Clock,
 } from "lucide-react";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 
 interface OnboardingFlowProps {
-  role: 'homeowner' | 'contractor';
+  role: "homeowner" | "contractor";
   userInfo: {
     name?: string;
     email?: string;
@@ -34,20 +34,20 @@ interface OnboardingFlowProps {
 export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<any>({});
-  
-  const totalSteps = role === 'homeowner' ? 3 : 4;
+
+  const totalSteps = role === "homeowner" ? 3 : 4;
   const progress = (currentStep / totalSteps) * 100;
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     } else {
       onComplete(formData);
     }
   };
 
   const handleBack = () => {
-    setCurrentStep(prev => prev - 1);
+    setCurrentStep((prev) => prev - 1);
   };
 
   const updateFormData = (data: any) => {
@@ -63,14 +63,18 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
             <TradeScoutLogo size="lg" variant="gradient" />
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">
-            {role === 'homeowner' ? 'Personal account' : 'Work & services'} setup
+            {role === "homeowner" ? "Personal account" : "Work & services"} setup
           </h1>
-          <p className="text-muted-foreground">Tell us a bit about yourself and where you’re active</p>
-          
+          <p className="text-muted-foreground">
+            Tell us a bit about yourself and where you’re active
+          </p>
+
           {/* Progress Bar */}
           <div className="mt-6 max-w-md mx-auto">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Step {currentStep} of {totalSteps}</span>
+              <span>
+                Step {currentStep} of {totalSteps}
+              </span>
               <span>{Math.round(progress)}% Complete</span>
             </div>
             <Progress value={progress} className="h-2" />
@@ -91,20 +95,24 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName" className="text-muted-foreground">First Name</Label>
+                    <Label htmlFor="firstName" className="text-muted-foreground">
+                      First Name
+                    </Label>
                     <Input
                       id="firstName"
-                      defaultValue={userInfo.name?.split(' ')[0] || ''}
+                      defaultValue={userInfo.name?.split(" ")[0] || ""}
                       onChange={(e) => updateFormData({ firstName: e.target.value })}
                       className="bg-background border-input text-foreground"
                       data-testid="input-first-name"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="lastName" className="text-muted-foreground">Last Name</Label>
+                    <Label htmlFor="lastName" className="text-muted-foreground">
+                      Last Name
+                    </Label>
                     <Input
                       id="lastName"
-                      defaultValue={userInfo.name?.split(' ').slice(1).join(' ') || ''}
+                      defaultValue={userInfo.name?.split(" ").slice(1).join(" ") || ""}
                       onChange={(e) => updateFormData({ lastName: e.target.value })}
                       className="bg-background border-input text-foreground"
                       data-testid="input-last-name"
@@ -112,18 +120,22 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="email" className="text-muted-foreground">Email</Label>
+                  <Label htmlFor="email" className="text-muted-foreground">
+                    Email
+                  </Label>
                   <Input
                     id="email"
                     type="email"
-                    defaultValue={userInfo.email || ''}
+                    defaultValue={userInfo.email || ""}
                     onChange={(e) => updateFormData({ email: e.target.value })}
                     className="bg-background border-input text-foreground"
                     data-testid="input-email"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="phone" className="text-muted-foreground">Phone Number</Label>
+                  <Label htmlFor="phone" className="text-muted-foreground">
+                    Phone Number
+                  </Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -147,7 +159,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="address" className="text-white/70">Street Address</Label>
+                  <Label htmlFor="address" className="text-white/70">
+                    Street Address
+                  </Label>
                   <Input
                     id="address"
                     onChange={(e) => updateFormData({ address: e.target.value })}
@@ -157,7 +171,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="city" className="text-muted-foreground">City</Label>
+                    <Label htmlFor="city" className="text-muted-foreground">
+                      City
+                    </Label>
                     <Input
                       id="city"
                       onChange={(e) => updateFormData({ city: e.target.value })}
@@ -166,7 +182,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                     />
                   </div>
                   <div>
-                    <Label htmlFor="state" className="text-muted-foreground">State</Label>
+                    <Label htmlFor="state" className="text-muted-foreground">
+                      State
+                    </Label>
                     <Input
                       id="state"
                       onChange={(e) => updateFormData({ state: e.target.value })}
@@ -177,7 +195,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="zipCode" className="text-muted-foreground">ZIP Code</Label>
+                    <Label htmlFor="zipCode" className="text-muted-foreground">
+                      ZIP Code
+                    </Label>
                     <Input
                       id="zipCode"
                       onChange={(e) => updateFormData({ zipCode: e.target.value })}
@@ -186,7 +206,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                     />
                   </div>
                   <div>
-                    <Label htmlFor="county" className="text-muted-foreground">Neighborhood / area</Label>
+                    <Label htmlFor="county" className="text-muted-foreground">
+                      Neighborhood / area
+                    </Label>
                     <Input
                       id="county"
                       onChange={(e) => updateFormData({ county: e.target.value })}
@@ -200,7 +222,8 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
           )}
 
           {/* Step 3: Verification Notice */}
-          {((role === 'homeowner' && currentStep === 3) || (role === 'contractor' && currentStep === 3)) && (
+          {((role === "homeowner" && currentStep === 3) ||
+            (role === "contractor" && currentStep === 3)) && (
             <>
               <CardHeader>
                 <CardTitle className="text-card-foreground flex items-center gap-2">
@@ -209,7 +232,7 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {role === 'homeowner' ? (
+                {role === "homeowner" ? (
                   <div className="space-y-4">
                     <div className="bg-muted border border-border rounded-lg p-4">
                       <h3 className="text-primary font-semibold mb-2 flex items-center gap-2">
@@ -217,40 +240,50 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                         Location & identity checks
                       </h3>
                       <p className="text-muted-foreground text-sm mb-3">
-                        To keep local interactions trustworthy, we may ask for additional checks before certain actions (like publishing recommendations).
+                        To keep local interactions trustworthy, we may ask for additional checks
+                        before certain actions (like publishing recommendations).
                       </p>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">You’ll still be able to browse and explore right away</span>
+                          <span className="text-muted-foreground">
+                            You’ll still be able to browse and explore right away
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">We’ll guide you if and when extra verification is needed</span>
+                          <span className="text-muted-foreground">
+                            We’ll guide you if and when extra verification is needed
+                          </span>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="bg-muted border border-border rounded-lg p-4">
                       <h3 className="text-primary font-semibold mb-2 flex items-center gap-2">
                         <Shield className="w-5 h-5" />
                         ID Verification
                       </h3>
                       <p className="text-muted-foreground text-sm">
-                        For higher-impact actions, we may ask for additional proof that you’re a real person in the area.
+                        For higher-impact actions, we may ask for additional proof that you’re a
+                        real person in the area.
                       </p>
                     </div>
 
                     <div className="bg-muted rounded-lg p-4">
-                      <h4 className="text-foreground font-medium mb-2">What you can do right away:</h4>
+                      <h4 className="text-foreground font-medium mb-2">
+                        What you can do right away:
+                      </h4>
                       <ul className="text-muted-foreground text-sm space-y-1">
                         <li>• Browse and contact local services</li>
                         <li>• Request help, quotes, and estimates</li>
                         <li>• Use project and planning tools</li>
                         <li>• Chat with people and providers in your area</li>
                       </ul>
-                      
-                      <h4 className="text-foreground font-medium mb-2 mt-4">After additional checks:</h4>
+
+                      <h4 className="text-foreground font-medium mb-2 mt-4">
+                        After additional checks:
+                      </h4>
                       <ul className="text-muted-foreground text-sm space-y-1">
                         <li>• Publish recommendations and public signals</li>
                         <li>• Participate more deeply in community discussions</li>
@@ -266,32 +299,39 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                         Business Verification
                       </h3>
                       <p className="text-muted-foreground text-sm mb-3">
-                        Our team will review your business credentials before you appear on the contractor board.
+                        Our team will review your business credentials before your business gets
+                        broader local exposure.
                       </p>
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Admin review typically takes 1-3 business days</span>
+                          <span className="text-muted-foreground">
+                            Admin review typically takes 1-3 business days
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <FileText className="w-4 h-4 text-primary" />
-                          <span className="text-muted-foreground">Business license, insurance, and references required</span>
+                          <span className="text-muted-foreground">
+                            Business license, insurance, and references required
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     <div className="bg-muted rounded-lg p-4">
-                      <h4 className="text-foreground font-medium mb-2">What you can do without verification:</h4>
+                      <h4 className="text-foreground font-medium mb-2">
+                        What you can do without verification:
+                      </h4>
                       <ul className="text-muted-foreground text-sm space-y-1">
                         <li>• Complete your profile setup</li>
                         <li>• Upload portfolio photos</li>
                         <li>• Set your service areas</li>
                         <li>• Chat with potential customers</li>
                       </ul>
-                      
+
                       <h4 className="text-foreground font-medium mb-2 mt-4">After verification:</h4>
                       <ul className="text-muted-foreground text-sm space-y-1">
-                        <li>• Appear on the public contractor board</li>
+                        <li>• Appear on public local business surfaces</li>
                         <li>• Connect with potential customers</li>
                         <li>• Build customer recommendations</li>
                         <li>• Access marketing tools</li>
@@ -303,8 +343,8 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
             </>
           )}
 
-          {/* Step 4: Business Info (Contractors Only) */}
-          {role === 'contractor' && currentStep === 4 && (
+          {/* Step 4: Business Info (Business providers only) */}
+          {role === "contractor" && currentStep === 4 && (
             <>
               <CardHeader>
                 <CardTitle className="text-card-foreground flex items-center gap-2">
@@ -314,7 +354,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="businessName" className="text-muted-foreground">Business Name</Label>
+                  <Label htmlFor="businessName" className="text-muted-foreground">
+                    Business Name
+                  </Label>
                   <Input
                     id="businessName"
                     onChange={(e) => updateFormData({ businessName: e.target.value })}
@@ -323,7 +365,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                   />
                 </div>
                 <div>
-                  <Label htmlFor="licenseNumber" className="text-muted-foreground">License Number (Optional)</Label>
+                  <Label htmlFor="licenseNumber" className="text-muted-foreground">
+                    License Number (Optional)
+                  </Label>
                   <Input
                     id="licenseNumber"
                     onChange={(e) => updateFormData({ licenseNumber: e.target.value })}
@@ -332,7 +376,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                   />
                 </div>
                 <div>
-                  <Label htmlFor="specialties" className="text-muted-foreground">Specialties</Label>
+                  <Label htmlFor="specialties" className="text-muted-foreground">
+                    Specialties
+                  </Label>
                   <Textarea
                     id="specialties"
                     placeholder="Describe your main services and specialties..."
@@ -342,7 +388,9 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                   />
                 </div>
                 <div>
-                  <Label htmlFor="yearsExperience" className="text-muted-foreground">Years of Experience</Label>
+                  <Label htmlFor="yearsExperience" className="text-muted-foreground">
+                    Years of Experience
+                  </Label>
                   <Input
                     id="yearsExperience"
                     type="number"
@@ -378,13 +426,13 @@ export function OnboardingFlow({ role, userInfo, onComplete, onSkip }: Onboardin
                   Skip for Now
                 </Button>
               </div>
-              
+
               <Button
                 onClick={handleNext}
                 className="bg-primary hover:bg-primary/90 text-primary-foreground"
                 data-testid="button-next"
               >
-                {currentStep === totalSteps ? 'Complete Setup' : 'Next'}
+                {currentStep === totalSteps ? "Complete Setup" : "Next"}
               </Button>
             </div>
           </CardContent>

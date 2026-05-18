@@ -6,9 +6,11 @@ import {
   type MarketplaceTransaction,
   type PaymentConfiguration,
 } from "@shared/schema";
+import { TRADESCOUT_TRANSACTION_FEE_USD } from "@shared/platformRevenue";
 
 type PaymentType = "marketplace_transaction" | "contractor_service" | "premium_subscription";
 type ProcessingMethod = "card" | "ach";
+const TRADESCOUT_FLAT_PLATFORM_TRANSACTION_FEE = TRADESCOUT_TRANSACTION_FEE_USD;
 
 function getAchIncentiveConfig() {
   const threshold = Number(process.env.ACH_DEFAULT_THRESHOLD_USD ?? 1000);
@@ -135,8 +137,8 @@ export class PaymentService {
     const processingMethod: ProcessingMethod = opts?.processingMethod === "ach" ? "ach" : "card";
 
     if (!config) {
-      // Default configuration
-      const platformFee = Math.max(0.5, amount * 0.025); // 2.5% with $0.50 minimum
+      // TradeScout monetizes on a flat transaction fee, not lead sales, paid access, or percentage take rates.
+      const platformFee = TRADESCOUT_FLAT_PLATFORM_TRANSACTION_FEE;
       const stripeFee =
         processingMethod === "ach"
           ? Math.min(5, amount * 0.008) // ACH debit is typically lower (capped)
@@ -149,19 +151,8 @@ export class PaymentService {
       };
     }
 
-    // Calculate based on configuration
-    let platformFee = 0;
-    if (config.platformFeeType === "percentage") {
-      platformFee = amount * Number(config.platformFeeValue);
-      if (config.platformFeeMin) {
-        platformFee = Math.max(platformFee, Number(config.platformFeeMin));
-      }
-      if (config.platformFeeMax) {
-        platformFee = Math.min(platformFee, Number(config.platformFeeMax));
-      }
-    } else if (config.platformFeeType === "fixed") {
-      platformFee = Number(config.platformFeeValue);
-    }
+    // Ignore legacy percentage configurations for new on-platform transactions.
+    const platformFee = TRADESCOUT_FLAT_PLATFORM_TRANSACTION_FEE;
 
     const stripeFee =
       processingMethod === "ach" ? Math.min(5, amount * 0.008) : amount * 0.029 + 0.3;

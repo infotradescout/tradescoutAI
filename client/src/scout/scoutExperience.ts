@@ -12,6 +12,10 @@ export type ScoutCapabilityId =
   | "local_help"
   | "materials"
   | "prices"
+  | "exchange"
+  | "homescout"
+  | "community_vault"
+  | "finance"
   | "compare"
   | "trust"
   | "saved"
@@ -53,6 +57,9 @@ export type ScoutSourceSignalSnapshot = {
     metricKey?: string;
     value?: number;
     updatedAt?: string | null;
+    sourceLabel?: string;
+    sourceKind?: string;
+    confidence?: string;
   }>;
   trendingPrompts?: Array<{ text?: string; category?: string; count?: number; intent?: string }>;
   recentActivity?: Array<{ query?: string; timestamp?: string }>;
@@ -119,6 +126,34 @@ export const SCOUT_CAPABILITY_COPY: ScoutCapabilityCopy[] = [
     detail: "Nearby posts, projects, events, and local signals",
     prompt:
       "Show what is happening near me: local posts, requests, projects, events, and recent changes.",
+  },
+  {
+    id: "exchange",
+    title: "Exchange",
+    detail: "Materials, tools, equipment, vehicles, property, and local listings",
+    prompt:
+      "Help me check Exchange options for this. Show relevant listings, safe next steps, and what to verify before buying or selling.",
+  },
+  {
+    id: "homescout",
+    title: "HomeScout",
+    detail: "Listings, Home Vault records, inspections, and sell-flow prep",
+    prompt:
+      "Help me connect this to HomeScout. Use listings, Home Vault details, inspection context, and sell-flow prep where relevant.",
+  },
+  {
+    id: "community_vault",
+    title: "Community Vault",
+    detail: "Local reinvestment, transparency, builder contributions, and county context",
+    prompt:
+      "Show how this relates to the Community Vault, local reinvestment, and county transparency without implying payouts or paid placement.",
+  },
+  {
+    id: "finance",
+    title: "Finance tools",
+    detail: "Invoices, expenses, records, reports, and bookkeeping rebuild paths",
+    prompt:
+      "Help me connect this to finance tools. Be clear about what works today and what still needs bookkeeping rebuild work.",
   },
 ];
 
@@ -202,6 +237,75 @@ function hasPriceOrTrendIntent(value: string): boolean {
   );
 }
 
+function hasExchangeIntent(value: string): boolean {
+  return /\b(exchange|marketplace|listing|listings|buy|sell|selling|for sale|tools?|equipment|materials?|vehicle|vehicles|metals?|rental)\b/i.test(
+    value
+  );
+}
+
+function hasHomeScoutIntent(value: string): boolean {
+  return /\b(homescout|home scout|home listing|house listing|sell my home|sell this home|real estate|inspection|inspector|presale|home vault|property listing)\b/i.test(
+    value
+  );
+}
+
+function hasCommunityVaultIntent(value: string): boolean {
+  return /\b(community vault|county vault|foundation|giveback|give back|reinvest|reinvestment|community builder|local dollars|transparent funding|transparency)\b/i.test(
+    value
+  );
+}
+
+function hasFinanceIntent(value: string): boolean {
+  return /\b(finance|finances|bookkeep|bookkeeping|accounting|invoice|invoices|expense|expenses|receipt|receipts|estimate|estimates|record|records|ledger|report|reports|payroll|vendor|vendors|bank account|tax)\b/i.test(
+    value
+  );
+}
+
+export function formatPriceSignalFreshness(updatedAt?: string | null, now = new Date()): string {
+  if (!updatedAt) return "Snapshot freshness unavailable";
+
+  const updatedMs = new Date(updatedAt).getTime();
+  if (!Number.isFinite(updatedMs)) return "Snapshot freshness unavailable";
+
+  const diffMs = Math.max(0, now.getTime() - updatedMs);
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "Updated just now";
+  if (mins < 60) return `Updated ${mins}m ago`;
+
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Updated ${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `Updated ${days}d ago`;
+
+  return `Updated ${new Date(updatedAt).toLocaleDateString()}`;
+}
+
+export function formatPriceSignalSource(signal: {
+  sourceLabel?: string | null;
+  confidence?: string | null;
+}): string {
+  const source = cleanMessage(signal.sourceLabel || "County metric");
+  const confidence = cleanMessage(signal.confidence || "");
+  return confidence ? `${source} | ${confidence} confidence` : source;
+}
+
+export function priceSignalEvidenceSources(
+  snapshot?: ScoutSourceSignalSnapshot | null,
+  message = ""
+): string[] {
+  if (!snapshot || !hasPriceOrTrendIntent(message)) return [];
+  const sources = new Set<string>();
+
+  for (const signal of snapshot.priceSignals || []) {
+    if (!signal?.sourceLabel) continue;
+    sources.add(formatPriceSignalSource(signal));
+    if (sources.size >= 3) break;
+  }
+
+  return Array.from(sources);
+}
+
 function sourceBackedPriceItems(snapshot?: ScoutSourceSignalSnapshot | null) {
   if (!snapshot) return [];
   const items: Array<{ id: string; label: string; description: string }> = [];
@@ -212,7 +316,11 @@ function sourceBackedPriceItems(snapshot?: ScoutSourceSignalSnapshot | null) {
     items.push({
       id: signal.id || signal.metricKey || `price-signal-${items.length}`,
       label: signal.label,
-      description: countyLabel ? `${signal.description} around ${countyLabel}` : signal.description,
+      description: [
+        countyLabel ? `${signal.description} around ${countyLabel}` : signal.description,
+        formatPriceSignalSource(signal),
+        formatPriceSignalFreshness(signal.updatedAt),
+      ].join(" | "),
     });
     if (items.length >= 3) return items;
   }
@@ -328,6 +436,10 @@ export function buildScoutExperienceClusters(args: {
       `Check price factors, local ranges, and what could change the cost for: ${message}`
     ),
     { type: "NAVIGATE", label: "See nearby activity", to: "/community" },
+    { type: "NAVIGATE", label: "Browse Exchange", to: "/exchange" },
+    { type: "NAVIGATE", label: "Open HomeScout", to: "/homescout-listings" },
+    { type: "NAVIGATE", label: "Open Community Vault", to: "/foundation" },
+    { type: "NAVIGATE", label: "Open finance tools", to: "/finances" },
     supplierUrl
       ? {
           type: "NAVIGATE",
@@ -367,6 +479,12 @@ export function buildScoutExperienceClusters(args: {
         },
         ...sourceBackedLocalItems(sourceSignals),
         {
+          id: "community-exchange-homescout",
+          label: "Local surfaces connected",
+          description:
+            "Community, Exchange, HomeScout, Community Vault, and finance tools stay available as real app paths",
+        },
+        {
           id: "feasible-paths",
           label: "Recommended paths",
           description:
@@ -374,6 +492,145 @@ export function buildScoutExperienceClusters(args: {
         },
       ],
       actions: overviewActions,
+    });
+  }
+
+  if (hasExchangeIntent(message) && !existing.has("exchange options")) {
+    clusters.push({
+      id: `exchange-options-${Date.now()}`,
+      title: "Exchange options",
+      kind: "marketplace",
+      body: "Scout can connect the work to Exchange listings without implying a purchase, sale, message, or payment has happened.",
+      items: [
+        {
+          id: "exchange-browse",
+          label: "Browse first",
+          description:
+            "Compare local materials, tools, equipment, property, vehicles, and other listings",
+        },
+        {
+          id: "exchange-sell",
+          label: "Sell flow stays reviewed",
+          description: "Listings are created and reviewed through the app, not silently from chat",
+        },
+      ],
+      actions: takeActions(
+        [
+          { type: "NAVIGATE", label: "Browse Exchange", to: "/exchange", primary: true },
+          { type: "NAVIGATE", label: "Open tools", to: "/exchange/tools" },
+          { type: "NAVIGATE", label: "Open construction", to: "/exchange/construction" },
+          { type: "NAVIGATE", label: "Seller dashboard", to: "/exchange/seller-dashboard" },
+        ],
+        actionBudget
+      ),
+    });
+  }
+
+  if (hasHomeScoutIntent(message) && !existing.has("homescout and home vault")) {
+    clusters.push({
+      id: `homescout-home-vault-${Date.now()}`,
+      title: "HomeScout and Home Vault",
+      kind: "site",
+      body: "Scout can connect listings, Home Vault records, inspections, and sell-flow prep while keeping listing discovery separate from direct contact.",
+      items: [
+        {
+          id: "homescout-listings",
+          label: "HomeScout Listings",
+          description: "Browse county-first home inventory and listing context",
+        },
+        {
+          id: "home-vault",
+          label: "Home Vault",
+          description: "Use private home records only where they help the task",
+        },
+        {
+          id: "inspection-context",
+          label: "Inspection context",
+          description: "Inspection reports and follow-up requests stay gated by the HomeScout flow",
+        },
+      ],
+      actions: takeActions(
+        [
+          { type: "NAVIGATE", label: "Browse HomeScout", to: "/homescout-listings", primary: true },
+          { type: "NAVIGATE", label: "Open Home Vault", to: "/homes" },
+          {
+            type: "NAVIGATE",
+            label: "Start sell flow",
+            to: "/exchange?tab=sell&category=real-estate",
+            subtitle: "Review before listing",
+          },
+        ],
+        actionBudget
+      ),
+    });
+  }
+
+  if (hasCommunityVaultIntent(message) && !existing.has("community vault context")) {
+    clusters.push({
+      id: `community-vault-${Date.now()}`,
+      title: "Community Vault context",
+      kind: "community",
+      body: "Scout can show the community reinvestment path and transparency surfaces without implying payout access, paid ranking, or lead selling.",
+      items: [
+        {
+          id: "vault-transparency",
+          label: "Transparency first",
+          description:
+            "Community Vault context is read-only until a real builder or contribution action is chosen",
+        },
+        {
+          id: "no-paid-rank",
+          label: "No paid exposure",
+          description: "Vault and giveback language must not turn into pay-to-play placement",
+        },
+      ],
+      actions: takeActions(
+        [
+          { type: "NAVIGATE", label: "Open foundation", to: "/foundation", primary: true },
+          { type: "NAVIGATE", label: "Community Builder", to: "/community-builder/dashboard" },
+          { type: "NAVIGATE", label: "See community", to: "/community" },
+        ],
+        actionBudget
+      ),
+    });
+  }
+
+  if (hasFinanceIntent(message) && !existing.has("finance tools and bookkeeping")) {
+    clusters.push({
+      id: `finance-tools-${Date.now()}`,
+      title: "Finance tools and bookkeeping",
+      kind: "account",
+      body: "Scout can open current invoices, expenses, records, reports, and job finance views. The broader bookkeeping system still needs rebuild work, so Scout should not imply full ledger, tax, payroll, or bank automation is finished.",
+      items: [
+        {
+          id: "finance-current",
+          label: "Works today",
+          description:
+            "Invoices, expenses, records, reports, job flows, materials, estimates, vendors, and exports",
+        },
+        {
+          id: "bookkeeping-rebuild",
+          label: "Bookkeeping rebuild needed",
+          description:
+            "Use finance tools as the current place to organize records, not as a finished accounting engine",
+        },
+        {
+          id: "approval-boundary",
+          label: "Approval boundary",
+          description:
+            "Scout never marks paid, sends invoices, posts records, or moves money without review",
+        },
+      ],
+      actions: takeActions(
+        [
+          { type: "NAVIGATE", label: "Open finance tools", to: "/finances", primary: true },
+          { type: "NAVIGATE", label: "Invoices", to: "/finances/invoices" },
+          { type: "NAVIGATE", label: "Expenses", to: "/finances/expenses" },
+          { type: "NAVIGATE", label: "Records", to: "/finances/records" },
+          { type: "NAVIGATE", label: "Reports", to: "/finances/reports" },
+        ],
+        actionBudget
+      ),
     });
   }
 

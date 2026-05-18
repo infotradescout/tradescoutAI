@@ -932,6 +932,66 @@ export const ROLE_CATEGORIES = {
   admin: ["moderator", "ops_admin", "super_admin"],
 } as const;
 
+export const BUSINESS_PROVIDER_ROLE_ALIASES = [
+  "business_owner",
+  "contractor_user",
+  "contractor",
+  "business_user",
+  "service_provider",
+  "accelerator_member",
+  "helper",
+  "realtor",
+  "car_salesman",
+  "vehicle_dealer",
+  "car_dealer",
+  "insurance_agent",
+  "mortgage_broker",
+] as const;
+
+export type BusinessProviderRoleAlias = (typeof BUSINESS_PROVIDER_ROLE_ALIASES)[number];
+
+export function normalizeRoleToken(role: unknown): string {
+  const raw = typeof role === "string" ? role.trim().toLowerCase() : "";
+  if (!raw) return "";
+  const normalized = raw.replace(/[\s-]+/g, "_");
+  if (normalized === "owner" || normalized === "head_admin" || normalized === "superadmin") {
+    return "super_admin";
+  }
+  return normalized;
+}
+
+export function isBusinessProviderRole(role: unknown): boolean {
+  const normalized = normalizeRoleToken(role);
+  return BUSINESS_PROVIDER_ROLE_ALIASES.includes(normalized as BusinessProviderRoleAlias);
+}
+
+export function getUserRoleTokens(user: unknown): string[] {
+  const record =
+    user && typeof user === "object"
+      ? (user as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
+  const claims =
+    record.claims && typeof record.claims === "object"
+      ? (record.claims as Record<string, unknown>)
+      : ({} as Record<string, unknown>);
+  const rawRoles = [
+    record.role,
+    record.activeRole,
+    claims.role,
+    claims.activeRole,
+    ...(Array.isArray(record.roles) ? record.roles : []),
+    ...(Array.isArray(claims.roles) ? claims.roles : []),
+  ];
+
+  return Array.from(
+    new Set(rawRoles.map((role) => normalizeRoleToken(role)).filter((role) => role.length > 0))
+  );
+}
+
+export function userHasBusinessProviderTools(user: unknown): boolean {
+  return getUserRoleTokens(user).some((role) => isBusinessProviderRole(role));
+}
+
 // Trade categories for UI organization
 export const TRADE_CATEGORIES = {
   construction: ["general_contractor", "construction_manager", "project_manager"],

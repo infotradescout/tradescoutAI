@@ -48,6 +48,10 @@ import {
   type LiveLaneEvent,
 } from "../services/liveStreamSnapshotService";
 import { getSnapshotStatusSummary } from "../services/snapshotStatusService";
+import { runCompletedJobPriceSnapshotJob } from "../services/completedJobPriceSnapshotJob";
+import { runHomeScoutMarketMetricsJob } from "../services/homeScoutMarketMetricsJob";
+import { runTradeDealsAggregationJob } from "../services/tradeDealsAggregationJob";
+import { withAdvisoryLock } from "../utils/advisoryLocks";
 
 type RecommendedActionEnum =
   | "INCREASE_BUDGET"
@@ -1184,6 +1188,74 @@ observabilityRouter.get("/snapshot-status", async (_req, res) => {
   } catch (error) {
     console.error("Snapshot status query failed:", error);
     sendInternalServerError(res, "Failed to fetch snapshot status", { error: String(error) });
+  }
+});
+
+observabilityRouter.post("/homescout-price-snapshots/refresh", async (_req, res) => {
+  try {
+    const result = await withAdvisoryLock("job:homescout_market_metrics", async () =>
+      runHomeScoutMarketMetricsJob()
+    );
+    if (result === null) {
+      return res.status(409).json({ message: "HomeScout price snapshot refresh already running" });
+    }
+
+    res.json({
+      message: "HomeScout price snapshot refresh finished.",
+      result,
+      snapshotStatus: await getSnapshotStatusSummary(),
+    });
+  } catch (error) {
+    console.error("HomeScout price snapshot refresh failed:", error);
+    sendInternalServerError(res, "Failed to refresh HomeScout price snapshots", {
+      error: String(error),
+    });
+  }
+});
+
+observabilityRouter.post("/tradedeals-price-snapshots/refresh", async (_req, res) => {
+  try {
+    const result = await withAdvisoryLock("job:tradedeals_aggregation", async () =>
+      runTradeDealsAggregationJob()
+    );
+    if (result === null) {
+      return res.status(409).json({ message: "TradeDeals price snapshot refresh already running" });
+    }
+
+    res.json({
+      message: "TradeDeals price snapshot refresh finished.",
+      result,
+      snapshotStatus: await getSnapshotStatusSummary(),
+    });
+  } catch (error) {
+    console.error("TradeDeals price snapshot refresh failed:", error);
+    sendInternalServerError(res, "Failed to refresh TradeDeals price snapshots", {
+      error: String(error),
+    });
+  }
+});
+
+observabilityRouter.post("/completed-job-price-snapshots/refresh", async (_req, res) => {
+  try {
+    const result = await withAdvisoryLock("job:completed_job_price_snapshots", async () =>
+      runCompletedJobPriceSnapshotJob()
+    );
+    if (result === null) {
+      return res
+        .status(409)
+        .json({ message: "Completed job price snapshot refresh already running" });
+    }
+
+    res.json({
+      message: "Completed job price snapshot refresh finished.",
+      result,
+      snapshotStatus: await getSnapshotStatusSummary(),
+    });
+  } catch (error) {
+    console.error("Completed job price snapshot refresh failed:", error);
+    sendInternalServerError(res, "Failed to refresh completed job price snapshots", {
+      error: String(error),
+    });
   }
 });
 

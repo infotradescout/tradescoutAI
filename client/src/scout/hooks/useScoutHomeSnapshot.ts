@@ -43,6 +43,22 @@ export interface PriceSignal {
   metricKey: string;
   value: number;
   updatedAt: string | null;
+  sourceLabel?: string;
+  sourceKind?: "homescout_inventory" | "tradedeals_activity" | "completed_job_receipts";
+  confidence?: "high" | "medium" | "low";
+}
+
+export interface OpportunityMove {
+  id: string;
+  type: "service_gap" | "underserved_area" | "fast_win" | "partnership_target" | "audit_target";
+  title: string;
+  whyItMatters: string;
+  actionLabel: string;
+  prompt: string;
+  sourceLabel: string;
+  sourceMetricKeys: string[];
+  confidence: "high" | "medium";
+  updatedAt: string | null;
 }
 
 export interface HomeSnapshotData {
@@ -50,6 +66,7 @@ export interface HomeSnapshotData {
   trendingPrompts: TrendingPrompt[];
   recentActivity: RecentActivity[];
   priceSignals: PriceSignal[];
+  opportunityMoves: OpportunityMove[];
   locationResolved: boolean;
   locationSource: "user" | "ip" | "manual" | "default";
 }
@@ -152,6 +169,7 @@ export function useScoutHomeSnapshot(location: ScoutLocation) {
             trendingPrompts: DEFAULT_PROMPTS,
             recentActivity: [],
             priceSignals: [],
+            opportunityMoves: [],
             locationResolved: false,
             locationSource: "default",
           });

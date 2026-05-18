@@ -91,6 +91,7 @@ import {
 import {
   buildScoutExperienceClusters,
   firstSupplierUrl,
+  priceSignalEvidenceSources,
   type ScoutSupplierProductSnapshot,
   type ScoutSourceSignalSnapshot,
 } from "./scoutExperience";
@@ -138,6 +139,8 @@ type SavedScoutThreadRelatedTo = {
   kind: "project" | "home" | "vehicle" | "client" | "generic";
   id?: string;
   label?: string;
+  homeId?: string;
+  surface?: "home_project" | "commercial_project";
 };
 
 type SavedScoutThread = {
@@ -156,6 +159,28 @@ type SavedScoutThread = {
   messageCount: number;
   messages: ScoutMessage[];
 };
+
+type SavedScoutSurfaceFilter =
+  | "all"
+  | "project"
+  | "home"
+  | "vehicle"
+  | "client"
+  | "materials"
+  | "prices";
+
+const SAVED_SCOUT_SURFACE_FILTERS: Array<{
+  value: SavedScoutSurfaceFilter;
+  label: string;
+}> = [
+  { value: "all", label: "All" },
+  { value: "project", label: "Projects" },
+  { value: "home", label: "Homes" },
+  { value: "vehicle", label: "Vehicles" },
+  { value: "client", label: "Clients" },
+  { value: "materials", label: "Materials" },
+  { value: "prices", label: "Prices" },
+];
 
 const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore"];
 
@@ -334,6 +359,16 @@ function inferRelatedFromRoute(route: string): SavedScoutThreadRelatedTo | undef
     const homeId =
       getRouteMatchId(clean, /[?&](?:homeId|id)=([^&/#?]+)/) ||
       getRouteMatchId(clean, /\/homes\/([^/?#]+)/);
+    const projectId = getRouteMatchId(clean, /[?&]projectId=([^&/#?]+)/);
+    if (projectId) {
+      return {
+        kind: "project",
+        id: projectId,
+        homeId,
+        surface: "home_project",
+        label: `Home project ${projectId}`,
+      };
+    }
     return {
       kind: "home",
       id: homeId,
@@ -375,7 +410,14 @@ function resolveRelatedFromPayload(payload: unknown): SavedScoutThreadRelatedTo 
 
   if (typeof data.projectId === "string" && data.projectId.trim()) {
     const id = sanitizeRelatedId(data.projectId);
-    return { kind: "project", id, label: projectLabelFromPayload(data, id) };
+    const homeId = typeof data.homeId === "string" ? sanitizeRelatedId(data.homeId) : undefined;
+    return {
+      kind: "project",
+      id,
+      homeId,
+      surface: homeId ? "home_project" : "commercial_project",
+      label: projectLabelFromPayload(data, id),
+    };
   }
 
   if (typeof data.homeId === "string" && data.homeId.trim()) {
@@ -409,7 +451,18 @@ function resolveRelatedFromPayload(payload: unknown): SavedScoutThreadRelatedTo 
     const label =
       cleanRelatedLabel(nestedRelatedTo.label) || cleanRelatedLabel(nestedRelatedTo.name);
     if (type === "project") {
-      return { kind: "project", id, label: label || projectLabelFromPayload(data, id) };
+      const homeId =
+        typeof nestedRelatedTo.homeId === "string"
+          ? sanitizeRelatedId(nestedRelatedTo.homeId)
+          : undefined;
+      const surface = nestedRelatedTo.surface === "home_project" ? "home_project" : undefined;
+      return {
+        kind: "project",
+        id,
+        homeId,
+        surface,
+        label: label || projectLabelFromPayload(data, id),
+      };
     }
     if (type === "home")
       return { kind: "home", id, label: label || homeLabelFromPayload(data, id) };
@@ -432,6 +485,27 @@ function relatedLabelFromKind(kind: SavedScoutThreadRelatedTo["kind"]): string {
   return "Saved work";
 }
 
+function savedThreadSurface(thread: SavedScoutThread): SavedScoutSurfaceFilter {
+  const kind = thread.relatedTo?.kind;
+  if (kind === "project" || kind === "home" || kind === "vehicle" || kind === "client") {
+    return kind;
+  }
+
+  const intent = String(thread.intent || "").toLowerCase();
+  const label = `${thread.relatedLabel || ""} ${thread.relatedTo?.label || ""}`.toLowerCase();
+  if (intent === "materials" || label.includes("material")) return "materials";
+  if (intent === "prices" || label.includes("price")) return "prices";
+  return "all";
+}
+
+function savedConversationQueryUrl(query: string, surface: SavedScoutSurfaceFilter): string {
+  const params = new URLSearchParams();
+  if (query.trim().length >= 2) params.set("q", query.trim());
+  if (surface !== "all") params.set("surface", surface);
+  const suffix = params.toString();
+  return suffix ? `/api/scout/conversations?${suffix}` : "/api/scout/conversations";
+}
+
 function isSavedScoutThreadRelatedKind(kind: unknown): kind is SavedScoutThreadRelatedTo["kind"] {
   return (
     kind === "project" ||
@@ -444,6 +518,11 @@ function isSavedScoutThreadRelatedKind(kind: unknown): kind is SavedScoutThreadR
 
 function relatedPathFromRelatedTo(relatedTo: SavedScoutThreadRelatedTo): string | undefined {
   if (relatedTo.kind === "project" && relatedTo.id) {
+    if (relatedTo.surface === "home_project" && relatedTo.homeId) {
+      return `/homes?homeId=${encodeURIComponent(relatedTo.homeId)}&projectId=${encodeURIComponent(
+        relatedTo.id
+      )}`;
+    }
     return `/project-tracker?jobId=${encodeURIComponent(relatedTo.id)}`;
   }
   if (relatedTo.kind === "home" && relatedTo.id) {
@@ -714,10 +793,20 @@ function normalizeSavedScoutThreads(input: unknown): SavedScoutThread[] {
           if (isSavedScoutThreadRelatedKind(kind)) {
             const id =
               typeof fromMetadata.id === "string" ? sanitizeRelatedId(fromMetadata.id) : undefined;
+            const surface: SavedScoutThreadRelatedTo["surface"] =
+              fromMetadata.surface === "home_project" ||
+              fromMetadata.surface === "commercial_project"
+                ? fromMetadata.surface
+                : undefined;
             return {
               kind,
               id,
               label: typeof fromMetadata.label === "string" ? fromMetadata.label : undefined,
+              homeId:
+                typeof fromMetadata.homeId === "string"
+                  ? sanitizeRelatedId(fromMetadata.homeId)
+                  : undefined,
+              surface,
             };
           }
         }
@@ -1302,6 +1391,8 @@ export default function ScoutOS() {
   const [savedScoutThreads, setSavedScoutThreads] = useState<SavedScoutThread[]>([]);
   const [activeSavedThreadId, setActiveSavedThreadId] = useState<string | null>(null);
   const [savedScoutSearch, setSavedScoutSearch] = useState("");
+  const [savedScoutSurfaceFilter, setSavedScoutSurfaceFilter] =
+    useState<SavedScoutSurfaceFilter>("all");
   const [scoutViewMode, setScoutViewMode] = useState<"chat_only" | "chat_plus_controller">(() => {
     try {
       if (typeof window === "undefined") return "chat_only";
@@ -1484,7 +1575,7 @@ export default function ScoutOS() {
 
     if (!user) return;
 
-    void fetch("/api/scout/conversations", {
+    void fetch(savedConversationQueryUrl("", savedScoutSurfaceFilter), {
       method: "GET",
       credentials: "include",
     })
@@ -1504,7 +1595,7 @@ export default function ScoutOS() {
     return () => {
       cancelled = true;
     };
-  }, [remoteSavedScoutThreads, scoutSaveUserId, user]);
+  }, [remoteSavedScoutThreads, savedScoutSurfaceFilter, scoutSaveUserId, user]);
 
   useEffect(() => {
     if (!user) return;
@@ -1513,7 +1604,7 @@ export default function ScoutOS() {
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      void fetch(`/api/scout/conversations?q=${encodeURIComponent(query)}`, {
+      void fetch(savedConversationQueryUrl(query, savedScoutSurfaceFilter), {
         method: "GET",
         credentials: "include",
       })
@@ -1538,7 +1629,7 @@ export default function ScoutOS() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [savedScoutSearch, scoutSaveUserId, user]);
+  }, [savedScoutSearch, savedScoutSurfaceFilter, scoutSaveUserId, user]);
 
   const persistSavedScoutThreadRemote = useCallback(
     async (thread: SavedScoutThread) => {
@@ -1743,8 +1834,14 @@ export default function ScoutOS() {
   );
   const savedThreadMatches = useMemo(() => {
     const query = savedScoutSearch.trim().toLowerCase();
-    if (!query) return savedScoutThreads;
     return savedScoutThreads.filter((thread) => {
+      if (
+        savedScoutSurfaceFilter !== "all" &&
+        savedThreadSurface(thread) !== savedScoutSurfaceFilter
+      ) {
+        return false;
+      }
+      if (!query) return true;
       const haystack = [
         thread.title,
         thread.preview,
@@ -1761,7 +1858,7 @@ export default function ScoutOS() {
         .toLowerCase();
       return haystack.includes(query);
     });
-  }, [savedScoutSearch, savedScoutThreads]);
+  }, [savedScoutSearch, savedScoutSurfaceFilter, savedScoutThreads]);
   const savedThreadPreview = savedThreadMatches.slice(0, isMobile ? 2 : 3);
 
   const handleLoadSavedThread = useCallback(
@@ -2886,6 +2983,17 @@ export default function ScoutOS() {
             }) || clusters;
         }
 
+        const priceEvidenceSources = priceSignalEvidenceSources(
+          scoutSourceSignalsQuery.data ?? null,
+          value
+        );
+        const provenance: NonNullable<ScoutMessage["provenance"]> = buildScoutProvenance(res) || {};
+        if (priceEvidenceSources.length > 0) {
+          provenance.sourceTitles = Array.from(
+            new Set([...(provenance.sourceTitles || []), ...priceEvidenceSources])
+          ).slice(0, 5);
+        }
+
         const msg: ScoutMessage = {
           id: `a_${Date.now()}_${Math.random().toString(36).slice(2)}`,
           role: "assistant",
@@ -2907,7 +3015,7 @@ export default function ScoutOS() {
                 return (nav?.to as string) || (nav?.path as string) || undefined;
               })()
             : undefined,
-          provenance: buildScoutProvenance(res),
+          provenance,
         };
 
         applyServerResponse(msg, dedupedServerActions);
@@ -4336,22 +4444,50 @@ export default function ScoutOS() {
                         </span>
                       </div>
                       {savedScoutThreads.length > 2 && (
-                        <label className="mb-2 block">
-                          <span className="sr-only">Search saved conversations</span>
-                          <input
-                            type="search"
-                            value={savedScoutSearch}
-                            onChange={(event) => setSavedScoutSearch(event.target.value)}
-                            placeholder="Search saved conversations"
-                            className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                            style={{
-                              borderColor: "var(--border-subtle)",
-                              backgroundColor:
-                                "color-mix(in oklab, var(--surface-deep) 92%, transparent)",
-                              color: "var(--text-primary)",
-                            }}
-                          />
-                        </label>
+                        <div className="mb-2 space-y-2">
+                          <label className="block">
+                            <span className="sr-only">Search saved conversations</span>
+                            <input
+                              type="search"
+                              value={savedScoutSearch}
+                              onChange={(event) => setSavedScoutSearch(event.target.value)}
+                              placeholder="Search saved conversations"
+                              className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
+                              style={{
+                                borderColor: "var(--border-subtle)",
+                                backgroundColor:
+                                  "color-mix(in oklab, var(--surface-deep) 92%, transparent)",
+                                color: "var(--text-primary)",
+                              }}
+                            />
+                          </label>
+                          <div className="flex gap-1 overflow-x-auto pb-1">
+                            {SAVED_SCOUT_SURFACE_FILTERS.map((filter) => (
+                              <button
+                                key={filter.value}
+                                type="button"
+                                onClick={() => setSavedScoutSurfaceFilter(filter.value)}
+                                className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold"
+                                style={{
+                                  borderColor:
+                                    savedScoutSurfaceFilter === filter.value
+                                      ? "var(--ts-orange)"
+                                      : "var(--border-subtle)",
+                                  color:
+                                    savedScoutSurfaceFilter === filter.value
+                                      ? "var(--ts-orange)"
+                                      : "var(--text-secondary)",
+                                  backgroundColor:
+                                    savedScoutSurfaceFilter === filter.value
+                                      ? "color-mix(in oklab, var(--ts-orange) 12%, transparent)"
+                                      : "transparent",
+                                }}
+                              >
+                                {filter.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                       )}
                       <div className="grid gap-2">
                         {savedThreadPreview.map((thread) => {
@@ -4428,11 +4564,12 @@ export default function ScoutOS() {
                           );
                         })}
                       </div>
-                      {savedScoutSearch.trim() && savedThreadPreview.length === 0 && (
-                        <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                          No saved conversations matched that search.
-                        </p>
-                      )}
+                      {(savedScoutSearch.trim() || savedScoutSurfaceFilter !== "all") &&
+                        savedThreadPreview.length === 0 && (
+                          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                            No saved conversations matched that search.
+                          </p>
+                        )}
                     </div>
                   )}
                 </>

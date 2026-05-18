@@ -81,6 +81,9 @@ type ListingDetail = {
   model?: string;
   specifications?: Record<string, any>;
   slug?: string;
+  sourceType?: string;
+  profileOfferId?: string;
+  publicProfilePath?: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -187,6 +190,9 @@ export default function ExchangeListingDetail() {
         model: raw.model ?? undefined,
         specifications: raw.specifications ?? undefined,
         slug: raw.slug ?? undefined,
+        sourceType: raw.sourceType ?? raw.specifications?.source ?? undefined,
+        profileOfferId: raw.profileOfferId ?? raw.specifications?.profileOfferId ?? undefined,
+        publicProfilePath: raw.publicProfilePath ?? undefined,
       } as ListingDetail;
     },
     enabled: Boolean(listingId),
@@ -327,6 +333,7 @@ export default function ExchangeListingDetail() {
 
   const specRows = buildSpecRows(listing);
   const backPath = category ? `/exchange/${category}` : "/exchange";
+  const isProfileOffer = listing.sourceType === "profile_offer";
 
   return (
     <>
@@ -357,7 +364,9 @@ export default function ExchangeListingDetail() {
               size="sm"
               variant="ghost"
               className={`h-8 w-8 p-0 ${isFaved ? "text-rose-400" : "text-white/50 hover:text-white"}`}
+              disabled={isProfileOffer}
               onClick={() => {
+                if (isProfileOffer) return;
                 if (!isAuthenticated) {
                   navigate("/pre-scout-setup?mode=signin");
                   return;
@@ -647,6 +656,10 @@ export default function ExchangeListingDetail() {
             <Button
               className="w-full bg-ts-orange hover:bg-ts-orange/90 text-white font-semibold h-12 text-base"
               onClick={() => {
+                if (isProfileOffer) {
+                  navigate(listing.publicProfilePath || `/profile/${listing.seller.id}`);
+                  return;
+                }
                 if (!isAuthenticated) {
                   navigate("/pre-scout-setup?mode=signin");
                   return;
@@ -655,8 +668,14 @@ export default function ExchangeListingDetail() {
               }}
             >
               <MessageSquare className="h-5 w-5 mr-2" />
-              Contact Seller
+              {isProfileOffer ? "Review Purchase on Profile" : "Contact Seller"}
             </Button>
+            {isProfileOffer && (
+              <p className="mt-2 text-center text-[11px] text-white/50">
+                Purchase, receipt, shipping, and accounting steps stay in review before anything is
+                posted or fulfilled.
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -16,7 +16,7 @@ interface SEOHelmetProps {
 export function SEOHelmet({
   title = "TradeScout | Connection Without Compromise",
   description = "TradeScout helps people find trusted local help, make decisions, and move work forward. Connection without compromise.",
-  keywords = "scout, local helper, local contractors, home improvement, verified contractors, free quotes, trusted contractors, roofing, plumbing, electrical",
+  keywords = "scout, local helper, local businesses, direct connect, exchange, business profiles, local services, local products, trusted providers",
   canonical,
   ogType = "website",
   ogImage = "/tradescout-social-preview.png?v=10",
@@ -193,11 +193,11 @@ export const createWebsiteStructuredData = () => ({
   "@type": "WebSite",
   name: "TradeScout",
   description:
-    "Scout, the built-in helper that runs TradeScout, connects you with verified local contractors and helps you manage home projects.",
+    "Scout, the built-in helper that runs TradeScout, connects people with verified local businesses, Exchange items, community context, and guided local action.",
   url: getCanonicalOrigin(),
   potentialAction: {
     "@type": "SearchAction",
-    target: `${getCanonicalOrigin()}/contractors/board?search={search_term_string}`,
+    target: `${getCanonicalOrigin()}/direct-connect?search={search_term_string}`,
     "query-input": "required name=search_term_string",
   },
   sameAs: [
@@ -224,7 +224,8 @@ export const createOrganizationStructuredData = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "TradeScout",
-  description: "Platform connecting residents, pros, organizations, and verified local contractors",
+  description:
+    "Platform connecting residents, businesses, organizations, sellers, and local providers",
   url: getCanonicalOrigin(),
   logo: `${getCanonicalOrigin()}/icon-512.png?v=10`,
   image: `${getCanonicalOrigin()}/icon-512.png?v=10`,
@@ -243,7 +244,7 @@ export const createOrganizationStructuredData = () => ({
       "@type": "SearchAction",
       target: `${getCanonicalOrigin()}/direct-connect?search={search_term_string}`,
       "query-input": "required name=search_term_string",
-      description: "Find contractors",
+      description: "Find local businesses",
     },
     {
       "@type": "InteractAction",
@@ -278,13 +279,13 @@ export const createServiceStructuredData = (service: {
   areaServed: service.areaServed || "United States",
   hasOfferCatalog: {
     "@type": "OfferCatalog",
-    name: "Contractor Services",
+    name: "Local Business Services",
     itemListElement: [
       {
         "@type": "Offer",
         itemOffered: {
           "@type": "Service",
-          name: "Free Contractor Quotes",
+          name: "Local service requests",
         },
       },
     ],

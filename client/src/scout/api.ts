@@ -343,7 +343,7 @@ export interface ContractorSearchParams {
 }
 
 export async function searchContractors(params: ContractorSearchParams) {
-  const u = new URL(`${apiBase}/contractors/search`, window.location.origin);
+  const u = new URL(`${apiBase}/business-providers/search`, window.location.origin);
   if (params.trade) u.searchParams.set("trade", params.trade);
   if (params.county) u.searchParams.set("county", params.county);
   if (params.state) u.searchParams.set("state", params.state);
@@ -355,7 +355,7 @@ export async function searchContractors(params: ContractorSearchParams) {
   const res = await fetch(u.toString(), {
     credentials: "include",
   });
-  if (!res.ok) throw new Error(`Contractors HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Business providers HTTP ${res.status}`);
   return res.json();
 }
 

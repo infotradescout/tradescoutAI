@@ -9614,10 +9614,10 @@ export const paymentConfigurations = pgTable("payment_configurations", {
   // Platform fees (TradeScout's revenue)
   platformFeeType: varchar("platform_fee_type", {
     enum: ["percentage", "fixed", "tiered"],
-  }).default("percentage"),
-  platformFeeValue: decimal("platform_fee_value", { precision: 5, scale: 4 }).default("0.025"), // 2.5% default
-  platformFeeMin: decimal("platform_fee_min", { precision: 10, scale: 2 }).default("0.50"),
-  platformFeeMax: decimal("platform_fee_max", { precision: 10, scale: 2 }).default("25.00"),
+  }).default("fixed"),
+  platformFeeValue: decimal("platform_fee_value", { precision: 5, scale: 4 }).default("1.0000"), // Flat $1 TradeScout transaction fee
+  platformFeeMin: decimal("platform_fee_min", { precision: 10, scale: 2 }).default("1.00"),
+  platformFeeMax: decimal("platform_fee_max", { precision: 10, scale: 2 }).default("1.00"),
 
   // Processing fee split (how Stripe fees are divided)
   processingFeeSplitType: varchar("processing_fee_split_type", {

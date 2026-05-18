@@ -7,15 +7,15 @@ const contractorBoardSteps: TourStep[] = [
     target: "h1",
     title: "Welcome to TradeScout!",
     description:
-      "This is your contractor board where homeowners find and recommend trusted pros. Let's take a quick tour so you know how to show up well here.",
+      "This is a legacy local business discovery surface where customers can inspect trusted providers. Let's take a quick tour so you know how to show up well here.",
     position: "bottom",
   },
   {
     id: "facebook-signup",
     target: "[data-testid='button-contractor-facebook-signup']",
-    title: "Quick Contractor Signup",
+    title: "Quick Business Signup",
     description:
-      "Ready to join? Click here to sign up with Facebook in seconds and start building your contractor profile.",
+      "Ready to join? Click here to sign up with Facebook in seconds and start building your business profile.",
     position: "bottom",
     condition: () =>
       !document
@@ -27,15 +27,15 @@ const contractorBoardSteps: TourStep[] = [
     target: "[data-testid='contractor-search']",
     title: "Find Your Area",
     description:
-      "Use these filters to explore contractors by location and trade. Homeowners use this to find contractors in their specific area.",
+      "Use these filters to explore businesses by location and category. Customers use this to find local help in their specific area.",
     position: "bottom",
   },
   {
     id: "contractor-cards",
     target: "[data-testid='contractor-card']:first-child",
-    title: "Contractor Profiles",
+    title: "Business Profiles",
     description:
-      "Each contractor has a detailed profile showing their services, experience, and most importantly - recommendations from real customers.",
+      "Each business has a profile showing services, experience, proof, and recommendations from real customers.",
     position: "right",
     condition: () => !!document.querySelector("[data-testid='contractor-card']"),
   },
@@ -53,7 +53,7 @@ const contractorBoardSteps: TourStep[] = [
     target: "[data-nav-item='scout']",
     title: "Scout Estimates",
     description:
-      "Homeowners can ask Scout for instant ballpark estimates. Great estimates drive qualified, ready-to-buy leads to your business.",
+      "Customers can ask Scout for ballpark estimates before starting a gated request. Clear estimates create better-fit demand for your business.",
     position: "bottom",
     condition: () => !!document.querySelector("[data-nav-item='scout']"),
   },
@@ -62,7 +62,7 @@ const contractorBoardSteps: TourStep[] = [
     target: "[data-testid='contractor-sorting']",
     title: "Smart Sorting",
     description:
-      "Contractors are sorted by trust (CVS), recommendations, and relevance. Verified, reliable activity improves exposure over time.",
+      "Businesses are sorted by trust (CVS), recommendations, and relevance. Verified, reliable activity improves exposure over time.",
     position: "left",
     condition: () => !!document.querySelector("[data-testid='contractor-sorting']"),
   },
