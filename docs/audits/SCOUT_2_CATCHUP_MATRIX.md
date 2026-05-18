@@ -156,8 +156,9 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - County SEO pages now split explicit contractor keyword targeting from visible local-help action copy: FAQ/metadata can still serve "contractors near me" intent, while coverage CTAs, Direct Connect headings, and community copy use local provider/business language.
 - Public contractor profile compatibility now has a first canonical bridge: `/api/contractors/:slug` returns `/business/:slug` when a public business profile exists, and the legacy client redirects there while using generic provider fallback copy.
 - Provider discovery links now prefer canonical `/business/:slug` URLs where available: top-provider results expose `canonicalBusinessProfileUrl`, trust-match cards and shared provider cards use it, and Scout provider-search tool results preserve canonical profile links.
+- Public profile recommendation directories now carry `canonicalBusinessProfileUrl` for recommended providers when available, so recommendation badges link to `/business/:slug` before falling back to legacy `/contractors/:slug`.
 
 ## Fastest Next Work
 
 1. Expand Opportunity Radar beyond `county_metrics` only after `county_entities` and `county_notes` use has CVS/source/freshness handling.
-2. Continue replacing legacy `/contractors/:slug` links in recommendation directories and older SEO helpers once those API payloads expose canonical business profile URLs.
+2. Audit older SEO helper structured data that still emits `/contractors/:id` and either preserve it as an explicit contractor SEO exception or add canonical business URL support.

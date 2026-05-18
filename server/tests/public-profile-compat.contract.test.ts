@@ -128,4 +128,23 @@ describe("public profile compatibility contracts", () => {
     expect(scoutTools).toContain('c.providerType === "business"');
     expect(scoutMatrix).toContain("Provider discovery links now prefer canonical");
   });
+
+  it("public recommendation directories prefer canonical business profile URLs", () => {
+    const profilesRoute = read("server/routes/profiles.ts");
+    const profileSiteView = read("client/src/pages/ProfileSiteView.tsx");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(profilesRoute).toContain("contractorUserId: contractors.userId");
+    expect(profilesRoute).toContain(
+      "const canonicalBusinessUrlByUserId = new Map<string, string>()"
+    );
+    expect(profilesRoute).toContain("await storage.getBusinessProfileByUserId(contractorUserId)");
+    expect(profilesRoute).toContain("canonicalBusinessProfileUrl:");
+    expect(profileSiteView).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(profileSiteView).toContain("entry.contractor.canonicalBusinessProfileUrl ||");
+    expect(profileSiteView).toContain(
+      "`/contractors/${encodeURIComponent(entry.contractor.slug)}`"
+    );
+    expect(scoutMatrix).toContain("Public profile recommendation directories now carry");
+  });
 });

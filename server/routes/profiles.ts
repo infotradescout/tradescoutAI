@@ -611,6 +611,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       id: string;
       companyName: string;
       slug: string;
+      canonicalBusinessProfileUrl: string | null;
     };
   }> = [];
   let recommendationDirectorySummary = {
@@ -636,6 +637,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
           comment: recommendations.comment,
           projectType: recommendations.projectType,
           contractorId: contractors.id,
+          contractorUserId: contractors.userId,
           contractorCompanyName: contractors.companyName,
           contractorSlug: contractors.slug,
         })
@@ -650,6 +652,26 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         )
         .orderBy(desc(recommendations.createdAt))
         .limit(100);
+
+      const canonicalBusinessUrlByUserId = new Map<string, string>();
+      await Promise.all(
+        rows.map(async (row) => {
+          const contractorUserId = String(row.contractorUserId || "").trim();
+          if (!contractorUserId || canonicalBusinessUrlByUserId.has(contractorUserId)) return;
+
+          const businessProfile = await storage.getBusinessProfileByUserId(contractorUserId);
+          if (
+            businessProfile?.visibility === "public" &&
+            typeof businessProfile.slug === "string" &&
+            businessProfile.slug.trim()
+          ) {
+            canonicalBusinessUrlByUserId.set(
+              contractorUserId,
+              `/business/${encodeURIComponent(businessProfile.slug.trim())}`
+            );
+          }
+        })
+      );
 
       recommendationsDirectory = rows
         .filter((row) => {
@@ -668,6 +690,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
             id: String(row.contractorId),
             companyName: String(row.contractorCompanyName || "Service provider"),
             slug: String(row.contractorSlug || ""),
+            canonicalBusinessProfileUrl:
+              canonicalBusinessUrlByUserId.get(String(row.contractorUserId || "").trim()) ?? null,
           },
         }));
 
