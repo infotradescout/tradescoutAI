@@ -39,7 +39,7 @@ export default function Navigation() {
     // Business/provider navigation keeps provider tools available
     ...(isContractor
       ? [
-          { href: "/business-owner-dashboard", label: "My Dashboard", icon: Building },
+          { href: "/business-dashboard", label: "My Dashboard", icon: Building },
           { href: "/direct-connect", label: "Local Requests", icon: Users },
         ]
       : []),

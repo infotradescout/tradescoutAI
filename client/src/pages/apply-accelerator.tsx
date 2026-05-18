@@ -23,7 +23,7 @@ const ApplyAccelerator = memo(function ApplyAccelerator() {
             </p>
             <p>Every provider uses the same access model. Matching and trust are payment-blind.</p>
             <div className="flex flex-wrap gap-3 pt-2">
-              <Button onClick={() => navigate("/contractors/apply")}>
+              <Button onClick={() => navigate("/businesses/apply")}>
                 Continue Contractor Verification
               </Button>
               <Button

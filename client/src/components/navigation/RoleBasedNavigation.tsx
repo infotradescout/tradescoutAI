@@ -90,11 +90,11 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
   // Business Provider Features
   {
     label: "Business Tools",
-    href: "/business-owner-dashboard",
+    href: "/business-dashboard",
     icon: Hammer,
     requiresBusinessProvider: true,
     children: [
-      { label: "Dashboard", href: "/business-owner-dashboard", icon: Home },
+      { label: "Dashboard", href: "/business-dashboard", icon: Home },
       // Accelerator entry removed
       { label: "Promotions", href: "/promotions", icon: Star },
       // Growth Pack entry removed
@@ -194,7 +194,8 @@ export function RoleBasedNavigation({ isMobile = false }: RoleBasedNavigationPro
     // For community-first pilot users, soft-hide role hub/identity-heavy nav groups
     if (
       isCommunityFirst &&
-      (item.href === "/business-owner-dashboard" ||
+      (item.href === "/business-dashboard" ||
+        item.href === "/business-owner-dashboard" ||
         item.href === "/contractor-dashboard" ||
         item.href === "/realtor-application" ||
         item.href === "/car-salesman-application")

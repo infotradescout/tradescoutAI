@@ -144,7 +144,7 @@ export function routeFromClaims(claims: ClaimType[]): RoutingDecision {
 
   // Primary routes
   if (has("offer_services")) {
-    return { path: "/contractor-dashboard", reason: "offer_services" };
+    return { path: "/business-dashboard", reason: "offer_services" };
   }
 
   if (has("find_help")) {

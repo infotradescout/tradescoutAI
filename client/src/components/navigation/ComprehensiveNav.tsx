@@ -122,20 +122,20 @@ const ALL_NAVIGATION: NavItem[] = [
   // BUSINESS PROVIDER TOOLS
   {
     label: "Business Dashboard",
-    href: "/business-owner-dashboard",
+    href: "/business-dashboard",
     icon: Wrench,
     requiresBusinessProvider: true,
     children: [
-      { label: "Dashboard", href: "/business-owner-dashboard", icon: LayoutDashboard },
+      { label: "Dashboard", href: "/business-dashboard", icon: LayoutDashboard },
       {
         label: "Local Requests",
-        href: "/contractor/leads",
+        href: "/business/requests",
         icon: ClipboardList,
         requiresBusinessProvider: true,
       },
       {
         label: "My Projects",
-        href: "/contractor/leads",
+        href: "/business/requests",
         icon: ListChecks,
         requiresBusinessProvider: true,
       },
@@ -147,13 +147,13 @@ const ALL_NAVIGATION: NavItem[] = [
       },
       {
         label: "Performance Analytics",
-        href: "/business-owner-dashboard",
+        href: "/business-dashboard",
         icon: ChartBar,
         requiresBusinessProvider: true,
       },
       {
         label: "Recommendations & Trust (CVS)",
-        href: "/business-owner-dashboard",
+        href: "/business-dashboard",
         icon: Star,
         requiresBusinessProvider: true,
       },
@@ -262,13 +262,13 @@ const ALL_NAVIGATION: NavItem[] = [
   // BUSINESS OWNER
   {
     label: "Business Owner",
-    href: "/business-owner-dashboard",
+    href: "/business-dashboard",
     icon: Building2,
     roles: ["business_owner"],
     children: [
       {
         label: "Business Dashboard",
-        href: "/business-owner-dashboard",
+        href: "/business-dashboard",
         icon: LayoutDashboard,
         roles: ["business_owner"],
       },

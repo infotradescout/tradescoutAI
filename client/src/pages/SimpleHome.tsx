@@ -100,7 +100,6 @@ const SimpleHome = memo(function SimpleHome() {
         title={`Welcome back, ${user?.firstName || user?.email?.split("@")[0] || "there"}`}
         subtitle="Your personalized dashboard"
       >
-
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
           {/* Stats based on user role */}
@@ -233,7 +232,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <div className="text-center py-8">
                       <Wrench className="h-12 w-12 text-white/70 dark:text-white/60 mx-auto mb-3" />
                       <p className="text-white/70 mb-4">No active projects yet</p>
-                      <Link href="/contractor-leads">
+                      <Link href="/business/requests">
                         <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                           Browse Project Requests
                         </Button>
@@ -477,7 +476,7 @@ const SimpleHome = memo(function SimpleHome() {
               <CardContent className="space-y-2">
                 {isContractor ? (
                   <>
-                    <Link href="/contractor-leads">
+                    <Link href="/business/requests">
                       <Button
                         size="sm"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full justify-start"
@@ -639,7 +638,7 @@ const SimpleHome = memo(function SimpleHome() {
             </Card>
           </div>
         </div>
-       </Section>
+      </Section>
     </Page>
   );
 });

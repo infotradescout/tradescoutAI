@@ -21,7 +21,7 @@ export default function GrowthPack() {
           </p>
           <p>Provider outcomes are driven by verification, trust performance, and local fit.</p>
           <div className="flex flex-wrap gap-3 pt-1">
-            <Button onClick={() => navigate("/contractors/apply")}>Start Verification</Button>
+            <Button onClick={() => navigate("/businesses/apply")}>Start Verification</Button>
             <Button variant="outline" className="border-white/10" onClick={() => navigate("/help")}>
               Open Help Center
             </Button>

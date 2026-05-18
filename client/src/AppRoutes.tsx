@@ -979,7 +979,7 @@ export const AppRoutes = memo(function AppRoutes({
 
               {/* Business routes */}
               <Route path="/contractor-board">
-                <RedirectTo to="/business-owner-dashboard" />
+                <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/commercial-directory">
                 <ProtectedRoute>

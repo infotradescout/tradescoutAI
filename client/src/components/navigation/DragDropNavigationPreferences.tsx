@@ -233,7 +233,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: "contractor-dashboard",
         label: "Business Dashboard",
         icon: "Layout",
-        href: "/business-owner-dashboard",
+        href: "/business-dashboard",
         visible: true,
       },
       {

@@ -194,7 +194,7 @@ export default function ContractorSignup() {
         <SEOHelmet
           title="Application Submitted - TradeScout Contractor Signup"
           description="Your contractor application has been submitted successfully."
-          canonical="https://www.thetradescout.com/contractors/apply"
+          canonical="https://www.thetradescout.com/businesses/apply"
         />
         <div className="max-w-2xl mx-auto px-4">
           <Card className="bg-card border-border">
@@ -214,7 +214,7 @@ export default function ContractorSignup() {
                   <li>• Once approved, you'll be live on the contractor board</li>
                 </ul>
               </div>
-              <Link href="/contractor-dashboard">
+              <Link href="/business-dashboard">
                 <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                   Go to Contractor Dashboard
                 </Button>
@@ -232,7 +232,7 @@ export default function ContractorSignup() {
         title="Join TradeScout - Contractor Registration"
         description="Join TradeScout's verified contractor network. Build trust visibility, showcase your work, and grow your business without lead fees, monthly subscriptions, or post-job contractor fees."
         keywords="contractor registration, verified contractor network, trust-based matching, contractor profile"
-        canonical="https://www.thetradescout.com/contractors/apply"
+        canonical="https://www.thetradescout.com/businesses/apply"
       />
 
       <div className="max-w-4xl mx-auto px-4">
@@ -496,10 +496,7 @@ export default function ContractorSignup() {
                               <SelectItem value="100" className="text-white hover:bg-tsCard">
                                 Within 100 miles
                               </SelectItem>
-                              <SelectItem
-                                value="statewide"
-                                className="text-white hover:bg-tsCard"
-                              >
+                              <SelectItem value="statewide" className="text-white hover:bg-tsCard">
                                 Statewide
                               </SelectItem>
                             </SelectContent>
@@ -572,10 +569,7 @@ export default function ContractorSignup() {
                           <FormItem>
                             <FormLabel className="text-white/70">License Number *</FormLabel>
                             <FormControl>
-                              <Input
-                                {...field}
-                                className="bg-tsCard border-white/10 text-white"
-                              />
+                              <Input {...field} className="bg-tsCard border-white/10 text-white" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -589,10 +583,7 @@ export default function ContractorSignup() {
                           <FormItem>
                             <FormLabel className="text-white/70">Insurance Provider *</FormLabel>
                             <FormControl>
-                              <Input
-                                {...field}
-                                className="bg-tsCard border-white/10 text-white"
-                              />
+                              <Input {...field} className="bg-tsCard border-white/10 text-white" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>

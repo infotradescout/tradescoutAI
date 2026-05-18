@@ -36,7 +36,7 @@ export default function PensacolaClusterPage() {
 
   const localSearchHref = `/direct-connect?county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch&intent=local_search`;
   const providerDemandHref = `/direct-connect?county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch&intent=provider_demand`;
-  const applyHref = `/contractors/apply?state=FL&county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch`;
+  const applyHref = `/businesses/apply?state=FL&county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch`;
   const createAccountHref = `/create-account?source=pensacola-launch&county=${PENSACOLA_COUNTY_CODE}`;
 
   const canonicalUrl = `https://www.thetradescout.com/pensacola/${cluster.slug}`;

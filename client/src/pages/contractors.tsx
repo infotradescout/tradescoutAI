@@ -113,7 +113,7 @@ export default function ForContractors() {
                 Manage your projects, track opportunities, and monitor your business performance.
               </p>
               {isContractor ? (
-                <Link href="/contractor-dashboard">
+                <Link href="/business-dashboard">
                   <Button
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white hover:text-white"
@@ -122,7 +122,7 @@ export default function ForContractors() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/contractors/apply">
+                <Link href="/businesses/apply">
                   <Button
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white hover:text-white"

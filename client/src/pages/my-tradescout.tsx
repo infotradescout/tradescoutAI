@@ -123,7 +123,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
         reason: "You are set up as a contractor but have no active projects here yet.",
         action: {
           label: "Browse contractor leads",
-          path: "/contractor-leads",
+          path: "/business/requests",
         },
       });
     }
@@ -203,7 +203,6 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
         title="My TradeScout"
         subtitle="A simple, honest view of where you are right now and the next few things TradeScout can help you do."
       >
-
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
           {/* Left: context + threads + recommended actions */}
           <div className="space-y-4">

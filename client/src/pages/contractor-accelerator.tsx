@@ -23,7 +23,7 @@ export default function ContractorAccelerator() {
             Contractor opportunity depends on verification, trust signals, fit, and availability.
           </p>
           <div className="flex flex-wrap gap-3 pt-1">
-            <Button onClick={() => navigate("/contractors/apply")}>Complete Verification</Button>
+            <Button onClick={() => navigate("/businesses/apply")}>Complete Verification</Button>
             <Button
               variant="outline"
               className="border-white/10"

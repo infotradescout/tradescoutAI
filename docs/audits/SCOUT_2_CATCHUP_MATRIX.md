@@ -150,6 +150,7 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Business-provider capability helpers now sit above legacy role names. Shared helpers identify business/provider tool access across `business_owner`, `contractor_user`, accelerator, helper, realtor, vehicle, insurance, and mortgage roles; server provider gates and primary navigation can ask for business-provider capability without hard-coding only `contractor_user`.
 - Generic business routes are now preferred at the route layer: `/businesses/apply`, `/business-dashboard`, and `/business/requests` render the live surfaces, while legacy contractor URLs redirect to those canonical paths.
 - Admin business-provider settings now prefer `/admin/business-provider-settings` and `/api/admin/business-provider-settings`, while legacy `/admin/contractors`, `/admin/contractor-settings`, and `/api/admin/contractor-settings` remain compatibility aliases.
+- Business/provider navigation, onboarding fallbacks, regional application links, and dashboard/request links now prefer `/business-dashboard`, `/businesses/apply`, and `/business/requests` while preserving legacy compatibility aliases.
 
 ## Fastest Next Work
 

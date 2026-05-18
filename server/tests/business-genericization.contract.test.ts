@@ -118,7 +118,7 @@ describe("generic business profile and tool contracts", () => {
     expect(simpleNav).not.toContain('label: "Contractors"');
 
     expect(roleNav).toContain('label: "Business Tools"');
-    expect(roleNav).toContain('href: "/business-owner-dashboard"');
+    expect(roleNav).toContain('href: "/business-dashboard"');
     expect(roleNav).not.toContain('label: "Contractor Tools"');
 
     expect(preferenceNav).toContain('label: "For Businesses"');
