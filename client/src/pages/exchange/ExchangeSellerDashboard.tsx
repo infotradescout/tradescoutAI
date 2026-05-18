@@ -17,9 +17,8 @@ import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,13 +42,9 @@ import {
   Clock,
   CreditCard,
   DollarSign,
-  AlertTriangle,
-  XCircle,
-  RefreshCw,
   ChevronRight,
   Truck,
 } from "lucide-react";
-import { getExchangeCategorySlugFromMarketplaceCategoryName } from "@shared/exchangeListingRules";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Listing = {
@@ -522,7 +517,6 @@ export default function ExchangeSellerDashboard() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [markSoldId, setMarkSoldId] = useState<string | null>(null);
 
   // Redirect unauthenticated users
   if (!isAuthenticated) {
@@ -569,7 +563,6 @@ export default function ExchangeSellerDashboard() {
       });
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/my-listings"] });
       queryClient.invalidateQueries({ queryKey: ["/api/marketplace/orders/mine"] });
-      setMarkSoldId(null);
     },
     onError: (err: any) => {
       toast({
@@ -615,7 +608,6 @@ export default function ExchangeSellerDashboard() {
 
   // ── Stats ────────────────────────────────────────────────────────────────
   const activeCount = listings.filter((l) => l.status === "active").length;
-  const soldCount = listings.filter((l) => l.status === "sold").length;
   const pendingCount = listings.filter((l) => l.status === "pending_approval").length;
   const openOrders = orders.filter((o) => o.status !== "payout_reconciled").length;
   const pendingInquiries = inquiries.filter((i) => i.status === "pending").length;
