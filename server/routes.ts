@@ -13617,9 +13617,9 @@ export async function registerRoutes(app: any) {
     }
   );
 
-  // Contractor settings management
+  // Business provider settings management. Legacy contractor API paths remain compatibility aliases.
   app.get(
-    "/api/admin/contractor-settings",
+    ["/api/admin/business-provider-settings", "/api/admin/contractor-settings"],
     isAuthenticated,
     requireAdmin,
     async (req: any, res: any) => {
@@ -13628,14 +13628,14 @@ export async function registerRoutes(app: any) {
         const settings = await storage.getContractorSettings(category as string);
         res.json(settings);
       } catch (error: any) {
-        console.error("Error fetching contractor settings:", error);
-        res.status(500).json({ message: "Failed to fetch contractor settings" });
+        console.error("Error fetching business provider settings:", error);
+        res.status(500).json({ message: "Failed to fetch business provider settings" });
       }
     }
   );
 
   app.post(
-    "/api/admin/contractor-settings",
+    ["/api/admin/business-provider-settings", "/api/admin/contractor-settings"],
     isAuthenticated,
     requireAdmin,
     async (req: any, res: any) => {
@@ -13643,14 +13643,14 @@ export async function registerRoutes(app: any) {
         const setting = await storage.createContractorSetting(req.body);
         res.json(setting);
       } catch (error: any) {
-        console.error("Error creating contractor setting:", error);
-        res.status(500).json({ message: "Failed to create contractor setting" });
+        console.error("Error creating business provider setting:", error);
+        res.status(500).json({ message: "Failed to create business provider setting" });
       }
     }
   );
 
   app.put(
-    "/api/admin/contractor-settings/:id",
+    ["/api/admin/business-provider-settings/:id", "/api/admin/contractor-settings/:id"],
     isAuthenticated,
     requireAdmin,
     async (req: any, res: any) => {
@@ -13658,14 +13658,14 @@ export async function registerRoutes(app: any) {
         const setting = await storage.updateContractorSetting(req.params.id, req.body);
         res.json(setting);
       } catch (error: any) {
-        console.error("Error updating contractor setting:", error);
-        res.status(500).json({ message: "Failed to update contractor setting" });
+        console.error("Error updating business provider setting:", error);
+        res.status(500).json({ message: "Failed to update business provider setting" });
       }
     }
   );
 
   app.delete(
-    "/api/admin/contractor-settings/:id",
+    ["/api/admin/business-provider-settings/:id", "/api/admin/contractor-settings/:id"],
     isAuthenticated,
     requireAdmin,
     async (req: any, res: any) => {
@@ -13673,8 +13673,8 @@ export async function registerRoutes(app: any) {
         await storage.deleteContractorSetting(req.params.id);
         res.status(204).send();
       } catch (error: any) {
-        console.error("Error deleting contractor setting:", error);
-        res.status(500).json({ message: "Failed to delete contractor setting" });
+        console.error("Error deleting business provider setting:", error);
+        res.status(500).json({ message: "Failed to delete business provider setting" });
       }
     }
   );

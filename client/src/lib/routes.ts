@@ -61,6 +61,8 @@ export const ROUTES = {
     "/contractor-verification": "/admin/professional-verification",
     "/content-moderation": "/admin/moderation",
     "/system-settings": "/admin/site-settings",
+    "/admin/contractors": "/admin/business-provider-settings",
+    "/admin/contractor-settings": "/admin/business-provider-settings",
     "/support-tickets": "/admin/errors",
     "/platform-analytics": "/admin/platform-analytics",
     "/manage-users": "/admin/users",

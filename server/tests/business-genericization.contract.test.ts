@@ -99,6 +99,9 @@ describe("generic business profile and tool contracts", () => {
 
     expect(adminTools).toContain('label: "Commercial Businesses"');
     expect(adminTools).toContain('label: "Business Provider Settings"');
+    expect(adminTools).toContain('path: "/admin/business-provider-settings"');
+    expect(adminTools).toContain('path: "/admin/contractors"');
+    expect(adminTools).toContain('to="/admin/business-provider-settings"');
     expect(adminTools).toContain("business/provider settings");
     expect(adminTools).not.toContain('label: "Commercial Contractors"');
     expect(adminTools).not.toContain('label: "Contractor Settings"');
@@ -215,6 +218,8 @@ describe("generic business profile and tool contracts", () => {
     expect(routes).toContain('"/api/providers/search"');
     expect(routes).toContain('"/api/business-providers/top"');
     expect(routes).toContain('"/api/contractors/top"');
+    expect(routes).toContain('"/api/admin/business-provider-settings"');
+    expect(routes).toContain('"/api/admin/contractor-settings"');
     expect(directConnectRoutes).toContain("targetProviderIds");
     expect(directConnectRoutes).toContain("resolveTargetProviderIds");
     expect(directConnectRoutes).toContain("body.targetProviderIds.length > 0");

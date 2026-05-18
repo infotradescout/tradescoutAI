@@ -621,12 +621,21 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
       tool({
         id: "contractor-settings",
         label: "Business Provider Settings",
-        path: "/admin/contractors",
+        path: "/admin/business-provider-settings",
         icon: Settings,
         description: "Open business/provider settings inside the admin panel.",
         keywords: ["business", "provider", "settings"],
         visibleIf: { roles: ["ops_admin", "super_admin"] },
         render: () => <RedirectToAdminPanelTab tab="contractor-settings" />,
+      }),
+      tool({
+        id: "legacy-contractor-settings",
+        label: "Business Provider Settings (Legacy)",
+        path: "/admin/contractors",
+        icon: Settings,
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        navHidden: true,
+        render: () => <RedirectTool to="/admin/business-provider-settings" />,
       }),
       tool({
         id: "notifications",

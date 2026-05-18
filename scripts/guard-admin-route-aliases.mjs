@@ -32,6 +32,8 @@ const FORBIDDEN_ROUTE_ALIASES = [
   "/contractor-verification",
   "/content-moderation",
   "/system-settings",
+  "/admin/contractors",
+  "/admin/contractor-settings",
   "/support-tickets",
   "/platform-analytics",
   "/manage-users",

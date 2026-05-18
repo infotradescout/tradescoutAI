@@ -214,7 +214,7 @@ export default function AdminPanel() {
   });
 
   const { data: contractorSettings = [], isLoading: contractorSettingsLoading } = useQuery({
-    queryKey: ["/api/admin/contractor-settings"],
+    queryKey: ["/api/admin/business-provider-settings"],
     retry: false,
   });
 
@@ -369,7 +369,7 @@ export default function AdminPanel() {
   };
 
   const handleSubmit = (formData: any) => {
-    const type = selectedTab === "contractor-settings" ? "contractor-settings" : selectedTab;
+    const type = selectedTab === "contractor-settings" ? "business-provider-settings" : selectedTab;
 
     if (editingItem) {
       updateMutation.mutate({ type, id: editingItem.id, data: formData });
@@ -622,7 +622,7 @@ export default function AdminPanel() {
 
         <TabsContent value="contractor-settings" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Contractor Settings</h2>
+            <h2 className="text-xl font-semibold">Business Provider Settings</h2>
             <Button
               type="button"
               onClick={() => {
@@ -684,7 +684,7 @@ export default function AdminPanel() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDelete("contractor-settings", setting.id)}
+                          onClick={() => handleDelete("business-provider-settings", setting.id)}
                           className="h-8 w-8 p-0 text-red-400 hover:text-red-300"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1109,7 +1109,7 @@ export default function AdminPanel() {
           <TabsTrigger value="prizes">Prizes</TabsTrigger>
           <TabsTrigger value="advertisements">Advertisements</TabsTrigger>
           <TabsTrigger value="site-settings">Site Settings</TabsTrigger>
-          <TabsTrigger value="contractor-settings">Contractor Settings</TabsTrigger>
+          <TabsTrigger value="contractor-settings">Business Provider Settings</TabsTrigger>
           <TabsTrigger value="monitoring">Monitoring</TabsTrigger>
           <TabsTrigger value="notification-ops">Notification Ops</TabsTrigger>
           <TabsTrigger value="error-reports">Error Reports</TabsTrigger>
@@ -1126,7 +1126,7 @@ export default function AdminPanel() {
             <DialogTitle>
               {editingItem ? "Edit" : "Create"}{" "}
               {selectedTab === "contractor-settings"
-                ? "Contractor Setting"
+                ? "Business Provider Setting"
                 : selectedTab === "ai-fixes"
                   ? "AI Fix"
                   : selectedTab.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
@@ -1134,7 +1134,7 @@ export default function AdminPanel() {
             <DialogDescription>
               {editingItem ? "Update the" : "Create a new"}{" "}
               {selectedTab === "contractor-settings"
-                ? "contractor setting"
+                ? "business provider setting"
                 : selectedTab === "ai-fixes"
                   ? "AI fix"
                   : selectedTab.replace("-", " ")}{" "}
@@ -1469,7 +1469,7 @@ function AdminItemForm({
     );
   }
 
-  // Generic form for site settings and contractor settings
+  // Generic form for site settings and business provider settings
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
