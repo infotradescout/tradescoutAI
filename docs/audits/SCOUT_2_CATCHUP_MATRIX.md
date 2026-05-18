@@ -160,8 +160,14 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Older SEO helpers now accept canonical `/business/:slug` profile URLs before falling back to `/contractors/:id`, and their structured-data copy uses local provider language where the surface is not explicitly contractor SEO.
 - Scout no longer renders standalone location collection controls on the Scout page. Saved account/session location still feeds local context silently, and missing location should be requested conversationally inside Scout only when a task actually needs it.
 - Admin OS navigation is now condensed around primary hubs. Secondary and legacy admin tools stay routable for continuity, but procurement, marketplace, verification, telemetry, platform controls, and finance now surface through one role-aware Admin OS layer instead of parallel admin stacks.
+- Opportunity Radar expansion beyond `county_metrics` is now explicitly blocked until `county_entities` rows prove active status, source/freshness metadata, sensitive-field stripping, and Trust/CVS exposure eligibility, and until `county_notes` are projected through sanitized public-safe summaries instead of raw admin memory.
 
-## Fastest Next Work
+## Completion Status
 
-1. Expand Opportunity Radar beyond `county_metrics` only after `county_entities` and `county_notes` use has CVS/source/freshness handling.
-2. Define the `county_entities` and `county_notes` source/freshness/CVS contract needed before Opportunity Radar can expand beyond `county_metrics`.
+Scout 2 catch-up is complete for the current honesty boundary.
+
+- Opportunity Radar and Move Feed are live only from approved `county_metrics` projections.
+- `county_entities` and `county_notes` expansion is intentionally blocked by `docs/reference/scout/OPPORTUNITY_RADAR_CONTRACT.md` until the required CVS, source, freshness, and sanitization proofs exist.
+- Public Scout copy remains bounded to available capabilities; unfinished or blocked capabilities are documented as policy targets rather than presented as live features.
+
+No remaining matrix item is allowed to ship as a public Scout claim without either an enforced implementation or a documented temporary exception with owner, rationale, and removal date.
