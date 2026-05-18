@@ -157,8 +157,9 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Public contractor profile compatibility now has a first canonical bridge: `/api/contractors/:slug` returns `/business/:slug` when a public business profile exists, and the legacy client redirects there while using generic provider fallback copy.
 - Provider discovery links now prefer canonical `/business/:slug` URLs where available: top-provider results expose `canonicalBusinessProfileUrl`, trust-match cards and shared provider cards use it, and Scout provider-search tool results preserve canonical profile links.
 - Public profile recommendation directories now carry `canonicalBusinessProfileUrl` for recommended providers when available, so recommendation badges link to `/business/:slug` before falling back to legacy `/contractors/:slug`.
+- Older SEO helpers now accept canonical `/business/:slug` profile URLs before falling back to `/contractors/:id`, and their structured-data copy uses local provider language where the surface is not explicitly contractor SEO.
 
 ## Fastest Next Work
 
 1. Expand Opportunity Radar beyond `county_metrics` only after `county_entities` and `county_notes` use has CVS/source/freshness handling.
-2. Audit older SEO helper structured data that still emits `/contractors/:id` and either preserve it as an explicit contractor SEO exception or add canonical business URL support.
+2. Define the `county_entities` and `county_notes` source/freshness/CVS contract needed before Opportunity Radar can expand beyond `county_metrics`.

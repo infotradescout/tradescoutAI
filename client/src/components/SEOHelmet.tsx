@@ -300,29 +300,44 @@ export const createContractorStructuredData = (contractor: {
   location?: string;
   trades?: string[];
   verified?: boolean;
-}) => ({
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  "@id": `${getCanonicalOrigin()}/contractors/${contractor.id}`,
-  name: contractor.name,
-  description: contractor.description,
-  url: `${getCanonicalOrigin()}/contractors/${contractor.id}`,
-  priceRange: "$$",
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: contractor.location,
-    addressCountry: "US",
-  },
-  hasCredential: contractor.verified
-    ? {
-        "@type": "EducationalOccupationalCredential",
-        credentialCategory: "Professional Certification",
-        name: "Verified Contractor",
-      }
-    : undefined,
-  serviceType: contractor.trades || [],
-  areaServed: contractor.location || "Local Area",
-});
+  canonicalBusinessProfileUrl?: string | null;
+}) => {
+  const origin = getCanonicalOrigin();
+  const canonicalBusinessProfileUrl =
+    typeof contractor.canonicalBusinessProfileUrl === "string" &&
+    contractor.canonicalBusinessProfileUrl.trim().length > 0
+      ? contractor.canonicalBusinessProfileUrl.trim()
+      : null;
+  const publicUrl = canonicalBusinessProfileUrl
+    ? canonicalBusinessProfileUrl.startsWith("http")
+      ? canonicalBusinessProfileUrl
+      : `${origin}${canonicalBusinessProfileUrl}`
+    : `${origin}/contractors/${contractor.id}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": publicUrl,
+    name: contractor.name,
+    description: contractor.description,
+    url: publicUrl,
+    priceRange: "$$",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: contractor.location,
+      addressCountry: "US",
+    },
+    hasCredential: contractor.verified
+      ? {
+          "@type": "EducationalOccupationalCredential",
+          credentialCategory: "Professional Certification",
+          name: "Verified Local Provider",
+        }
+      : undefined,
+    serviceType: contractor.trades || [],
+    areaServed: contractor.location || "Local Area",
+  };
+};
 
 export const createLocalBusinessStructuredData = (biz: {
   slug: string;

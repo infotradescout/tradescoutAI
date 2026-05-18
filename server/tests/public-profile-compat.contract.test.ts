@@ -147,4 +147,23 @@ describe("public profile compatibility contracts", () => {
     );
     expect(scoutMatrix).toContain("Public profile recommendation directories now carry");
   });
+
+  it("older SEO helpers support canonical business profile URLs before contractor fallbacks", () => {
+    const seoHelmet = read("client/src/components/SEOHelmet.tsx");
+    const seoLocalBusiness = read("client/src/components/SEOLocalBusiness.tsx");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(seoHelmet).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(seoHelmet).toContain("const publicUrl = canonicalBusinessProfileUrl");
+    expect(seoHelmet).toContain("`${origin}/contractors/${contractor.id}`");
+    expect(seoHelmet).toContain('"@id": publicUrl');
+    expect(seoHelmet).toContain("Verified Local Provider");
+
+    expect(seoLocalBusiness).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(seoLocalBusiness).toContain("const publicUrl = canonicalBusinessProfileUrl");
+    expect(seoLocalBusiness).toContain("Local provider services");
+    expect(seoLocalBusiness).toContain('serviceType: "Local Services"');
+    expect(seoLocalBusiness).toContain("TradeScout verification records");
+    expect(scoutMatrix).toContain("Older SEO helpers now accept canonical");
+  });
 });
