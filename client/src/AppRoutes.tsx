@@ -5,10 +5,16 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { useAuth } from "./hooks/useAuth";
 
 import { PageLoadingSpinner } from "./components/LoadingSpinner";
-import { hasAdminUiAccess, isAdminTier, isSuperAdminLike } from "./lib/roleChecks";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { hasAdminUiAccess } from "./lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
-import { storeOnboardingNext, isSafeNextPath } from "@/lib/postOnboardingRoute";
+import {
+  getOnboardingEntryRoute as routeGetOnboardingEntryRoute,
+  getPostLandingRoute as routeGetPostLandingRoute,
+  isOnboardingExemptPath,
+  isSafeNextPath,
+  storeOnboardingNext,
+  userNeedsOnboarding,
+} from "@/lib/postOnboardingRoute";
 import {
   evaluateFeatureUnlocks,
   isFeatureUnlocked,
@@ -20,57 +26,8 @@ const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
 });
 
-export function userNeedsOnboarding(user: unknown): boolean {
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  if (!record) return false;
-
-  const onboardingCompleted = record.onboardingCompleted === true;
-  const profileVersion =
-    typeof record.profileVersion === "number" ? Number(record.profileVersion) : 0;
-  return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;
-}
-
-export function userHasProfileBasics(user: unknown): boolean {
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  if (!record) return false;
-
-  const firstName = typeof record.firstName === "string" ? record.firstName.trim() : "";
-  const lastName = typeof record.lastName === "string" ? record.lastName.trim() : "";
-  const stateCode =
-    typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
-  const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
-
-  return (
-    firstName.length > 0 &&
-    lastName.length > 0 &&
-    stateCode.length === 2 &&
-    /^\d{5}$/.test(countyFips)
-  );
-}
-
-export function getOnboardingEntryRoute(user: unknown): string {
-  return userHasProfileBasics(user) ? "/onboarding/intent" : "/onboarding/profile";
-}
-
-export function getPostLandingRoute(user: unknown): string {
-  if (userNeedsOnboarding(user)) return getOnboardingEntryRoute(user);
-
-  const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
-  const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;
-  const isSuperAdmin = isSuperAdminLike(role) || record?.isSuperAdmin === true;
-
-  const rolesValue = record?.roles;
-  const roles: string[] = Array.isArray(rolesValue)
-    ? rolesValue.filter((r: unknown): r is string => typeof r === "string")
-    : [];
-  const isAdmin =
-    record?.isAdmin === true ||
-    isAdminTier(role) ||
-    roles.some((r) => isAdminTier(r) || String(r).includes("admin"));
-
-  if (isSuperAdmin || isAdmin) return "/admin";
-  return "/direct-connect";
-}
+export const getOnboardingEntryRoute = routeGetOnboardingEntryRoute;
+export const getPostLandingRoute = routeGetPostLandingRoute;
 
 function isLegacyRootScoutQuery(rest: string): boolean {
   if (!rest || !rest.startsWith("?")) return false;
@@ -78,19 +35,6 @@ function isLegacyRootScoutQuery(rest: string): boolean {
   if (!query) return false;
   const params = new URLSearchParams(query);
   return params.has("prompt") || params.has("intent");
-}
-
-function isOnboardingExemptPath(path: string): boolean {
-  return (
-    path.startsWith("/pre-scout-setup") ||
-    path.startsWith("/onboarding/profile") ||
-    path.startsWith("/onboarding/intent") ||
-    path.startsWith("/verify-email") ||
-    path.startsWith("/check-email") ||
-    path.startsWith("/reset-password") ||
-    path.startsWith("/logout") ||
-    path.startsWith("/auth/logout")
-  );
 }
 
 const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {

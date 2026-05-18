@@ -1,9 +1,13 @@
 import React, { useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { SkeletonBlock } from "@/components/ui/states";
 import { isAdminTier, isSuperAdminLike as isSuperAdminRoleLike } from "@/lib/roleChecks";
+import {
+  getOnboardingEntryRoute,
+  isOnboardingExemptPath,
+  userNeedsOnboarding,
+} from "@/lib/postOnboardingRoute";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -79,20 +83,14 @@ export function ProtectedRoute({
     const isAdmin = isAdminLikeUser(user);
     const role = (user as any)?.role as string | undefined;
     const isSuperAdminLike = isSuperAdminRoleLike(role);
-    const profileVersion =
-      typeof (user as any)?.profileVersion === "number" ? (user as any).profileVersion : 0;
-    const onboardingCompleted = (user as any)?.onboardingCompleted === true;
-    const needsOnboarding = profileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted;
+    const needsOnboarding = userNeedsOnboarding(user);
+    const pathOnly = (location || "/").split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
 
-    const isSetupRoute =
-      location.startsWith("/pre-scout-setup") ||
-      location.startsWith("/onboarding/profile") ||
-      location.startsWith("/onboarding/intent") ||
-      location.startsWith("/profile-setup");
+    const isSetupRoute = isOnboardingExemptPath(pathOnly) || location.startsWith("/profile-setup");
 
     if (!isAdmin && !isSuperAdminLike && user && needsOnboarding && !isSetupRoute) {
       const next = encodeURIComponent(location || "/");
-      setLocation(`/onboarding/profile?next=${next}`);
+      setLocation(`${getOnboardingEntryRoute(user)}?next=${next}`);
       return;
     }
 

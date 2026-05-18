@@ -75,6 +75,7 @@ import { enforceResponseQualityContract } from "./responseQuality";
 import type { ClaimType } from "./claimTypes";
 import type { ProfileDraft } from "@/types/profileDraft";
 import { useScoutMode } from "./useScoutMode";
+import { isScoutOnboardingCompleted } from "./scoutOnboardingSession";
 import { PostOnboardingActionCard } from "./PostOnboardingActionCard";
 import { resolvePostOnboardingActions } from "./resolvePostOnboardingActions";
 import { resolveExplicitNavigationIntent, resolveQuickActionIntent } from "./localIntents";
@@ -2185,10 +2186,11 @@ export default function ScoutOS() {
     const provisional = (user as any)?.preferences?.provisional;
     const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
     const alreadyCompleted = (user as any)?.onboardingCompleted === true;
+    const hasSessionCompleted = isScoutOnboardingCompleted();
 
     // Once a user has completed onboarding, never auto-trigger it again
     // from lingering onboarding query params.
-    if (alreadyCompleted) return;
+    if (alreadyCompleted || hasSessionCompleted) return;
 
     if (!onboarding.shouldTriggerOnboarding(location, userId, provisional)) {
       return;

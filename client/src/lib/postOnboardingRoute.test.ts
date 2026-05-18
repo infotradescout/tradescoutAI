@@ -24,7 +24,7 @@ describe("post-onboarding Direct Connect routing", () => {
     );
   });
 
-  it("keeps Scout Assist inside Direct Connect from onboarding intent", () => {
+  it("keeps Direct Connect intent choices inside local requests flow", () => {
     expect(resolvePostOnboardingRoute({ chosenIntent: "tools" })).toBe(
       "/direct-connect?entry=onboarding"
     );

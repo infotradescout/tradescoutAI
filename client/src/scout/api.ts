@@ -124,8 +124,6 @@ export interface ScoutBackendResponse {
   timestamp?: string;
   metadata?: {
     intent?: string;
-    thought_flow?: string[];
-    decision?: string;
     redirect?: string;
     sourceUsed?: string;
     attemptedSource?: string;
