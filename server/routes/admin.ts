@@ -28,6 +28,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import adminToolDiscoveryRouter from "./admin-tool-discovery";
 import { refreshCountyMetrics } from "../services/geographicMetrics";
 import { getCountyCoverageSummary } from "../services/geographicCoverage";
+import { validateRadarEntityMetadata } from "../services/opportunityRadarSourceGuards";
 import { emailService } from "../services/emailService";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { getAdminAuditLog, logAdminAction } from "../services/adminAuditLogService";
@@ -961,6 +962,13 @@ export function mountAdminRoutes(app: any) {
 
         const safeLabel = typeof label === "string" ? label.trim() : null;
         const safeEntityId = typeof entityId === "string" ? entityId.trim() : null;
+        const radarMetadataValidation = validateRadarEntityMetadata(metadata);
+        if (!radarMetadataValidation.ok) {
+          return res.status(400).json({
+            message: "County entity metadata is not eligible for Opportunity Radar exposure",
+            errors: radarMetadataValidation.errors,
+          });
+        }
 
         const entity = await storage.createCountyEntity({
           countyFips: fips,
@@ -1043,6 +1051,13 @@ export function mountAdminRoutes(app: any) {
         }
 
         if (metadata !== undefined) {
+          const radarMetadataValidation = validateRadarEntityMetadata(metadata);
+          if (!radarMetadataValidation.ok) {
+            return res.status(400).json({
+              message: "County entity metadata is not eligible for Opportunity Radar exposure",
+              errors: radarMetadataValidation.errors,
+            });
+          }
           update.metadata = metadata as any;
         }
 

@@ -161,6 +161,7 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Scout no longer renders standalone location collection controls on the Scout page. Saved account/session location still feeds local context silently, and missing location should be requested conversationally inside Scout only when a task actually needs it.
 - Admin OS navigation is now condensed around primary hubs. Secondary and legacy admin tools stay routable for continuity, but procurement, marketplace, verification, telemetry, platform controls, and finance now surface through one role-aware Admin OS layer instead of parallel admin stacks.
 - Opportunity Radar expansion beyond `county_metrics` is now explicitly blocked until `county_entities` rows prove active status, source/freshness metadata, sensitive-field stripping, and Trust/CVS exposure eligibility, and until `county_notes` are projected through sanitized public-safe summaries instead of raw admin memory.
+- County entity writes now enforce the first Opportunity Radar source guard: arbitrary admin metadata remains allowed, but any row marked `publicMoveEligible: true` must carry source kind/label/ref, source freshness, CVS exposure timestamp/outcome, and `sensitiveFieldsStripped: true`, with contact-like metadata keys rejected.
 
 ## Completion Status
 
