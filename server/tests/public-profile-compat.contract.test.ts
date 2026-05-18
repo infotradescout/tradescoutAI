@@ -109,4 +109,23 @@ describe("public profile compatibility contracts", () => {
       "Public contractor profile compatibility now has a first canonical bridge"
     );
   });
+
+  it("provider discovery links prefer canonical business profile URLs when available", () => {
+    const routesSource = read("server/routes.ts");
+    const findContractors = read("client/src/pages/find-contractors.tsx");
+    const contractorCard = read("client/src/components/contractor-card.tsx");
+    const scoutTools = read("client/src/agent/tools/scoutTools.ts");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(routesSource).toContain("await storage.getBusinessProfileByUserId(contractor.userId)");
+    expect(routesSource).toContain("canonicalBusinessProfileUrl:");
+    expect(findContractors).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(findContractors).toContain("contractor.canonicalBusinessProfileUrl ||");
+    expect(contractorCard).toContain("canonicalBusinessProfileUrl?: string | null");
+    expect(contractorCard).toContain("const profileHref =");
+    expect(contractorCard).toContain("contractor.canonicalBusinessProfileUrl.trim()");
+    expect(scoutTools).toContain("c.canonicalBusinessProfileUrl.trim()");
+    expect(scoutTools).toContain('c.providerType === "business"');
+    expect(scoutMatrix).toContain("Provider discovery links now prefer canonical");
+  });
 });

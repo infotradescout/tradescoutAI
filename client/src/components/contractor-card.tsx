@@ -18,6 +18,7 @@ import type { Contractor } from "@shared/schema";
 
 type ContractorCardContractor = Contractor & {
   serviceAreas?: string[];
+  canonicalBusinessProfileUrl?: string | null;
 };
 
 interface ContractorCardProps {
@@ -60,6 +61,11 @@ export default function ContractorCard({
     Number.isFinite(connectionRecommendationCountRaw)
       ? Math.max(0, Math.trunc(connectionRecommendationCountRaw))
       : null;
+  const profileHref =
+    typeof contractor.canonicalBusinessProfileUrl === "string" &&
+    contractor.canonicalBusinessProfileUrl.trim().length > 0
+      ? contractor.canonicalBusinessProfileUrl.trim()
+      : `/contractors/${contractor.slug}`;
 
   return (
     <Card className="ts-card" data-testid={`contractor-card`}>
@@ -114,7 +120,7 @@ export default function ContractorCard({
             {contractor.companyName}
           </h3>
         ) : (
-          <Link href={`/contractors/${contractor.slug}`}>
+          <Link href={profileHref}>
             <h3
               className={`font-semibold mb-2 transition-colors cursor-pointer text-[color:var(--text-primary)] hover:text-[color:var(--theme-accent-primary)] ${
                 compact ? "text-base" : "text-lg"
@@ -244,7 +250,7 @@ export default function ContractorCard({
             </Link>
 
             {!requestOnly && (
-              <Link href={`/contractors/${contractor.slug}`} className="flex-1">
+              <Link href={profileHref} className="flex-1">
                 <Button
                   variant="outline"
                   className="w-full border-white/10 text-white hover:bg-white/10"
@@ -256,7 +262,7 @@ export default function ContractorCard({
             )}
           </div>
         ) : (
-          <Link href={`/contractors/${contractor.slug}`}>
+          <Link href={profileHref}>
             <Button
               variant="outline"
               className="w-full border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white"

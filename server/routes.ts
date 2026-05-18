@@ -7965,6 +7965,15 @@ export async function registerRoutes(app: any) {
           const stats = contractor.userId
             ? await storage.getUserCredibilityStats(contractor.userId)
             : { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
+          const canonicalBusinessProfile = contractor.userId
+            ? await storage.getBusinessProfileByUserId(contractor.userId)
+            : null;
+          const canonicalBusinessProfileSlug =
+            canonicalBusinessProfile?.visibility === "public" &&
+            typeof canonicalBusinessProfile.slug === "string" &&
+            canonicalBusinessProfile.slug.trim()
+              ? canonicalBusinessProfile.slug.trim()
+              : null;
 
           const countyCount = serviceAreaCounts[contractor.id] ?? 0;
           const reachTier = tierForCount(countyCount);
@@ -7998,6 +8007,9 @@ export async function registerRoutes(app: any) {
             localCredibilityScore,
             localStats: stats,
             presenceLabel,
+            canonicalBusinessProfileUrl: canonicalBusinessProfileSlug
+              ? `/business/${encodeURIComponent(canonicalBusinessProfileSlug)}`
+              : null,
           };
         })
       );

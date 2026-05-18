@@ -84,7 +84,14 @@ const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResu
       location: String(c.location || c.city || c.county || ""),
       distance: typeof c.distance === "number" ? c.distance : undefined,
       availability: c.availability ? String(c.availability) : undefined,
-      profileUrl: `/contractors/${c.id || c.userId}`,
+      profileUrl:
+        typeof c.canonicalBusinessProfileUrl === "string" && c.canonicalBusinessProfileUrl.trim()
+          ? c.canonicalBusinessProfileUrl.trim()
+          : typeof c.canonicalProfileUrl === "string" && c.canonicalProfileUrl.trim()
+            ? c.canonicalProfileUrl.trim()
+            : c.providerType === "business" && c.slug
+              ? `/business/${encodeURIComponent(String(c.slug))}`
+              : `/contractors/${c.id || c.userId}`,
     }));
   },
 };

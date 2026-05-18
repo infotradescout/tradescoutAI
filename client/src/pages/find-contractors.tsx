@@ -55,6 +55,7 @@ type Contractor = {
     activeWeeks: number;
   };
   presenceLabel?: string;
+  canonicalBusinessProfileUrl?: string | null;
 };
 
 type FindContractorsProps = {
@@ -430,7 +431,10 @@ const FindContractors = memo(function FindContractors({
                   </span>
                   <a
                     className="ts-accent-btn px-3 py-2 rounded-lg transition-colors"
-                    href={`/contractors/${encodeURIComponent(contractor.id)}`}
+                    href={
+                      contractor.canonicalBusinessProfileUrl ||
+                      `/contractors/${encodeURIComponent(contractor.id)}`
+                    }
                   >
                     View profile
                   </a>
