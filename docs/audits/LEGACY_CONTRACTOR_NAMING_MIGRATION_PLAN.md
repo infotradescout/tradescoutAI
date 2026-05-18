@@ -27,7 +27,7 @@ Scope: Route, API, table, role, and UI names that still use contractor terminolo
 
 | Surface | Classification | Decision |
 | --- | --- | --- |
-| County SEO pages (`client/src/pages/county/CountyPage.tsx`) | temporary_exception | Keep contractor wording for explicit "contractors near me" search intent until county landing pages split generic local-help CTAs from trade SEO content. Owner: engineering. Removal/review date: 2026-08-31. |
+| County SEO pages (`client/src/pages/county/CountyPage.tsx`) | temporary_exception | Contractor wording is limited to explicit "contractors near me" FAQ, description, and keyword intent; visible action copy now uses generic local-help/provider language. Owner: engineering. Removal/review date: 2026-08-31. |
 | Public contractor profile pages (`client/src/pages/contractor-profile.tsx`) | temporary_exception | Keep contractor wording while `/contractors/*` public profile URLs remain indexed compatibility surfaces. Owner: engineering. Removal/review date: 2026-08-31. |
 | Competitor comparison pages | policy_target | Genericize broad discovery CTAs to "Find Local Help" while allowing competitor/trade context in body copy where the page compares contractor lead models. |
 | Business-provider tools under legacy `/contractor/*` paths | policy_target | User-facing copy should say business provider/business dashboard; route/file names remain compatibility handles. |
@@ -37,7 +37,7 @@ Scope: Route, API, table, role, and UI names that still use contractor terminolo
 
 1. **Surface copy complete**
    - Keep generic business copy on profile, dashboard, help, onboarding, nav, footer, legal, and SEO defaults.
-   - Keep contractor copy only in explicit trade-directory pages and legacy compatibility docs.
+   - Keep contractor copy only in explicit trade-directory pages, county SEO intent metadata/FAQ, and legacy compatibility docs.
 
 2. **Alias routes and APIs**
    - Add `/businesses/apply`, `/business-dashboard`, and future `/business/requests` aliases.

@@ -229,6 +229,25 @@ describe("generic business profile and tool contracts", () => {
     expect(source).not.toContain("contractor profile");
   });
 
+  it("splits county SEO contractor intent from generic local-help action copy", () => {
+    const countyPage = read("client/src/pages/county/CountyPage.tsx");
+    const migrationPlan = read("docs/audits/LEGACY_CONTRACTOR_NAMING_MIGRATION_PLAN.md");
+    const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
+
+    expect(countyPage).toContain("How do I find contractors near");
+    expect(countyPage).toContain("verified contractors");
+    expect(countyPage).toContain("trusted contractors");
+    expect(countyPage).toContain("Find local help near");
+    expect(countyPage).toContain("Find Local Help");
+    expect(countyPage).toContain("verified local providers");
+    expect(countyPage).toContain("local businesses, and professionals");
+    expect(countyPage).not.toContain("Find Contractors");
+    expect(countyPage).not.toContain("Find contractors near {marketName}");
+    expect(countyPage).not.toContain("Join neighbors, contractors, and professionals");
+    expect(migrationPlan).toContain("generic local-help/provider language");
+    expect(scoutMatrix).toContain("County SEO pages now split explicit contractor keyword");
+  });
+
   it("genericizes stale help, onboarding, and tour copy", () => {
     const files = [
       "client/src/components/help/HelpSystem.tsx",
