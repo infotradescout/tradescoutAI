@@ -275,15 +275,7 @@ const SupplyRunNew = React.lazy(() => import("./pages/supply-run-new"));
 const SupplyRunDetail = React.lazy(() => import("./pages/supply-run-detail"));
 const GruntOrder = React.lazy(() => import("./pages/grunt-order"));
 const GruntOrderDetail = React.lazy(() => import("./pages/grunt-order-detail"));
-const GruntAdminOrders = React.lazy(() => import("./pages/grunt-admin-orders"));
-const GruntAdminOrderDetail = React.lazy(() => import("./pages/grunt-admin-order-detail"));
 const SupplierProcurementQuote = React.lazy(() => import("./pages/supplier-procurement-quote"));
-const AdminProcurement = React.lazy(() => import("./pages/admin-procurement"));
-const AdminProcurementDetail = React.lazy(() => import("./pages/admin-procurement-detail"));
-const AdminProcurementWorkspaces = React.lazy(() => import("./pages/admin-procurement-workspaces"));
-const AdminProcurementWorkspaceDetail = React.lazy(
-  () => import("./pages/admin-procurement-workspace-detail")
-);
 
 // Core Pages
 // Contractors: canonical path is the licensed/verified contractor search
@@ -746,12 +738,12 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/grunt/admin/orders">
                 <ProtectedRoute>
-                  <LazyPage Component={GruntAdminOrders} />
+                  <RedirectTo to="/admin/procurement" />
                 </ProtectedRoute>
               </Route>
               <Route path="/grunt/admin/orders/:id">
                 <ProtectedRoute>
-                  <LazyPage Component={GruntAdminOrderDetail} />
+                  <RedirectTo to="/admin/procurement" />
                 </ProtectedRoute>
               </Route>
               <Route path="/supplier/procurement/:token">
@@ -759,22 +751,22 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/admin/procurement">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurement} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/admin/procurement/workspaces">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurementWorkspaces} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/admin/procurement/workspaces/:id">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurementWorkspaceDetail} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
               <Route path="/admin/procurement/:id">
                 <ProtectedRoute adminOnly>
-                  <LazyPage Component={AdminProcurementDetail} />
+                  <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
 

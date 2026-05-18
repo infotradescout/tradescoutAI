@@ -159,6 +159,7 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Public profile recommendation directories now carry `canonicalBusinessProfileUrl` for recommended providers when available, so recommendation badges link to `/business/:slug` before falling back to legacy `/contractors/:slug`.
 - Older SEO helpers now accept canonical `/business/:slug` profile URLs before falling back to `/contractors/:id`, and their structured-data copy uses local provider language where the surface is not explicitly contractor SEO.
 - Scout no longer renders standalone location collection controls on the Scout page. Saved account/session location still feeds local context silently, and missing location should be requested conversationally inside Scout only when a task actually needs it.
+- Admin OS navigation is now condensed around primary hubs. Secondary and legacy admin tools stay routable for continuity, but procurement, marketplace, verification, telemetry, platform controls, and finance now surface through one role-aware Admin OS layer instead of parallel admin stacks.
 
 ## Fastest Next Work
 

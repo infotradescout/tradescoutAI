@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { apiRequest } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
@@ -90,11 +89,11 @@ const LAW_GUARDS = [
 ] as const;
 
 const FOCUS_TOOL_IDS = [
-  "mission-control",
+  "overview",
   "direct-connect-requests",
   "verification",
   "commercial-directory",
-  "business-import",
+  "procurement",
   "live-stream",
   "controls",
   "users",
@@ -227,8 +226,8 @@ export function AdminHome({ role, isSuperAdmin }: AdminHomeProps) {
                   Admin command center
                 </h1>
                 <p className="mt-1 max-w-3xl text-sm leading-6 text-zinc-400">
-                  One role-aware index for platform operations, county intelligence, trust work,
-                  automation, and finance.
+                  One condensed hub for platform operations, county intelligence, trust work,
+                  automation, marketplace ops, and finance.
                 </p>
               </div>
             </div>
