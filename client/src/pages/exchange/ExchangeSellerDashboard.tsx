@@ -385,9 +385,15 @@ function OrderLifecycleCard({
   isAdvancing,
 }: {
   order: MarketplaceOrder;
-  onAdvance: (order: MarketplaceOrder, status: MarketplaceOrderStatus) => void;
+  onAdvance: (
+    order: MarketplaceOrder,
+    status: MarketplaceOrderStatus,
+    data?: { labelUrl?: string; trackingNumber?: string }
+  ) => void;
   isAdvancing: boolean;
 }) {
+  const [labelUrl, setLabelUrl] = useState(order.labelUrl || "");
+  const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber || "");
   const currentIdx = Math.max(
     0,
     ORDER_STEPS.findIndex((step) => step.status === order.status)
@@ -465,11 +471,38 @@ function OrderLifecycleCard({
               ? ` • Label deduction ${formatPrice(order.payoutDeductionAmount)}`
               : ""}
           </div>
+          {nextStatus === "label_purchased" && (
+            <label className="flex-1 min-w-[220px] text-xs font-medium text-muted-foreground">
+              Label URL
+              <input
+                value={labelUrl}
+                onChange={(event) => setLabelUrl(event.target.value)}
+                placeholder="https://carrier.example/label.pdf"
+                className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground"
+              />
+            </label>
+          )}
+          {nextStatus === "in_transit" && (
+            <label className="flex-1 min-w-[220px] text-xs font-medium text-muted-foreground">
+              Tracking number
+              <input
+                value={trackingNumber}
+                onChange={(event) => setTrackingNumber(event.target.value)}
+                placeholder="USPS, UPS, or FedEx tracking"
+                className="mt-1 h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground"
+              />
+            </label>
+          )}
           {nextStatus ? (
             <Button
               size="sm"
               className="h-8"
-              onClick={() => onAdvance(order, nextStatus)}
+              onClick={() =>
+                onAdvance(order, nextStatus, {
+                  labelUrl: nextStatus === "label_purchased" ? labelUrl : undefined,
+                  trackingNumber: nextStatus === "in_transit" ? trackingNumber : undefined,
+                })
+              }
               disabled={isAdvancing}
             >
               Advance to {orderStatusLabel(nextStatus)}
@@ -548,8 +581,22 @@ export default function ExchangeSellerDashboard() {
   });
 
   const orderStatusMutation = useMutation({
-    mutationFn: ({ orderId, status }: { orderId: string; status: MarketplaceOrderStatus }) =>
-      apiRequest("POST", `/api/marketplace/orders/${orderId}/status`, { status }),
+    mutationFn: ({
+      orderId,
+      status,
+      labelUrl,
+      trackingNumber,
+    }: {
+      orderId: string;
+      status: MarketplaceOrderStatus;
+      labelUrl?: string;
+      trackingNumber?: string;
+    }) =>
+      apiRequest("POST", `/api/marketplace/orders/${orderId}/status`, {
+        status,
+        labelUrl,
+        trackingNumber,
+      }),
     onSuccess: () => {
       toast({
         title: "Order updated",
@@ -780,8 +827,8 @@ export default function ExchangeSellerDashboard() {
                   <OrderLifecycleCard
                     key={order.id}
                     order={order}
-                    onAdvance={(currentOrder, status) =>
-                      orderStatusMutation.mutate({ orderId: currentOrder.id, status })
+                    onAdvance={(currentOrder, status, data) =>
+                      orderStatusMutation.mutate({ orderId: currentOrder.id, status, ...data })
                     }
                     isAdvancing={orderStatusMutation.isPending}
                   />

@@ -19829,6 +19829,14 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const user = req.user as any;
       const sellerId: string = user?.id || user?.claims?.sub;
       const { id } = req.params;
+      const sellerOrderTransitions: Record<string, string> = {
+        item_sold: "payment_received",
+        payment_received: "label_pending",
+        label_pending: "label_purchased",
+        label_purchased: "in_transit",
+        in_transit: "delivered",
+        delivered: "payout_reconciled",
+      };
       const nextStatus = String(req.body?.status || "").trim();
       const allowedStatuses = new Set([
         "item_sold",
@@ -19843,12 +19851,41 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         return res.status(400).json({ message: "Invalid marketplace order status" });
       }
 
+      const existingResult = await pool.query(
+        `
+          SELECT id, status
+          FROM marketplace_orders
+          WHERE id = $1
+            AND seller_id = $2
+          LIMIT 1
+        `,
+        [id, sellerId]
+      );
+      const existingOrder = existingResult.rows[0];
+      if (!existingOrder) {
+        return res.status(404).json({ message: "Marketplace order not found" });
+      }
+
+      const currentStatus = String(existingOrder.status || "");
+      const allowedNextStatus = sellerOrderTransitions[currentStatus];
+      if (nextStatus !== allowedNextStatus) {
+        return res.status(409).json({
+          message: "Marketplace order status must advance one step at a time.",
+          currentStatus,
+          allowedNextStatus: allowedNextStatus || null,
+        });
+      }
+
       const trackingNumber =
-        typeof req.body?.trackingNumber === "string" && req.body.trackingNumber.trim()
+        nextStatus === "in_transit" &&
+        typeof req.body?.trackingNumber === "string" &&
+        req.body.trackingNumber.trim()
           ? req.body.trackingNumber.trim().slice(0, 120)
           : null;
       const labelUrl =
-        typeof req.body?.labelUrl === "string" && req.body.labelUrl.trim()
+        nextStatus === "label_purchased" &&
+        typeof req.body?.labelUrl === "string" &&
+        req.body.labelUrl.trim()
           ? req.body.labelUrl.trim().slice(0, 500)
           : null;
 
