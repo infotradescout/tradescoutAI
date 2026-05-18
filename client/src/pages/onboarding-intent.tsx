@@ -126,8 +126,11 @@ export default function OnboardingIntent() {
       navigate(destination);
     },
     onError: () => {
-      // Fail-soft: never trap the user in the onboarding funnel
-      navigate(resolveDestination(null));
+      toast({
+        title: "Skipped",
+        description: "Unable to skip right now. Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -244,9 +247,11 @@ export default function OnboardingIntent() {
               >
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-ts-orange" />
-                  <span className="font-medium text-white">Community</span>
+                  <span className="font-medium text-white">Local requests</span>
                 </div>
-                <p className="mt-1 text-xs text-white/65">See local posts and updates.</p>
+                <p className="mt-1 text-xs text-white/65">
+                  Open requests in your area and review replies.
+                </p>
               </button>
 
               <button
@@ -257,9 +262,11 @@ export default function OnboardingIntent() {
               >
                 <div className="flex items-center gap-2">
                   <SlidersHorizontal className="h-4 w-4 text-ts-orange" />
-                  <span className="font-medium text-white">Scout Assist</span>
+                  <span className="font-medium text-white">Find local work/help</span>
                 </div>
-                <p className="mt-1 text-xs text-white/65">Start in Direct Connect with help.</p>
+                <p className="mt-1 text-xs text-white/65">
+                  Start a guided request and route directly to local professionals.
+                </p>
               </button>
             </div>
 
