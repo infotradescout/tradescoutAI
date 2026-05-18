@@ -61,6 +61,17 @@ export type ScoutSourceSignalSnapshot = {
     sourceKind?: string;
     confidence?: string;
   }>;
+  opportunityMoves?: Array<{
+    id?: string;
+    type?: string;
+    title?: string;
+    whyItMatters?: string;
+    actionLabel?: string;
+    prompt?: string;
+    sourceLabel?: string;
+    confidence?: string;
+    updatedAt?: string | null;
+  }>;
   trendingPrompts?: Array<{ text?: string; category?: string; count?: number; intent?: string }>;
   recentActivity?: Array<{ query?: string; timestamp?: string }>;
 };
@@ -400,6 +411,29 @@ function sourceBackedLocalItems(snapshot?: ScoutSourceSignalSnapshot | null) {
   return items.slice(0, 3);
 }
 
+function sourceBackedOpportunityItems(snapshot?: ScoutSourceSignalSnapshot | null) {
+  if (!snapshot) return [];
+  const items: Array<{ id: string; label: string; description: string }> = [];
+
+  for (const move of snapshot.opportunityMoves || []) {
+    if (!move?.title || !move.whyItMatters) continue;
+    items.push({
+      id: move.id || `opportunity-move-${items.length}`,
+      label: move.title,
+      description: [
+        move.whyItMatters,
+        move.sourceLabel ? `Source: ${cleanMessage(move.sourceLabel)}` : "",
+        move.confidence ? `${cleanMessage(move.confidence)} confidence` : "",
+      ]
+        .filter(Boolean)
+        .join(" | "),
+    });
+    if (items.length >= 3) return items;
+  }
+
+  return items;
+}
+
 export function buildScoutExperienceClusters(args: {
   message: string;
   confidenceBand?: ScoutConfidenceBand | string | null;
@@ -478,6 +512,7 @@ export function buildScoutExperienceClusters(args: {
           description: "Scout collects details that change the path instead of forcing a long form",
         },
         ...sourceBackedLocalItems(sourceSignals),
+        ...sourceBackedOpportunityItems(sourceSignals).slice(0, 2),
         {
           id: "community-exchange-homescout",
           label: "Local surfaces connected",
@@ -492,6 +527,34 @@ export function buildScoutExperienceClusters(args: {
         },
       ],
       actions: overviewActions,
+    });
+  }
+
+  const opportunityItems = sourceBackedOpportunityItems(sourceSignals);
+  if (opportunityItems.length > 0 && !existing.has("opportunity radar")) {
+    clusters.push({
+      id: `opportunity-radar-${Date.now()}`,
+      title: "Opportunity Radar",
+      kind: "site",
+      body: "Scout found source-backed local moves from county intelligence. These are prompts to review, package, or audit a move; they do not expose contact or complete outreach.",
+      items: opportunityItems,
+      actions: takeActions(
+        [
+          ...((sourceSignals?.opportunityMoves || [])
+            .filter((move) => move?.prompt && move?.actionLabel)
+            .map((move) =>
+              askScout(
+                cleanMessage(move.actionLabel || "Review move"),
+                cleanMessage(move.prompt || "Review this Opportunity Radar move.")
+              )
+            ) as ScoutAction[]),
+          askScout(
+            "Explain the upside",
+            `Use the Opportunity Radar signals to explain what is worth reviewing next for: ${message}`
+          ),
+        ],
+        actionBudget
+      ),
     });
   }
 

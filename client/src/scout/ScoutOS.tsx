@@ -1547,6 +1547,7 @@ export default function ScoutOS() {
         eventsThisWeek: data?.snapshot?.eventsThisWeek,
         communityMembers: data?.snapshot?.communityMembers,
         priceSignals: Array.isArray(data?.priceSignals) ? data.priceSignals : [],
+        opportunityMoves: Array.isArray(data?.opportunityMoves) ? data.opportunityMoves : [],
         trendingPrompts: Array.isArray(data?.trendingPrompts) ? data.trendingPrompts : [],
         recentActivity: Array.isArray(data?.recentActivity) ? data.recentActivity : [],
       };

@@ -89,6 +89,9 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Verified local help");
     expect(experienceSource).toContain("Local trend signal");
     expect(experienceSource).toContain("priceSignals");
+    expect(experienceSource).toContain("opportunityMoves");
+    expect(experienceSource).toContain("Opportunity Radar");
+    expect(experienceSource).toContain("sourceBackedOpportunityItems");
     expect(experienceSource).toContain("formatPriceSignalFreshness");
     expect(experienceSource).toContain("formatPriceSignalSource");
     expect(experienceSource).toContain("priceSignalEvidenceSources");
@@ -99,6 +102,7 @@ describe("Scout entry framing contracts", () => {
     expect(homeSource).toContain("formatPriceSignalFreshness(signal.updatedAt)");
     expect(homeSource).toContain("formatPriceSignalSource(signal)");
     expect(scoutOsSource).toContain("priceSignals: Array.isArray(data?.priceSignals)");
+    expect(scoutOsSource).toContain("opportunityMoves: Array.isArray(data?.opportunityMoves)");
     expect(scoutOsSource).toContain("sourceSignals: scoutSourceSignalsQuery.data");
     expect(scoutOsSource).toContain("priceSignalEvidenceSources");
     expect(scoutOsSource).toContain("provenance.sourceTitles");

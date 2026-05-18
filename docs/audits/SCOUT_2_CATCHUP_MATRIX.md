@@ -102,6 +102,7 @@ The intended feeling is: "Show me where money is hiding locally," while the oper
 - Recorded Radar law classifications for contact gating, county containers, precomputed intelligence, Trust/CVS exposure, and no lead-selling/pay-to-play drift.
 - Scout home snapshot now exposes an `opportunityMoves` field built only from `county_metrics` rows, keeping Radar signals precomputed and source-labeled.
 - Scout home now renders an Opportunity Radar feed when real county move signals exist, with each card routing back into Scout prompts instead of direct contact.
+- Active Scout answers now receive `opportunityMoves` from the home snapshot and can render an Opportunity Radar result card that explains source-backed moves without exposing contact.
 - The normal Scout home now exposes a real capability map before chat starts.
 - Active Scout answers now add a "Full Scout view" result layer so users see planning, materials, prices, local help, trust checks, and alternatives after a query.
 - The Full Scout view now reflects the competitive adoption map: intake, local summaries, trust, materials, project continuity, and approval-gated action.
