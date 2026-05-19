@@ -113,7 +113,7 @@ import {
   SCOUT_QUICK_START_PROMPTS,
 } from "./scoutQuickStartPrompts";
 
-const INTRO_DEMO_TEXT = "What can TradeScout do for my community?";
+const INTRO_DEMO_TEXT = "What can TradeScout do in my local area?";
 // Must match the key used by ScoutInput so the demo only runs once per session.
 const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 
@@ -1171,7 +1171,7 @@ function buildOnboardingIntentSeed(
     localityCounty ||
     null;
   if (county) {
-    parts.push(`Primary county: ${county}.`);
+    parts.push(`Primary local area container: ${county}.`);
   }
 
   const role = typeof user?.role === "string" ? user.role : null;
@@ -4182,7 +4182,7 @@ export default function ScoutOS() {
       const area =
         heroLocationLabel && heroLocationLabel.toLowerCase() !== "your area"
           ? heroLocationLabel
-          : "my county";
+          : "my local area";
       const opening =
         type === "around_me"
           ? `Help me figure out what I need in ${area}.`
@@ -5084,7 +5084,7 @@ export default function ScoutOS() {
                           className="text-xs md:text-sm"
                           style={{ color: "var(--text-secondary)" }}
                         >
-                          Set your county so Scout can show the right nearby help, activity, and
+                          Set your local area so Scout can show the right nearby help, activity, and
                           requests.
                         </p>
                         <div className="flex flex-wrap items-center gap-2">
@@ -5098,7 +5098,7 @@ export default function ScoutOS() {
                             }}
                             onClick={() => navigate(ROUTES.SETTINGS)}
                           >
-                            Set my county
+                            Set my local area
                           </Button>
                         </div>
                       </div>
