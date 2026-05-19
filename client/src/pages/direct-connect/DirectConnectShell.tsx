@@ -330,7 +330,7 @@ const DIRECT_CONNECT_STRUCTURED_DATA = {
       name: "TradeScout Direct Connect",
       description:
         "Local request routing that lets members post what they need, review replies, and reach out without the usual spam.",
-      category: "Local contractor request platform",
+      category: "Local provider request platform",
       areaServed: "United States",
     }),
     createBreadcrumbStructuredData([
@@ -1883,7 +1883,7 @@ function DirectConnectInbox() {
                     if (a.contractorId)
                       return (
                         <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
-                          Contractor
+                          Provider
                         </Badge>
                       );
                     return null;

@@ -265,7 +265,7 @@ export default function ScoutLandingLite() {
                     border: "1px solid var(--theme-border-secondary)",
                   }}
                 >
-                  <div className="font-semibold text-white mb-1">Find contractors</div>
+                  <div className="font-semibold text-white mb-1">Find providers</div>
                   <div className="text-slate-400 text-xs">Search pros by trade and location.</div>
                 </Link>
               </div>

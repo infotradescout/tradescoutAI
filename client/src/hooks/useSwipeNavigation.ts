@@ -132,8 +132,8 @@ const GUEST_PAGE_ORDER = [
 function getPageDisplayName(path: string): string {
   const displayNames: { [key: string]: string } = {
     "/": "Home",
-    "/contractors": "For Contractors",
-    "/contractors/board": "Contractors",
+    "/contractors": "For Providers",
+    "/contractors/board": "Providers",
     "/scout": "Scout",
     "/foundation": "Community Builders",
     "/community": "Community",

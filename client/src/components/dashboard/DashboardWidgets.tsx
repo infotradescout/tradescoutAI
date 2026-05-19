@@ -567,7 +567,7 @@ export const AVAILABLE_WIDGETS = [
   },
   {
     id: "saved-contractors",
-    name: "Saved Contractors",
+    name: "Saved Providers",
     component: SavedContractorsWidget,
     defaultEnabled: true,
   },
