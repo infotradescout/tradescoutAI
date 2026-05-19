@@ -81,19 +81,19 @@ describe("PageFirstVisitTutorial helpers", () => {
   it("returns tailored commercial-directory tutorial copy", () => {
     const tutorial = getPageTutorial("/commercial-directory");
     expect(tutorial.title).toContain("Commercial Opportunities");
-    expect(tutorial.description).toContain("county-scoped commercial projects");
+    expect(tutorial.description).toContain("local-scoped commercial projects");
   });
 
   it("returns tailored foundation tutorial copy", () => {
     const tutorial = getPageTutorial("/foundation");
     expect(tutorial.title).toContain("Foundation");
-    expect(tutorial.description).toContain("county vault projects");
+    expect(tutorial.description).toContain("local vault projects");
   });
 
   it("returns tailored settings tutorial copy", () => {
     const tutorial = getPageTutorial("/settings");
     expect(tutorial.title).toContain("Account settings");
-    expect(tutorial.bullets.join(" ")).toContain("county and identity details");
+    expect(tutorial.bullets.join(" ")).toContain("local area and identity details");
   });
 
   it("returns tailored admin tutorial copy", () => {
@@ -118,7 +118,7 @@ describe("PageFirstVisitTutorial helpers", () => {
     const tutorial = getPageTutorial("/vehicle-marketplace");
     expect(tutorial.title).toContain("Vehicle Marketplace");
     expect(tutorial.description).toContain("gather context first");
-    expect(tutorial.bullets.join(" ")).toContain("local county");
+    expect(tutorial.bullets.join(" ")).toContain("local area");
   });
 
   it("stores seen state per session", () => {

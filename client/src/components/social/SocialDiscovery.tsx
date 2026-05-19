@@ -64,7 +64,7 @@ export const SocialDiscovery = () => {
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [scope, setScope] = useState<"county" | "state">("county");
+  const [scope, setScope] = useState<"local" | "state">("local");
   const [intentModal, setIntentModal] = useState<IntentModalState>({ isOpen: false });
   const [activeContactOutcome, setActiveContactOutcome] = useState<ContactOutcome | null>(null);
 
@@ -75,7 +75,7 @@ export const SocialDiscovery = () => {
       if (!searchQuery.trim()) return { results: [], total: 0 };
       const params = new URLSearchParams();
       params.set("q", searchQuery);
-      params.set("scope", scope);
+      params.set("scope", scope === "local" ? "county" : scope);
       params.set("excludeFollowing", "true");
 
       const response = await fetch(`/api/social/search?${params}`);
@@ -287,7 +287,7 @@ export const SocialDiscovery = () => {
             onChange={(e) => setScope(e.target.value as any)}
             className="px-3 py-2 rounded-md bg-[color:var(--surface-intermediate)] border border-[color:var(--border-subtle)] text-white text-sm"
           >
-            <option value="county">County</option>
+            <option value="local">Local area</option>
             <option value="state">State</option>
           </select>
         </div>
@@ -318,7 +318,7 @@ export const SocialDiscovery = () => {
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-white/60 mx-auto mb-3" />
             <p className="text-[color:var(--text-secondary)]">
-              No users found matching "{searchQuery}" in {scope}.
+              No users found matching "{searchQuery}" in {scope === "local" ? "local area" : scope}.
             </p>
           </div>
         )}
@@ -330,7 +330,7 @@ export const SocialDiscovery = () => {
               Search to find people you could work with.
             </p>
             <p className="text-xs text-[color:var(--text-secondary)] mt-1">
-              Discovery is scoped to your county first, then state.
+              Discovery is scoped to your local area first, then state.
             </p>
           </div>
         )}

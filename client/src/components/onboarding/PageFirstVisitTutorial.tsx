@@ -100,7 +100,7 @@ function buildContextualFallbackTutorial(path: string): TutorialContent {
     description: `Use this ${pageLabel.toLowerCase()} page to gather context first, then choose one clear next action through Scout or Direct Connect.`,
     bullets: [
       "Start at the top summary section and identify the one outcome you need right now.",
-      "Use filters, tabs, or cards to narrow to your local county and current decision.",
+      "Use filters, tabs, or cards to narrow to your local area and current decision.",
       "Finish one concrete action before switching pages to keep momentum.",
     ],
     primaryAction: "Continue",
@@ -170,7 +170,7 @@ export function getPageTutorial(path: string): TutorialContent {
       description:
         "Use this page to read local context first, then move from discovery into intentional action.",
       bullets: [
-        "Prioritize posts tied to your county and current decisions.",
+        "Prioritize posts tied to your local area and current decisions.",
         "Use comments to clarify context, not to replace action.",
         "When ready, move to Direct Connect or ask Scout to route the next step.",
       ],
@@ -185,7 +185,7 @@ export function getPageTutorial(path: string): TutorialContent {
       bullets: [
         "Read posts to understand context before taking action.",
         "Use Ask Scout or Direct Connect when you are ready to move forward.",
-        "Keep actions local and relevant to your county context.",
+        "Keep actions local and relevant to your local context.",
       ],
       primaryAction: "Explore feed",
     };
@@ -211,7 +211,7 @@ export function getPageTutorial(path: string): TutorialContent {
       description:
         "Use this page to evaluate local deal opportunities and act only when the fit is clear.",
       bullets: [
-        "Check county context and timing before committing.",
+        "Check local context and timing before committing.",
         "Compare requirements against your current readiness.",
         "Move to contact only after Scout confirms your strongest next step.",
       ],
@@ -225,7 +225,7 @@ export function getPageTutorial(path: string): TutorialContent {
       description:
         "Use this page to compare options side by side so your next decision is evidence-based, not guesswork.",
       bullets: [
-        "Start by matching options to your county and immediate objective.",
+        "Start by matching options to your local area and immediate objective.",
         "Use trust and outcome signals before considering convenience or volume.",
         "Choose one path, then move directly into Scout or Direct Connect.",
       ],
@@ -323,9 +323,9 @@ export function getPageTutorial(path: string): TutorialContent {
   if (path.startsWith("/settings") || path.startsWith("/profile")) {
     return {
       title: "Account settings quick guide",
-      description: "Use this page to keep your profile, county context, and trust details current.",
+      description: "Use this page to keep your profile, local context, and trust details current.",
       bullets: [
-        "Confirm county and identity details before using action pages.",
+        "Confirm local area and identity details before using action pages.",
         "Complete verification items that are blocking key flows.",
         "Save changes, then return to Scout or Direct Connect to continue.",
       ],
@@ -337,11 +337,11 @@ export function getPageTutorial(path: string): TutorialContent {
     return {
       title: "Foundation quick guide",
       description:
-        "Use this page to review county vault projects and choose where local impact is most needed.",
+        "Use this page to review local vault projects and choose where local impact is most needed.",
       bullets: [
         "Read project purpose and local context before committing support.",
         "Prioritize projects with clear outcomes and accountability.",
-        "Use Scout to align your contribution with county priorities.",
+        "Use Scout to align your contribution with local priorities.",
       ],
       primaryAction: "Review projects",
     };
@@ -364,9 +364,9 @@ export function getPageTutorial(path: string): TutorialContent {
     return {
       title: "Maps quick guide",
       description:
-        "Use this page to view local geography and route decisions with county context in mind.",
+        "Use this page to view local geography and route decisions with local context in mind.",
       bullets: [
-        "Start with your county view before expanding broader areas.",
+        "Start with your local view before expanding broader areas.",
         "Use map details to validate service relevance and proximity.",
         "Move to Direct Connect after confirming geographic fit.",
       ],
@@ -447,7 +447,7 @@ export function getPageTutorial(path: string): TutorialContent {
     return {
       title: "Local intelligence quick guide",
       description:
-        "Use this page to read county and trade context before choosing contact or promotion actions.",
+        "Use this page to read local and trade context before choosing contact or promotion actions.",
       bullets: [
         "Scan current metrics and recent activity first.",
         "Treat this page as decision context, not a direct contact shortcut.",
@@ -463,7 +463,7 @@ export function getPageTutorial(path: string): TutorialContent {
       description:
         "Use this page to inspect structured facts and trends before making operational decisions.",
       bullets: [
-        "Filter to the county or trade scope that matches your current goal.",
+        "Filter to the local or trade scope that matches your current goal.",
         "Use recent snapshots to validate trend direction.",
         "Convert findings into a concrete next step through Scout.",
       ],
@@ -477,7 +477,7 @@ export function getPageTutorial(path: string): TutorialContent {
       description:
         "Use this page to evaluate partner materials and decide what supports local outcomes.",
       bullets: [
-        "Focus on resources tied to your county strategy.",
+        "Focus on resources tied to your local strategy.",
         "Prioritize assets that improve trust and conversion clarity.",
         "Save useful items and route implementation steps through Scout.",
       ],
@@ -538,7 +538,7 @@ export function getPageTutorial(path: string): TutorialContent {
     return {
       title: "Commercial Opportunities quick guide",
       description:
-        "This page shows county-scoped commercial projects and your readiness to submit bids.",
+        "This page shows local-scoped commercial projects and your readiness to submit bids.",
       bullets: [
         "Review project details first, then decide what to pursue.",
         "Upload approved license and insurance documents to unlock submission.",
@@ -555,7 +555,7 @@ export function getPageTutorial(path: string): TutorialContent {
         "Use this page to review scope, requirements, and timelines before making a decision.",
       bullets: [
         "Check scope and documents before committing to a bid.",
-        "Use your county context and verification status as your go/no-go gate.",
+        "Use your local context and verification status as your go/no-go gate.",
         "Move to bid submission only when requirements are satisfied.",
       ],
       primaryAction: "Review project",

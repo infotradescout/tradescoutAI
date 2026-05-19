@@ -599,7 +599,7 @@ export function buildScoutExperienceClusters(args: {
         {
           id: "homescout-listings",
           label: "HomeScout Listings",
-          description: "Browse county-first home inventory and listing context",
+          description: "Browse hyperlocal home inventory and listing context",
         },
         {
           id: "home-vault",

@@ -27,13 +27,13 @@ type WhyThisJobModalProps = {
 
 function mapReasonToCopy(reason: string): string {
   if (reason === "Local provider") {
-    return "You're local to this county.";
+    return "You're local to this area.";
   }
   if (reason === "Regional provider serving this county") {
     return "You actively serve this area.";
   }
   if (reason === "Serves this county and surrounding areas") {
-    return "You serve this county and nearby areas.";
+    return "You serve this area and nearby neighborhoods.";
   }
 
   const match = reason.match(/^(\d+) neighbor recommendations$/i);

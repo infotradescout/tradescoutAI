@@ -73,7 +73,7 @@ function buildFallbackIntentSeed(
   }
 
   if (countyName) {
-    parts.push(`Primary county: ${countyName}.`);
+    parts.push(`Primary local area: ${countyName}.`);
   }
 
   parts.push("Please suggest the best starting focus and next steps.");

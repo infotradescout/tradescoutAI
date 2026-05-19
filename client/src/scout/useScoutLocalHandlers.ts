@@ -214,7 +214,7 @@ export function useScoutLocalHandlers() {
         "",
         "What to do next:",
         "- Open saved requests and finish the basics (job type, location, budget).",
-        "- If sharing is blocked, add the trade and county so Scout can find local matches.",
+        "- If sharing is blocked, add the trade and local area so Scout can find local matches.",
         "- If you no longer need it, cancel it and reopen later when ready.",
       ];
 

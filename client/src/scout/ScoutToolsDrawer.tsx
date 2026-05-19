@@ -78,7 +78,7 @@ export default function ScoutToolsDrawer({
 
           <button
             type="button"
-            onClick={() => openOrNavigate({ title: "Set my county", url: "/settings" })}
+            onClick={() => openOrNavigate({ title: "Set my local area", url: "/settings" })}
             className="w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left"
             style={{
               border: "1px solid var(--theme-border-secondary)",
@@ -86,7 +86,7 @@ export default function ScoutToolsDrawer({
             }}
           >
             <MapPin className="h-4 w-4" />
-            <span className="text-sm">Set my county</span>
+            <span className="text-sm">Set my local area</span>
           </button>
 
           <button

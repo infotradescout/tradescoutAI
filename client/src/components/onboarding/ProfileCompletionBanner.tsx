@@ -100,7 +100,7 @@ export default function ProfileCompletionBanner() {
       icon: ShieldCheck,
       iconColor: "text-ts-orange",
       title: "Finish local setup",
-      description: "This is essential. Set your primary county so Scout can route correctly.",
+      description: "This is essential. Set your primary local area so Scout can route correctly.",
       cta: "Continue setup",
       onClick: () => {
         const current = String(location || "/");

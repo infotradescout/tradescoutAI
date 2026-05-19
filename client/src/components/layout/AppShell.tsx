@@ -148,7 +148,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
     return {
       title: "Maps",
       summary: "See businesses, coverage, and local activity on the map.",
-      actionLabel: "View county directory",
+      actionLabel: "View local directory",
       actionHref: "/county-directory",
     };
   }
@@ -162,7 +162,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   }
   if (pathname.startsWith("/foundation")) {
     return {
-      title: "County vaults",
+      title: "Local vaults",
       summary: "See local contributions and what community builders are funding nearby.",
       actionLabel: "View contribution dashboard",
       actionHref: "/community-builder/dashboard",
@@ -242,7 +242,7 @@ const buildFeatureNav = (opts?: {
       label: "Maps",
       href: "/maps",
       icon: <Map className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Explore county and service coverage.",
+      description: "Explore local and service coverage.",
     },
     {
       label: "Leaderboard",
