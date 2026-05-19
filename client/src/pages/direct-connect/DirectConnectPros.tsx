@@ -66,6 +66,8 @@ export default function DirectConnectPros() {
 
   const effectiveStateCode = String(stateCode || location.stateCode || "").toUpperCase();
   const effectiveCountyFips = String(countyFips || location.countyFips || "").trim();
+  const viewerLat = typeof location.lat === "number" ? location.lat : undefined;
+  const viewerLng = typeof location.lng === "number" ? location.lng : undefined;
 
   const countyCommitted = hasCountyContext(location) || Boolean(effectiveCountyFips);
   const hasStateContext = /^[A-Z]{2}$/.test(effectiveStateCode);
@@ -102,6 +104,8 @@ export default function DirectConnectPros() {
       effectiveStateCode,
       effectiveTradeSlug,
       searchQuery,
+      viewerLat,
+      viewerLng,
     ],
     enabled: canQueryDirectory,
     queryFn: async () => {
@@ -110,6 +114,11 @@ export default function DirectConnectPros() {
       if (!effectiveCountyFips && hasStateContext) params.set("state", effectiveStateCode);
       if (effectiveTradeSlug) params.set("trade", effectiveTradeSlug);
       if (searchQuery) params.set("query", searchQuery.trim());
+      params.set("sort", "distance");
+      if (typeof viewerLat === "number" && typeof viewerLng === "number") {
+        params.set("lat", String(viewerLat));
+        params.set("lng", String(viewerLng));
+      }
       params.set("limit", "40");
       return apiRequest("GET", `/api/business-providers/search?${params.toString()}`);
     },

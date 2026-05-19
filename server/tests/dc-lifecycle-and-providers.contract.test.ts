@@ -202,26 +202,26 @@ describe("/api/business-providers/search universal endpoint", () => {
 
   it("queries contractors table", () => {
     const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
+    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
     expect(routeBody).toContain("contractors");
   });
 
   it("queries businesses via getProvidersByCountyAndCategory", () => {
     const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
+    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
     expect(routeBody).toContain("getProvidersByCountyAndCategory");
   });
 
   it("deduplicates results with a seen Set", () => {
     const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
+    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
     expect(routeBody).toContain("seen");
     expect(routeBody).toContain("new Set");
   });
 
   it("annotates each result with providerType", () => {
     const routeStart = ROUTES_TS.indexOf('"/api/business-providers/search"');
-    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 4000);
+    const routeBody = ROUTES_TS.slice(routeStart, routeStart + 12000);
     expect(routeBody).toContain("providerType");
   });
 

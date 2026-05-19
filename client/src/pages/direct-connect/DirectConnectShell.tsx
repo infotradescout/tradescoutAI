@@ -897,6 +897,10 @@ function DirectConnectRequestComposer({
       title,
       requestType,
       showDispatchSheet,
+      (user as any)?.latitude,
+      (user as any)?.longitude,
+      (user as any)?.preferences?.geo?.homeLocation?.lat,
+      (user as any)?.preferences?.geo?.homeLocation?.lng,
     ],
     enabled: showDispatchSheet,
     queryFn: async () => {
@@ -906,6 +910,28 @@ function DirectConnectRequestComposer({
       const fallbackQuery = title.trim().length >= 2 ? title.trim() : "";
       const query = directorySearch.trim().length > 0 ? directorySearch.trim() : fallbackQuery;
       if (query) params.set("query", query);
+      params.set("sort", "distance");
+
+      const profileLat = Number((user as any)?.latitude);
+      const profileLng = Number((user as any)?.longitude);
+      const homeLat = Number((user as any)?.preferences?.geo?.homeLocation?.lat);
+      const homeLng = Number((user as any)?.preferences?.geo?.homeLocation?.lng);
+      const viewerLat = Number.isFinite(profileLat)
+        ? profileLat
+        : Number.isFinite(homeLat)
+          ? homeLat
+          : undefined;
+      const viewerLng = Number.isFinite(profileLng)
+        ? profileLng
+        : Number.isFinite(homeLng)
+          ? homeLng
+          : undefined;
+
+      if (viewerLat != null && viewerLng != null) {
+        params.set("lat", String(viewerLat));
+        params.set("lng", String(viewerLng));
+      }
+
       const payload = await apiRequest(
         "GET",
         `/api/business-providers/search?${params.toString()}`
@@ -2132,6 +2158,10 @@ function MyDirectConnectRequests() {
       activeRouteRequest?.tradeId || null,
       routeDirectorySearch,
       showRouteSheet,
+      (user as any)?.latitude,
+      (user as any)?.longitude,
+      (user as any)?.preferences?.geo?.homeLocation?.lat,
+      (user as any)?.preferences?.geo?.homeLocation?.lng,
     ],
     enabled: showRouteSheet && Boolean(activeRouteRequest?.id),
     queryFn: async () => {
@@ -2142,6 +2172,28 @@ function MyDirectConnectRequests() {
       if (activeRouteRequest?.tradeId) params.set("trade", String(activeRouteRequest.tradeId));
       const query = routeDirectorySearch.trim();
       if (query) params.set("query", query);
+      params.set("sort", "distance");
+
+      const profileLat = Number((user as any)?.latitude);
+      const profileLng = Number((user as any)?.longitude);
+      const homeLat = Number((user as any)?.preferences?.geo?.homeLocation?.lat);
+      const homeLng = Number((user as any)?.preferences?.geo?.homeLocation?.lng);
+      const viewerLat = Number.isFinite(profileLat)
+        ? profileLat
+        : Number.isFinite(homeLat)
+          ? homeLat
+          : undefined;
+      const viewerLng = Number.isFinite(profileLng)
+        ? profileLng
+        : Number.isFinite(homeLng)
+          ? homeLng
+          : undefined;
+
+      if (viewerLat != null && viewerLng != null) {
+        params.set("lat", String(viewerLat));
+        params.set("lng", String(viewerLng));
+      }
+
       const payload = await apiRequest(
         "GET",
         `/api/business-providers/search?${params.toString()}`
