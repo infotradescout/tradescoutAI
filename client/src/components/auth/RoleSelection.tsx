@@ -41,7 +41,7 @@ const professionalRoles = [
   {
     id: "contractor" as const,
     icon: Wrench,
-    title: "Business",
+    title: "Business / Provider",
     description: "Services, products, or local expertise",
     color: "orange",
   },

@@ -16,7 +16,7 @@ async function safeErrorText(res: Response): Promise<string> {
   return "";
 }
 
-/* ======================== Contractor Search Tool ======================== */
+/* ======================== Business Provider Search Tool ======================== */
 
 export interface ContractorSearchInput {
   query?: string;
@@ -45,7 +45,7 @@ export interface ContractorResult {
 
 const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResult[]> = {
   name: "contractor_search",
-  description: "Search for local contractors by trade, location, and availability",
+  description: "Search for local businesses by trade, location, and availability",
   timeout: 12000,
   retries: 2,
   async execute(input, context) {

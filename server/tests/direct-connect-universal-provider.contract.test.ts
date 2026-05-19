@@ -275,7 +275,7 @@ describe("Universal provider search — /api/business-providers/search", () => {
   it("business-providers/search merges contractors and businesses", () => {
     const routes = readRepoFile("server/routes.ts");
     const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 5000);
+    const section = routes.slice(idx, idx + 12000);
     expect(section).toContain("contractorResults");
     expect(section).toContain("businessResults");
     expect(section).toContain("merged");
@@ -284,15 +284,32 @@ describe("Universal provider search — /api/business-providers/search", () => {
   it("business-providers/search deduplicates results by id", () => {
     const routes = readRepoFile("server/routes.ts");
     const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 5000);
+    const section = routes.slice(idx, idx + 12000);
     expect(section).toContain("seen");
   });
 
   it("business-providers/search annotates results with providerType", () => {
     const routes = readRepoFile("server/routes.ts");
     const idx = routes.indexOf('"/api/business-providers/search"');
-    const section = routes.slice(idx, idx + 5000);
+    const section = routes.slice(idx, idx + 12000);
     expect(section).toContain('"contractor"');
     expect(section).toContain('"business"');
+  });
+
+  it("business-providers/search computes distanceMiles using viewer + provider coordinates", () => {
+    const routes = readRepoFile("server/routes.ts");
+    const idx = routes.indexOf('"/api/business-providers/search"');
+    const section = routes.slice(idx, idx + 12000);
+    expect(section).toContain("distanceMiles");
+    expect(section).toContain("haversineDistanceMiles");
+    expect(section).toContain("homeLocation");
+  });
+
+  it("business-providers/search supports distance and recommended sort modes", () => {
+    const routes = readRepoFile("server/routes.ts");
+    const idx = routes.indexOf('"/api/business-providers/search"');
+    const section = routes.slice(idx, idx + 12000);
+    expect(section).toContain('sortMode === "distance"');
+    expect(section).toContain('sortMode === "recommended"');
   });
 });

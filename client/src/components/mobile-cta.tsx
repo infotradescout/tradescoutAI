@@ -9,37 +9,34 @@ import { useMemo } from "react";
 import { MessageCircle } from "lucide-react";
 
 // Pages where the mobile CTA should appear
-const CTA_PAGES = [
-  '/quote',
-  '/contractors/board',
-];
+const CTA_PAGES = ["/quote", "/contractors/board"];
 
 // Different CTA types based on page
 const getCTAConfig = (location: string) => {
-  if (location.includes('/contractors/') && !location.includes('/board')) {
+  if (location.includes("/contractors/") && !location.includes("/board")) {
     return {
-      type: 'contractor-profile',
-      text: 'Contact This Contractor',
+      type: "contractor-profile",
+      text: "Contact This Provider",
       icon: MessageCircle,
-      color: 'bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25'
+      color: "bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25",
     };
   }
 
-  if (location.includes('/scout') && location.includes('intent=estimate')) {
+  if (location.includes("/scout") && location.includes("intent=estimate")) {
     return {
-      type: 'scout-estimate',
-      text: 'Ask Scout for Estimates',
+      type: "scout-estimate",
+      text: "Ask Scout for Estimates",
       icon: Calculator,
-      color: 'bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25'
+      color: "bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25",
     };
   }
 
-  if (location.includes('/contractors/board')) {
+  if (location.includes("/contractors/board")) {
     return {
-      type: 'general',
-      text: 'Get 3 Free Quotes',
+      type: "general",
+      text: "Get 3 Free Quotes",
       icon: Users,
-      color: 'bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25'
+      color: "bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25",
     };
   }
 
@@ -83,8 +80,8 @@ export default function MobileCTA() {
 
     const onScroll = () => requestTick();
 
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   // Show CTA after a brief delay if it should be displayed on the current page
@@ -108,9 +105,9 @@ export default function MobileCTA() {
       {/* Mobile CTA Button */}
       <div
         className={`fixed bottom-0 left-0 right-0 z-50 md:hidden transition-transform duration-300 ${
-          isVisible ? 'translate-y-0' : 'translate-y-full'
+          isVisible ? "translate-y-0" : "translate-y-full"
         }`}
-          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="bg-tsCard/95 backdrop-blur-sm border-t border-white/10 p-4">
           <Sheet open={isQuoteSheetOpen} onOpenChange={setIsQuoteSheetOpen}>
@@ -129,17 +126,13 @@ export default function MobileCTA() {
             >
               <SheetHeader className="text-left mb-6">
                 <SheetTitle className="text-white text-xl">
-                  {ctaConfig.type === 'contractor-profile'
-                    ? 'Contact This Contractor'
-                    : 'Get Free Estimates'
-                  }
+                  {ctaConfig.type === "contractor-profile"
+                    ? "Contact This Provider"
+                    : "Get Free Estimates"}
                 </SheetTitle>
               </SheetHeader>
 
-              <QuoteForm
-                onSuccess={() => setIsQuoteSheetOpen(false)}
-                compact={true}
-              />
+              <QuoteForm onSuccess={() => setIsQuoteSheetOpen(false)} compact={true} />
             </SheetContent>
           </Sheet>
         </div>
@@ -148,7 +141,7 @@ export default function MobileCTA() {
       {/* Scroll to top button (shows when CTA is hidden) */}
       {!isVisible && (
         <button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           className="fixed bottom-6 right-6 z-40 md:hidden w-12 h-12 bg-ts-orange hover:bg-ts-orange-dark text-white rounded-full shadow-lg shadow-ts-orange/25 flex items-center justify-center transition-all duration-300"
           aria-label="Scroll to top"
         >

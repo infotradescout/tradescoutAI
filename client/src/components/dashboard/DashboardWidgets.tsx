@@ -158,7 +158,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Star className="h-4 w-4 text-ts-orange" />
-            Saved Contractors
+            Saved Providers
           </CardTitle>
           <Link href="/saved-contractors">
             <Button variant="ghost" size="sm" className="text-xs h-7">
@@ -170,7 +170,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
       <CardContent className="space-y-2">
         {isLoading ? (
           <div className="text-center py-6 text-sm text-white/60 dark:text-white/60">
-            Loading saved contractors...
+            Loading saved providers...
           </div>
         ) : savedCount > 0 ? (
           <div className="space-y-3">
@@ -183,7 +183,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
               <div className="flex-1">
                 <h4 className="font-medium text-sm text-white/70 dark:text-white">Saved pros</h4>
                 <p className="text-xs text-white/60 dark:text-white/60">
-                  You have <span className="font-semibold">{savedCount}</span> saved contractor
+                  You have <span className="font-semibold">{savedCount}</span> saved provider
                   {savedCount === 1 ? "" : "s"}. Open your saved list to compare and contact them.
                 </p>
               </div>
@@ -277,7 +277,7 @@ export function MessagesPreviewWidget({ className }: WidgetProps) {
 export function QuickActionsWidget({ className }: WidgetProps) {
   const quickActions = [
     { icon: Briefcase, label: "Post a Project", href: "/request-quote", color: "text-blue-600" },
-    { icon: Wrench, label: "Find Contractor", href: "/contractors", color: "text-ts-orange" },
+    { icon: Wrench, label: "Find Providers", href: "/contractors", color: "text-ts-orange" },
     { icon: MessageSquare, label: "Messages", href: "/messages", color: "text-green-600" },
   ];
 

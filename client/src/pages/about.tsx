@@ -32,9 +32,9 @@ const About = memo(function About() {
   const missionPoints = [
     {
       icon: Hammer,
-      title: "Connecting Quality Contractors",
+      title: "Connecting Quality Local Providers",
       description:
-        "We verify and showcase the best local pros, organizations, and leaders in every community — so residents and partners can find the right people fast.",
+        "We verify and showcase the best local businesses, organizations, and leaders in every community — so residents and partners can find the right people fast.",
     },
     {
       icon: Heart,
@@ -64,8 +64,8 @@ const About = memo(function About() {
     },
     {
       number: "15,000+",
-      label: "Verified Contractors",
-      description: "Licensed and insured professionals",
+      label: "Verified Providers",
+      description: "Licensed and insured local businesses",
     },
     {
       number: "250,000+",
@@ -108,13 +108,13 @@ const About = memo(function About() {
       icon: Target,
       title: "Quality First",
       description:
-        "We prioritize quality contractors and workmanship above all else. Every contractor goes through our rigorous verification process.",
+        "We prioritize quality businesses and workmanship above all else. Every provider goes through our rigorous verification process.",
     },
     {
       icon: Users,
       title: "Built Around Local Communities",
       description:
-        "Local communities are at the heart of everything we do. We organize by local areas to strengthen connections between neighbors, pros, and community groups.",
+        "Local communities are at the heart of everything we do. We organize by local areas to strengthen connections between neighbors, providers, and community groups.",
     },
     {
       icon: Shield,

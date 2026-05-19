@@ -225,7 +225,7 @@ const GruntOrderDetail = React.lazy(() => import("./pages/grunt-order-detail"));
 const SupplierProcurementQuote = React.lazy(() => import("./pages/supplier-procurement-quote"));
 
 // Core Pages
-// Contractors: canonical path is the licensed/verified contractor search
+// Businesses: canonical path is the licensed/verified business/provider search
 const ContractorProfile = React.lazy(() => import("./pages/contractor-profile"));
 const DailyDeals = React.lazy(() => import("./pages/daily-deals"));
 const TradeDealsPage = React.lazy(() => import("./pages/trade-deals-lucky"));

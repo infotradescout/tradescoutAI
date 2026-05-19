@@ -2,7 +2,7 @@
  * GeographicSEO - Component for location-based SEO optimization
  *
  * Handles city, county, and state-specific SEO to improve local search rankings
- * and help users find contractors in their specific geographic areas.
+ * and help users find businesses and local providers in their specific geographic areas.
  */
 import { formatTradeScoutTitle } from "@shared/brand";
 
@@ -27,8 +27,8 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
       },
       containsPlace: {
         "@type": "LocalBusiness",
-        name: "Home Improvement Contractors",
-        description: `Professional ${serviceType || "home improvement"} contractors serving ${county ? `${county}, ` : ""}${state || "the United States"}`,
+        name: "Home Improvement Businesses",
+        description: `Professional ${serviceType || "home improvement"} businesses serving ${county ? `${county}, ` : ""}${state || "the United States"}`,
         serviceArea: {
           "@type": "GeoCircle",
           geoMidpoint: {
@@ -48,9 +48,9 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
     let title = "Find";
 
     if (serviceType) {
-      title += ` ${serviceType} Contractors`;
+      title += ` ${serviceType} Providers`;
     } else {
-      title += " Contractors";
+      title += " Providers";
     }
 
     if (county && state) {
@@ -63,7 +63,7 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
   };
 
   const generateLocationDescription = () => {
-    let description = `Find verified ${serviceType || "home improvement"} contractors`;
+    let description = `Find verified ${serviceType || "home improvement"} businesses`;
 
     if (county && state) {
       description += ` in ${county}, ${state}`;
@@ -74,7 +74,7 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
     description += ". Get 3 free quotes from licensed and insured professionals.";
 
     if (contractorCount && contractorCount > 0) {
-      description += ` ${contractorCount} contractor${contractorCount !== 1 ? "s" : ""} available in your area.`;
+      description += ` ${contractorCount} provider${contractorCount !== 1 ? "s" : ""} available in your area.`;
     }
 
     return description;
@@ -117,7 +117,7 @@ export function GeographicSEO({ state, county, serviceType, contractorCount }: G
 }
 
 /**
- * Service area coverage component for contractors
+ * Service area coverage component for businesses and providers
  */
 interface ServiceAreaSEOProps {
   contractor: {

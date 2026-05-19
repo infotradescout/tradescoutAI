@@ -7934,9 +7934,70 @@ export async function registerRoutes(app: any) {
     contractorSearchLimiter,
     async (req: any, res: any) => {
       try {
-        const { county, trade, query, limit = 30, offset = 0 } = req.query;
+        const { county, trade, query, sort, limit = 30, offset = 0 } = req.query;
         const parsedLimit = Math.min(parseInt(String(limit)) || 30, 100);
         const parsedOffset = parseInt(String(offset)) || 0;
+
+        const toFiniteNumber = (value: unknown): number | undefined => {
+          if (value == null) return undefined;
+          const n = typeof value === "number" ? value : Number(value);
+          return Number.isFinite(n) ? n : undefined;
+        };
+
+        const haversineDistanceMiles = (
+          lat1: number,
+          lon1: number,
+          lat2: number,
+          lon2: number
+        ): number => {
+          const toRad = (value: number) => (value * Math.PI) / 180;
+          const Rm = 6371e3;
+
+          const phi1 = toRad(lat1);
+          const phi2 = toRad(lat2);
+          const dPhi = toRad(lat2 - lat1);
+          const dLambda = toRad(lon2 - lon1);
+
+          const a =
+            Math.sin(dPhi / 2) * Math.sin(dPhi / 2) +
+            Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) * Math.sin(dLambda / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+          return (Rm * c) / 1609.34;
+        };
+
+        let viewerLat = toFiniteNumber(req.query?.lat ?? req.query?.latitude);
+        let viewerLng = toFiniteNumber(req.query?.lng ?? req.query?.longitude);
+
+        const viewerUserId =
+          ((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim() || null;
+        if ((viewerLat == null || viewerLng == null) && viewerUserId) {
+          try {
+            const viewer = await storage.getUser(viewerUserId);
+            const profileLat = toFiniteNumber((viewer as any)?.latitude);
+            const profileLng = toFiniteNumber((viewer as any)?.longitude);
+
+            if (profileLat != null && profileLng != null) {
+              viewerLat = profileLat;
+              viewerLng = profileLng;
+            }
+
+            if (
+              (viewerLat == null || viewerLng == null) &&
+              (viewer as any)?.preferences?.geo?.homeLocation
+            ) {
+              const home = (viewer as any).preferences.geo.homeLocation;
+              const homeLat = toFiniteNumber(home?.lat);
+              const homeLng = toFiniteNumber(home?.lng);
+              if (homeLat != null && homeLng != null) {
+                viewerLat = homeLat;
+                viewerLng = homeLng;
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to load viewer location for provider search", e);
+          }
+        }
 
         let countyRecord: any = null;
         if (county) {
@@ -7955,10 +8016,47 @@ export async function registerRoutes(app: any) {
           contractorFilters.query = query.trim();
         }
         const contractors = await storage.getContractors(contractorFilters);
-        const contractorResults = contractors.map((c: any) => ({
-          ...sanitizeContractorPublic(c),
-          providerType: "contractor" as const,
-        }));
+        const contractorUserIds = contractors
+          .map((c: any) => (typeof c.userId === "string" ? c.userId : ""))
+          .filter((id: string) => id.length > 0);
+        const uniqueContractorUserIds = Array.from(new Set(contractorUserIds));
+
+        const contractorLocationByUserId = new Map<string, { lat: number; lng: number }>();
+        if (uniqueContractorUserIds.length > 0) {
+          const contractorUsers = await db
+            .select({ id: users.id, latitude: users.latitude, longitude: users.longitude })
+            .from(users)
+            .where(inArray(users.id, uniqueContractorUserIds));
+
+          for (const userRow of contractorUsers as any[]) {
+            const lat = toFiniteNumber(userRow.latitude);
+            const lng = toFiniteNumber(userRow.longitude);
+            if (lat != null && lng != null) {
+              contractorLocationByUserId.set(String(userRow.id), { lat, lng });
+            }
+          }
+        }
+
+        const contractorResults = contractors.map((c: any) => {
+          const sanitized = sanitizeContractorPublic(c) as any;
+          const providerLocation =
+            typeof c.userId === "string" ? contractorLocationByUserId.get(c.userId) : undefined;
+          const distanceMiles =
+            viewerLat != null && viewerLng != null && providerLocation
+              ? haversineDistanceMiles(
+                  viewerLat,
+                  viewerLng,
+                  providerLocation.lat,
+                  providerLocation.lng
+                )
+              : null;
+
+          return {
+            ...sanitized,
+            providerType: "contractor" as const,
+            distanceMiles,
+          };
+        });
 
         // 2. Active businesses in the same county
         let businessResults: any[] = [];
@@ -7970,6 +8068,30 @@ export async function registerRoutes(app: any) {
               limit: parsedLimit,
             });
             const q = typeof query === "string" ? query.trim().toLowerCase() : "";
+            const ownerUserIds = Array.from(
+              new Set(
+                biz
+                  .map((b: any) => (typeof b.ownerUserId === "string" ? b.ownerUserId : ""))
+                  .filter((id: string) => id.length > 0)
+              )
+            );
+
+            const businessOwnerLocationByUserId = new Map<string, { lat: number; lng: number }>();
+            if (ownerUserIds.length > 0) {
+              const ownerUsers = await db
+                .select({ id: users.id, latitude: users.latitude, longitude: users.longitude })
+                .from(users)
+                .where(inArray(users.id, ownerUserIds));
+
+              for (const owner of ownerUsers as any[]) {
+                const lat = toFiniteNumber(owner.latitude);
+                const lng = toFiniteNumber(owner.longitude);
+                if (lat != null && lng != null) {
+                  businessOwnerLocationByUserId.set(String(owner.id), { lat, lng });
+                }
+              }
+            }
+
             businessResults = biz
               .filter((b: any) => {
                 if (!q) return true;
@@ -7985,6 +8107,22 @@ export async function registerRoutes(app: any) {
                 roleContext: b.roleContext || null,
                 slug: b.slug || null,
                 providerType: "business" as const,
+                distanceMiles:
+                  viewerLat != null &&
+                  viewerLng != null &&
+                  b.ownerUserId &&
+                  businessOwnerLocationByUserId.get(String(b.ownerUserId))
+                    ? (() => {
+                        const location = businessOwnerLocationByUserId.get(String(b.ownerUserId));
+                        if (!location) return null;
+                        return haversineDistanceMiles(
+                          viewerLat as number,
+                          viewerLng as number,
+                          location.lat,
+                          location.lng
+                        );
+                      })()
+                    : null,
               }));
           }
         }
@@ -8000,7 +8138,35 @@ export async function registerRoutes(app: any) {
           }
         }
 
-        res.json(merged.slice(0, parsedLimit));
+        const sortMode = typeof sort === "string" ? sort.trim().toLowerCase() : "";
+        const sorted = [...merged].sort((a: any, b: any) => {
+          const aDistance = toFiniteNumber(a.distanceMiles);
+          const bDistance = toFiniteNumber(b.distanceMiles);
+          const aRecommendation = toFiniteNumber(a.recommendationScore) ?? 0;
+          const bRecommendation = toFiniteNumber(b.recommendationScore) ?? 0;
+
+          if (sortMode === "distance") {
+            if (aDistance != null && bDistance != null) return aDistance - bDistance;
+            if (aDistance != null) return -1;
+            if (bDistance != null) return 1;
+            return bRecommendation - aRecommendation;
+          }
+
+          if (sortMode === "recommended") {
+            if (bRecommendation !== aRecommendation) return bRecommendation - aRecommendation;
+            if (aDistance != null && bDistance != null) return aDistance - bDistance;
+            if (aDistance != null) return -1;
+            if (bDistance != null) return 1;
+            return 0;
+          }
+
+          if (aDistance != null && bDistance != null) return aDistance - bDistance;
+          if (aDistance != null) return -1;
+          if (bDistance != null) return 1;
+          return bRecommendation - aRecommendation;
+        });
+
+        res.json(sorted.slice(0, parsedLimit));
       } catch (error: any) {
         console.error("Error searching providers:", error);
         res.status(500).json({ message: "Failed to search providers" });

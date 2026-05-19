@@ -110,8 +110,8 @@ function renderBudget(min?: string | null, max?: string | null): string {
 function renderEligibilityReason(
   reason: "ok" | "missing_contractor" | "inactive" | "missing_license" | "missing_insurance"
 ): string {
-  if (reason === "missing_contractor") return "Contractor profile missing";
-  if (reason === "inactive") return "Contractor is inactive";
+  if (reason === "missing_contractor") return "Provider profile missing";
+  if (reason === "inactive") return "Provider is inactive";
   if (reason === "missing_license") return "License verification missing";
   if (reason === "missing_insurance") return "Insurance verification missing";
   return "Eligible";

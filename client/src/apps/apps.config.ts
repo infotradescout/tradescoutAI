@@ -30,7 +30,7 @@ export const APPS: Record<string, AppConfig> = {
   contractors: {
     slug: "contractors",
     route: "/contractors",
-    label: "Contractors",
+    label: "Businesses",
     icon: "Wrench",
     nav: "bottom",
   },

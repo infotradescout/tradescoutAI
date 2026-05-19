@@ -56,7 +56,7 @@ export default function AdminBusinessDirectoryOpsPage() {
   const [locationText, setLocationText] = useState("Pensacola, FL");
   const [countyFips, setCountyFips] = useState("");
   const [stateCode, setStateCode] = useState("FL");
-  const [terms, setTerms] = useState("contractor, plumber, electrician, roofing");
+  const [terms, setTerms] = useState("business, plumber, electrician, roofing");
   const [delayMs, setDelayMs] = useState("1500");
 
   const [suggestionsStatus, setSuggestionsStatus] = useState<"open" | "resolved" | "rejected">(
