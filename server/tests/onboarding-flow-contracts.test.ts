@@ -44,22 +44,23 @@ describe("onboarding flow contracts", () => {
     const protectedRouteSource = read("client/src/components/ProtectedRoute.tsx");
     const preScoutSource = read("client/src/pages/pre-scout-setup.tsx");
 
-    expect(appRoutesSource).toContain("function userNeedsOnboarding(user: unknown): boolean");
+    expect(appRoutesSource).toContain("userNeedsOnboarding as routeUserNeedsOnboarding");
+    expect(appRoutesSource).toContain("getOnboardingEntryRoute as routeGetOnboardingEntryRoute");
     expect(appRoutesSource).toContain(
-      "return !onboardingCompleted || profileVersion < CURRENT_PROFILE_VERSION;"
+      "export const userNeedsOnboarding = routeUserNeedsOnboarding;"
     );
     expect(appRoutesSource).toContain(
-      "if (userNeedsOnboarding(user)) return getOnboardingEntryRoute(user);"
+      "export const getOnboardingEntryRoute = routeGetOnboardingEntryRoute;"
     );
-    expect(appRoutesSource).toContain('return userHasProfileBasics(user) ? "/onboarding/intent"');
+    expect(appRoutesSource).toContain("if (!userNeedsOnboarding(user)) return;");
     expect(appRoutesSource).toContain("<AuthenticatedOnboardingGate />");
     // Deep-link preservation must be wired into the gate
     expect(appRoutesSource).toContain("storeOnboardingNext");
 
+    expect(protectedRouteSource).toContain("const needsOnboarding = userNeedsOnboarding(user);");
     expect(protectedRouteSource).toContain(
-      "const needsOnboarding = profileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted;"
+      "setLocation(`${getOnboardingEntryRoute(user)}?next=${next}`);"
     );
-    expect(protectedRouteSource).toContain("setLocation(`/onboarding/profile?next=${next}`);");
 
     expect(preScoutSource).toContain(
       "if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted)"
