@@ -966,7 +966,7 @@ export default function Exchange() {
     <>
       <SEOHelmet
         title="TradeScout Exchange | Buy, Sell, and Discover Local Listings"
-        description="Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse local items, post what you want to sell, and explore county-aware marketplace activity."
+        description="Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse local items, post what you want to sell, and explore hyperlocal marketplace activity."
         keywords="tradescout exchange, buy and sell locally, local marketplace, local listings, sell items locally"
         canonical="https://www.thetradescout.com/exchange"
       />

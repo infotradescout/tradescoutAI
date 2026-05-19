@@ -29,7 +29,7 @@ export function LegalFooter() {
             </p>
             <div className="text-xs space-y-0.5" style={{ color: "var(--text-secondary)" }}>
               <p>📧 support@tradescout.com</p>
-              <p>📍 Operating nationwide, county-first</p>
+              <p>📍 Operating nationwide, hyperlocal-first</p>
             </div>
           </div>
 

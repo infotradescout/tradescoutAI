@@ -22,7 +22,7 @@ export const APPS: Record<string, AppConfig> = {
   community: {
     slug: "community",
     route: "/community",
-    label: "Community",
+    label: "Local",
     icon: "Users",
     nav: "bottom",
   },

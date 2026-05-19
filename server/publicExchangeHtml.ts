@@ -114,7 +114,7 @@ export async function buildPublicExchangeHtml(opts: ExchangeHtmlOptions): Promis
 
   let title = formatTradeScoutTitle("TradeScout Exchange | Buy, Sell & Discover Local Listings");
   let description =
-    "Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse items, post what you want to sell, and explore county-aware marketplace activity.";
+    "Buy, sell, and discover local listings across categories on TradeScout Exchange. Browse items, post what you want to sell, and explore hyperlocal marketplace activity.";
   let canonical = `${origin}/exchange`;
   let keywords =
     "tradescout exchange, buy and sell locally, local marketplace, local listings, sell items locally";

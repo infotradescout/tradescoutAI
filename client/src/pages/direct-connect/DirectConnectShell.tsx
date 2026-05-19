@@ -3317,7 +3317,7 @@ export default function DirectConnectShell() {
     <div className="w-full max-w-full overflow-x-hidden">
       <SEOHelmet
         title="Direct Connect | Request Local Help and Manage Replies"
-        description="Use TradeScout Direct Connect to post local requests, review provider replies, and move work forward through gated county-aware flows."
+        description="Use TradeScout Direct Connect to post local requests, review provider replies, and move work forward through gated hyperlocal flows."
         canonical="https://www.thetradescout.com/direct-connect"
         structuredData={DIRECT_CONNECT_STRUCTURED_DATA}
       />
