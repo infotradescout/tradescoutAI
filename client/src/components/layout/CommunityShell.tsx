@@ -37,12 +37,12 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
     return getUserLocationLabel(user as any);
   }, [user]);
 
-  const countyLabel: string = React.useMemo(() => {
-    if (hasCountyContext(locationCtx) && locationCtx.countyName && locationCtx.stateCode) {
-      return `${locationCtx.countyName}, ${locationCtx.stateCode}`;
+  const localLabel: string = React.useMemo(() => {
+    if (typeof locationCtx.label === "string" && locationCtx.label.trim().length > 0) {
+      return locationCtx.label.trim();
     }
     return locationLabel;
-  }, [locationCtx, locationLabel]);
+  }, [locationCtx.label, locationLabel]);
 
   const [highlightIndex, setHighlightIndex] = React.useState(0);
 
@@ -109,7 +109,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
               data-testid="community-shell-header-location"
               className="text-xs font-semibold uppercase tracking-wide text-white/70 truncate"
             >
-              {countyLabel}
+              {localLabel}
             </span>
             <span className="text-white/40">•</span>
             <span
@@ -148,7 +148,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
               <span className="text-white/60">-</span>
               <div className="flex items-center gap-1.5 whitespace-nowrap">
                 <Landmark className="h-3.5 w-3.5 text-ts-orange" />
-                <span className="truncate text-white">County snapshot</span>
+                <span className="truncate text-white">Local snapshot</span>
               </div>
               {activeHighlight && (
                 <>
@@ -167,7 +167,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
                 <span className="truncate text-white">{membersLabel}</span>
                 <span className="text-white/60 shrink-0">-</span>
                 <Landmark className="h-3.5 w-3.5 text-ts-orange shrink-0" />
-                <span className="truncate text-white/70">County snapshot</span>
+                <span className="truncate text-white/70">Local snapshot</span>
               </div>
               {activeHighlight && (
                 <div className="mt-1 flex items-center gap-1.5 min-w-0">

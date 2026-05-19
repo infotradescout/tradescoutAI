@@ -14,20 +14,16 @@ export function getUserLocationLabel(user: User | null | undefined): string {
   if (!user) return "Your area";
 
   const u: any = user;
-  const canonicalCountyName = u.countyName;
-  const canonicalStateCode = u.stateCode;
-
-  // If the user has committed a canonical county, always prefer that label.
-  if (u.locationCommitted && canonicalCountyName && canonicalStateCode) {
-    return `${sanitizeAreaLabel(String(canonicalCountyName))}, ${canonicalStateCode}`;
-  }
-
-  // Even if not fully committed, prefer canonical county/state when available.
-  if (canonicalCountyName && canonicalStateCode) {
-    return `${sanitizeAreaLabel(String(canonicalCountyName))}, ${canonicalStateCode}`;
-  }
-
   const zip = u.zipCode || u.zipcode || u.postalCode;
+
+  // Hyperlocal-first label order:
+  // 1) explicit custom/home label (often neighborhood-level),
+  // 2) city/state(+zip),
+  // 3) county/state fallback when city-level data is missing.
+  const homeLabel = u?.preferences?.geo?.homeLocation?.label;
+  if (typeof homeLabel === "string" && homeLabel.trim().length > 0) {
+    return sanitizeAreaLabel(homeLabel);
+  }
 
   if (u.city && u.state && zip) return `${u.city}, ${u.state} ${zip}`;
   if (u.city && u.state) return `${u.city}, ${u.state}`;
@@ -35,10 +31,15 @@ export function getUserLocationLabel(user: User | null | undefined): string {
 
   if (u.location) return String(u.location);
 
+  const canonicalCountyName = u.countyName;
+  const canonicalStateCode = u.stateCode;
+  if (canonicalCountyName && canonicalStateCode) {
+    return `${sanitizeAreaLabel(String(canonicalCountyName))}, ${canonicalStateCode}`;
+  }
+
   if (u.county && u.state && zip)
     return `${sanitizeAreaLabel(String(u.county))}, ${u.state} ${zip}`;
-  if (u.county && u.state)
-    return `${sanitizeAreaLabel(String(u.county))}, ${u.state}`;
+  if (u.county && u.state) return `${sanitizeAreaLabel(String(u.county))}, ${u.state}`;
   if (u.county) return sanitizeAreaLabel(String(u.county));
 
   if (u.stateCode) return String(u.stateCode);
@@ -48,11 +49,7 @@ export function getUserLocationLabel(user: User | null | undefined): string {
 
 export function getUserAudienceLabel(user: User | null | undefined): string | null {
   if (!user) return null;
-  const roles = (user.roles && user.roles.length > 0)
-    ? user.roles
-    : user.role
-    ? [user.role]
-    : [];
+  const roles = user.roles && user.roles.length > 0 ? user.roles : user.role ? [user.role] : [];
 
   if (roles.length === 0) return null;
 

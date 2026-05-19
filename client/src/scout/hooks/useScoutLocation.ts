@@ -17,6 +17,7 @@ export interface ScoutLocation {
   county: string;
   state: string;
   city: string;
+  label: string;
   fips: string | null;
   lat: number | null;
   lng: number | null;
@@ -29,6 +30,7 @@ const DEFAULT_LOCATION: ScoutLocation = {
   county: "",
   state: "",
   city: "",
+  label: "",
   fips: null,
   lat: null,
   lng: null,
@@ -43,6 +45,12 @@ export function useScoutLocation() {
   const canonicalCounty = locationCtx.countyName ?? "";
   const canonicalState = locationCtx.stateCode ?? "";
   const canonicalFips = locationCtx.countyFips ?? null;
+  const locationLabel =
+    typeof locationCtx.label === "string" && locationCtx.label.trim().length > 0
+      ? locationCtx.label.trim()
+      : canonicalCounty && canonicalState
+        ? `${canonicalCounty}, ${canonicalState}`
+        : canonicalCounty || canonicalState || "";
 
   const hasCanonical = hasCountyContext(locationCtx) || Boolean(canonicalCounty);
   const canonicalSource: LocationSource =
@@ -53,6 +61,7 @@ export function useScoutLocation() {
         county: canonicalCounty,
         state: canonicalState,
         city: "",
+        label: locationLabel,
         fips: canonicalFips,
         lat: locationCtx.lat ?? null,
         lng: locationCtx.lng ?? null,

@@ -488,11 +488,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
     finance: ClipboardList,
   };
 
-  const countyDisplay = snapshot?.countyName
-    ? `${snapshot.countyName}${snapshot.stateName ? `, ${snapshot.stateName}` : ""}`
-    : location.county
-      ? `${location.county}${location.state ? `, ${location.state}` : ""}`
-      : "";
+  const localDisplay = location.label || "";
 
   return (
     <div className="flex flex-col gap-4 w-full pb-2">
@@ -531,7 +527,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
           <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-muted, #666)" }}>
             Scout helps you find local help, compare options, and know what to check before
             contacting anyone.
-            {countyDisplay ? ` Scout knows ${countyDisplay}.` : ""}
+            {localDisplay ? ` Scout knows ${localDisplay}.` : ""}
           </p>
         </div>
       </div>
@@ -552,9 +548,9 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       </div>
 
       {/* ── Local Snapshot ─────────────────────────────────────────────── */}
-      {countyDisplay && (
+      {localDisplay && (
         <>
-          <SectionLabel>What Scout can check nearby · {countyDisplay}</SectionLabel>
+          <SectionLabel>What Scout can check nearby · {localDisplay}</SectionLabel>
           {isLoading ? (
             <div className="grid grid-cols-2 gap-2">
               <SkeletonTile />
@@ -593,7 +589,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       )}
 
       {/* ── Opportunity Radar ─────────────────────────────────────────── */}
-      {countyDisplay && opportunityMoves.length > 0 && (
+      {localDisplay && opportunityMoves.length > 0 && (
         <>
           <SectionLabel>
             <Radar className="h-3 w-3 inline mr-1" style={{ color: "#f97316" }} />
@@ -612,7 +608,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       )}
 
       {/* ── Price Signal Freshness ─────────────────────────────────────── */}
-      {countyDisplay && priceSignals.length > 0 && (
+      {localDisplay && priceSignals.length > 0 && (
         <>
           <SectionLabel>
             <Clock className="h-3 w-3 inline mr-1" style={{ color: "#f97316" }} />
@@ -637,9 +633,7 @@ export function ScoutHome({ onPromptSelect }: ScoutHomeProps) {
       {/* ── Trending Prompts ────────────────────────────────────────────── */}
       <SectionLabel>
         <TrendingUp className="h-3 w-3 inline mr-1" style={{ color: "#f97316" }} />
-        {countyDisplay
-          ? `Trending in ${snapshot?.countyName ?? location.county}`
-          : "Try Asking Scout"}
+        {localDisplay ? `Trending in ${localDisplay}` : "Try Asking Scout"}
       </SectionLabel>
 
       <div className="flex flex-col gap-2">

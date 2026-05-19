@@ -219,7 +219,7 @@ export default function DirectConnectPros() {
           <p className="text-xs text-[color:var(--text-secondary)]">
             {countyCommitted
               ? `${(contractors as any[])?.length || 0} result(s)`
-              : "Choose a county to start"}
+              : "Choose a local area to start"}
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -308,7 +308,7 @@ export default function DirectConnectPros() {
           <CardHeader>
             <CardTitle className="text-sm">More local businesses</CardTitle>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              These businesses appear in the county directory, but they have not finished TradeScout
+              These businesses appear in the local directory, but they have not finished TradeScout
               verification yet.
             </p>
           </CardHeader>
@@ -328,11 +328,11 @@ export default function DirectConnectPros() {
                       <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
                         {county
                           ? formatCountyLabel(county.fips, county.stateCode)
-                          : "County not specified"}
+                          : "Local area not specified"}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <Badge variant="secondary">Not verified</Badge>
-                        <Badge variant="outline">County directory</Badge>
+                        <Badge variant="outline">Local directory</Badge>
                         {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
                           <Badge variant="outline">Claimed profile</Badge>
                         ) : (
@@ -370,8 +370,8 @@ export default function DirectConnectPros() {
           <CardHeader>
             <CardTitle className="text-sm">More businesses in {stateCode.toUpperCase()}</CardTitle>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              These listings are active in your state. Some may still need county assignment before
-              they appear in county-only routing.
+              These listings are active in your state. Some may still need local assignment before
+              they appear in local-first routing.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -390,7 +390,7 @@ export default function DirectConnectPros() {
                       <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
                         {county
                           ? formatCountyLabel(county.fips, county.stateCode)
-                          : "County assignment pending"}
+                          : "Local assignment pending"}
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         <Badge variant="secondary">Not verified</Badge>
