@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import {
   useLocationContext,
-  hasCountyContext,
+  hasLocalContext,
   setSessionLocationOverride,
 } from "@/hooks/useLocationContext";
 import { StateCountySelector } from "@/components/state-county-selector";
@@ -69,7 +69,7 @@ export default function DirectConnectPros() {
   const viewerLat = typeof location.lat === "number" ? location.lat : undefined;
   const viewerLng = typeof location.lng === "number" ? location.lng : undefined;
 
-  const countyCommitted = hasCountyContext(location) || Boolean(effectiveCountyFips);
+  const localCommitted = hasLocalContext(location) || Boolean(effectiveCountyFips);
   const hasStateContext = /^[A-Z]{2}$/.test(effectiveStateCode);
 
   const { data: trades = [] } = useQuery<TradeOption[]>({
@@ -95,7 +95,7 @@ export default function DirectConnectPros() {
 
   const effectiveTradeSlug = tradeSlug || inferredTradeSlug;
   const hasDirectoryIntent = Boolean((effectiveTradeSlug || "").trim() || searchQuery.trim());
-  const canQueryDirectory = countyCommitted || (hasStateContext && hasDirectoryIntent);
+  const canQueryDirectory = localCommitted || (hasStateContext && hasDirectoryIntent);
 
   const { data: contractors = [], isLoading } = useQuery({
     queryKey: [
@@ -217,7 +217,7 @@ export default function DirectConnectPros() {
         <CardHeader className="pb-1">
           <CardTitle className="text-sm">Local Directory</CardTitle>
           <p className="text-xs text-[color:var(--text-secondary)]">
-            {countyCommitted
+            {localCommitted
               ? `${(contractors as any[])?.length || 0} result(s)`
               : "Choose a local area to start"}
           </p>

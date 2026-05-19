@@ -83,6 +83,28 @@ export function hasCountyContext(ctx: LocationContext | undefined | null): boole
   return stateCode.length === 2 && countyFips.length === 5;
 }
 
+/**
+ * Hyperlocal-ready check used for local-first experiences.
+ *
+ * A user is considered local-ready when any of the following are true:
+ * - canonical county commitment exists (legacy compatibility),
+ * - precise geo coordinates are available,
+ * - a non-empty local label is available,
+ * - state context exists (weakest fallback).
+ */
+export function hasLocalContext(ctx: LocationContext | undefined | null): boolean {
+  if (!ctx) return false;
+  if (hasCountyContext(ctx)) return true;
+
+  if (typeof ctx.lat === "number" && Number.isFinite(ctx.lat)) return true;
+  if (typeof ctx.lng === "number" && Number.isFinite(ctx.lng)) return true;
+
+  if (typeof ctx.label === "string" && ctx.label.trim().length > 0) return true;
+
+  const stateCode = typeof ctx.stateCode === "string" ? ctx.stateCode.trim().toUpperCase() : "";
+  return stateCode.length === 2;
+}
+
 export function hasPendingCountyResolution(ctx: LocationContext | undefined | null): boolean {
   if (!ctx) return false;
 

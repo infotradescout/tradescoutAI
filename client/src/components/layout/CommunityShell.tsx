@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation, Link } from "wouter";
 import { Users2, Landmark, Target, MessageCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { hasCountyContext, useLocationContext } from "@/hooks/useLocationContext";
+import { hasLocalContext, useLocationContext } from "@/hooks/useLocationContext";
 import { trackShellEvent, getDeviceType } from "@/lib/analytics";
 import { getUserLocationLabel } from "@/lib/copyHelpers";
 
@@ -88,7 +88,7 @@ export const CommunityShell: React.FC<CommunityShellProps> = ({
     membersCount > 0 ? `${membersCount.toLocaleString()} members` : "Neighbors are joining";
 
   React.useEffect(() => {
-    const locationSet = hasCountyContext(locationCtx);
+    const locationSet = hasLocalContext(locationCtx);
 
     trackShellEvent({
       type: "community_shell_load",
