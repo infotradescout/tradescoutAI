@@ -31,4 +31,16 @@ describe("hasCompletedSetup", () => {
       })
     ).toBe(false);
   });
+
+  it("does not treat locationCommitted alone as complete", () => {
+    expect(
+      hasCompletedSetup({
+        onboardingCompleted: false,
+        profileVersion: 0,
+        locationCommitted: true,
+        stateCode: "",
+        countyFips: "",
+      })
+    ).toBe(false);
+  });
 });

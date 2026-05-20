@@ -223,11 +223,7 @@ export function useScoutOnboarding() {
 
         // Mark onboarding as completed server-side so users don't get re-routed
         // into onboarding flows in later sessions.
-        try {
-          await apiRequest("POST", "/api/user/complete-onboarding", {});
-        } catch {
-          // fail-soft: claims have already been persisted
-        }
+        await apiRequest("POST", "/api/user/complete-onboarding", {});
 
         // Mark onboarding as done
         try {
@@ -261,11 +257,20 @@ export function useScoutOnboarding() {
   /**
    * Skip onboarding - route to neutral fallback
    */
-  const skipOnboarding = useCallback(() => {
+  const skipOnboarding = useCallback(async () => {
     console.log("[ONBOARDING] User skipped onboarding");
-    markScoutOnboardingComplete({ claimsConfirmed: false, confirmedClaims: [] });
-    setFlowState({ phase: "done", confirmationCard: null, error: null });
-    navigate("/direct-connect/board"); // Neutral fallback
+    try {
+      await apiRequest("POST", "/api/user/complete-onboarding", {});
+      markScoutOnboardingComplete({ claimsConfirmed: false, confirmedClaims: [] });
+      setFlowState({ phase: "done", confirmationCard: null, error: null });
+      navigate("/direct-connect/board"); // Neutral fallback
+    } catch {
+      setFlowState((prev) => ({
+        ...prev,
+        phase: "confirming",
+        error: "Couldn't complete setup right now. Please try again.",
+      }));
+    }
   }, [navigate]);
 
   /**

@@ -18,8 +18,6 @@ export function hasCompletedSetup(record: SetupAwareRecord | null | undefined): 
   ) {
     return true;
   }
-  if (record.locationCommitted === true) return true;
-
   const stateCode =
     typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
   const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";

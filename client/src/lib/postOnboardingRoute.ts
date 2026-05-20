@@ -62,6 +62,7 @@ const SAFE_NEXT_PREFIXES = [
 import { hasCompletedSetup } from "@/lib/setupState";
 
 export type DirectConnectEntry = "default" | "auth" | "setup" | "onboarding" | "intent";
+export type OnboardingState = "needs_profile" | "needs_intent" | "complete";
 
 /** Canonical Direct Connect home surface. */
 export const DIRECT_CONNECT_HOME = "/direct-connect";
@@ -90,16 +91,22 @@ export function isSafeNextPath(path: string): boolean {
 }
 
 export function userNeedsOnboarding(user: unknown): boolean {
-  if (!user || typeof user !== "object") return false;
+  return resolveOnboardingState(user) !== "complete";
+}
+
+export function resolveOnboardingState(user: unknown): OnboardingState {
+  if (!user || typeof user !== "object") return "needs_profile";
   const record = user as Record<string, any>;
   const locationCommitted = record.locationCommitted === true;
-  return !hasCompletedSetup({
+  const setupComplete = hasCompletedSetup({
     onboardingCompleted: record.onboardingCompleted,
     profileVersion: record.profileVersion,
     locationCommitted,
     stateCode: locationCommitted ? record.stateCode : null,
     countyFips: locationCommitted ? record.countyFips : null,
   });
+  if (setupComplete) return "complete";
+  return userHasProfileBasics(user) ? "needs_intent" : "needs_profile";
 }
 
 export function userHasProfileBasics(user: unknown): boolean {
@@ -121,11 +128,14 @@ export function userHasProfileBasics(user: unknown): boolean {
 }
 
 export function getOnboardingEntryRoute(user: unknown): string {
-  return userHasProfileBasics(user) ? "/onboarding/intent" : "/onboarding/profile";
+  return resolveOnboardingState(user) === "needs_intent"
+    ? "/onboarding/intent"
+    : "/onboarding/profile";
 }
 
 export function getPostLandingRoute(user: unknown): string {
-  if (userNeedsOnboarding(user)) return getOnboardingEntryRoute(user);
+  const onboardingState = resolveOnboardingState(user);
+  if (onboardingState !== "complete") return getOnboardingEntryRoute(user);
 
   const record = user && typeof user === "object" ? (user as Record<string, unknown>) : null;
   const role: string | undefined = typeof record?.role === "string" ? record.role : undefined;

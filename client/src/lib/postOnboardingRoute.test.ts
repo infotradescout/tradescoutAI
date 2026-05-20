@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_LANDING,
+  resolveOnboardingState,
   resolveDirectConnectLandingRoute,
   resolvePostOnboardingRoute,
 } from "./postOnboardingRoute";
@@ -27,6 +28,23 @@ describe("post-onboarding Direct Connect routing", () => {
   it("keeps Direct Connect intent choices inside local requests flow", () => {
     expect(resolvePostOnboardingRoute({ chosenIntent: "tools" })).toBe(
       "/direct-connect?entry=onboarding"
+    );
+  });
+
+  it("uses one canonical onboarding state decision", () => {
+    expect(resolveOnboardingState(null)).toBe("needs_profile");
+    expect(
+      resolveOnboardingState({
+        firstName: "A",
+        lastName: "B",
+        stateCode: "AL",
+        countyFips: "01097",
+        onboardingCompleted: false,
+        profileVersion: 0,
+      })
+    ).toBe("needs_intent");
+    expect(resolveOnboardingState({ onboardingCompleted: true, profileVersion: 0 })).toBe(
+      "complete"
     );
   });
 });
