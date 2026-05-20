@@ -1,5 +1,10 @@
 # TradeScout Execution Roadmap (Q2 2026 Reset)
 
+Status: superseded (historical reference)
+Superseded by: docs/TRADESCOUT_MASTER_PLAN.md
+
+This document is retained for historical execution context only. Active roadmap authority has moved to `docs/TRADESCOUT_MASTER_PLAN.md`.
+
 ## Mission
 Ship a stable, crawlable, law-aligned TradeScout that grows both:
 - Demand side: people searching for local businesses/services.
@@ -92,6 +97,6 @@ Ship a stable, crawlable, law-aligned TradeScout that grows both:
 3. Friday: KPI + release gate decision
 
 ## Stop-Doing List
-- No parallel “master plan” files.
+- No parallel roadmap authorities outside `docs/TRADESCOUT_MASTER_PLAN.md`.
 - No undocumented temporary exceptions.
 - No feature expansion before blocker classes are contained.

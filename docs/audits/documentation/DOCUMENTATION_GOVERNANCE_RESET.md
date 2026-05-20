@@ -48,7 +48,7 @@ These are the only docs allowed to define current project reality at the repo ro
 1. `README.md` — top-level project overview
 2. `README_START_HERE.md` — human entrypoint / orientation
 3. `ARCHITECTURE_STATE.md` — current verified truth snapshot
-4. `docs/audits/EXECUTION_ROADMAP_2026Q2.md` — current execution roadmap
+4. `docs/TRADESCOUT_MASTER_PLAN.md` — canonical master plan
 5. `PRODUCTION.md` — deployment and production operations
 6. `SECURITY.md` — security posture and operational rules
 
@@ -65,7 +65,7 @@ All other root markdown files should be moved, merged, archived, or explicitly m
   README.md
   README_START_HERE.md
   ARCHITECTURE_STATE.md
-  docs/audits/EXECUTION_ROADMAP_2026Q2.md
+  docs/TRADESCOUT_MASTER_PLAN.md
   PRODUCTION.md
   SECURITY.md
   AGENTS.md
@@ -133,7 +133,7 @@ If retained, they should usually live under `/docs/history/` or `/docs/audits/`,
 - `README.md`
 - `README_START_HERE.md`
 - `ARCHITECTURE_STATE.md`
-- `docs/audits/EXECUTION_ROADMAP_2026Q2.md`
+- `docs/TRADESCOUT_MASTER_PLAN.md`
 - `PRODUCTION.md`
 - `SECURITY.md`
 - `AGENTS.md`

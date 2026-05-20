@@ -68,7 +68,7 @@ ScoutActionExecution {
 }
 ```
 
-**Why**: Shows which actions users want Scout to do, which they do manually, where capability gaps exist. This directly informs roadmap.
+**Why**: Shows which actions users want Scout to do, which they do manually, where capability gaps exist. This directly informs execution under `docs/TRADESCOUT_MASTER_PLAN.md`.
 
 ---
 

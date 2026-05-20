@@ -1,8 +1,11 @@
 # Progressive Exposure Rollout Plan (Planning Only)
 
-Status: Draft for authority review (no implementation)
+Status: superseded planning reference
+Superseded by: docs/TRADESCOUT_MASTER_PLAN.md
 Owner: Product authority + execution team
 Date: 2026-04-17
+
+This file is retained as a scoped implementation note. Canonical sequencing and roadmap authority now lives in `docs/TRADESCOUT_MASTER_PLAN.md`.
 
 ## 1) Change Declaration
 

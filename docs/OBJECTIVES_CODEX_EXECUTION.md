@@ -138,7 +138,7 @@ You issued the **CODEX command** to build a universal Objectives layer that make
 - Integration wiring instructions (2-3 line changes needed in scout.ts)
 - UI integration examples
 - Promotion logic walkthrough
-- Phasing roadmap (Phase 1, 2, 3+)
+- Phasing sequence (Phase 1, 2, 3+) aligned to `docs/TRADESCOUT_MASTER_PLAN.md`
 - Deployment checklist
 - Monitoring metrics
 

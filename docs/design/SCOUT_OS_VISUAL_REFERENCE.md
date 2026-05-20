@@ -4,9 +4,11 @@ Date: 2026-05-11
 Owner: TradeScout product/design
 Status: locked as forward visual reference
 
+Roadmap authority: subordinate to docs/TRADESCOUT_MASTER_PLAN.md
+
 ## Purpose
 
-This document captures the approved Scout OS visual direction from the May 2026 reference board. Future TradeScout UI work should use this as the product's visual north star when building Scout, admin-adjacent intelligence views, local guide experiences, mobile action trays, and high-confidence task cards.
+This document captures the approved Scout OS visual direction from the May 2026 reference board. Future TradeScout UI work should use this as the visual reference when building Scout, admin-adjacent intelligence views, local guide experiences, mobile action trays, and high-confidence task cards.
 
 This is a TradeScout design reference only. Do not import MealScout, Trader's Corner, or unrelated brand assets into TradeScout surfaces.
 

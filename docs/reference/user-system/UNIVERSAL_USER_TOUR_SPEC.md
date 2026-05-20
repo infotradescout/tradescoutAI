@@ -1,5 +1,8 @@
 # Universal User Tour Specification
 
+Status: active reference (non-roadmap)
+Roadmap authority: docs/TRADESCOUT_MASTER_PLAN.md
+
 This document defines the **one universal tour system** for TradeScout. It is a **doctrine + UX spec**, not a build order. During the current freeze, it guides cleanup and future implementation without adding new product behavior.
 
 ---
@@ -174,7 +177,7 @@ When it is time to implement or refactor tours:
 - Validate that:
   - Scout’s links into a page and that page’s tour tell the **same story**.
 
-Until then, this spec is the north star for:
+Until then, this spec is the implementation reference for:
 
 - Deciding which existing tours should be deleted or suppressed.
 - Guarding against new, ad‑hoc onboarding flows that fragment the experience.
