@@ -64,5 +64,7 @@ describe("marketplace seller order lifecycle contract", () => {
     expect(dashboard).toContain('nextStatus === "in_transit"');
     expect(dashboard).toContain("Label URL");
     expect(dashboard).toContain("Tracking number");
+    expect(section).toContain("Label URL is required before advancing to label purchased.");
+    expect(section).toContain("Tracking number is required before advancing to in transit.");
   });
 });

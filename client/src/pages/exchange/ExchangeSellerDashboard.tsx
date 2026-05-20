@@ -399,6 +399,9 @@ function OrderLifecycleCard({
       ? order.listingImages[0]
       : null;
   const shipping = order.shippingQuote;
+  const missingRequiredTransitionData =
+    (nextStatus === "label_purchased" && !labelUrl.trim()) ||
+    (nextStatus === "in_transit" && !trackingNumber.trim());
 
   return (
     <Card className="overflow-hidden">
@@ -498,7 +501,7 @@ function OrderLifecycleCard({
                   trackingNumber: nextStatus === "in_transit" ? trackingNumber : undefined,
                 })
               }
-              disabled={isAdvancing}
+              disabled={isAdvancing || missingRequiredTransitionData}
             >
               Advance to {orderStatusLabel(nextStatus)}
             </Button>
@@ -506,6 +509,12 @@ function OrderLifecycleCard({
             <Badge variant="outline">Lifecycle complete</Badge>
           )}
         </div>
+        {nextStatus === "label_purchased" && !labelUrl.trim() ? (
+          <p className="mt-2 text-xs text-amber-700">Add a label URL to continue.</p>
+        ) : null}
+        {nextStatus === "in_transit" && !trackingNumber.trim() ? (
+          <p className="mt-2 text-xs text-amber-700">Add a tracking number to continue.</p>
+        ) : null}
       </CardContent>
     </Card>
   );

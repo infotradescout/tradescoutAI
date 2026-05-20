@@ -20054,6 +20054,16 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         req.body.labelUrl.trim()
           ? req.body.labelUrl.trim().slice(0, 500)
           : null;
+      if (nextStatus === "label_purchased" && !labelUrl) {
+        return res.status(400).json({
+          message: "Label URL is required before advancing to label purchased.",
+        });
+      }
+      if (nextStatus === "in_transit" && !trackingNumber) {
+        return res.status(400).json({
+          message: "Tracking number is required before advancing to in transit.",
+        });
+      }
 
       const result = await pool.query(
         `
