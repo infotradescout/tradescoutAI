@@ -3641,6 +3641,8 @@ export default function ScoutOS() {
               `Approve this Scout action?\n\n${label}\n\nScout will not send, publish, contact, or change anything unless you approve. Payments always open a payment page for you to complete yourself.`
             );
           },
+          isAuthenticated,
+          userRole: typeof (user as any)?.role === "string" ? String((user as any).role) : null,
         });
 
         if (action.type === "SAVE_PROFILE") {

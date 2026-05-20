@@ -11,6 +11,7 @@ import {
   getScoutToolName,
   isSupportedScoutToolName,
 } from "@shared/scoutSupportedTools";
+import { canExecuteScoutCommand } from "./scoutCommandRegistry";
 
 export interface ScoutActionHelpers {
   navigate: (to: string) => void;
@@ -19,6 +20,8 @@ export interface ScoutActionHelpers {
   prefillInput: (value: string) => void;
   askScout?: (prompt: string) => void;
   confirmAction?: (action: ScoutAction) => Promise<boolean> | boolean;
+  isAuthenticated?: boolean;
+  userRole?: string | null;
 }
 
 type GuardedActionResponse = {
@@ -548,6 +551,18 @@ export async function executeScoutActions(
   if (!actions || actions.length === 0) return;
 
   for (const action of actions) {
+    const commandCheck = canExecuteScoutCommand(action, {
+      isAuthenticated: helpers.isAuthenticated === true,
+      userRole: helpers.userRole,
+    });
+    if (!commandCheck.allowed) {
+      if (commandCheck.reason === "auth_required") {
+        helpers.navigate("/pre-scout-setup?mode=signin&next=%2Fscout");
+        continue;
+      }
+      throw new Error("This Scout command is not available for your current account.");
+    }
+
     if (action.type === "NOOP") {
       continue;
     }
