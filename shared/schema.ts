@@ -9242,6 +9242,33 @@ export const moderationActions = pgTable("moderation_actions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Trust Ledger v1: immutable trust-impacting event stream
+export const trustLedgerEvents = pgTable(
+  "trust_ledger_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    actorUserId: varchar("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    entityType: varchar("entity_type", { length: 80 }).notNull(),
+    entityId: varchar("entity_id", { length: 120 }).notNull(),
+    eventType: varchar("event_type", { length: 120 }).notNull(),
+    sourceSurface: varchar("source_surface", { length: 80 }).notNull(),
+    verificationLevel: varchar("verification_level", { length: 40 }).notNull().default("none"),
+    confidence: decimal("confidence", { precision: 4, scale: 3 }).notNull().default("0.500"),
+    metadata: jsonb("metadata")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_trust_ledger_entity").on(table.entityType, table.entityId),
+    index("idx_trust_ledger_event").on(table.eventType, table.createdAt),
+    index("idx_trust_ledger_actor").on(table.actorUserId, table.createdAt),
+  ]
+);
+
 // Appeals against moderation actions
 export const moderationAppeals = pgTable("moderation_appeals", {
   id: varchar("id")

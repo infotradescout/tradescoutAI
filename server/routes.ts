@@ -103,6 +103,7 @@ import { inferCountyFromCityState } from "./services/countyInferenceService";
 import { getMarketSignalsSnapshot } from "./services/marketSignalsSnapshotJob";
 import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
 import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
+import { recordTrustLedgerEvent } from "./services/trustLedgerService";
 import {
   buildPublicSolarPriceInsight,
   buildSolarProviderEstimate,
@@ -20094,6 +20095,29 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       if (!result.rows[0]) {
         return res.status(404).json({ message: "Marketplace order not found" });
       }
+      try {
+        await recordTrustLedgerEvent({
+          actorUserId: sellerId,
+          entityType: "marketplace_order",
+          entityId: String(result.rows[0].id),
+          eventType: `marketplace_order_status_${nextStatus}`,
+          sourceSurface: "exchange_seller_dashboard",
+          verificationLevel: "self_reported",
+          confidence:
+            nextStatus === "delivered" || nextStatus === "payout_reconciled" ? 0.78 : 0.66,
+          metadata: {
+            fromStatus: currentStatus,
+            toStatus: nextStatus,
+            trackingNumber: result.rows[0].trackingNumber || null,
+            labelUrl: result.rows[0].labelUrl || null,
+          },
+        });
+      } catch (ledgerError: any) {
+        console.warn(
+          "[marketplace] trust ledger write skipped for order status update",
+          ledgerError
+        );
+      }
       res.json(result.rows[0]);
     } catch (error: any) {
       console.error("Error updating marketplace seller order:", error);
@@ -20146,6 +20170,23 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
               shipping_quote = COALESCE(marketplace_orders.shipping_quote, EXCLUDED.shipping_quote),
               updated_at = now()
           `);
+          try {
+            await recordTrustLedgerEvent({
+              actorUserId: sellerId,
+              entityType: "marketplace_listing",
+              entityId: String(id),
+              eventType: "marketplace_listing_marked_sold",
+              sourceSurface: "exchange_seller_dashboard",
+              verificationLevel: "self_reported",
+              confidence: 0.64,
+              metadata: {
+                listingStatus: "sold",
+                shippingQuotePresent: Boolean(shippingQuoteJson),
+              },
+            });
+          } catch (ledgerError: any) {
+            console.warn("[marketplace] trust ledger write skipped for mark-sold", ledgerError);
+          }
         } catch (orderError: any) {
           console.warn("[marketplace] sold listing order lifecycle event skipped", orderError);
         }

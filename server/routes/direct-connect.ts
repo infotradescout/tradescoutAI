@@ -25,6 +25,8 @@ import { passwordResetService } from "../services/passwordResetService";
 import { emailVerificationService } from "../services/emailVerificationService";
 import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../scout/outcomeTracker";
 import { logAdminAction } from "../services/adminAuditLogService";
+import { recordTrustLedgerEvent } from "../services/trustLedgerService";
+import { computeDirectConnectProviderFitScore } from "../services/directConnectProviderFitScore";
 import {
   redactContactDetails,
   buildWorkRequestPreviewTitle,
@@ -1007,7 +1009,9 @@ export function registerDirectConnectRoutes(app: Express) {
       positiveRecommendations?: number | null;
       totalRecommendations?: number | null;
       reachTier: "local" | "regional" | "wide";
-      localCredibilityScore: number;
+      providerFitScore: number;
+      providerFitBreakdown: Record<string, unknown>;
+      fitReasons: string[];
       isBusinessProvider?: boolean;
     };
 
@@ -1020,8 +1024,26 @@ export function registerDirectConnectRoutes(app: Express) {
       const countyCount = serviceAreaCounts[contractor.id] ?? 0;
       const reachTier = tierForCount(countyCount);
 
-      const localCredibilityScore =
-        (stats.jobsCompleted ?? 0) * 3 + (stats.peopleHelped ?? 0) * 2 + (stats.activeWeeks ?? 0);
+      const recSignal = Math.max(
+        0,
+        Math.min(1, (Number(contractor.positiveRecommendations ?? 0) || 0) / 25)
+      );
+      const completionSignal = Math.max(
+        0,
+        Math.min(1, (Number(stats.jobsCompleted ?? 0) || 0) / 25)
+      );
+      const activitySignal = Math.max(0, Math.min(1, (Number(stats.activeWeeks ?? 0) || 0) / 52));
+      const fit = computeDirectConnectProviderFitScore({
+        countyMatch: Boolean(countyRecord?.id),
+        tradeMatch: Boolean(tradeRecord?.id),
+        verificationScore: requirements ? 0.8 : 0.6,
+        responseRate: 0.6,
+        completionRate: completionSignal,
+        recentActivity: activitySignal,
+        recommendationTrust: recSignal,
+        disputePenalty: 0,
+        overCapacityPenalty: reachTier === "wide" ? 0.2 : 0,
+      });
 
       ranked.push({
         id: contractor.id,
@@ -1032,7 +1054,9 @@ export function registerDirectConnectRoutes(app: Express) {
         totalRecommendations:
           contractor.totalRecommendations ?? contractor.positiveRecommendations ?? 0,
         reachTier,
-        localCredibilityScore,
+        providerFitScore: fit.score,
+        providerFitBreakdown: fit.breakdown as any,
+        fitReasons: fit.reasons,
         isBusinessProvider: false,
       });
     }
@@ -1045,8 +1069,22 @@ export function registerDirectConnectRoutes(app: Express) {
       const stats = biz.userId
         ? await storage.getUserCredibilityStats(biz.userId)
         : { jobsCompleted: 0, peopleHelped: 0, activeWeeks: 0 };
-      const localCredibilityScore =
-        (stats.jobsCompleted ?? 0) * 3 + (stats.peopleHelped ?? 0) * 2 + (stats.activeWeeks ?? 0);
+      const completionSignal = Math.max(
+        0,
+        Math.min(1, (Number(stats.jobsCompleted ?? 0) || 0) / 25)
+      );
+      const activitySignal = Math.max(0, Math.min(1, (Number(stats.activeWeeks ?? 0) || 0) / 52));
+      const fit = computeDirectConnectProviderFitScore({
+        countyMatch: Boolean(countyRecord?.id),
+        tradeMatch: Boolean(tradeRecord?.id),
+        verificationScore: 0.65,
+        responseRate: 0.55,
+        completionRate: completionSignal,
+        recentActivity: activitySignal,
+        recommendationTrust: 0.45,
+        disputePenalty: 0,
+        overCapacityPenalty: 0,
+      });
       ranked.push({
         id: biz.id,
         userId: biz.userId,
@@ -1054,7 +1092,9 @@ export function registerDirectConnectRoutes(app: Express) {
         positiveRecommendations: 0,
         totalRecommendations: 0,
         reachTier: "local",
-        localCredibilityScore,
+        providerFitScore: fit.score,
+        providerFitBreakdown: fit.breakdown as any,
+        fitReasons: fit.reasons,
         isBusinessProvider: true,
       });
       if (biz.userId) seenUserIds.add(biz.userId);
@@ -1068,8 +1108,22 @@ export function registerDirectConnectRoutes(app: Express) {
         peopleHelped: 0,
         activeWeeks: 0,
       }));
-      const localCredibilityScore =
-        (stats.jobsCompleted ?? 0) * 3 + (stats.peopleHelped ?? 0) * 2 + (stats.activeWeeks ?? 0);
+      const completionSignal = Math.max(
+        0,
+        Math.min(1, (Number(stats.jobsCompleted ?? 0) || 0) / 25)
+      );
+      const activitySignal = Math.max(0, Math.min(1, (Number(stats.activeWeeks ?? 0) || 0) / 52));
+      const fit = computeDirectConnectProviderFitScore({
+        countyMatch: true,
+        tradeMatch: Boolean(tradeRecord?.id),
+        verificationScore: 0.55,
+        responseRate: 0.5,
+        completionRate: completionSignal,
+        recentActivity: activitySignal,
+        recommendationTrust: 0.4,
+        disputePenalty: 0,
+        overCapacityPenalty: 0,
+      });
       ranked.push({
         id: worker.workerId, // use workerId as the assignment key for workers
         userId: worker.userId,
@@ -1077,7 +1131,9 @@ export function registerDirectConnectRoutes(app: Express) {
         positiveRecommendations: 0,
         totalRecommendations: 0,
         reachTier: "local",
-        localCredibilityScore,
+        providerFitScore: fit.score,
+        providerFitBreakdown: fit.breakdown as any,
+        fitReasons: fit.reasons,
         isWorkerProvider: true,
       } as any);
       seenUserIds.add(worker.userId);
@@ -1093,8 +1149,8 @@ export function registerDirectConnectRoutes(app: Express) {
       const aTier = tierRank[a.reachTier] ?? 2;
       const bTier = tierRank[b.reachTier] ?? 2;
       if (aTier !== bTier) return aTier - bTier;
-      const aScore = a.localCredibilityScore ?? 0;
-      const bScore = b.localCredibilityScore ?? 0;
+      const aScore = a.providerFitScore ?? 0;
+      const bScore = b.providerFitScore ?? 0;
       return bScore - aScore;
     });
 
@@ -1154,8 +1210,11 @@ export function registerDirectConnectRoutes(app: Express) {
       }
 
       const scoreSnapshot = {
-        score: candidate.localCredibilityScore,
+        score: candidate.providerFitScore,
+        providerFitScore: candidate.providerFitScore,
+        providerFitBreakdown: candidate.providerFitBreakdown,
         reasons,
+        fitReasons: candidate.fitReasons,
         tradeMatch: Boolean(tradeRecord),
         recommendationCount: recCount,
         routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
@@ -1211,6 +1270,26 @@ export function registerDirectConnectRoutes(app: Express) {
       await db.insert(workRequestEvents).values(providerSuggestedEvents);
     } catch (e) {
       console.warn("[direct-connect] Failed to record provider_suggested events", e);
+    }
+
+    try {
+      await recordTrustLedgerEvent({
+        actorUserId,
+        entityType: "work_request",
+        entityId: requestId,
+        eventType: "direct_connect_routed",
+        sourceSurface: "direct_connect",
+        verificationLevel: "system_verified",
+        confidence: 0.82,
+        metadata: {
+          assignmentCount: insertedAssignments.length,
+          routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
+          countyFips: countyFips || null,
+          tradeId: tradeRecord?.id || null,
+        },
+      });
+    } catch (e) {
+      console.warn("[direct-connect] Failed to write trust ledger routed event", e);
     }
 
     await db
