@@ -65,6 +65,7 @@ export default function OnboardingProfile() {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
   const [stateCode, setStateCode] = useState("");
   const [countyFips, setCountyFips] = useState("");
   const [countyName, setCountyName] = useState<string | undefined>(undefined);
@@ -111,6 +112,7 @@ export default function OnboardingProfile() {
 
     setFirstName(anyUser.firstName || "");
     setLastName(anyUser.lastName || "");
+    setPhone(anyUser.phone || "");
     setStateCode(anyUser.stateCode || "");
     setCountyFips(anyUser.countyFips || "");
     setCountyName(anyUser.countyName || undefined);
@@ -242,6 +244,9 @@ export default function OnboardingProfile() {
       if (!firstName.trim() || !lastName.trim()) {
         throw new Error("Please add your name.");
       }
+      if (String(phone || "").replace(/\D+/g, "").length < 10) {
+        throw new Error("Please add a valid phone number.");
+      }
       if (!stateCode || !countyFips) {
         throw new Error("Please choose where you're active locally.");
       }
@@ -249,6 +254,7 @@ export default function OnboardingProfile() {
       return apiRequest("PUT", "/api/user/profile", {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        phone: phone.trim(),
         city: city.trim() || undefined,
         stateCode,
         countyFips,
@@ -295,7 +301,12 @@ export default function OnboardingProfile() {
     updateProfile.mutate();
   };
 
-  const canContinue = !!firstName.trim() && !!lastName.trim() && !!stateCode && !!countyFips;
+  const canContinue =
+    !!firstName.trim() &&
+    !!lastName.trim() &&
+    String(phone || "").replace(/\D+/g, "").length >= 10 &&
+    !!stateCode &&
+    !!countyFips;
 
   // Inline county inference status indicator with icons
   const CountyInferenceIndicator = () => {
@@ -387,6 +398,19 @@ export default function OnboardingProfile() {
                 </div>
               </div>
 
+              <div>
+                <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                  Phone
+                </Label>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="mt-1"
+                  autoComplete="tel"
+                  placeholder="(555) 555-5555"
+                />
+              </div>
+
               {/* Google Places city / area search */}
               <div className="space-y-1.5">
                 <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
@@ -441,7 +465,9 @@ export default function OnboardingProfile() {
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-[11px] text-white/60">
-                  {canContinue ? "Looks good." : "Add your name and main county to continue."}
+                  {canContinue
+                    ? "Looks good."
+                    : "Add your name, phone, and main county to continue."}
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
                   {updateProfile.isPending ? "Saving…" : "Continue"}

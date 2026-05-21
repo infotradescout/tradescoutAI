@@ -3,6 +3,7 @@
 Date: 2026-05-12
 Owner: TradeScout product/engineering
 Scope: Scout 2 showcase claims compared against the live TradeScout Scout surface.
+Authority: This is an execution audit artifact aligned to `docs/TRADESCOUT_MASTER_PLAN.md` and is not a separate roadmap authority.
 
 ## Reality Check
 

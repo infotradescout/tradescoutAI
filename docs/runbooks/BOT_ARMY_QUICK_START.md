@@ -1,5 +1,10 @@
 # Bot Army - Quick Reference
 
+Status: historical runbook reference
+Owner: QA/Automation
+Last verified: 2026-05-20
+Roadmap authority: docs/TRADESCOUT_MASTER_PLAN.md
+
 ## 🚀 Get Started in 5 Minutes
 
 ### 1. Setup Environment

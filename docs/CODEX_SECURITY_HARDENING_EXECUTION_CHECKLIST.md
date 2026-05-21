@@ -1,6 +1,9 @@
 # Codex Security Hardening Execution Checklist
 
-Status: Approved execution guide
+Status: active runbook
+Owner: Security Engineering
+Last verified: 2026-05-20
+Roadmap authority: docs/TRADESCOUT_MASTER_PLAN.md
 Owner intent: Remove privilege-escalation paths, preserve authority gating, and eliminate sensitive logging leakage without changing core discovery→intent→decision→contact behavior.
 
 ## Phase 2C Hardening Registry

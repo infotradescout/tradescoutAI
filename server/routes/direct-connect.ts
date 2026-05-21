@@ -2442,6 +2442,25 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         });
 
+        try {
+          await recordTrustLedgerEvent({
+            actorUserId: String(userId),
+            entityType: "work_request",
+            entityId: requestId,
+            eventType: "direct_connect_cancelled",
+            sourceSurface: "direct_connect",
+            verificationLevel: null,
+            confidence: null,
+            metadata: {
+              source: "direct_connect",
+              fromStatus: String(requestRow.status || "unknown"),
+              toStatus: "cancelled",
+            },
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to write trust ledger event on cancel", e);
+        }
+
         // Outcome feedback: user cancelled a guided flow (negative confidence signal)
         try {
           const scope = "direct_connect";
@@ -2524,6 +2543,25 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         });
 
+        try {
+          await recordTrustLedgerEvent({
+            actorUserId: String(userId),
+            entityType: "work_request",
+            entityId: requestId,
+            eventType: "direct_connect_reopened",
+            sourceSurface: "direct_connect",
+            verificationLevel: null,
+            confidence: null,
+            metadata: {
+              source: "direct_connect",
+              fromStatus: "cancelled",
+              toStatus: "open",
+            },
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to write trust ledger event on reopen", e);
+        }
+
         const shareToken = await ensureShareTokenForRequest(requestId);
         res.status(200).json({
           status: "open",
@@ -2602,6 +2640,28 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         });
 
+        try {
+          await recordTrustLedgerEvent({
+            actorUserId: String(userId),
+            entityType: "work_request",
+            entityId: requestId,
+            eventType: "direct_connect_pending_outcome",
+            sourceSurface: "direct_connect",
+            verificationLevel: null,
+            confidence: null,
+            metadata: {
+              source: "direct_connect",
+              fromStatus: "in_progress",
+              toStatus: "pending_outcome",
+            },
+          });
+        } catch (e) {
+          console.warn(
+            "[direct-connect] Failed to write trust ledger event on mark-pending-outcome",
+            e
+          );
+        }
+
         res.status(200).json({ status: "pending_outcome" });
       } catch (error: any) {
         console.error("Error marking direct connect request as pending outcome:", error);
@@ -2669,6 +2729,25 @@ export function registerDirectConnectRoutes(app: Express) {
             console.warn("[direct-connect] Failed to record status_changed event on complete", e);
           }
         });
+
+        try {
+          await recordTrustLedgerEvent({
+            actorUserId: String(userId),
+            entityType: "work_request",
+            entityId: requestId,
+            eventType: "direct_connect_completed",
+            sourceSurface: "direct_connect",
+            verificationLevel: null,
+            confidence: null,
+            metadata: {
+              source: "direct_connect",
+              fromStatus: String(fromStatus || "unknown"),
+              toStatus: "completed",
+            },
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to write trust ledger event on complete", e);
+        }
 
         // Outcome feedback: user completed a DC engagement (positive confidence signal)
         try {

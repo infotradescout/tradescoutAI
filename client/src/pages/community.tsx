@@ -69,7 +69,7 @@ export default function Community() {
   const countyFips = location.countyFips as string | undefined;
   const countyCommitted = hasCountyContext(location);
 
-  // Fetch community posts scoped to the user's county
+  // Fetch community posts scoped to the user's local area
   const { data: posts, isLoading: postsLoading } = useQuery<CommunityPost[]>({
     queryKey: ["/api/community/posts", stateCode, countyFips],
     enabled: countyCommitted,
@@ -366,7 +366,7 @@ export default function Community() {
           "@type": "CollectionPage",
           name: "TradeScout Community",
           description:
-            "County-scoped community feed for local posts, recommendations, project updates, and events.",
+            "Local-area community feed for local posts, recommendations, project updates, and events.",
           url: "https://www.thetradescout.com/community",
         },
         createBreadcrumbStructuredData([
@@ -381,8 +381,8 @@ export default function Community() {
   return (
     <CommunityPageShell>
       <SEOHelmet
-        title="TradeScout Community | Local Posts, Recommendations, and County Updates"
-        description="Join your county TradeScout community feed to share updates, ask for recommendations, and discover local project conversations."
+        title="TradeScout Community | Local Posts, Recommendations, and Local Updates"
+        description="Join your local TradeScout community feed to share updates, ask for recommendations, and discover nearby project conversations."
         canonical="https://www.thetradescout.com/community"
         structuredData={structuredData}
       />
@@ -391,7 +391,7 @@ export default function Community() {
           {/* Header */}
           <div className="mb-4">
             <h1 className="text-lg font-semibold text-ts-orange mb-1">Community</h1>
-            <p className="text-sm text-white/70">Local decisions, shared context</p>
+            <p className="text-sm text-white/70">Ask your neighbors. Share what works.</p>
           </div>
 
           {/* Navigation Tabs */}

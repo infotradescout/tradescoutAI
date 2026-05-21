@@ -104,6 +104,22 @@ type ProfileOfferPurchase = {
   createdAt?: string;
 };
 
+type BusinessOnboardingState = {
+  version: 1;
+  businessType: string;
+  startedAt: string;
+  lastUpdatedAt: string;
+  completedAt?: string;
+  modules: Record<
+    | "identity_profile"
+    | "service_catalog"
+    | "coverage_availability"
+    | "trust_verification"
+    | "operations_payout",
+    "not_started" | "in_progress" | "complete"
+  >;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function stepStatusIcon(status: VerificationStep["status"]) {
@@ -138,7 +154,7 @@ export default function OfferServicesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const [offerType, setOfferType] = useState<"service" | "item">("service");
   const [editingOfferId, setEditingOfferId] = useState<string | null>(null);
   const [offerTitle, setOfferTitle] = useState("");
@@ -160,6 +176,12 @@ export default function OfferServicesPage() {
   const [purchaseNotes, setPurchaseNotes] = useState<Record<string, string>>({});
   const [trackingNumbers, setTrackingNumbers] = useState<Record<string, string>>({});
   const [trackingCarriers, setTrackingCarriers] = useState<Record<string, string>>({});
+  const onboardingMode = useMemo(() => {
+    const raw = String(location || "");
+    const query = raw.includes("?") ? raw.split("?", 2)[1] : "";
+    const params = new URLSearchParams(query);
+    return params.get("onboarding") === "business";
+  }, [location]);
 
   const displayName = useMemo(() => {
     if (user?.firstName) return user.firstName;
@@ -217,6 +239,36 @@ export default function OfferServicesPage() {
     queryKey: ["/api/accounting/books-foundation"],
     queryFn: async () => apiRequest("GET", "/api/accounting/books-foundation"),
     staleTime: 60_000,
+  });
+
+  const businessOnboardingQuery = useQuery<{ businessOnboarding: BusinessOnboardingState }>({
+    queryKey: ["/api/user/business-onboarding"],
+    queryFn: async () => apiRequest("GET", "/api/user/business-onboarding"),
+    staleTime: 30_000,
+  });
+
+  const updateBusinessOnboardingMutation = useMutation({
+    mutationFn: async ({
+      moduleId,
+      status,
+    }: {
+      moduleId: keyof BusinessOnboardingState["modules"];
+      status: BusinessOnboardingState["modules"][keyof BusinessOnboardingState["modules"]];
+    }) =>
+      apiRequest("PATCH", "/api/user/business-onboarding", {
+        moduleId,
+        status,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/user/business-onboarding"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Business setup not updated",
+        description: error?.message || "Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const resetOfferForm = () => {
@@ -542,6 +594,34 @@ export default function OfferServicesPage() {
   const hasBusinessProfile = Boolean(businessProfileQuery.data);
   const hasFixedPriceOffers = profileOffers.length > 0;
   const hasFinanceFoundation = Number(booksFoundationQuery.data?.counts?.accounts || 0) > 0;
+  const businessOnboarding = businessOnboardingQuery.data?.businessOnboarding;
+  const onboardingModules = [
+    {
+      id: "identity_profile" as const,
+      title: "Identity and public profile",
+      description: "Complete core business identity so people know who they are working with.",
+    },
+    {
+      id: "service_catalog" as const,
+      title: "Services and offers",
+      description: "Add service categories, listings, and first fixed-price offers.",
+    },
+    {
+      id: "coverage_availability" as const,
+      title: "Service area and availability",
+      description: "Set where you serve and your day-to-day operating coverage.",
+    },
+    {
+      id: "trust_verification" as const,
+      title: "Trust and verification",
+      description: "Complete verification so routing and visibility can safely expand.",
+    },
+    {
+      id: "operations_payout" as const,
+      title: "Operations and payout",
+      description: "Confirm books and payout-readiness for active order workflows.",
+    },
+  ];
   const launchItems = [
     {
       id: "public_profile",
@@ -620,6 +700,106 @@ export default function OfferServicesPage() {
               </CardContent>
             </Card>
           )}
+          {!isVerified && (
+            <Card className="border border-amber-500/40 bg-amber-500/10">
+              <CardContent className="p-4 space-y-2">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="mt-0.5 h-5 w-5 text-amber-300 shrink-0" />
+                  <div>
+                    <p className="text-amber-200 font-semibold text-sm">
+                      Verification can wait, but discovery stays locked.
+                    </p>
+                    <p className="text-amber-100/80 text-xs leading-relaxed mt-1">
+                      You can keep setting up offers and operations now. Your business will not be
+                      shown in public discovery until verification is complete.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="bg-ts-orange text-white hover:bg-ts-orange/90"
+                    onClick={() => navigate("/identity-verification")}
+                  >
+                    Verify identity
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate("/address-verification")}
+                  >
+                    Verify address
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {onboardingMode && businessOnboarding ? (
+            <Card className="border-ts-orange/40 bg-tsCard">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-white text-base flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-ts-orange" />
+                  Business onboarding modules
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2.5">
+                <p className="text-xs text-white/65">
+                  Business type:{" "}
+                  <span className="text-white">{businessOnboarding.businessType}</span>
+                </p>
+                {onboardingModules.map((module) => {
+                  const status = businessOnboarding.modules[module.id] || "not_started";
+                  const isVerificationModule = module.id === "trust_verification";
+                  return (
+                    <div
+                      key={module.id}
+                      className="rounded-lg border border-white/10 bg-black/20 p-2.5 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-medium text-white">{module.title}</div>
+                          <div className="text-xs text-white/50">{module.description}</div>
+                        </div>
+                        <Badge className="border-white/15 bg-white/5 text-white/70">
+                          {status.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(["not_started", "in_progress", "complete"] as const).map((nextStatus) => (
+                          <Button
+                            key={nextStatus}
+                            type="button"
+                            size="sm"
+                            variant={status === nextStatus ? "default" : "outline"}
+                            disabled={
+                              updateBusinessOnboardingMutation.isPending ||
+                              (isVerificationModule && nextStatus === "complete" && !isVerified)
+                            }
+                            onClick={() =>
+                              updateBusinessOnboardingMutation.mutate({
+                                moduleId: module.id,
+                                status: nextStatus,
+                              })
+                            }
+                          >
+                            {nextStatus.replace(/_/g, " ")}
+                          </Button>
+                        ))}
+                        {isVerificationModule && status !== "complete" ? (
+                          <Badge className="border-amber-500/30 bg-amber-500/15 text-amber-200">
+                            Skippable now • required for discovery
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          ) : null}
 
           {/* ── Progress card ───────────────────────────────────────────── */}
           <Card className="border-white/10 bg-tsCard">

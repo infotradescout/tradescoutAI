@@ -45,7 +45,7 @@ const OVERCLAIM_PATTERNS = [
   /guaranteed result/gi,
   /this is definitely correct/gi,
   /the community approves/gi,
-  /best in the county/gi,
+  /best in the local area/gi,
 ];
 
 function clamp(value: number, min: number, max: number): number {
@@ -110,7 +110,7 @@ export class ScoutToneAwareBuilder {
    */
   static wrapTechnicalFallback(message: string, countyLabel?: string): string {
     const base = normalizeWhitespace(message || "Scout hit a temporary issue.");
-    const locality = countyLabel ? `in ${countyLabel}` : "around here";
+    const locality = countyLabel ? `in your local area (${countyLabel})` : "around here";
 
     return normalizeWhitespace(
       `Quick reset: ${base.replace(/[.!]+$/g, "")}. ` +

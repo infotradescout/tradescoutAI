@@ -103,7 +103,7 @@ const INTENT_PROMPTS: Record<string, { text: string; category: string; icon: str
     icon: "🔨",
   },
   permit: {
-    text: "Do I need a permit for my project in my county?",
+    text: "Check permit rules for this project before you start.",
     category: "Permits · Compliance",
     icon: "📋",
   },
@@ -118,7 +118,7 @@ const INTENT_PROMPTS: Record<string, { text: string; category: string; icon: str
     icon: "⛽",
   },
   events: {
-    text: "What's happening in my area this weekend?",
+    text: "See what's happening nearby this weekend.",
     category: "Events · Community",
     icon: "🎉",
   },
@@ -133,7 +133,7 @@ const INTENT_PROMPTS: Record<string, { text: string; category: string; icon: str
     icon: "🏘",
   },
   realtor: {
-    text: "What are homes selling for in my county right now?",
+    text: "Review what homes nearby are selling for right now.",
     category: "Real Estate · Market",
     icon: "🏠",
   },
@@ -169,7 +169,7 @@ const DEFAULT_PROMPTS: TrendingPrompt[] = [
   },
   {
     id: "events",
-    text: "What's happening in my area this weekend?",
+    text: "See what's happening nearby this weekend.",
     category: "Events · Community",
     icon: "🎉",
     intent: "events",
@@ -177,7 +177,7 @@ const DEFAULT_PROMPTS: TrendingPrompt[] = [
   },
   {
     id: "contractor",
-    text: "How much does fence repair cost in my county?",
+    text: "Check recent local fence-repair price ranges.",
     category: "Home · Contractor",
     icon: "🔨",
     intent: "contractor",

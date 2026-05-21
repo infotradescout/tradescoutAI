@@ -48,9 +48,9 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
   });
   const locationLabel = (() => {
     // If the user has not committed a canonical location yet, keep the
-    // copy consistent with the standard county gate.
+    // copy consistent with the standard local-area gate.
     if (!(user as any)?.locationCommitted) {
-      return "Set your county";
+      return "Set your location";
     }
 
     if (data?.countyName && data?.stateCode) {
@@ -87,9 +87,7 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         {isLoading && (
-          <p className="text-white/60 dark:text-white/60">
-            Loading your Local Impact snapshot...
-          </p>
+          <p className="text-white/60 dark:text-white/60">Loading your Local Impact snapshot...</p>
         )}
 
         {!isLoading && isError && (
@@ -105,9 +103,7 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
           <>
             <div className="space-y-2">
               <div>
-                <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
-                  Local Vault
-                </div>
+                <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">Local Vault</div>
                 <div className="text-lg font-semibold text-white/70 dark:text-white">
                   {formatCurrency(data.localVaultBalance)}
                 </div>
@@ -139,7 +135,7 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
                 data.countyVaultAllocation.length > 0 && (
                   <div className="mt-2 rounded-lg border border-white/10 dark:border-white/10 bg-white/5 dark:bg-tsCard/95 p-3">
                     <div className="text-[11px] text-white/60 dark:text-white/60 mb-2">
-                      County vault split (20% each)
+                      Local vault split (20% each)
                     </div>
                     <div className="grid grid-cols-1 gap-1">
                       {data.countyVaultAllocation.map((bucket) => (
@@ -157,7 +153,7 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
 
               <div className="mt-2 rounded-lg border border-white/10 dark:border-white/10 bg-white/5 dark:bg-tsCard/95 p-3">
                 <div className="text-[11px] text-white/60 dark:text-white/60 mb-1">
-                  Total To Your County Vault
+                  Total To Your Local Vault
                 </div>
                 <div className="text-base font-semibold text-white/70 dark:text-white">
                   {formatCurrency(data.userTotalContributionToCountyVault)}
@@ -200,10 +196,13 @@ export function LocalImpactCard({ className }: LocalImpactCardProps) {
         {!isLoading && !isError && data === null && (
           <div className="space-y-2 text-sm">
             <p className="text-white/60 dark:text-white/60">
-              Add your county and state so we can show how your community vault is being funded.
+              Add your location so we can show how your community vault is being funded.
             </p>
             <Link href="/profile">
-              <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark text-white w-full">
+              <Button
+                size="sm"
+                className="bg-ts-orange-dark hover:bg-ts-orange-dark text-white w-full"
+              >
                 Update location
               </Button>
             </Link>

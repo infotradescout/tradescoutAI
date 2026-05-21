@@ -227,6 +227,16 @@ async function ensureUniqueSlug(baseSlug: string, userId: string): Promise<strin
 }
 
 export function registerBusinessProfileRoutes(app: Express) {
+  const isBusinessDiscoverable = (user: any): boolean => {
+    if (!user) return false;
+    return (
+      user.verifiedBadge === true ||
+      String(user.verificationStatus || "").toLowerCase() === "approved" ||
+      user.licenseVerified === true ||
+      user.addressVerified === true
+    );
+  };
+
   /**
    * POST /api/business-profile/publish
    * Publish profileDraft → BusinessProfile (creates or updates)
@@ -252,6 +262,9 @@ export function registerBusinessProfileRoutes(app: Express) {
         // Generate slug
         const baseSlug = slugify(payload.name);
         const slug = await ensureUniqueSlug(baseSlug, userId);
+
+        const [ownerUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+        const discoveryUnlocked = isBusinessDiscoverable(ownerUser);
 
         // Check if user already has a published profile
         const existing = await storage.getBusinessProfileByUserId(userId);
@@ -288,7 +301,9 @@ export function registerBusinessProfileRoutes(app: Express) {
           theme: payload.theme || existing?.theme || buildDefaultTheme(),
           bookingConfig: payload.bookingConfig || existing?.bookingConfig || null,
           visibility:
-            payload.visibility === "public" ? "public" : existing?.visibility || "private",
+            payload.visibility === "public" && discoveryUnlocked
+              ? "public"
+              : existing?.visibility || "private",
           createdAt: existing?.createdAt || now,
           updatedAt: now,
           publishedAt: existing?.publishedAt || now,
@@ -303,6 +318,10 @@ export function registerBusinessProfileRoutes(app: Express) {
           success: true,
           profile: savedProfile,
           slug,
+          discoverabilityLocked: !discoveryUnlocked,
+          discoverabilityReason: !discoveryUnlocked
+            ? "Complete verification to make your business discoverable in public search and browsing."
+            : null,
         });
       } catch (error: any) {
         console.error("Error publishing business profile:", error);
@@ -324,6 +343,14 @@ export function registerBusinessProfileRoutes(app: Express) {
       const profile = await storage.getBusinessProfileBySlug(slug);
 
       if (!profile || profile.visibility !== "public") {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      const [ownerUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, profile.userId))
+        .limit(1);
+      if (!isBusinessDiscoverable(ownerUser)) {
         return res.status(404).json({ message: "Profile not found" });
       }
 
@@ -401,6 +428,8 @@ export function registerBusinessProfileRoutes(app: Express) {
       }
 
       const existing = await storage.getBusinessProfileByUserId(userId);
+      const [ownerUser] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const discoveryUnlocked = isBusinessDiscoverable(ownerUser);
 
       if (!existing) {
         return res.status(404).json({ message: "No published profile to update" });
@@ -474,7 +503,9 @@ export function registerBusinessProfileRoutes(app: Express) {
         visibility:
           updates.visibility !== undefined
             ? updates.visibility === "public"
-              ? "public"
+              ? discoveryUnlocked
+                ? "public"
+                : "private"
               : "private"
             : existing.visibility || "private",
         updatedAt: new Date().toISOString(),
@@ -485,6 +516,11 @@ export function registerBusinessProfileRoutes(app: Express) {
       res.json({
         success: true,
         profile: saved,
+        discoverabilityLocked:
+          !discoveryUnlocked && saved.visibility !== "private" ? true : !discoveryUnlocked,
+        discoverabilityReason: !discoveryUnlocked
+          ? "Verification is still pending, so your business stays hidden from public discovery until it is complete."
+          : null,
       });
     } catch (error: any) {
       console.error("Error updating business profile:", error);

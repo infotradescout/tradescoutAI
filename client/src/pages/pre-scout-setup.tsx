@@ -95,11 +95,14 @@ export default function PreScoutSetup() {
     anyUser.firstName.trim().length > 0 &&
     typeof anyUser.lastName === "string" &&
     anyUser.lastName.trim().length > 0;
+  const hasPhone =
+    typeof anyUser.phone === "string" && String(anyUser.phone).replace(/\D+/g, "").length >= 10;
   const hasCanonicalLocation =
     typeof anyUser.stateCode === "string" &&
     anyUser.stateCode.length === 2 &&
     typeof anyUser.countyFips === "string" &&
     anyUser.countyFips.length === 5;
+  const hasDay1ProfileBasics = hasAccountName && hasPhone && hasCanonicalLocation;
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const claimSlug = (searchParams.get("claim") || "").trim();
   const claimBusinessIdParam = (searchParams.get("claimBusinessId") || "").trim();
@@ -123,6 +126,9 @@ export default function PreScoutSetup() {
   // Track whether location was resolved via Google Places (vs. manual typing)
   const [locationSource, setLocationSource] = useState<"places" | "manual" | "none">("none");
   const [businessName, setBusinessName] = useState(existingDraft?.businessName || "");
+  const [businessType, setBusinessType] = useState<ProfileDraft["businessType"]>(
+    existingDraft?.businessType || "contractor_trades"
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const [authMode, setAuthMode] = useState<AuthMode>(requestedAuthMode);
@@ -179,6 +185,7 @@ export default function PreScoutSetup() {
     setCountyName(existingDraft.countyName);
     setCity(existingDraft.city || "");
     setBusinessName(existingDraft.businessName || "");
+    setBusinessType(existingDraft.businessType || "contractor_trades");
   }, [existingDraft]);
 
   // handlePlaceSelected: called when user picks a result from Google Places Autocomplete
@@ -373,7 +380,7 @@ export default function PreScoutSetup() {
 
     const next = postSetupNext;
     if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
-      const onboardingEntry = hasAccountName ? "/onboarding/intent" : "/onboarding/profile";
+      const onboardingEntry = hasDay1ProfileBasics ? "/onboarding/intent" : "/onboarding/profile";
       navigate(`${onboardingEntry}?next=${encodeURIComponent(next)}`);
       return;
     }
@@ -382,7 +389,7 @@ export default function PreScoutSetup() {
   }, [
     isAuthenticated,
     isAdminDestination,
-    hasAccountName,
+    hasDay1ProfileBasics,
     hasCanonicalLocation,
     currentProfileVersion,
     onboardingCompleted,
@@ -393,8 +400,9 @@ export default function PreScoutSetup() {
   const canContinue = useMemo(() => {
     if (!presenceType || !stateCode || !countyFips) return false;
     if (presenceType === "represent_business" && !businessName.trim()) return false;
+    if (presenceType === "represent_business" && !businessType) return false;
     return true;
-  }, [presenceType, stateCode, countyFips, businessName]);
+  }, [presenceType, stateCode, countyFips, businessName, businessType]);
 
   const buildAuthReturnPath = useCallback(
     (mode: AuthMode) => {
@@ -666,6 +674,7 @@ export default function PreScoutSetup() {
         countyName: countyName || undefined,
         city: city.trim() || undefined,
         businessName: presenceType === "represent_business" ? businessName.trim() : undefined,
+        businessType: presenceType === "represent_business" ? businessType : undefined,
         serviceAreas: [
           {
             countyFips,
@@ -734,6 +743,7 @@ export default function PreScoutSetup() {
         type: "onboarding_profile_submitted",
         presenceType: (presenceType as "personal" | "represent_business") ?? null,
         hasBusinessName: Boolean(businessName?.trim()),
+        businessType: presenceType === "represent_business" ? businessType : null,
         hasCountyFips: Boolean(countyFips?.trim()),
         locationSource: locationSource ?? null,
         ts: new Date().toISOString(),
@@ -747,7 +757,7 @@ export default function PreScoutSetup() {
       // After local setup, continue into the guided start choice. If account identity
       // is incomplete, route through profile normalization first.
       if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
-        const onboardingEntry = hasAccountName ? "/onboarding/intent" : "/onboarding/profile";
+        const onboardingEntry = hasDay1ProfileBasics ? "/onboarding/intent" : "/onboarding/profile";
         navigate(`${onboardingEntry}?next=${encodeURIComponent(postSetupNext)}`);
         return;
       }
@@ -1272,23 +1282,52 @@ export default function PreScoutSetup() {
                 </div>
 
                 {presenceType === "represent_business" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
-                      Business name
-                    </Label>
-                    <GooglePlacesBusinessInput
-                      defaultValue={businessName}
-                      placeholder="Search for your business"
-                      onBusinessSelected={handleBusinessSelected}
-                      className="h-10"
-                      data-testid="business-name-input"
-                    />
-                    {/* Fallback: let user type freely if they don't find their business */}
-                    {businessName && (
-                      <p className="text-[10px] text-white/40 mt-0.5">
-                        Can't find it? Just type your business name above.
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                        Business name
+                      </Label>
+                      <GooglePlacesBusinessInput
+                        defaultValue={businessName}
+                        placeholder="Search for your business"
+                        onBusinessSelected={handleBusinessSelected}
+                        className="h-10"
+                        data-testid="business-name-input"
+                      />
+                      {/* Fallback: let user type freely if they don't find their business */}
+                      {businessName && (
+                        <p className="text-[10px] text-white/40 mt-0.5">
+                          Can't find it? Just type your business name above.
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                        Business type
+                      </Label>
+                      <select
+                        value={businessType || "contractor_trades"}
+                        onChange={(event) =>
+                          setBusinessType(event.target.value as ProfileDraft["businessType"])
+                        }
+                        className="h-10 w-full rounded-md border border-white/15 bg-black/30 px-3 text-sm text-white"
+                      >
+                        <option value="contractor_trades">Contractor / trades</option>
+                        <option value="home_services">Home services</option>
+                        <option value="retail">Retail</option>
+                        <option value="restaurant_food">Restaurant / food</option>
+                        <option value="health_wellness">Health / wellness</option>
+                        <option value="professional_services">Professional services</option>
+                        <option value="automotive">Automotive</option>
+                        <option value="real_estate_property">Real estate / property</option>
+                        <option value="manufacturing">Manufacturing</option>
+                        <option value="nonprofit_community">Nonprofit / community</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <p className="text-[10px] text-white/40">
+                        We use this to preload your business setup modules.
                       </p>
-                    )}
+                    </div>
                   </div>
                 )}
 

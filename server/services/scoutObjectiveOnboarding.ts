@@ -127,7 +127,7 @@ const SUGGESTION_LIBRARY: Record<OnboardingRole, ObjectiveSuggestion[]> = {
       estimatedMinutes: 3,
       expectedValueScore: 71,
       recommendedRoute: "/community",
-      starterPrompt: "Show me recent verified local activity in my county",
+      starterPrompt: "Show me recent verified local activity in my area",
     },
   ],
   homeowner: [
@@ -192,7 +192,7 @@ const SUGGESTION_LIBRARY: Record<OnboardingRole, ObjectiveSuggestion[]> = {
       estimatedMinutes: 9,
       expectedValueScore: 82,
       recommendedRoute: "/community",
-      starterPrompt: "How do I increase county visibility the right way?",
+      starterPrompt: "How do I increase local visibility the right way?",
     },
   ],
   realtor: [
@@ -204,7 +204,7 @@ const SUGGESTION_LIBRARY: Record<OnboardingRole, ObjectiveSuggestion[]> = {
       estimatedMinutes: 12,
       expectedValueScore: 90,
       recommendedRoute: "/homescout-listings",
-      starterPrompt: "Help me build a county partner network for listings",
+      starterPrompt: "Help me build a local partner network for listings",
     },
     {
       id: "realtor_listing_intel",
@@ -220,13 +220,13 @@ const SUGGESTION_LIBRARY: Record<OnboardingRole, ObjectiveSuggestion[]> = {
   admin: [
     {
       id: "admin_county_governance_audit",
-      title: "Run county governance audit",
-      description: "Check county routing, trust exposure, and active objective health.",
+      title: "Run local governance audit",
+      description: "Check local routing, trust exposure, and active objective health.",
       category: "compliance",
       estimatedMinutes: 16,
       expectedValueScore: 95,
       recommendedRoute: "/admin",
-      starterPrompt: "Run a county governance and trust audit",
+      starterPrompt: "Run a local governance and trust audit",
     },
     {
       id: "admin_community_health",

@@ -614,9 +614,9 @@ const DEFAULT_AUTO_PROMPT = "What can TradeScout do for my community?";
 const DEFAULT_SUGGESTIONS = [
   "Find roofers available this week",
   "List my pressure washer for $250",
-  "Start the Community Builder for my county",
+  "Start the Community Builder for my area",
   "Support a local cause through the Foundation",
-  "Draft 3 welcome post options for my county feed",
+  "Draft 3 welcome post options for my local feed",
   "Show me top marketplace listings this week",
 ];
 
@@ -768,7 +768,7 @@ async function generateSmartSynthesis(
     if (isGeminiRateLimitFailure(error)) {
       return {
         message:
-          "TradeScout is your county operating system. Scout can move local outcomes forward across Community, Direct Connect, Exchange, and Community Builders without breaking trust gates.",
+          "TradeScout is your local operating system. Scout can move local outcomes forward across Community, Direct Connect, Exchange, and Community Builders without breaking trust gates.",
         provider: "fallback",
         degradationReason: "synthesis_rate_limited",
       };

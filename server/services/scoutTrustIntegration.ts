@@ -88,7 +88,7 @@ export class ScoutTrustIntegration {
 
     const verifiedActivityProof =
       verifiedJobs > 0
-        ? `${verifiedJobs} local jobs verified in your county`
+        ? `${verifiedJobs} local jobs verified in your area`
         : verifiedRecs > 0
           ? `${verifiedRecs} local recommendations verified`
           : "No verified activity proof yet";

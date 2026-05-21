@@ -71,7 +71,7 @@ export const DIRECT_CONNECT_HOME = "/direct-connect";
 export const DEFAULT_LANDING = `${DIRECT_CONNECT_HOME}?entry=default`;
 
 /** Default landing surface for business / service-provider users. */
-export const BUSINESS_LANDING = "/offer-services";
+export const BUSINESS_LANDING = "/offer-services?onboarding=business";
 
 function withDirectConnectEntry(path: string, entry: DirectConnectEntry = "default"): string {
   const separator = path.includes("?") ? "&" : "?";
@@ -115,6 +115,8 @@ export function userHasProfileBasics(user: unknown): boolean {
 
   const firstName = typeof record.firstName === "string" ? record.firstName.trim() : "";
   const lastName = typeof record.lastName === "string" ? record.lastName.trim() : "";
+  const phoneRaw = typeof record.phone === "string" ? record.phone.trim() : "";
+  const phoneDigits = phoneRaw.replace(/\D+/g, "");
   const stateCode =
     typeof record.stateCode === "string" ? record.stateCode.trim().toUpperCase() : "";
   const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
@@ -122,6 +124,7 @@ export function userHasProfileBasics(user: unknown): boolean {
   return (
     firstName.length > 0 &&
     lastName.length > 0 &&
+    phoneDigits.length >= 10 &&
     stateCode.length === 2 &&
     /^\d{5}$/.test(countyFips)
   );

@@ -1,6 +1,6 @@
 /**
  * Scout Context Analyzer - Phase 3
- * 
+ *
  * This service analyzes Scout's memory and current context to:
  * 1. Identify patterns in user behavior
  * 2. Generate proactive suggestions
@@ -104,7 +104,11 @@ export class ScoutContextAnalyzer {
     }
 
     // Pattern 3: Marketplace browsing for specific categories
-    if (currentIntent.includes("marketplace") || currentIntent.includes("buy") || currentIntent.includes("rent")) {
+    if (
+      currentIntent.includes("marketplace") ||
+      currentIntent.includes("buy") ||
+      currentIntent.includes("rent")
+    ) {
       patterns.push({
         pattern_name: "marketplace_browsing_pattern",
         frequency: 0,
@@ -115,7 +119,11 @@ export class ScoutContextAnalyzer {
     }
 
     // Pattern 4: Community engagement
-    if (currentIntent.includes("community") || currentIntent.includes("group") || currentIntent.includes("hoa")) {
+    if (
+      currentIntent.includes("community") ||
+      currentIntent.includes("group") ||
+      currentIntent.includes("hoa")
+    ) {
       patterns.push({
         pattern_name: "community_engagement_pattern",
         frequency: 0,
@@ -140,14 +148,20 @@ export class ScoutContextAnalyzer {
     const suggestions: string[] = [];
 
     // Suggestion 1: If user is searching for contractors, suggest checking marketplace for materials
-    if (currentIntent.includes("contractor") && patterns.some((p) => p.pattern_name === "contractor_research_pattern")) {
+    if (
+      currentIntent.includes("contractor") &&
+      patterns.some((p) => p.pattern_name === "contractor_research_pattern")
+    ) {
       suggestions.push(
         "Based on your contractor search, would you like to browse marketplace listings for materials or tools you might need?"
       );
     }
 
     // Suggestion 2: If user is creating a project, suggest finding contractors
-    if (currentIntent.includes("project") && patterns.some((p) => p.pattern_name === "project_workflow_pattern")) {
+    if (
+      currentIntent.includes("project") &&
+      patterns.some((p) => p.pattern_name === "project_workflow_pattern")
+    ) {
       suggestions.push(
         "Now that you're creating a project, I can help you find qualified contractors in your area to bid on it."
       );
@@ -269,10 +283,10 @@ export class ScoutContextAnalyzer {
 
     // Strategy 1: Try alternative tool
     if (failedToolName === "search_contractors") {
-      recoveryStrategies.push("Try searching all contractors in your county instead");
+      recoveryStrategies.push("Try searching all contractors in your area instead");
       recoveryStrategies.push("Search the web for contractors in your area");
     } else if (failedToolName === "search_marketplace") {
-      recoveryStrategies.push("Browse all marketplace listings in your county");
+      recoveryStrategies.push("Browse all marketplace listings in your area");
       recoveryStrategies.push("Search the web for similar items");
     }
 

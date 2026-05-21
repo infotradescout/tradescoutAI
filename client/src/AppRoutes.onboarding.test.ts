@@ -36,6 +36,7 @@ describe("AppRoutes onboarding decisions", () => {
     const user = {
       firstName: "Taylor",
       lastName: "Reed",
+      phone: "(555) 222-3333",
       stateCode: "FL",
       countyFips: "12033",
       onboardingCompleted: false,
@@ -53,6 +54,22 @@ describe("AppRoutes onboarding decisions", () => {
     const user = {
       firstName: "",
       lastName: "Reed",
+      stateCode: "FL",
+      countyFips: "12033",
+      onboardingCompleted: false,
+      profileVersion: 0,
+      role: "homeowner",
+    };
+
+    expect(userHasProfileBasics(user)).toBe(false);
+    expect(getOnboardingEntryRoute(user)).toBe("/onboarding/profile");
+  });
+
+  it("keeps users without phone in profile setup", () => {
+    const user = {
+      firstName: "Taylor",
+      lastName: "Reed",
+      phone: "",
       stateCode: "FL",
       countyFips: "12033",
       onboardingCompleted: false,

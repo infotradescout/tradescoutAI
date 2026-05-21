@@ -10,6 +10,12 @@ export interface AppConfig {
   requiresAuth?: boolean;
 }
 
+const BOTTOM_NAV_PRIORITY: Record<string, number> = {
+  community: 100,
+  contractors: 80,
+  marketplace: 70,
+};
+
 export const APPS: Record<string, AppConfig> = {
   dashboard: {
     slug: "dashboard",
@@ -22,7 +28,7 @@ export const APPS: Record<string, AppConfig> = {
   community: {
     slug: "community",
     route: "/community",
-    label: "Local",
+    label: "Local Requests",
     icon: "Users",
     nav: "bottom",
   },
@@ -60,6 +66,13 @@ export const APPS: Record<string, AppConfig> = {
   },
 };
 
-export const BOTTOM_NAV_APPS = Object.values(APPS).filter((app) => app.nav === "bottom");
+export const BOTTOM_NAV_APPS = Object.values(APPS)
+  .filter((app) => app.nav === "bottom")
+  .sort((a, b) => {
+    const ap = BOTTOM_NAV_PRIORITY[a.slug] ?? 0;
+    const bp = BOTTOM_NAV_PRIORITY[b.slug] ?? 0;
+    if (ap !== bp) return bp - ap;
+    return a.label.localeCompare(b.label);
+  });
 
 export const RIGHT_DRAWER_APPS = Object.values(APPS).filter((app) => app.nav === "right");

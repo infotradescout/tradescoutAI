@@ -398,6 +398,32 @@ export const FEATURE_ROUTING_MAP: Record<string, PlatformFeatureRoute> = {
   },
 };
 
+const FEATURE_PRIORITY: Record<string, number> = {
+  community: 100,
+  direct_connect: 90,
+  exchange: 80,
+  supply_run: 70,
+  homescout: 60,
+  jobs_workspace: 55,
+  maps: 40,
+  notes: 20,
+};
+
+const COMMUNITY_PRIORITY_KEYWORDS = [
+  "community",
+  "neighbors",
+  "neighbor",
+  "local",
+  "local requests",
+  "group",
+  "groups",
+  "hoa",
+  "announcement",
+  "announcements",
+  "discussion",
+  "discussions",
+];
+
 function normalizeRole(role?: string): string {
   if (!role) return "";
   return role.trim().toLowerCase();
@@ -466,9 +492,22 @@ export class UnifiedScoutRouter {
     const hasSupplyRunIntent = supplyRunRoute.keywords.some((keyword) =>
       normalized.includes(keyword)
     );
-    const orderedRoutes = hasSupplyRunIntent
-      ? [supplyRunRoute, ...routes.filter((route) => route.featureId !== "supply_run")]
-      : routes;
+    const hasCommunityPriorityIntent = COMMUNITY_PRIORITY_KEYWORDS.some((keyword) =>
+      normalized.includes(keyword)
+    );
+    const orderedRoutes = routes.slice().sort((a, b) => {
+      if (hasSupplyRunIntent) {
+        if (a.featureId === "supply_run") return -1;
+        if (b.featureId === "supply_run") return 1;
+      }
+      if (hasCommunityPriorityIntent) {
+        if (a.featureId === "community") return -1;
+        if (b.featureId === "community") return 1;
+      }
+      const ap = FEATURE_PRIORITY[a.featureId] ?? 0;
+      const bp = FEATURE_PRIORITY[b.featureId] ?? 0;
+      return bp - ap;
+    });
 
     for (const route of orderedRoutes) {
       const matchedKeyword = route.keywords.find((keyword) => normalized.includes(keyword));
@@ -616,7 +655,12 @@ export class UnifiedScoutRouter {
       ? ScoutTrustIntegration.filterFeaturesByTrustGeneric(out, options.trust)
       : out;
 
-    return trustFiltered.sort((a, b) => a.name.localeCompare(b.name));
+    return trustFiltered.sort((a, b) => {
+      const ap = FEATURE_PRIORITY[a.featureId] ?? 0;
+      const bp = FEATURE_PRIORITY[b.featureId] ?? 0;
+      if (ap !== bp) return bp - ap;
+      return a.name.localeCompare(b.name);
+    });
   }
 
   static generateFallbackActions(
@@ -625,8 +669,8 @@ export class UnifiedScoutRouter {
     userContext: UnifiedScoutUserContext
   ): ScoutAction[] {
     const candidates: ScoutAction[] = [
-      { type: "NAVIGATE", to: "/direct-connect", label: "Open Direct Connect" },
       { type: "NAVIGATE", to: "/community", label: "Open Community" },
+      { type: "NAVIGATE", to: "/direct-connect", label: "Open Direct Connect" },
       { type: "NAVIGATE", to: "/exchange", label: "Open Exchange" },
     ];
 

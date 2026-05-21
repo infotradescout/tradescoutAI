@@ -1,7 +1,10 @@
 # TradeScout Documentation Governance Reset
 
 Last updated: 2026-03-20
-Status: Active plan
+Status: active reference (non-roadmap authority)
+Owner: Product/Engineering Docs
+Last verified: 2026-05-20
+Roadmap authority: docs/TRADESCOUT_MASTER_PLAN.md
 Purpose: Restore a trusted documentation layer before additional product work increases drift.
 
 ## Inventory Snapshot

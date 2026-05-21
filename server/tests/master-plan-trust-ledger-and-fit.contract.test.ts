@@ -40,4 +40,14 @@ describe("master plan: trust ledger + provider fit score contracts", () => {
     expect(section).toContain("fromStatus");
     expect(section).toContain("toStatus");
   });
+
+  it("writes trust ledger events for direct-connect requester lifecycle transitions", () => {
+    const directConnect = read("server/routes/direct-connect.ts");
+
+    expect(directConnect).toContain("direct_connect_routed");
+    expect(directConnect).toContain("direct_connect_cancelled");
+    expect(directConnect).toContain("direct_connect_reopened");
+    expect(directConnect).toContain("direct_connect_pending_outcome");
+    expect(directConnect).toContain("direct_connect_completed");
+  });
 });

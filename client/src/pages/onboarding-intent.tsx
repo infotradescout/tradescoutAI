@@ -93,9 +93,11 @@ export default function OnboardingIntent() {
   const skipMutation = useMutation({
     mutationFn: async () => {
       const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
+      const defaultIntent: StartIntent = userIsBusiness ? "business" : "services";
       await apiRequest("PUT", "/api/user/profile", {
         preferences: {
           ...existingPrefs,
+          startIntent: defaultIntent,
           onboardingSkippedAt: new Date().toISOString(),
           onboardingSkippedFrom: "onboarding_intent",
         },
@@ -235,7 +237,7 @@ export default function OnboardingIntent() {
                   )}
                 </div>
                 <p className="mt-1 text-xs text-white/65">
-                  Set up profile, offers, verification, and books.
+                  Set up profile, business modules, offers, verification, and books.
                 </p>
               </button>
 

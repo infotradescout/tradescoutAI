@@ -66,7 +66,7 @@ function buildCommunityDraftTitle(
 
   if (category === "alert") return "Neighborhood alert";
   if (category === "recommendation") return "Looking for trusted local recommendations";
-  return "Question for my county community";
+  return "Question for my local community";
 }
 
 function buildCommunityDraftBody(input: ApplyCommunityBehaviorInput): string {
@@ -78,7 +78,7 @@ function buildCommunityDraftBody(input: ApplyCommunityBehaviorInput): string {
   if (preferred) return preferred;
 
   const fallback = input.message.replace(/\s+/g, " ").trim();
-  return fallback || "Sharing this with my county community for practical guidance.";
+  return fallback || "Sharing this with my local community for practical guidance.";
 }
 
 export function applyCommunityBehaviorOwnership(
@@ -118,7 +118,7 @@ export function applyCommunityBehaviorOwnership(
           type: "ASK_SCOUT",
           label: "Clarify post intent first",
           prompt:
-            "Do you want this as a question, recommendation request, or local alert? I will prefill the full county post immediately.",
+            "Do you want this as a question, recommendation request, or local alert? I will prefill the full local post immediately.",
           subtitle: "Need one quick intent clarification",
           why: "Low confidence community intent",
           primary: true,
@@ -150,7 +150,7 @@ export function applyCommunityBehaviorOwnership(
 
   const primaryAction: CommunityBehaviorAction = {
     type: "PREFILL_INPUT",
-    label: "Start county community post",
+    label: "Start local community post",
     to: "/community?compose=1",
     path: "/community?compose=1",
     subtitle:
@@ -179,7 +179,7 @@ export function applyCommunityBehaviorOwnership(
   if (input.communityPostCount > 0) {
     secondaryActions.push({
       type: "NAVIGATE",
-      label: "Review county community discussion",
+      label: "Review local community discussion",
       to: "/community?tab=for-you",
       path: "/community?tab=for-you",
       subtitle: "Check existing context before posting",

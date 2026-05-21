@@ -3909,6 +3909,9 @@ export async function registerRoutes(app: any) {
         const userId: string = sessionUser?.id || sessionUser?.claims?.sub || "";
 
         if (!userId) return res.status(400).json({ message: "User ID missing" });
+        const existingUser = await storage.getUser(userId);
+        const existingPrefs = ((existingUser as any)?.preferences || {}) as Record<string, any>;
+        const draft = (existingPrefs as any)?.provisional?.profileDraft || {};
 
         const normalizeStringArray = (value: unknown): string[] => {
           if (!Array.isArray(value)) return [];
@@ -3924,20 +3927,68 @@ export async function registerRoutes(app: any) {
 
         const bundles = normalizeStringArray(capabilityBundles);
         const modes = normalizeStringArray(participationModes);
+        const resolvedPresenceType = String(
+          draft?.presenceType ||
+            (bundles.includes("service_provider") || role === "contractor"
+              ? "represent_business"
+              : "personal")
+        ).trim();
+        const resolvedStartIntent = String(
+          existingPrefs.startIntent ||
+            (resolvedPresenceType === "represent_business" ? "business" : "services")
+        ).trim();
+        const resolvedFirstName = String(
+          firstName || (existingUser as any)?.firstName || ""
+        ).trim();
+        const resolvedLastName = String(lastName || (existingUser as any)?.lastName || "").trim();
+        const resolvedPhone = String(phone || (existingUser as any)?.phone || "").trim();
+        const resolvedPhoneDigits = resolvedPhone.replace(/\D+/g, "");
+        const resolvedStateCode = String(
+          state || (existingUser as any)?.stateCode || (draft as any)?.stateCode || ""
+        )
+          .trim()
+          .toUpperCase();
+        const resolvedCountyFips = String(
+          (existingUser as any)?.countyFips || (draft as any)?.countyFips || ""
+        ).trim();
+
+        const missing: string[] = [];
+        if (!resolvedFirstName) missing.push("firstName");
+        if (!resolvedLastName) missing.push("lastName");
+        if (resolvedPhoneDigits.length < 10) missing.push("phone");
+        if (!/^[A-Z]{2}$/.test(resolvedStateCode)) missing.push("stateCode");
+        if (!/^\d{5}$/.test(resolvedCountyFips)) missing.push("countyFips");
+        if (!resolvedStartIntent) missing.push("startIntent");
+        if (missing.length > 0) {
+          return res.status(428).json({
+            code: "ONBOARDING_MINIMUM_REQUIRED",
+            message:
+              "Day-1 onboarding minimum is required before completion: name, phone, location, mode, and intent.",
+            missingFields: missing,
+          });
+        }
 
         // Start with basic profile + geo data
         const updateData: any = {
-          firstName,
-          lastName,
-          phone,
+          firstName: resolvedFirstName,
+          lastName: resolvedLastName,
+          phone: resolvedPhone,
           address,
           city,
           state,
+          stateCode: resolvedStateCode,
           zipCode,
           county,
+          countyFips: resolvedCountyFips,
+          locationCommitted: true,
           onboardingCompleted: true,
           profileVersion: CURRENT_PROFILE_VERSION,
+          preferences: {
+            ...existingPrefs,
+            startIntent: resolvedStartIntent,
+          },
         };
+        const draftBusinessType = String((draft as any)?.businessType || "other");
 
         // If capability bundles are provided, persist them and derive compatible roles
         if (bundles.length > 0) {
@@ -4029,6 +4080,10 @@ export async function registerRoutes(app: any) {
           updateData.licenseNumber = licenseNumber;
           updateData.specialties = specialties;
           updateData.yearsExperience = parseInt(yearsExperience) || 0;
+          updateData.preferences = ensureBusinessOnboardingState(
+            updateData.preferences,
+            draftBusinessType
+          );
         }
 
         await storage.updateUser(userId, updateData);
@@ -5575,6 +5630,116 @@ export async function registerRoutes(app: any) {
   // Auth user endpoint - critical for useAuth hook
   // NOTE: /api/auth/user is defined earlier (canonical) with req.isAuthenticated() checks.
 
+  type BusinessOnboardingModuleId =
+    | "identity_profile"
+    | "service_catalog"
+    | "coverage_availability"
+    | "trust_verification"
+    | "operations_payout";
+
+  type BusinessOnboardingModuleStatus = "not_started" | "in_progress" | "complete";
+
+  type BusinessOnboardingState = {
+    version: 1;
+    businessType: string;
+    startedAt: string;
+    lastUpdatedAt: string;
+    completedAt?: string;
+    modules: Record<BusinessOnboardingModuleId, BusinessOnboardingModuleStatus>;
+  };
+
+  const BUSINESS_ONBOARDING_MODULES: BusinessOnboardingModuleId[] = [
+    "identity_profile",
+    "service_catalog",
+    "coverage_availability",
+    "trust_verification",
+    "operations_payout",
+  ];
+  const BUSINESS_ONBOARDING_STATUS_ORDER: Record<BusinessOnboardingModuleStatus, number> = {
+    not_started: 0,
+    in_progress: 1,
+    complete: 2,
+  };
+  const BUSINESS_ONBOARDING_ALLOWED_NEXT: Record<
+    BusinessOnboardingModuleStatus,
+    BusinessOnboardingModuleStatus[]
+  > = {
+    not_started: ["not_started", "in_progress"],
+    in_progress: ["in_progress", "complete"],
+    complete: ["complete"],
+  };
+  const isDiscoverabilityVerified = (user: any): boolean =>
+    Boolean(
+      user?.verifiedBadge === true ||
+      String(user?.verificationStatus || "")
+        .trim()
+        .toLowerCase() === "approved" ||
+      user?.licenseVerified === true ||
+      user?.addressVerified === true
+    );
+
+  const createBusinessOnboardingState = (businessType: string): BusinessOnboardingState => {
+    const now = new Date().toISOString();
+    return {
+      version: 1,
+      businessType: businessType || "other",
+      startedAt: now,
+      lastUpdatedAt: now,
+      modules: {
+        identity_profile: "not_started",
+        service_catalog: "not_started",
+        coverage_availability: "not_started",
+        trust_verification: "not_started",
+        operations_payout: "not_started",
+      },
+    };
+  };
+
+  const normalizeBusinessOnboardingState = (
+    raw: unknown,
+    fallbackBusinessType: string
+  ): BusinessOnboardingState => {
+    if (!raw || typeof raw !== "object") {
+      return createBusinessOnboardingState(fallbackBusinessType);
+    }
+    const record = raw as Record<string, any>;
+    const now = new Date().toISOString();
+    const base = createBusinessOnboardingState(fallbackBusinessType);
+    const modules = { ...base.modules };
+    for (const moduleId of BUSINESS_ONBOARDING_MODULES) {
+      const candidate = String(record?.modules?.[moduleId] || "").trim();
+      if (candidate === "not_started" || candidate === "in_progress" || candidate === "complete") {
+        modules[moduleId] = candidate;
+      }
+    }
+    const allComplete = BUSINESS_ONBOARDING_MODULES.every(
+      (moduleId) => modules[moduleId] === "complete"
+    );
+    return {
+      version: 1,
+      businessType: String(record.businessType || fallbackBusinessType || "other"),
+      startedAt: String(record.startedAt || now),
+      lastUpdatedAt: String(record.lastUpdatedAt || now),
+      completedAt: allComplete ? String(record.completedAt || now) : undefined,
+      modules,
+    };
+  };
+
+  const ensureBusinessOnboardingState = (
+    existingPreferences: Record<string, any> | null | undefined,
+    businessType: string
+  ): Record<string, any> => {
+    const currentPrefs = existingPreferences || {};
+    const normalized = normalizeBusinessOnboardingState(
+      (currentPrefs as any).businessOnboarding,
+      businessType
+    );
+    return {
+      ...currentPrefs,
+      businessOnboarding: normalized,
+    };
+  };
+
   // User profile routes
   app.get("/api/user/profile", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -5667,6 +5832,170 @@ export async function registerRoutes(app: any) {
     }
   });
 
+  app.get("/api/user/business-onboarding", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const draft = (currentUser as any)?.preferences?.provisional?.profileDraft;
+      const inferredBusinessType = String(
+        (currentUser as any)?.preferences?.businessOnboarding?.businessType ||
+          draft?.businessType ||
+          "other"
+      );
+      const state = normalizeBusinessOnboardingState(
+        (currentUser as any)?.preferences?.businessOnboarding,
+        inferredBusinessType
+      );
+      res.json({ businessOnboarding: state });
+    } catch (error: any) {
+      console.error("Error fetching business onboarding state:", error);
+      res.status(500).json({ message: "Failed to fetch business onboarding state" });
+    }
+  });
+
+  app.patch(
+    "/api/user/business-onboarding",
+    isAuthenticated,
+    async (req: Request, res: Response) => {
+      try {
+        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const currentUser = await storage.getUser(userId);
+        if (!currentUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        const moduleId = String(
+          (req.body as any)?.moduleId || ""
+        ).trim() as BusinessOnboardingModuleId;
+        const nextStatus = String(
+          (req.body as any)?.status || ""
+        ).trim() as BusinessOnboardingModuleStatus;
+        const nextBusinessType = String((req.body as any)?.businessType || "").trim();
+
+        if (!BUSINESS_ONBOARDING_MODULES.includes(moduleId)) {
+          return res.status(400).json({ message: "Invalid moduleId" });
+        }
+        if (!["not_started", "in_progress", "complete"].includes(nextStatus)) {
+          return res.status(400).json({ message: "Invalid status" });
+        }
+
+        const existingPrefs = ((currentUser as any)?.preferences || {}) as Record<string, any>;
+        const roleToken = String((currentUser as any)?.role || "")
+          .trim()
+          .toLowerCase();
+        const roleList: string[] = Array.isArray((currentUser as any)?.roles)
+          ? (currentUser as any).roles
+              .map((r: unknown) =>
+                String(r || "")
+                  .trim()
+                  .toLowerCase()
+              )
+              .filter(Boolean)
+          : [];
+        const isAdminActor =
+          roleToken === "admin" ||
+          roleToken === "super_admin" ||
+          roleList.includes("admin") ||
+          roleList.includes("super_admin");
+        const fallbackBusinessType =
+          nextBusinessType ||
+          String(existingPrefs?.businessOnboarding?.businessType || "") ||
+          String((existingPrefs as any)?.provisional?.profileDraft?.businessType || "other");
+        const state = normalizeBusinessOnboardingState(
+          existingPrefs?.businessOnboarding,
+          fallbackBusinessType
+        );
+        const currentStatus = state.modules[moduleId];
+        if (!isAdminActor) {
+          const allowed = BUSINESS_ONBOARDING_ALLOWED_NEXT[currentStatus] || [currentStatus];
+          if (!allowed.includes(nextStatus)) {
+            return res.status(400).json({
+              message: "Invalid business onboarding transition",
+              moduleId,
+              currentStatus,
+              attemptedStatus: nextStatus,
+              allowedNextStatuses: allowed,
+            });
+          }
+        }
+
+        if (moduleId === "trust_verification" && nextStatus === "complete") {
+          const verified = isDiscoverabilityVerified(currentUser);
+          if (!verified && !isAdminActor) {
+            return res.status(428).json({
+              code: "BUSINESS_VERIFICATION_REQUIRED",
+              message:
+                "Verification is required before trust_verification can be marked complete and discoverability can unlock.",
+              moduleId,
+            });
+          }
+        }
+
+        const modules = { ...state.modules, [moduleId]: nextStatus };
+        const enforceModule = (
+          id: BusinessOnboardingModuleId,
+          status: BusinessOnboardingModuleStatus
+        ) => {
+          const current = modules[id];
+          if (
+            BUSINESS_ONBOARDING_STATUS_ORDER[status] > BUSINESS_ONBOARDING_STATUS_ORDER[current]
+          ) {
+            modules[id] = status;
+          }
+        };
+
+        // Auto-progression from real signals so status is grounded in product truth.
+        const hasIdentityProfile =
+          String((currentUser as any)?.firstName || "").trim().length > 0 &&
+          String((currentUser as any)?.lastName || "").trim().length > 0 &&
+          String((currentUser as any)?.phone || "").replace(/\D+/g, "").length >= 10;
+        const hasCoverageAvailability =
+          /^[A-Z]{2}$/.test(
+            String((currentUser as any)?.stateCode || "")
+              .trim()
+              .toUpperCase()
+          ) && /^\d{5}$/.test(String((currentUser as any)?.countyFips || "").trim());
+        const hasTrustVerification = isDiscoverabilityVerified(currentUser);
+        const hasBusinessProfile = Boolean(await storage.getBusinessProfileByUserId(userId));
+
+        if (hasIdentityProfile) enforceModule("identity_profile", "complete");
+        if (hasBusinessProfile) enforceModule("service_catalog", "in_progress");
+        if (hasCoverageAvailability) enforceModule("coverage_availability", "complete");
+        if (hasTrustVerification) enforceModule("trust_verification", "complete");
+
+        const allComplete = BUSINESS_ONBOARDING_MODULES.every((id) => modules[id] === "complete");
+        const now = new Date().toISOString();
+
+        const updatedState: BusinessOnboardingState = {
+          ...state,
+          businessType: fallbackBusinessType || "other",
+          modules,
+          lastUpdatedAt: now,
+          completedAt: allComplete ? state.completedAt || now : undefined,
+        };
+
+        const updatedPrefs = {
+          ...existingPrefs,
+          businessOnboarding: updatedState,
+        };
+
+        await storage.updateUser(userId, {
+          preferences: updatedPrefs,
+          updatedAt: new Date(),
+        });
+
+        res.json({ businessOnboarding: updatedState });
+      } catch (error: any) {
+        console.error("Error updating business onboarding state:", error);
+        res.status(500).json({ message: "Failed to update business onboarding state" });
+      }
+    }
+  );
+
   app.post(
     "/api/user/complete-onboarding",
     isAuthenticated,
@@ -5683,11 +6012,56 @@ export async function registerRoutes(app: any) {
         const provisional = (currentUser as any)?.preferences?.provisional;
         const draft = provisional?.profileDraft;
 
+        const resolvedFirstName = String(
+          (currentUser as any)?.firstName || (draft as any)?.firstName || ""
+        ).trim();
+        const resolvedLastName = String(
+          (currentUser as any)?.lastName || (draft as any)?.lastName || ""
+        ).trim();
+        const resolvedPhoneRaw = String((currentUser as any)?.phone || (draft as any)?.phone || "");
+        const resolvedPhoneDigits = resolvedPhoneRaw.replace(/\D+/g, "");
+        const resolvedStateCode = String(
+          (currentUser as any)?.stateCode || (draft as any)?.stateCode || ""
+        )
+          .trim()
+          .toUpperCase();
+        const resolvedCountyFips = String(
+          (currentUser as any)?.countyFips || (draft as any)?.countyFips || ""
+        ).trim();
+        const resolvedPresenceType = String((draft as any)?.presenceType || "personal").trim();
+        const resolvedStartIntent = String(
+          (currentUser as any)?.preferences?.startIntent || ""
+        ).trim();
+
+        const missing: string[] = [];
+        if (!resolvedFirstName) missing.push("firstName");
+        if (!resolvedLastName) missing.push("lastName");
+        if (resolvedPhoneDigits.length < 10) missing.push("phone");
+        if (!/^[A-Z]{2}$/.test(resolvedStateCode)) missing.push("stateCode");
+        if (!/^\d{5}$/.test(resolvedCountyFips)) missing.push("countyFips");
+        if (!resolvedStartIntent) missing.push("startIntent");
+
+        if (missing.length > 0) {
+          return res.status(428).json({
+            code: "ONBOARDING_MINIMUM_REQUIRED",
+            message:
+              "Day-1 onboarding minimum is required before completion: name, phone, location, mode, and intent.",
+            missingFields: missing,
+          });
+        }
+
         const promotionPatch: Record<string, unknown> = {
           onboardingCompleted: true,
           profileVersion: CURRENT_PROFILE_VERSION,
           updatedAt: new Date(),
         };
+
+        promotionPatch.firstName = resolvedFirstName;
+        promotionPatch.lastName = resolvedLastName;
+        promotionPatch.phone = resolvedPhoneRaw.trim();
+        promotionPatch.stateCode = resolvedStateCode;
+        promotionPatch.countyFips = resolvedCountyFips;
+        promotionPatch.locationCommitted = true;
 
         if (draft && typeof draft === "object") {
           // Location fields (already promoted by /api/user/preferences PATCH,
@@ -5731,7 +6105,7 @@ export async function registerRoutes(app: any) {
           // Clear the provisional draft now that it has been promoted
           const existingPrefs = (currentUser as any)?.preferences || {};
           const existingProvisional = existingPrefs?.provisional || {};
-          promotionPatch.preferences = {
+          const nextPreferences: Record<string, any> = {
             ...existingPrefs,
             provisional: {
               ...existingProvisional,
@@ -5739,6 +6113,16 @@ export async function registerRoutes(app: any) {
               promotedAt: new Date().toISOString(),
             },
           };
+          if (draft.presenceType === "represent_business") {
+            const businessType = String((draft as any)?.businessType || "other");
+            const withBusinessOnboarding = ensureBusinessOnboardingState(
+              nextPreferences,
+              businessType
+            );
+            promotionPatch.preferences = withBusinessOnboarding;
+          } else {
+            promotionPatch.preferences = nextPreferences;
+          }
         }
 
         const user = await storage.updateUser(userId, promotionPatch as any);
@@ -6275,10 +6659,56 @@ export async function registerRoutes(app: any) {
       if (onboardingCompleted !== true) {
         return res.status(400).json({ message: "Unsupported update" });
       }
+      const currentUser = await storage.getUser(userId);
+      const draft = (currentUser as any)?.preferences?.provisional?.profileDraft || {};
+      const resolvedFirstName = String(
+        (currentUser as any)?.firstName || draft?.firstName || ""
+      ).trim();
+      const resolvedLastName = String(
+        (currentUser as any)?.lastName || draft?.lastName || ""
+      ).trim();
+      const resolvedPhoneRaw = String((currentUser as any)?.phone || draft?.phone || "").trim();
+      const resolvedPhoneDigits = resolvedPhoneRaw.replace(/\D+/g, "");
+      const resolvedStateCode = String((currentUser as any)?.stateCode || draft?.stateCode || "")
+        .trim()
+        .toUpperCase();
+      const resolvedCountyFips = String(
+        (currentUser as any)?.countyFips || draft?.countyFips || ""
+      ).trim();
+      const resolvedStartIntent = String(
+        (currentUser as any)?.preferences?.startIntent || ""
+      ).trim();
+      const missing: string[] = [];
+      if (!resolvedFirstName) missing.push("firstName");
+      if (!resolvedLastName) missing.push("lastName");
+      if (resolvedPhoneDigits.length < 10) missing.push("phone");
+      if (!/^[A-Z]{2}$/.test(resolvedStateCode)) missing.push("stateCode");
+      if (!/^\d{5}$/.test(resolvedCountyFips)) missing.push("countyFips");
+      if (!resolvedStartIntent) missing.push("startIntent");
+      if (missing.length > 0) {
+        return res.status(428).json({
+          code: "ONBOARDING_MINIMUM_REQUIRED",
+          message:
+            "Day-1 onboarding minimum is required before completion: name, phone, location, mode, and intent.",
+          missingFields: missing,
+        });
+      }
 
+      const nextPrefsBase = ((currentUser as any)?.preferences || {}) as Record<string, any>;
+      const nextPrefs =
+        draft?.presenceType === "represent_business"
+          ? ensureBusinessOnboardingState(nextPrefsBase, String(draft?.businessType || "other"))
+          : nextPrefsBase;
       const user = await storage.updateUser(userId, {
+        firstName: resolvedFirstName,
+        lastName: resolvedLastName,
+        phone: resolvedPhoneRaw,
+        stateCode: resolvedStateCode,
+        countyFips: resolvedCountyFips,
+        locationCommitted: true,
         onboardingCompleted: true,
         profileVersion: CURRENT_PROFILE_VERSION,
+        preferences: nextPrefs,
         updatedAt: new Date(),
       });
 
@@ -6864,6 +7294,37 @@ export async function registerRoutes(app: any) {
         const currentUser = await storage.getUser(userId);
         if (!currentUser) {
           return res.status(404).json({ message: "User not found" });
+        }
+        const presenceType = String(
+          (currentUser as any)?.preferences?.provisional?.profileDraft?.presenceType || ""
+        ).trim();
+        const isBusinessAccount =
+          presenceType === "represent_business" ||
+          ["contractor", "business_owner", "service_provider", "property_manager"].includes(
+            String((currentUser as any)?.role || "")
+              .trim()
+              .toLowerCase()
+          );
+        const isBusinessVerifiedForDiscovery =
+          (currentUser as any)?.verifiedBadge === true ||
+          String((currentUser as any)?.verificationStatus || "")
+            .trim()
+            .toLowerCase() === "approved" ||
+          (currentUser as any)?.licenseVerified === true ||
+          (currentUser as any)?.addressVerified === true;
+
+        if (
+          profileVisibility === "public" &&
+          isBusinessAccount &&
+          !isBusinessVerifiedForDiscovery
+        ) {
+          return res.status(428).json({
+            code: "BUSINESS_DISCOVERY_LOCKED",
+            message:
+              "Business discovery is locked until verification is complete. You can continue setup and requests now, but public visibility stays private.",
+            verificationOptional: true,
+            discoverabilityLocked: true,
+          });
         }
 
         // C2-3: Soft gate - offer verification for better visibility (PUBLISH_PUBLIC_PROFILE action)
@@ -21881,7 +22342,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           String(viewerCountyFips) !== String(postCountyFips)
         ) {
           return res.status(403).json({
-            message: "Likes are local-only. Switch to Local to interact with posts in your county.",
+            message: "Likes are local-only. Switch to Local to interact with posts in your area.",
             reasonCode: "GLOBAL_READ_ONLY",
           });
         }
@@ -21922,7 +22383,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           String(viewerCountyFips) !== String(postCountyFips)
         ) {
           return res.status(403).json({
-            message: "Saving is local-only. Switch to Local to interact with posts in your county.",
+            message: "Saving is local-only. Switch to Local to interact with posts in your area.",
             reasonCode: "GLOBAL_READ_ONLY",
           });
         }
@@ -22000,7 +22461,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         ) {
           return res.status(403).json({
             message:
-              "Comments are local-only. Switch to Local to interact with posts in your county.",
+              "Comments are local-only. Switch to Local to interact with posts in your area.",
             reasonCode: "GLOBAL_READ_ONLY",
           });
         }

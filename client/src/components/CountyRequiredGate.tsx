@@ -73,24 +73,26 @@ export function CountyRequiredGate({
       <div className="max-w-2xl mx-auto py-10 px-4">
         <Card className="bg-black/30 border-white/10">
           <CardHeader className="pb-4">
-            <CardTitle className="text-lg md:text-xl text-white">Finalizing your county</CardTitle>
+            <CardTitle className="text-lg md:text-xl text-white">
+              Finalizing your local area
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-white/70">
-              TradeScout has your saved county for{" "}
+              TradeScout has your saved local area for{" "}
               <span className="font-medium text-white">{areaLabel}</span> and is linking it to the
               official county record now.
             </p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <p className="text-xs text-white/60">
-                If this does not update shortly, review your county settings.
+                If this does not update shortly, review your location settings.
               </p>
               <Button
                 type="button"
                 className="bg-ts-orange hover:bg-ts-orange-dark text-black text-xs font-semibold px-4 py-2 rounded-md"
                 asChild
               >
-                <Link href="/settings">Review county</Link>
+                <Link href="/settings">Review location</Link>
               </Button>
             </div>
           </CardContent>
@@ -107,7 +109,7 @@ export function CountyRequiredGate({
             <CardContent className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Set your county for local matching
+                  Set your local area for local matching
                 </p>
                 <p className="text-xs text-white/65">Current context: {areaLabel}</p>
               </div>
@@ -116,7 +118,7 @@ export function CountyRequiredGate({
                 className="bg-ts-orange hover:bg-ts-orange-dark text-black text-xs font-semibold px-4 py-2 rounded-md"
                 asChild
               >
-                <Link href="/settings">Set county</Link>
+                <Link href="/settings">Set location</Link>
               </Button>
             </CardContent>
           </Card>
@@ -130,11 +132,11 @@ export function CountyRequiredGate({
     <div className="max-w-2xl mx-auto py-10 px-4">
       <Card className="bg-black/30 border-white/10">
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg md:text-xl text-white">Set your county</CardTitle>
+          <CardTitle className="text-lg md:text-xl text-white">Set your local area</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-white/70">
-            Choose your county so local results match where you live.
+            Choose your local area so results match where you live.
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <p className="text-xs text-white/60">
@@ -145,7 +147,7 @@ export function CountyRequiredGate({
               className="bg-ts-orange hover:bg-ts-orange-dark text-black text-xs font-semibold px-4 py-2 rounded-md"
               asChild
             >
-              <Link href="/settings">Set your county</Link>
+              <Link href="/settings">Set your location</Link>
             </Button>
           </div>
         </CardContent>
