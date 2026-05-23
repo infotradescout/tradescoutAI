@@ -3300,10 +3300,41 @@ body.ts-scout-active .scout-content {
   padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
 }
 
+.scout-search-dock-fixed {
+  --scout-search-dock-h: 92px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom, 0px));
+  z-index: 85;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  background:
+    linear-gradient(
+      to top,
+      color-mix(in oklab, var(--background) 96%, transparent) 0%,
+      color-mix(in oklab, var(--background) 88%, transparent) 70%,
+      transparent 100%
+    );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
 @media (max-width: 640px) {
   .scout-input-bottom-pin {
     padding-top: 0.65rem;
     padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  }
+
+  .scout-search-dock-fixed {
+    --scout-search-dock-h: 96px;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 1024px) {
+  .scout-search-dock-fixed {
+    bottom: 0.5rem;
   }
 }
 

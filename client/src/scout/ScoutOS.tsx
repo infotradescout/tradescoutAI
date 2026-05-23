@@ -4318,7 +4318,9 @@ export default function ScoutOS() {
             isMobile ? "px-3 pt-2.5 pb-12" : "max-w-7xl px-4 pt-3 pb-8"
           } flex flex-col flex-1 min-h-0`}
           style={{
-            paddingBottom: isMobile ? "calc(3.9rem + env(safe-area-inset-bottom))" : undefined,
+            paddingBottom: isMobile
+              ? "calc(var(--scout-search-dock-h, 92px) + var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom))"
+              : "calc(var(--scout-search-dock-h, 92px) + 1rem)",
           }}
         >
           {/* Main conversation layout: used for all users, including first-time guests. */}
@@ -4335,6 +4337,11 @@ export default function ScoutOS() {
               className={`scout-panel scout-mobile-panel w-full flex flex-col min-h-0 rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
                 isMobile ? "" : showDiscoveryRail ? "flex-1" : "flex-1 max-w-4xl mx-auto"
               }`}
+              style={{
+                paddingBottom: isMobile
+                  ? "calc(var(--scout-search-dock-h, 92px) + var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom))"
+                  : "calc(var(--scout-search-dock-h, 92px) + 0.75rem)",
+              }}
             >
               {/* Keep the main thread clean: move dashboards into an optional side sheet. */}
               {!isMobile && (
@@ -5355,8 +5362,16 @@ export default function ScoutOS() {
                   </Card>
                 )}
               </div>
+            </div>
 
-              <div className="scout-input-bottom-pin order-3">
+            <div className="scout-search-dock-fixed">
+              <div
+                className={
+                  isMobile
+                    ? "mx-auto w-full max-w-[32rem] px-2.5"
+                    : "mx-auto w-full max-w-4xl px-2.5 md:px-4"
+                }
+              >
                 <ScoutInputRow
                   isBusy={isBusy}
                   prefillKey={prefillKey}
