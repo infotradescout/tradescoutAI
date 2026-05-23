@@ -4391,24 +4391,12 @@ export default function ScoutOS() {
               )}
 
               {!hasUserMessages && (
-                <div
-                  className="mt-1 rounded-2xl border p-4"
-                  style={{
-                    borderColor: "var(--border-subtle)",
-                    backgroundColor: "var(--surface-card)",
+                <ScoutHome
+                  onPromptSelect={(text) => {
+                    setHasGuestInteracted(true);
+                    handleSend(text);
                   }}
-                >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Scout intake
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-[color:var(--text-primary)]">
-                    Start with one sentence about what happened.
-                  </h2>
-                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">
-                    Scout will ask one follow-up at a time and only show paths after context is
-                    clear.
-                  </p>
-                </div>
+                />
               )}
 
               {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
