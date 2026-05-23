@@ -4308,7 +4308,7 @@ export default function ScoutOS() {
     },
     [handleClusterAction, localDiscoveryLaunchers, prefillScoutMission]
   );
-  const showDiscoveryRail = !isMobile && !hasUserMessages;
+  const showDiscoveryRail = false;
 
   return (
     <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
@@ -4384,161 +4384,24 @@ export default function ScoutOS() {
               )}
 
               {!hasUserMessages && (
-                <>
-                  <ScoutHome
-                    onPromptSelect={(text) => {
-                      setHasGuestInteracted(true);
-                      handleSend(text);
-                    }}
-                  />
-
-                  {savedThreadPreview.length > 0 && (
-                    <div
-                      className="mt-3 rounded-2xl border p-3"
-                      style={{
-                        borderColor: "var(--border-subtle)",
-                        backgroundColor:
-                          "color-mix(in oklab, var(--surface-card) 94%, transparent)",
-                      }}
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-secondary)]">
-                          Recent Scout conversations
-                        </p>
-                        <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-                          Saved here
-                        </span>
-                      </div>
-                      {savedScoutThreads.length > 2 && (
-                        <div className="mb-2 space-y-2">
-                          <label className="block">
-                            <span className="sr-only">Search saved conversations</span>
-                            <input
-                              type="search"
-                              value={savedScoutSearch}
-                              onChange={(event) => setSavedScoutSearch(event.target.value)}
-                              placeholder="Search saved conversations"
-                              className="w-full rounded-xl border px-3 py-2 text-sm outline-none"
-                              style={{
-                                borderColor: "var(--border-subtle)",
-                                backgroundColor:
-                                  "color-mix(in oklab, var(--surface-deep) 92%, transparent)",
-                                color: "var(--text-primary)",
-                              }}
-                            />
-                          </label>
-                          <div className="flex gap-1 overflow-x-auto pb-1">
-                            {SAVED_SCOUT_SURFACE_FILTERS.map((filter) => (
-                              <button
-                                key={filter.value}
-                                type="button"
-                                onClick={() => setSavedScoutSurfaceFilter(filter.value)}
-                                className="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold"
-                                style={{
-                                  borderColor:
-                                    savedScoutSurfaceFilter === filter.value
-                                      ? "var(--ts-orange)"
-                                      : "var(--border-subtle)",
-                                  color:
-                                    savedScoutSurfaceFilter === filter.value
-                                      ? "var(--ts-orange)"
-                                      : "var(--text-secondary)",
-                                  backgroundColor:
-                                    savedScoutSurfaceFilter === filter.value
-                                      ? "color-mix(in oklab, var(--ts-orange) 12%, transparent)"
-                                      : "transparent",
-                                }}
-                              >
-                                {filter.label}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div className="grid gap-2">
-                        {savedThreadPreview.map((thread) => {
-                          const relatedLabel =
-                            thread.relatedLabel ||
-                            thread.relatedTo?.label ||
-                            relatedLabelFromKind(thread.relatedTo?.kind || "generic");
-                          const relatedPath =
-                            thread.relatedPath ||
-                            (thread.relatedTo ? relatedPathFromRelatedTo(thread.relatedTo) : "") ||
-                            "";
-
-                          return (
-                            <div
-                              key={thread.id}
-                              className="rounded-xl border px-3 py-2"
-                              style={{
-                                borderColor: "var(--border-subtle)",
-                                backgroundColor:
-                                  "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-                                color: "var(--text-primary)",
-                              }}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleLoadSavedThread(thread)}
-                                className="block w-full text-left"
-                              >
-                                <span
-                                  className="mb-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold"
-                                  style={{
-                                    borderColor: "var(--border-subtle)",
-                                    color: "var(--text-secondary)",
-                                  }}
-                                >
-                                  Related to {relatedLabel}
-                                </span>
-                                <span className="block text-sm font-semibold leading-tight">
-                                  {thread.title}
-                                </span>
-                                <span
-                                  className="mt-1 block text-[11px] leading-snug"
-                                  style={{ color: "var(--text-secondary)" }}
-                                >
-                                  {thread.preview}
-                                </span>
-                              </button>
-                              <div className="mt-2 flex items-center gap-3">
-                                {relatedPath && relatedPath !== "/scout" && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (!relatedPath) return;
-                                      if (!maybeOpenWorkAreaForRoute(relatedPath, relatedLabel)) {
-                                        navigate(relatedPath);
-                                      }
-                                    }}
-                                    className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-                                    style={{ color: "var(--ts-orange)" }}
-                                  >
-                                    Open related view
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteSavedThread(thread.id)}
-                                  className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-                                  style={{ color: "var(--text-muted)" }}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {(savedScoutSearch.trim() || savedScoutSurfaceFilter !== "all") &&
-                        savedThreadPreview.length === 0 && (
-                          <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
-                            No saved conversations matched that search.
-                          </p>
-                        )}
-                    </div>
-                  )}
-                </>
+                <div
+                  className="mt-1 rounded-2xl border p-4"
+                  style={{
+                    borderColor: "var(--border-subtle)",
+                    backgroundColor: "var(--surface-card)",
+                  }}
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
+                    Scout intake
+                  </p>
+                  <h2 className="mt-1 text-lg font-semibold text-[color:var(--text-primary)]">
+                    Start with one sentence about what happened.
+                  </h2>
+                  <p className="mt-1 text-sm text-[color:var(--text-muted)]">
+                    Scout will ask one follow-up at a time and only show paths after context is
+                    clear.
+                  </p>
+                </div>
               )}
 
               {/* PHASE 3d-A: Claim Confirmation Card during onboarding */}
