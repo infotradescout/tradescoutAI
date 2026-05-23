@@ -67,16 +67,22 @@ function ContinueRail({
   prompts: Array<{ id: string; text: string; category: string }>;
   onPromptSelect: (text: string) => void;
 }) {
-  const top = prompts.slice(0, 3);
-  if (top.length === 0) return null;
+  const top =
+    prompts.length > 0
+      ? prompts.slice(0, 3)
+      : [
+          {
+            id: "continue-fallback",
+            text: "Start with one clear sentence",
+            category: "Scout will narrow your best local path",
+          },
+        ];
+  const subtitle = localLabel
+    ? `Continue where you left off in ${localLabel}.`
+    : "Continue where you left off.";
   return (
     <section className="space-y-2">
-      <SectionHeader
-        title="Continue"
-        subtitle={
-          localLabel ? `Pick up quickly in ${localLabel}.` : "Pick one clean starting point."
-        }
-      />
+      <SectionHeader title="Continue" subtitle={subtitle} />
       <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         {top.map((item) => (
           <ContinueCard
