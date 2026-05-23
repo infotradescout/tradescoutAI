@@ -5,7 +5,7 @@ import {
   type OpportunityMove,
   type PriceSignal,
 } from "./hooks/useScoutHomeSnapshot";
-import { SCOUT_CAPABILITY_COPY, formatPriceSignalFreshness } from "./scoutExperience";
+import { formatPriceSignalFreshness } from "./scoutExperience";
 
 interface ScoutHomeProps {
   onPromptSelect: (text: string) => void;
@@ -67,29 +67,26 @@ function ContinueRail({
   prompts: Array<{ id: string; text: string; category: string }>;
   onPromptSelect: (text: string) => void;
 }) {
-  const top =
-    prompts.length > 0
-      ? prompts.slice(0, 3)
-      : [
-          {
-            id: "continue-fallback",
-            text: "Start with one clear sentence",
-            category: "Scout will narrow your best local path",
-          },
-        ];
+  const preferred = [
+    { id: "home-project", text: "Home project", category: "Repairs, upgrades, and maintenance" },
+    { id: "vehicle-service", text: "Vehicle service", category: "Service, repairs, and records" },
+    { id: "saved-search", text: "Saved search", category: "Pick up a search you started earlier" },
+    { id: "local-request", text: "Local request", category: "Post or continue a request nearby" },
+  ];
+  const top = prompts.length > 0 ? prompts.slice(0, 4) : preferred;
   const subtitle = localLabel
     ? `Continue where you left off in ${localLabel}.`
     : "Continue where you left off.";
   return (
     <section className="space-y-2">
-      <SectionHeader title="Continue" subtitle={subtitle} />
+      <SectionHeader title="Continue where you left off" subtitle={subtitle} />
       <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         {top.map((item) => (
           <ContinueCard
             key={item.id}
             label={item.text}
             detail={item.category}
-            cta="Use this path"
+            cta="Continue"
             onClick={() => onPromptSelect(item.text)}
           />
         ))}
@@ -124,10 +121,44 @@ function LaneCard({
 }
 
 function PrimaryLaneGrid({ onPromptSelect }: { onPromptSelect: (text: string) => void }) {
-  const lanes = SCOUT_CAPABILITY_COPY.slice(0, 6);
+  const lanes = [
+    {
+      title: "Homes",
+      detail: "Repairs, records, inspections, projects",
+      prompt: "Help me with a home project.",
+    },
+    {
+      title: "Vehicles",
+      detail: "Service, repairs, records, selling",
+      prompt: "Help me with a vehicle service issue.",
+    },
+    {
+      title: "Projects",
+      detail: "Requests, quotes, jobs, updates",
+      prompt: "Help me manage a local project request.",
+    },
+    {
+      title: "Listings",
+      detail: "Tools, materials, vehicles, property",
+      prompt: "Help me with a listing or item search.",
+    },
+    {
+      title: "People",
+      detail: "Local help and saved providers",
+      prompt: "Help me find local people for this work.",
+    },
+    {
+      title: "Community",
+      detail: "Posts, events, nearby activity",
+      prompt: "Show me nearby community activity.",
+    },
+  ];
   return (
     <section className="space-y-2">
-      <SectionHeader title="Primary lanes" subtitle="One lane per intent. No branching yet." />
+      <SectionHeader
+        title="Where do you want to start?"
+        subtitle="Pick the area you need right now."
+      />
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {lanes.map((lane) => (
           <LaneCard
@@ -173,9 +204,16 @@ function SignalRow({
 }
 
 function moveToSignal(move: OpportunityMove) {
+  const textByLabel: Record<string, string> = {
+    "completed-job-demand": "Repair activity is picking up",
+    "homescout-seller-audit": "Home prices shifted nearby",
+    "tradedeals-fast-win": "Local offers are moving",
+    "community-partnership-window": "Events are active this week",
+  };
+  const humanTitle = textByLabel[move.id] || move.title;
   return {
     id: move.id,
-    title: move.title,
+    title: humanTitle,
     detail: move.whyItMatters,
     freshness: `${move.confidence} confidence`,
     prompt: move.prompt,
@@ -208,7 +246,7 @@ function LocalSignalList({
   if (merged.length === 0) return null;
   return (
     <section className="space-y-2">
-      <SectionHeader title="Local signals" subtitle="What changed nearby and what to do next." />
+      <SectionHeader title="Nearby right now" subtitle="What’s moving around you this week." />
       <div className="space-y-2">
         {merged.map((signal) => (
           <SignalRow
@@ -259,16 +297,14 @@ function StatusMetricGrid({
   return (
     <section className="space-y-2">
       <SectionHeader
-        title="Status metrics"
-        subtitle={
-          localLabel ? `Current local baseline for ${localLabel}.` : "Current local baseline."
-        }
+        title="Local snapshot"
+        subtitle={localLabel ? `${localLabel} right now.` : "Right now."}
       />
       <div className="grid grid-cols-2 gap-2">
         <StatusMetricCard label="Listings" value={formatCount(snapshot.activeListings)} />
-        <StatusMetricCard label="Verified pros" value={formatCount(snapshot.verifiedPros)} />
-        <StatusMetricCard label="This week" value={String(snapshot.eventsThisWeek)} />
-        <StatusMetricCard label="Community" value={formatCount(snapshot.communityMembers)} />
+        <StatusMetricCard label="Local help" value={formatCount(snapshot.verifiedPros)} />
+        <StatusMetricCard label="Events" value={String(snapshot.eventsThisWeek)} />
+        <StatusMetricCard label="Members" value={formatCount(snapshot.communityMembers)} />
       </div>
     </section>
   );
