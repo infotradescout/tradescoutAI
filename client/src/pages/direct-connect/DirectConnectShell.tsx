@@ -1057,7 +1057,7 @@ function DirectConnectRequestComposer({
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests", "count"] });
       clearDirectConnectDraft();
-      navigate("/direct-connect/engagements");
+      navigate("/direct-connect/inbox");
     },
     onError: (error: any, _variables: DirectConnectCreateDispatch | undefined) => {
       const variables = _variables ?? {};
@@ -1711,7 +1711,7 @@ function DirectConnectInbox() {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       // After accepting, navigate to the conversation thread so both parties can communicate
       if (variables?.decision === "accept" && data?.conversationId) {
-        window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
+        window.location.href = `/direct-connect/inbox?thread=${encodeURIComponent(String(data.conversationId))}`;
       }
     },
   });
@@ -2066,12 +2066,12 @@ function DirectConnectInbox() {
                   onClick={() => {
                     const threadId = item.conversationThreadId;
                     if (threadId) {
-                      window.location.href = `/messages?thread=${encodeURIComponent(String(threadId))}`;
+                      window.location.href = `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`;
                       return;
                     }
                     window.location.href = request?.id
-                      ? `/messages?tab=requests&requestId=${encodeURIComponent(String(request.id))}`
-                      : "/messages?tab=requests";
+                      ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(request.id))}`
+                      : "/direct-connect/inbox";
                   }}
                 >
                   {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Ask follow-up"}
@@ -2515,10 +2515,10 @@ function MyDirectConnectRequests() {
           if (canMessage) {
             const threadId = r.dcConversationThreadId;
             window.location.href = threadId
-              ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+              ? `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`
               : r.id
-                ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                : "/messages";
+                ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(r.id))}`
+                : "/direct-connect/inbox";
             return;
           }
           setExpandedRequestId((current) => (current === r.id ? null : r.id));
@@ -2795,13 +2795,13 @@ function MyDirectConnectRequests() {
                     onClick={() => {
                       const threadId = r.dcConversationThreadId;
                       window.location.href = threadId
-                        ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                        ? `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`
                         : r.id
-                          ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                          : "/messages";
+                          ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(r.id))}`
+                          : "/direct-connect/inbox";
                     }}
                   >
-                    Open messages
+                    Open inbox
                   </Button>
                 )}
                 {canMarkPendingOutcome && (
@@ -2871,14 +2871,14 @@ function MyDirectConnectRequests() {
                       onClick={() => {
                         const threadId = r.dcConversationThreadId;
                         window.location.href = threadId
-                          ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                          ? `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`
                           : r.id
-                            ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                            : "/messages";
+                            ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(r.id))}`
+                            : "/direct-connect/inbox";
                       }}
                     >
                       <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                      Open messages
+                      Open inbox
                     </Button>
                   )}
                   {canMarkPendingOutcome && (

@@ -305,7 +305,7 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
   const scout = byHref.get("/scout");
   const request = byHref.get("/direct-connect");
   const community = byHref.get(communityHref);
-  const inboxHref = "/messages";
+  const inboxHref = "/direct-connect/inbox";
   const pinnedHrefs = new Set(["/direct-connect", inboxHref, communityHref, "/scout"]);
 
   const primary: NavItem[] = [
@@ -993,7 +993,11 @@ export function AppShell({ children, footer }: AppShellProps) {
                 <button
                   type="button"
                   onClick={() =>
-                    navigate(contactRequestCount > 0 ? "/messages?tab=requests" : "/messages")
+                    navigate(
+                      contactRequestCount > 0
+                        ? "/direct-connect/inbox?filter=requests"
+                        : "/direct-connect/inbox"
+                    )
                   }
                   className="ts-shell-icon-btn relative inline-flex h-8 w-8 items-center justify-center transition hover:opacity-80 focus:outline-none"
                   aria-label="Messages and helpers"
@@ -1321,7 +1325,10 @@ export function AppShell({ children, footer }: AppShellProps) {
                   style={mobileSurfaceCardStyle}
                 >
                   {renderMobileDrawerAction({
-                    href: contactRequestCount > 0 ? "/messages?tab=requests" : "/messages",
+                    href:
+                      contactRequestCount > 0
+                        ? "/direct-connect/inbox?filter=requests"
+                        : "/direct-connect/inbox",
                     icon: <MessageCircle className="h-4 w-4" style={mobileDrawerIconStyle} />,
                     label: "Messages",
                     ...(contactRequestCount > 0

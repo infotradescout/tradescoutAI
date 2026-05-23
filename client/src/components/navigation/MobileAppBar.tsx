@@ -17,12 +17,12 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
   const pathOnly = location.split("?")[0].split("#")[0];
 
   const doesItemMatch = (item: NavItem) => {
-    if (item.href === "/direct-connect/engagements") {
+    if (item.href === "/direct-connect/inbox") {
       return (
         pathOnly === item.href ||
         pathOnly.startsWith(item.href + "/") ||
-        pathOnly === "/direct-connect/inbox" ||
-        pathOnly.startsWith("/direct-connect/inbox/")
+        pathOnly === "/direct-connect/engagements" ||
+        pathOnly.startsWith("/direct-connect/engagements/")
       );
     }
 
