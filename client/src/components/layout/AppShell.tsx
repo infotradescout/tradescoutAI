@@ -310,9 +310,13 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
 
   const primary: NavItem[] = [
     request
-      ? { ...request, label: "Ask", description: "Ask local people and businesses for help." }
+      ? {
+          ...request,
+          label: "Direct Connect",
+          description: "Ask local people and businesses for help.",
+        }
       : {
-          label: "Ask",
+          label: "Direct Connect",
           href: "/direct-connect",
           icon: (
             <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
