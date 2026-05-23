@@ -94,6 +94,8 @@ const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user) return;
 
+    if (hasAdminUiAccess(user)) return;
+
     const raw = String(location || "/");
     const restIdx = raw.search(/[?#]/);
     const pathOnly = (restIdx >= 0 ? raw.slice(0, restIdx) : raw).replace(/\/+$/, "") || "/";
