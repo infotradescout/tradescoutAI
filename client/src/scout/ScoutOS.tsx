@@ -54,7 +54,6 @@ import {
   Wrench,
 } from "lucide-react";
 import { getHelpLink } from "./helpSources";
-import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
 import ScoutSearchDock from "./ScoutSearchDock";
 import { scoutActionTiles } from "./scoutActionTiles";
@@ -4397,6 +4396,16 @@ export default function ScoutOS() {
                     setHasGuestInteracted(true);
                     handleSend(text);
                   }}
+                  continuationThreads={savedThreadPreview.map((thread) => ({
+                    id: thread.id,
+                    title: thread.title,
+                    summary: thread.summary,
+                    preview: thread.preview,
+                    intent: thread.intent,
+                    relatedLabel: thread.relatedLabel,
+                    messageCount: thread.messageCount,
+                    relatedTo: thread.relatedTo,
+                  }))}
                 />
               )}
 

@@ -29,9 +29,8 @@ const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 const AUTO_DEMO_START_DELAY_MS = 600;
 const AUTO_DEMO_TYPE_DELAY_MS = 45;
 const AUTO_DEMO_SEND_DELAY_MS = 400;
-const SCOUT_INPUT_ACTION_HINT = "Ask, Compare, Choose";
-const SCOUT_INPUT_ACCESSIBLE_PROMPT =
-  "Tell Scout what happened, what you need, or what you’re trying to figure out.";
+const SCOUT_INPUT_ACTION_HINT = "Search by intent";
+const SCOUT_INPUT_ACCESSIBLE_PROMPT = "Search homes, jobs, listings, prices, people, or places.";
 
 export function ScoutInputRow({
   isBusy,
@@ -229,7 +228,7 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Tell Scout what happened..."
+          placeholder="Search homes, jobs, listings, prices, people, or places..."
           rows={1}
           className="scout-command-bar__input"
           aria-label={SCOUT_INPUT_ACCESSIBLE_PROMPT}
