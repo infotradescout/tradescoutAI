@@ -81,6 +81,21 @@ describe("AppRoutes onboarding decisions", () => {
     expect(getOnboardingEntryRoute(user)).toBe("/onboarding/profile");
   });
 
+  it("accepts full name when split first/last fields are not present", () => {
+    const user = {
+      name: "Taylor Reed",
+      phone: "(555) 222-3333",
+      stateCode: "FL",
+      countyFips: "12033",
+      onboardingCompleted: false,
+      profileVersion: 0,
+      role: "homeowner",
+    };
+
+    expect(userHasProfileBasics(user)).toBe(true);
+    expect(getOnboardingEntryRoute(user)).toBe("/onboarding/intent");
+  });
+
   it("routes fully onboarded admins to admin", () => {
     const user = {
       onboardingCompleted: true,

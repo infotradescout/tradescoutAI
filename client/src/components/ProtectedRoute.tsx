@@ -4,7 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { SkeletonBlock } from "@/components/ui/states";
 import { isAdminTier, isSuperAdminLike as isSuperAdminRoleLike } from "@/lib/roleChecks";
 import {
+  getBusinessOnboardingRoute,
   getOnboardingEntryRoute,
+  isBusinessOnboardingAllowedPath,
   isOnboardingExemptPath,
   userNeedsOnboarding,
 } from "@/lib/postOnboardingRoute";
@@ -87,11 +89,22 @@ export function ProtectedRoute({
     const pathOnly = (location || "/").split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
 
     const isSetupRoute = isOnboardingExemptPath(pathOnly) || location.startsWith("/profile-setup");
+    const businessOnboardingExempt = isBusinessOnboardingAllowedPath(
+      pathOnly,
+      (user as Record<string, any>) || null
+    );
 
     if (!isAdmin && !isSuperAdminLike && user && needsOnboarding && !isSetupRoute) {
       const next = encodeURIComponent(location || "/");
       setLocation(`${getOnboardingEntryRoute(user)}?next=${next}`);
       return;
+    }
+    if (!isAdmin && !isSuperAdminLike && user && !needsOnboarding && !businessOnboardingExempt) {
+      const businessTarget = getBusinessOnboardingRoute(user as Record<string, any>);
+      if (businessTarget && location !== businessTarget) {
+        setLocation(businessTarget);
+        return;
+      }
     }
 
     // Check access permissions

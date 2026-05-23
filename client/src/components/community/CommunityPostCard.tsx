@@ -353,7 +353,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
   const localityLabel = (() => {
     if (post.audienceScope === "county" || (post.location || "").toLowerCase().includes("county")) {
-      return "County-wide";
+      return "Area-wide";
     }
     if (typeof post.distanceMiles === "number" && post.distanceMiles > 0) {
       return `${Math.round(post.distanceMiles)} miles away`;

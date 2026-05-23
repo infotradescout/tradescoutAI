@@ -3941,6 +3941,18 @@ export async function registerRoutes(app: any) {
           firstName || (existingUser as any)?.firstName || ""
         ).trim();
         const resolvedLastName = String(lastName || (existingUser as any)?.lastName || "").trim();
+        const resolvedFullName = String(
+          (req.body as any)?.name ||
+            (existingUser as any)?.name ||
+            (existingUser as any)?.displayName ||
+            (draft as any)?.name ||
+            (draft as any)?.displayName ||
+            ""
+        ).trim();
+        const fullNameParts = resolvedFullName.split(/\s+/).filter(Boolean);
+        const effectiveFirstName = resolvedFirstName || fullNameParts[0] || "";
+        const effectiveLastName =
+          resolvedLastName || (fullNameParts.length > 1 ? fullNameParts.slice(1).join(" ") : "");
         const resolvedPhone = String(phone || (existingUser as any)?.phone || "").trim();
         const resolvedPhoneDigits = resolvedPhone.replace(/\D+/g, "");
         const resolvedStateCode = String(
@@ -3953,8 +3965,7 @@ export async function registerRoutes(app: any) {
         ).trim();
 
         const missing: string[] = [];
-        if (!resolvedFirstName) missing.push("firstName");
-        if (!resolvedLastName) missing.push("lastName");
+        if (!effectiveFirstName) missing.push("name");
         if (resolvedPhoneDigits.length < 10) missing.push("phone");
         if (!/^[A-Z]{2}$/.test(resolvedStateCode)) missing.push("stateCode");
         if (!/^\d{5}$/.test(resolvedCountyFips)) missing.push("countyFips");
@@ -3970,8 +3981,8 @@ export async function registerRoutes(app: any) {
 
         // Start with basic profile + geo data
         const updateData: any = {
-          firstName: resolvedFirstName,
-          lastName: resolvedLastName,
+          firstName: effectiveFirstName,
+          lastName: effectiveLastName,
           phone: resolvedPhone,
           address,
           city,
@@ -4160,6 +4171,7 @@ export async function registerRoutes(app: any) {
       }
 
       user = await attachLatestTrustSnapshotToUser(user);
+      user = await syncBusinessOnboardingFromSignals(user);
 
       const completedSetupBackfill = getCompletedSetupBackfillPatch(user);
       if (completedSetupBackfill) {
@@ -4365,9 +4377,10 @@ export async function registerRoutes(app: any) {
             const updated = await attachLatestTrustSnapshotToUser(
               await storage.setUserActiveProfile(userId, profiles[0].id)
             );
+            const synced = await syncBusinessOnboardingFromSignals(updated);
             res.json({
               authenticated: true,
-              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(updated))),
+              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(synced))),
             });
             return;
           }
@@ -4387,9 +4400,10 @@ export async function registerRoutes(app: any) {
             const updated = await attachLatestTrustSnapshotToUser(
               await storage.setUserActiveBusiness(userId, businesses[0].id)
             );
+            const synced = await syncBusinessOnboardingFromSignals(updated);
             res.json({
               authenticated: true,
-              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(updated))),
+              user: buildAuthUserPayload(mergeSessionAuthority(applyImpersonation(synced))),
             });
             return;
           }
@@ -5677,6 +5691,16 @@ export async function registerRoutes(app: any) {
       user?.licenseVerified === true ||
       user?.addressVerified === true
     );
+  const isMissingBooksFoundationTable = (error: unknown): boolean => {
+    const message = String((error as any)?.message || "").toLowerCase();
+    return (
+      message.includes('relation "accounting_profiles" does not exist') ||
+      message.includes('relation "accounting_accounts" does not exist') ||
+      message.includes('relation "accounting_journal_entries" does not exist') ||
+      message.includes('relation "accounting_automation_events" does not exist') ||
+      (error as any)?.code === "42P01"
+    );
+  };
 
   const createBusinessOnboardingState = (businessType: string): BusinessOnboardingState => {
     const now = new Date().toISOString();
@@ -5738,6 +5762,246 @@ export async function registerRoutes(app: any) {
       ...currentPrefs,
       businessOnboarding: normalized,
     };
+  };
+  const recordBusinessOnboardingTransitionEvents = async (input: {
+    userId: string;
+    actorUserId: string;
+    source:
+      | "auth_user_fetch_sync"
+      | "business_onboarding_read_sync"
+      | "business_onboarding_manual_update";
+    beforeModules: Record<BusinessOnboardingModuleId, BusinessOnboardingModuleStatus>;
+    afterModules: Record<BusinessOnboardingModuleId, BusinessOnboardingModuleStatus>;
+  }) => {
+    const nowIso = new Date().toISOString();
+    for (const moduleId of BUSINESS_ONBOARDING_MODULES) {
+      const fromStatus = input.beforeModules[moduleId];
+      const toStatus = input.afterModules[moduleId];
+      if (fromStatus === toStatus) continue;
+      await storage.logEvent("business_onboarding.module_transition", {
+        userId: input.userId,
+        actorUserId: input.actorUserId,
+        source: input.source,
+        moduleId,
+        fromStatus,
+        toStatus,
+        transitionedAt: nowIso,
+      });
+    }
+  };
+  const syncBusinessOnboardingFromSignals = async (
+    user: any,
+    source: "auth_user_fetch_sync" | "business_onboarding_read_sync" = "auth_user_fetch_sync"
+  ): Promise<any> => {
+    if (!user || typeof user !== "object" || !user.id) return user;
+
+    const roleToken = String(user.role || "")
+      .trim()
+      .toLowerCase();
+    const roles: string[] = Array.isArray(user.roles)
+      ? user.roles
+          .map((r: unknown) =>
+            String(r || "")
+              .trim()
+              .toLowerCase()
+          )
+          .filter(Boolean)
+      : [];
+    const capabilityBundles: string[] = Array.isArray(user.capabilityBundles)
+      ? user.capabilityBundles
+          .map((r: unknown) =>
+            String(r || "")
+              .trim()
+              .toLowerCase()
+          )
+          .filter(Boolean)
+      : [];
+    const draftPresenceType = String(
+      user?.preferences?.provisional?.profileDraft?.presenceType || ""
+    ).trim();
+    const isBusinessUser =
+      draftPresenceType === "represent_business" ||
+      [
+        "contractor",
+        "business_owner",
+        "property_manager",
+        "service_provider",
+        "realtor",
+        "mortgage_broker",
+        "insurance_agent",
+        "title_company",
+        "car_dealer",
+        "auto_service",
+      ].includes(roleToken) ||
+      roles.some((role) =>
+        ["contractor", "business_owner", "property_manager", "service_provider"].includes(role)
+      ) ||
+      capabilityBundles.some((bundle) =>
+        ["service_provider", "property_operator", "local_seller", "organization_admin"].includes(
+          bundle
+        )
+      );
+
+    if (!isBusinessUser) return user;
+
+    const userId = String(user.id);
+    const existingPrefs = ((user as any)?.preferences || {}) as Record<string, any>;
+    const fallbackBusinessType =
+      String(existingPrefs?.businessOnboarding?.businessType || "").trim() ||
+      String((existingPrefs as any)?.provisional?.profileDraft?.businessType || "other");
+    const normalized = normalizeBusinessOnboardingState(
+      existingPrefs?.businessOnboarding,
+      fallbackBusinessType
+    );
+    const modules = { ...normalized.modules };
+    const enforceModule = (
+      id: BusinessOnboardingModuleId,
+      status: BusinessOnboardingModuleStatus
+    ) => {
+      const current = modules[id];
+      if (BUSINESS_ONBOARDING_STATUS_ORDER[status] > BUSINESS_ONBOARDING_STATUS_ORDER[current]) {
+        modules[id] = status;
+      }
+    };
+
+    const hasIdentityProfile =
+      String((user as any)?.firstName || "").trim().length > 0 &&
+      String((user as any)?.lastName || "").trim().length > 0 &&
+      String((user as any)?.phone || "").replace(/\D+/g, "").length >= 10;
+    const hasCoverageAvailability =
+      /^[A-Z]{2}$/.test(
+        String((user as any)?.stateCode || "")
+          .trim()
+          .toUpperCase()
+      ) && /^\d{5}$/.test(String((user as any)?.countyFips || "").trim());
+    const hasTrustVerification = isDiscoverabilityVerified(user);
+    const hasBusinessProfile = Boolean(await storage.getBusinessProfileByUserId(userId));
+
+    let activeProfileOfferCount = 0;
+    try {
+      const profileOffersResult = await pool.query(
+        `SELECT COUNT(*)::int AS count
+           FROM profile_offers
+          WHERE seller_user_id = $1
+            AND is_active = true`,
+        [userId]
+      );
+      activeProfileOfferCount = Number(profileOffersResult.rows?.[0]?.count || 0);
+    } catch (error) {
+      const message = String((error as any)?.message || "").toLowerCase();
+      if (!(message.includes("profile_offers") || (error as any)?.code === "42P01")) {
+        throw error;
+      }
+    }
+
+    let booksCounts = {
+      accounts: 0,
+      journalEntries: 0,
+      postedEntries: 0,
+      proposedAutomation: 0,
+    };
+    try {
+      const booksResult = await pool.query(
+        `SELECT
+           (SELECT COUNT(*)::int
+              FROM accounting_accounts aa
+             WHERE aa.profile_id = ap.id
+               AND aa.is_active = true) AS account_count,
+           (SELECT COUNT(*)::int
+              FROM accounting_journal_entries aje
+             WHERE aje.profile_id = ap.id) AS journal_entry_count,
+           (SELECT COUNT(*)::int
+              FROM accounting_journal_entries aje
+             WHERE aje.profile_id = ap.id
+               AND aje.status = 'posted') AS posted_entry_count,
+           (SELECT COUNT(*)::int
+              FROM accounting_automation_events aae
+             WHERE aae.requester_user_id = $1
+               AND aae.automation_state = 'proposed') AS proposed_automation_count
+          FROM accounting_profiles ap
+         WHERE ap.created_by = $1
+         LIMIT 1`,
+        [userId]
+      );
+      const row = booksResult.rows?.[0] || {};
+      booksCounts = {
+        accounts: Number(row.account_count || 0),
+        journalEntries: Number(row.journal_entry_count || 0),
+        postedEntries: Number(row.posted_entry_count || 0),
+        proposedAutomation: Number(row.proposed_automation_count || 0),
+      };
+    } catch (error) {
+      const message = String((error as any)?.message || "").toLowerCase();
+      if (
+        !(
+          message.includes("accounting_profiles") ||
+          message.includes("accounting_accounts") ||
+          message.includes("accounting_journal_entries") ||
+          message.includes("accounting_automation_events") ||
+          (error as any)?.code === "42P01"
+        )
+      ) {
+        throw error;
+      }
+    }
+
+    if (hasIdentityProfile) enforceModule("identity_profile", "complete");
+    if (hasBusinessProfile || activeProfileOfferCount > 0)
+      enforceModule("service_catalog", "in_progress");
+    if (activeProfileOfferCount > 0) enforceModule("service_catalog", "complete");
+    if (hasCoverageAvailability) enforceModule("coverage_availability", "complete");
+    if (hasTrustVerification) enforceModule("trust_verification", "complete");
+    if (
+      booksCounts.accounts > 0 ||
+      booksCounts.journalEntries > 0 ||
+      booksCounts.proposedAutomation > 0
+    ) {
+      enforceModule("operations_payout", "in_progress");
+    }
+    if (booksCounts.accounts > 0 && booksCounts.postedEntries > 0) {
+      enforceModule("operations_payout", "complete");
+    }
+
+    const unchanged = BUSINESS_ONBOARDING_MODULES.every(
+      (moduleId) => normalized.modules[moduleId] === modules[moduleId]
+    );
+    if (unchanged && normalized.businessType === fallbackBusinessType) return user;
+
+    const now = new Date().toISOString();
+    const allComplete = BUSINESS_ONBOARDING_MODULES.every(
+      (moduleId) => modules[moduleId] === "complete"
+    );
+    const updatedState: BusinessOnboardingState = {
+      ...normalized,
+      businessType: fallbackBusinessType || "other",
+      modules,
+      lastUpdatedAt: now,
+      completedAt: allComplete ? normalized.completedAt || now : undefined,
+    };
+
+    const updated = await storage.updateUser(userId, {
+      preferences: {
+        ...existingPrefs,
+        businessOnboarding: updatedState,
+      },
+      updatedAt: new Date(),
+    } as any);
+    try {
+      await recordBusinessOnboardingTransitionEvents({
+        userId,
+        actorUserId: userId,
+        source,
+        beforeModules: normalized.modules,
+        afterModules: updatedState.modules,
+      });
+    } catch (eventError) {
+      console.warn("[business-onboarding] transition event logging skipped during sync", {
+        userId,
+        source,
+        error: eventError,
+      });
+    }
+    return updated || user;
   };
 
   // User profile routes
@@ -5835,10 +6099,15 @@ export async function registerRoutes(app: any) {
   app.get("/api/user/business-onboarding", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const currentUser = await storage.getUser(userId);
+      let currentUser = await storage.getUser(userId);
       if (!currentUser) {
         return res.status(404).json({ message: "User not found" });
       }
+      currentUser = await attachLatestTrustSnapshotToUser(currentUser);
+      currentUser = await syncBusinessOnboardingFromSignals(
+        currentUser,
+        "business_onboarding_read_sync"
+      );
 
       const draft = (currentUser as any)?.preferences?.provisional?.profileDraft;
       const inferredBusinessType = String(
@@ -5961,11 +6230,83 @@ export async function registerRoutes(app: any) {
           ) && /^\d{5}$/.test(String((currentUser as any)?.countyFips || "").trim());
         const hasTrustVerification = isDiscoverabilityVerified(currentUser);
         const hasBusinessProfile = Boolean(await storage.getBusinessProfileByUserId(userId));
+        let activeProfileOfferCount = 0;
+        try {
+          const profileOffersResult = await pool.query(
+            `SELECT COUNT(*)::int AS count
+               FROM profile_offers
+              WHERE seller_user_id = $1
+                AND is_active = true`,
+            [userId]
+          );
+          activeProfileOfferCount = Number(profileOffersResult.rows?.[0]?.count || 0);
+        } catch (error) {
+          if (!isMissingProfileOffersTable(error)) {
+            throw error;
+          }
+        }
+
+        let booksCounts = {
+          accounts: 0,
+          journalEntries: 0,
+          postedEntries: 0,
+          proposedAutomation: 0,
+        };
+        try {
+          const booksResult = await pool.query(
+            `SELECT
+               (SELECT COUNT(*)::int
+                  FROM accounting_accounts aa
+                 WHERE aa.profile_id = ap.id
+                   AND aa.is_active = true) AS account_count,
+               (SELECT COUNT(*)::int
+                  FROM accounting_journal_entries aje
+                 WHERE aje.profile_id = ap.id) AS journal_entry_count,
+               (SELECT COUNT(*)::int
+                  FROM accounting_journal_entries aje
+                 WHERE aje.profile_id = ap.id
+                   AND aje.status = 'posted') AS posted_entry_count,
+               (SELECT COUNT(*)::int
+                  FROM accounting_automation_events aae
+                 WHERE aae.requester_user_id = $1
+                   AND aae.automation_state = 'proposed') AS proposed_automation_count
+              FROM accounting_profiles ap
+             WHERE ap.created_by = $1
+             LIMIT 1`,
+            [userId]
+          );
+          const row = booksResult.rows?.[0] || {};
+          booksCounts = {
+            accounts: Number(row.account_count || 0),
+            journalEntries: Number(row.journal_entry_count || 0),
+            postedEntries: Number(row.posted_entry_count || 0),
+            proposedAutomation: Number(row.proposed_automation_count || 0),
+          };
+        } catch (error) {
+          if (!isMissingBooksFoundationTable(error)) {
+            throw error;
+          }
+        }
 
         if (hasIdentityProfile) enforceModule("identity_profile", "complete");
-        if (hasBusinessProfile) enforceModule("service_catalog", "in_progress");
+        if (hasBusinessProfile || activeProfileOfferCount > 0) {
+          enforceModule("service_catalog", "in_progress");
+        }
+        if (activeProfileOfferCount > 0) {
+          enforceModule("service_catalog", "complete");
+        }
         if (hasCoverageAvailability) enforceModule("coverage_availability", "complete");
         if (hasTrustVerification) enforceModule("trust_verification", "complete");
+        if (
+          booksCounts.accounts > 0 ||
+          booksCounts.journalEntries > 0 ||
+          booksCounts.proposedAutomation > 0
+        ) {
+          enforceModule("operations_payout", "in_progress");
+        }
+        if (booksCounts.accounts > 0 && booksCounts.postedEntries > 0) {
+          enforceModule("operations_payout", "complete");
+        }
 
         const allComplete = BUSINESS_ONBOARDING_MODULES.every((id) => modules[id] === "complete");
         const now = new Date().toISOString();
@@ -5987,6 +6328,21 @@ export async function registerRoutes(app: any) {
           preferences: updatedPrefs,
           updatedAt: new Date(),
         });
+        try {
+          await recordBusinessOnboardingTransitionEvents({
+            userId,
+            actorUserId: userId,
+            source: "business_onboarding_manual_update",
+            beforeModules: state.modules,
+            afterModules: updatedState.modules,
+          });
+        } catch (eventError) {
+          console.warn("[business-onboarding] transition event logging skipped on manual update", {
+            userId,
+            moduleId,
+            error: eventError,
+          });
+        }
 
         res.json({ businessOnboarding: updatedState });
       } catch (error: any) {
@@ -6018,6 +6374,17 @@ export async function registerRoutes(app: any) {
         const resolvedLastName = String(
           (currentUser as any)?.lastName || (draft as any)?.lastName || ""
         ).trim();
+        const resolvedFullName = String(
+          (currentUser as any)?.name ||
+            (currentUser as any)?.displayName ||
+            (draft as any)?.name ||
+            (draft as any)?.displayName ||
+            ""
+        ).trim();
+        const fullNameParts = resolvedFullName.split(/\s+/).filter(Boolean);
+        const effectiveFirstName = resolvedFirstName || fullNameParts[0] || "";
+        const effectiveLastName =
+          resolvedLastName || (fullNameParts.length > 1 ? fullNameParts.slice(1).join(" ") : "");
         const resolvedPhoneRaw = String((currentUser as any)?.phone || (draft as any)?.phone || "");
         const resolvedPhoneDigits = resolvedPhoneRaw.replace(/\D+/g, "");
         const resolvedStateCode = String(
@@ -6034,8 +6401,7 @@ export async function registerRoutes(app: any) {
         ).trim();
 
         const missing: string[] = [];
-        if (!resolvedFirstName) missing.push("firstName");
-        if (!resolvedLastName) missing.push("lastName");
+        if (!effectiveFirstName) missing.push("name");
         if (resolvedPhoneDigits.length < 10) missing.push("phone");
         if (!/^[A-Z]{2}$/.test(resolvedStateCode)) missing.push("stateCode");
         if (!/^\d{5}$/.test(resolvedCountyFips)) missing.push("countyFips");
@@ -6056,8 +6422,8 @@ export async function registerRoutes(app: any) {
           updatedAt: new Date(),
         };
 
-        promotionPatch.firstName = resolvedFirstName;
-        promotionPatch.lastName = resolvedLastName;
+        promotionPatch.firstName = effectiveFirstName;
+        promotionPatch.lastName = effectiveLastName;
         promotionPatch.phone = resolvedPhoneRaw.trim();
         promotionPatch.stateCode = resolvedStateCode;
         promotionPatch.countyFips = resolvedCountyFips;
@@ -6667,6 +7033,17 @@ export async function registerRoutes(app: any) {
       const resolvedLastName = String(
         (currentUser as any)?.lastName || draft?.lastName || ""
       ).trim();
+      const resolvedFullName = String(
+        (currentUser as any)?.name ||
+          (currentUser as any)?.displayName ||
+          draft?.name ||
+          draft?.displayName ||
+          ""
+      ).trim();
+      const fullNameParts = resolvedFullName.split(/\s+/).filter(Boolean);
+      const effectiveFirstName = resolvedFirstName || fullNameParts[0] || "";
+      const effectiveLastName =
+        resolvedLastName || (fullNameParts.length > 1 ? fullNameParts.slice(1).join(" ") : "");
       const resolvedPhoneRaw = String((currentUser as any)?.phone || draft?.phone || "").trim();
       const resolvedPhoneDigits = resolvedPhoneRaw.replace(/\D+/g, "");
       const resolvedStateCode = String((currentUser as any)?.stateCode || draft?.stateCode || "")
@@ -6679,8 +7056,7 @@ export async function registerRoutes(app: any) {
         (currentUser as any)?.preferences?.startIntent || ""
       ).trim();
       const missing: string[] = [];
-      if (!resolvedFirstName) missing.push("firstName");
-      if (!resolvedLastName) missing.push("lastName");
+      if (!effectiveFirstName) missing.push("name");
       if (resolvedPhoneDigits.length < 10) missing.push("phone");
       if (!/^[A-Z]{2}$/.test(resolvedStateCode)) missing.push("stateCode");
       if (!/^\d{5}$/.test(resolvedCountyFips)) missing.push("countyFips");
@@ -6700,8 +7076,8 @@ export async function registerRoutes(app: any) {
           ? ensureBusinessOnboardingState(nextPrefsBase, String(draft?.businessType || "other"))
           : nextPrefsBase;
       const user = await storage.updateUser(userId, {
-        firstName: resolvedFirstName,
-        lastName: resolvedLastName,
+        firstName: effectiveFirstName,
+        lastName: effectiveLastName,
         phone: resolvedPhoneRaw,
         stateCode: resolvedStateCode,
         countyFips: resolvedCountyFips,
@@ -10653,6 +11029,25 @@ export async function registerRoutes(app: any) {
     }
     return false;
   };
+  const hasBusinessOnboardingAnalyticsAccess = (user: any): boolean => {
+    if (!user) return false;
+    const roles = [
+      normalizeAdminRoleToken(user?.role),
+      normalizeAdminRoleToken(user?.activeRole),
+      ...(Array.isArray(user?.roles)
+        ? user.roles.map((value: unknown) => normalizeAdminRoleToken(value))
+        : []),
+    ].filter(Boolean);
+    const roleSet = new Set(roles);
+    return (
+      user?.isAdmin === true ||
+      user?.isSuperAdmin === true ||
+      roleSet.has("super_admin") ||
+      roleSet.has("ops_admin") ||
+      roleSet.has("moderator") ||
+      roleSet.has("analytics_specialist")
+    );
+  };
 
   const validateAdminWriteSafety = (
     body: any,
@@ -10776,6 +11171,104 @@ export async function registerRoutes(app: any) {
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
+
+  app.get(
+    "/api/admin/business-onboarding/telemetry",
+    isAuthenticated,
+    async (req: any, res: any) => {
+      try {
+        const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "");
+        const actor = await storage.getUser(userId);
+        if (!hasBusinessOnboardingAnalyticsAccess(actor)) {
+          return res.status(403).json({ message: "Admin analytics access required" });
+        }
+
+        const lookbackDaysRaw = Number(req.query.days || 14);
+        const lookbackDays = Number.isFinite(lookbackDaysRaw)
+          ? Math.min(Math.max(Math.floor(lookbackDaysRaw), 1), 60)
+          : 14;
+
+        const moduleStatusRows = await pool.query(
+          `SELECT
+            COALESCE((u.preferences #>> '{businessOnboarding,modules,identity_profile}'), 'not_started') AS identity_profile,
+            COALESCE((u.preferences #>> '{businessOnboarding,modules,service_catalog}'), 'not_started') AS service_catalog,
+            COALESCE((u.preferences #>> '{businessOnboarding,modules,coverage_availability}'), 'not_started') AS coverage_availability,
+            COALESCE((u.preferences #>> '{businessOnboarding,modules,trust_verification}'), 'not_started') AS trust_verification,
+            COALESCE((u.preferences #>> '{businessOnboarding,modules,operations_payout}'), 'not_started') AS operations_payout
+          FROM users u
+          WHERE (u.preferences -> 'businessOnboarding') IS NOT NULL`
+        );
+
+        const moduleIds: Array<
+          | "identity_profile"
+          | "service_catalog"
+          | "coverage_availability"
+          | "trust_verification"
+          | "operations_payout"
+        > = [
+          "identity_profile",
+          "service_catalog",
+          "coverage_availability",
+          "trust_verification",
+          "operations_payout",
+        ];
+        const statusCounts: Record<string, Record<string, number>> = Object.fromEntries(
+          moduleIds.map((id) => [id, { not_started: 0, in_progress: 0, complete: 0 }])
+        );
+
+        for (const row of moduleStatusRows.rows || []) {
+          for (const moduleId of moduleIds) {
+            const status = String((row as any)?.[moduleId] || "not_started");
+            if (status === "complete" || status === "in_progress" || status === "not_started") {
+              statusCounts[moduleId][status] += 1;
+            } else {
+              statusCounts[moduleId].not_started += 1;
+            }
+          }
+        }
+
+        const transitions = await pool.query(
+          `SELECT
+            e.created_at,
+            e.user_id,
+            COALESCE(e.data->>'moduleId','') AS module_id,
+            COALESCE(e.data->>'fromStatus','') AS from_status,
+            COALESCE(e.data->>'toStatus','') AS to_status,
+            COALESCE(e.data->>'source','') AS source
+          FROM events e
+          WHERE e.event_type = 'business_onboarding.module_transition'
+            AND e.created_at >= NOW() - ($1::int * INTERVAL '1 day')
+          ORDER BY e.created_at DESC
+          LIMIT 400`,
+          [lookbackDays]
+        );
+
+        const transitionCounts: Record<string, number> = {};
+        for (const row of transitions.rows || []) {
+          const moduleId = String((row as any)?.module_id || "unknown");
+          transitionCounts[moduleId] = (transitionCounts[moduleId] || 0) + 1;
+        }
+
+        return res.json({
+          lookbackDays,
+          usersWithBusinessOnboarding: Number(moduleStatusRows.rowCount || 0),
+          statusCounts,
+          transitionCounts,
+          recentTransitions: (transitions.rows || []).map((row: any) => ({
+            at: row.created_at,
+            userId: String(row.user_id || ""),
+            moduleId: String(row.module_id || ""),
+            fromStatus: String(row.from_status || ""),
+            toStatus: String(row.to_status || ""),
+            source: String(row.source || ""),
+          })),
+        });
+      } catch (error: any) {
+        console.error("Error fetching business onboarding telemetry:", error);
+        res.status(500).json({ message: "Failed to fetch business onboarding telemetry" });
+      }
+    }
+  );
 
   app.put("/api/admin/users/:userId/role", isAuthenticated, async (req: any, res: any) => {
     try {

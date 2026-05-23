@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -182,6 +182,22 @@ export default function OfferServicesPage() {
     const params = new URLSearchParams(query);
     return params.get("onboarding") === "business";
   }, [location]);
+  const onboardingModule = useMemo(() => {
+    const raw = String(location || "");
+    const query = raw.includes("?") ? raw.split("?", 2)[1] : "";
+    const params = new URLSearchParams(query);
+    return params.get("module");
+  }, [location]);
+
+  useEffect(() => {
+    if (!onboardingMode) return;
+    if (onboardingModule === "service_catalog") {
+      document.getElementById("fixed-price-offers")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [onboardingMode, onboardingModule]);
 
   const displayName = useMemo(() => {
     if (user?.firstName) return user.firstName;
@@ -750,6 +766,11 @@ export default function OfferServicesPage() {
                   Business type:{" "}
                   <span className="text-white">{businessOnboarding.businessType}</span>
                 </p>
+                {onboardingModule ? (
+                  <div className="rounded-md border border-ts-orange/40 bg-ts-orange/10 px-2.5 py-2 text-xs text-ts-orange">
+                    Focus now: {onboardingModule.replace(/_/g, " ")}
+                  </div>
+                ) : null}
                 {onboardingModules.map((module) => {
                   const status = businessOnboarding.modules[module.id] || "not_started";
                   const isVerificationModule = module.id === "trust_verification";

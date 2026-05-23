@@ -3938,10 +3938,13 @@ export function registerDirectConnectRoutes(app: Express) {
             : null;
 
         const result = await db.transaction(async (tx) => {
-          const [assignment] = await tx
-            .select()
-            .from(workRequestAssignments)
-            .where(eq(workRequestAssignments.id, req.params.id));
+          const assignmentLockResult = await tx.execute(sql`
+            SELECT *
+            FROM work_request_assignments
+            WHERE id = ${req.params.id}
+            FOR UPDATE
+          `);
+          const assignment = (assignmentLockResult.rows?.[0] as any) || null;
 
           // Authorization: the calling user must be the contractor, the responderUserId,
           // or the worker whose workerId is on the assignment.
@@ -3970,10 +3973,13 @@ export function registerDirectConnectRoutes(app: Express) {
             return { status: 404 as const, body: { message: "Assignment not found" } };
           }
 
-          const [requestRow] = await tx
-            .select()
-            .from(workRequests)
-            .where(eq(workRequests.id, assignment.workRequestId));
+          const requestLockResult = await tx.execute(sql`
+            SELECT *
+            FROM work_requests
+            WHERE id = ${assignment.workRequestId}
+            FOR UPDATE
+          `);
+          const requestRow = (requestLockResult.rows?.[0] as any) || null;
 
           if (!requestRow) {
             return { status: 404 as const, body: { message: "Work request not found" } };
@@ -4058,11 +4064,15 @@ export function registerDirectConnectRoutes(app: Express) {
 
               let convo = existing[0];
               if (!convo) {
-                convo = await storage.createConversation({
-                  homeownerId,
-                  contractorId: providerContractorId,
-                  leadId: null,
-                } as any);
+                const [createdConversation] = await tx
+                  .insert(conversations)
+                  .values({
+                    homeownerId,
+                    contractorId: providerContractorId,
+                    leadId: null,
+                  } as any)
+                  .returning();
+                convo = createdConversation;
               }
 
               conversationId = String(convo.id);
@@ -4237,68 +4247,81 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
         const now = new Date();
-        // Idempotency: if the provider already has an assignment for this request, return it
         const isContractorProvider = Boolean(eligibleContractor?.id);
-        const existingQuery = isContractorProvider
-          ? db
-              .select()
-              .from(workRequestAssignments)
-              .where(
-                and(
-                  eq(workRequestAssignments.workRequestId, requestId),
-                  eq(workRequestAssignments.contractorId, String(eligibleContractor!.id))
+        const providerContractorId = isContractorProvider ? String(eligibleContractor!.id) : null;
+        const providerResponderUserId = isContractorProvider ? null : String(userId);
+
+        const assignmentResult = await db.transaction(async (tx) => {
+          await tx.execute(sql`
+            SELECT id
+            FROM work_requests
+            WHERE id = ${requestId}
+            FOR UPDATE
+          `);
+
+          const existingQuery = isContractorProvider
+            ? tx
+                .select()
+                .from(workRequestAssignments)
+                .where(
+                  and(
+                    eq(workRequestAssignments.workRequestId, requestId),
+                    eq(workRequestAssignments.contractorId, providerContractorId!)
+                  )
                 )
-              )
-              .limit(1)
-          : db
-              .select()
-              .from(workRequestAssignments)
-              .where(
-                and(
-                  eq(workRequestAssignments.workRequestId, requestId),
-                  eq((workRequestAssignments as any).responderUserId, String(userId))
+                .limit(1)
+            : tx
+                .select()
+                .from(workRequestAssignments)
+                .where(
+                  and(
+                    eq(workRequestAssignments.workRequestId, requestId),
+                    eq((workRequestAssignments as any).responderUserId, providerResponderUserId!)
+                  )
                 )
-              )
-              .limit(1);
-        const [existing] = await existingQuery;
-        if (existing) {
-          // Already has an assignment — return it as-is (idempotent)
-          return res.status(200).json({ assignment: existing, alreadyAssigned: true });
-        }
-        // Create a new "suggested" assignment for the self-selecting provider
-        const [newAssignment] = await db
-          .insert(workRequestAssignments)
-          .values({
-            workRequestId: requestId,
-            contractorId: isContractorProvider ? String(eligibleContractor!.id) : null,
-            responderUserId: isContractorProvider ? null : String(userId),
-            workerId: null,
-            status: "suggested" as const,
-            scoreSnapshot: {
-              score: 0,
-              reasons: ["Provider expressed interest from board"],
-              routingMode: "self_selected",
-            },
-            createdAt: now,
-            updatedAt: now,
-          })
-          .returning();
-        // Log the event
-        try {
-          await db.insert(workRequestEvents).values({
-            workRequestId: requestId,
-            type: "provider_self_selected" as const,
-            actorUserId: String(userId),
-            metadata: {
-              contractorId: isContractorProvider ? eligibleContractor!.id : null,
-              responderUserId: isContractorProvider ? null : String(userId),
-              source: "self_selected",
-              businessId: isContractorProvider ? null : (eligibleBusiness?.id ?? null),
-            },
-          });
-        } catch (e) {
-          console.warn("[direct-connect] Failed to record self-select event", e);
-        }
+                .limit(1);
+
+          const [existing] = await existingQuery;
+          if (existing) {
+            return { assignment: existing, alreadyAssigned: true };
+          }
+
+          const [created] = await tx
+            .insert(workRequestAssignments)
+            .values({
+              workRequestId: requestId,
+              contractorId: providerContractorId,
+              responderUserId: providerResponderUserId,
+              workerId: null,
+              status: "suggested" as const,
+              scoreSnapshot: {
+                score: 0,
+                reasons: ["Provider expressed interest from board"],
+                routingMode: "self_selected",
+              },
+              createdAt: now,
+              updatedAt: now,
+            })
+            .returning();
+
+          try {
+            await tx.insert(workRequestEvents).values({
+              workRequestId: requestId,
+              type: "provider_self_selected" as const,
+              actorUserId: String(userId),
+              metadata: {
+                contractorId: providerContractorId,
+                responderUserId: providerResponderUserId,
+                source: "self_selected",
+                businessId: isContractorProvider ? null : (eligibleBusiness?.id ?? null),
+              },
+            });
+          } catch (e) {
+            console.warn("[direct-connect] Failed to record self-select event", e);
+          }
+
+          return { assignment: created, alreadyAssigned: false };
+        });
         // Notify the requester that a provider has expressed interest
         try {
           const providerName = isContractorProvider
@@ -4322,7 +4345,7 @@ export function registerDirectConnectRoutes(app: Express) {
         } catch (e) {
           console.warn("[direct-connect] Failed to notify requester of provider interest", e);
         }
-        res.status(201).json({ assignment: newAssignment, alreadyAssigned: false });
+        res.status(assignmentResult.alreadyAssigned ? 200 : 201).json(assignmentResult);
       } catch (error: any) {
         console.error("Error expressing interest in direct connect request:", error);
         res.status(500).json({

@@ -345,6 +345,14 @@ function getCanonicalBaseUrl(req: any): string {
   return "https://www.thetradescout.com";
 }
 
+function isBusinessDiscoverable(user: any): boolean {
+  if (!user) return false;
+  const verificationStatus = String(user.verificationStatus || "")
+    .trim()
+    .toLowerCase();
+  return user.verifiedBadge === true || verificationStatus === "approved";
+}
+
 const contentBlockSchema = z
   .object({
     type: z.enum(["hero", "about", "services", "gallery", "faq", "reviews", "cta", "custom"]),
@@ -463,7 +471,35 @@ router.get("/api/profiles/public-search", async (req, res) => {
     const query = typeof req.query.query === "string" ? req.query.query : "";
     const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : undefined;
     const results = await storage.searchProfilesPublic({ query, limit });
-    res.json(results);
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.json(results);
+    }
+
+    const filtered: any[] = [];
+    for (const row of results as any[]) {
+      const businessId = String(row?.businessId || "").trim();
+      if (!businessId) {
+        filtered.push(row);
+        continue;
+      }
+
+      const profileOwnerId = String(row?.ownerUserId || row?.userId || "").trim();
+      if (!profileOwnerId) {
+        continue;
+      }
+
+      const [ownerUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, profileOwnerId))
+        .limit(1);
+      if (!isBusinessDiscoverable(ownerUser)) {
+        continue;
+      }
+      filtered.push(row);
+    }
+
+    res.json(filtered);
   } catch (error: any) {
     console.error("Error searching public profiles:", error);
     res.status(500).json({ message: "Failed to search profiles" });
@@ -584,6 +620,21 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const business = profile.businessId
     ? await storage.getBusinessPublicById(profile.businessId)
     : undefined;
+  if (business) {
+    const [profileOwner] = await db
+      .select({ ownerUserId: profiles.ownerUserId })
+      .from(profiles)
+      .where(eq(profiles.id, profile.id))
+      .limit(1);
+    const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
+    if (!ownerUserId) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+    const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
+    if (!isBusinessDiscoverable(ownerUser)) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+  }
   const safeBusiness = business
     ? {
         id: business.id,
@@ -660,11 +711,17 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
           if (!contractorUserId || canonicalBusinessUrlByUserId.has(contractorUserId)) return;
 
           const businessProfile = await storage.getBusinessProfileByUserId(contractorUserId);
-          if (
+          const [contractorUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, contractorUserId))
+            .limit(1);
+          const canShowBusinessProfile =
             businessProfile?.visibility === "public" &&
             typeof businessProfile.slug === "string" &&
-            businessProfile.slug.trim()
-          ) {
+            businessProfile.slug.trim() &&
+            isBusinessDiscoverable(contractorUser);
+          if (canShowBusinessProfile) {
             canonicalBusinessUrlByUserId.set(
               contractorUserId,
               `/business/${encodeURIComponent(businessProfile.slug.trim())}`

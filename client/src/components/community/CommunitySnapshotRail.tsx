@@ -155,7 +155,7 @@ export const CommunitySnapshotRail: React.FC<{
               id: "deals-coming-soon-1",
               type: "starter_invitation",
               title: "No active TradeDeals yet",
-              description: "This county has no active verified TradeDeals right now",
+              description: "Your local area has no active verified TradeDeals right now",
               label: "No Active Deals",
               icon: "sparkles",
               gradient: "from-orange-950 via-slate-900 to-slate-950",
@@ -165,7 +165,7 @@ export const CommunitySnapshotRail: React.FC<{
               id: "deals-coming-soon-2",
               type: "starter_invitation",
               title: "Invite local suppliers",
-              description: "Use Scout to nominate verified suppliers you want to see here",
+              description: "Use Scout to nominate verified suppliers you want to see nearby",
               label: "Take Action",
               icon: "zap",
               gradient: "from-slate-900 via-slate-900 to-slate-950",
@@ -184,8 +184,8 @@ export const CommunitySnapshotRail: React.FC<{
             id: "local-stats",
             type: "local_stats",
             title: isNewCommunity
-              ? "You're early in this community"
-              : `${communityStats.totalMembers} neighbors here`,
+              ? "You're early in this local network"
+              : `${communityStats.totalMembers} people here`,
             description: isNewCommunity
               ? "Be among the first to shape your local network"
               : `${activeToday} active today • ${recs7d} recs • ${help7d} help requests (7d)`,
@@ -212,8 +212,8 @@ export const CommunitySnapshotRail: React.FC<{
             {
               id: "starter-community",
               type: "starter_invitation",
-              title: "New county - early access",
-              description: "You're among the first neighbors here. Help shape this community",
+              title: "New local area - early access",
+              description: "You're among the first people here. Help shape this community",
               label: "Pioneer",
               icon: "sparkles",
               gradient: "from-purple-950 via-slate-900 to-slate-950",

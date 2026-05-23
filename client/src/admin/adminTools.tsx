@@ -238,6 +238,9 @@ const AdminGeoCoverageConsole = React.lazy(() => import("@/pages/admin-geo-cover
 const AdminProfessionalVerification = React.lazy(
   () => import("@/pages/admin-professional-verification")
 );
+const AdminBusinessOnboardingTelemetry = React.lazy(
+  () => import("@/pages/admin-business-onboarding-telemetry")
+);
 const AdminVaultContributions = React.lazy(() => import("@/pages/admin-vault-contributions"));
 const AdminProvisioning = React.lazy(() => import("@/pages/admin-provisioning"));
 const AdminPanelContent = React.lazy(() => import("@/pages/admin-panel"));
@@ -849,6 +852,17 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         visibleIf: { roles: ["ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <AdminProfessionalVerification />,
+      }),
+      tool({
+        id: "business-onboarding-telemetry",
+        label: "Business Onboarding Telemetry",
+        path: "/admin/business-onboarding-telemetry",
+        icon: BarChart3,
+        description:
+          "Track module completion, transition velocity, and onboarding friction for business accounts.",
+        keywords: ["business onboarding", "telemetry", "transitions", "completion"],
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        render: () => <AdminBusinessOnboardingTelemetry />,
       }),
     ],
   },

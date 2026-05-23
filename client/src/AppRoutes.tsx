@@ -8,8 +8,10 @@ import { PageLoadingSpinner } from "./components/LoadingSpinner";
 import { hasAdminUiAccess } from "./lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
 import {
+  getBusinessOnboardingRoute,
   getOnboardingEntryRoute as routeGetOnboardingEntryRoute,
   getPostLandingRoute as routeGetPostLandingRoute,
+  isBusinessOnboardingAllowedPath,
   isOnboardingExemptPath,
   isSafeNextPath,
   storeOnboardingNext,
@@ -91,11 +93,23 @@ const AuthenticatedOnboardingGate = memo(function AuthenticatedOnboardingGate() 
 
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user) return;
-    if (!userNeedsOnboarding(user)) return;
 
     const raw = String(location || "/");
     const restIdx = raw.search(/[?#]/);
     const pathOnly = (restIdx >= 0 ? raw.slice(0, restIdx) : raw).replace(/\/+$/, "") || "/";
+    const businessOnboardingExempt = isBusinessOnboardingAllowedPath(
+      pathOnly,
+      (user as Record<string, any>) || null
+    );
+
+    if (!userNeedsOnboarding(user)) {
+      if (businessOnboardingExempt) return;
+      const businessTarget = getBusinessOnboardingRoute(user as Record<string, any>);
+      if (businessTarget && raw !== businessTarget) {
+        navigate(businessTarget);
+      }
+      return;
+    }
     if (isOnboardingExemptPath(pathOnly)) return;
 
     const fullPath = raw.startsWith("/") ? raw : `/${raw}`;

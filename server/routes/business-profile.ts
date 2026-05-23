@@ -229,12 +229,10 @@ async function ensureUniqueSlug(baseSlug: string, userId: string): Promise<strin
 export function registerBusinessProfileRoutes(app: Express) {
   const isBusinessDiscoverable = (user: any): boolean => {
     if (!user) return false;
-    return (
-      user.verifiedBadge === true ||
-      String(user.verificationStatus || "").toLowerCase() === "approved" ||
-      user.licenseVerified === true ||
-      user.addressVerified === true
-    );
+    const verificationStatus = String(user.verificationStatus || "")
+      .trim()
+      .toLowerCase();
+    return user.verifiedBadge === true || verificationStatus === "approved";
   };
 
   /**

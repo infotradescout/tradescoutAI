@@ -63,6 +63,13 @@ import { hasCompletedSetup } from "@/lib/setupState";
 
 export type DirectConnectEntry = "default" | "auth" | "setup" | "onboarding" | "intent";
 export type OnboardingState = "needs_profile" | "needs_intent" | "complete";
+type BusinessOnboardingModuleId =
+  | "identity_profile"
+  | "service_catalog"
+  | "coverage_availability"
+  | "trust_verification"
+  | "operations_payout";
+type BusinessOnboardingModuleStatus = "not_started" | "in_progress" | "complete";
 
 /** Canonical Direct Connect home surface. */
 export const DIRECT_CONNECT_HOME = "/direct-connect";
@@ -72,6 +79,26 @@ export const DEFAULT_LANDING = `${DIRECT_CONNECT_HOME}?entry=default`;
 
 /** Default landing surface for business / service-provider users. */
 export const BUSINESS_LANDING = "/offer-services?onboarding=business";
+const BUSINESS_MODULE_ROUTE: Record<BusinessOnboardingModuleId, string> = {
+  identity_profile: "/profile",
+  service_catalog: "/offer-services#fixed-price-offers",
+  coverage_availability: "/settings?tab=profile",
+  trust_verification: "/identity-verification",
+  operations_payout: "/finances/records",
+};
+const BUSINESS_MODULE_ALLOWED_PREFIXES: Record<BusinessOnboardingModuleId, string[]> = {
+  identity_profile: ["/profile", "/settings"],
+  service_catalog: ["/offer-services"],
+  coverage_availability: ["/settings", "/profile"],
+  trust_verification: [
+    "/identity-verification",
+    "/address-verification",
+    "/license-verification",
+    "/insurance-verification",
+    "/offer-services",
+  ],
+  operations_payout: ["/finances", "/offer-services"],
+};
 
 function withDirectConnectEntry(path: string, entry: DirectConnectEntry = "default"): string {
   const separator = path.includes("?") ? "&" : "?";
@@ -115,6 +142,16 @@ export function userHasProfileBasics(user: unknown): boolean {
 
   const firstName = typeof record.firstName === "string" ? record.firstName.trim() : "";
   const lastName = typeof record.lastName === "string" ? record.lastName.trim() : "";
+  const fullName =
+    typeof record.name === "string"
+      ? record.name.trim()
+      : typeof record.displayName === "string"
+        ? record.displayName.trim()
+        : "";
+  const hasName =
+    (firstName.length > 0 && lastName.length > 0) ||
+    fullName.split(/\s+/).filter(Boolean).length >= 2 ||
+    fullName.length >= 3;
   const phoneRaw = typeof record.phone === "string" ? record.phone.trim() : "";
   const phoneDigits = phoneRaw.replace(/\D+/g, "");
   const stateCode =
@@ -122,11 +159,7 @@ export function userHasProfileBasics(user: unknown): boolean {
   const countyFips = typeof record.countyFips === "string" ? record.countyFips.trim() : "";
 
   return (
-    firstName.length > 0 &&
-    lastName.length > 0 &&
-    phoneDigits.length >= 10 &&
-    stateCode.length === 2 &&
-    /^\d{5}$/.test(countyFips)
+    hasName && phoneDigits.length >= 10 && stateCode.length === 2 && /^\d{5}$/.test(countyFips)
   );
 }
 
@@ -152,6 +185,10 @@ export function getPostLandingRoute(user: unknown): string {
     Boolean(record?.isAdmin) || roles.some((r) => r === "admin" || r === "super_admin");
 
   if (isSuperAdmin || isAdmin) return "/admin";
+  if (isBusinessUser(record as Record<string, any>, null)) {
+    const businessRoute = getBusinessOnboardingRoute(record as Record<string, any>);
+    if (businessRoute) return businessRoute;
+  }
   return "/direct-connect";
 }
 
@@ -223,6 +260,80 @@ export function isBusinessUser(
   return false;
 }
 
+export function getFirstIncompleteBusinessModule(
+  user: Record<string, any> | null | undefined
+): BusinessOnboardingModuleId | null {
+  if (!user) return null;
+  const modules = user?.preferences?.businessOnboarding?.modules as
+    | Partial<Record<BusinessOnboardingModuleId, BusinessOnboardingModuleStatus>>
+    | undefined;
+  if (!modules || typeof modules !== "object") return "identity_profile";
+  const moduleOrder: BusinessOnboardingModuleId[] = [
+    "identity_profile",
+    "service_catalog",
+    "coverage_availability",
+    "trust_verification",
+    "operations_payout",
+  ];
+  for (const moduleId of moduleOrder) {
+    const status = String(modules[moduleId] || "not_started");
+    if (status !== "complete") return moduleId;
+  }
+  return null;
+}
+
+export function getBusinessOnboardingRoute(
+  user: Record<string, any> | null | undefined
+): string | null {
+  if (!isBusinessUser(user, null)) return null;
+  const moduleId = getFirstIncompleteBusinessModule(user);
+  if (!moduleId) return BUSINESS_LANDING;
+  let moduleRoute = BUSINESS_MODULE_ROUTE[moduleId];
+  if (moduleId === "trust_verification") {
+    const identityVerified =
+      user?.verifiedBadge === true ||
+      String(user?.verificationStatus || "")
+        .trim()
+        .toLowerCase() === "approved";
+    const addressVerified = user?.addressVerified === true;
+    const licenseVerified = user?.licenseVerified === true;
+    const insuranceVerified = user?.insuranceVerified === true;
+    moduleRoute = !identityVerified
+      ? "/identity-verification"
+      : !addressVerified
+        ? "/address-verification"
+        : !licenseVerified
+          ? "/license-verification"
+          : !insuranceVerified
+            ? "/insurance-verification"
+            : "/offer-services";
+  }
+  const encoded = encodeURIComponent(moduleId);
+  if (moduleRoute.includes("?")) return `${moduleRoute}&onboarding=business&module=${encoded}`;
+  if (moduleRoute.includes("#")) {
+    const [base, hash] = moduleRoute.split("#", 2);
+    return `${base}?onboarding=business&module=${encoded}#${hash}`;
+  }
+  return `${moduleRoute}?onboarding=business&module=${encoded}`;
+}
+
+export function isBusinessOnboardingAllowedPath(
+  path: string,
+  user: Record<string, any> | null | undefined
+): boolean {
+  if (!isBusinessUser(user, null)) return true;
+  const moduleId = getFirstIncompleteBusinessModule(user);
+  if (!moduleId) return true;
+  const normalized =
+    String(path || "/")
+      .split(/[?#]/, 1)[0]
+      .replace(/\/+$/, "") || "/";
+  const allowedPrefixes = BUSINESS_MODULE_ALLOWED_PREFIXES[moduleId] || ["/offer-services"];
+  return allowedPrefixes.some(
+    (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`)
+  );
+}
+
 /**
  * Compute the correct post-onboarding destination.
  *
@@ -274,7 +385,8 @@ export function resolvePostOnboardingRoute(options: {
 
   // 3. Business users → profile/verification setup
   if (isBusinessUser(user, presenceType)) {
-    return BUSINESS_LANDING;
+    const businessRoute = getBusinessOnboardingRoute(user);
+    return businessRoute || BUSINESS_LANDING;
   }
 
   // 4. Default: Direct Connect

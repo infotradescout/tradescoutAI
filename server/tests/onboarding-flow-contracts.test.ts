@@ -85,13 +85,31 @@ describe("onboarding flow contracts", () => {
     // Must have session-storage helpers for deep-link preservation
     expect(helperSource).toContain("export function storeOnboardingNext");
     expect(helperSource).toContain("export function consumeOnboardingNext");
+    expect(helperSource).toContain("export function getBusinessOnboardingRoute");
+    expect(helperSource).toContain("export function getFirstIncompleteBusinessModule");
     // Default landings must be defined
     expect(helperSource).toContain("export const DEFAULT_LANDING");
     expect(helperSource).toContain("export const BUSINESS_LANDING");
     // Business landing must be offer-services (profile + verification)
     expect(helperSource).toContain('"/offer-services"');
+    expect(helperSource).toContain('"/address-verification"');
+    expect(helperSource).toContain('"/license-verification"');
+    expect(helperSource).toContain('"/insurance-verification"');
     // Personal default must be direct-connect
     expect(helperSource).toContain('"/direct-connect"');
+  });
+
+  it("enforces business onboarding module routing in shared auth guards", () => {
+    const appRoutesSource = read("client/src/AppRoutes.tsx");
+    const protectedRouteSource = read("client/src/components/ProtectedRoute.tsx");
+    const helperSource = read("client/src/lib/postOnboardingRoute.ts");
+
+    expect(appRoutesSource).toContain("getBusinessOnboardingRoute");
+    expect(appRoutesSource).toContain("isBusinessOnboardingAllowedPath");
+    expect(protectedRouteSource).toContain("getBusinessOnboardingRoute");
+    expect(protectedRouteSource).toContain("isBusinessOnboardingAllowedPath");
+    expect(helperSource).toContain("BUSINESS_MODULE_ALLOWED_PREFIXES");
+    expect(helperSource).toContain("export function isBusinessOnboardingAllowedPath");
   });
 
   it("turns offer-services into a provider launch hub instead of only verification", () => {
