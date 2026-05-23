@@ -32,6 +32,7 @@ import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Page } from "@/components/layout/PagePrimitives";
+import { isBusinessUser } from "@/lib/postOnboardingRoute";
 
 function getDefaultHomePageLabel(value?: string) {
   if (!value || value === "llm") return "Scout";
@@ -97,18 +98,23 @@ export default function ProfilePage() {
       if (!user?.id) return;
 
       try {
-        try {
-          const business = (await apiRequest("GET", "/api/business-profile/me")) as {
-            slug?: string | null;
-            visibility?: "public" | "private";
-          };
-          if (!cancelled && business?.slug) {
-            setBusinessSlug(String(business.slug));
+        const shouldAttemptBusinessProfile = isBusinessUser(user as any, null);
+        if (shouldAttemptBusinessProfile) {
+          try {
+            const business = (await apiRequest("GET", "/api/business-profile/me")) as {
+              slug?: string | null;
+              visibility?: "public" | "private";
+            };
+            if (!cancelled && business?.slug) {
+              setBusinessSlug(String(business.slug));
+            }
+          } catch {
+            if (!cancelled) {
+              setBusinessSlug(null);
+            }
           }
-        } catch {
-          if (!cancelled) {
-            setBusinessSlug(null);
-          }
+        } else if (!cancelled) {
+          setBusinessSlug(null);
         }
 
         const list = (await apiRequest("GET", "/api/profiles")) as OwnedProfile[];
