@@ -163,8 +163,9 @@ function IntentDetailCollector({
     () => buildIntentDetailPrompts(userMessage, locality),
     [locality, userMessage]
   );
+  const nextPrompt = prompts[0];
   const shouldShow =
-    prompts.length > 0 &&
+    Boolean(nextPrompt) &&
     (status === "resolving_context" ||
       status === "checking_documents" ||
       status === "ready" ||
@@ -181,17 +182,15 @@ function IntentDetailCollector({
         </p>
       </div>
       <div className="scout-intent-collector__chips">
-        {prompts.map((prompt) => (
-          <button
-            key={prompt.label}
-            type="button"
-            className="scout-intent-collector__chip"
-            onClick={() => onPrefill?.(prompt.prompt)}
-            disabled={!onPrefill}
-          >
-            {prompt.label}
-          </button>
-        ))}
+        <button
+          key={nextPrompt.label}
+          type="button"
+          className="scout-intent-collector__chip"
+          onClick={() => onPrefill?.(nextPrompt.prompt)}
+          disabled={!onPrefill}
+        >
+          {nextPrompt.label}
+        </button>
       </div>
     </div>
   );
@@ -369,6 +368,12 @@ function quickStartsForPendingSearch(userMessage?: string): string[] {
     return ["Concrete", "Compare prices", "Find local help"];
   }
   return ["Find someone", "Check prices", "Ask before calling"];
+}
+
+function isReadyForBranchingActions(userMessage?: string, locality?: ScoutLocality): boolean {
+  const detail = inferScoutIntentDetails(userMessage, locality);
+  const mustHave: Array<keyof typeof detail> = ["need", "area", "timing", "context", "perspective"];
+  return mustHave.every((key) => Boolean(detail[key]));
 }
 
 function buildEvidenceChips(msg: ScoutMessage): string[] {
@@ -1112,7 +1117,11 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                 "Gathering activity reports...",
                 "Compiling control settings...",
               ]
-            : ["Looking nearby...", "Checking local context...", "Getting options ready..."];
+            : [
+                "Reading what you shared...",
+                "Collecting one missing detail at a time...",
+                "Building your best next step...",
+              ];
 
     // Cycle through messages based on progress (0-1 range maps to 0-messages.length)
     const messageIndex = Math.floor(progress * statusMessages.length);
@@ -1124,6 +1133,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
   }
 
   const showProgress = status !== "idle" && status !== "error";
+  const canShowBranchingActions = isReadyForBranchingActions(latestUserMessage?.content, locality);
 
   const statusStyles: React.CSSProperties =
     status === "checking_documents"
@@ -1249,37 +1259,38 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   className="mt-1 text-sm leading-relaxed"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  I’ll summarize what matters, then keep the next steps separate so this stays easy
-                  to scan.
+                  I’ll lock in the minimum details first, then I’ll give you one clear next step.
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(Array.isArray(pendingContextCards) && pendingContextCards.length > 0
-                    ? pendingContextCards.slice(0, 3).map((card) => ({
-                        key: card.id,
-                        label: card.label,
-                        onClick: () => onAction && onAction(card.action),
-                      }))
-                    : quickStartsForPendingSearch(latestUserMessage?.content).map((label) => ({
-                        key: label,
-                        label,
-                        onClick: () => onQuickAction && onQuickAction(label),
-                      }))
-                  ).map((item) => (
-                    <button
-                      key={item.key}
-                      type="button"
-                      onClick={item.onClick}
-                      className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
-                      style={{
-                        borderColor: "var(--border-subtle)",
-                        backgroundColor: "var(--surface-intermediate)",
-                        color: "var(--text-primary)",
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+                {canShowBranchingActions && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(Array.isArray(pendingContextCards) && pendingContextCards.length > 0
+                      ? pendingContextCards.slice(0, 3).map((card) => ({
+                          key: card.id,
+                          label: card.label,
+                          onClick: () => onAction && onAction(card.action),
+                        }))
+                      : quickStartsForPendingSearch(latestUserMessage?.content).map((label) => ({
+                          key: label,
+                          label,
+                          onClick: () => onQuickAction && onQuickAction(label),
+                        }))
+                    ).map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={item.onClick}
+                        className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          backgroundColor: "var(--surface-intermediate)",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
