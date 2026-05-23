@@ -56,6 +56,7 @@ import {
 import { getHelpLink } from "./helpSources";
 import { ScoutHeader } from "./ScoutHeader";
 import { ScoutInputRow } from "./ScoutInputRow";
+import ScoutSearchDock from "./ScoutSearchDock";
 import { scoutActionTiles } from "./scoutActionTiles";
 import { resolveAllTiles } from "./resolveScoutTiles";
 import type { ScoutTileContext } from "./scoutActionTiles";
@@ -5352,39 +5353,25 @@ export default function ScoutOS() {
               </div>
             </div>
 
-            <div className="scout-search-dock-fixed">
-              <div
-                className={
-                  isMobile
-                    ? "mx-auto w-full max-w-[32rem] px-2.5"
-                    : "mx-auto w-full max-w-4xl px-2.5 md:px-4"
-                }
-              >
-                <ScoutInputRow
-                  isBusy={isBusy}
-                  prefillKey={prefillKey}
-                  onSend={(value) => handleSend(value)}
-                  onTyping={() => {
-                    setHasGuestInteracted(true);
-                    recordActivity({
-                      type: "ask_scout",
-                      ts: new Date().toISOString(),
-                      path: location,
-                      label: "typing",
-                    });
-                  }}
-                  quickStartPrompts={
-                    !hasMessages
-                      ? isMobile
-                        ? SCOUT_QUICK_START_PROMPTS.slice(0, 2)
-                        : [...SCOUT_QUICK_START_PROMPTS]
-                      : []
-                  }
-                  autoDemoText={introDemoText}
-                  enableAutoDemo={shouldPlayIntroDemo}
-                />
-              </div>
-            </div>
+            <ScoutSearchDock
+              isMobile={isMobile}
+              isBusy={isBusy}
+              prefillKey={prefillKey}
+              hasMessages={hasMessages}
+              quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
+              autoDemoText={introDemoText}
+              enableAutoDemo={shouldPlayIntroDemo}
+              onSend={(value) => handleSend(value)}
+              onTyping={() => {
+                setHasGuestInteracted(true);
+                recordActivity({
+                  type: "ask_scout",
+                  ts: new Date().toISOString(),
+                  path: location,
+                  label: "typing",
+                });
+              }}
+            />
 
             {showDiscoveryRail && (
               <aside className="scout-v2-command-rail">

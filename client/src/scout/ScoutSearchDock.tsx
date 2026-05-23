@@ -1,0 +1,52 @@
+import React from "react";
+import { ScoutInputRow } from "./ScoutInputRow";
+
+type ScoutSearchDockProps = {
+  isMobile: boolean;
+  isBusy: boolean;
+  prefillKey: number;
+  hasMessages: boolean;
+  quickStartPrompts: string[];
+  autoDemoText?: string;
+  enableAutoDemo?: boolean;
+  onSend: (value: string) => void;
+  onTyping: () => void;
+};
+
+export function ScoutSearchDock({
+  isMobile,
+  isBusy,
+  prefillKey,
+  hasMessages,
+  quickStartPrompts,
+  autoDemoText,
+  enableAutoDemo,
+  onSend,
+  onTyping,
+}: ScoutSearchDockProps) {
+  return (
+    <div className="scout-search-dock-fixed">
+      <div
+        className={
+          isMobile
+            ? "mx-auto w-full max-w-[32rem] px-2.5"
+            : "mx-auto w-full max-w-4xl px-2.5 md:px-4"
+        }
+      >
+        <ScoutInputRow
+          isBusy={isBusy}
+          prefillKey={prefillKey}
+          onSend={onSend}
+          onTyping={onTyping}
+          quickStartPrompts={
+            !hasMessages ? (isMobile ? quickStartPrompts.slice(0, 2) : [...quickStartPrompts]) : []
+          }
+          autoDemoText={autoDemoText}
+          enableAutoDemo={enableAutoDemo}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default ScoutSearchDock;
