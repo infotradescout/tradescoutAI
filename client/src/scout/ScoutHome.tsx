@@ -1,14 +1,11 @@
 import {
-  ArrowRight,
-  Bell,
   Calendar,
   Car,
+  ChevronDown,
   ChevronRight,
-  CircleDollarSign,
   Home,
   MapPin,
   Search,
-  ShieldCheck,
   Tag,
   UserCircle2,
   Users2,
@@ -48,7 +45,7 @@ interface ContinuityCard {
   statusClass: string;
   prompt: string;
   icon: LucideIcon;
-  imageUrl: string;
+  visualClass: string;
 }
 
 interface SignalRowData {
@@ -64,18 +61,6 @@ interface SignalRowData {
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
-}
-
-function prettyTimeAgo(value: string): string {
-  const lower = String(value || "")
-    .toLowerCase()
-    .trim();
-  if (!lower) return "Now";
-  if (lower.includes("today")) return "2h ago";
-  if (lower.includes("week")) return "4h ago";
-  if (lower.includes("live")) return "2h ago";
-  if (lower.includes("now")) return "2h ago";
-  return value;
 }
 
 function locationZipHint(locationLabel: string): string {
@@ -107,18 +92,15 @@ function continuityIconForThread(thread: ContinuityThread) {
   return Wrench;
 }
 
-function continuityImageForTitle(title: string) {
+function continuityVisualClass(title: string) {
   const key = title.toLowerCase();
-  if (key.includes("home")) {
-    return "https://images.unsplash.com/photo-1616593969747-4797dc75033e?auto=format&fit=crop&w=900&q=80";
-  }
-  if (key.includes("vehicle")) {
-    return "https://images.unsplash.com/photo-1610647752706-3bb12232b3ab?auto=format&fit=crop&w=900&q=80";
-  }
-  if (key.includes("request")) {
-    return "https://images.unsplash.com/photo-1556911220-bff31c812dba?auto=format&fit=crop&w=900&q=80";
-  }
-  return "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=900&q=80";
+  if (key.includes("home"))
+    return "bg-gradient-to-br from-amber-900/80 via-amber-700/50 to-amber-500/30";
+  if (key.includes("vehicle"))
+    return "bg-gradient-to-br from-emerald-900/80 via-emerald-700/45 to-emerald-500/25";
+  if (key.includes("request"))
+    return "bg-gradient-to-br from-violet-900/80 via-violet-700/45 to-violet-500/25";
+  return "bg-gradient-to-br from-blue-900/80 via-blue-700/45 to-blue-500/25";
 }
 
 function statusPillClass(status: string) {
@@ -137,61 +119,22 @@ function continuationStatusFromThread(intent?: string | null, msgCount?: number)
   return "Waiting on review";
 }
 
-function ScoutHeader({
-  locationLabel,
-  onProfileClick,
-  onNotificationsClick,
-}: {
-  locationLabel: string;
-  onProfileClick: () => void;
-  onNotificationsClick: () => void;
-}) {
+function ScoutHeader({ locationLabel }: { locationLabel: string }) {
   return (
     <header className="space-y-2">
-      <div className="flex items-center justify-between border-b border-[color:var(--border-subtle)] pb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]">
-            <ShieldCheck className="h-5 w-5 text-ts-orange" />
-          </span>
-          <p className="text-2xl font-semibold tracking-tight text-[color:var(--text-primary)]">
-            TradeScout
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onNotificationsClick}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)] transition hover:text-[color:var(--text-primary)]"
-            aria-label="Notifications"
-          >
-            <Bell className="h-5 w-5" />
-          </button>
-          <button
-            type="button"
-            onClick={onProfileClick}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-ts-orange/40 bg-ts-orange/10 text-ts-orange transition hover:bg-ts-orange/20"
-            aria-label="Profile"
-          >
-            <UserCircle2 className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-
-      <h1 className="text-6xl font-bold leading-none tracking-tight text-[color:var(--text-primary)]">
+      <h1 className="text-5xl font-bold leading-none tracking-tight text-[color:var(--text-primary)]">
         Scout
       </h1>
-
       <button
         type="button"
-        className="inline-flex items-center gap-2 text-4xl text-[color:var(--text-secondary)]"
+        className="inline-flex items-center gap-1.5 text-[30px] leading-none text-[color:var(--text-secondary)]"
         aria-label="Location"
       >
         <MapPin className="h-5 w-5 text-ts-orange" />
         <span>{locationLabel || "Hammond, LA 70401"}</span>
-        <ChevronRight className="h-4 w-4 rotate-90" />
+        <ChevronDown className="h-4 w-4" />
       </button>
-
-      <p className="text-3xl leading-relaxed text-[color:var(--text-secondary)]">
+      <p className="max-w-[30rem] text-[24px] leading-tight text-[color:var(--text-secondary)]">
         Your local hub to find, fix, buy, sell, and stay in the know.
       </p>
     </header>
@@ -205,7 +148,7 @@ function ContinueCard({
   statusClass,
   onClick,
   Icon,
-  imageUrl,
+  visualClass,
 }: {
   label: string;
   subtitle: string;
@@ -213,27 +156,26 @@ function ContinueCard({
   statusClass: string;
   onClick: () => void;
   Icon: LucideIcon;
-  imageUrl: string;
+  visualClass: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="group relative w-[230px] shrink-0 overflow-hidden rounded-3xl border border-white/10 bg-[color:var(--surface-card)] text-left"
+      className="continue-card group relative w-[160px] flex-[0_0_160px] shrink-0 overflow-hidden rounded-3xl border border-white/10 bg-[color:var(--surface-card)] text-left"
     >
-      <div
-        className="h-[132px] w-full bg-cover bg-center"
-        style={{ backgroundImage: `url('${imageUrl}')` }}
-      >
-        <span className="ml-3 mt-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-black/45 text-white backdrop-blur">
-          <Icon className="h-5 w-5" />
+      <div className={`h-[96px] w-full ${visualClass}`}>
+        <span className="ml-3 mt-3 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-black/45 text-white backdrop-blur">
+          <Icon className="h-4 w-4" />
         </span>
       </div>
       <div className="space-y-1 p-3">
-        <p className="text-2xl font-semibold text-[color:var(--text-primary)]">{label}</p>
-        <p className="text-lg text-[color:var(--text-secondary)]">{subtitle}</p>
+        <p className="text-[20px] font-semibold leading-tight text-[color:var(--text-primary)]">
+          {label}
+        </p>
+        <p className="text-[16px] leading-tight text-[color:var(--text-secondary)]">{subtitle}</p>
         <span
-          className={`mt-1 inline-flex rounded-full px-3 py-1 text-base font-semibold ${statusClass}`}
+          className={`mt-1 inline-flex rounded-full px-3 py-1 text-[14px] font-semibold ${statusClass}`}
         >
           {status}
         </span>
@@ -254,7 +196,6 @@ function ContinueRail({
   onPromptSelect: (text: string) => void;
 }) {
   const zip = locationZipHint(localLabel);
-
   const fallback: ContinuityCard[] = [
     {
       id: "home-project",
@@ -264,7 +205,7 @@ function ContinueRail({
       statusClass: statusPillClass("Waiting on review"),
       prompt: "Continue the home project from before.",
       icon: Wrench,
-      imageUrl: continuityImageForTitle("home"),
+      visualClass: continuityVisualClass("home"),
     },
     {
       id: "vehicle-service",
@@ -274,7 +215,7 @@ function ContinueRail({
       statusClass: statusPillClass("Needs approval"),
       prompt: "Continue vehicle service work in progress.",
       icon: Car,
-      imageUrl: continuityImageForTitle("vehicle"),
+      visualClass: continuityVisualClass("vehicle"),
     },
     {
       id: "saved-search",
@@ -284,7 +225,7 @@ function ContinueRail({
       statusClass: statusPillClass("4 matches"),
       prompt: "Continue my saved local search.",
       icon: Search,
-      imageUrl: continuityImageForTitle("search"),
+      visualClass: continuityVisualClass("search"),
     },
     {
       id: "local-request",
@@ -294,23 +235,22 @@ function ContinueRail({
       statusClass: statusPillClass("quotes"),
       prompt: "Continue local request follow-up.",
       icon: Calendar,
-      imageUrl: continuityImageForTitle("request"),
+      visualClass: continuityVisualClass("request"),
     },
   ];
 
   const fromThreads: ContinuityCard[] = (continuationThreads || []).map((thread) => {
     const title = humanizeThreadIntent(thread.intent);
+    const status = continuationStatusFromThread(thread.intent, thread.messageCount ?? undefined);
     return {
       id: thread.id,
       title,
       subtitle: thread.relatedLabel || thread.preview || thread.title || "Local item",
-      status: continuationStatusFromThread(thread.intent, thread.messageCount ?? undefined),
-      statusClass: statusPillClass(
-        continuationStatusFromThread(thread.intent, thread.messageCount ?? undefined)
-      ),
+      status,
+      statusClass: statusPillClass(status),
       prompt: thread.summary || thread.preview || thread.title || "Continue this thread.",
       icon: continuityIconForThread(thread),
-      imageUrl: continuityImageForTitle(title),
+      visualClass: continuityVisualClass(title),
     };
   });
 
@@ -331,7 +271,6 @@ function ContinueRail({
           : mappedLabel === "Saved search"
             ? `Homes in ${zip}`
             : "Pressure washing";
-
     const status =
       mappedLabel === "Home project"
         ? "Waiting on review"
@@ -340,7 +279,6 @@ function ContinueRail({
           : mappedLabel === "Saved search"
             ? "4 new matches"
             : "2 quotes received";
-
     return {
       id: prompt.id,
       title: mappedLabel,
@@ -356,7 +294,7 @@ function ContinueRail({
             : mappedLabel === "Saved search"
               ? Search
               : Calendar,
-      imageUrl: continuityImageForTitle(mappedLabel),
+      visualClass: continuityVisualClass(mappedLabel),
     };
   });
 
@@ -369,8 +307,8 @@ function ContinueRail({
 
   return (
     <section className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h2 className="text-4xl font-semibold text-[color:var(--text-primary)]">
+      <div className="flex items-center justify-between px-4">
+        <h2 className="text-[48px] font-semibold leading-none text-[color:var(--text-primary)]">
           Continue where you left off
         </h2>
         <button
@@ -381,19 +319,18 @@ function ContinueRail({
           <ChevronRight className="h-6 w-6" />
         </button>
       </div>
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="continue-rail flex overflow-x-auto gap-3 px-4 pb-2 snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {cards.map((item) => (
-          <div key={item.id} className="snap-start">
-            <ContinueCard
-              label={item.title}
-              subtitle={item.subtitle}
-              status={item.status}
-              statusClass={item.statusClass}
-              Icon={item.icon}
-              imageUrl={item.imageUrl}
-              onClick={() => onPromptSelect(item.prompt)}
-            />
-          </div>
+          <ContinueCard
+            key={item.id}
+            label={item.title}
+            subtitle={item.subtitle}
+            status={item.status}
+            statusClass={item.statusClass}
+            Icon={item.icon}
+            visualClass={item.visualClass}
+            onClick={() => onPromptSelect(item.prompt)}
+          />
         ))}
       </div>
     </section>
@@ -482,8 +419,8 @@ function PrimaryLaneGrid({ onPromptSelect }: { onPromptSelect: (text: string) =>
   ];
 
   return (
-    <section className="space-y-2">
-      <h2 className="text-4xl font-semibold text-[color:var(--text-primary)]">
+    <section className="space-y-2 px-4">
+      <h2 className="text-[48px] font-semibold leading-none text-[color:var(--text-primary)]">
         Explore around you
       </h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -508,7 +445,7 @@ function moveToSignal(move: OpportunityMove): SignalRowData {
       title: "Repair activity is picking up",
       detail: "More fence and deck projects nearby",
       freshness: "2h ago",
-      icon: ArrowRight,
+      icon: Wrench,
       iconClass: "bg-amber-500/20 text-amber-300",
     },
     "homescout-seller-audit": {
@@ -533,19 +470,15 @@ function moveToSignal(move: OpportunityMove): SignalRowData {
       iconClass: "bg-violet-500/20 text-violet-300",
     },
   };
-
   const mapped = byId[move.id];
-  if (mapped) {
-    return { id: move.id, prompt: move.prompt, ...mapped };
-  }
-
+  if (mapped) return { id: move.id, prompt: move.prompt, ...mapped };
   return {
     id: move.id,
     title: move.title,
     detail: move.whyItMatters,
     freshness: "Now",
     prompt: move.prompt,
-    icon: CircleDollarSign,
+    icon: Search,
     iconClass: "bg-blue-500/20 text-blue-300",
   };
 }
@@ -555,9 +488,9 @@ function priceToSignal(signal: PriceSignal): SignalRowData {
     id: signal.id,
     title: signal.label,
     detail: signal.description,
-    freshness: prettyTimeAgo(signal.updatedAt ? "Today" : "Now"),
+    freshness: "Now",
     prompt: `Check prices and local trends using ${signal.label}.`,
-    icon: CircleDollarSign,
+    icon: Search,
     iconClass: "bg-blue-500/20 text-blue-300",
   };
 }
@@ -593,7 +526,7 @@ function SignalRow({
         <p className="text-xl text-[color:var(--text-secondary)]">{detail}</p>
       </span>
       <span className="shrink-0 text-xl text-[color:var(--text-secondary)]">
-        {prettyTimeAgo(freshness)}
+        {freshness}
         <ChevronRight className="ml-1 inline h-4 w-4" />
       </span>
     </button>
@@ -613,7 +546,6 @@ function LocalSignalList({
     ...opportunityMoves.slice(0, 4).map(moveToSignal),
     ...priceSignals.slice(0, 2).map(priceToSignal),
   ];
-
   const fallback: SignalRowData[] = [
     {
       id: "fallback-1",
@@ -621,7 +553,7 @@ function LocalSignalList({
       detail: "More fence and deck projects nearby",
       freshness: "2h ago",
       prompt: "Show me what is moving around me this week.",
-      icon: ArrowRight,
+      icon: Wrench,
       iconClass: "bg-amber-500/20 text-amber-300",
     },
     {
@@ -652,13 +584,12 @@ function LocalSignalList({
       iconClass: "bg-violet-500/20 text-violet-300",
     },
   ];
-
   const rows = mapped.length ? mapped.slice(0, 4) : fallback;
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-2 px-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-4xl font-semibold text-[color:var(--text-primary)]">
+        <h2 className="text-[48px] font-semibold leading-none text-[color:var(--text-primary)]">
           Nearby right now
         </h2>
         <button
@@ -732,11 +663,12 @@ function StatusMetricGrid({
     | undefined;
 }) {
   if (!snapshot) return null;
-
   return (
-    <section className="space-y-2">
-      <h2 className="text-4xl font-semibold text-[color:var(--text-primary)]">Local snapshot</h2>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <section className="space-y-2 px-4">
+      <h2 className="text-[48px] font-semibold leading-none text-[color:var(--text-primary)]">
+        Local snapshot
+      </h2>
+      <div className="grid grid-cols-2 gap-3">
         <StatusMetricCard
           label="Listings"
           value={formatCount(snapshot.activeListings)}
@@ -774,14 +706,9 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   const { location } = useScoutLocation();
   const { data } = useScoutHomeSnapshot(location);
   const localLabel = location.label || "Hammond, LA 70401";
-
   return (
     <div className="flex w-full flex-col gap-5 pb-2">
-      <ScoutHeader
-        locationLabel={localLabel}
-        onNotificationsClick={() => onPromptSelect("Show my latest local notifications.")}
-        onProfileClick={() => onPromptSelect("Open my profile and settings.")}
-      />
+      <ScoutHeader locationLabel={localLabel} />
       <ContinueRail
         localLabel={localLabel}
         prompts={data?.trendingPrompts || []}

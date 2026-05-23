@@ -4319,7 +4319,7 @@ export default function ScoutOS() {
           } flex flex-col flex-1 min-h-0`}
           style={{
             paddingBottom: isMobile
-              ? "calc(var(--scout-search-dock-h, 92px) + var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom))"
+              ? "calc(var(--scout-search-dock-h, 92px) + var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom) + 32px)"
               : "calc(var(--scout-search-dock-h, 92px) + 1rem)",
           }}
         >
@@ -4334,12 +4334,12 @@ export default function ScoutOS() {
             }
           >
             <div
-              className={`scout-panel scout-mobile-panel w-full flex flex-col min-h-0 rounded-2xl px-2.5 md:px-4 py-2.5 relative ${
+              className={`w-full flex flex-col min-h-0 relative ${
                 isMobile ? "" : showDiscoveryRail ? "flex-1" : "flex-1 max-w-4xl mx-auto"
               }`}
               style={{
                 paddingBottom: isMobile
-                  ? "calc(var(--scout-search-dock-h, 92px) + var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom))"
+                  ? "calc(var(--scout-search-dock-h, 92px) + var(--bottom-nav-h, 62px) + env(safe-area-inset-bottom) + 32px)"
                   : "calc(var(--scout-search-dock-h, 92px) + 0.75rem)",
               }}
             >
@@ -5367,7 +5367,7 @@ export default function ScoutOS() {
               isBusy={isBusy}
               prefillKey={prefillKey}
               hasMessages={hasMessages}
-              quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
+              quickStartPrompts={hasMessages ? SCOUT_QUICK_START_PROMPTS : []}
               autoDemoText={introDemoText}
               enableAutoDemo={shouldPlayIntroDemo}
               onSend={(value) => handleSend(value)}
