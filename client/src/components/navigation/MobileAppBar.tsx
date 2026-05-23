@@ -141,7 +141,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                   <span className="ts-bottom-nav-icon inline-flex h-[22px] w-[22px] items-center justify-center rounded-md">
                     <Menu className="h-4.5 w-4.5" />
                   </span>
-                  <span>More</span>
+                  <span>Menu</span>
                 </button>
               </SheetTrigger>
 
@@ -155,7 +155,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                     className="text-sm font-semibold"
                     style={{ color: "var(--text-primary)" }}
                   >
-                    More features
+                    Menu
                   </SheetTitle>
                 </SheetHeader>
 

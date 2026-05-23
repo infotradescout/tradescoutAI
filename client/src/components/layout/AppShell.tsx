@@ -305,28 +305,28 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
   const scout = byHref.get("/scout");
   const request = byHref.get("/direct-connect");
   const community = byHref.get(communityHref);
-  const updatesHref = "/direct-connect/engagements";
-  const pinnedHrefs = new Set(["/direct-connect", updatesHref, communityHref, "/scout"]);
+  const inboxHref = "/messages";
+  const pinnedHrefs = new Set(["/direct-connect", inboxHref, communityHref, "/scout"]);
 
   const primary: NavItem[] = [
     request
-      ? { ...request, label: "Request", description: "Post what you need." }
+      ? { ...request, label: "Ask", description: "Ask local people and businesses for help." }
       : {
-          label: "Request",
+          label: "Ask",
           href: "/direct-connect",
           icon: (
             <ClipboardList className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
           ),
         },
     {
-      label: "Updates",
-      href: updatesHref,
+      label: "Inbox",
+      href: inboxHref,
       icon: <MessageCircle className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       badge: contactRequestCount > 0 ? String(Math.min(contactRequestCount, 9)) : undefined,
-      description: "Track requests and replies.",
+      description: "See replies, messages, and active coordination.",
     },
     community
-      ? { ...community, label: "Community", description: "Read local activity." }
+      ? { ...community, label: "Community", description: "See local activity and ask around." }
       : {
           label: "Community",
           href: communityHref,
