@@ -20,7 +20,7 @@ interface ScoutInputRowProps {
   prefillKey: number;
   onSend: (value: string) => void;
   onTyping: () => void;
-  quickStartPrompts?: string[];
+  quickStartPrompts?: readonly string[];
   autoDemoText?: string;
   enableAutoDemo?: boolean;
 }

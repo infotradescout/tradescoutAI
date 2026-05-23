@@ -6,7 +6,7 @@ type ScoutSearchDockProps = {
   isBusy: boolean;
   prefillKey: number;
   hasMessages: boolean;
-  quickStartPrompts: string[];
+  quickStartPrompts: readonly string[];
   autoDemoText?: string;
   enableAutoDemo?: boolean;
   onSend: (value: string) => void;
