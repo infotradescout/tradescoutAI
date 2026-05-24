@@ -11,13 +11,12 @@ describe("Scout result action card contracts", () => {
   it("renders result card in thread after user query", () => {
     const threadSource = read("client/src/scout/ScoutThread.tsx");
 
-    expect(threadSource).toContain(
-      'import { ScoutResultActionCard } from "./ScoutResultActionCard";'
-    );
-    expect(threadSource).toContain("const firstUserMessage = React.useMemo(");
-    expect(threadSource).toContain("{firstUserMessage && (");
+    expect(threadSource).toContain('from "./ScoutResultActionCard"');
+    expect(threadSource).toContain("const [resultCardQuery, setResultCardQuery]");
+    expect(threadSource).toContain("if (previous.queryKey === queryKey) return;");
+    expect(threadSource).toContain("{resultCardQuery && (");
     expect(threadSource).toContain("<ScoutResultActionCard");
-    expect(threadSource).toContain("query={firstUserMessage.content}");
+    expect(threadSource).toContain("query={resultCardQuery}");
   });
 
   it("does not render result card on empty ScoutHome", () => {

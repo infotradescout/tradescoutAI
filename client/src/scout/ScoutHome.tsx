@@ -86,6 +86,16 @@ const INVALID_CONTINUITY_PHRASES = [
   "what can scout help me with today",
 ];
 
+const NON_PERSONAL_ACTIVITY_PHRASES = [
+  "county_metrics",
+  "homescout",
+  "source-backed",
+  "opportunity radar",
+  "median home price",
+  "homes are sitting longer",
+  "home prices shifted nearby",
+];
+
 function isGenericContinuityLabel(value?: string | null): boolean {
   const clean = String(value || "")
     .trim()
@@ -94,6 +104,16 @@ function isGenericContinuityLabel(value?: string | null): boolean {
   if (!clean) return true;
   if (INVALID_CONTINUITY_LABELS.has(clean)) return true;
   return INVALID_CONTINUITY_PHRASES.some((phrase) => clean.includes(phrase));
+}
+
+function isLikelyPersonalActivityQuery(value?: string | null): boolean {
+  const clean = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  if (!clean) return false;
+  if (isGenericContinuityLabel(clean)) return false;
+  return !NON_PERSONAL_ACTIVITY_PHRASES.some((phrase) => clean.includes(phrase));
 }
 
 function looksLikeRealDisplayTitle(value?: string | null): boolean {
@@ -478,7 +498,7 @@ function inferUserInterestCategories(
   }
 
   for (const activity of recentActivity) {
-    if (isGenericContinuityLabel(activity.query)) continue;
+    if (!isLikelyPersonalActivityQuery(activity.query)) continue;
     for (const category of inferInterestFromText(activity.query)) {
       interests.add(category);
     }

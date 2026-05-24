@@ -24,21 +24,24 @@ describe("Scout home personalization contracts", () => {
       "const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;"
     );
     expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
+    expect(source).toContain("{hasRealContinuation ? (");
     expect(source).toContain(
-      "{hasRealContinuation ? <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} /> : null}"
+      "<ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />"
     );
-    expect(source).toContain(
-      "{hasPersonalizedFeed ? <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} /> : null}"
-    );
+    expect(source).toContain("{hasPersonalizedFeed ? (");
+    expect(source).toContain("<NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />");
     expect(source).toContain(
       "{shouldShowSnapshot ? <LocalSnapshot snapshot={data?.snapshot} /> : null}"
     );
     expect(source).toContain("{shouldShowEmptyContext ? <EmptyContextHint /> : null}");
     expect(source).toContain("if (interests.size === 0) return [];");
-    expect(source).toContain("if (isGenericContinuityLabel(activity.query)) continue;");
+    expect(source).toContain("if (!isLikelyPersonalActivityQuery(activity.query)) continue;");
     expect(source).toContain(
       "const interests = inferUserInterestCategories(continueItems, data?.recentActivity ?? []);"
     );
+    expect(source).toContain("const NON_PERSONAL_ACTIVITY_PHRASES = [");
+    expect(source).toContain("home prices shifted nearby");
+    expect(source).toContain("median home price");
   });
 
   it("rejects generic continuity labels", () => {
@@ -69,12 +72,10 @@ describe("Scout home personalization contracts", () => {
 
     expect(source).toContain("Home prices shifted nearby");
     expect(source).toContain("Homes are sitting longer");
-    expect(source).toContain(
-      "{hasPersonalizedFeed ? <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} /> : null}"
-    );
+    expect(source).toContain("<NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />");
     expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
     expect(source).toContain(
-      "{hasRealContinuation ? <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} /> : null}"
+      "<ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />"
     );
     expect(source).toContain(
       "const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;"
