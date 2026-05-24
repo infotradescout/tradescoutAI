@@ -30,6 +30,7 @@ import {
   formatIntentDetailChips,
   inferScoutIntentDetails,
 } from "./intentDetails";
+import { ScoutResultActionCard } from "./ScoutResultActionCard";
 
 /* ----------------------------------------------------------
    ScoutThread — Morphic OS v2
@@ -1045,6 +1046,17 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     }
     return null;
   }, [messages]);
+  const firstUserMessage = React.useMemo(
+    () => messages.find((message) => message.role === "user" && message.content.trim().length > 0),
+    [messages]
+  );
+  const localityLabel = React.useMemo(() => {
+    const county = String(locality?.countyName || locality?.county || "").trim();
+    const state = String(locality?.stateCode || locality?.state || "")
+      .trim()
+      .toUpperCase();
+    return [county, state].filter(Boolean).join(", ");
+  }, [locality?.county, locality?.countyName, locality?.state, locality?.stateCode]);
 
   React.useEffect(() => {
     const node = containerRef.current;
@@ -1150,6 +1162,13 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       aria-live="polite"
       aria-relevant="additions text"
     >
+      {firstUserMessage && (
+        <ScoutResultActionCard
+          query={firstUserMessage.content}
+          localityLabel={localityLabel || undefined}
+          onAction={onAction}
+        />
+      )}
       {messages.map((msg) => {
         const isUser = msg.role === "user";
 
