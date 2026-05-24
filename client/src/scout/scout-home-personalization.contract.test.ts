@@ -73,5 +73,13 @@ describe("Scout home personalization contracts", () => {
       "{hasPersonalizedFeed ? <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} /> : null}"
     );
     expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
+    expect(source).toContain(
+      "{hasRealContinuation ? <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} /> : null}"
+    );
+    expect(source).toContain(
+      "const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;"
+    );
+    expect(source).toContain("const shouldShowSnapshot =");
+    expect(source).toContain("Nothing to continue yet.");
   });
 });
