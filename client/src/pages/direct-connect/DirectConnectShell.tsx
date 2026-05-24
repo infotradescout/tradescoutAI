@@ -1779,9 +1779,9 @@ function DirectConnectInbox() {
   const currentAcceptedForInvoice = items.find((i) => i.assignment.id === creatingInvoice);
 
   return (
-    <div className="space-y-3">
-      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="flex gap-1.5 overflow-x-auto p-2">
+    <div className="space-y-2.5">
+      <Card className="border-[color:var(--border-subtle)]/50 bg-[color:var(--surface-card)]/70 shadow-none">
+        <CardContent className="flex gap-2 overflow-x-auto p-1.5">
           {(["all", "suggested", "accepted", "declined"] as const).map((f) => {
             const count =
               f === "all"
@@ -1793,7 +1793,7 @@ function DirectConnectInbox() {
                 key={f}
                 type="button"
                 onClick={() => setInboxFilter(f)}
-                className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
+                className="shrink-0 rounded-xl border px-3.5 text-[13px] font-medium transition-all h-10"
                 style={{
                   borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
                   color: active ? "var(--text-primary)" : "var(--text-secondary)",
@@ -3321,8 +3321,8 @@ export default function DirectConnectShell() {
         canonical="https://www.thetradescout.com/direct-connect"
         structuredData={DIRECT_CONNECT_STRUCTURED_DATA}
       />
-      <div className="mx-auto w-full max-w-6xl space-y-3 px-2.5 py-3 sm:px-3 sm:py-4 md:space-y-4 md:px-6 md:py-6">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div className="mx-auto w-full max-w-6xl space-y-2.5 px-2.5 py-3 sm:px-3 sm:py-4 md:space-y-3 md:px-6 md:py-6">
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
           <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
             <span className="md:hidden">{mobileTitle}</span>
             <span className="hidden md:inline">Direct Connect</span>
@@ -3392,7 +3392,7 @@ export default function DirectConnectShell() {
           </div>
         ) : null}
 
-        <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-1.5">
+        <div className="rounded-lg border border-transparent bg-transparent p-0">
           <div className="grid grid-cols-3 gap-1 md:flex md:items-center md:gap-1.5">
             {DIRECT_CONNECT_TABS.map((section) => {
               const active = section === activeSection;
@@ -3403,10 +3403,10 @@ export default function DirectConnectShell() {
                   type="button"
                   onClick={() => navigateSection(section)}
                   className={cn(
-                    "inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-md border px-1.5 text-xs font-medium transition-colors md:flex-1 md:gap-2 md:px-3 md:text-sm",
+                    "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[13px] font-medium transition-colors md:flex-1 md:gap-2 md:px-3 md:text-sm",
                     active
-                      ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/10 text-[color:var(--text-primary)]"
-                      : "border-transparent bg-transparent text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                      ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--text-primary)]"
+                      : "border-[color:var(--border-subtle)]/60 bg-[color:var(--surface-card)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
                   )}
                 >
                   <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5 md:[&>svg]:h-4 md:[&>svg]:w-4">
@@ -3425,7 +3425,7 @@ export default function DirectConnectShell() {
           </div>
         </div>
 
-        <div className="min-w-0 space-y-4">{centerContent}</div>
+        <div className="min-w-0 space-y-3">{centerContent}</div>
       </div>
     </div>
   );
