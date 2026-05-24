@@ -4282,8 +4282,76 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         "SELECT role,user_id,signed_at,ip,signature_type,typed_name FROM document_signatures WHERE document_id=$1 ORDER BY signed_at ASC",
         [doc.id]
       );
+      const acceptsHtml = String(req.headers.accept || "")
+        .toLowerCase()
+        .includes("text/html");
+      if (!acceptsHtml) {
+        return res.json({ document: doc, signatures: sigs.rows });
+      }
 
-      res.json({ document: doc, signatures: sigs.rows });
+      const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+        .split(",")[0]
+        .trim();
+      const hostOnly = host.split(":")[0].toLowerCase();
+      const proto = String(req.headers["x-forwarded-proto"] || req.protocol || "https")
+        .split(",")[0]
+        .trim()
+        .toLowerCase();
+      const isLocal = hostOnly === "localhost" || hostOnly === "127.0.0.1";
+      const canonicalHost =
+        hostOnly === "thetradescout.com" ||
+        hostOnly === "www.thetradescout.com" ||
+        hostOnly.includes("tradescoutai.onrender.com")
+          ? "www.thetradescout.com"
+          : hostOnly || "www.thetradescout.com";
+      const origin = isLocal
+        ? `${proto || "http"}://${host || "localhost"}`
+        : `https://${canonicalHost}`;
+
+      const title = `TradeScout document share`;
+      const description = `Shared TradeScout document preview. Open to view the full document.`;
+      const shareUrl = `${origin}/d/${encodeURIComponent(String(shareToken || ""))}`;
+      const imageUrl = `${origin}/tradescout-social-preview.png?v=10`;
+
+      const escapeHtml = (value: string) =>
+        value
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+
+      const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(title)}</title>
+    <meta name="description" content="${escapeHtml(description)}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TradeScout" />
+    <meta property="og:title" content="${escapeHtml(title)}" />
+    <meta property="og:description" content="${escapeHtml(description)}" />
+    <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    <meta property="og:image" content="${escapeHtml(imageUrl)}" />
+    <meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="TradeScout preview image" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${escapeHtml(title)}" />
+    <meta name="twitter:description" content="${escapeHtml(description)}" />
+    <meta name="twitter:image" content="${escapeHtml(imageUrl)}" />
+    <meta name="twitter:image:alt" content="TradeScout preview image" />
+    <link rel="canonical" href="${escapeHtml(shareUrl)}" />
+  </head>
+  <body>
+    <script>window.location.replace(${JSON.stringify(shareUrl)});</script>
+  </body>
+</html>`;
+      res.setHeader("Cache-Control", "public, max-age=180, stale-while-revalidate=3600");
+      return res.status(200).send(html);
     })
   );
 

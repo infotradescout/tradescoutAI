@@ -127,6 +127,31 @@ export async function buildWorkRequestShareHtml({
   );
   html = upsertTag(
     html,
+    /<meta property="og:image:secure_url"[^>]*>/i,
+    `<meta property="og:image:secure_url" content="${escapeHtml(imageUrl)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:image:type"[^>]*>/i,
+    `<meta property="og:image:type" content="image/png" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:image:width"[^>]*>/i,
+    `<meta property="og:image:width" content="1200" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:image:height"[^>]*>/i,
+    `<meta property="og:image:height" content="630" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:image:alt"[^>]*>/i,
+    `<meta property="og:image:alt" content="TradeScout preview image" />`
+  );
+  html = upsertTag(
+    html,
     /<meta property="og:url"[^>]*>/i,
     `<meta property="og:url" content="${escapeHtml(canonical)}" />`
   );
@@ -149,6 +174,11 @@ export async function buildWorkRequestShareHtml({
     html,
     /<meta name="twitter:image"[^>]*>/i,
     `<meta name="twitter:image" content="${escapeHtml(imageUrl)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta name="twitter:image:alt"[^>]*>/i,
+    `<meta name="twitter:image:alt" content="TradeScout preview image" />`
   );
   html = upsertTag(
     html,
