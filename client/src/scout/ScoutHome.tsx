@@ -48,6 +48,29 @@ type ContinueItem = {
   prompt: string;
 };
 
+const INVALID_CONTINUITY_LABELS = new Set([
+  "home project",
+  "vehicle service",
+  "saved search",
+  "local request",
+  "client work",
+  "local help",
+  "project",
+  "general",
+  "unknown",
+  "scout",
+  "what can scout help me with today?",
+]);
+
+function isGenericContinuityLabel(value?: string | null): boolean {
+  const clean = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  if (!clean) return true;
+  return INVALID_CONTINUITY_LABELS.has(clean);
+}
+
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
@@ -91,23 +114,35 @@ function normalizeThreadTitle(thread: ContinuityThread): string {
 function buildContinueItems(threads: Array<ContinuityThread> = []): ContinueItem[] {
   return threads
     .filter((thread) => Boolean(thread.id))
-    .filter((thread) => {
-      const hasRelatedObject =
-        Boolean(thread.relatedTo?.id) ||
-        Boolean(thread.relatedLabel) ||
-        Boolean(thread.relatedTo?.label);
-      const hasUsablePreview = Boolean(thread.preview) || Boolean(thread.summary);
-      return hasRelatedObject || hasUsablePreview;
+    .map((thread) => {
+      const objectTitle =
+        thread.relatedLabel ||
+        thread.relatedTo?.label ||
+        thread.title ||
+        thread.preview ||
+        thread.summary ||
+        "";
+      const objectSubtitle = thread.preview || thread.summary || "";
+      return {
+        thread,
+        objectTitle: String(objectTitle).trim(),
+        objectSubtitle: String(objectSubtitle).trim(),
+      };
+    })
+    .filter(({ objectTitle, objectSubtitle }) => {
+      if (isGenericContinuityLabel(objectTitle)) return false;
+      if (isGenericContinuityLabel(objectSubtitle)) return false;
+      return true;
     })
     .slice(0, 6)
-    .map((thread) => ({
+    .map(({ thread, objectTitle, objectSubtitle }) => ({
       id: thread.id,
-      title: normalizeThreadTitle(thread),
-      subtitle: thread.relatedLabel || thread.preview || thread.title || "Local item",
+      title: objectTitle,
+      subtitle: objectSubtitle,
       status: statusFromThread(thread),
       tone: toneFromIntent(thread.intent),
       icon: continuityIconForThread(thread),
-      prompt: thread.summary || thread.preview || thread.title || "Continue this local item.",
+      prompt: thread.summary || thread.preview || thread.title || objectTitle,
     }));
 }
 
@@ -141,14 +176,14 @@ function toneClasses(tone: ContinueItem["tone"]): {
 
 function ScoutHero({ locationLabel }: { locationLabel?: string }) {
   return (
-    <section className="px-4 pt-5 pb-2">
+    <section className="px-4 pt-3 pb-1">
       <h1 className="text-5xl font-black tracking-tight text-white">Scout</h1>
-      <button type="button" className="mt-3 inline-flex items-center gap-2 text-lg text-zinc-300">
+      <button type="button" className="mt-2 inline-flex items-center gap-2 text-lg text-zinc-300">
         <MapPin className="h-5 w-5 text-ts-orange" />
         {locationLabel || "Set location"}
         <ChevronDown className="h-4 w-4" />
       </button>
-      <p className="mt-3 max-w-[340px] text-[15px] leading-snug text-zinc-400">
+      <p className="mt-2 max-w-[340px] text-[15px] leading-snug text-zinc-400">
         Find, fix, sell, check, or continue anything local.
       </p>
       <p className="mt-1 text-[13px] text-zinc-500">Start with search or pick an area below.</p>
@@ -196,10 +231,10 @@ function ContinueRail({
 }) {
   if (items.length === 0) return null;
   return (
-    <section className="px-4 pt-2">
+    <section className="px-4 pt-1">
       <h2 className="text-2xl font-bold leading-tight text-white">Continue where you left off</h2>
       <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">
-        <div className="mt-3 flex snap-x snap-mandatory gap-3">
+        <div className="mt-2 flex snap-x snap-mandatory gap-3">
           {items.map((item) => (
             <ContinueCard key={item.id} item={item} onPromptSelect={onPromptSelect} />
           ))}
@@ -255,9 +290,9 @@ const EXPLORE_ITEMS: Array<{
 
 function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => void }) {
   return (
-    <section className="px-4 pt-4">
+    <section className="px-4 pt-2">
       <h2 className="text-2xl font-bold leading-tight text-white">Explore around you</h2>
-      <div className="mt-3 grid grid-cols-2 gap-3">
+      <div className="mt-2 grid grid-cols-2 gap-2.5">
         {EXPLORE_ITEMS.map((item) => {
           const Icon = item.icon;
           return (
@@ -265,13 +300,13 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
               key={item.title}
               type="button"
               onClick={() => onPromptSelect(item.prompt)}
-              className="min-h-[72px] rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-left"
+              className="min-h-[68px] rounded-xl border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-left"
             >
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900">
-                  <Icon className="h-5 w-5 text-ts-orange" />
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900">
+                  <Icon className="h-4.5 w-4.5 text-ts-orange" />
                 </span>
-                <p className="text-base font-semibold text-white leading-tight">{item.title}</p>
+                <p className="text-[15px] font-semibold text-white leading-tight">{item.title}</p>
               </div>
               <div className="mt-0.5 flex items-start justify-between gap-2">
                 <p className="text-xs leading-tight text-zinc-400 line-clamp-2">{item.detail}</p>
@@ -439,9 +474,9 @@ function NearbyList({
 }) {
   const rows = buildNearbyRows(moves, priceSignals);
   return (
-    <section className="px-4 pt-4">
+    <section className="px-4 pt-2">
       <h2 className="text-2xl font-bold leading-tight text-white">Nearby right now</h2>
-      <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+      <div className="mt-2 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
         {rows.map((row) => {
           const Icon = row.icon;
           return (
@@ -486,7 +521,7 @@ function LocalSnapshot({
 }) {
   if (!snapshot) return null;
   return (
-    <section className="px-4 pt-4 pb-2">
+    <section className="px-4 pt-2 pb-2">
       <h2 className="text-2xl font-bold leading-tight text-white">Local snapshot</h2>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">

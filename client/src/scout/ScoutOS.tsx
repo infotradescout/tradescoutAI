@@ -4319,7 +4319,7 @@ export default function ScoutOS() {
           } flex flex-col flex-1 min-h-0`}
           style={{
             paddingBottom: isMobile
-              ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 96px)"
+              ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
               : "calc(var(--scout-search-dock-h, 92px) + 1rem)",
           }}
         >
@@ -4339,7 +4339,7 @@ export default function ScoutOS() {
               }`}
               style={{
                 paddingBottom: isMobile
-                  ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 96px)"
+                  ? "calc(var(--scout-search-dock-height, var(--scout-search-dock-h, 92px)) + var(--global-nav-height, var(--bottom-nav-h, 62px)) + env(safe-area-inset-bottom) + 120px)"
                   : "calc(var(--scout-search-dock-h, 92px) + 0.75rem)",
               }}
             >
