@@ -1505,7 +1505,7 @@ function DirectConnectRequestComposer({
                 <p className="text-xs text-[color:var(--text-secondary)]">
                   {selectedContractorCount > 0
                     ? `${selectedContractorCount} compan${selectedContractorCount === 1 ? "y" : "ies"} selected.`
-                    : "No companies selected. Send as-is to post without direct targets, or skip to use auto-routing."}
+                    : "No companies selected yet. If there is no appropriate match, we will manually route this to a reputable local company, and you still approve before contact is unlocked."}
                 </p>
               </div>
 
@@ -3025,8 +3025,8 @@ function MyDirectConnectRequests() {
 
               {!routeCandidatesLoading && rankedRouteCandidates.length === 0 && (
                 <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
-                  No businesses found right now. You can still send with none selected or skip to
-                  auto-route.
+                  No businesses found right now. We will manually route this to a reputable local
+                  company, and you will still approve before contact is unlocked.
                 </div>
               )}
 
@@ -3089,7 +3089,7 @@ function MyDirectConnectRequests() {
               <p className="text-xs text-[color:var(--text-secondary)]">
                 {selectedRouteContractorIds.length > 0
                   ? `${selectedRouteContractorIds.length} business${selectedRouteContractorIds.length === 1 ? "" : "es"} selected.`
-                  : "No businesses selected. Send as manual hold, or skip for auto-route."}
+                  : "No businesses selected yet. We will manually route this to a reputable local company, and you still approve before contact is unlocked."}
               </p>
             </div>
 
