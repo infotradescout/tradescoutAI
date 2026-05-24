@@ -89,8 +89,16 @@ function normalizeThreadTitle(thread: ContinuityThread): string {
 }
 
 function buildContinueItems(threads: Array<ContinuityThread> = []): ContinueItem[] {
-  const realItems = threads
+  return threads
     .filter((thread) => Boolean(thread.id))
+    .filter((thread) => {
+      const hasRelatedObject =
+        Boolean(thread.relatedTo?.id) ||
+        Boolean(thread.relatedLabel) ||
+        Boolean(thread.relatedTo?.label);
+      const hasUsablePreview = Boolean(thread.preview) || Boolean(thread.summary);
+      return hasRelatedObject || hasUsablePreview;
+    })
     .slice(0, 6)
     .map((thread) => ({
       id: thread.id,
@@ -101,47 +109,6 @@ function buildContinueItems(threads: Array<ContinuityThread> = []): ContinueItem
       icon: continuityIconForThread(thread),
       prompt: thread.summary || thread.preview || thread.title || "Continue this local item.",
     }));
-
-  if (realItems.length > 0) return realItems;
-
-  return [
-    {
-      id: "fallback-home",
-      title: "Home project",
-      subtitle: "Fence quote",
-      status: "Waiting on review",
-      tone: "orange",
-      icon: Wrench,
-      prompt: "Continue my home project.",
-    },
-    {
-      id: "fallback-vehicle",
-      title: "Vehicle service",
-      subtitle: "2018 F-150 service",
-      status: "Needs approval",
-      tone: "green",
-      icon: Car,
-      prompt: "Continue my vehicle service request.",
-    },
-    {
-      id: "fallback-search",
-      title: "Saved search",
-      subtitle: "Homes in 70401",
-      status: "4 new matches",
-      tone: "blue",
-      icon: Search,
-      prompt: "Continue my saved local search.",
-    },
-    {
-      id: "fallback-request",
-      title: "Local request",
-      subtitle: "Pressure washing",
-      status: "2 quotes received",
-      tone: "purple",
-      icon: Calendar,
-      prompt: "Continue my local request.",
-    },
-  ];
 }
 
 function toneClasses(tone: ContinueItem["tone"]): {
@@ -184,6 +151,7 @@ function ScoutHero({ locationLabel }: { locationLabel?: string }) {
       <p className="mt-3 max-w-[340px] text-[15px] leading-snug text-zinc-400">
         Find, fix, sell, check, or continue anything local.
       </p>
+      <p className="mt-1 text-[13px] text-zinc-500">Start with search or pick an area below.</p>
     </section>
   );
 }
@@ -226,6 +194,7 @@ function ContinueRail({
   items: ContinueItem[];
   onPromptSelect: (prompt: string) => void;
 }) {
+  if (items.length === 0) return null;
   return (
     <section className="px-4 pt-2">
       <h2 className="text-2xl font-bold leading-tight text-white">Continue where you left off</h2>
@@ -254,13 +223,13 @@ const EXPLORE_ITEMS: Array<{
   },
   {
     title: "Vehicles",
-    detail: "Service, repairs, records",
+    detail: "Service, repairs, selling",
     icon: Car,
     prompt: "Search vehicle service, repairs, records, or listings near me.",
   },
   {
     title: "Projects",
-    detail: "Requests, quotes, jobs",
+    detail: "Quotes, requests, updates",
     icon: Hammer,
     prompt: "Search projects, quotes, jobs, and updates.",
   },
@@ -296,16 +265,16 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
               key={item.title}
               type="button"
               onClick={() => onPromptSelect(item.prompt)}
-              className="min-h-[76px] rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-left"
+              className="min-h-[72px] rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-left"
             >
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900">
                   <Icon className="h-5 w-5 text-ts-orange" />
                 </span>
-                <p className="text-base font-semibold text-white">{item.title}</p>
+                <p className="text-base font-semibold text-white leading-tight">{item.title}</p>
               </div>
-              <div className="mt-1 flex items-start justify-between gap-2">
-                <p className="text-xs leading-tight text-zinc-400">{item.detail}</p>
+              <div className="mt-0.5 flex items-start justify-between gap-2">
+                <p className="text-xs leading-tight text-zinc-400 line-clamp-2">{item.detail}</p>
                 <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
               </div>
             </button>
@@ -548,14 +517,12 @@ function LocalSnapshot({
 export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHomeProps) {
   const { location } = useScoutLocation();
   const { data } = useScoutHomeSnapshot(location);
+  const continueItems = buildContinueItems(continuationThreads);
 
   return (
     <div className="scout-home-surface">
       <ScoutHero locationLabel={location.label} />
-      <ContinueRail
-        items={buildContinueItems(continuationThreads)}
-        onPromptSelect={onPromptSelect}
-      />
+      <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />
       <ExploreGrid onPromptSelect={onPromptSelect} />
       <NearbyList
         moves={data?.opportunityMoves ?? []}
