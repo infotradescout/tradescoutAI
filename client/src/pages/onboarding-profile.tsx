@@ -467,7 +467,7 @@ export default function OnboardingProfile() {
                 <p className="text-[11px] text-white/60">
                   {canContinue
                     ? "Looks good."
-                    : "Add your name, phone, and main county to continue."}
+                    : "Add your name, location, and contact info to continue."}
                 </p>
                 <Button type="submit" size="sm" disabled={!canContinue || updateProfile.isPending}>
                   {updateProfile.isPending ? "Saving…" : "Continue"}

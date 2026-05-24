@@ -2844,6 +2844,40 @@ export function registerDirectConnectRoutes(app: Express) {
         // C2-3: Verification gate - check homeowner address verification (REQUEST_CONTRACTOR_QUOTE action)
         const viewer = await storage.getUser(String(userId));
         const requesterRole = (viewer as any)?.role || "homeowner";
+        const firstName = String((viewer as any)?.firstName || "").trim();
+        const lastName = String((viewer as any)?.lastName || "").trim();
+        const fullName = String((viewer as any)?.name || (viewer as any)?.displayName || "").trim();
+        const hasName =
+          (firstName.length > 0 && lastName.length > 0) ||
+          fullName.split(/\s+/).filter(Boolean).length >= 2 ||
+          fullName.length >= 3;
+        const phoneDigits = String((viewer as any)?.phone || "")
+          .replace(/\D+/g, "")
+          .trim();
+        const userStateCode = String(
+          (viewer as any)?.stateCode || (viewer as any)?.state_code || ""
+        )
+          .trim()
+          .toUpperCase();
+        const userCountyFips = String(
+          (viewer as any)?.countyFips || (viewer as any)?.county_fips || ""
+        ).trim();
+        const hasLocation = /^[A-Z]{2}$/.test(userStateCode) && /^\d{5}$/.test(userCountyFips);
+        const hasContactInfo = phoneDigits.length >= 10;
+
+        if (!hasName || !hasLocation || !hasContactInfo) {
+          return res.status(428).json({
+            code: "PROFILE_BASICS_REQUIRED",
+            message:
+              "Name, location, and contact info are required before posting a Direct Connect request.",
+            required: {
+              name: !hasName,
+              location: !hasLocation,
+              contactInfo: !hasContactInfo,
+            },
+            next: "/onboarding/profile",
+          });
+        }
 
         const bypassContext = resolveDirectConnectVerificationBypass(req, viewer);
         const canBypassVerification = bypassContext.active;
