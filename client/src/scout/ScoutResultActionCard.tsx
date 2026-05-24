@@ -43,7 +43,7 @@ function buildCardModel(query: string, localityLabel?: string): ActionCardModel 
         {
           type: "ASK_SCOUT",
           label: "Compare prices",
-          prompt: "Compare local vehicle service prices.",
+          prompt: "Compare local prices for this vehicle service.",
         },
       ],
     };
@@ -65,7 +65,7 @@ function buildCardModel(query: string, localityLabel?: string): ActionCardModel 
           label: "Compare prices",
           prompt: "Compare local listing prices for this.",
         },
-        { type: "NAVIGATE", label: "Create listing", to: "/marketplace-listing" },
+        { type: "NAVIGATE", label: "Create listing", to: "/exchange/new" },
       ],
     };
   }
@@ -75,13 +75,13 @@ function buildCardModel(query: string, localityLabel?: string): ActionCardModel 
       title: `Local help${where}`,
       summary: "Compare options before contact opens.",
       actions: [
-        { type: "NAVIGATE", label: "Find local help", to: "/direct-connect/pros" },
+        { type: "NAVIGATE", label: "Find local help", to: "/direct-connect" },
         { type: "NAVIGATE", label: "View saved providers", to: "/direct-connect/pros" },
         { type: "NAVIGATE", label: "Start request", to: "/direct-connect" },
         {
           type: "ASK_SCOUT",
           label: "Review what to verify",
-          prompt: "What should I verify before contact?",
+          prompt: "What should I verify before contacting local help?",
         },
       ],
       reviewNote: "You review before anything is shared.",
@@ -95,11 +95,7 @@ function buildCardModel(query: string, localityLabel?: string): ActionCardModel 
       actions: [
         { type: "ASK_SCOUT", label: "Compare prices", prompt: "Compare local prices for this." },
         { type: "NAVIGATE", label: "Search listings", to: "/exchange" },
-        {
-          type: "ASK_SCOUT",
-          label: "Check materials",
-          prompt: "Show material price ranges for this.",
-        },
+        { type: "NAVIGATE", label: "Check materials", to: "/utilities/supply-run" },
         {
           type: "ASK_SCOUT",
           label: "Save search",
@@ -115,7 +111,7 @@ function buildCardModel(query: string, localityLabel?: string): ActionCardModel 
       summary: "See posts, events, and local updates around your area.",
       actions: [
         { type: "NAVIGATE", label: "Open Community", to: "/community" },
-        { type: "ASK_SCOUT", label: "See events", prompt: "Show nearby events this week." },
+        { type: "NAVIGATE", label: "See events", to: "/community" },
         { type: "ASK_SCOUT", label: "Search nearby", prompt: "Search nearby posts and activity." },
         { type: "ASK_SCOUT", label: "Save area", prompt: "Save this area for activity updates." },
       ],
@@ -127,13 +123,13 @@ function buildCardModel(query: string, localityLabel?: string): ActionCardModel 
     summary: "Start with the issue, location, timing, photos, and what you have already checked.",
     actions: [
       { type: "NAVIGATE", label: "Start a request", to: "/direct-connect" },
-      { type: "ASK_SCOUT", label: "Compare local prices", prompt: "Compare local repair prices." },
       {
         type: "ASK_SCOUT",
-        label: "Check materials",
-        prompt: "Check materials and price ranges for this repair.",
+        label: "Compare local prices",
+        prompt: "Compare local prices for this home repair.",
       },
-      { type: "NAVIGATE", label: "Find local help", to: "/direct-connect/pros" },
+      { type: "NAVIGATE", label: "Check materials", to: "/utilities/supply-run" },
+      { type: "NAVIGATE", label: "Find local help", to: "/direct-connect" },
     ],
     reviewNote: "You review before anything is shared.",
   };

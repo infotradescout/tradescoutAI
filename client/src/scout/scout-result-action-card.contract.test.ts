@@ -42,4 +42,22 @@ describe("Scout result action card contracts", () => {
     expect(cardSource).not.toContain("confidence");
     expect(cardSource).not.toContain("building your best next step");
   });
+
+  it("maps actions to real routes or safe follow-up queries", () => {
+    const cardSource = read("client/src/scout/ScoutResultActionCard.tsx");
+
+    expect(cardSource).toContain('to: "/direct-connect"');
+    expect(cardSource).toContain('to: "/direct-connect/pros"');
+    expect(cardSource).toContain('to: "/exchange"');
+    expect(cardSource).toContain('to: "/exchange/new"');
+    expect(cardSource).toContain('to: "/vehicles"');
+    expect(cardSource).toContain('to: "/community"');
+    expect(cardSource).toContain('to: "/utilities/supply-run"');
+
+    expect(cardSource).toContain('prompt: "Compare local prices for this home repair."');
+    expect(cardSource).toContain('prompt: "Compare local prices for this vehicle service."');
+    expect(cardSource).toContain('prompt: "Compare local listing prices for this."');
+    expect(cardSource).toContain('prompt: "What should I verify before contacting local help?"');
+    expect(cardSource).toContain('prompt: "Search nearby posts and activity."');
+  });
 });
