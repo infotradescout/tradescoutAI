@@ -466,28 +466,19 @@ function inferInterestFromText(input?: string | null): Set<NearbyCategory> {
 }
 
 function inferUserInterestCategories(
-  threads: ContinuityThread[],
+  continuationItems: ContinueItem[],
   recentActivity: RecentActivity[]
 ): Set<NearbyCategory> {
   const interests = new Set<NearbyCategory>();
 
-  for (const thread of threads) {
-    const fromIntent = String(thread.intent || "").toLowerCase();
-    if (fromIntent.includes("vehicle")) interests.add("vehicles");
-    if (fromIntent.includes("home")) interests.add("homes");
-    if (fromIntent.includes("project") || fromIntent.includes("local_request"))
-      interests.add("projects");
-    if (fromIntent.includes("price") || fromIntent.includes("material")) interests.add("listings");
-    if (fromIntent.includes("community")) interests.add("community");
-
-    for (const category of inferInterestFromText(
-      thread.title || thread.summary || thread.preview
-    )) {
+  for (const item of continuationItems) {
+    for (const category of inferInterestFromText(`${item.title} ${item.subtitle}`)) {
       interests.add(category);
     }
   }
 
   for (const activity of recentActivity) {
+    if (isGenericContinuityLabel(activity.query)) continue;
     for (const category of inferInterestFromText(activity.query)) {
       interests.add(category);
     }
@@ -660,7 +651,7 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   const { location } = useScoutLocation();
   const { data } = useScoutHomeSnapshot(location);
   const continueItems = buildContinueItems(continuationThreads);
-  const interests = inferUserInterestCategories(continuationThreads, data?.recentActivity ?? []);
+  const interests = inferUserInterestCategories(continueItems, data?.recentActivity ?? []);
   const nearbyRows = buildNearbyRows(
     data?.opportunityMoves ?? [],
     data?.priceSignals ?? [],
@@ -668,9 +659,12 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   );
 
   const hasRealContinuation = continueItems.length > 0;
-  const hasPersonalizedFeed = nearbyRows.length > 0;
-  const shouldShowEmptyContext = !hasRealContinuation && !hasPersonalizedFeed;
-  const shouldShowSnapshot = hasPersonalizedFeed;
+  const hasCategorySelectionOrSearch = interests.size > 0;
+  const hasPersonalizedScoutContext = hasRealContinuation || hasCategorySelectionOrSearch;
+  const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;
+  const shouldShowEmptyContext = !hasPersonalizedScoutContext;
+  const shouldShowSnapshot =
+    hasPersonalizedScoutContext && (hasCategorySelectionOrSearch || hasRealContinuation);
 
   return (
     <div className="scout-home-surface pb-[calc(var(--scout-search-dock-height)+var(--global-nav-height)+env(safe-area-inset-bottom)+96px)]">

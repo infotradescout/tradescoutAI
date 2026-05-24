@@ -16,10 +16,14 @@ describe("Scout home personalization contracts", () => {
       "Search once, save something, or start a request and Scout will keep it here."
     );
     expect(source).toContain("const hasRealContinuation = continueItems.length > 0;");
-    expect(source).toContain("const hasPersonalizedFeed = nearbyRows.length > 0;");
+    expect(source).toContain("const hasCategorySelectionOrSearch = interests.size > 0;");
     expect(source).toContain(
-      "const shouldShowEmptyContext = !hasRealContinuation && !hasPersonalizedFeed;"
+      "const hasPersonalizedScoutContext = hasRealContinuation || hasCategorySelectionOrSearch;"
     );
+    expect(source).toContain(
+      "const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;"
+    );
+    expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
     expect(source).toContain(
       "{hasRealContinuation ? <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} /> : null}"
     );
@@ -31,6 +35,10 @@ describe("Scout home personalization contracts", () => {
     );
     expect(source).toContain("{shouldShowEmptyContext ? <EmptyContextHint /> : null}");
     expect(source).toContain("if (interests.size === 0) return [];");
+    expect(source).toContain("if (isGenericContinuityLabel(activity.query)) continue;");
+    expect(source).toContain(
+      "const interests = inferUserInterestCategories(continueItems, data?.recentActivity ?? []);"
+    );
   });
 
   it("rejects generic continuity labels", () => {
@@ -54,5 +62,16 @@ describe("Scout home personalization contracts", () => {
     expect(source).not.toContain("fallback-2");
     expect(source).not.toContain("fallback-3");
     expect(source).not.toContain("fallback-4");
+  });
+
+  it("locks no-context screen against home metric filler copy", () => {
+    const source = read("client/src/scout/ScoutHome.tsx");
+
+    expect(source).toContain("Home prices shifted nearby");
+    expect(source).toContain("Homes are sitting longer");
+    expect(source).toContain(
+      "{hasPersonalizedFeed ? <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} /> : null}"
+    );
+    expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
   });
 });
