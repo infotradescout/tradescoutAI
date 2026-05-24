@@ -44,6 +44,10 @@ export default function ContractorCard({
       .toUpperCase() || "CC";
 
   const serviceAreas = contractor.serviceAreas || [];
+  const city = String((contractor as any).city || "").trim();
+  const stateCode = String((contractor as any).state || (contractor as any).stateCode || "").trim();
+  const county = String((contractor as any).county || (contractor as any).countyName || "").trim();
+  const locationSummary = [city, stateCode].filter(Boolean).join(", ") || county;
   const rawCvs =
     typeof (contractor as any).trustScore === "number"
       ? (contractor as any).trustScore
@@ -65,7 +69,7 @@ export default function ContractorCard({
     typeof contractor.canonicalBusinessProfileUrl === "string" &&
     contractor.canonicalBusinessProfileUrl.trim().length > 0
       ? contractor.canonicalBusinessProfileUrl.trim()
-      : `/contractors/${contractor.slug}`;
+      : `/business/${encodeURIComponent(contractor.slug)}`;
 
   return (
     <Card className="ts-card" data-testid={`contractor-card`}>
@@ -113,23 +117,15 @@ export default function ContractorCard({
         </div>
 
         {/* Company Name */}
-        {requestOnly ? (
+        <Link href={profileHref}>
           <h3
-            className={`font-semibold mb-2 text-[color:var(--text-primary)] ${compact ? "text-base" : "text-lg"}`}
+            className={`font-semibold mb-2 transition-colors cursor-pointer text-[color:var(--text-primary)] hover:text-[color:var(--theme-accent-primary)] ${
+              compact ? "text-base" : "text-lg"
+            }`}
           >
             {contractor.companyName}
           </h3>
-        ) : (
-          <Link href={profileHref}>
-            <h3
-              className={`font-semibold mb-2 transition-colors cursor-pointer text-[color:var(--text-primary)] hover:text-[color:var(--theme-accent-primary)] ${
-                compact ? "text-base" : "text-lg"
-              }`}
-            >
-              {contractor.companyName}
-            </h3>
-          </Link>
-        )}
+        </Link>
 
         {/* Trade Badges (derived from contractor flags) */}
         <div className="flex flex-wrap gap-2 mb-3">
@@ -173,7 +169,7 @@ export default function ContractorCard({
             ? `${serviceAreas.slice(0, 2).join(", ")}${
                 serviceAreas.length > 2 ? ` +${serviceAreas.length - 2} more` : ""
               }`
-            : "Service area not specified"}
+            : locationSummary || "Service area not specified"}
         </p>
 
         {/* Business Info */}
@@ -249,17 +245,15 @@ export default function ContractorCard({
               </Button>
             </Link>
 
-            {!requestOnly && (
-              <Link href={profileHref} className="flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full border-white/10 text-white hover:bg-white/10"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  View Profile
-                </Button>
-              </Link>
-            )}
+            <Link href={profileHref} className={requestOnly ? "w-full" : "flex-1"}>
+              <Button
+                variant="outline"
+                className="w-full border-white/10 text-white hover:bg-white/10"
+              >
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View Profile
+              </Button>
+            </Link>
           </div>
         ) : (
           <Link href={profileHref}>
