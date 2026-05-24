@@ -18,6 +18,7 @@ import {
   useScoutHomeSnapshot,
   type OpportunityMove,
   type PriceSignal,
+  type RecentActivity,
 } from "./hooks/useScoutHomeSnapshot";
 
 interface ContinuityThread {
@@ -46,6 +47,19 @@ type ContinueItem = {
   tone: "orange" | "green" | "blue" | "purple";
   icon: LucideIcon;
   prompt: string;
+};
+
+type NearbyCategory = "homes" | "vehicles" | "projects" | "listings" | "people" | "community";
+
+type SignalRowData = {
+  id: string;
+  title: string;
+  detail: string;
+  freshness: string;
+  prompt: string;
+  icon: LucideIcon;
+  iconClass: string;
+  category: NearbyCategory;
 };
 
 const INVALID_CONTINUITY_LABELS = new Set([
@@ -86,9 +100,6 @@ function looksLikeRealDisplayTitle(value?: string | null): boolean {
   const raw = String(value || "").trim();
   const clean = raw.toLowerCase().replace(/\s+/g, " ");
   if (!clean || isGenericContinuityLabel(clean)) return false;
-
-  // Real objects usually contain specific identifiers: numbers, addresses, model years,
-  // names, or multi-token labels that aren't only category words.
   if (/\d/.test(raw)) return true;
 
   const tokens = clean.split(" ").filter(Boolean);
@@ -144,25 +155,12 @@ function toneFromIntent(intent?: string | null): ContinueItem["tone"] {
   return "orange";
 }
 
-function normalizeThreadTitle(thread: ContinuityThread): string {
-  const i = String(thread.intent || "").toLowerCase();
-  if (i === "vehicle") return "Vehicle service";
-  if (i === "prices" || i === "materials") return "Saved search";
-  if (i === "local_request") return "Local request";
-  return "Home project";
-}
-
 function buildContinueItems(threads: Array<ContinuityThread> = []): ContinueItem[] {
   return threads
     .filter((thread) => Boolean(thread.id))
     .map((thread) => {
       const objectTitle =
-        thread.relatedLabel ||
-        thread.relatedTo?.label ||
-        thread.title ||
-        thread.preview ||
-        thread.summary ||
-        "";
+        thread.relatedLabel || thread.title || thread.preview || thread.summary || "";
       const objectSubtitle = thread.preview || thread.summary || "";
       return {
         thread,
@@ -411,6 +409,7 @@ function priceSignalToLocalCopy(signal: PriceSignal): SignalRowData {
       prompt: `Check local home prices using ${signal.label}.`,
       icon: Home,
       iconClass: "bg-emerald-500/20 text-emerald-300",
+      category: "homes",
     };
   }
   if (key.includes("median_dom") || key.includes("days")) {
@@ -422,6 +421,7 @@ function priceSignalToLocalCopy(signal: PriceSignal): SignalRowData {
       prompt: `Check local listing timing using ${signal.label}.`,
       icon: Calendar,
       iconClass: "bg-violet-500/20 text-violet-300",
+      category: "homes",
     };
   }
   return {
@@ -432,11 +432,87 @@ function priceSignalToLocalCopy(signal: PriceSignal): SignalRowData {
     prompt: `Check ${signal.label}.`,
     icon: Search,
     iconClass: "bg-blue-500/20 text-blue-300",
+    category: "listings",
   };
 }
 
-function buildNearbyRows(moves: OpportunityMove[], priceSignals: PriceSignal[]): SignalRowData[] {
+function inferInterestFromText(input?: string | null): Set<NearbyCategory> {
+  const text = String(input || "").toLowerCase();
+  const interests = new Set<NearbyCategory>();
+  if (!text) return interests;
+
+  if (/(home|house|repair|roof|fence|deck|hvac|inspection|mortgage|realtor|property)/.test(text)) {
+    interests.add("homes");
+    interests.add("projects");
+  }
+  if (/(vehicle|car|truck|auto|f-150|service|oil|brake|tire|mechanic)/.test(text)) {
+    interests.add("vehicles");
+  }
+  if (/(project|quote|job|request|contractor|invoice|estimate)/.test(text)) {
+    interests.add("projects");
+    interests.add("people");
+  }
+  if (/(listing|price|deal|material|marketplace|tools|buy|sell|search)/.test(text)) {
+    interests.add("listings");
+  }
+  if (/(provider|plumber|electrician|people|crew|help|pro)/.test(text)) {
+    interests.add("people");
+  }
+  if (/(community|event|post|nearby|local activity|meetup)/.test(text)) {
+    interests.add("community");
+  }
+
+  return interests;
+}
+
+function inferUserInterestCategories(
+  threads: ContinuityThread[],
+  recentActivity: RecentActivity[]
+): Set<NearbyCategory> {
+  const interests = new Set<NearbyCategory>();
+
+  for (const thread of threads) {
+    const fromIntent = String(thread.intent || "").toLowerCase();
+    if (fromIntent.includes("vehicle")) interests.add("vehicles");
+    if (fromIntent.includes("home")) interests.add("homes");
+    if (fromIntent.includes("project") || fromIntent.includes("local_request"))
+      interests.add("projects");
+    if (fromIntent.includes("price") || fromIntent.includes("material")) interests.add("listings");
+    if (fromIntent.includes("community")) interests.add("community");
+
+    for (const category of inferInterestFromText(
+      thread.title || thread.summary || thread.preview
+    )) {
+      interests.add(category);
+    }
+  }
+
+  for (const activity of recentActivity) {
+    for (const category of inferInterestFromText(activity.query)) {
+      interests.add(category);
+    }
+  }
+
+  return interests;
+}
+
+function moveCategory(move: OpportunityMove): NearbyCategory {
+  const id = String(move.id || "").toLowerCase();
+  if (id.includes("community")) return "community";
+  if (id.includes("home") || id.includes("job")) return "homes";
+  if (id.includes("tradedeals")) return "listings";
+  return "projects";
+}
+
+function buildNearbyRows(
+  moves: OpportunityMove[],
+  priceSignals: PriceSignal[],
+  interests: Set<NearbyCategory>
+): SignalRowData[] {
+  if (interests.size === 0) return [];
+
   const moveRows = moves.slice(0, 4).map((move) => {
+    const category = moveCategory(move);
     const mapped = MOVE_COPY[move.id];
     if (mapped) {
       return {
@@ -447,8 +523,10 @@ function buildNearbyRows(moves: OpportunityMove[], priceSignals: PriceSignal[]):
         prompt: move.prompt,
         icon: mapped.icon,
         iconClass: mapped.iconClass,
+        category,
       };
     }
+
     return {
       id: move.id,
       title: move.title,
@@ -457,63 +535,38 @@ function buildNearbyRows(moves: OpportunityMove[], priceSignals: PriceSignal[]):
       prompt: move.prompt,
       icon: Search,
       iconClass: "bg-blue-500/20 text-blue-300",
+      category,
     };
   });
 
   const priceRows = priceSignals.slice(0, 2).map(priceSignalToLocalCopy);
-  const combined = [...moveRows, ...priceRows].slice(0, 4);
-  if (combined.length > 0) return combined;
+  const combined = [...moveRows, ...priceRows]
+    .filter((row) => interests.has(row.category))
+    .filter((row) => !isGenericContinuityLabel(row.title));
 
-  return [
-    {
-      id: "fallback-1",
-      title: "Repair activity is picking up",
-      detail: "More home projects are moving nearby.",
-      freshness: "Now",
-      prompt: "Show local repair demand.",
-      icon: Wrench,
-      iconClass: "bg-amber-500/20 text-amber-300",
-    },
-    {
-      id: "fallback-2",
-      title: "Home prices shifted nearby",
-      detail: "Similar homes changed price this week.",
-      freshness: "Now",
-      prompt: "Show local home price movement.",
-      icon: Home,
-      iconClass: "bg-emerald-500/20 text-emerald-300",
-    },
-    {
-      id: "fallback-3",
-      title: "Local offers are moving",
-      detail: "New deals on tools, trucks, or materials today.",
-      freshness: "Now",
-      prompt: "Show local offers moving today.",
-      icon: Tag,
-      iconClass: "bg-orange-500/20 text-orange-300",
-    },
-    {
-      id: "fallback-4",
-      title: "Events are active this week",
-      detail: "Community activity is picking up nearby.",
-      freshness: "Now",
-      prompt: "Show local events this week.",
-      icon: Calendar,
-      iconClass: "bg-violet-500/20 text-violet-300",
-    },
-  ].slice(0, 4);
+  const seen = new Set<string>();
+  const deduped: SignalRowData[] = [];
+
+  for (const row of combined) {
+    const key = `${row.category}:${row.title.trim().toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(row);
+    if (deduped.length >= 4) break;
+  }
+
+  return deduped;
 }
 
 function NearbyList({
-  moves,
-  priceSignals,
+  rows,
   onPromptSelect,
 }: {
-  moves: OpportunityMove[];
-  priceSignals: PriceSignal[];
+  rows: SignalRowData[];
   onPromptSelect: (prompt: string) => void;
 }) {
-  const rows = buildNearbyRows(moves, priceSignals);
+  if (rows.length === 0) return null;
+
   return (
     <section className="px-4 pt-2">
       <h2 className="text-2xl font-bold leading-tight text-white">Nearby right now</h2>
@@ -590,22 +643,47 @@ function LocalSnapshot({
   );
 }
 
+function EmptyContextHint() {
+  return (
+    <section className="px-4 pt-3 pb-2">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+        <h2 className="text-base font-semibold text-white">Nothing to continue yet.</h2>
+        <p className="mt-1 text-sm text-zinc-400">
+          Search once, save something, or start a request and Scout will keep it here.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHomeProps) {
   const { location } = useScoutLocation();
   const { data } = useScoutHomeSnapshot(location);
   const continueItems = buildContinueItems(continuationThreads);
+  const interests = inferUserInterestCategories(continuationThreads, data?.recentActivity ?? []);
+  const nearbyRows = buildNearbyRows(
+    data?.opportunityMoves ?? [],
+    data?.priceSignals ?? [],
+    interests
+  );
+
+  const hasRealContinuation = continueItems.length > 0;
+  const hasPersonalizedFeed = nearbyRows.length > 0;
+  const shouldShowEmptyContext = !hasRealContinuation && !hasPersonalizedFeed;
+  const shouldShowSnapshot = hasPersonalizedFeed;
 
   return (
-    <div className="scout-home-surface">
+    <div className="scout-home-surface pb-[calc(var(--scout-search-dock-height)+var(--global-nav-height)+env(safe-area-inset-bottom)+96px)]">
       <ScoutHero locationLabel={location.label} />
-      <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />
+      {hasRealContinuation ? (
+        <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />
+      ) : null}
       <ExploreGrid onPromptSelect={onPromptSelect} />
-      <NearbyList
-        moves={data?.opportunityMoves ?? []}
-        priceSignals={data?.priceSignals ?? []}
-        onPromptSelect={onPromptSelect}
-      />
-      <LocalSnapshot snapshot={data?.snapshot} />
+      {hasPersonalizedFeed ? (
+        <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />
+      ) : null}
+      {shouldShowSnapshot ? <LocalSnapshot snapshot={data?.snapshot} /> : null}
+      {shouldShowEmptyContext ? <EmptyContextHint /> : null}
     </div>
   );
 }
