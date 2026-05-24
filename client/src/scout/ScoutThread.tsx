@@ -30,7 +30,7 @@ import {
   formatIntentDetailChips,
   inferScoutIntentDetails,
 } from "./intentDetails";
-import { ScoutResultActionCard } from "./ScoutResultActionCard";
+import { ScoutResultActionCard, classifyScoutResultIntent } from "./ScoutResultActionCard";
 
 /* ----------------------------------------------------------
    ScoutThread — Morphic OS v2
@@ -369,6 +369,26 @@ function quickStartsForPendingSearch(userMessage?: string): string[] {
     return ["Concrete", "Compare prices", "Find local help"];
   }
   return ["Find someone", "Check prices", "Ask before calling"];
+}
+
+function normalizeScoutQueryKey(value?: string): string {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isScoutFollowUpQuery(value?: string): boolean {
+  const q = normalizeScoutQueryKey(value);
+  if (!q) return false;
+  return (
+    q.startsWith("compare local prices") ||
+    q.startsWith("what should i verify before contacting local help") ||
+    q.startsWith("search nearby posts and activity") ||
+    q.startsWith("save this search") ||
+    q.startsWith("save this area")
+  );
 }
 
 function isReadyForBranchingActions(userMessage?: string, locality?: ScoutLocality): boolean {
@@ -1046,10 +1066,11 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
     }
     return null;
   }, [messages]);
-  const firstUserMessage = React.useMemo(
-    () => messages.find((message) => message.role === "user" && message.content.trim().length > 0),
-    [messages]
-  );
+  const [resultCardQuery, setResultCardQuery] = React.useState<string | null>(null);
+  const lastResultCardRef = React.useRef<{
+    queryKey: string;
+    intent: ReturnType<typeof classifyScoutResultIntent>;
+  } | null>(null);
   const localityLabel = React.useMemo(() => {
     const county = String(locality?.countyName || locality?.county || "").trim();
     const state = String(locality?.stateCode || locality?.state || "")
@@ -1057,6 +1078,29 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       .toUpperCase();
     return [county, state].filter(Boolean).join(", ");
   }, [locality?.county, locality?.countyName, locality?.state, locality?.stateCode]);
+
+  React.useEffect(() => {
+    if (!latestUserMessage?.content) return;
+    const queryText = String(latestUserMessage.content || "").trim();
+    const queryKey = normalizeScoutQueryKey(queryText);
+    if (!queryKey) return;
+
+    const intent = classifyScoutResultIntent(queryText);
+    const previous = lastResultCardRef.current;
+    if (!previous) {
+      lastResultCardRef.current = { queryKey, intent };
+      setResultCardQuery(queryText);
+      return;
+    }
+
+    if (previous.queryKey === queryKey) return;
+
+    const followUp = isScoutFollowUpQuery(queryText);
+    if (followUp && previous.intent === intent) return;
+
+    lastResultCardRef.current = { queryKey, intent };
+    setResultCardQuery(queryText);
+  }, [latestUserMessage]);
 
   React.useEffect(() => {
     const node = containerRef.current;
@@ -1162,9 +1206,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
       aria-live="polite"
       aria-relevant="additions text"
     >
-      {firstUserMessage && (
+      {resultCardQuery && (
         <ScoutResultActionCard
-          query={firstUserMessage.content}
+          query={resultCardQuery}
           localityLabel={localityLabel || undefined}
           onAction={onAction}
         />

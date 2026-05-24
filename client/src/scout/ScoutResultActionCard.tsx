@@ -15,7 +15,7 @@ type ActionCardModel = {
   reviewNote?: string;
 };
 
-function classifyQueryIntent(
+export function classifyScoutResultIntent(
   query: string
 ): "home_repair" | "vehicle" | "listing" | "provider" | "price" | "community" {
   const q = String(query || "").toLowerCase();
@@ -30,7 +30,7 @@ function classifyQueryIntent(
 
 function buildCardModel(query: string, localityLabel?: string): ActionCardModel {
   const where = localityLabel ? ` near ${localityLabel}` : " near you";
-  const intent = classifyQueryIntent(query);
+  const intent = classifyScoutResultIntent(query);
 
   if (intent === "vehicle") {
     return {
