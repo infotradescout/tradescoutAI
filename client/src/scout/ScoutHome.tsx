@@ -8,7 +8,6 @@ import {
   MapPin,
   Search,
   Tag,
-  UserCircle2,
   Users2,
   UsersRound,
   Wrench,
@@ -229,9 +228,7 @@ function ContinueRail({
 }) {
   return (
     <section className="px-4 pt-2">
-      <h2 className="text-4xl font-semibold leading-none text-white">
-        Continue where you left off
-      </h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">Continue where you left off</h2>
       <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">
         <div className="mt-3 flex snap-x snap-mandatory gap-3">
           {items.map((item) => (
@@ -290,7 +287,7 @@ const EXPLORE_ITEMS: Array<{
 function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => void }) {
   return (
     <section className="px-4 pt-4">
-      <h2 className="text-4xl font-semibold leading-none text-white">Explore around you</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">Explore around you</h2>
       <div className="mt-3 grid grid-cols-2 gap-3">
         {EXPLORE_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -299,14 +296,16 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
               key={item.title}
               type="button"
               onClick={() => onPromptSelect(item.prompt)}
-              className="rounded-2xl border border-zinc-800 bg-zinc-950 p-3 text-left"
+              className="min-h-[76px] rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-left"
             >
               <div className="flex items-center gap-2">
-                <Icon className="h-5 w-5 text-ts-orange" />
-                <p className="text-[15px] font-semibold text-white">{item.title}</p>
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-zinc-900">
+                  <Icon className="h-5 w-5 text-ts-orange" />
+                </span>
+                <p className="text-base font-semibold text-white">{item.title}</p>
               </div>
               <div className="mt-1 flex items-start justify-between gap-2">
-                <p className="text-[12px] leading-tight text-zinc-400">{item.detail}</p>
+                <p className="text-xs leading-tight text-zinc-400">{item.detail}</p>
                 <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
               </div>
             </button>
@@ -347,6 +346,50 @@ const MOVE_COPY: Record<
   },
 };
 
+function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function priceSignalToLocalCopy(signal: PriceSignal): SignalRowData {
+  const key = String(signal.metricKey || "").toLowerCase();
+  const value = Number(signal.value || 0);
+  if (key.includes("median_price")) {
+    return {
+      id: signal.id,
+      title: "Home prices shifted nearby",
+      detail: `Median home price is about ${formatCurrency(value)}.`,
+      freshness: "Now",
+      prompt: `Check local home prices using ${signal.label}.`,
+      icon: Home,
+      iconClass: "bg-emerald-500/20 text-emerald-300",
+    };
+  }
+  if (key.includes("median_dom") || key.includes("days")) {
+    return {
+      id: signal.id,
+      title: "Homes are sitting longer",
+      detail: `Similar homes are averaging ${Math.round(value)} days listed.`,
+      freshness: "Now",
+      prompt: `Check local listing timing using ${signal.label}.`,
+      icon: Calendar,
+      iconClass: "bg-violet-500/20 text-violet-300",
+    };
+  }
+  return {
+    id: signal.id,
+    title: "Local offers are moving",
+    detail: "Local listing signals updated today.",
+    freshness: "Now",
+    prompt: `Check ${signal.label}.`,
+    icon: Search,
+    iconClass: "bg-blue-500/20 text-blue-300",
+  };
+}
+
 function buildNearbyRows(moves: OpportunityMove[], priceSignals: PriceSignal[]): SignalRowData[] {
   const moveRows = moves.slice(0, 4).map((move) => {
     const mapped = MOVE_COPY[move.id];
@@ -372,7 +415,9 @@ function buildNearbyRows(moves: OpportunityMove[], priceSignals: PriceSignal[]):
     };
   });
 
-  if (moveRows.length > 0) return moveRows;
+  const priceRows = priceSignals.slice(0, 2).map(priceSignalToLocalCopy);
+  const combined = [...moveRows, ...priceRows].slice(0, 4);
+  if (combined.length > 0) return combined;
 
   return [
     {
@@ -411,15 +456,6 @@ function buildNearbyRows(moves: OpportunityMove[], priceSignals: PriceSignal[]):
       icon: Calendar,
       iconClass: "bg-violet-500/20 text-violet-300",
     },
-    ...priceSignals.slice(0, 2).map((signal) => ({
-      id: signal.id,
-      title: signal.label,
-      detail: signal.description,
-      freshness: "Now",
-      prompt: `Check ${signal.label}.`,
-      icon: Search,
-      iconClass: "bg-blue-500/20 text-blue-300",
-    })),
   ].slice(0, 4);
 }
 
@@ -435,7 +471,7 @@ function NearbyList({
   const rows = buildNearbyRows(moves, priceSignals);
   return (
     <section className="px-4 pt-4">
-      <h2 className="text-4xl font-semibold leading-none text-white">Nearby right now</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">Nearby right now</h2>
       <div className="mt-3 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
         {rows.map((row) => {
           const Icon = row.icon;
@@ -444,7 +480,7 @@ function NearbyList({
               key={row.id}
               type="button"
               onClick={() => onPromptSelect(row.prompt)}
-              className="flex w-full items-center gap-3 border-b border-zinc-800 px-3 py-3 text-left last:border-b-0"
+              className="flex h-[72px] w-full items-center gap-3 border-b border-zinc-800 px-3 py-2 text-left last:border-b-0"
             >
               <span
                 className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${row.iconClass}`}
@@ -455,7 +491,10 @@ function NearbyList({
                 <p className="text-[15px] font-semibold text-white">{row.title}</p>
                 <p className="text-[13px] text-zinc-400">{row.detail}</p>
               </span>
-              <ChevronRight className="h-4 w-4 text-zinc-500" />
+              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                {row.freshness}
+                <ChevronRight className="h-4 w-4" />
+              </span>
             </button>
           );
         })}
@@ -479,7 +518,7 @@ function LocalSnapshot({
   if (!snapshot) return null;
   return (
     <section className="px-4 pt-4 pb-2">
-      <h2 className="text-2xl font-semibold text-white">Local snapshot</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">Local snapshot</h2>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
           <p className="text-2xl font-semibold text-white">
