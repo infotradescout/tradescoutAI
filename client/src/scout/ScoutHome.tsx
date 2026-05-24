@@ -62,13 +62,54 @@ const INVALID_CONTINUITY_LABELS = new Set([
   "what can scout help me with today?",
 ]);
 
+const INVALID_CONTINUITY_PHRASES = [
+  "home project",
+  "vehicle service",
+  "saved search",
+  "local request",
+  "client work",
+  "local help",
+  "what can scout help me with today",
+];
+
 function isGenericContinuityLabel(value?: string | null): boolean {
   const clean = String(value || "")
     .trim()
     .toLowerCase()
     .replace(/\s+/g, " ");
   if (!clean) return true;
-  return INVALID_CONTINUITY_LABELS.has(clean);
+  if (INVALID_CONTINUITY_LABELS.has(clean)) return true;
+  return INVALID_CONTINUITY_PHRASES.some((phrase) => clean.includes(phrase));
+}
+
+function looksLikeRealDisplayTitle(value?: string | null): boolean {
+  const raw = String(value || "").trim();
+  const clean = raw.toLowerCase().replace(/\s+/g, " ");
+  if (!clean || isGenericContinuityLabel(clean)) return false;
+
+  // Real objects usually contain specific identifiers: numbers, addresses, model years,
+  // names, or multi-token labels that aren't only category words.
+  if (/\d/.test(raw)) return true;
+
+  const tokens = clean.split(" ").filter(Boolean);
+  const genericTokens = new Set([
+    "home",
+    "project",
+    "vehicle",
+    "service",
+    "saved",
+    "search",
+    "local",
+    "request",
+    "client",
+    "work",
+    "help",
+    "general",
+    "unknown",
+    "scout",
+  ]);
+  const specificTokenCount = tokens.filter((token) => !genericTokens.has(token)).length;
+  return specificTokenCount >= 1 && tokens.length >= 2;
 }
 
 function formatCount(n: number): string {
@@ -130,7 +171,7 @@ function buildContinueItems(threads: Array<ContinuityThread> = []): ContinueItem
       };
     })
     .filter(({ objectTitle, objectSubtitle }) => {
-      if (isGenericContinuityLabel(objectTitle)) return false;
+      if (!looksLikeRealDisplayTitle(objectTitle)) return false;
       if (isGenericContinuityLabel(objectSubtitle)) return false;
       return true;
     })
@@ -176,14 +217,14 @@ function toneClasses(tone: ContinueItem["tone"]): {
 
 function ScoutHero({ locationLabel }: { locationLabel?: string }) {
   return (
-    <section className="px-4 pt-3 pb-1">
+    <section className="px-4 pt-2 pb-0.5">
       <h1 className="text-5xl font-black tracking-tight text-white">Scout</h1>
-      <button type="button" className="mt-2 inline-flex items-center gap-2 text-lg text-zinc-300">
+      <button type="button" className="mt-1.5 inline-flex items-center gap-2 text-lg text-zinc-300">
         <MapPin className="h-5 w-5 text-ts-orange" />
         {locationLabel || "Set location"}
         <ChevronDown className="h-4 w-4" />
       </button>
-      <p className="mt-2 max-w-[340px] text-[15px] leading-snug text-zinc-400">
+      <p className="mt-1.5 max-w-[340px] text-[15px] leading-snug text-zinc-400">
         Find, fix, sell, check, or continue anything local.
       </p>
       <p className="mt-1 text-[13px] text-zinc-500">Start with search or pick an area below.</p>
@@ -290,7 +331,7 @@ const EXPLORE_ITEMS: Array<{
 
 function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => void }) {
   return (
-    <section className="px-4 pt-2">
+    <section className="px-4 pt-1.5">
       <h2 className="text-2xl font-bold leading-tight text-white">Explore around you</h2>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
         {EXPLORE_ITEMS.map((item) => {
@@ -300,7 +341,7 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
               key={item.title}
               type="button"
               onClick={() => onPromptSelect(item.prompt)}
-              className="min-h-[68px] rounded-xl border border-zinc-800 bg-zinc-950 px-2.5 py-2 text-left"
+              className="min-h-[74px] rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-left"
             >
               <div className="flex items-center gap-2">
                 <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900">
