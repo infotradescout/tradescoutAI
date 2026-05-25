@@ -2,6 +2,11 @@
 import { useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { WorkRequest } from "@shared/schema";
+import {
+  evaluateRoutingReadiness,
+  type CanonicalDirectConnectRequest,
+  type DirectConnectRoutingReadiness,
+} from "@shared/directConnectRoutingSpine";
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
 import { EmploymentBoard } from "./EmploymentBoard";
@@ -1463,13 +1468,37 @@ function DirectConnectRequestComposer({
     title,
     description,
   });
+  const routingReadiness: DirectConnectRoutingReadiness = evaluateRoutingReadiness({
+    category: activeRequestMeta.category,
+    answers: detailAnswers,
+    description,
+    completenessState: completeness.level,
+  });
   const reviewCardReady = completeness.level !== "too_vague";
-  const requestReadyToShare = completeness.level === "ready_to_share";
+  const requestReadyToShare =
+    completeness.level === "ready_to_share" && routingReadiness === "route_ready";
   const reviewTitle = detailAnswers.what.trim() || title.trim() || "Request";
   const reviewSummary =
     detailAnswers.details.trim() || description.trim() || "No extra details yet.";
   const reviewLocation = detailAnswers.where.trim() || "Location pending";
   const reviewTiming = detailAnswers.when.trim() || "Timing pending";
+  const canonicalRequest: CanonicalDirectConnectRequest = {
+    requestId: "draft",
+    intent: directConnectIntent || "unknown",
+    requestType,
+    category: activeRequestMeta.category,
+    county: defaultCountyFips || null,
+    cityArea: detailAnswers.where.trim() || null,
+    urgency: detailAnswers.when.trim() || null,
+    description: description.trim(),
+    answers: detailAnswers,
+    completenessState: completeness.level,
+    routingReadiness,
+    visibilityState: showDispatchSheet ? "shared_local" : "review_ready",
+    contactGateState: showDispatchSheet ? "request_shared" : "review_required",
+    createdAt: new Date().toISOString(),
+    sourceSurface: "direct_connect",
+  };
   const selectedContractorCount = selectedContractorIds.length;
 
   const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1665,6 +1694,19 @@ function DirectConnectRequestComposer({
             <div className="mt-2 inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
               {completeness.message}
             </div>
+            <div className="mt-2 inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
+              {routingReadiness === "route_ready"
+                ? "Routing ready"
+                : routingReadiness === "needs_location"
+                  ? "Needs location to route"
+                  : routingReadiness === "needs_category"
+                    ? "Needs category to route"
+                    : routingReadiness === "needs_scope"
+                      ? "Needs scope to route"
+                      : routingReadiness === "manual_review"
+                        ? "Needs manual review"
+                        : "Blocked from routing"}
+            </div>
             {completeness.missing.length > 0 && (
               <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
                 Add: {completeness.missing.join(" · ")}
@@ -1702,6 +1744,10 @@ function DirectConnectRequestComposer({
               <p>
                 <span className="text-[color:var(--text-primary)]">What is not shared yet:</span>{" "}
                 direct contact details until you approve
+              </p>
+              <p>
+                <span className="text-[color:var(--text-primary)]">Routing readiness:</span>{" "}
+                {canonicalRequest.routingReadiness}
               </p>
             </div>
             <div className="flex gap-2">

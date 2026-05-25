@@ -7,6 +7,7 @@ const r = (p: string) => path.resolve(__dirname, p);
 const serialNoSkips = ["1", "true", "yes", "on"].includes(
   String(process.env.VITEST_SERIAL || "").toLowerCase()
 );
+const htmlReportFile = `./test-results/vitest-report-${process.pid}.html`;
 
 export default defineConfig({
   test: {
@@ -19,7 +20,7 @@ export default defineConfig({
     reporters: ["default", "html"],
     outputFile: {
       // Keep Vitest HTML output out of git-tracked root files (and inside an ignored folder).
-      html: "./test-results/vitest-report.html",
+      html: htmlReportFile,
     },
   },
   resolve: {

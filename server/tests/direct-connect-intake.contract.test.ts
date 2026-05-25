@@ -38,9 +38,8 @@ describe("direct connect intake contracts", () => {
   it("renders a request review card once required intent details are complete", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain('const reviewCardReady = completeness.level !== "too_vague";');
-    expect(source).toContain(
-      'const requestReadyToShare = completeness.level === "ready_to_share";'
-    );
+    expect(source).toContain("const requestReadyToShare =");
+    expect(source).toContain('routingReadiness === "route_ready"');
     expect(source).toContain("Request Review Card");
     expect(source).toContain("reviewCardReady && (");
   });
@@ -68,5 +67,12 @@ describe("direct connect intake contracts", () => {
     expect(source).toContain("category: activeRequestMeta.category");
     expect(source).toContain("payload.countyFips = defaultCountyFips");
     expect(source).toContain("payload.stateCode = stateCode.trim().toUpperCase()");
+  });
+
+  it("builds a canonical direct connect request and routing readiness state after finalization", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(source).toContain("const canonicalRequest: CanonicalDirectConnectRequest = {");
+    expect(source).toContain("routingReadiness");
+    expect(source).toContain('sourceSurface: "direct_connect"');
   });
 });
