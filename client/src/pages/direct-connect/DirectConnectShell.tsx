@@ -27,6 +27,7 @@ import { WhyThisJobModal } from "./WhyThisJobModal";
 import { WhyLink } from "@/components/WhyLink";
 import { getHelpLink } from "@/scout/helpSources";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
@@ -79,6 +80,9 @@ type DirectConnectIntentConfig = {
   heading: string;
   prompt: string;
   chips: string[];
+  headingKey?: string;
+  promptKey?: string;
+  chipKeys?: string[];
   requestType: RequestType;
   detailQuestions: Array<{
     key: "what" | "where" | "when" | "details";
@@ -135,6 +139,7 @@ type DirectConnectDraftSnapshot = {
   showOptional: boolean;
   selectedProviderIds: string[];
   attachmentKeys: string[];
+  detailAnswers?: Record<"what" | "where" | "when" | "details", string>;
 };
 
 type FlowMode = "start" | "manage";
@@ -272,6 +277,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "Tell us what needs done.",
     prompt: "What do you need fixed, built, repaired, cleaned, or improved?",
     chips: ["Repair", "Cleaning", "Yard work", "Remodel", "Emergency help"],
+    headingKey: "directConnect.intent.fixImprove.heading",
+    promptKey: "directConnect.intent.fixImprove.prompt",
+    chipKeys: [
+      "directConnect.chips.repair",
+      "directConnect.chips.cleaning",
+      "directConnect.chips.yardWork",
+      "directConnect.chips.remodel",
+      "directConnect.chips.emergencyHelp",
+    ],
     requestType: "service_request",
     detailQuestions: [
       {
@@ -303,6 +317,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "Vehicle help",
     prompt: "What vehicle service or repair do you need?",
     chips: ["Repair", "Maintenance", "Tires", "Tow/help", "Sell vehicle"],
+    headingKey: "directConnect.intent.vehicleService.heading",
+    promptKey: "directConnect.intent.vehicleService.prompt",
+    chipKeys: [
+      "directConnect.chips.repair",
+      "directConnect.chips.maintenance",
+      "directConnect.chips.tires",
+      "directConnect.chips.towHelp",
+      "directConnect.chips.sellVehicle",
+    ],
     requestType: "service_request",
     detailQuestions: [
       { key: "what", label: "What vehicle?", placeholder: "Year, make, model", required: true },
@@ -330,6 +353,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "Find local help",
     prompt: "Who or what kind of local help are you looking for?",
     chips: ["Contractor", "Notary", "Cleaner", "Mechanic", "Local business"],
+    headingKey: "directConnect.intent.findPersonBusiness.heading",
+    promptKey: "directConnect.intent.findPersonBusiness.prompt",
+    chipKeys: [
+      "directConnect.chips.contractor",
+      "directConnect.chips.notary",
+      "directConnect.chips.cleaner",
+      "directConnect.chips.mechanic",
+      "directConnect.chips.localBusiness",
+    ],
     requestType: "other",
     detailQuestions: [
       {
@@ -361,6 +393,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "Sell or list something",
     prompt: "What are you trying to sell or list?",
     chips: ["Tools", "Materials", "Vehicle", "Property", "Equipment"],
+    headingKey: "directConnect.intent.sellList.heading",
+    promptKey: "directConnect.intent.sellList.prompt",
+    chipKeys: [
+      "directConnect.chips.tools",
+      "directConnect.chips.materials",
+      "directConnect.chips.vehicle",
+      "directConnect.chips.property",
+      "directConnect.chips.equipment",
+    ],
     requestType: "buy_sell",
     detailQuestions: [
       {
@@ -393,6 +434,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "Property help",
     prompt: "What property, listing, client, or real estate need are you working on?",
     chips: ["Listing prep", "Inspection", "Realtor help", "Repairs", "Buyer/seller help"],
+    headingKey: "directConnect.intent.propertyRealEstate.heading",
+    promptKey: "directConnect.intent.propertyRealEstate.prompt",
+    chipKeys: [
+      "directConnect.chips.listingPrep",
+      "directConnect.chips.inspection",
+      "directConnect.chips.realtorHelp",
+      "directConnect.chips.repairs",
+      "directConnect.chips.buyerSellerHelp",
+    ],
     requestType: "customer_support",
     detailQuestions: [
       {
@@ -425,6 +475,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "Offer your services",
     prompt: "What service do you provide, and where do you work?",
     chips: ["Home services", "Vehicle services", "Property services", "Local business", "Other"],
+    headingKey: "directConnect.intent.offerServices.heading",
+    promptKey: "directConnect.intent.offerServices.prompt",
+    chipKeys: [
+      "directConnect.chips.homeServices",
+      "directConnect.chips.vehicleServices",
+      "directConnect.chips.propertyServices",
+      "directConnect.chips.localBusiness",
+      "directConnect.chips.other",
+    ],
     requestType: "business_request",
     detailQuestions: [
       {
@@ -457,6 +516,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "See what’s happening nearby",
     prompt: "What kind of local activity do you want to see?",
     chips: ["Posts", "Events", "Listings", "Requests", "Local businesses"],
+    headingKey: "directConnect.intent.browseActivity.heading",
+    promptKey: "directConnect.intent.browseActivity.prompt",
+    chipKeys: [
+      "directConnect.chips.posts",
+      "directConnect.chips.events",
+      "directConnect.chips.listings",
+      "directConnect.chips.requests",
+      "directConnect.chips.localBusinesses",
+    ],
     requestType: "other",
     detailQuestions: [
       {
@@ -483,6 +551,15 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     heading: "Start anywhere",
     prompt: "Search for local help, listings, services, jobs, people, or places.",
     chips: ["Home repair", "Vehicle service", "Local help", "Listings", "Events"],
+    headingKey: "directConnect.intent.browseOnly.heading",
+    promptKey: "directConnect.intent.browseOnly.prompt",
+    chipKeys: [
+      "directConnect.chips.homeRepair",
+      "directConnect.chips.vehicleService",
+      "directConnect.chips.localHelp",
+      "directConnect.chips.listings",
+      "directConnect.chips.events",
+    ],
     requestType: "other",
     detailQuestions: [
       {
@@ -505,6 +582,18 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     ],
   },
 };
+
+function localizeIntentConfig(
+  config: DirectConnectIntentConfig,
+  t: (key: string) => string
+): DirectConnectIntentConfig {
+  return {
+    ...config,
+    heading: config.headingKey ? t(config.headingKey) : config.heading,
+    prompt: config.promptKey ? t(config.promptKey) : config.prompt,
+    chips: config.chipKeys?.length ? config.chipKeys.map((key) => t(key)) : config.chips,
+  };
+}
 
 function getFlowMode(section: Section): FlowMode {
   return section === "engagements" || section === "inbox" ? "manage" : "start";
@@ -945,11 +1034,12 @@ function DirectConnectRequestComposer({
 }) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
   const directConnectIntent = useMemo(() => getDirectConnectIntent(location), [location]);
   const intentConfig = directConnectIntent
-    ? DIRECT_CONNECT_INTENT_CONFIG[directConnectIntent]
+    ? localizeIntentConfig(DIRECT_CONNECT_INTENT_CONFIG[directConnectIntent], t)
     : null;
   const attachmentsRef = useRef<DraftAttachment[]>([]);
   const initialTargetName = String(prefillTargetName || "").trim();
@@ -1070,6 +1160,14 @@ function DirectConnectRequestComposer({
     setShowOptional(Boolean(parsed.showOptional));
     setSelectedContractorIds(parsedProviderIds);
     setDraftAttachmentKeys(Array.from(new Set(parsedAttachmentKeys)).slice(0, 6));
+    if (parsed.detailAnswers) {
+      setDetailAnswers({
+        what: String(parsed.detailAnswers.what || ""),
+        where: String(parsed.detailAnswers.where || ""),
+        when: String(parsed.detailAnswers.when || ""),
+        details: String(parsed.detailAnswers.details || ""),
+      });
+    }
     clearDirectConnectDraft();
   };
 
@@ -1101,6 +1199,12 @@ function DirectConnectRequestComposer({
           (draftAttachmentKeys || []).filter((item) => typeof item === "string" && item.trim())
         )
       ),
+      detailAnswers: {
+        what: String(detailAnswers.what || ""),
+        where: String(detailAnswers.where || ""),
+        when: String(detailAnswers.when || ""),
+        details: String(detailAnswers.details || ""),
+      },
     };
     const serialized = JSON.stringify(draft);
     window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
@@ -1547,8 +1651,8 @@ function DirectConnectRequestComposer({
     if (!isAuthenticated) {
       persistDirectConnectDraft({ selectedProviderIds: selectedContractorIds });
       toast({
-        title: "Sign in to send",
-        description: "Your request draft is ready. Sign in to review and send it.",
+        title: "Create your free account to share this request",
+        description: "Your contact information stays private until you approve a contact request.",
       });
       const next = encodeURIComponent(currentReturnPath());
       navigate(`/pre-scout-setup?mode=signin&next=${next}`);
@@ -2656,7 +2760,6 @@ function MyDirectConnectRequests() {
   const [selectedRouteRequestId, setSelectedRouteRequestId] = useState<string | null>(null);
   const [selectedRouteContractorIds, setSelectedRouteContractorIds] = useState<string[]>([]);
   const { toast } = useToast();
-
   const { data: requestsData, isLoading } = useQuery<DirectConnectRequest[]>({
     queryKey: ["/api/direct-connect/requests"],
     queryFn: async () => {
@@ -2919,16 +3022,6 @@ function MyDirectConnectRequests() {
     });
   };
 
-  if (!isAuthenticated || !user) {
-    return (
-      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in to view your requests.
-        </CardContent>
-      </Card>
-    );
-  }
-
   if (isLoading) {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
@@ -2970,6 +3063,14 @@ function MyDirectConnectRequests() {
 
   return (
     <div className="space-y-3">
+      {!isAuthenticated && (
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="space-y-2 p-4 text-center text-sm text-[color:var(--text-secondary)]">
+            <p>You're viewing requests from this device session.</p>
+            <p>Sign in anytime to save and sync your requests.</p>
+          </CardContent>
+        </Card>
+      )}
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="space-y-3 p-3">
           <div className="space-y-1 px-1">
@@ -3126,6 +3227,16 @@ function MyDirectConnectRequests() {
                       <p className="text-xs text-[color:var(--text-secondary)]/90">
                         {interpreted.secondaryPhrase}
                       </p>
+                    )}
+                    {canApproveContact && (
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2">
+                        <p className="text-xs font-medium text-emerald-100">
+                          A local business responded
+                        </p>
+                        <p className="mt-1 text-[11px] text-emerald-200/90">
+                          They are asking to contact you
+                        </p>
+                      </div>
                     )}
                     <p className="text-[11px] text-ts-orange/90">{nextStepCopy.actionHint}</p>
                   </div>
@@ -3372,7 +3483,7 @@ function MyDirectConnectRequests() {
                             })
                           }
                         >
-                          Decline contact
+                          Decline
                         </Button>
                       )}
                       {!canMessage && <WhyLink to={getHelpLink("messaging")} />}
@@ -3499,7 +3610,7 @@ function MyDirectConnectRequests() {
                       })
                     }
                   >
-                    Decline contact
+                    Decline
                   </Button>
                 )}
               </div>

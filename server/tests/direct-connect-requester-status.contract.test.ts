@@ -104,9 +104,8 @@ describe("direct connect requester status contracts", () => {
 
   it("keeps anonymous continuity limited to local draft state", () => {
     const uiSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(uiSource).toContain("DIRECT_CONNECT_ANON_SESSION_KEY");
-    expect(uiSource).toContain("getOrCreateDirectConnectAnonymousSessionId");
-    expect(uiSource).toContain("Create your free account to save this request path");
+    expect(uiSource).toContain("Create your free account to share this request");
+    expect(uiSource).toContain("Your contact information stays private until you approve");
   });
 
   it("avoids homeowner-only language in generic requester surfaces", () => {
