@@ -60,6 +60,22 @@ type RequestType =
   | "employment"
   | "buy_sell"
   | "other";
+type DirectConnectIntent =
+  | "fix_improve"
+  | "vehicle_service"
+  | "find_person_business"
+  | "sell_list"
+  | "property_real_estate"
+  | "offer_services"
+  | "browse_activity"
+  | "browse_only";
+
+type DirectConnectIntentConfig = {
+  heading: string;
+  prompt: string;
+  chips: string[];
+  requestType: RequestType;
+};
 
 const DIRECT_CONNECT_TABS: Section[] = [
   "post",
@@ -190,6 +206,32 @@ function getDirectConnectEntry(path: string): string | null {
   return new URLSearchParams(query).get("entry");
 }
 
+function getDirectConnectIntent(path: string): DirectConnectIntent | null {
+  const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
+  if (!query) return null;
+  const raw = new URLSearchParams(query).get("intent");
+  if (!raw) return null;
+  const value = raw.trim().toLowerCase();
+
+  const map: Record<string, DirectConnectIntent> = {
+    fix_improve: "fix_improve",
+    manage_projects: "fix_improve",
+    vehicle_service: "vehicle_service",
+    find_help: "find_person_business",
+    find_person_business: "find_person_business",
+    sell_list: "sell_list",
+    sell_items: "sell_list",
+    property_real_estate: "property_real_estate",
+    real_estate: "property_real_estate",
+    offer_services: "offer_services",
+    browse_activity: "browse_activity",
+    community: "browse_activity",
+    browse_only: "browse_only",
+    business: "find_person_business",
+  };
+  return map[value] || null;
+}
+
 function shouldResolveDirectConnectEntry(entry: string | null): entry is string {
   return Boolean(entry && ["default", "auth", "setup", "onboarding", "intent"].includes(entry));
 }
@@ -207,6 +249,57 @@ function buildHref(section: Section): string {
   if (section === "post") return "/direct-connect";
   return `/direct-connect/${section}`;
 }
+
+const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectIntentConfig> = {
+  fix_improve: {
+    heading: "Tell us what needs done.",
+    prompt: "What do you need fixed, built, repaired, cleaned, or improved?",
+    chips: ["Repair", "Cleaning", "Yard work", "Remodel", "Emergency help"],
+    requestType: "service_request",
+  },
+  vehicle_service: {
+    heading: "Vehicle help",
+    prompt: "What vehicle service or repair do you need?",
+    chips: ["Repair", "Maintenance", "Tires", "Tow/help", "Sell vehicle"],
+    requestType: "service_request",
+  },
+  find_person_business: {
+    heading: "Find local help",
+    prompt: "Who or what kind of local help are you looking for?",
+    chips: ["Contractor", "Notary", "Cleaner", "Mechanic", "Local business"],
+    requestType: "other",
+  },
+  sell_list: {
+    heading: "Sell or list something",
+    prompt: "What are you trying to sell or list?",
+    chips: ["Tools", "Materials", "Vehicle", "Property", "Equipment"],
+    requestType: "buy_sell",
+  },
+  property_real_estate: {
+    heading: "Property help",
+    prompt: "What property, listing, client, or real estate need are you working on?",
+    chips: ["Listing prep", "Inspection", "Realtor help", "Repairs", "Buyer/seller help"],
+    requestType: "customer_support",
+  },
+  offer_services: {
+    heading: "Offer your services",
+    prompt: "What service do you provide, and where do you work?",
+    chips: ["Home services", "Vehicle services", "Property services", "Local business", "Other"],
+    requestType: "business_request",
+  },
+  browse_activity: {
+    heading: "See what’s happening nearby",
+    prompt: "What kind of local activity do you want to see?",
+    chips: ["Posts", "Events", "Listings", "Requests", "Local businesses"],
+    requestType: "other",
+  },
+  browse_only: {
+    heading: "Start anywhere",
+    prompt: "Search for local help, listings, services, jobs, people, or places.",
+    chips: ["Home repair", "Vehicle service", "Local help", "Listings", "Events"],
+    requestType: "other",
+  },
+};
 
 function getFlowMode(section: Section): FlowMode {
   return section === "engagements" || section === "inbox" ? "manage" : "start";
@@ -609,6 +702,10 @@ function DirectConnectRequestComposer({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
+  const directConnectIntent = useMemo(() => getDirectConnectIntent(location), [location]);
+  const intentConfig = directConnectIntent
+    ? DIRECT_CONNECT_INTENT_CONFIG[directConnectIntent]
+    : null;
   const attachmentsRef = useRef<DraftAttachment[]>([]);
   const initialTargetName = String(prefillTargetName || "").trim();
   const prefillTargetLabel = initialTargetName || "selected member";
@@ -642,6 +739,7 @@ function DirectConnectRequestComposer({
   const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(2);
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
+  const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
   const currentReturnPath = () => {
@@ -969,6 +1067,19 @@ function DirectConnectRequestComposer({
     hydrateDirectConnectDraft();
   }, []);
 
+  useEffect(() => {
+    if (!intentConfig) return;
+    if (hasAppliedIntentDefaultsRef.current) return;
+    hasAppliedIntentDefaultsRef.current = true;
+    setRequestType(intentConfig.requestType);
+    setTitle((current) => (current.trim().length > 0 ? current : intentConfig.chips[0] || ""));
+    setDescription((current) =>
+      current.trim().length > 0
+        ? current
+        : `${intentConfig.prompt} Share details, timing, and location.`
+    );
+  }, [intentConfig]);
+
   const createMutation = useMutation<any, any, DirectConnectCreateDispatch | undefined>({
     mutationFn: async (dispatch?: DirectConnectCreateDispatch) => {
       const uploadedAttachmentKeys = new Set<string>(draftAttachmentKeys);
@@ -1190,6 +1301,31 @@ function DirectConnectRequestComposer({
           </div>
         )}
         <div className="space-y-1.5">
+          {intentConfig ? (
+            <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3">
+              <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
+                {intentConfig.heading}
+              </h2>
+              <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                {intentConfig.prompt}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {intentConfig.chips.map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => {
+                      markRequestStarted("title");
+                      setTitle(chip);
+                    }}
+                    className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <label className="text-xs text-[color:var(--text-secondary)]">What do you need?</label>
           <select
             value={requestType}
