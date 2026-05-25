@@ -8,6 +8,10 @@ const serialNoSkips = ["1", "true", "yes", "on"].includes(
   String(process.env.VITEST_SERIAL || "").toLowerCase()
 );
 const htmlReportFile = `./test-results/vitest-report-${process.pid}.html`;
+const focusedDirectConnectRun = process.argv.some((arg) =>
+  /direct-connect-(intake|routing-spine|contractor-card|dispatch-ledger)\.contract/i.test(arg)
+);
+const reporters = focusedDirectConnectRun ? ["default"] : ["default", "html"];
 
 export default defineConfig({
   test: {
@@ -17,7 +21,7 @@ export default defineConfig({
     exclude: ["node_modules", "dist", ".idea", ".git", ".cache"],
     passWithNoTests: false,
     fileParallelism: !serialNoSkips,
-    reporters: ["default", "html"],
+    reporters,
     outputFile: {
       // Keep Vitest HTML output out of git-tracked root files (and inside an ignored folder).
       html: htmlReportFile,

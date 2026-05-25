@@ -16,6 +16,11 @@ import {
   businessCounties,
   workers,
 } from "@shared/schema";
+import {
+  evaluateContractorEligibility,
+  evaluateRoutingReadiness,
+  type CanonicalDirectConnectRequest,
+} from "@shared/directConnectRoutingSpine";
 import { and, asc, desc, eq, exists, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { storage } from "../storage";
@@ -27,6 +32,14 @@ import { recordOutcomeEvent, updateUserConfidenceStateFromOutcome } from "../sco
 import { logAdminAction } from "../services/adminAuditLogService";
 import { recordTrustLedgerEvent } from "../services/trustLedgerService";
 import { computeDirectConnectProviderFitScore } from "../services/directConnectProviderFitScore";
+import {
+  appendDispatchEvent,
+  ensureDirectConnectDispatchLedgerTables,
+  persistFinalizedDispatchRequest,
+  recordContractorResponse,
+  setDispatchContactGateState,
+  snapshotDispatchCandidate,
+} from "../services/directConnectDispatchLedgerService";
 import {
   redactContactDetails,
   buildWorkRequestPreviewTitle,
@@ -626,6 +639,9 @@ const toTradeDisplayName = (value: string): string => {
 };
 
 export function registerDirectConnectRoutes(app: Express) {
+  void ensureDirectConnectDispatchLedgerTables().catch((error) => {
+    console.warn("[direct-connect] Failed to ensure dispatch ledger tables", error);
+  });
   const makeShareToken = () => randomBytes(16).toString("hex");
   const ACTIVE_BOARD_STATUSES = new Set(["open", "routed", "in_progress"]);
   const ACTIVE_SHARE_STATUSES = new Set(["open", "routed", "in_progress"]);
@@ -1219,6 +1235,42 @@ export function registerDirectConnectRoutes(app: Express) {
         recommendationCount: recCount,
         routingMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
       };
+      await snapshotDispatchCandidate({
+        requestId,
+        businessId: (candidate as any).isBusinessProvider ? candidate.id : null,
+        contractorId:
+          (candidate as any).isBusinessProvider || (candidate as any).isWorkerProvider
+            ? null
+            : candidate.id,
+        responderUserId:
+          (candidate as any).isBusinessProvider || (candidate as any).isWorkerProvider
+            ? (candidate.userId ?? null)
+            : null,
+        workerId: (candidate as any).isWorkerProvider ? candidate.id : null,
+        eligibility: { status: "eligible", eligible: true },
+        eligibilityReasons: ["route_ready_eligible_pool"],
+        territoryMatched: true,
+        categoryMatched: true,
+        verificationState: "eligible",
+        profileReadiness: "ready",
+        contactEligibility: true,
+        trustState: "eligible",
+      });
+      await appendDispatchEvent({
+        requestId,
+        actorType: "system",
+        actorId: null,
+        eventType: "candidate_eligible",
+        metadata: {
+          candidateId: candidate.id,
+          providerType: (candidate as any).isWorkerProvider
+            ? "worker"
+            : (candidate as any).isBusinessProvider
+              ? "business"
+              : "contractor",
+          scoreSnapshot,
+        },
+      });
 
       const isBusinessProvider = Boolean((candidate as any).isBusinessProvider);
       const isWorkerProvider = Boolean((candidate as any).isWorkerProvider);
@@ -2365,6 +2417,59 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   });
 
+  app.post(
+    "/api/direct-connect/requests/:id/contact-gate",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const requestId = String(req.params.id || "").trim();
+        const nextState = String((req.body as any)?.nextState || "").trim() as
+          | "locked"
+          | "contractor_requested"
+          | "user_approved"
+          | "released"
+          | "denied"
+          | "expired";
+        if (!requestId || !nextState) {
+          return res.status(400).json({ message: "requestId and nextState are required" });
+        }
+        if (
+          ![
+            "locked",
+            "contractor_requested",
+            "user_approved",
+            "released",
+            "denied",
+            "expired",
+          ].includes(nextState)
+        ) {
+          return res.status(400).json({ message: "Invalid contact gate state" });
+        }
+        await setDispatchContactGateState({ requestId, nextState });
+        await appendDispatchEvent({
+          requestId,
+          actorType: "requester",
+          actorId: String(req.user?.id || req.user?.claims?.sub || ""),
+          eventType:
+            nextState === "released"
+              ? "contact_released"
+              : nextState === "contractor_requested"
+                ? "contact_requested"
+                : "request_shared",
+          metadata: { nextState },
+        });
+        return res.status(200).json({ requestId, contactGateState: nextState });
+      } catch (error: any) {
+        if (String(error?.message || "") === "CONTACT_RELEASE_REQUIRES_APPROVAL") {
+          return res.status(409).json({
+            message: "Contact cannot release without explicit user approval.",
+          });
+        }
+        return res.status(500).json({ message: "Failed to update contact gate state" });
+      }
+    }
+  );
+
   // Requester-facing: cancel an in-progress or routed Direct Connect request
   app.post(
     "/api/direct-connect/requests/:id/cancel",
@@ -2983,6 +3088,70 @@ export function registerDirectConnectRoutes(app: Express) {
 
         let createdResponse = created;
         const createdRequestId = created?.id ? String(created.id) : undefined;
+        if (createdRequestId) {
+          const canonicalAnswers: Record<"what" | "where" | "when" | "details", string> = {
+            what: sanitizedTitle,
+            where: [countyFips, stateCode].filter(Boolean).join(", "),
+            when: "",
+            details: sanitizedDescription,
+          };
+          const completenessState =
+            sanitizedTitle.trim().length >= 3 && sanitizedDescription.trim().length >= 10
+              ? "ready_to_share"
+              : "too_vague";
+          const routingReadiness = evaluateRoutingReadiness({
+            category: body.category,
+            answers: canonicalAnswers,
+            description: sanitizedDescription,
+            completenessState,
+          });
+          const canonical: CanonicalDirectConnectRequest = {
+            requestId: createdRequestId,
+            intent: String((req.query.intent as string) || body.category || "direct_connect"),
+            requestType: body.category,
+            category: body.category,
+            county: countyFips || null,
+            cityArea: null,
+            urgency: null,
+            description: sanitizedDescription,
+            answers: canonicalAnswers,
+            completenessState,
+            routingReadiness,
+            visibilityState: "review_ready",
+            contactGateState: "locked",
+            createdAt: new Date().toISOString(),
+            sourceSurface: "direct_connect",
+          };
+          await persistFinalizedDispatchRequest({
+            canonical,
+            userId: String(userId),
+          });
+          await appendDispatchEvent({
+            requestId: createdRequestId,
+            actorType: "requester",
+            actorId: String(userId),
+            eventType: "request_finalized",
+            metadata: {
+              category: body.category,
+              routingReadiness,
+            },
+          });
+          await appendDispatchEvent({
+            requestId: createdRequestId,
+            actorType: "system",
+            actorId: null,
+            eventType:
+              routingReadiness === "route_ready" ? "request_route_ready" : "request_route_blocked",
+            metadata: { routingReadiness },
+          });
+          await appendDispatchEvent({
+            requestId: createdRequestId,
+            actorType: "requester",
+            actorId: String(userId),
+            eventType: "request_shared",
+            metadata: { source: "direct_connect_create" },
+          });
+        }
 
         if (created) {
           try {
@@ -3040,6 +3209,76 @@ export function registerDirectConnectRoutes(app: Express) {
               created
             );
             const eligibleBusinesses = businessEligibility.eligible;
+            if (createdRequestId) {
+              await Promise.all([
+                ...eligibleContractors.map((contractor: any) =>
+                  snapshotDispatchCandidate({
+                    requestId: createdRequestId,
+                    contractorId: String(contractor.id),
+                    responderUserId: contractor.userId ? String(contractor.userId) : null,
+                    eligibility: { status: "eligible", eligible: true },
+                    eligibilityReasons: ["eligible_for_dispatch"],
+                    territoryMatched: true,
+                    categoryMatched: true,
+                    verificationState: "verified_or_allowed",
+                    profileReadiness: "ready",
+                    contactEligibility: true,
+                    trustState: "eligible",
+                  })
+                ),
+                ...contractorEligibility.ineligible.map((entry: any) =>
+                  snapshotDispatchCandidate({
+                    requestId: createdRequestId,
+                    contractorId: String(entry.contractorId || ""),
+                    eligibility: evaluateContractorEligibility({
+                      isActive: true,
+                      isVerified: false,
+                      profileComplete: true,
+                      contactEligible: false,
+                      categoryMatch: true,
+                      territoryMatch: !String(entry.reason || "").includes("outside"),
+                      trustOrCvsEligible: true,
+                    }),
+                    ineligibilityReasons: [String(entry.reason || "not_eligible")],
+                    territoryMatched: !String(entry.reason || "").includes("outside"),
+                    categoryMatched: true,
+                    verificationState: "unknown",
+                    profileReadiness: "unknown",
+                    contactEligibility: false,
+                    trustState: "unknown",
+                  })
+                ),
+                ...eligibleBusinesses.map((business: any) =>
+                  snapshotDispatchCandidate({
+                    requestId: createdRequestId,
+                    businessId: String(business.id),
+                    responderUserId: business.ownerUserId ? String(business.ownerUserId) : null,
+                    eligibility: { status: "eligible", eligible: true },
+                    eligibilityReasons: ["eligible_for_dispatch"],
+                    territoryMatched: true,
+                    categoryMatched: true,
+                    verificationState: "verified_or_allowed",
+                    profileReadiness: "ready",
+                    contactEligibility: true,
+                    trustState: "eligible",
+                  })
+                ),
+                ...businessEligibility.ineligible.map((entry: any) =>
+                  snapshotDispatchCandidate({
+                    requestId: createdRequestId,
+                    businessId: String(entry.businessId || ""),
+                    eligibility: { status: "not_eligible", eligible: false },
+                    ineligibilityReasons: [String(entry.reason || "not_eligible")],
+                    territoryMatched: !String(entry.reason || "").includes("outside"),
+                    categoryMatched: !String(entry.reason || "").includes("category"),
+                    verificationState: "unknown",
+                    profileReadiness: "unknown",
+                    contactEligibility: false,
+                    trustState: "unknown",
+                  })
+                ),
+              ]);
+            }
             const now = new Date();
             const contractorAssignments = eligibleContractors.map((contractor) => ({
               workRequestId: created.id,
@@ -4181,6 +4420,56 @@ export function registerDirectConnectRoutes(app: Express) {
 
         if (result.status !== 200) {
           return res.status(result.status).json(result.body);
+        }
+        try {
+          const { assignment: updatedAssignment, responseSummary } = result.body as any;
+          const responseType =
+            updatedAssignment.status === "accepted"
+              ? "interested"
+              : declineReason
+                ? "not_a_fit"
+                : "unavailable";
+          const requestId = String(updatedAssignment.workRequestId || "");
+          await recordContractorResponse({
+            requestId,
+            contractorId: contractor?.id ? String(contractor.id) : null,
+            responderUserId: String(userId),
+            responseType,
+            message:
+              responseType === "interested"
+                ? String(responseSummary?.scopeNote || "")
+                : String(declineReason || ""),
+            availability:
+              responseType === "interested"
+                ? String(responseSummary?.availabilityWindow || "")
+                : null,
+            estimatedTiming:
+              responseType === "interested"
+                ? String(responseSummary?.availabilityWindow || "")
+                : null,
+            contactRequestState: responseType === "interested" ? "contractor_requested" : "locked",
+          });
+          await appendDispatchEvent({
+            requestId,
+            actorType: "contractor",
+            actorId: String(userId),
+            eventType: "contractor_responded",
+            metadata: { responseType },
+          });
+          if (responseType === "interested") {
+            await appendDispatchEvent({
+              requestId,
+              actorType: "contractor",
+              actorId: String(userId),
+              eventType: "contact_requested",
+              metadata: { via: "assignment_response" },
+            });
+          }
+        } catch (ledgerError) {
+          console.warn(
+            "[direct-connect] Failed to persist contractor response in dispatch ledger",
+            ledgerError
+          );
         }
         // Notify the requester that a provider has accepted or declined their request.
         // This runs outside the transaction so a notification failure never blocks the response.
