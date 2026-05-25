@@ -261,13 +261,81 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     CREATE TABLE IF NOT EXISTS job_payment_requests (
       id text PRIMARY KEY,
       workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      estimate_id text NULL REFERENCES job_estimates(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
+      payment_type text NOT NULL DEFAULT 'other',
       amount numeric NULL,
       currency text NULL,
-      status text NOT NULL DEFAULT 'requested',
+      description text NULL,
+      due_date timestamptz NULL,
+      status text NOT NULL DEFAULT 'draft',
       note text NULL,
-      created_at timestamptz NOT NULL DEFAULT now()
+      created_by text NULL,
+      sent_at timestamptz NULL,
+      acknowledged_at timestamptz NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
     );
   `);
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS job_schedule_proposals (
+      id text PRIMARY KEY,
+      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      estimate_id text NULL REFERENCES job_estimates(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
+      proposed_start timestamptz NOT NULL,
+      proposed_end timestamptz NULL,
+      time_window text NULL,
+      notes text NULL,
+      status text NOT NULL DEFAULT 'proposed',
+      created_by text NULL,
+      responded_at timestamptz NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS request_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS estimate_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS business_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS contractor_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS payment_type text NOT NULL DEFAULT 'other'`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS description text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS created_by text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS acknowledged_at timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_payment_requests ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()`
+  );
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS job_payment_records (
       id text PRIMARY KEY,
@@ -384,8 +452,16 @@ function normalizeLifecycleEvent(eventType: string): LifecycleStatus | null {
     case "estimate_declined":
     case "estimate_voided":
     case "deposit_requested":
-    case "deposit_recorded":
+    case "deposit_acknowledged":
+    case "deposit_paid_outside_platform":
+    case "deposit_waived":
+    case "payment_request_canceled":
     case "schedule_proposed":
+    case "schedule_accepted":
+    case "schedule_change_requested":
+    case "schedule_declined":
+    case "job_scheduled":
+    case "deposit_recorded":
     case "work_started":
     case "checkpoint_updated":
     case "change_order_created":
@@ -475,6 +551,16 @@ async function resolveLifecycleRecipients(requestId: string, eventType: string) 
       "contact_denied",
       "contact_released",
       "request_closed",
+      "deposit_requested",
+      "deposit_acknowledged",
+      "deposit_paid_outside_platform",
+      "deposit_waived",
+      "payment_request_canceled",
+      "schedule_proposed",
+      "schedule_accepted",
+      "schedule_change_requested",
+      "schedule_declined",
+      "job_scheduled",
     ].includes(eventType)
   ) {
     const contractorRows = await db.execute(sql`
@@ -611,7 +697,13 @@ export function getAllowedLifecycleActions(args: {
       case "estimate":
         return ["add_material_item", "add_labor_item", "send_estimate", "revise_estimate"];
       case "acceptance":
-        return ["request_deposit", "propose_schedule", "create_checkpoint", "mark_in_progress"];
+        return [
+          "request_deposit",
+          "create_payment_request",
+          "propose_schedule",
+          "create_checkpoint",
+          "mark_not_moving_forward",
+        ];
       case "deposit":
       case "scheduling":
       case "in_progress":
@@ -642,7 +734,16 @@ export function getAllowedLifecycleActions(args: {
     case "acceptance":
     case "deposit":
     case "scheduling":
-      return ["approve_schedule", "view_checkpoints", "upload_photos_or_notes"];
+      return [
+        "view_accepted_estimate",
+        "review_payment_request",
+        "acknowledge_payment_request",
+        "mark_paid_outside_platform",
+        "review_schedule",
+        "accept_schedule",
+        "request_schedule_change",
+        "decline_schedule",
+      ];
     case "in_progress":
     case "checkpoint":
     case "change_order":
@@ -752,6 +853,14 @@ export async function appendDispatchEvent(args: {
     | "estimate_declined"
     | "estimate_voided"
     | "deposit_requested"
+    | "deposit_acknowledged"
+    | "deposit_paid_outside_platform"
+    | "deposit_waived"
+    | "payment_request_canceled"
+    | "schedule_accepted"
+    | "schedule_change_requested"
+    | "schedule_declined"
+    | "job_scheduled"
     | "deposit_recorded"
     | "schedule_proposed"
     | "work_started"

@@ -476,6 +476,33 @@ const estimateLineItemSchema = z.object({
   notes: z.string().max(1200).optional(),
 });
 
+const paymentRequestCreateSchema = z.object({
+  estimateId: z.string().min(1),
+  type: z.enum(["deposit", "prepayment", "milestone", "final", "other"]),
+  amount: z.number().positive().max(100000000),
+  description: z.string().min(3).max(1200),
+  dueDate: z.string().datetime().optional(),
+  note: z.string().max(1200).optional(),
+});
+
+const paymentRequestRespondSchema = z.object({
+  decision: z.enum(["acknowledge", "paid_outside_platform", "waive", "decline"]),
+  note: z.string().max(1200).optional(),
+});
+
+const scheduleProposalCreateSchema = z.object({
+  estimateId: z.string().min(1).optional(),
+  proposedStart: z.string().datetime(),
+  proposedEnd: z.string().datetime().optional(),
+  timeWindow: z.string().max(160).optional(),
+  notes: z.string().max(1200).optional(),
+});
+
+const scheduleProposalRespondSchema = z.object({
+  decision: z.enum(["accept", "request_changes", "decline"]),
+  note: z.string().max(1200).optional(),
+});
+
 function resolveTargetProviderIds(body: {
   targetContractorIds?: string[];
   targetProviderIds?: string[];
@@ -2166,6 +2193,84 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           }
         }
+        const paymentSummaryByRequestId = new Map<
+          string,
+          { latestPaymentRequestStatus: string | null; paymentRequestCount: number }
+        >();
+        if (requestIds.length) {
+          const paymentRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(p.id)::int AS payment_request_count,
+              (
+                SELECT p2.status
+                FROM job_payment_requests p2
+                WHERE p2.workspace_id = w.id
+                ORDER BY p2.created_at DESC
+                LIMIT 1
+              ) AS latest_payment_request_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (paymentRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || paymentSummaryByRequestId.has(key)) continue;
+            paymentSummaryByRequestId.set(key, {
+              latestPaymentRequestStatus: row.latest_payment_request_status
+                ? String(row.latest_payment_request_status)
+                : null,
+              paymentRequestCount: Number(row.payment_request_count || 0),
+            });
+          }
+        }
+        const scheduleSummaryByRequestId = new Map<
+          string,
+          {
+            latestScheduleStatus: string | null;
+            scheduleProposalCount: number;
+            activeScheduleProposalId: string | null;
+          }
+        >();
+        if (requestIds.length) {
+          const scheduleRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(s.id)::int AS schedule_proposal_count,
+              (
+                SELECT s2.id
+                FROM job_schedule_proposals s2
+                WHERE s2.workspace_id = w.id
+                ORDER BY s2.created_at DESC
+                LIMIT 1
+              ) AS active_schedule_proposal_id,
+              (
+                SELECT s3.status
+                FROM job_schedule_proposals s3
+                WHERE s3.workspace_id = w.id
+                ORDER BY s3.created_at DESC
+                LIMIT 1
+              ) AS latest_schedule_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (scheduleRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || scheduleSummaryByRequestId.has(key)) continue;
+            scheduleSummaryByRequestId.set(key, {
+              latestScheduleStatus: row.latest_schedule_status
+                ? String(row.latest_schedule_status)
+                : null,
+              scheduleProposalCount: Number(row.schedule_proposal_count || 0),
+              activeScheduleProposalId: row.active_schedule_proposal_id
+                ? String(row.active_schedule_proposal_id)
+                : null,
+            });
+          }
+        }
 
         const responseCountByRequestId = new Map<string, number>();
         const contactRequestCountByRequestId = new Map<string, number>();
@@ -2370,6 +2475,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const dispatchMeta = dispatchMetaByRequestId.get(String(r.id)) || null;
           const lifecycleMeta = lifecycleByRequestId.get(String(r.id)) || null;
           const estimateMeta = estimateSummaryByRequestId.get(String(r.id)) || null;
+          const paymentMeta = paymentSummaryByRequestId.get(String(r.id)) || null;
+          const scheduleMeta = scheduleSummaryByRequestId.get(String(r.id)) || null;
           return {
             ...r,
             attachmentCount: getAttachmentCount(r),
@@ -2402,6 +2509,11 @@ export function registerDirectConnectRoutes(app: Express) {
             latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
             estimateCount: estimateMeta?.estimateCount ?? 0,
             activeEstimateId: estimateMeta?.activeEstimateId ?? null,
+            latestPaymentRequestStatus: paymentMeta?.latestPaymentRequestStatus ?? null,
+            paymentRequestCount: paymentMeta?.paymentRequestCount ?? 0,
+            latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
+            scheduleProposalCount: scheduleMeta?.scheduleProposalCount ?? 0,
+            activeScheduleProposalId: scheduleMeta?.activeScheduleProposalId ?? null,
           };
         });
 
@@ -2554,7 +2666,49 @@ export function registerDirectConnectRoutes(app: Express) {
         const estimateSummary = estimateSummaryRows
           ? (((estimateSummaryRows.rows || []) as any[])[0] ?? null)
           : null;
-
+        const paymentSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS payment_request_count,
+                  (
+                    SELECT status
+                    FROM job_payment_requests
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_payment_request_status
+                FROM job_payment_requests
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const paymentSummary = paymentSummaryRows
+          ? (((paymentSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const scheduleSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS schedule_proposal_count,
+                  (
+                    SELECT id
+                    FROM job_schedule_proposals
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_schedule_proposal_id,
+                  (
+                    SELECT status
+                    FROM job_schedule_proposals
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_schedule_status
+                FROM job_schedule_proposals
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const scheduleSummary = scheduleSummaryRows
+          ? (((scheduleSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
         await appendDispatchEvent({
           requestId,
           actorType: "requester",
@@ -2618,6 +2772,17 @@ export function registerDirectConnectRoutes(app: Express) {
           estimateCount: Number(estimateSummary?.estimate_count || 0),
           activeEstimateId: estimateSummary?.active_estimate_id
             ? String(estimateSummary.active_estimate_id)
+            : null,
+          latestPaymentRequestStatus: paymentSummary?.latest_payment_request_status
+            ? String(paymentSummary.latest_payment_request_status)
+            : null,
+          paymentRequestCount: Number(paymentSummary?.payment_request_count || 0),
+          latestScheduleStatus: scheduleSummary?.latest_schedule_status
+            ? String(scheduleSummary.latest_schedule_status)
+            : null,
+          scheduleProposalCount: Number(scheduleSummary?.schedule_proposal_count || 0),
+          activeScheduleProposalId: scheduleSummary?.active_schedule_proposal_id
+            ? String(scheduleSummary.active_schedule_proposal_id)
             : null,
           allowedLifecycleActions,
           responses: contractorResponses,
@@ -5045,6 +5210,84 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           }
         }
+        const paymentSummaryByRequestId = new Map<
+          string,
+          { latestPaymentRequestStatus: string | null; paymentRequestCount: number }
+        >();
+        if (requestIds.length) {
+          const paymentRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(p.id)::int AS payment_request_count,
+              (
+                SELECT p2.status
+                FROM job_payment_requests p2
+                WHERE p2.workspace_id = w.id
+                ORDER BY p2.created_at DESC
+                LIMIT 1
+              ) AS latest_payment_request_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (paymentRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || paymentSummaryByRequestId.has(key)) continue;
+            paymentSummaryByRequestId.set(key, {
+              latestPaymentRequestStatus: row.latest_payment_request_status
+                ? String(row.latest_payment_request_status)
+                : null,
+              paymentRequestCount: Number(row.payment_request_count || 0),
+            });
+          }
+        }
+        const scheduleSummaryByRequestId = new Map<
+          string,
+          {
+            latestScheduleStatus: string | null;
+            scheduleProposalCount: number;
+            activeScheduleProposalId: string | null;
+          }
+        >();
+        if (requestIds.length) {
+          const scheduleRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(s.id)::int AS schedule_proposal_count,
+              (
+                SELECT s2.id
+                FROM job_schedule_proposals s2
+                WHERE s2.workspace_id = w.id
+                ORDER BY s2.created_at DESC
+                LIMIT 1
+              ) AS active_schedule_proposal_id,
+              (
+                SELECT s3.status
+                FROM job_schedule_proposals s3
+                WHERE s3.workspace_id = w.id
+                ORDER BY s3.created_at DESC
+                LIMIT 1
+              ) AS latest_schedule_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (scheduleRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || scheduleSummaryByRequestId.has(key)) continue;
+            scheduleSummaryByRequestId.set(key, {
+              latestScheduleStatus: row.latest_schedule_status
+                ? String(row.latest_schedule_status)
+                : null,
+              scheduleProposalCount: Number(row.schedule_proposal_count || 0),
+              activeScheduleProposalId: row.active_schedule_proposal_id
+                ? String(row.active_schedule_proposal_id)
+                : null,
+            });
+          }
+        }
 
         const deduped = new Map<string, any>();
         for (const row of (candidateRows.rows || []) as any[]) {
@@ -5053,6 +5296,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const latestResponse = responseByRequest.get(requestId) || null;
           const lifecycleMeta = lifecycleByRequestId.get(requestId) || null;
           const estimateMeta = estimateSummaryByRequestId.get(requestId) || null;
+          const paymentMeta = paymentSummaryByRequestId.get(requestId) || null;
+          const scheduleMeta = scheduleSummaryByRequestId.get(requestId) || null;
           const workspace = workspaceByRequestId.get(requestId) || null;
           const allowedLifecycleActions = workspace
             ? getAllowedLifecycleActions({
@@ -5084,6 +5329,11 @@ export function registerDirectConnectRoutes(app: Express) {
             latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
             estimateCount: estimateMeta?.estimateCount ?? 0,
             activeEstimateId: estimateMeta?.activeEstimateId ?? null,
+            latestPaymentRequestStatus: paymentMeta?.latestPaymentRequestStatus ?? null,
+            paymentRequestCount: paymentMeta?.paymentRequestCount ?? 0,
+            latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
+            scheduleProposalCount: scheduleMeta?.scheduleProposalCount ?? 0,
+            activeScheduleProposalId: scheduleMeta?.activeScheduleProposalId ?? null,
             jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
             activeStage: workspace?.active_stage ? String(workspace.active_stage) : null,
             latestJobStatus: workspace?.status ? String(workspace.status) : null,
@@ -5303,6 +5553,17 @@ export function registerDirectConnectRoutes(app: Express) {
           estimateCount: Number(estimateSummary?.estimate_count || 0),
           activeEstimateId: estimateSummary?.active_estimate_id
             ? String(estimateSummary.active_estimate_id)
+            : null,
+          latestPaymentRequestStatus: paymentSummary?.latest_payment_request_status
+            ? String(paymentSummary.latest_payment_request_status)
+            : null,
+          paymentRequestCount: Number(paymentSummary?.payment_request_count || 0),
+          latestScheduleStatus: scheduleSummary?.latest_schedule_status
+            ? String(scheduleSummary.latest_schedule_status)
+            : null,
+          scheduleProposalCount: Number(scheduleSummary?.schedule_proposal_count || 0),
+          activeScheduleProposalId: scheduleSummary?.active_schedule_proposal_id
+            ? String(scheduleSummary.active_schedule_proposal_id)
             : null,
           jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
           activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
@@ -5688,12 +5949,10 @@ export function registerDirectConnectRoutes(app: Express) {
         });
       } catch (error) {
         console.error("Error creating estimate:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to create estimate",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to create estimate",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -5724,11 +5983,9 @@ export function registerDirectConnectRoutes(app: Express) {
         if (!estimate) return res.status(404).json({ message: "Estimate not found" });
         const estimateStatus = normalizeEstimateStatus(estimate.status);
         if (!["draft", "change_requested"].includes(estimateStatus)) {
-          return res
-            .status(409)
-            .json({
-              message: "Line items can be edited only while estimate is draft or change requested.",
-            });
+          return res.status(409).json({
+            message: "Line items can be edited only while estimate is draft or change requested.",
+          });
         }
 
         const contractor = await storage.getContractorByUserId(userId);
@@ -5846,12 +6103,10 @@ export function registerDirectConnectRoutes(app: Express) {
         });
       } catch (error) {
         console.error("Error adding estimate line item:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to add estimate line item",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to add estimate line item",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -6077,12 +6332,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, estimateId });
       } catch (error) {
         console.error("Error updating estimate:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to update estimate",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to update estimate",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -6256,10 +6509,448 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, estimateId, status: nextStatus });
       } catch (error) {
         console.error("Error responding to estimate:", error);
+        return res.status(500).json({
+          message: "Failed to respond to estimate",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/payment-requests",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+        const parse = paymentRequestCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid payment request payload", issues: parse.error.flatten() });
+        }
+
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, business_id, contractor_id, active_stage
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const estimateRows = await db.execute(sql`
+          SELECT id, status
+          FROM job_estimates
+          WHERE id = ${parse.data.estimateId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const estimate = ((estimateRows.rows || []) as any[])[0] || null;
+        if (!estimate) return res.status(404).json({ message: "Estimate not found" });
+        if (normalizeEstimateStatus(estimate.status) !== "accepted") {
+          return res
+            .status(409)
+            .json({ message: "Payment requests require an accepted estimate." });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can request deposit or prepayment." });
+        }
+
+        const paymentRequestId = createId("payreq");
+        await db.execute(sql`
+          INSERT INTO job_payment_requests (
+            id, workspace_id, request_id, estimate_id, requester_user_id, business_id, contractor_id,
+            payment_type, amount, currency, description, due_date, status, note, created_by, sent_at, created_at, updated_at
+          )
+          VALUES (
+            ${paymentRequestId},
+            ${jobWorkspaceId},
+            ${String(workspace.request_id)},
+            ${String(parse.data.estimateId)},
+            ${String(workspace.requester_user_id || "")},
+            ${workspace.business_id ? String(workspace.business_id) : null},
+            ${workspace.contractor_id ? String(workspace.contractor_id) : contractorId},
+            ${parse.data.type},
+            ${parse.data.amount},
+            'USD',
+            ${parse.data.description.trim()},
+            ${parse.data.dueDate ? new Date(parse.data.dueDate).toISOString() : null},
+            'sent',
+            ${parse.data.note ? parse.data.note.trim() : null},
+            ${userId},
+            now(),
+            now(),
+            now()
+          )
+        `);
+
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'deposit', status = 'deposit_requested', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "deposit_requested",
+          metadata: { paymentRequestId, type: parse.data.type, amount: parse.data.amount },
+        });
+
+        return res.status(201).json({
+          paymentRequestId,
+          jobWorkspaceId,
+          status: "sent",
+        });
+      } catch (error) {
+        console.error("Error creating payment request:", error);
         return res
           .status(500)
           .json({
-            message: "Failed to respond to estimate",
+            message: "Failed to create payment request",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/payment-requests/:paymentRequestId/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const paymentRequestId = String(req.params.paymentRequestId || "").trim();
+        const parse = paymentRequestRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({
+              message: "Invalid payment request response payload",
+              issues: parse.error.flatten(),
+            });
+        }
+
+        const rows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, status
+          FROM job_payment_requests
+          WHERE id = ${paymentRequestId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const paymentRequest = ((rows.rows || []) as any[])[0] || null;
+        if (!paymentRequest) return res.status(404).json({ message: "Payment request not found" });
+        if (String(paymentRequest.requester_user_id || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to this payment request." });
+        }
+
+        let nextStatus: string = "acknowledged";
+        let eventType:
+          | "deposit_acknowledged"
+          | "deposit_paid_outside_platform"
+          | "deposit_waived"
+          | "payment_request_canceled" = "deposit_acknowledged";
+        if (parse.data.decision === "paid_outside_platform") {
+          nextStatus = "paid_outside_platform";
+          eventType = "deposit_paid_outside_platform";
+        } else if (parse.data.decision === "waive") {
+          nextStatus = "waived";
+          eventType = "deposit_waived";
+        } else if (parse.data.decision === "decline") {
+          nextStatus = "canceled";
+          eventType = "payment_request_canceled";
+        }
+
+        await db.execute(sql`
+          UPDATE job_payment_requests
+          SET status = ${nextStatus}, acknowledged_at = now(), note = COALESCE(${parse.data.note ? parse.data.note.trim() : null}, note), updated_at = now()
+          WHERE id = ${paymentRequestId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(paymentRequest.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType,
+          metadata: { paymentRequestId, decision: parse.data.decision },
+        });
+
+        return res.status(200).json({ ok: true, paymentRequestId, status: nextStatus });
+      } catch (error) {
+        console.error("Error responding to payment request:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to respond to payment request",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/schedule-proposals",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+        const parse = scheduleProposalCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid schedule proposal payload", issues: parse.error.flatten() });
+        }
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, business_id, contractor_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        if (parse.data.estimateId) {
+          const estimateRows = await db.execute(sql`
+            SELECT id, status
+            FROM job_estimates
+            WHERE id = ${parse.data.estimateId}
+              AND workspace_id = ${jobWorkspaceId}
+            LIMIT 1
+          `);
+          const estimate = ((estimateRows.rows || []) as any[])[0] || null;
+          if (!estimate || normalizeEstimateStatus(estimate.status) !== "accepted") {
+            return res
+              .status(409)
+              .json({ message: "Schedule proposals require an accepted estimate." });
+          }
+        } else {
+          const acceptedEstimateRows = await db.execute(sql`
+            SELECT id
+            FROM job_estimates
+            WHERE workspace_id = ${jobWorkspaceId}
+              AND status = 'accepted'
+            LIMIT 1
+          `);
+          if (!((acceptedEstimateRows.rows || []) as any[])[0]) {
+            return res
+              .status(409)
+              .json({ message: "Schedule proposals require an accepted estimate." });
+          }
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can propose schedule." });
+        }
+
+        const scheduleProposalId = createId("sched");
+        await db.execute(sql`
+          INSERT INTO job_schedule_proposals (
+            id, workspace_id, request_id, estimate_id, requester_user_id, business_id, contractor_id,
+            proposed_start, proposed_end, time_window, notes, status, created_by, created_at, updated_at
+          )
+          VALUES (
+            ${scheduleProposalId},
+            ${jobWorkspaceId},
+            ${String(workspace.request_id)},
+            ${parse.data.estimateId ? parse.data.estimateId : null},
+            ${String(workspace.requester_user_id || "")},
+            ${workspace.business_id ? String(workspace.business_id) : null},
+            ${workspace.contractor_id ? String(workspace.contractor_id) : contractorId},
+            ${new Date(parse.data.proposedStart).toISOString()},
+            ${parse.data.proposedEnd ? new Date(parse.data.proposedEnd).toISOString() : null},
+            ${parse.data.timeWindow ? parse.data.timeWindow.trim() : null},
+            ${parse.data.notes ? parse.data.notes.trim() : null},
+            'proposed',
+            ${userId},
+            now(),
+            now()
+          )
+        `);
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'scheduling', status = 'schedule_proposed', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "schedule_proposed",
+          metadata: { scheduleProposalId },
+        });
+        return res.status(201).json({ scheduleProposalId, status: "proposed", jobWorkspaceId });
+      } catch (error) {
+        console.error("Error proposing schedule:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to propose schedule",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/schedule-proposals/:scheduleProposalId/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const scheduleProposalId = String(req.params.scheduleProposalId || "").trim();
+        const parse = scheduleProposalRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid schedule response payload", issues: parse.error.flatten() });
+        }
+        const rows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, status
+          FROM job_schedule_proposals
+          WHERE id = ${scheduleProposalId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const proposal = ((rows.rows || []) as any[])[0] || null;
+        if (!proposal) return res.status(404).json({ message: "Schedule proposal not found" });
+        if (String(proposal.requester_user_id || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to this schedule proposal." });
+        }
+        if (String(proposal.status || "proposed") !== "proposed") {
+          return res.status(409).json({ message: "Only proposed schedules can be responded to." });
+        }
+        let nextStatus: "accepted" | "change_requested" | "declined" = "declined";
+        let eventType: "schedule_accepted" | "schedule_change_requested" | "schedule_declined" =
+          "schedule_declined";
+        let workspaceStatus = "schedule_declined";
+        if (parse.data.decision === "accept") {
+          nextStatus = "accepted";
+          eventType = "schedule_accepted";
+          workspaceStatus = "job_scheduled";
+        } else if (parse.data.decision === "request_changes") {
+          nextStatus = "change_requested";
+          eventType = "schedule_change_requested";
+          workspaceStatus = "schedule_change_requested";
+        }
+        await db.execute(sql`
+          UPDATE job_schedule_proposals
+          SET status = ${nextStatus}, notes = COALESCE(${parse.data.note ? parse.data.note.trim() : null}, notes), responded_at = now(), updated_at = now()
+          WHERE id = ${scheduleProposalId}
+        `);
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'scheduling', status = ${workspaceStatus}, updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(proposal.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType,
+          metadata: { scheduleProposalId, decision: parse.data.decision },
+        });
+        if (eventType === "schedule_accepted") {
+          await appendDispatchEvent({
+            requestId: String(proposal.request_id || ""),
+            actorType: "system",
+            actorId: null,
+            eventType: "job_scheduled",
+            metadata: { scheduleProposalId },
+          });
+        }
+        return res.status(200).json({ ok: true, scheduleProposalId, status: nextStatus });
+      } catch (error) {
+        console.error("Error responding to schedule proposal:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to respond to schedule proposal",
             requestId: (req as any).requestId || null,
           });
       }
