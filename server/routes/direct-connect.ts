@@ -381,6 +381,13 @@ const directConnectRouteRequestSchema = z.object({
   targetProviderIds: z.array(z.string().min(1)).max(25).optional(),
 });
 
+const contractorConsoleResponseSchema = z.object({
+  responseType: z.enum(["interested", "need_more_info", "not_a_fit", "unavailable"]),
+  message: z.string().max(600).optional(),
+  availability: z.string().max(160).optional(),
+  estimatedTiming: z.string().max(160).optional(),
+});
+
 function resolveTargetProviderIds(body: {
   targetContractorIds?: string[];
   targetProviderIds?: string[];
@@ -4176,6 +4183,419 @@ export function registerDirectConnectRoutes(app: Express) {
         res
           .status(500)
           .json({ message: "Failed to fetch inbox", requestId: (req as any).requestId || null });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/contractor/requests",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+
+        const candidateRows = await db.execute(sql`
+          SELECT
+            c.request_id,
+            c.eligibility_state,
+            c.eligibility_reasons,
+            c.ineligibility_reasons,
+            c.territory_matched,
+            c.category_matched,
+            c.verification_state,
+            c.profile_readiness,
+            c.contact_eligibility,
+            c.trust_state,
+            c.created_at AS candidate_created_at,
+            r.intent,
+            r.request_type,
+            r.category,
+            r.county,
+            r.city_area,
+            r.urgency,
+            r.description,
+            r.answers_json,
+            r.routing_readiness_state,
+            r.contact_gate_state,
+            r.created_at,
+            r.updated_at
+          FROM direct_connect_dispatch_candidates c
+          INNER JOIN direct_connect_dispatch_requests r
+            ON r.id = c.request_id
+          WHERE c.eligibility_state = 'eligible'
+            AND (
+              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
+              OR c.responder_user_id = ${userId}
+              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+            )
+          ORDER BY r.updated_at DESC, r.created_at DESC, c.created_at DESC
+        `);
+
+        const responseByRequest = new Map<string, any>();
+        const responseRows = await db.execute(sql`
+          SELECT DISTINCT ON (request_id)
+            request_id,
+            response_type,
+            contact_request_state,
+            created_at
+          FROM direct_connect_contractor_responses
+          WHERE
+            (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
+            OR responder_user_id = ${userId}
+          ORDER BY request_id, created_at DESC
+        `);
+        for (const row of (responseRows.rows || []) as any[]) {
+          responseByRequest.set(String(row.request_id), row);
+        }
+
+        const deduped = new Map<string, any>();
+        for (const row of (candidateRows.rows || []) as any[]) {
+          const requestId = String(row.request_id || "");
+          if (!requestId || deduped.has(requestId)) continue;
+          const latestResponse = responseByRequest.get(requestId) || null;
+          deduped.set(requestId, {
+            requestId,
+            requestType: String(row.request_type || ""),
+            category: String(row.category || ""),
+            county: row.county ? String(row.county) : null,
+            cityArea: row.city_area ? String(row.city_area) : null,
+            urgency: row.urgency ? String(row.urgency) : null,
+            description: String(row.description || ""),
+            answersSummary: row.answers_json || {},
+            routingReadinessState: String(row.routing_readiness_state || ""),
+            eligibilityState: String(row.eligibility_state || ""),
+            eligibilityReasons: Array.isArray(row.eligibility_reasons)
+              ? row.eligibility_reasons
+              : [],
+            contactGateState: String(row.contact_gate_state || "locked"),
+            createdAt: row.created_at || null,
+            responseState: latestResponse ? String(latestResponse.response_type || "") : null,
+          });
+        }
+
+        return res.status(200).json(Array.from(deduped.values()));
+      } catch (error) {
+        console.error("Error listing contractor routed direct connect requests:", error);
+        return res.status(500).json({
+          message: "Failed to list routed requests",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/contractor/requests/:id",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const requestId = String(req.params.id || "").trim();
+        if (!requestId) return res.status(400).json({ message: "Request id is required" });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+
+        const candidateResult = await db.execute(sql`
+          SELECT
+            c.request_id,
+            c.eligibility_state,
+            c.eligibility_reasons,
+            c.ineligibility_reasons,
+            c.territory_matched,
+            c.category_matched,
+            c.verification_state,
+            c.profile_readiness,
+            c.contact_eligibility,
+            c.trust_state,
+            r.intent,
+            r.request_type,
+            r.category,
+            r.county,
+            r.city_area,
+            r.urgency,
+            r.description,
+            r.answers_json,
+            r.routing_readiness_state,
+            r.contact_gate_state,
+            r.visibility_state,
+            r.created_at,
+            r.updated_at
+          FROM direct_connect_dispatch_candidates c
+          INNER JOIN direct_connect_dispatch_requests r
+            ON r.id = c.request_id
+          WHERE c.request_id = ${requestId}
+            AND c.eligibility_state = 'eligible'
+            AND (
+              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
+              OR c.responder_user_id = ${userId}
+              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+            )
+          ORDER BY c.created_at DESC
+          LIMIT 1
+        `);
+
+        const candidate = ((candidateResult.rows || []) as any[])[0];
+        if (!candidate) {
+          return res.status(403).json({ message: "Request not available for this contractor" });
+        }
+
+        await appendDispatchEvent({
+          requestId,
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "contractor_viewed_request" as any,
+          metadata: { surface: "contractor_console" },
+        }).catch(() => undefined);
+
+        const latestResponseResult = await db.execute(sql`
+          SELECT response_type, contact_request_state, message, availability, estimated_timing, created_at
+          FROM direct_connect_contractor_responses
+          WHERE request_id = ${requestId}
+            AND (
+              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
+              OR responder_user_id = ${userId}
+            )
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+        const latestResponse = ((latestResponseResult.rows || []) as any[])[0] || null;
+
+        return res.status(200).json({
+          requestId,
+          requestType: String(candidate.request_type || ""),
+          category: String(candidate.category || ""),
+          county: candidate.county ? String(candidate.county) : null,
+          cityArea: candidate.city_area ? String(candidate.city_area) : null,
+          urgency: candidate.urgency ? String(candidate.urgency) : null,
+          description: String(candidate.description || ""),
+          answers: candidate.answers_json || {},
+          routingReadinessState: String(candidate.routing_readiness_state || ""),
+          eligibilityState: String(candidate.eligibility_state || ""),
+          eligibilityReasons: Array.isArray(candidate.eligibility_reasons)
+            ? candidate.eligibility_reasons
+            : [],
+          ineligibilityReasons: Array.isArray(candidate.ineligibility_reasons)
+            ? candidate.ineligibility_reasons
+            : [],
+          contactGateState: String(candidate.contact_gate_state || "locked"),
+          visibilityState: String(candidate.visibility_state || "private"),
+          allowedActions: {
+            canRespond: true,
+            canRequestContact: true,
+          },
+          responseState: latestResponse ? String(latestResponse.response_type || "") : null,
+          response: latestResponse
+            ? {
+                responseType: String(latestResponse.response_type || ""),
+                message: latestResponse.message ? String(latestResponse.message) : null,
+                availability: latestResponse.availability
+                  ? String(latestResponse.availability)
+                  : null,
+                estimatedTiming: latestResponse.estimated_timing
+                  ? String(latestResponse.estimated_timing)
+                  : null,
+                contactRequestState: String(latestResponse.contact_request_state || "locked"),
+                createdAt: latestResponse.created_at || null,
+              }
+            : null,
+          createdAt: candidate.created_at || null,
+          updatedAt: candidate.updated_at || null,
+          homeownerContact: null,
+        });
+      } catch (error) {
+        console.error("Error fetching contractor routed direct connect request detail:", error);
+        return res.status(500).json({
+          message: "Failed to load request detail",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/contractor/requests/:id/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const requestId = String(req.params.id || "").trim();
+        if (!requestId) return res.status(400).json({ message: "Request id is required" });
+
+        const parse = contractorConsoleResponseSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid response payload", issues: parse.error.flatten() });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+
+        const eligibilityResult = await db.execute(sql`
+          SELECT c.request_id
+          FROM direct_connect_dispatch_candidates c
+          WHERE c.request_id = ${requestId}
+            AND c.eligibility_state = 'eligible'
+            AND (
+              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
+              OR c.responder_user_id = ${userId}
+              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+            )
+          LIMIT 1
+        `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res.status(403).json({ message: "Request not available for this contractor" });
+        }
+
+        const existing = await db.execute(sql`
+          SELECT id
+          FROM direct_connect_contractor_responses
+          WHERE request_id = ${requestId}
+            AND (
+              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
+              OR responder_user_id = ${userId}
+            )
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+        if (((existing.rows || []) as any[])[0]) {
+          return res.status(409).json({ message: "A response already exists for this request." });
+        }
+
+        const responseType = parse.data.responseType;
+        const canRequestContact =
+          responseType === "interested" || responseType === "need_more_info";
+        await recordContractorResponse({
+          requestId,
+          contractorId: contractor?.id ? String(contractor.id) : null,
+          responderUserId: userId,
+          responseType,
+          message: parse.data.message ? String(parse.data.message).trim() : null,
+          availability: parse.data.availability ? String(parse.data.availability).trim() : null,
+          estimatedTiming: parse.data.estimatedTiming
+            ? String(parse.data.estimatedTiming).trim()
+            : null,
+          contactRequestState: canRequestContact ? "contractor_requested" : "locked",
+        });
+        await appendDispatchEvent({
+          requestId,
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "contractor_responded",
+          metadata: { responseType },
+        });
+
+        return res.status(200).json({
+          ok: true,
+          requestId,
+          responseType,
+          contactRequestState: canRequestContact ? "contractor_requested" : "locked",
+        });
+      } catch (error) {
+        console.error("Error recording contractor console response:", error);
+        return res.status(500).json({
+          message: "Failed to submit response",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/contractor/requests/:id/request-contact",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const requestId = String(req.params.id || "").trim();
+        if (!requestId) return res.status(400).json({ message: "Request id is required" });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+
+        const eligibilityResult = await db.execute(sql`
+          SELECT c.request_id
+          FROM direct_connect_dispatch_candidates c
+          WHERE c.request_id = ${requestId}
+            AND c.eligibility_state = 'eligible'
+            AND (
+              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
+              OR c.responder_user_id = ${userId}
+              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+            )
+          LIMIT 1
+        `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res.status(403).json({ message: "Request not available for this contractor" });
+        }
+
+        const latestResponseResult = await db.execute(sql`
+          SELECT response_type
+          FROM direct_connect_contractor_responses
+          WHERE request_id = ${requestId}
+            AND (
+              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
+              OR responder_user_id = ${userId}
+            )
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+        const latestResponse = ((latestResponseResult.rows || []) as any[])[0];
+        const responseType = String(latestResponse?.response_type || "");
+        if (!["interested", "need_more_info"].includes(responseType)) {
+          return res.status(409).json({
+            message: "Submit an interested or need_more_info response before requesting contact.",
+          });
+        }
+
+        await setDispatchContactGateState({ requestId, nextState: "contractor_requested" });
+        await appendDispatchEvent({
+          requestId,
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "contact_requested",
+          metadata: { via: "contractor_console" },
+        });
+
+        return res.status(200).json({
+          ok: true,
+          requestId,
+          contactGateState: "contractor_requested",
+        });
+      } catch (error) {
+        console.error("Error requesting contact from contractor console:", error);
+        return res.status(500).json({
+          message: "Failed to request contact",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
