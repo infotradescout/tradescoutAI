@@ -520,23 +520,103 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     CREATE TABLE IF NOT EXISTS job_invoices (
       id text PRIMARY KEY,
       workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
+      estimate_id text NULL REFERENCES job_estimates(id) ON DELETE SET NULL,
+      title text NULL,
+      summary text NULL,
       status text NOT NULL DEFAULT 'draft',
-      amount numeric NULL,
-      note text NULL,
+      subtotal numeric NULL,
+      adjustments numeric NULL,
+      total_due numeric NULL,
+      due_date timestamptz NULL,
+      terms text NULL,
+      created_by text NULL,
+      sent_at timestamptz NULL,
+      responded_at timestamptz NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
   `);
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS job_receipts (
+    CREATE TABLE IF NOT EXISTS job_invoice_line_items (
       id text PRIMARY KEY,
-      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      status text NOT NULL DEFAULT 'recorded',
-      amount numeric NULL,
-      note text NULL,
+      invoice_id text NOT NULL REFERENCES job_invoices(id) ON DELETE CASCADE,
+      line_type text NOT NULL,
+      name text NOT NULL,
+      description text NULL,
+      quantity numeric NULL,
+      unit text NULL,
+      unit_amount numeric NULL,
+      total_amount numeric NULL,
+      source_estimate_line_item_id text NULL,
+      source_change_order_id text NULL,
+      notes text NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS request_id text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS business_id text NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS contractor_id text NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS estimate_id text NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS title text NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS summary text NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS subtotal numeric NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS adjustments numeric NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS total_due numeric NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS terms text NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS created_by text NULL`);
+  await db.execute(sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_invoices ADD COLUMN IF NOT EXISTS responded_at timestamptz NULL`
+  );
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS job_receipts (
+      id text PRIMARY KEY,
+      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      invoice_id text NULL REFERENCES job_invoices(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
+      receipt_type text NOT NULL DEFAULT 'receipt',
+      payment_method text NOT NULL DEFAULT 'outside_platform',
+      amount numeric NULL,
+      status text NOT NULL DEFAULT 'recorded',
+      paid_at timestamptz NULL,
+      notes text NULL,
+      created_by text NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS request_id text NULL`);
+  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS invoice_id text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS business_id text NULL`);
+  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS contractor_id text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS receipt_type text NOT NULL DEFAULT 'receipt'`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS payment_method text NOT NULL DEFAULT 'outside_platform'`
+  );
+  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS paid_at timestamptz NULL`);
+  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS notes text NULL`);
+  await db.execute(sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS created_by text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_receipts ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()`
+  );
 }
 
 type LifecycleStatus =
@@ -623,7 +703,16 @@ function normalizeLifecycleEvent(eventType: string): LifecycleStatus | null {
     case "completion_rejected":
     case "punch_item_completed":
     case "invoice_sent":
+    case "invoice_started":
+    case "invoice_line_item_added":
+    case "invoice_acknowledged":
+    case "invoice_disputed":
+    case "invoice_marked_paid_outside_platform":
+    case "invoice_voided":
     case "receipt_uploaded":
+    case "payment_recorded":
+    case "receipt_disputed":
+    case "receipt_voided":
     case "job_completed":
     case "job_closed":
       return null;
@@ -738,6 +827,17 @@ async function resolveLifecycleRecipients(requestId: string, eventType: string) 
       "completion_requested",
       "completion_confirmed",
       "completion_rejected",
+      "invoice_started",
+      "invoice_line_item_added",
+      "invoice_sent",
+      "invoice_acknowledged",
+      "invoice_disputed",
+      "invoice_marked_paid_outside_platform",
+      "invoice_voided",
+      "receipt_uploaded",
+      "payment_recorded",
+      "receipt_disputed",
+      "receipt_voided",
       "job_completed",
     ].includes(eventType)
   ) {
@@ -904,7 +1004,14 @@ export function getAllowedLifecycleActions(args: {
       case "invoicing":
       case "receipt":
       case "completed":
-        return ["send_final_invoice", "upload_receipt", "mark_complete"];
+        return [
+          "create_invoice",
+          "send_invoice",
+          "send_final_invoice",
+          "upload_receipt",
+          "record_payment_outside_platform",
+          "mark_complete",
+        ];
       case "closed":
       default:
         return [];
@@ -954,10 +1061,12 @@ export function getAllowedLifecycleActions(args: {
     case "receipt":
     case "completed":
       return [
-        "confirm_completion",
-        "request_punchout",
         "view_invoice",
+        "acknowledge_invoice",
+        "dispute_invoice",
         "mark_paid_outside_platform",
+        "view_receipt",
+        "dispute_receipt",
       ];
     case "closed":
     default:
@@ -1083,8 +1192,17 @@ export async function appendDispatchEvent(args: {
     | "completion_confirmed"
     | "completion_rejected"
     | "punch_item_completed"
+    | "invoice_started"
+    | "invoice_line_item_added"
     | "invoice_sent"
+    | "invoice_acknowledged"
+    | "invoice_disputed"
+    | "invoice_marked_paid_outside_platform"
+    | "invoice_voided"
     | "receipt_uploaded"
+    | "payment_recorded"
+    | "receipt_disputed"
+    | "receipt_voided"
     | "job_completed"
     | "job_closed";
   metadata?: Record<string, unknown>;

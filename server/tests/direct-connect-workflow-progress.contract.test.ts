@@ -77,7 +77,7 @@ describe("direct-connect workflow progress contract", () => {
     const source = read(routePath);
     const progressBlock = source.slice(
       source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/start-work"'),
-      source.indexOf('"/api/direct-connect/assignments/:id/respond"')
+      source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/completion-request/respond"')
     );
     expect(progressBlock).not.toContain("INSERT INTO job_invoices");
   });

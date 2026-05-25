@@ -57,7 +57,7 @@ describe("direct-connect punch list and completion gate contract", () => {
     const source = read(routePath);
     const block = source.slice(
       source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/ready-for-punchout"'),
-      source.indexOf('"/api/direct-connect/assignments/:id/respond"')
+      source.indexOf('"/api/direct-connect/jobs/:jobWorkspaceId/completion-request/respond"')
     );
     expect(block).not.toContain("INSERT INTO job_invoices");
     expect(block).not.toContain("INSERT INTO job_receipts");

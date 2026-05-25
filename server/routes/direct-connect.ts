@@ -581,6 +581,56 @@ const completionRequestRespondSchema = z.object({
   requesterNotes: z.string().max(2000).optional(),
 });
 
+const invoiceCreateSchema = z.object({
+  estimateId: z.string().min(1).optional(),
+  title: z.string().min(2).max(160),
+  summary: z.string().min(3).max(2000),
+  adjustments: z.number().min(-100000000).max(100000000).optional(),
+  dueDate: z.string().datetime().optional(),
+  terms: z.string().max(2000).optional(),
+});
+
+const invoiceLineItemSchema = z.object({
+  type: z.enum(["material", "labor", "change_order", "fee", "discount", "other"]),
+  name: z.string().min(2).max(160),
+  description: z.string().max(1600).optional(),
+  quantity: z.number().min(0).max(1000000),
+  unit: z.string().max(40).optional(),
+  unitAmount: z.number().min(-100000000).max(100000000),
+  sourceEstimateLineItemId: z.string().max(120).optional(),
+  sourceChangeOrderId: z.string().max(120).optional(),
+  notes: z.string().max(1200).optional(),
+});
+
+const invoiceUpdateSchema = z.object({
+  title: z.string().min(2).max(160).optional(),
+  summary: z.string().min(3).max(2000).optional(),
+  adjustments: z.number().min(-100000000).max(100000000).optional(),
+  dueDate: z.string().datetime().nullable().optional(),
+  terms: z.string().max(2000).nullable().optional(),
+  status: z.enum(["draft", "void"]).optional(),
+  lineItems: z.array(invoiceLineItemSchema).optional(),
+});
+
+const invoiceSendSchema = z.object({
+  note: z.string().max(1200).optional(),
+});
+
+const invoiceRespondSchema = z.object({
+  decision: z.enum(["acknowledge", "dispute", "mark_paid_outside_platform"]),
+  note: z.string().max(1200).optional(),
+});
+
+const receiptCreateSchema = z.object({
+  invoiceId: z.string().min(1).optional(),
+  type: z.enum(["receipt", "payment_record", "refund_record", "credit_record"]),
+  paymentMethod: z.enum(["outside_platform", "cash", "check", "card", "bank_transfer", "other"]),
+  amount: z.number().min(0).max(100000000),
+  status: z.enum(["recorded", "disputed", "void"]).optional(),
+  paidAt: z.string().datetime().optional(),
+  notes: z.string().max(2000).optional(),
+});
+
 function resolveTargetProviderIds(body: {
   targetContractorIds?: string[];
   targetProviderIds?: string[];
@@ -2349,6 +2399,80 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           }
         }
+        const invoiceSummaryByRequestId = new Map<
+          string,
+          {
+            latestInvoiceStatus: string | null;
+            invoiceCount: number;
+            activeInvoiceId: string | null;
+          }
+        >();
+        if (requestIds.length) {
+          const invoiceRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(i.id)::int AS invoice_count,
+              (
+                SELECT i2.id FROM job_invoices i2 WHERE i2.workspace_id = w.id ORDER BY i2.created_at DESC LIMIT 1
+              ) AS active_invoice_id,
+              (
+                SELECT i3.status FROM job_invoices i3 WHERE i3.workspace_id = w.id ORDER BY i3.created_at DESC LIMIT 1
+              ) AS latest_invoice_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_invoices i ON i.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (invoiceRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || invoiceSummaryByRequestId.has(key)) continue;
+            invoiceSummaryByRequestId.set(key, {
+              latestInvoiceStatus: row.latest_invoice_status
+                ? String(row.latest_invoice_status)
+                : null,
+              invoiceCount: Number(row.invoice_count || 0),
+              activeInvoiceId: row.active_invoice_id ? String(row.active_invoice_id) : null,
+            });
+          }
+        }
+        const receiptSummaryByRequestId = new Map<
+          string,
+          {
+            latestReceiptStatus: string | null;
+            latestPaymentRecordStatus: string | null;
+            receiptCount: number;
+          }
+        >();
+        if (requestIds.length) {
+          const receiptRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(r.id)::int AS receipt_count,
+              (
+                SELECT r2.status FROM job_receipts r2 WHERE r2.workspace_id = w.id ORDER BY r2.created_at DESC LIMIT 1
+              ) AS latest_receipt_status,
+              (
+                SELECT r3.status FROM job_receipts r3 WHERE r3.workspace_id = w.id AND r3.receipt_type = 'payment_record' ORDER BY r3.created_at DESC LIMIT 1
+              ) AS latest_payment_record_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_receipts r ON r.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (receiptRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || receiptSummaryByRequestId.has(key)) continue;
+            receiptSummaryByRequestId.set(key, {
+              latestReceiptStatus: row.latest_receipt_status
+                ? String(row.latest_receipt_status)
+                : null,
+              latestPaymentRecordStatus: row.latest_payment_record_status
+                ? String(row.latest_payment_record_status)
+                : null,
+              receiptCount: Number(row.receipt_count || 0),
+            });
+          }
+        }
         const checkpointSummaryByRequestId = new Map<
           string,
           {
@@ -2481,7 +2605,6 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           }
         }
-
         const responseCountByRequestId = new Map<string, number>();
         const contactRequestCountByRequestId = new Map<string, number>();
         const lifecycleByRequestId = new Map<
@@ -2691,6 +2814,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const changeOrderMeta = changeOrderSummaryByRequestId.get(String(r.id)) || null;
           const punchMeta = punchSummaryByRequestId.get(String(r.id)) || null;
           const completionMeta = completionSummaryByRequestId.get(String(r.id)) || null;
+          const invoiceMeta = invoiceSummaryByRequestId.get(String(r.id)) || null;
+          const receiptMeta = receiptSummaryByRequestId.get(String(r.id)) || null;
           const workspaceMeta = workspaceByRequestId.get(String(r.id)) || null;
           return {
             ...r,
@@ -2741,6 +2866,12 @@ export function registerDirectConnectRoutes(app: Express) {
             openPunchItemCount: punchMeta?.openPunchItemCount ?? 0,
             latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
             activeCompletionRequestId: completionMeta?.activeCompletionRequestId ?? null,
+            latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+            invoiceCount: invoiceMeta?.invoiceCount ?? 0,
+            activeInvoiceId: invoiceMeta?.activeInvoiceId ?? null,
+            latestReceiptStatus: receiptMeta?.latestReceiptStatus ?? null,
+            latestPaymentRecordStatus: receiptMeta?.latestPaymentRecordStatus ?? null,
+            receiptCount: receiptMeta?.receiptCount ?? 0,
             completionBlockedReason:
               completionMeta?.latestCompletionStatus === "requested" &&
               (punchMeta?.openPunchItemCount ?? 0) > 0
@@ -3020,6 +3151,57 @@ export function registerDirectConnectRoutes(app: Express) {
         const completionSummary = completionSummaryRows
           ? (((completionSummaryRows.rows || []) as any[])[0] ?? null)
           : null;
+        const invoiceSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS invoice_count,
+                  (
+                    SELECT id
+                    FROM job_invoices
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_invoice_id,
+                  (
+                    SELECT status
+                    FROM job_invoices
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_invoice_status
+                FROM job_invoices
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const invoiceSummary = invoiceSummaryRows
+          ? (((invoiceSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const receiptSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS receipt_count,
+                  (
+                    SELECT status
+                    FROM job_receipts
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_receipt_status,
+                  (
+                    SELECT status
+                    FROM job_receipts
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                      AND receipt_type = 'payment_record'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_payment_record_status
+                FROM job_receipts
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const receiptSummary = receiptSummaryRows
+          ? (((receiptSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
         await appendDispatchEvent({
           requestId,
           actorType: "requester",
@@ -3117,6 +3299,20 @@ export function registerDirectConnectRoutes(app: Express) {
           activeCompletionRequestId: completionSummary?.active_completion_request_id
             ? String(completionSummary.active_completion_request_id)
             : null,
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+          invoiceCount: Number(invoiceSummary?.invoice_count || 0),
+          activeInvoiceId: invoiceSummary?.active_invoice_id
+            ? String(invoiceSummary.active_invoice_id)
+            : null,
+          latestReceiptStatus: receiptSummary?.latest_receipt_status
+            ? String(receiptSummary.latest_receipt_status)
+            : null,
+          latestPaymentRecordStatus: receiptSummary?.latest_payment_record_status
+            ? String(receiptSummary.latest_payment_record_status)
+            : null,
+          receiptCount: Number(receiptSummary?.receipt_count || 0),
           completionBlockedReason:
             completionSummary?.latest_completion_status === "requested" &&
             Number(punchSummary?.open_punch_item_count || 0) > 0
@@ -5640,6 +5836,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const changeOrderMeta = changeOrderSummaryByRequestId.get(requestId) || null;
           const punchMeta = punchSummaryByRequestId.get(requestId) || null;
           const completionMeta = completionSummaryByRequestId.get(requestId) || null;
+          const invoiceMeta = invoiceSummaryByRequestId.get(requestId) || null;
+          const receiptMeta = receiptSummaryByRequestId.get(requestId) || null;
           const workspace = workspaceByRequestId.get(requestId) || null;
           const allowedLifecycleActions = workspace
             ? getAllowedLifecycleActions({
@@ -5688,6 +5886,12 @@ export function registerDirectConnectRoutes(app: Express) {
             openPunchItemCount: punchMeta?.openPunchItemCount ?? 0,
             latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
             activeCompletionRequestId: completionMeta?.activeCompletionRequestId ?? null,
+            latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+            invoiceCount: invoiceMeta?.invoiceCount ?? 0,
+            activeInvoiceId: invoiceMeta?.activeInvoiceId ?? null,
+            latestReceiptStatus: receiptMeta?.latestReceiptStatus ?? null,
+            latestPaymentRecordStatus: receiptMeta?.latestPaymentRecordStatus ?? null,
+            receiptCount: receiptMeta?.receiptCount ?? 0,
             completionBlockedReason:
               completionMeta?.latestCompletionStatus === "requested" &&
               (punchMeta?.openPunchItemCount ?? 0) > 0
@@ -5946,6 +6150,20 @@ export function registerDirectConnectRoutes(app: Express) {
           activeCompletionRequestId: completionSummary?.active_completion_request_id
             ? String(completionSummary.active_completion_request_id)
             : null,
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+          invoiceCount: Number(invoiceSummary?.invoice_count || 0),
+          activeInvoiceId: invoiceSummary?.active_invoice_id
+            ? String(invoiceSummary.active_invoice_id)
+            : null,
+          latestReceiptStatus: receiptSummary?.latest_receipt_status
+            ? String(receiptSummary.latest_receipt_status)
+            : null,
+          latestPaymentRecordStatus: receiptSummary?.latest_payment_record_status
+            ? String(receiptSummary.latest_payment_record_status)
+            : null,
+          receiptCount: Number(receiptSummary?.receipt_count || 0),
           completionBlockedReason:
             completionSummary?.latest_completion_status === "requested" &&
             Number(punchSummary?.open_punch_item_count || 0) > 0
@@ -8083,12 +8301,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, jobWorkspaceId, status: "punchout" });
       } catch (error) {
         console.error("Error marking ready for punchout:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to mark ready for punchout",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to mark ready for punchout",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -8162,12 +8378,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(201).json({ punchItemId, status: "open", jobWorkspaceId });
       } catch (error) {
         console.error("Error creating punch list item:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to create punch list item",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to create punch list item",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -8249,12 +8463,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, punchItemId });
       } catch (error) {
         console.error("Error updating punch list item:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to update punch list item",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to update punch list item",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -8270,12 +8482,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const punchItemId = String(req.params.punchItemId || "").trim();
         const parse = punchItemRespondSchema.safeParse(req.body ?? {});
         if (!parse.success)
-          return res
-            .status(400)
-            .json({
-              message: "Invalid punch item response payload",
-              issues: parse.error.flatten(),
-            });
+          return res.status(400).json({
+            message: "Invalid punch item response payload",
+            issues: parse.error.flatten(),
+          });
         const rows = await db.execute(
           sql`SELECT id, request_id, requester_user_id, status FROM job_punch_list_items WHERE id = ${punchItemId} AND workspace_id = ${jobWorkspaceId} LIMIT 1`
         );
@@ -8309,12 +8519,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, punchItemId, status: nextStatus });
       } catch (error) {
         console.error("Error responding to punch list item:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to respond to punch list item",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to respond to punch list item",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -8390,12 +8598,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(201).json({ completionRequestId, status: "requested", jobWorkspaceId });
       } catch (error) {
         console.error("Error requesting completion:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to request completion",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to request completion",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -8410,12 +8616,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
         const parse = completionRequestRespondSchema.safeParse(req.body ?? {});
         if (!parse.success)
-          return res
-            .status(400)
-            .json({
-              message: "Invalid completion response payload",
-              issues: parse.error.flatten(),
-            });
+          return res.status(400).json({
+            message: "Invalid completion response payload",
+            issues: parse.error.flatten(),
+          });
 
         const completionRows = await db.execute(sql`
         SELECT id, request_id, requester_user_id, status
@@ -8443,12 +8647,10 @@ export function registerDirectConnectRoutes(app: Express) {
         `);
           const unresolvedCount = Number(((unresolvedRows.rows || []) as any[])[0]?.count || 0);
           if (unresolvedCount > 0) {
-            return res
-              .status(409)
-              .json({
-                message: "Unresolved punch list items block completion.",
-                completionBlockedReason: "open_punch_items",
-              });
+            return res.status(409).json({
+              message: "Unresolved punch list items block completion.",
+              completionBlockedReason: "open_punch_items",
+            });
           }
         }
 
@@ -8482,21 +8684,692 @@ export function registerDirectConnectRoutes(app: Express) {
             metadata: { completionRequestId: String(completionRequest.id) },
           });
         }
-        return res
-          .status(200)
-          .json({
-            ok: true,
-            completionRequestId: String(completionRequest.id),
-            status: nextStatus,
-          });
+        return res.status(200).json({
+          ok: true,
+          completionRequestId: String(completionRequest.id),
+          status: nextStatus,
+        });
       } catch (error) {
         console.error("Error responding to completion request:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to respond to completion request",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to respond to completion request",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/invoices",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const parse = invoiceCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid invoice payload", issues: parse.error.flatten() });
+        }
+
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, business_id, contractor_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const completionRows = await db.execute(sql`
+          SELECT id, status
+          FROM job_completion_requests
+          WHERE workspace_id = ${jobWorkspaceId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+        const completion = ((completionRows.rows || []) as any[])[0] || null;
+        if (String(completion?.status || "") !== "confirmed") {
+          return res
+            .status(409)
+            .json({ message: "Invoice creation requires confirmed completion." });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            )
+          : await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            );
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can create invoices." });
+        }
+
+        const estimateId =
+          parse.data.estimateId && parse.data.estimateId.trim().length > 0
+            ? parse.data.estimateId.trim()
+            : null;
+
+        const invoiceId = createId("inv");
+        await db.execute(sql`
+          INSERT INTO job_invoices (
+            id, workspace_id, request_id, requester_user_id, business_id, contractor_id, estimate_id,
+            title, summary, status, subtotal, adjustments, total_due, due_date, terms, created_by, created_at, updated_at
+          ) VALUES (
+            ${invoiceId},
+            ${jobWorkspaceId},
+            ${String(workspace.request_id)},
+            ${String(workspace.requester_user_id || "")},
+            ${workspace.business_id ? String(workspace.business_id) : null},
+            ${workspace.contractor_id ? String(workspace.contractor_id) : contractorId},
+            ${estimateId},
+            ${parse.data.title.trim()},
+            ${parse.data.summary.trim()},
+            'draft',
+            0,
+            ${parse.data.adjustments ?? 0},
+            ${parse.data.adjustments ?? 0},
+            ${parse.data.dueDate ? new Date(parse.data.dueDate).toISOString() : null},
+            ${parse.data.terms ? parse.data.terms.trim() : null},
+            ${userId},
+            now(),
+            now()
+          )
+        `);
+
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'invoicing', status = 'invoice_draft', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "invoice_started",
+          metadata: { invoiceId, jobWorkspaceId },
+        });
+
+        return res.status(201).json({ invoiceId, status: "draft", jobWorkspaceId });
+      } catch (error) {
+        console.error("Error creating invoice:", error);
+        return res.status(500).json({
+          message: "Failed to create invoice",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/invoices/:invoiceId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const invoiceId = String(req.params.invoiceId || "").trim();
+
+        const rows = await db.execute(sql`
+          SELECT id, workspace_id, request_id, requester_user_id, title, summary, status, subtotal, adjustments, total_due, due_date, terms, sent_at, responded_at, created_at, updated_at
+          FROM job_invoices
+          WHERE id = ${invoiceId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const invoice = ((rows.rows || []) as any[])[0] || null;
+        if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+
+        const status = String(invoice.status || "draft");
+        const isRequester = String(invoice.requester_user_id || "") === userId;
+        if (isRequester && status === "draft") {
+          return res.status(404).json({ message: "Invoice not available" });
+        }
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(invoice.request_id || "")} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(invoice.request_id || "")} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              );
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res.status(403).json({ message: "Invoice not available for this account." });
+          }
+        }
+
+        const lineRows = await db.execute(sql`
+          SELECT id, line_type, name, description, quantity, unit, unit_amount, total_amount, source_estimate_line_item_id, source_change_order_id, notes
+          FROM job_invoice_line_items
+          WHERE invoice_id = ${invoiceId}
+          ORDER BY created_at ASC
+        `);
+
+        return res.status(200).json({
+          invoiceId: String(invoice.id),
+          jobWorkspaceId: String(invoice.workspace_id),
+          requestId: String(invoice.request_id || ""),
+          title: String(invoice.title || ""),
+          summary: String(invoice.summary || ""),
+          status,
+          subtotal: toNumber(invoice.subtotal),
+          adjustments: toNumber(invoice.adjustments),
+          totalDue: toNumber(invoice.total_due),
+          dueDate: invoice.due_date || null,
+          terms: invoice.terms ? String(invoice.terms) : null,
+          sentAt: invoice.sent_at || null,
+          respondedAt: invoice.responded_at || null,
+          lineItems: ((lineRows.rows || []) as any[]).map((line) => ({
+            id: String(line.id),
+            type: String(line.line_type || "other"),
+            name: String(line.name || ""),
+            description: line.description ? String(line.description) : null,
+            quantity: toNumber(line.quantity),
+            unit: line.unit ? String(line.unit) : null,
+            unitAmount: toNumber(line.unit_amount),
+            totalAmount: toNumber(line.total_amount),
+            sourceEstimateLineItemId: line.source_estimate_line_item_id
+              ? String(line.source_estimate_line_item_id)
+              : null,
+            sourceChangeOrderId: line.source_change_order_id
+              ? String(line.source_change_order_id)
+              : null,
+            notes: line.notes ? String(line.notes) : null,
+          })),
+        });
+      } catch (error) {
+        console.error("Error fetching invoice:", error);
+        return res.status(500).json({
+          message: "Failed to fetch invoice",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/direct-connect/jobs/:jobWorkspaceId/invoices/:invoiceId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const invoiceId = String(req.params.invoiceId || "").trim();
+        const parse = invoiceUpdateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid invoice update payload", issues: parse.error.flatten() });
+        }
+
+        const invoiceRows = await db.execute(sql`
+          SELECT id, workspace_id, request_id, status
+          FROM job_invoices
+          WHERE id = ${invoiceId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const invoice = ((invoiceRows.rows || []) as any[])[0] || null;
+        if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+        const status = String(invoice.status || "draft");
+        if (!["draft", "disputed"].includes(status)) {
+          return res
+            .status(409)
+            .json({ message: "Invoice can only be edited while draft or disputed." });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(invoice.request_id || "")} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            )
+          : await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(invoice.request_id || "")} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            );
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can edit this invoice." });
+        }
+
+        await db.execute(sql`
+          UPDATE job_invoices
+          SET
+            title = COALESCE(${parse.data.title ? parse.data.title.trim() : null}, title),
+            summary = COALESCE(${parse.data.summary ? parse.data.summary.trim() : null}, summary),
+            adjustments = COALESCE(${typeof parse.data.adjustments === "number" ? parse.data.adjustments : null}, adjustments),
+            due_date = CASE WHEN ${parse.data.dueDate === null} THEN NULL WHEN ${typeof parse.data.dueDate === "string"} THEN ${parse.data.dueDate ? new Date(parse.data.dueDate).toISOString() : null}::timestamptz ELSE due_date END,
+            terms = CASE WHEN ${parse.data.terms === null} THEN NULL WHEN ${typeof parse.data.terms === "string"} THEN ${parse.data.terms ? parse.data.terms.trim() : null} ELSE terms END,
+            status = COALESCE(${parse.data.status ? parse.data.status : null}, status),
+            updated_at = now()
+          WHERE id = ${invoiceId}
+        `);
+
+        if (Array.isArray(parse.data.lineItems)) {
+          await db.execute(sql`DELETE FROM job_invoice_line_items WHERE invoice_id = ${invoiceId}`);
+          for (const rawLine of parse.data.lineItems) {
+            const quantity = Number(rawLine.quantity ?? 0);
+            const unitAmount = Number(rawLine.unitAmount ?? 0);
+            const totalAmount = Number((quantity * unitAmount).toFixed(2));
+            const lineId = createId("invli");
+            await db.execute(sql`
+              INSERT INTO job_invoice_line_items (
+                id, invoice_id, line_type, name, description, quantity, unit, unit_amount, total_amount,
+                source_estimate_line_item_id, source_change_order_id, notes, created_at
+              ) VALUES (
+                ${lineId},
+                ${invoiceId},
+                ${rawLine.type},
+                ${rawLine.name.trim()},
+                ${rawLine.description ? rawLine.description.trim() : null},
+                ${quantity},
+                ${rawLine.unit ? rawLine.unit.trim() : null},
+                ${unitAmount},
+                ${totalAmount},
+                ${rawLine.sourceEstimateLineItemId ? rawLine.sourceEstimateLineItemId.trim() : null},
+                ${rawLine.sourceChangeOrderId ? rawLine.sourceChangeOrderId.trim() : null},
+                ${rawLine.notes ? rawLine.notes.trim() : null},
+                now()
+              )
+            `);
+            await appendDispatchEvent({
+              requestId: String(invoice.request_id || ""),
+              actorType: "contractor",
+              actorId: userId,
+              eventType: "invoice_line_item_added",
+              metadata: { invoiceId, lineItemId: lineId, lineType: rawLine.type },
+            });
+          }
+        }
+
+        const totalsRows = await db.execute(sql`
+          SELECT COALESCE(SUM(total_amount), 0) AS subtotal
+          FROM job_invoice_line_items
+          WHERE invoice_id = ${invoiceId}
+        `);
+        const subtotal = toNumber(((totalsRows.rows || []) as any[])[0]?.subtotal);
+        const invoiceMetaRows = await db.execute(
+          sql`SELECT adjustments FROM job_invoices WHERE id = ${invoiceId} LIMIT 1`
+        );
+        const adjustments = toNumber(((invoiceMetaRows.rows || []) as any[])[0]?.adjustments);
+        const totalDue = Number((subtotal + adjustments).toFixed(2));
+        await db.execute(sql`
+          UPDATE job_invoices
+          SET subtotal = ${subtotal}, total_due = ${totalDue}, updated_at = now()
+          WHERE id = ${invoiceId}
+        `);
+
+        return res.status(200).json({ invoiceId, subtotal, adjustments, totalDue });
+      } catch (error) {
+        console.error("Error updating invoice:", error);
+        return res.status(500).json({
+          message: "Failed to update invoice",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/invoices/:invoiceId/send",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const invoiceId = String(req.params.invoiceId || "").trim();
+        const parse = invoiceSendSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid invoice send payload", issues: parse.error.flatten() });
+        }
+
+        const invoiceRows = await db.execute(sql`
+          SELECT id, workspace_id, request_id, status
+          FROM job_invoices
+          WHERE id = ${invoiceId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const invoice = ((invoiceRows.rows || []) as any[])[0] || null;
+        if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+
+        const completionRows = await db.execute(sql`
+          SELECT id, status
+          FROM job_completion_requests
+          WHERE workspace_id = ${jobWorkspaceId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+        const completion = ((completionRows.rows || []) as any[])[0] || null;
+        if (String(completion?.status || "") !== "confirmed") {
+          return res.status(409).json({ message: "Invoice send requires confirmed completion." });
+        }
+
+        if (!["draft", "disputed"].includes(String(invoice.status || "draft"))) {
+          return res
+            .status(409)
+            .json({ message: "Invoice can only be sent from draft or disputed." });
+        }
+
+        await db.execute(sql`
+          UPDATE job_invoices
+          SET status = 'sent', sent_at = now(), updated_at = now()
+          WHERE id = ${invoiceId}
+        `);
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'invoicing', status = 'invoice_sent', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+
+        await appendDispatchEvent({
+          requestId: String(invoice.request_id || ""),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "invoice_sent",
+          metadata: { invoiceId, note: parse.data.note ? parse.data.note.trim() : null },
+        });
+
+        return res.status(200).json({ ok: true, invoiceId, status: "sent" });
+      } catch (error) {
+        console.error("Error sending invoice:", error);
+        return res.status(500).json({
+          message: "Failed to send invoice",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/invoices/:invoiceId/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const invoiceId = String(req.params.invoiceId || "").trim();
+        const parse = invoiceRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid invoice response payload", issues: parse.error.flatten() });
+        }
+
+        const invoiceRows = await db.execute(sql`
+          SELECT id, workspace_id, request_id, requester_user_id, status
+          FROM job_invoices
+          WHERE id = ${invoiceId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const invoice = ((invoiceRows.rows || []) as any[])[0] || null;
+        if (!invoice) return res.status(404).json({ message: "Invoice not found" });
+        if (String(invoice.requester_user_id || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to invoice." });
+        }
+        if (String(invoice.status || "") !== "sent") {
+          return res.status(409).json({ message: "Invoice is not awaiting requester response." });
+        }
+
+        let nextStatus = "acknowledged";
+        let eventType:
+          | "invoice_acknowledged"
+          | "invoice_disputed"
+          | "invoice_marked_paid_outside_platform" = "invoice_acknowledged";
+        if (parse.data.decision === "dispute") {
+          nextStatus = "disputed";
+          eventType = "invoice_disputed";
+        } else if (parse.data.decision === "mark_paid_outside_platform") {
+          nextStatus = "marked_paid_outside_platform";
+          eventType = "invoice_marked_paid_outside_platform";
+        }
+
+        await db.execute(sql`
+          UPDATE job_invoices
+          SET status = ${nextStatus}, responded_at = now(), updated_at = now()
+          WHERE id = ${invoiceId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(invoice.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType,
+          metadata: { invoiceId, note: parse.data.note ? parse.data.note.trim() : null },
+        });
+
+        return res.status(200).json({
+          ok: true,
+          invoiceId,
+          status: nextStatus,
+          platformPaymentProcessed: false,
+        });
+      } catch (error) {
+        console.error("Error responding to invoice:", error);
+        return res.status(500).json({
+          message: "Failed to respond to invoice",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/receipts",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const parse = receiptCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid receipt payload", issues: parse.error.flatten() });
+        }
+
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, business_id, contractor_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const completionRows = await db.execute(sql`
+          SELECT id, status
+          FROM job_completion_requests
+          WHERE workspace_id = ${jobWorkspaceId}
+          ORDER BY created_at DESC
+          LIMIT 1
+        `);
+        const completion = ((completionRows.rows || []) as any[])[0] || null;
+        if (String(completion?.status || "") !== "confirmed") {
+          return res.status(409).json({ message: "Receipt records require confirmed completion." });
+        }
+
+        const isRequester = String(workspace.requester_user_id || "") === userId;
+        let isEligibleBusiness = false;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              );
+          isEligibleBusiness = Boolean(((eligibilityResult.rows || []) as any[])[0]);
+        }
+        if (!isRequester && !isEligibleBusiness) {
+          return res
+            .status(403)
+            .json({ message: "Only requester or eligible business can record receipts." });
+        }
+
+        const receiptId = createId("rcpt");
+        await db.execute(sql`
+          INSERT INTO job_receipts (
+            id, workspace_id, request_id, invoice_id, requester_user_id, business_id, contractor_id,
+            receipt_type, payment_method, amount, status, paid_at, notes, created_by, created_at, updated_at
+          ) VALUES (
+            ${receiptId},
+            ${jobWorkspaceId},
+            ${String(workspace.request_id)},
+            ${parse.data.invoiceId ? parse.data.invoiceId.trim() : null},
+            ${String(workspace.requester_user_id || "")},
+            ${workspace.business_id ? String(workspace.business_id) : null},
+            ${workspace.contractor_id ? String(workspace.contractor_id) : null},
+            ${parse.data.type},
+            ${parse.data.paymentMethod},
+            ${parse.data.amount},
+            ${parse.data.status ?? "recorded"},
+            ${parse.data.paidAt ? new Date(parse.data.paidAt).toISOString() : null},
+            ${parse.data.notes ? parse.data.notes.trim() : null},
+            ${userId},
+            now(),
+            now()
+          )
+        `);
+
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'receipt', status = 'receipt_recorded', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: isRequester ? "requester" : "contractor",
+          actorId: userId,
+          eventType: parse.data.type === "receipt" ? "receipt_uploaded" : "payment_recorded",
+          metadata: {
+            receiptId,
+            invoiceId: parse.data.invoiceId ?? null,
+            paymentMethod: parse.data.paymentMethod,
+          },
+        });
+
+        return res.status(201).json({ receiptId, status: parse.data.status ?? "recorded" });
+      } catch (error) {
+        console.error("Error creating receipt record:", error);
+        return res.status(500).json({
+          message: "Failed to create receipt record",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/receipts/:receiptId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const receiptId = String(req.params.receiptId || "").trim();
+
+        const rows = await db.execute(sql`
+          SELECT id, workspace_id, request_id, requester_user_id, invoice_id, receipt_type, payment_method, amount, status, paid_at, notes, created_at, updated_at
+          FROM job_receipts
+          WHERE id = ${receiptId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const receipt = ((rows.rows || []) as any[])[0] || null;
+        if (!receipt) return res.status(404).json({ message: "Receipt not found" });
+
+        const isRequester = String(receipt.requester_user_id || "") === userId;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(receipt.request_id || "")} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(receipt.request_id || "")} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              );
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res.status(403).json({ message: "Receipt not available for this account." });
+          }
+        }
+
+        return res.status(200).json({
+          receiptId: String(receipt.id),
+          jobWorkspaceId: String(receipt.workspace_id),
+          requestId: String(receipt.request_id || ""),
+          invoiceId: receipt.invoice_id ? String(receipt.invoice_id) : null,
+          type: String(receipt.receipt_type || "receipt"),
+          paymentMethod: String(receipt.payment_method || "outside_platform"),
+          amount: toNumber(receipt.amount),
+          status: String(receipt.status || "recorded"),
+          paidAt: receipt.paid_at || null,
+          notes: receipt.notes ? String(receipt.notes) : null,
+          storesPaymentCredentials: false,
+          createdAt: receipt.created_at || null,
+          updatedAt: receipt.updated_at || null,
+        });
+      } catch (error) {
+        console.error("Error fetching receipt record:", error);
+        return res.status(500).json({
+          message: "Failed to fetch receipt record",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
