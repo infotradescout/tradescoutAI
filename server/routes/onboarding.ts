@@ -3,8 +3,10 @@ import { z } from "zod";
 import {
   completeUnifiedOnboardingStep,
   getUnifiedOnboardingStatus,
+  mapLegacyLaneToUnified,
   startUnifiedOnboarding,
   submitUnifiedOnboardingClaim,
+  type OnboardingAsset,
   type OnboardingClaimType,
   type OnboardingLane,
 } from "../services/onboardingService";
@@ -12,6 +14,17 @@ import {
 const router = Router();
 
 const onboardingLaneSchema = z.enum([
+  "find_help",
+  "manage_projects",
+  "offer_services",
+  "sell_items",
+  "real_estate",
+  "business",
+  "community",
+  "browse_only",
+]);
+
+const onboardingLegacyLaneSchema = z.enum([
   "homeowner",
   "vehicle_owner",
   "service_provider",
@@ -19,23 +32,25 @@ const onboardingLaneSchema = z.enum([
   "realtor",
   "business_owner",
   "community_member",
-  "browse_only",
 ]);
 
 const onboardingClaimSchema = z.enum([
-  "owns_or_manages_home",
-  "owns_or_manages_vehicle",
-  "provides_services",
-  "sells_or_lists_items",
-  "works_in_real_estate",
-  "handles_local_requests_jobs",
+  "find_local_help",
+  "manage_local_projects",
+  "offer_local_services",
+  "sell_or_list_items",
+  "real_estate_property_work",
+  "run_local_business",
+  "see_local_activity",
   "browse_search_only",
-  "represents_business",
 ]);
 
+const onboardingAssetSchema = z.enum(["home", "vehicle", "project", "business", "saved_search"]);
+
 const startSchema = z.object({
-  lane: onboardingLaneSchema,
+  lane: z.union([onboardingLaneSchema, onboardingLegacyLaneSchema]),
   claimType: onboardingClaimSchema.optional(),
+  assets: z.array(onboardingAssetSchema).optional(),
   legacySource: z.string().optional(),
   profile: z
     .object({
@@ -53,8 +68,9 @@ const startSchema = z.object({
 });
 
 const claimSchema = z.object({
-  lane: onboardingLaneSchema,
+  lane: z.union([onboardingLaneSchema, onboardingLegacyLaneSchema]),
   claimType: onboardingClaimSchema,
+  assets: z.array(onboardingAssetSchema).optional(),
   countyFips: z.string().optional(),
   countyName: z.string().optional(),
   legacySource: z.string().optional(),
@@ -62,6 +78,7 @@ const claimSchema = z.object({
 
 const completeStepSchema = z.object({
   stepKey: z.string().min(1),
+  assets: z.array(onboardingAssetSchema).optional(),
   completeOnboarding: z.boolean().optional(),
 });
 
@@ -69,6 +86,18 @@ function getUserId(req: any): string | null {
   const id = req?.user?.id || req?.user?.claims?.sub;
   const clean = String(id || "").trim();
   return clean || null;
+}
+
+function resolveLaneAndAssets(parsedLane: string, parsedAssets?: OnboardingAsset[]) {
+  if (onboardingLaneSchema.safeParse(parsedLane).success) {
+    return { lane: parsedLane as OnboardingLane, assets: parsedAssets || [], claimType: undefined };
+  }
+  const mapped = mapLegacyLaneToUnified(parsedLane);
+  return {
+    lane: mapped.lane || "find_help",
+    assets: Array.from(new Set([...(parsedAssets || []), ...(mapped.asset ? [mapped.asset] : [])])),
+    claimType: mapped.claimType,
+  };
 }
 
 // POST /api/onboarding/start
@@ -79,11 +108,18 @@ router.post("/api/onboarding/start", async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
     const parsed = startSchema.parse(req.body ?? {});
+    const mapped = resolveLaneAndAssets(
+      parsed.lane,
+      parsed.assets as OnboardingAsset[] | undefined
+    );
     const { storage } = await import("../storage");
     const state = await startUnifiedOnboarding(storage as any, {
       userId,
-      lane: parsed.lane as OnboardingLane,
-      claimType: parsed.claimType as OnboardingClaimType | undefined,
+      lane: mapped.lane,
+      claimType:
+        (parsed.claimType as OnboardingClaimType | undefined) ||
+        (mapped.claimType as OnboardingClaimType | undefined),
+      assets: mapped.assets,
       legacySource: parsed.legacySource,
       profile: parsed.profile,
     });
@@ -107,11 +143,16 @@ router.post("/api/onboarding/claim", async (req, res) => {
       return res.status(401).json({ message: "Authentication required" });
     }
     const parsed = claimSchema.parse(req.body ?? {});
+    const mapped = resolveLaneAndAssets(
+      parsed.lane,
+      parsed.assets as OnboardingAsset[] | undefined
+    );
     const { storage } = await import("../storage");
     const state = await submitUnifiedOnboardingClaim(storage as any, {
       userId,
-      lane: parsed.lane as OnboardingLane,
+      lane: mapped.lane,
       claimType: parsed.claimType as OnboardingClaimType,
+      assets: mapped.assets,
       countyFips: parsed.countyFips,
       countyName: parsed.countyName,
       legacySource: parsed.legacySource,
@@ -140,6 +181,7 @@ router.post("/api/onboarding/complete-step", async (req, res) => {
     const state = await completeUnifiedOnboardingStep(storage as any, {
       userId,
       stepKey: parsed.stepKey,
+      assets: parsed.assets as OnboardingAsset[] | undefined,
       completeOnboarding: parsed.completeOnboarding,
     });
     if (!state) {

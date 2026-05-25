@@ -8,24 +8,26 @@ type StorageLike = {
 };
 
 export type OnboardingLane =
-  | "homeowner"
-  | "vehicle_owner"
-  | "service_provider"
-  | "seller"
-  | "realtor"
-  | "business_owner"
-  | "community_member"
+  | "find_help"
+  | "manage_projects"
+  | "offer_services"
+  | "sell_items"
+  | "real_estate"
+  | "business"
+  | "community"
   | "browse_only";
 
+export type OnboardingAsset = "home" | "vehicle" | "project" | "business" | "saved_search";
+
 export type OnboardingClaimType =
-  | "owns_or_manages_home"
-  | "owns_or_manages_vehicle"
-  | "provides_services"
-  | "sells_or_lists_items"
-  | "works_in_real_estate"
-  | "handles_local_requests_jobs"
-  | "browse_search_only"
-  | "represents_business";
+  | "find_local_help"
+  | "manage_local_projects"
+  | "offer_local_services"
+  | "sell_or_list_items"
+  | "real_estate_property_work"
+  | "run_local_business"
+  | "see_local_activity"
+  | "browse_search_only";
 
 export type UnifiedOnboardingState = {
   startedAt: string;
@@ -33,6 +35,7 @@ export type UnifiedOnboardingState = {
   lane: OnboardingLane;
   claimType: OnboardingClaimType;
   legacySource?: string;
+  assets: OnboardingAsset[];
   completedSteps: string[];
   verificationStartedAt?: string;
   completedAt?: string;
@@ -40,25 +43,61 @@ export type UnifiedOnboardingState = {
 };
 
 const DEFAULT_CLAIM_BY_LANE: Record<OnboardingLane, OnboardingClaimType> = {
-  homeowner: "owns_or_manages_home",
-  vehicle_owner: "owns_or_manages_vehicle",
-  service_provider: "provides_services",
-  seller: "sells_or_lists_items",
-  realtor: "works_in_real_estate",
-  business_owner: "represents_business",
-  community_member: "handles_local_requests_jobs",
+  find_help: "find_local_help",
+  manage_projects: "manage_local_projects",
+  offer_services: "offer_local_services",
+  sell_items: "sell_or_list_items",
+  real_estate: "real_estate_property_work",
+  business: "run_local_business",
+  community: "see_local_activity",
   browse_only: "browse_search_only",
 };
 
 const CLAIM_EVENT_TYPE_BY_ONBOARDING_CLAIM: Record<OnboardingClaimType, ClaimType> = {
-  owns_or_manages_home: ClaimType.WANTS_TO_HIRE,
-  owns_or_manages_vehicle: ClaimType.WANTS_TO_HIRE,
-  provides_services: ClaimType.PROVIDES_SERVICES,
-  sells_or_lists_items: ClaimType.POSTS_DEALS,
-  works_in_real_estate: ClaimType.REPRESENTS_BUSINESS,
-  handles_local_requests_jobs: ClaimType.COMMUNITY_BUILDER,
+  find_local_help: ClaimType.WANTS_TO_HIRE,
+  manage_local_projects: ClaimType.WANTS_TO_HIRE,
+  offer_local_services: ClaimType.PROVIDES_SERVICES,
+  sell_or_list_items: ClaimType.POSTS_DEALS,
+  real_estate_property_work: ClaimType.REPRESENTS_BUSINESS,
+  run_local_business: ClaimType.REPRESENTS_BUSINESS,
+  see_local_activity: ClaimType.COMMUNITY_BUILDER,
   browse_search_only: ClaimType.EXPLORING,
-  represents_business: ClaimType.REPRESENTS_BUSINESS,
+};
+
+const LEGACY_LANE_MAP: Record<
+  string,
+  { lane: OnboardingLane; asset?: OnboardingAsset; claimType?: OnboardingClaimType }
+> = {
+  homeowner: {
+    lane: "manage_projects",
+    asset: "home",
+    claimType: "manage_local_projects",
+  },
+  vehicle_owner: {
+    lane: "manage_projects",
+    asset: "vehicle",
+    claimType: "manage_local_projects",
+  },
+  service_provider: {
+    lane: "offer_services",
+    claimType: "offer_local_services",
+  },
+  seller: {
+    lane: "sell_items",
+    claimType: "sell_or_list_items",
+  },
+  realtor: {
+    lane: "real_estate",
+    claimType: "real_estate_property_work",
+  },
+  business_owner: {
+    lane: "business",
+    claimType: "run_local_business",
+  },
+  community_member: {
+    lane: "community",
+    claimType: "see_local_activity",
+  },
 };
 
 function nowIso(): string {
@@ -100,7 +139,7 @@ function isMinimumProfileComplete(profile: {
 }
 
 function needsVerificationByLane(lane: OnboardingLane): boolean {
-  return lane === "service_provider" || lane === "business_owner" || lane === "realtor";
+  return lane === "offer_services" || lane === "business" || lane === "real_estate";
 }
 
 function getOnboardingState(user: any): UnifiedOnboardingState | null {
@@ -133,6 +172,7 @@ export async function startUnifiedOnboarding(
     userId: string;
     lane: OnboardingLane;
     claimType?: OnboardingClaimType;
+    assets?: OnboardingAsset[];
     legacySource?: string;
     profile?: {
       fullName?: string | null;
@@ -143,6 +183,7 @@ export async function startUnifiedOnboarding(
 ) {
   const startedAt = nowIso();
   const claimType = args.claimType || DEFAULT_CLAIM_BY_LANE[args.lane];
+  const assets = Array.from(new Set(args.assets ?? []));
   const minimumProfileComplete = isMinimumProfileComplete(args.profile ?? {});
   const state: UnifiedOnboardingState = {
     startedAt,
@@ -150,6 +191,7 @@ export async function startUnifiedOnboarding(
     lane: args.lane,
     claimType,
     legacySource: args.legacySource,
+    assets,
     completedSteps: [],
     minimumProfileComplete,
   };
@@ -191,6 +233,7 @@ export async function submitUnifiedOnboardingClaim(
     userId: string;
     lane: OnboardingLane;
     claimType: OnboardingClaimType;
+    assets?: OnboardingAsset[];
     countyFips?: string | null;
     countyName?: string | null;
     legacySource?: string;
@@ -212,6 +255,7 @@ export async function submitUnifiedOnboardingClaim(
     lane: args.lane,
     claimType: args.claimType,
     legacySource: args.legacySource ?? started.legacySource,
+    assets: Array.from(new Set([...(started.assets || []), ...(args.assets || [])])),
     updatedAt: nowIso(),
   };
   await persistOnboardingState(storage, args.userId, next);
@@ -254,6 +298,7 @@ export async function completeUnifiedOnboardingStep(
     userId: string;
     stepKey: string;
     completeOnboarding?: boolean;
+    assets?: OnboardingAsset[];
   }
 ) {
   const user = await storage.getUser(args.userId);
@@ -263,6 +308,7 @@ export async function completeUnifiedOnboardingStep(
   const completedSteps = Array.from(new Set([...current.completedSteps, args.stepKey]));
   const next: UnifiedOnboardingState = {
     ...current,
+    assets: Array.from(new Set([...(current.assets || []), ...(args.assets || [])])),
     completedSteps,
     updatedAt: nowIso(),
   };
@@ -287,6 +333,17 @@ export async function completeUnifiedOnboardingStep(
   }
 
   return next;
+}
+
+export function mapLegacyLaneToUnified(legacyLane?: string | null): {
+  lane?: OnboardingLane;
+  asset?: OnboardingAsset;
+  claimType?: OnboardingClaimType;
+} {
+  const key = String(legacyLane || "")
+    .trim()
+    .toLowerCase();
+  return LEGACY_LANE_MAP[key] || {};
 }
 
 export async function getUnifiedOnboardingStatus(storage: StorageLike, userId: string) {

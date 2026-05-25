@@ -20,14 +20,19 @@ describe("unified onboarding contracts", () => {
   it("supports required onboarding lanes", () => {
     const source = read("server/routes/onboarding.ts");
 
-    expect(source).toContain('"homeowner"');
-    expect(source).toContain('"vehicle_owner"');
-    expect(source).toContain('"service_provider"');
-    expect(source).toContain('"seller"');
-    expect(source).toContain('"realtor"');
-    expect(source).toContain('"business_owner"');
-    expect(source).toContain('"community_member"');
+    expect(source).toContain('"find_help"');
+    expect(source).toContain('"manage_projects"');
+    expect(source).toContain('"offer_services"');
+    expect(source).toContain('"sell_items"');
+    expect(source).toContain('"real_estate"');
+    expect(source).toContain('"business"');
+    expect(source).toContain('"community"');
     expect(source).toContain('"browse_only"');
+    expect(source).toContain('"home"');
+    expect(source).toContain('"vehicle"');
+    expect(source).toContain('"project"');
+    expect(source).toContain('"business"');
+    expect(source).toContain('"saved_search"');
   });
 
   it("emits generic onboarding events", () => {
@@ -47,8 +52,17 @@ describe("unified onboarding contracts", () => {
 
     expect(source).toContain("startUnifiedOnboarding");
     expect(source).toContain("submitUnifiedOnboardingClaim");
-    expect(source).toContain('lane: "service_provider"');
-    expect(source).toContain('claimType: "provides_services"');
+    expect(source).toContain('lane: "offer_services"');
+    expect(source).toContain('claimType: "offer_local_services"');
     expect(source).toContain('legacySource: "contractor_signup"');
+  });
+
+  it("maps legacy lane terms into unified intent + assets", () => {
+    const source = read("server/services/onboardingService.ts");
+    expect(source).toContain("homeowner");
+    expect(source).toContain('lane: "manage_projects"');
+    expect(source).toContain('asset: "home"');
+    expect(source).toContain("vehicle_owner");
+    expect(source).toContain('asset: "vehicle"');
   });
 });

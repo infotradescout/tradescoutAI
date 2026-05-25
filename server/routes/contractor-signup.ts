@@ -49,8 +49,8 @@ router.post("/api/contractor-signup", async (req, res) => {
     // Legacy compatibility wrapper: route contractor signup through unified onboarding.
     await startUnifiedOnboarding(storage as any, {
       userId,
-      lane: "service_provider",
-      claimType: "provides_services",
+      lane: "offer_services",
+      claimType: "offer_local_services",
       legacySource: "contractor_signup",
       profile: {
         fullName: validatedData.companyName,
@@ -63,8 +63,8 @@ router.post("/api/contractor-signup", async (req, res) => {
     });
     await submitUnifiedOnboardingClaim(storage as any, {
       userId,
-      lane: "service_provider",
-      claimType: "provides_services",
+      lane: "offer_services",
+      claimType: "offer_local_services",
       countyFips: validatedData.primaryCounty,
       countyName: validatedData.primaryCounty,
       legacySource: "contractor_signup",

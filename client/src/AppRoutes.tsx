@@ -847,16 +847,16 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Core pages */}
               {/* Business/provider application. Legacy contractor routes remain compatibility aliases. */}
               <Route path="/businesses/apply">
-                <RedirectTo to="/onboarding?lane=business_owner" />
+                <RedirectTo to="/onboarding?lane=business" />
               </Route>
               <Route path="/contractor-signup">
-                <RedirectTo to="/onboarding?lane=service_provider" />
+                <RedirectTo to="/onboarding?lane=offer_services" />
               </Route>
               <Route path="/provider-setup">
-                <RedirectTo to="/onboarding?lane=service_provider" />
+                <RedirectTo to="/onboarding?lane=offer_services" />
               </Route>
               <Route path="/contractors/apply">
-                <RedirectTo to="/onboarding?lane=service_provider" />
+                <RedirectTo to="/onboarding?lane=offer_services" />
               </Route>
               <Route path="/contractors/top">
                 <LazyPage Component={ContractorsTop} />

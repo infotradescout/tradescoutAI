@@ -53,13 +53,13 @@ type ContinueItem = {
 
 type NearbyCategory = "homes" | "vehicles" | "projects" | "listings" | "people" | "community";
 type OnboardingLane =
-  | "homeowner"
-  | "vehicle_owner"
-  | "service_provider"
-  | "seller"
-  | "realtor"
-  | "business_owner"
-  | "community_member"
+  | "find_help"
+  | "manage_projects"
+  | "offer_services"
+  | "sell_items"
+  | "real_estate"
+  | "business"
+  | "community"
   | "browse_only";
 
 type UnifiedOnboardingState = {
@@ -693,43 +693,43 @@ function EmptyContextHint() {
 }
 
 const SETUP_NUDGE_BY_LANE: Record<Exclude<OnboardingLane, "browse_only">, SetupNudgeConfig> = {
-  homeowner: {
+  find_help: {
     title: "Finish setting up your home",
     body: "Add a home once so projects, repairs, records, and searches can stay connected.",
     actionLabel: "Add home",
     actionPrompt: "Open /homes to add my home profile.",
   },
-  vehicle_owner: {
+  manage_projects: {
     title: "Add your vehicle",
     body: "Save a vehicle once so service, repairs, records, and listings stay connected.",
     actionLabel: "Add vehicle",
     actionPrompt: "Open /vehicles to add my vehicle.",
   },
-  service_provider: {
+  offer_services: {
     title: "Complete your service profile",
     body: "Set up your profile before provider tools or local requests can open.",
     actionLabel: "Continue setup",
     actionPrompt: "Open /business-dashboard so I can complete provider setup.",
   },
-  seller: {
+  sell_items: {
     title: "Create your first listing",
     body: "List tools, materials, vehicles, property, or local offers.",
     actionLabel: "Create listing",
     actionPrompt: "Open /exchange/new so I can create my first listing.",
   },
-  realtor: {
+  real_estate: {
     title: "Set up property work",
     body: "Connect listings, clients, saved searches, and local property activity.",
     actionLabel: "Continue setup",
     actionPrompt: "Open /business-dashboard so I can complete property setup.",
   },
-  business_owner: {
+  business: {
     title: "Set up your business profile",
     body: "Add the business details needed before public tools or requests open.",
     actionLabel: "Continue setup",
     actionPrompt: "Open /business-dashboard so I can complete business setup.",
   },
-  community_member: {
+  community: {
     title: "Set your local interests",
     body: "Pick the places and topics you care about so Scout can show relevant local activity.",
     actionLabel: "Set interests",

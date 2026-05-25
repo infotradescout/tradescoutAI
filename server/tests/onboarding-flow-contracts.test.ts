@@ -27,16 +27,22 @@ describe("onboarding flow contracts", () => {
     const intentSource = read("client/src/pages/onboarding-intent.tsx");
 
     expect(intentSource).toContain('apiRequest("POST", "/api/onboarding/start"');
-    expect(intentSource).toContain("What are you here to do?");
-    expect(intentSource).toContain("Manage my home");
-    expect(intentSource).toContain("Manage my vehicle");
+    expect(intentSource).toContain("What brings you here?");
     expect(intentSource).toContain("Find local help");
-    expect(intentSource).toContain("Provide services");
+    expect(intentSource).toContain("Manage a project");
+    expect(intentSource).toContain("Offer services");
     expect(intentSource).toContain("Sell or list something");
     expect(intentSource).toContain("Real estate / property work");
     expect(intentSource).toContain("Run a local business");
+    expect(intentSource).toContain("See what’s happening nearby");
     expect(intentSource).toContain("Just browse for now");
-    expect(intentSource).toContain("Lane selection records intent only");
+    expect(intentSource).toContain("What should TradeScout remember for you?");
+    expect(intentSource).toContain("A home");
+    expect(intentSource).toContain("A vehicle");
+    expect(intentSource).toContain("A project");
+    expect(intentSource).toContain("A business");
+    expect(intentSource).toContain("A saved search");
+    expect(intentSource).toContain("Nothing yet");
     expect(intentSource).not.toContain("contractor");
   });
 
@@ -53,7 +59,7 @@ describe("onboarding flow contracts", () => {
     expect(appRoutesSource).toContain(
       "export const getOnboardingEntryRoute = routeGetOnboardingEntryRoute;"
     );
-    expect(appRoutesSource).toContain("if (!userNeedsOnboarding(user)) return;");
+    expect(appRoutesSource).toContain("if (!userNeedsOnboarding(user)) {");
     expect(appRoutesSource).toContain("<AuthenticatedOnboardingGate />");
     expect(appRoutesSource).toContain('<Route path="/onboarding">');
     // Deep-link preservation must be wired into the gate
@@ -161,9 +167,9 @@ describe("onboarding flow contracts", () => {
     const appRoutesSource = read("client/src/AppRoutes.tsx");
 
     expect(appRoutesSource).toContain('<Route path="/businesses/apply">');
-    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=business_owner" />');
+    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=business" />');
     expect(appRoutesSource).toContain('<Route path="/contractor-signup">');
-    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=service_provider" />');
+    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=offer_services" />');
     expect(appRoutesSource).toContain('<Route path="/provider-setup">');
   });
 });
