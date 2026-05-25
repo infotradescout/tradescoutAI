@@ -51,6 +51,7 @@ import {
   ChevronRight,
   Zap,
   TrendingUp,
+  Bell,
   Paperclip,
   ImagePlus,
   FolderKanban,
@@ -645,6 +646,19 @@ type DirectConnectInboxItem = {
     attachmentCount?: number | null;
   } | null;
   conversationThreadId?: string | null;
+};
+
+type DirectConnectNotification = {
+  id: string;
+  request_id: string;
+  notification_type: string;
+  title: string;
+  message: string;
+  action_url?: string | null;
+  action_key?: string | null;
+  status: "unread" | "read" | "archived" | "dismissed";
+  priority: "low" | "normal" | "high";
+  created_at: string;
 };
 
 type DirectConnectRequest = {
@@ -4004,6 +4018,145 @@ export default function DirectConnectShell() {
       enabled: isAuthenticated,
     }
   );
+  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const queryClient = useQueryClient();
+  const userRole = String((user as any)?.role || "").toLowerCase();
+  const notificationRole = ["contractor", "business", "worker", "provider"].includes(userRole)
+    ? "business"
+    : "requester";
+
+  const notificationsQueryKey = useMemo(
+    () => ["/api/direct-connect/notifications", notificationRole] as const,
+    [notificationRole]
+  );
+
+  const {
+    data: notificationsPayload,
+    isLoading: notificationsLoading,
+    isError: notificationsError,
+  } = useQuery<{
+    notifications: DirectConnectNotification[];
+    unreadDirectConnectNotificationCount: number;
+    latestNotification: DirectConnectNotification | null;
+    pendingActionKey: string | null;
+  }>({
+    queryKey: notificationsQueryKey,
+    queryFn: async () => {
+      const res = await fetch(`/api/direct-connect/notifications?role=${notificationRole}`);
+      if (!res.ok) {
+        throw new Error("Failed to load Direct Connect notifications");
+      }
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const notifications = notificationsPayload?.notifications || [];
+  const activeNotifications = notifications.filter((n) => n.status !== "archived");
+  const unreadDirectConnectNotificationCount = activeNotifications.filter(
+    (n) => n.status === "unread"
+  ).length;
+
+  const markReadMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const response = await fetch(
+        `/api/direct-connect/notifications/${encodeURIComponent(notificationId)}/read?role=${notificationRole}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error("Failed to mark notification as read");
+      return response.json();
+    },
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
+      const previous = queryClient.getQueryData(notificationsQueryKey);
+      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
+        if (!current?.notifications) return current;
+        return {
+          ...current,
+          notifications: current.notifications.map((item: DirectConnectNotification) =>
+            item.id === notificationId ? { ...item, status: "read" } : item
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(notificationsQueryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(
+        `/api/direct-connect/notifications/read-all?role=${notificationRole}`,
+        {
+          method: "POST",
+        }
+      );
+      if (!response.ok) throw new Error("Failed to mark all notifications as read");
+      return response.json();
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
+      const previous = queryClient.getQueryData(notificationsQueryKey);
+      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
+        if (!current?.notifications) return current;
+        return {
+          ...current,
+          notifications: current.notifications.map((item: DirectConnectNotification) =>
+            item.status === "unread" ? { ...item, status: "read" } : item
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(notificationsQueryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async (notificationId: string) => {
+      const response = await fetch(
+        `/api/direct-connect/notifications/${encodeURIComponent(notificationId)}/archive?role=${notificationRole}`,
+        { method: "POST" }
+      );
+      if (!response.ok) throw new Error("Failed to archive notification");
+      return response.json();
+    },
+    onMutate: async (notificationId) => {
+      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
+      const previous = queryClient.getQueryData(notificationsQueryKey);
+      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
+        if (!current?.notifications) return current;
+        return {
+          ...current,
+          notifications: current.notifications.map((item: DirectConnectNotification) =>
+            item.id === notificationId ? { ...item, status: "archived" } : item
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(notificationsQueryKey, context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
+    },
+  });
 
   const navCounts: Partial<Record<Section, number>> = useMemo(
     () => ({
@@ -4119,6 +4272,17 @@ export default function DirectConnectShell() {
           </h1>
 
           <div className="hidden flex-wrap justify-end gap-2 md:flex">
+            <button
+              type="button"
+              onClick={() => setShowNotificationCenter(true)}
+              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm"
+            >
+              <Bell className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+              <span className="text-[color:var(--text-secondary)]">Notifications</span>
+              <span className="font-semibold text-[color:var(--text-primary)]">
+                {unreadDirectConnectNotificationCount}
+              </span>
+            </button>
             {activeFlowMode === "manage" ? (
               <>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
@@ -4216,6 +4380,108 @@ export default function DirectConnectShell() {
         </div>
 
         <div className="min-w-0 space-y-3">{centerContent}</div>
+        <Sheet open={showNotificationCenter} onOpenChange={setShowNotificationCenter}>
+          <SheetContent
+            side="right"
+            className="w-full max-w-md border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-primary)]"
+          >
+            <SheetHeader>
+              <SheetTitle>Direct Connect notifications</SheetTitle>
+            </SheetHeader>
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-xs text-[color:var(--text-secondary)]">
+                {unreadDirectConnectNotificationCount} unread
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-[color:var(--border-subtle)]"
+                onClick={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending || unreadDirectConnectNotificationCount < 1}
+              >
+                Mark all read
+              </Button>
+            </div>
+            <div className="mt-3 space-y-2 overflow-y-auto pr-1 max-h-[74vh]">
+              {!isAuthenticated ? (
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                  Sign in to view Direct Connect notifications.
+                </div>
+              ) : notificationsLoading ? (
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                  Loading notifications...
+                </div>
+              ) : notificationsError ? (
+                <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-3 text-xs text-rose-200">
+                  Could not load notifications right now.
+                </div>
+              ) : activeNotifications.length < 1 ? (
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                  No notifications yet.
+                </div>
+              ) : (
+                activeNotifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={cn(
+                      "rounded-xl border px-3 py-3",
+                      notification.status === "unread"
+                        ? "border-ts-orange/45 bg-ts-orange/10"
+                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold">{notification.title}</p>
+                        <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                          {notification.message}
+                        </p>
+                        <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
+                          {formatDistanceToNow(new Date(notification.created_at), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px]",
+                          notification.status === "unread"
+                            ? "border-ts-orange/40 text-ts-orange"
+                            : "border-[color:var(--border-subtle)] text-[color:var(--text-secondary)]"
+                        )}
+                      >
+                        {notification.status === "unread" ? "Unread" : "Read"}
+                      </Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {notification.status === "unread" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 border-[color:var(--border-subtle)] text-[11px]"
+                          onClick={() => markReadMutation.mutate(notification.id)}
+                          disabled={markReadMutation.isPending}
+                        >
+                          Mark read
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 border-[color:var(--border-subtle)] text-[11px]"
+                        onClick={() => archiveMutation.mutate(notification.id)}
+                        disabled={archiveMutation.isPending}
+                      >
+                        Archive
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
