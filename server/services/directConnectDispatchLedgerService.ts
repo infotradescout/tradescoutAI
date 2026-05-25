@@ -114,6 +114,40 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     );
   `);
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS direct_connect_notifications (
+      id text PRIMARY KEY,
+      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
+      job_workspace_id text NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE SET NULL,
+      event_id text NULL REFERENCES direct_connect_dispatch_events(event_id) ON DELETE SET NULL,
+      recipient_user_id text NULL,
+      recipient_business_id text NULL,
+      recipient_role text NOT NULL,
+      actor_type text NOT NULL,
+      actor_id text NULL,
+      notification_type text NOT NULL,
+      title text NOT NULL,
+      message text NOT NULL,
+      action_url text NULL,
+      action_key text NULL,
+      status text NOT NULL DEFAULT 'unread',
+      priority text NOT NULL DEFAULT 'normal',
+      metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      read_at timestamptz NULL,
+      archived_at timestamptz NULL
+    );
+  `);
+  await db.execute(sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS direct_connect_notifications_idempotency_idx
+    ON direct_connect_notifications (
+      COALESCE(event_id, ''),
+      recipient_role,
+      COALESCE(recipient_user_id, ''),
+      COALESCE(recipient_business_id, ''),
+      notification_type
+    );
+  `);
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS direct_connect_job_workspaces (
       id text PRIMARY KEY,
       request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
@@ -1207,13 +1241,14 @@ export async function appendDispatchEvent(args: {
     | "job_closed";
   metadata?: Record<string, unknown>;
 }) {
+  const eventId = randomUUID();
   const lifecycle = normalizeLifecycleEvent(args.eventType);
   await db.execute(sql`
     INSERT INTO direct_connect_dispatch_events (
       event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
     )
     VALUES (
-      ${randomUUID()},
+      ${eventId},
       ${args.requestId},
       ${args.actorType},
       ${args.actorId ?? null},
@@ -1247,7 +1282,461 @@ export async function appendDispatchEvent(args: {
         now()
       )
     `);
+    const internalNotification = mapLifecycleToInternalNotification({
+      requestId: args.requestId,
+      eventId,
+      eventType: args.eventType,
+      actorType: args.actorType,
+      actorId: args.actorId ?? null,
+      metadata: args.metadata || {},
+      recipientType: recipient.recipientType,
+      recipientId: recipient.recipientId,
+      lifecycleStatus: lifecycle,
+    });
+    if (internalNotification) {
+      await createInternalDirectConnectNotification(internalNotification);
+    }
   }
+}
+
+type InternalNotificationStatus = "unread" | "read" | "archived" | "dismissed";
+type InternalNotificationPriority = "low" | "normal" | "high";
+type InternalNotificationRecipientRole = "requester" | "business" | "admin";
+
+type InternalNotificationUpsert = {
+  requestId: string;
+  jobWorkspaceId?: string | null;
+  eventId?: string | null;
+  recipientUserId?: string | null;
+  recipientBusinessId?: string | null;
+  recipientRole: InternalNotificationRecipientRole;
+  actorType: string;
+  actorId?: string | null;
+  notificationType: string;
+  title: string;
+  message: string;
+  actionUrl?: string | null;
+  actionKey?: string | null;
+  status?: InternalNotificationStatus;
+  priority?: InternalNotificationPriority;
+  metadata?: Record<string, unknown>;
+};
+
+const REQUESTER_NOTIFICATION_MAP: Record<
+  string,
+  {
+    notificationType: string;
+    title: string;
+    actionKey: string;
+    priority?: InternalNotificationPriority;
+  }
+> = {
+  request_shared: {
+    notificationType: "request_shared",
+    title: "Request shared",
+    actionKey: "review_request_status",
+  },
+  contractor_responded: {
+    notificationType: "business_responded",
+    title: "A local business responded",
+    actionKey: "review_business_response",
+    priority: "high",
+  },
+  contact_requested: {
+    notificationType: "contact_requested",
+    title: "They are asking to contact you",
+    actionKey: "approve_contact",
+    priority: "high",
+  },
+  contact_released: {
+    notificationType: "contact_released",
+    title: "Contact released",
+    actionKey: "view_job_workspace",
+  },
+  estimate_sent: {
+    notificationType: "estimate_sent",
+    title: "Estimate sent",
+    actionKey: "review_estimate",
+    priority: "high",
+  },
+  deposit_requested: {
+    notificationType: "payment_request_sent",
+    title: "Payment request sent",
+    actionKey: "respond_to_payment_request",
+  },
+  schedule_proposed: {
+    notificationType: "schedule_proposed",
+    title: "Schedule proposed",
+    actionKey: "review_schedule",
+  },
+  work_started: {
+    notificationType: "work_started",
+    title: "Work started",
+    actionKey: "review_job_progress",
+  },
+  checkpoint_completed: {
+    notificationType: "checkpoint_completed",
+    title: "Checkpoint completed",
+    actionKey: "review_checkpoint",
+  },
+  checkpoint_issue_reported: {
+    notificationType: "checkpoint_issue_updated",
+    title: "Checkpoint issue updated",
+    actionKey: "review_checkpoint",
+    priority: "high",
+  },
+  change_order_sent: {
+    notificationType: "change_order_sent",
+    title: "Change order sent",
+    actionKey: "review_change_order",
+    priority: "high",
+  },
+  punch_item_resolved: {
+    notificationType: "punch_item_resolved",
+    title: "Punch item resolved",
+    actionKey: "review_punch_item",
+  },
+  completion_requested: {
+    notificationType: "completion_requested",
+    title: "Completion requested",
+    actionKey: "respond_to_completion_request",
+    priority: "high",
+  },
+  invoice_sent: {
+    notificationType: "invoice_sent",
+    title: "Invoice sent",
+    actionKey: "review_invoice",
+    priority: "high",
+  },
+  receipt_uploaded: {
+    notificationType: "receipt_uploaded",
+    title: "Receipt uploaded",
+    actionKey: "view_receipt",
+  },
+  job_completed: {
+    notificationType: "job_completed",
+    title: "Job completed",
+    actionKey: "review_job_timeline",
+  },
+};
+
+const BUSINESS_NOTIFICATION_MAP: Record<
+  string,
+  {
+    notificationType: string;
+    title: string;
+    actionKey: string;
+    priority?: InternalNotificationPriority;
+  }
+> = {
+  request_route_ready: {
+    notificationType: "request_routed",
+    title: "New routed request",
+    actionKey: "view_routed_request",
+    priority: "high",
+  },
+  contact_approved: {
+    notificationType: "requester_approved_contact",
+    title: "Requester approved contact",
+    actionKey: "continue_contact",
+    priority: "high",
+  },
+  contact_denied: {
+    notificationType: "requester_denied_contact",
+    title: "Requester declined contact",
+    actionKey: "wait_for_contact_approval",
+  },
+  estimate_accepted: {
+    notificationType: "estimate_accepted",
+    title: "Estimate accepted",
+    actionKey: "start_work",
+    priority: "high",
+  },
+  estimate_change_requested: {
+    notificationType: "estimate_change_requested",
+    title: "Estimate change requested",
+    actionKey: "revise_estimate",
+    priority: "high",
+  },
+  estimate_declined: {
+    notificationType: "estimate_declined",
+    title: "Estimate declined",
+    actionKey: "review_request_status",
+  },
+  deposit_acknowledged: {
+    notificationType: "payment_request_acknowledged",
+    title: "Payment request acknowledged",
+    actionKey: "review_payment_request",
+  },
+  deposit_paid_outside_platform: {
+    notificationType: "paid_outside_platform_recorded",
+    title: "Paid outside platform recorded",
+    actionKey: "review_payment_record",
+  },
+  schedule_accepted: {
+    notificationType: "schedule_accepted",
+    title: "Schedule accepted",
+    actionKey: "start_work",
+    priority: "high",
+  },
+  schedule_change_requested: {
+    notificationType: "schedule_change_requested",
+    title: "Schedule change requested",
+    actionKey: "follow_up_schedule",
+  },
+  schedule_declined: {
+    notificationType: "schedule_declined",
+    title: "Schedule declined",
+    actionKey: "follow_up_schedule",
+  },
+  checkpoint_approved: {
+    notificationType: "checkpoint_approved",
+    title: "Checkpoint approved",
+    actionKey: "continue_workflow",
+  },
+  checkpoint_issue_reported: {
+    notificationType: "checkpoint_issue_reported",
+    title: "Checkpoint issue reported",
+    actionKey: "respond_to_checkpoint_issue",
+    priority: "high",
+  },
+  change_order_approved: {
+    notificationType: "change_order_approved",
+    title: "Change order approved",
+    actionKey: "continue_workflow",
+    priority: "high",
+  },
+  change_order_declined: {
+    notificationType: "change_order_declined",
+    title: "Change order declined",
+    actionKey: "revise_change_order",
+  },
+  punch_item_created: {
+    notificationType: "punch_item_created",
+    title: "Punch item created",
+    actionKey: "resolve_punch_item",
+  },
+  punch_item_rejected: {
+    notificationType: "punch_item_rejected",
+    title: "Punch item rejected",
+    actionKey: "resolve_punch_item",
+    priority: "high",
+  },
+  completion_confirmed: {
+    notificationType: "completion_confirmed",
+    title: "Completion confirmed",
+    actionKey: "send_invoice",
+    priority: "high",
+  },
+  completion_rejected: {
+    notificationType: "completion_rejected",
+    title: "Completion rejected",
+    actionKey: "review_completion_status",
+    priority: "high",
+  },
+  invoice_acknowledged: {
+    notificationType: "invoice_acknowledged",
+    title: "Invoice acknowledged",
+    actionKey: "review_invoice_status",
+  },
+  invoice_disputed: {
+    notificationType: "invoice_disputed",
+    title: "Invoice disputed",
+    actionKey: "review_invoice_dispute",
+    priority: "high",
+  },
+  receipt_disputed: {
+    notificationType: "receipt_disputed",
+    title: "Receipt disputed",
+    actionKey: "review_receipt_dispute",
+    priority: "high",
+  },
+};
+
+function mapLifecycleToInternalNotification(args: {
+  requestId: string;
+  eventId: string;
+  eventType: string;
+  actorType: string;
+  actorId: string | null;
+  metadata: Record<string, unknown>;
+  recipientType: "requester" | "contractor";
+  recipientId: string;
+  lifecycleStatus: LifecycleStatus;
+}): InternalNotificationUpsert | null {
+  const copy =
+    args.recipientType === "requester"
+      ? REQUESTER_NOTIFICATION_MAP[args.eventType]
+      : BUSINESS_NOTIFICATION_MAP[args.eventType];
+  if (!copy) return null;
+
+  return {
+    requestId: args.requestId,
+    eventId: args.eventId,
+    recipientUserId: args.recipientId,
+    recipientRole: args.recipientType === "requester" ? "requester" : "business",
+    actorType: args.actorType,
+    actorId: args.actorId,
+    notificationType: copy.notificationType,
+    title: copy.title,
+    message: messageForLifecycleStatus(args.lifecycleStatus, args.recipientType),
+    actionKey: copy.actionKey,
+    status: "unread",
+    priority: copy.priority ?? "normal",
+    metadata: args.metadata,
+  };
+}
+
+export async function createInternalDirectConnectNotification(args: InternalNotificationUpsert) {
+  await db.execute(sql`
+    INSERT INTO direct_connect_notifications (
+      id, request_id, job_workspace_id, event_id, recipient_user_id, recipient_business_id,
+      recipient_role, actor_type, actor_id, notification_type, title, message,
+      action_url, action_key, status, priority, metadata_json, created_at, read_at, archived_at
+    )
+    VALUES (
+      ${randomUUID()},
+      ${args.requestId},
+      ${args.jobWorkspaceId ?? null},
+      ${args.eventId ?? null},
+      ${args.recipientUserId ?? null},
+      ${args.recipientBusinessId ?? null},
+      ${args.recipientRole},
+      ${args.actorType},
+      ${args.actorId ?? null},
+      ${args.notificationType},
+      ${args.title},
+      ${args.message},
+      ${args.actionUrl ?? null},
+      ${args.actionKey ?? null},
+      ${args.status ?? "unread"},
+      ${args.priority ?? "normal"},
+      ${JSON.stringify(args.metadata || {})}::jsonb,
+      now(),
+      null,
+      null
+    )
+    ON CONFLICT (
+      COALESCE(event_id, ''),
+      recipient_role,
+      COALESCE(recipient_user_id, ''),
+      COALESCE(recipient_business_id, ''),
+      notification_type
+    )
+    DO NOTHING
+  `);
+}
+
+export async function listInternalDirectConnectNotifications(args: {
+  recipientRole: InternalNotificationRecipientRole;
+  recipientUserId?: string | null;
+  recipientBusinessId?: string | null;
+  status?: InternalNotificationStatus | "all";
+  limit?: number;
+}) {
+  const statusFilter =
+    args.status && args.status !== "all" ? sql`AND status = ${args.status}` : sql``;
+  const userFilter =
+    args.recipientRole === "business"
+      ? sql`AND recipient_user_id = ${args.recipientUserId ?? ""}`
+      : sql`AND recipient_user_id = ${args.recipientUserId ?? ""}`;
+  const businessFilter =
+    args.recipientRole === "business" && args.recipientBusinessId
+      ? sql`AND (recipient_business_id IS NULL OR recipient_business_id = ${args.recipientBusinessId})`
+      : sql``;
+  const rows = await db.execute(sql`
+    SELECT
+      id,
+      request_id,
+      job_workspace_id,
+      event_id,
+      recipient_role,
+      actor_type,
+      actor_id,
+      notification_type,
+      title,
+      message,
+      action_url,
+      action_key,
+      status,
+      priority,
+      created_at,
+      read_at,
+      archived_at,
+      metadata_json
+    FROM direct_connect_notifications
+    WHERE recipient_role = ${args.recipientRole}
+      ${userFilter}
+      ${businessFilter}
+      ${statusFilter}
+    ORDER BY created_at DESC
+    LIMIT ${Math.min(Math.max(args.limit || 50, 1), 200)}
+  `);
+  return (rows.rows || []) as any[];
+}
+
+export async function markInternalDirectConnectNotificationRead(args: {
+  notificationId: string;
+  recipientRole: InternalNotificationRecipientRole;
+  recipientUserId?: string | null;
+  recipientBusinessId?: string | null;
+}) {
+  const businessFilter =
+    args.recipientRole === "business" && args.recipientBusinessId
+      ? sql`AND (recipient_business_id IS NULL OR recipient_business_id = ${args.recipientBusinessId})`
+      : sql``;
+  const result = await db.execute(sql`
+    UPDATE direct_connect_notifications
+    SET status = 'read', read_at = now()
+    WHERE id = ${args.notificationId}
+      AND recipient_role = ${args.recipientRole}
+      AND recipient_user_id = ${args.recipientUserId ?? ""}
+      ${businessFilter}
+      AND status = 'unread'
+  `);
+  return Number((result as any)?.rowCount || 0) > 0;
+}
+
+export async function archiveInternalDirectConnectNotification(args: {
+  notificationId: string;
+  recipientRole: InternalNotificationRecipientRole;
+  recipientUserId?: string | null;
+  recipientBusinessId?: string | null;
+}) {
+  const businessFilter =
+    args.recipientRole === "business" && args.recipientBusinessId
+      ? sql`AND (recipient_business_id IS NULL OR recipient_business_id = ${args.recipientBusinessId})`
+      : sql``;
+  const result = await db.execute(sql`
+    UPDATE direct_connect_notifications
+    SET status = 'archived', archived_at = now()
+    WHERE id = ${args.notificationId}
+      AND recipient_role = ${args.recipientRole}
+      AND recipient_user_id = ${args.recipientUserId ?? ""}
+      ${businessFilter}
+      AND status <> 'archived'
+  `);
+  return Number((result as any)?.rowCount || 0) > 0;
+}
+
+export async function markAllInternalDirectConnectNotificationsRead(args: {
+  recipientRole: InternalNotificationRecipientRole;
+  recipientUserId?: string | null;
+  recipientBusinessId?: string | null;
+}) {
+  const businessFilter =
+    args.recipientRole === "business" && args.recipientBusinessId
+      ? sql`AND (recipient_business_id IS NULL OR recipient_business_id = ${args.recipientBusinessId})`
+      : sql``;
+  const result = await db.execute(sql`
+    UPDATE direct_connect_notifications
+    SET status = 'read', read_at = now()
+    WHERE recipient_role = ${args.recipientRole}
+      AND recipient_user_id = ${args.recipientUserId ?? ""}
+      ${businessFilter}
+      AND status = 'unread'
+  `);
+  return Number((result as any)?.rowCount || 0);
 }
 
 export async function snapshotDispatchCandidate(args: {

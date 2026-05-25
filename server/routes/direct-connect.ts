@@ -33,7 +33,11 @@ import { logAdminAction } from "../services/adminAuditLogService";
 import { recordTrustLedgerEvent } from "../services/trustLedgerService";
 import { computeDirectConnectProviderFitScore } from "../services/directConnectProviderFitScore";
 import {
+  archiveInternalDirectConnectNotification,
   appendDispatchEvent,
+  listInternalDirectConnectNotifications,
+  markAllInternalDirectConnectNotificationsRead,
+  markInternalDirectConnectNotificationRead,
   createOrGetJobWorkspaceAtContactRelease,
   ensureDirectConnectDispatchLedgerTables,
   getAllowedLifecycleActions,
@@ -2281,6 +2285,144 @@ export function registerDirectConnectRoutes(app: Express) {
         console.error("Error fetching direct connect board:", error);
         return res.status(500).json({
           message: "Failed to fetch board requests",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/notifications",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const roleRaw = String((req.query as any)?.role || "requester")
+          .trim()
+          .toLowerCase();
+        const recipientRole = roleRaw === "business" ? "business" : "requester";
+        const statusRaw = String((req.query as any)?.status || "all")
+          .trim()
+          .toLowerCase();
+        const status =
+          statusRaw === "unread" ||
+          statusRaw === "read" ||
+          statusRaw === "archived" ||
+          statusRaw === "dismissed"
+            ? statusRaw
+            : "all";
+        const limitRaw = Number((req.query as any)?.limit || 50);
+        const notifications = await listInternalDirectConnectNotifications({
+          recipientRole,
+          recipientUserId: userId,
+          status: status as any,
+          limit: Number.isFinite(limitRaw) ? limitRaw : 50,
+        });
+        const unreadDirectConnectNotificationCount = notifications.filter(
+          (item: any) => String(item?.status || "") === "unread"
+        ).length;
+        return res.json({
+          notifications,
+          unreadDirectConnectNotificationCount,
+          latestNotification: notifications[0] || null,
+          pendingActionKey: notifications.find((item: any) => String(item?.status) === "unread")
+            ?.action_key
+            ? String(
+                notifications.find((item: any) => String(item?.status) === "unread")?.action_key
+              )
+            : null,
+        });
+      } catch (error: any) {
+        console.error("Error fetching Direct Connect notifications:", error);
+        return res.status(500).json({
+          message: "Failed to fetch notifications",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/notifications/:notificationId/read",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const notificationId = String(req.params.notificationId || "").trim();
+        if (!notificationId) return res.status(400).json({ message: "notificationId is required" });
+        const roleRaw = String((req.body as any)?.role || (req.query as any)?.role || "requester")
+          .trim()
+          .toLowerCase();
+        const recipientRole = roleRaw === "business" ? "business" : "requester";
+        const ok = await markInternalDirectConnectNotificationRead({
+          notificationId,
+          recipientRole,
+          recipientUserId: userId,
+        });
+        if (!ok) return res.status(404).json({ message: "Notification not found" });
+        return res.json({ ok: true });
+      } catch (error: any) {
+        console.error("Error marking Direct Connect notification read:", error);
+        return res.status(500).json({
+          message: "Failed to mark notification read",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/notifications/read-all",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const roleRaw = String((req.body as any)?.role || (req.query as any)?.role || "requester")
+          .trim()
+          .toLowerCase();
+        const recipientRole = roleRaw === "business" ? "business" : "requester";
+        const updated = await markAllInternalDirectConnectNotificationsRead({
+          recipientRole,
+          recipientUserId: userId,
+        });
+        return res.json({ ok: true, updated });
+      } catch (error: any) {
+        console.error("Error marking all Direct Connect notifications read:", error);
+        return res.status(500).json({
+          message: "Failed to mark notifications read",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/notifications/:notificationId/archive",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const notificationId = String(req.params.notificationId || "").trim();
+        if (!notificationId) return res.status(400).json({ message: "notificationId is required" });
+        const roleRaw = String((req.body as any)?.role || (req.query as any)?.role || "requester")
+          .trim()
+          .toLowerCase();
+        const recipientRole = roleRaw === "business" ? "business" : "requester";
+        const ok = await archiveInternalDirectConnectNotification({
+          notificationId,
+          recipientRole,
+          recipientUserId: userId,
+        });
+        if (!ok) return res.status(404).json({ message: "Notification not found" });
+        return res.json({ ok: true });
+      } catch (error: any) {
+        console.error("Error archiving Direct Connect notification:", error);
+        return res.status(500).json({
+          message: "Failed to archive notification",
           requestId: (req as any).requestId || null,
         });
       }
