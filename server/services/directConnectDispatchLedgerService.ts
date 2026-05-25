@@ -149,7 +149,13 @@ export async function appendDispatchEvent(args: {
     | "request_shared"
     | "contact_requested"
     | "contact_released"
-    | "contractor_responded";
+    | "contractor_responded"
+    | "contractor_viewed_request"
+    | "homeowner_viewed_request"
+    | "homeowner_viewed_response"
+    | "contact_approved"
+    | "contact_denied"
+    | "request_closed";
   metadata?: Record<string, unknown>;
 }) {
   await db.execute(sql`

@@ -581,6 +581,10 @@ type DirectConnectRequest = {
   dcConversationThreadId?: string | null;
   dcLastEventAt?: string | null;
   dcMiniLandingUrl?: string | null;
+  contactGateState?: string | null;
+  responseCount?: number | null;
+  contactRequestCount?: number | null;
+  latestStatus?: string | null;
 };
 
 type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";
@@ -2856,6 +2860,25 @@ function MyDirectConnectRequests() {
     },
   });
 
+  const contactGateMutation = useMutation({
+    mutationFn: async (payload: { requestId: string; nextState: string }) =>
+      apiRequest("POST", `/api/direct-connect/requests/${payload.requestId}/contact-gate`, {
+        nextState: payload.nextState,
+      }),
+    onSuccess: (_result: any, payload) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
+      const title =
+        payload.nextState === "released"
+          ? "Contact released"
+          : payload.nextState === "user_approved"
+            ? "Contact approved"
+            : payload.nextState === "denied"
+              ? "Contact denied"
+              : "Contact updated";
+      toast({ title });
+    },
+  });
+
   const openRouteSheetForRequest = (requestId: string) => {
     setSelectedRouteRequestId(requestId);
     setRouteDispatchMode("top_count");
@@ -3011,10 +3034,20 @@ function MyDirectConnectRequests() {
           typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
             ? `${r.dcSuggestedCount} routed`
             : null,
+          typeof r.responseCount === "number" && r.responseCount > 0
+            ? `${r.responseCount} response${r.responseCount === 1 ? "" : "s"}`
+            : null,
+          typeof r.contactRequestCount === "number" && r.contactRequestCount > 0
+            ? `${r.contactRequestCount} contact request${r.contactRequestCount === 1 ? "" : "s"}`
+            : null,
           typeof r.attachmentCount === "number" && r.attachmentCount > 0
             ? `${r.attachmentCount} photos`
             : null,
         ].filter(Boolean);
+        const contactGateState = String(r.contactGateState || "locked");
+        const canApproveContact = contactGateState === "contractor_requested";
+        const canDenyContact = contactGateState === "contractor_requested";
+        const canReleaseContact = contactGateState === "user_approved";
 
         const handleOpenRequest = async () => {
           void trackShellEvent({
@@ -3294,6 +3327,54 @@ function MyDirectConnectRequests() {
                           Reopen request
                         </Button>
                       )}
+                      {canApproveContact && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                          disabled={contactGateMutation.isPending}
+                          onClick={() =>
+                            contactGateMutation.mutate({
+                              requestId: String(r.id),
+                              nextState: "user_approved",
+                            })
+                          }
+                        >
+                          Approve contact
+                        </Button>
+                      )}
+                      {canReleaseContact && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                          disabled={contactGateMutation.isPending}
+                          onClick={() =>
+                            contactGateMutation.mutate({
+                              requestId: String(r.id),
+                              nextState: "released",
+                            })
+                          }
+                        >
+                          Release contact
+                        </Button>
+                      )}
+                      {canDenyContact && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                          disabled={contactGateMutation.isPending}
+                          onClick={() =>
+                            contactGateMutation.mutate({
+                              requestId: String(r.id),
+                              nextState: "denied",
+                            })
+                          }
+                        >
+                          Decline contact
+                        </Button>
+                      )}
                       {!canMessage && <WhyLink to={getHelpLink("messaging")} />}
                     </div>
                   </div>
@@ -3371,6 +3452,54 @@ function MyDirectConnectRequests() {
                     onClick={() => reopenMutation.mutate(r.id)}
                   >
                     Reopen request
+                  </Button>
+                )}
+                {canApproveContact && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                    disabled={contactGateMutation.isPending}
+                    onClick={() =>
+                      contactGateMutation.mutate({
+                        requestId: String(r.id),
+                        nextState: "user_approved",
+                      })
+                    }
+                  >
+                    Approve contact
+                  </Button>
+                )}
+                {canReleaseContact && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                    disabled={contactGateMutation.isPending}
+                    onClick={() =>
+                      contactGateMutation.mutate({
+                        requestId: String(r.id),
+                        nextState: "released",
+                      })
+                    }
+                  >
+                    Release contact
+                  </Button>
+                )}
+                {canDenyContact && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                    disabled={contactGateMutation.isPending}
+                    onClick={() =>
+                      contactGateMutation.mutate({
+                        requestId: String(r.id),
+                        nextState: "denied",
+                      })
+                    }
+                  >
+                    Decline contact
                   </Button>
                 )}
               </div>

@@ -1992,6 +1992,63 @@ export function registerDirectConnectRoutes(app: Express) {
 
         const requestIds = filteredRequests.map((r: any) => r.id);
 
+        const dispatchMetaByRequestId = new Map<string, any>();
+        if (requestIds.length) {
+          try {
+            const dispatchRows = await db.execute(sql`
+              SELECT
+                id,
+                request_type,
+                county,
+                city_area,
+                urgency,
+                completeness_state,
+                routing_readiness_state,
+                contact_gate_state,
+                updated_at
+              FROM direct_connect_dispatch_requests
+              WHERE id = ANY(${requestIds}::text[])
+            `);
+            for (const row of (dispatchRows.rows || []) as any[]) {
+              dispatchMetaByRequestId.set(String(row.id), row);
+            }
+          } catch {
+            // fail-soft for older environments before dispatch ledger bootstrap
+          }
+        }
+
+        const responseCountByRequestId = new Map<string, number>();
+        const contactRequestCountByRequestId = new Map<string, number>();
+        if (requestIds.length) {
+          try {
+            const responseRows = await db.execute(sql`
+              SELECT request_id, COUNT(*)::int AS count
+              FROM direct_connect_contractor_responses
+              WHERE request_id = ANY(${requestIds}::text[])
+              GROUP BY request_id
+            `);
+            for (const row of (responseRows.rows || []) as any[]) {
+              responseCountByRequestId.set(String(row.request_id), Number(row.count || 0));
+            }
+          } catch {
+            // fail-soft for older environments before dispatch ledger bootstrap
+          }
+          try {
+            const contactRows = await db.execute(sql`
+              SELECT request_id, COUNT(*)::int AS count
+              FROM direct_connect_dispatch_events
+              WHERE request_id = ANY(${requestIds}::text[])
+                AND event_type = 'contact_requested'
+              GROUP BY request_id
+            `);
+            for (const row of (contactRows.rows || []) as any[]) {
+              contactRequestCountByRequestId.set(String(row.request_id), Number(row.count || 0));
+            }
+          } catch {
+            // fail-soft for older environments before dispatch ledger bootstrap
+          }
+        }
+
         // Aggregate assignments per request for requester visibility
         let assignments: any[] = [];
         try {
@@ -2122,6 +2179,7 @@ export function registerDirectConnectRoutes(app: Express) {
             ? conversationByContractorId.get(acceptedProviderKey) || null
             : null;
 
+          const dispatchMeta = dispatchMetaByRequestId.get(String(r.id)) || null;
           return {
             ...r,
             attachmentCount: getAttachmentCount(r),
@@ -2133,6 +2191,16 @@ export function registerDirectConnectRoutes(app: Express) {
             dcMiniLandingUrl: String((r as any).shareToken || "").trim()
               ? `${resolveOrigin(req)}/r/${encodeURIComponent(String((r as any).shareToken))}`
               : null,
+            requestType: dispatchMeta?.request_type ?? null,
+            county: dispatchMeta?.county ?? null,
+            cityArea: dispatchMeta?.city_area ?? null,
+            urgency: dispatchMeta?.urgency ?? null,
+            completenessState: dispatchMeta?.completeness_state ?? null,
+            routingReadinessState: dispatchMeta?.routing_readiness_state ?? null,
+            contactGateState: dispatchMeta?.contact_gate_state ?? "locked",
+            responseCount: responseCountByRequestId.get(String(r.id)) ?? 0,
+            contactRequestCount: contactRequestCountByRequestId.get(String(r.id)) ?? 0,
+            latestStatus: dispatchMeta?.updated_at ?? r.updatedAt ?? r.createdAt ?? null,
           };
         });
 
@@ -2148,6 +2216,154 @@ export function registerDirectConnectRoutes(app: Express) {
         res
           .status(500)
           .json({ message: "Failed to fetch requests", requestId: (req as any).requestId || null });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/requests/:id",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const requestId = String(req.params.id || "").trim();
+        if (!requestId) return res.status(400).json({ message: "Request id is required" });
+
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+        if (!requestRow) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
+        if ((requestRow.source as string | null) !== "direct_connect") {
+          return res
+            .status(400)
+            .json({ message: "Only Direct Connect requests are supported here" });
+        }
+        if (String(requestRow.createdByUserId || "") !== userId) {
+          return res.status(403).json({ message: "You can only view your own requests" });
+        }
+
+        const assignmentRows = await db
+          .select()
+          .from(workRequestAssignments)
+          .where(eq(workRequestAssignments.workRequestId, requestId));
+
+        const responseRows = await db.execute(sql`
+          SELECT
+            response_type,
+            message,
+            availability,
+            estimated_timing,
+            contact_request_state,
+            created_at
+          FROM direct_connect_contractor_responses
+          WHERE request_id = ${requestId}
+          ORDER BY created_at DESC
+        `);
+
+        const eventRows = await db.execute(sql`
+          SELECT event_type, actor_type, created_at, metadata_json
+          FROM direct_connect_dispatch_events
+          WHERE request_id = ${requestId}
+          ORDER BY created_at ASC
+        `);
+
+        const dispatchRows = await db.execute(sql`
+          SELECT
+            request_type,
+            county,
+            city_area,
+            urgency,
+            completeness_state,
+            routing_readiness_state,
+            contact_gate_state,
+            answers_json,
+            description
+          FROM direct_connect_dispatch_requests
+          WHERE id = ${requestId}
+          LIMIT 1
+        `);
+        const dispatch = ((dispatchRows.rows || []) as any[])[0] || null;
+
+        const contractorResponses = ((responseRows.rows || []) as any[]).map((row: any) => ({
+          responseType: String(row.response_type || ""),
+          message: row.message ? String(row.message) : null,
+          availability: row.availability ? String(row.availability) : null,
+          estimatedTiming: row.estimated_timing ? String(row.estimated_timing) : null,
+          contactRequestState: String(row.contact_request_state || "locked"),
+          createdAt: row.created_at || null,
+        }));
+
+        await appendDispatchEvent({
+          requestId,
+          actorType: "requester",
+          actorId: userId,
+          eventType: "homeowner_viewed_request",
+          metadata: { surface: "direct_connect_requests_detail" },
+        }).catch(() => undefined);
+
+        if (contractorResponses.length > 0) {
+          await appendDispatchEvent({
+            requestId,
+            actorType: "requester",
+            actorId: userId,
+            eventType: "homeowner_viewed_response",
+            metadata: { count: contractorResponses.length },
+          }).catch(() => undefined);
+        }
+
+        return res.status(200).json({
+          requestId,
+          requestSummary: {
+            title: String(requestRow.title || "Direct Connect request"),
+            description: String(dispatch?.description || requestRow.description || ""),
+            requestType: dispatch?.request_type ?? null,
+            category: requestRow.category ?? null,
+            county: dispatch?.county ?? null,
+            cityArea: dispatch?.city_area ?? null,
+            urgency: dispatch?.urgency ?? null,
+            createdAt: requestRow.createdAt ?? null,
+            status: requestRow.status ?? "open",
+            attachmentCount: getAttachmentCount(requestRow),
+          },
+          answers: dispatch?.answers_json ?? {},
+          completenessState: dispatch?.completeness_state ?? null,
+          routingReadinessState: dispatch?.routing_readiness_state ?? null,
+          contactGateState: dispatch?.contact_gate_state ?? "locked",
+          responses: contractorResponses,
+          responseCount: contractorResponses.length,
+          contactRequestCount: contractorResponses.filter((x: any) =>
+            ["contractor_requested", "user_approved", "released"].includes(
+              String(x.contactRequestState || "")
+            )
+          ).length,
+          assignments: assignmentRows.map((assignment: any) => ({
+            assignmentId: String(assignment.id),
+            status: String(assignment.status || "suggested"),
+            updatedAt: assignment.updatedAt || assignment.createdAt || null,
+          })),
+          timeline: ((eventRows.rows || []) as any[]).map((eventRow: any) => ({
+            type: String(eventRow.event_type || ""),
+            actorType: String(eventRow.actor_type || ""),
+            at: eventRow.created_at || null,
+          })),
+          allowedHomeownerActions: {
+            canApproveContact:
+              String(dispatch?.contact_gate_state || "locked") === "contractor_requested",
+            canDenyContact:
+              String(dispatch?.contact_gate_state || "locked") === "contractor_requested",
+            canReleaseContact: String(dispatch?.contact_gate_state || "locked") === "user_approved",
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching direct connect request detail:", error);
+        return res.status(500).json({
+          message: "Failed to load request detail",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -2430,6 +2646,7 @@ export function registerDirectConnectRoutes(app: Express) {
     async (req: AuthedRequest, res: Response) => {
       try {
         const requestId = String(req.params.id || "").trim();
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
         const nextState = String((req.body as any)?.nextState || "").trim() as
           | "locked"
           | "contractor_requested"
@@ -2452,18 +2669,57 @@ export function registerDirectConnectRoutes(app: Express) {
         ) {
           return res.status(400).json({ message: "Invalid contact gate state" });
         }
+
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+        if (!requestRow) return res.status(404).json({ message: "Work request not found" });
+        if (String(requestRow.createdByUserId || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can update contact approval" });
+        }
+
+        const dispatchRowResult = await db.execute(sql`
+          SELECT contact_gate_state
+          FROM direct_connect_dispatch_requests
+          WHERE id = ${requestId}
+          LIMIT 1
+        `);
+        const currentState = String(
+          ((dispatchRowResult.rows || []) as any[])[0]?.contact_gate_state || "locked"
+        );
+
+        const allowedTransitions = new Set([
+          "contractor_requested->user_approved",
+          "user_approved->released",
+          "contractor_requested->denied",
+        ]);
+        const transitionKey = `${currentState}->${nextState}`;
+        if (currentState !== nextState && !allowedTransitions.has(transitionKey)) {
+          return res.status(409).json({
+            message: `Invalid contact gate transition from ${currentState} to ${nextState}.`,
+          });
+        }
+
         await setDispatchContactGateState({ requestId, nextState });
+        const eventType =
+          nextState === "user_approved"
+            ? "contact_approved"
+            : nextState === "denied"
+              ? "contact_denied"
+              : nextState === "released"
+                ? "contact_released"
+                : nextState === "contractor_requested"
+                  ? "contact_requested"
+                  : "request_shared";
         await appendDispatchEvent({
           requestId,
           actorType: "requester",
-          actorId: String(req.user?.id || req.user?.claims?.sub || ""),
-          eventType:
-            nextState === "released"
-              ? "contact_released"
-              : nextState === "contractor_requested"
-                ? "contact_requested"
-                : "request_shared",
-          metadata: { nextState },
+          actorId: userId,
+          eventType,
+          metadata: { nextState, previousState: currentState, actor: "homeowner" },
         });
         return res.status(200).json({ requestId, contactGateState: nextState });
       } catch (error: any) {
@@ -2555,6 +2811,13 @@ export function registerDirectConnectRoutes(app: Express) {
         });
 
         try {
+          await appendDispatchEvent({
+            requestId,
+            actorType: "requester",
+            actorId: String(userId),
+            eventType: "request_closed",
+            metadata: { reason: "cancelled" },
+          });
           await recordTrustLedgerEvent({
             actorUserId: String(userId),
             entityType: "work_request",
@@ -2656,6 +2919,13 @@ export function registerDirectConnectRoutes(app: Express) {
         });
 
         try {
+          await appendDispatchEvent({
+            requestId,
+            actorType: "requester",
+            actorId: String(userId),
+            eventType: "request_closed",
+            metadata: { reason: "completed" },
+          });
           await recordTrustLedgerEvent({
             actorUserId: String(userId),
             entityType: "work_request",
@@ -4359,7 +4629,7 @@ export function registerDirectConnectRoutes(app: Express) {
           requestId,
           actorType: "contractor",
           actorId: userId,
-          eventType: "contractor_viewed_request" as any,
+          eventType: "contractor_viewed_request",
           metadata: { surface: "contractor_console" },
         }).catch(() => undefined);
 
