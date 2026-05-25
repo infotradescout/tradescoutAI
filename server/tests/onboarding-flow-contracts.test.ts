@@ -27,15 +27,15 @@ describe("onboarding flow contracts", () => {
     const intentSource = read("client/src/pages/onboarding-intent.tsx");
 
     expect(intentSource).toContain('apiRequest("POST", "/api/onboarding/start"');
-    expect(intentSource).toContain("What brings you here?");
-    expect(intentSource).toContain("Find local help");
-    expect(intentSource).toContain("Manage a project");
-    expect(intentSource).toContain("Offer services");
+    expect(intentSource).toContain("What do you need done?");
+    expect(intentSource).toContain("Fix or improve something");
+    expect(intentSource).toContain("Service or repair a vehicle");
+    expect(intentSource).toContain("Find a person or business");
     expect(intentSource).toContain("Sell or list something");
-    expect(intentSource).toContain("Real estate / property work");
-    expect(intentSource).toContain("Run a local business");
-    expect(intentSource).toContain("See what’s happening nearby");
-    expect(intentSource).toContain("Just browse for now");
+    expect(intentSource).toContain("Help with property or real estate");
+    expect(intentSource).toContain("Offer my services");
+    expect(intentSource).toContain("Browse local activity");
+    expect(intentSource).toContain("Just looking around");
     expect(intentSource).toContain("What should TradeScout remember for you?");
     expect(intentSource).toContain("A home");
     expect(intentSource).toContain("A vehicle");
@@ -43,6 +43,9 @@ describe("onboarding flow contracts", () => {
     expect(intentSource).toContain("A business");
     expect(intentSource).toContain("A saved search");
     expect(intentSource).toContain("Nothing yet");
+    expect(intentSource).toContain(
+      "navigate(`/direct-connect?intent=${encodeURIComponent(intent)}`);"
+    );
     expect(intentSource).not.toContain("contractor");
   });
 
