@@ -34,7 +34,12 @@ import { recordTrustLedgerEvent } from "../services/trustLedgerService";
 import { computeDirectConnectProviderFitScore } from "../services/directConnectProviderFitScore";
 import {
   appendDispatchEvent,
+  createOrGetJobWorkspaceAtContactRelease,
   ensureDirectConnectDispatchLedgerTables,
+  getAllowedLifecycleActions,
+  getLifecycleStatusForRecipient,
+  getJobWorkspaceByRequestId,
+  getUnreadLifecycleStatusCount,
   persistFinalizedDispatchRequest,
   recordContractorResponse,
   setDispatchContactGateState,
@@ -2048,9 +2053,27 @@ export function registerDirectConnectRoutes(app: Express) {
             // fail-soft for older environments before dispatch ledger bootstrap
           }
         }
+        const workspaceByRequestId = new Map<string, any>();
+        if (requestIds.length) {
+          const workspaceRows = await db.execute(sql`
+            SELECT request_id, id, status, active_stage, updated_at
+            FROM direct_connect_job_workspaces
+            WHERE request_id = ANY(${requestIds}::text[])
+          `);
+          for (const row of (workspaceRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || workspaceByRequestId.has(key)) continue;
+            workspaceByRequestId.set(key, row);
+          }
+        }
 
         const responseCountByRequestId = new Map<string, number>();
         const contactRequestCountByRequestId = new Map<string, number>();
+        const lifecycleByRequestId = new Map<
+          string,
+          { lifecycleStatus: string; latestStatus: string; latestStatusAt: unknown }
+        >();
+        const unreadStatusCountByRequestId = new Map<string, number>();
         if (requestIds.length) {
           try {
             const responseRows = await db.execute(sql`
@@ -2075,6 +2098,39 @@ export function registerDirectConnectRoutes(app: Express) {
             `);
             for (const row of (contactRows.rows || []) as any[]) {
               contactRequestCountByRequestId.set(String(row.request_id), Number(row.count || 0));
+            }
+
+            const lifecycleRows = await db.execute(sql`
+              SELECT DISTINCT ON (request_id)
+                request_id,
+                lifecycle_status,
+                message_text,
+                created_at
+              FROM direct_connect_lifecycle_notifications
+              WHERE request_id = ANY(${requestIds}::text[])
+                AND recipient_type = 'requester'
+                AND recipient_id = ${String(userId)}
+              ORDER BY request_id, created_at DESC
+            `);
+            for (const row of (lifecycleRows.rows || []) as any[]) {
+              lifecycleByRequestId.set(String(row.request_id), {
+                lifecycleStatus: String(row.lifecycle_status || ""),
+                latestStatus: String(row.message_text || ""),
+                latestStatusAt: row.created_at || null,
+              });
+            }
+
+            const unreadRows = await db.execute(sql`
+              SELECT request_id, COUNT(*)::int AS count
+              FROM direct_connect_lifecycle_notifications
+              WHERE request_id = ANY(${requestIds}::text[])
+                AND recipient_type = 'requester'
+                AND recipient_id = ${String(userId)}
+                AND is_read = false
+              GROUP BY request_id
+            `);
+            for (const row of (unreadRows.rows || []) as any[]) {
+              unreadStatusCountByRequestId.set(String(row.request_id), Number(row.count || 0));
             }
           } catch {
             // fail-soft for older environments before dispatch ledger bootstrap
@@ -2212,6 +2268,7 @@ export function registerDirectConnectRoutes(app: Express) {
             : null;
 
           const dispatchMeta = dispatchMetaByRequestId.get(String(r.id)) || null;
+          const lifecycleMeta = lifecycleByRequestId.get(String(r.id)) || null;
           return {
             ...r,
             attachmentCount: getAttachmentCount(r),
@@ -2232,7 +2289,15 @@ export function registerDirectConnectRoutes(app: Express) {
             contactGateState: dispatchMeta?.contact_gate_state ?? "locked",
             responseCount: responseCountByRequestId.get(String(r.id)) ?? 0,
             contactRequestCount: contactRequestCountByRequestId.get(String(r.id)) ?? 0,
-            latestStatus: dispatchMeta?.updated_at ?? r.updatedAt ?? r.createdAt ?? null,
+            lifecycleStatus: lifecycleMeta?.lifecycleStatus ?? null,
+            latestStatus: lifecycleMeta?.latestStatus ?? "Waiting for local businesses",
+            latestStatusAt:
+              lifecycleMeta?.latestStatusAt ??
+              dispatchMeta?.updated_at ??
+              r.updatedAt ??
+              r.createdAt ??
+              null,
+            unreadStatusCount: unreadStatusCountByRequestId.get(String(r.id)) ?? 0,
           };
         });
 
@@ -2345,6 +2410,22 @@ export function registerDirectConnectRoutes(app: Express) {
           createdAt: row.created_at || null,
         }));
 
+        const lifecycleStatus = await getLifecycleStatusForRecipient({
+          requestId,
+          recipientType: "requester",
+          recipientId: String(userId),
+        }).catch(() => null);
+        const unreadStatusCount = await getUnreadLifecycleStatusCount({
+          requestId,
+          recipientType: "requester",
+          recipientId: String(userId),
+        }).catch(() => 0);
+        const jobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const workspaceStage = String(jobWorkspace?.active_stage || "contact") as any;
+        const allowedLifecycleActions = jobWorkspace
+          ? getAllowedLifecycleActions({ stage: workspaceStage, role: "requester" })
+          : [];
+
         await appendDispatchEvent({
           requestId,
           actorType: "requester",
@@ -2395,6 +2476,14 @@ export function registerDirectConnectRoutes(app: Express) {
           completenessState: dispatch?.completeness_state ?? null,
           routingReadinessState: dispatch?.routing_readiness_state ?? null,
           contactGateState: dispatch?.contact_gate_state ?? "locked",
+          lifecycleStatus: lifecycleStatus?.lifecycleStatus ?? null,
+          latestStatus: lifecycleStatus?.latestStatus ?? "Waiting for local businesses",
+          latestStatusAt: lifecycleStatus?.latestStatusAt ?? null,
+          unreadStatusCount,
+          jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
+          activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
+          latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+          allowedLifecycleActions,
           responses: contractorResponses,
           responseCount: contractorResponses.length,
           contactRequestCount: contractorResponses.filter((x: any) =>
@@ -2791,6 +2880,51 @@ export function registerDirectConnectRoutes(app: Express) {
         }
 
         await setDispatchContactGateState({ requestId, nextState });
+        if (nextState === "released" && ownerUserId) {
+          const candidateRows = await db.execute(sql`
+            SELECT contractor_id, business_id, responder_user_id
+            FROM direct_connect_dispatch_candidates
+            WHERE request_id = ${requestId}
+              AND eligibility_state = 'eligible'
+            ORDER BY created_at ASC
+            LIMIT 1
+          `);
+          const candidate = ((candidateRows.rows || []) as any[])[0] || null;
+          const responseRows = await db.execute(sql`
+            SELECT id
+            FROM direct_connect_contractor_responses
+            WHERE request_id = ${requestId}
+            ORDER BY created_at DESC
+            LIMIT 1
+          `);
+          const latestResponse = ((responseRows.rows || []) as any[])[0] || null;
+          const dispatchRows = await db.execute(sql`
+            SELECT category, county, city_area
+            FROM direct_connect_dispatch_requests
+            WHERE id = ${requestId}
+            LIMIT 1
+          `);
+          const dispatch = ((dispatchRows.rows || []) as any[])[0] || null;
+          const workspace = await createOrGetJobWorkspaceAtContactRelease({
+            requestId,
+            requesterUserId: ownerUserId,
+            businessId: candidate?.business_id ? String(candidate.business_id) : null,
+            contractorId: candidate?.contractor_id ? String(candidate.contractor_id) : null,
+            contractorResponseId: latestResponse?.id ? String(latestResponse.id) : null,
+            category: dispatch?.category ? String(dispatch.category) : null,
+            county: dispatch?.county ? String(dispatch.county) : null,
+            cityArea: dispatch?.city_area ? String(dispatch.city_area) : null,
+          });
+          if (workspace?.id) {
+            await appendDispatchEvent({
+              requestId,
+              actorType: "system",
+              actorId: null,
+              eventType: "job_workspace_created",
+              metadata: { workspaceId: String(workspace.id), source: "contact_released" },
+            });
+          }
+        }
         const eventType =
           nextState === "user_approved"
             ? "contact_approved"
@@ -4675,12 +4809,63 @@ export function registerDirectConnectRoutes(app: Express) {
         for (const row of (responseRows.rows || []) as any[]) {
           responseByRequest.set(String(row.request_id), row);
         }
+        const requestIds = Array.from(
+          new Set(
+            ((candidateRows.rows || []) as any[]).map((row: any) => String(row.request_id || ""))
+          )
+        ).filter(Boolean);
+        const lifecycleByRequestId = new Map<
+          string,
+          { lifecycleStatus: string; latestStatus: string; latestStatusAt: unknown }
+        >();
+        const unreadStatusCountByRequestId = new Map<string, number>();
+        if (requestIds.length) {
+          const lifecycleRows = await db.execute(sql`
+            SELECT DISTINCT ON (request_id)
+              request_id,
+              lifecycle_status,
+              message_text,
+              created_at
+            FROM direct_connect_lifecycle_notifications
+            WHERE request_id = ANY(${requestIds}::text[])
+              AND recipient_type = 'contractor'
+              AND recipient_id = ${userId}
+            ORDER BY request_id, created_at DESC
+          `);
+          for (const row of (lifecycleRows.rows || []) as any[]) {
+            lifecycleByRequestId.set(String(row.request_id), {
+              lifecycleStatus: String(row.lifecycle_status || ""),
+              latestStatus: String(row.message_text || ""),
+              latestStatusAt: row.created_at || null,
+            });
+          }
+          const unreadRows = await db.execute(sql`
+            SELECT request_id, COUNT(*)::int AS count
+            FROM direct_connect_lifecycle_notifications
+            WHERE request_id = ANY(${requestIds}::text[])
+              AND recipient_type = 'contractor'
+              AND recipient_id = ${userId}
+              AND is_read = false
+            GROUP BY request_id
+          `);
+          for (const row of (unreadRows.rows || []) as any[]) {
+            unreadStatusCountByRequestId.set(String(row.request_id), Number(row.count || 0));
+          }
+        }
 
         const deduped = new Map<string, any>();
         for (const row of (candidateRows.rows || []) as any[]) {
           const requestId = String(row.request_id || "");
           if (!requestId || deduped.has(requestId)) continue;
           const latestResponse = responseByRequest.get(requestId) || null;
+          const lifecycleMeta = lifecycleByRequestId.get(requestId) || null;
+          const workspace = workspaceByRequestId.get(requestId) || null;
+          const allowedLifecycleActions = workspace
+            ? getAllowedLifecycleActions({
+                stage: String(workspace.active_stage || "contact") as any,
+                role: "contractor",
+              })
+            : [];
           deduped.set(requestId, {
             requestId,
             requestType: String(row.request_type || ""),
@@ -4698,6 +4883,14 @@ export function registerDirectConnectRoutes(app: Express) {
             contactGateState: String(row.contact_gate_state || "locked"),
             createdAt: row.created_at || null,
             responseState: latestResponse ? String(latestResponse.response_type || "") : null,
+            lifecycleStatus: lifecycleMeta?.lifecycleStatus ?? null,
+            latestStatus: lifecycleMeta?.latestStatus ?? null,
+            latestStatusAt: lifecycleMeta?.latestStatusAt ?? null,
+            unreadStatusCount: unreadStatusCountByRequestId.get(requestId) ?? 0,
+            jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
+            activeStage: workspace?.active_stage ? String(workspace.active_stage) : null,
+            latestJobStatus: workspace?.status ? String(workspace.status) : null,
+            allowedLifecycleActions,
           });
         }
 
@@ -4842,6 +5035,23 @@ export function registerDirectConnectRoutes(app: Express) {
               LIMIT 1
             `);
         const latestResponse = ((latestResponseResult.rows || []) as any[])[0] || null;
+        const lifecycleStatus = await getLifecycleStatusForRecipient({
+          requestId,
+          recipientType: "contractor",
+          recipientId: userId,
+        }).catch(() => null);
+        const unreadStatusCount = await getUnreadLifecycleStatusCount({
+          requestId,
+          recipientType: "contractor",
+          recipientId: userId,
+        }).catch(() => 0);
+        const jobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const allowedLifecycleActions = jobWorkspace
+          ? getAllowedLifecycleActions({
+              stage: String(jobWorkspace.active_stage || "contact") as any,
+              role: "contractor",
+            })
+          : [];
 
         return res.status(200).json({
           requestId,
@@ -4861,6 +5071,14 @@ export function registerDirectConnectRoutes(app: Express) {
             ? candidate.ineligibility_reasons
             : [],
           contactGateState: String(candidate.contact_gate_state || "locked"),
+          lifecycleStatus: lifecycleStatus?.lifecycleStatus ?? null,
+          latestStatus: lifecycleStatus?.latestStatus ?? null,
+          latestStatusAt: lifecycleStatus?.latestStatusAt ?? null,
+          unreadStatusCount,
+          jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
+          activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
+          latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+          allowedLifecycleActions,
           visibilityState: String(candidate.visibility_state || "private"),
           allowedActions: {
             canRespond: true,

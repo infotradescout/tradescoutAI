@@ -19,6 +19,9 @@ type ContractorRoutedRequest = {
   eligibilityReasons: string[];
   contactGateState: string;
   responseState: string | null;
+  lifecycleStatus?: string | null;
+  latestStatus?: string | null;
+  unreadStatusCount?: number;
   createdAt: string | null;
 };
 
@@ -164,6 +167,15 @@ export default function ContractorDashboard() {
                     <p className="mt-2 text-xs text-foreground/90 line-clamp-2">
                       {request.description}
                     </p>
+                    {request.latestStatus && (
+                      <p className="mt-2 text-xs font-medium text-foreground">
+                        {request.latestStatus}
+                        {typeof request.unreadStatusCount === "number" &&
+                        request.unreadStatusCount > 0
+                          ? ` (${request.unreadStatusCount} new)`
+                          : ""}
+                      </p>
+                    )}
                     <p className="mt-2 text-[11px] text-muted-foreground">
                       Why this fits:{" "}
                       {request.eligibilityReasons?.[0] || "Category and territory match."}

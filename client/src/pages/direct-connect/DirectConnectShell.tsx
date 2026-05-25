@@ -673,7 +673,10 @@ type DirectConnectRequest = {
   contactGateState?: string | null;
   responseCount?: number | null;
   contactRequestCount?: number | null;
+  lifecycleStatus?: string | null;
   latestStatus?: string | null;
+  latestStatusAt?: string | null;
+  unreadStatusCount?: number | null;
 };
 
 type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";
@@ -3236,6 +3239,19 @@ function MyDirectConnectRequests() {
                         <p className="mt-1 text-[11px] text-emerald-200/90">
                           They are asking to contact you
                         </p>
+                      </div>
+                    )}
+                    {r.latestStatus && (
+                      <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                        <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                          {r.latestStatus}
+                        </p>
+                        {typeof r.unreadStatusCount === "number" && r.unreadStatusCount > 0 && (
+                          <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
+                            {r.unreadStatusCount} new status update
+                            {r.unreadStatusCount === 1 ? "" : "s"}
+                          </p>
+                        )}
                       </div>
                     )}
                     <p className="text-[11px] text-ts-orange/90">{nextStepCopy.actionHint}</p>

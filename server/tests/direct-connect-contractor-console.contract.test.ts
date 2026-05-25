@@ -38,5 +38,6 @@ describe("direct connect contractor console contracts", () => {
     expect(source).toContain("Respond interested");
     expect(source).toContain("Need more info");
     expect(source).toContain("Request contact");
+    expect(source).toContain("latestStatus");
   });
 });
