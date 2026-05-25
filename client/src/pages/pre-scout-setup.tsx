@@ -27,6 +27,7 @@ import { trackShellEvent } from "@/lib/analytics";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { resolveDirectConnectLandingRoute } from "@/lib/postOnboardingRoute";
+import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
 
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
@@ -199,6 +200,17 @@ export default function PreScoutSetup() {
     setLocationSource("places");
 
     // Reset county while we resolve FIPS
+    const canonicalFromPlace = resolveCanonicalCountyForState(newCountyName, newState);
+    if (canonicalFromPlace?.countyFips) {
+      setCountyFips(canonicalFromPlace.countyFips);
+      setCountyName(canonicalFromPlace.countyName);
+      setCountyInferenceStatus("inferred");
+      setCountyInferenceNote(
+        `Confirmed: ${canonicalFromPlace.countyName}, ${canonicalFromPlace.stateCode}`
+      );
+      return;
+    }
+
     setCountyFips("");
     setCountyName(newCountyName || undefined);
     setCountyInferenceStatus("loading");
@@ -228,12 +240,20 @@ export default function PreScoutSetup() {
         setCountyInferenceStatus("ambiguous");
         setCountyInferenceNote("Multiple counties match — select yours below.");
       } else {
-        setCountyInferenceStatus("ambiguous");
-        setCountyInferenceNote(
-          newCountyName
-            ? `Found "${newCountyName}" — confirm your county below.`
-            : "Select your county below to confirm."
-        );
+        const normalizedFound = resolveCanonicalCountyForState(newCountyName, newState);
+        if (normalizedFound?.countyName) {
+          setCountyInferenceStatus("ambiguous");
+          setCountyInferenceNote(
+            `Found "${normalizedFound.countyName}" — confirm your county below.`
+          );
+        } else {
+          setCountyInferenceStatus("ambiguous");
+          setCountyInferenceNote(
+            newCountyName
+              ? `Found "${newCountyName}" — confirm your county below.`
+              : "Select your county below to confirm."
+          );
+        }
       }
     } catch {
       setCountyInferenceStatus("error");
@@ -258,6 +278,17 @@ export default function PreScoutSetup() {
 
     // Trigger county resolution if we have enough data
     if (newState && (newCity || newCountyName)) {
+      const canonicalFromBusinessPlace = resolveCanonicalCountyForState(newCountyName, newState);
+      if (canonicalFromBusinessPlace?.countyFips) {
+        setCountyFips(canonicalFromBusinessPlace.countyFips);
+        setCountyName(canonicalFromBusinessPlace.countyName);
+        setCountyInferenceStatus("inferred");
+        setCountyInferenceNote(
+          `Confirmed: ${canonicalFromBusinessPlace.countyName}, ${canonicalFromBusinessPlace.stateCode}`
+        );
+        return;
+      }
+
       setCountyFips("");
       setCountyName(newCountyName || undefined);
       setCountyInferenceStatus("loading");
@@ -275,11 +306,14 @@ export default function PreScoutSetup() {
             `Confirmed: ${inferred.inferred.countyName}, ${inferred.inferred.stateCode}`
           );
         } else {
+          const normalizedFound = resolveCanonicalCountyForState(newCountyName, newState);
           setCountyInferenceStatus("ambiguous");
           setCountyInferenceNote(
-            newCountyName
-              ? `Found "${newCountyName}" — confirm your county below.`
-              : "Select your county below to confirm."
+            normalizedFound?.countyName
+              ? `Found "${normalizedFound.countyName}" — confirm your county below.`
+              : newCountyName
+                ? `Found "${newCountyName}" — confirm your county below.`
+                : "Select your county below to confirm."
           );
         }
       } catch {
