@@ -23,20 +23,21 @@ describe("onboarding flow contracts", () => {
     expect(profileSource).toContain("fixed-price offers, verification, and bookkeeping review");
   });
 
-  it("marks onboarding complete from the intent step", () => {
+  it("uses unified lane-first onboarding selection from the intent step", () => {
     const intentSource = read("client/src/pages/onboarding-intent.tsx");
 
-    // Both the save-intent and skip paths must call complete-onboarding
-    expect(intentSource).toContain('apiRequest("POST", "/api/user/complete-onboarding", {})');
-    // onSuccess handler must navigate using the smart routing helper
-    expect(intentSource).toContain("resolveDestination(intent)");
-    expect(intentSource).toContain("resolveDestination(null)");
-    // Skip path must also call complete-onboarding (not just navigate away)
-    expect(intentSource).toContain("skipMutation");
-    // Smart routing helper must be imported
-    expect(intentSource).toContain("resolvePostOnboardingRoute");
-    expect(intentSource).toContain("Offer or Sell");
-    expect(intentSource).toContain("profile, offers, verification, and books");
+    expect(intentSource).toContain('apiRequest("POST", "/api/onboarding/start"');
+    expect(intentSource).toContain("What are you here to do?");
+    expect(intentSource).toContain("Manage my home");
+    expect(intentSource).toContain("Manage my vehicle");
+    expect(intentSource).toContain("Find local help");
+    expect(intentSource).toContain("Provide services");
+    expect(intentSource).toContain("Sell or list something");
+    expect(intentSource).toContain("Real estate / property work");
+    expect(intentSource).toContain("Run a local business");
+    expect(intentSource).toContain("Just browse for now");
+    expect(intentSource).toContain("Lane selection records intent only");
+    expect(intentSource).not.toContain("contractor");
   });
 
   it("enforces onboarding on authenticated routing until both completion + profile version are satisfied", () => {
@@ -54,6 +55,7 @@ describe("onboarding flow contracts", () => {
     );
     expect(appRoutesSource).toContain("if (!userNeedsOnboarding(user)) return;");
     expect(appRoutesSource).toContain("<AuthenticatedOnboardingGate />");
+    expect(appRoutesSource).toContain('<Route path="/onboarding">');
     // Deep-link preservation must be wired into the gate
     expect(appRoutesSource).toContain("storeOnboardingNext");
 
@@ -153,5 +155,15 @@ describe("onboarding flow contracts", () => {
     expect(actionSource).toContain('destination: "/offer-services#fixed-price-offers"');
     expect(actionSource).toContain("Review finance records");
     expect(actionSource).toContain('destination: "/finances/records"');
+  });
+
+  it("maps legacy onboarding entry routes to unified onboarding lanes", () => {
+    const appRoutesSource = read("client/src/AppRoutes.tsx");
+
+    expect(appRoutesSource).toContain('<Route path="/businesses/apply">');
+    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=business_owner" />');
+    expect(appRoutesSource).toContain('<Route path="/contractor-signup">');
+    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=service_provider" />');
+    expect(appRoutesSource).toContain('<Route path="/provider-setup">');
   });
 });

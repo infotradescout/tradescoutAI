@@ -268,7 +268,6 @@ const BusinessDirectoryPage = React.lazy(() => import("./pages/business-director
 // Business/provider features. Some imported pages retain legacy contractor filenames.
 const OfferServices = React.lazy(() => import("./pages/offer-services"));
 const ProfilePurchaseStatus = React.lazy(() => import("./pages/profile-purchase-status"));
-const ContractorApply = React.lazy(() => import("./pages/contractor-apply"));
 const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
 const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-dashboard"));
@@ -815,6 +814,11 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={OnboardingProfile} />
                 </ProtectedRoute>
               </Route>
+              <Route path="/onboarding">
+                <ProtectedRoute>
+                  <LazyPage Component={OnboardingIntent} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/onboarding/intent">
                 <ProtectedRoute>
                   <LazyPage Component={OnboardingIntent} />
@@ -843,10 +847,16 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Core pages */}
               {/* Business/provider application. Legacy contractor routes remain compatibility aliases. */}
               <Route path="/businesses/apply">
-                <LazyPage Component={ContractorApply} />
+                <RedirectTo to="/onboarding?lane=business_owner" />
+              </Route>
+              <Route path="/contractor-signup">
+                <RedirectTo to="/onboarding?lane=service_provider" />
+              </Route>
+              <Route path="/provider-setup">
+                <RedirectTo to="/onboarding?lane=service_provider" />
               </Route>
               <Route path="/contractors/apply">
-                <RedirectTo to="/businesses/apply" />
+                <RedirectTo to="/onboarding?lane=service_provider" />
               </Route>
               <Route path="/contractors/top">
                 <LazyPage Component={ContractorsTop} />
