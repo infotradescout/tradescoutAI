@@ -24,6 +24,12 @@ describe("Scout home personalization contracts", () => {
       "const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;"
     );
     expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
+    expect(source).toContain(
+      "const [onboardingStatus, setOnboardingStatus] = useState<UnifiedOnboardingState | null>(null);"
+    );
+    expect(source).toContain(
+      'const res = await fetch("/api/onboarding/status", { credentials: "include" });'
+    );
     expect(source).toContain("{hasRealContinuation ? (");
     expect(source).toContain(
       "<ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />"
@@ -42,6 +48,36 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain("const NON_PERSONAL_ACTIVITY_PHRASES = [");
     expect(source).toContain("home prices shifted nearby");
     expect(source).toContain("median home price");
+  });
+
+  it("shows onboarding setup nudges only when authenticated status exists and is incomplete", () => {
+    const source = read("client/src/scout/ScoutHome.tsx");
+
+    expect(source).toContain("if (!isAuthenticated || !onboardingStatus) return false;");
+    expect(source).toContain("if (!lane) return false;");
+    expect(source).toContain('if (lane === "browse_only") {');
+    expect(source).toContain("if (isCompleted) return false;");
+    expect(source).toContain('return params.get("resumeSetup") === "1";');
+    expect(source).toContain("return !isCompleted || Boolean(onboardingStatus.nextStep);");
+    expect(source).toContain("{shouldShowSetupNudge && setupNudge ? (");
+    expect(source).toContain(
+      "<SetupNudgeCard config={setupNudge} onPromptSelect={onPromptSelect} />"
+    );
+  });
+
+  it("contains lane-specific nudge copy", () => {
+    const source = read("client/src/scout/ScoutHome.tsx");
+
+    expect(source).toContain("Finish setting up your home");
+    expect(source).toContain("Add your vehicle");
+    expect(source).toContain("Complete your service profile");
+    expect(source).toContain("Create your first listing");
+    expect(source).toContain("Set your local interests");
+    expect(source).toContain('actionPrompt: "Open /homes to add my home profile."');
+    expect(source).toContain('actionPrompt: "Open /vehicles to add my vehicle."');
+    expect(source).toContain(
+      'actionPrompt: "Open /exchange/new so I can create my first listing."'
+    );
   });
 
   it("rejects generic continuity labels", () => {

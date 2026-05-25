@@ -13,6 +13,8 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useScoutLocation } from "./hooks/useScoutLocation";
 import {
   useScoutHomeSnapshot,
@@ -50,6 +52,22 @@ type ContinueItem = {
 };
 
 type NearbyCategory = "homes" | "vehicles" | "projects" | "listings" | "people" | "community";
+type OnboardingLane =
+  | "homeowner"
+  | "vehicle_owner"
+  | "service_provider"
+  | "seller"
+  | "realtor"
+  | "business_owner"
+  | "community_member"
+  | "browse_only";
+
+type UnifiedOnboardingState = {
+  lane?: OnboardingLane;
+  completedAt?: string;
+  completedSteps?: string[];
+  nextStep?: string;
+};
 
 type SignalRowData = {
   id: string;
@@ -60,6 +78,13 @@ type SignalRowData = {
   icon: LucideIcon;
   iconClass: string;
   category: NearbyCategory;
+};
+
+type SetupNudgeConfig = {
+  title: string;
+  body: string;
+  actionLabel: string;
+  actionPrompt: string;
 };
 
 const INVALID_CONTINUITY_LABELS = new Set([
@@ -667,9 +692,108 @@ function EmptyContextHint() {
   );
 }
 
+const SETUP_NUDGE_BY_LANE: Record<Exclude<OnboardingLane, "browse_only">, SetupNudgeConfig> = {
+  homeowner: {
+    title: "Finish setting up your home",
+    body: "Add a home once so projects, repairs, records, and searches can stay connected.",
+    actionLabel: "Add home",
+    actionPrompt: "Open /homes to add my home profile.",
+  },
+  vehicle_owner: {
+    title: "Add your vehicle",
+    body: "Save a vehicle once so service, repairs, records, and listings stay connected.",
+    actionLabel: "Add vehicle",
+    actionPrompt: "Open /vehicles to add my vehicle.",
+  },
+  service_provider: {
+    title: "Complete your service profile",
+    body: "Set up your profile before provider tools or local requests can open.",
+    actionLabel: "Continue setup",
+    actionPrompt: "Open /business-dashboard so I can complete provider setup.",
+  },
+  seller: {
+    title: "Create your first listing",
+    body: "List tools, materials, vehicles, property, or local offers.",
+    actionLabel: "Create listing",
+    actionPrompt: "Open /exchange/new so I can create my first listing.",
+  },
+  realtor: {
+    title: "Set up property work",
+    body: "Connect listings, clients, saved searches, and local property activity.",
+    actionLabel: "Continue setup",
+    actionPrompt: "Open /business-dashboard so I can complete property setup.",
+  },
+  business_owner: {
+    title: "Set up your business profile",
+    body: "Add the business details needed before public tools or requests open.",
+    actionLabel: "Continue setup",
+    actionPrompt: "Open /business-dashboard so I can complete business setup.",
+  },
+  community_member: {
+    title: "Set your local interests",
+    body: "Pick the places and topics you care about so Scout can show relevant local activity.",
+    actionLabel: "Set interests",
+    actionPrompt: "Open /onboarding so I can set local interests.",
+  },
+};
+
+function SetupNudgeCard({
+  config,
+  onPromptSelect,
+}: {
+  config: SetupNudgeConfig;
+  onPromptSelect: (prompt: string) => void;
+}) {
+  return (
+    <section className="px-4 pt-2">
+      <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+        <h2 className="text-base font-semibold text-white">{config.title}</h2>
+        <p className="mt-1 text-sm text-zinc-400">{config.body}</p>
+        <button
+          type="button"
+          onClick={() => onPromptSelect(config.actionPrompt)}
+          className="mt-3 inline-flex rounded-lg border border-ts-orange/50 bg-ts-orange/10 px-3 py-1.5 text-xs font-semibold text-ts-orange"
+        >
+          {config.actionLabel}
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHomeProps) {
+  const { isAuthenticated } = useAuth();
   const { location } = useScoutLocation();
   const { data } = useScoutHomeSnapshot(location);
+  const [onboardingStatus, setOnboardingStatus] = useState<UnifiedOnboardingState | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!isAuthenticated) {
+        setOnboardingStatus(null);
+        return;
+      }
+      try {
+        const res = await fetch("/api/onboarding/status", { credentials: "include" });
+        if (!res.ok) {
+          setOnboardingStatus(null);
+          return;
+        }
+        const json = await res.json();
+        if (cancelled) return;
+        const state = (json?.state || null) as UnifiedOnboardingState | null;
+        setOnboardingStatus(state);
+      } catch {
+        if (!cancelled) setOnboardingStatus(null);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
   const continueItems = buildContinueItems(continuationThreads);
   const interests = inferUserInterestCategories(continueItems, data?.recentActivity ?? []);
   const nearbyRows = buildNearbyRows(
@@ -685,10 +809,32 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   const shouldShowEmptyContext = !hasPersonalizedScoutContext;
   const shouldShowSnapshot =
     hasPersonalizedScoutContext && (hasCategorySelectionOrSearch || hasRealContinuation);
+  const shouldShowSetupNudge = useMemo(() => {
+    if (!isAuthenticated || !onboardingStatus) return false;
+    const lane = onboardingStatus.lane;
+    if (!lane) return false;
+    const isCompleted = Boolean(onboardingStatus.completedAt);
+    if (lane === "browse_only") {
+      if (isCompleted) return false;
+      if (typeof window === "undefined") return false;
+      const params = new URLSearchParams(window.location.search || "");
+      return params.get("resumeSetup") === "1";
+    }
+    return !isCompleted || Boolean(onboardingStatus.nextStep);
+  }, [isAuthenticated, onboardingStatus]);
+
+  const setupNudge = useMemo(() => {
+    const lane = onboardingStatus?.lane;
+    if (!lane || lane === "browse_only") return null;
+    return SETUP_NUDGE_BY_LANE[lane] || null;
+  }, [onboardingStatus]);
 
   return (
     <div className="scout-home-surface pb-[calc(var(--scout-search-dock-height)+var(--global-nav-height)+env(safe-area-inset-bottom)+96px)]">
       <ScoutHero locationLabel={location.label} />
+      {shouldShowSetupNudge && setupNudge ? (
+        <SetupNudgeCard config={setupNudge} onPromptSelect={onPromptSelect} />
+      ) : null}
       {hasRealContinuation ? (
         <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />
       ) : null}
