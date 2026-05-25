@@ -75,6 +75,12 @@ type DirectConnectIntentConfig = {
   prompt: string;
   chips: string[];
   requestType: RequestType;
+  detailQuestions: Array<{
+    key: "what" | "where" | "when" | "details";
+    label: string;
+    placeholder: string;
+    required?: boolean;
+  }>;
 };
 
 const DIRECT_CONNECT_TABS: Section[] = [
@@ -256,48 +262,236 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
     prompt: "What do you need fixed, built, repaired, cleaned, or improved?",
     chips: ["Repair", "Cleaning", "Yard work", "Remodel", "Emergency help"],
     requestType: "service_request",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What needs done?",
+        placeholder: "Fence repair, pressure washing, drywall patch...",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Where is it located?",
+        placeholder: "City, county, or neighborhood",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "How soon do you need it?",
+        placeholder: "Today, this week, or flexible",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "Add photos/details if useful",
+        placeholder: "Access notes, measurements, materials, or other context",
+      },
+    ],
   },
   vehicle_service: {
     heading: "Vehicle help",
     prompt: "What vehicle service or repair do you need?",
     chips: ["Repair", "Maintenance", "Tires", "Tow/help", "Sell vehicle"],
     requestType: "service_request",
+    detailQuestions: [
+      { key: "what", label: "What vehicle?", placeholder: "Year, make, model", required: true },
+      {
+        key: "details",
+        label: "What service or issue?",
+        placeholder: "Brake noise, oil change, diagnostics...",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "Is it urgent?",
+        placeholder: "Now, today, this week, or flexible",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Where should help be near?",
+        placeholder: "City, county, or ZIP",
+        required: true,
+      },
+    ],
   },
   find_person_business: {
     heading: "Find local help",
     prompt: "Who or what kind of local help are you looking for?",
     chips: ["Contractor", "Notary", "Cleaner", "Mechanic", "Local business"],
     requestType: "other",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What kind of person/business?",
+        placeholder: "Notary, cleaner, mechanic, attorney...",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "What do you need them for?",
+        placeholder: "Describe the outcome you need",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Where should they be near?",
+        placeholder: "City, county, or neighborhood",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "Any must-haves?",
+        placeholder: "License, availability, language, schedule",
+      },
+    ],
   },
   sell_list: {
     heading: "Sell or list something",
     prompt: "What are you trying to sell or list?",
     chips: ["Tools", "Materials", "Vehicle", "Property", "Equipment"],
     requestType: "buy_sell",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What are you listing?",
+        placeholder: "Item, model, or category",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "Condition/details?",
+        placeholder: "Condition, size, quantity, included items",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "Price or unsure?",
+        placeholder: "Price target or 'unsure'",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Pickup/delivery area?",
+        placeholder: "Pickup city or delivery radius",
+        required: true,
+      },
+    ],
   },
   property_real_estate: {
     heading: "Property help",
     prompt: "What property, listing, client, or real estate need are you working on?",
     chips: ["Listing prep", "Inspection", "Realtor help", "Repairs", "Buyer/seller help"],
     requestType: "customer_support",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What property need?",
+        placeholder: "Listing prep, inspection, repairs, showing support...",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "Buying, selling, listing prep, inspection, or repair?",
+        placeholder: "Add the exact need",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Where is it located?",
+        placeholder: "City, county, or neighborhood",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "Timeline?",
+        placeholder: "ASAP, this week, this month",
+        required: true,
+      },
+    ],
   },
   offer_services: {
     heading: "Offer your services",
     prompt: "What service do you provide, and where do you work?",
     chips: ["Home services", "Vehicle services", "Property services", "Local business", "Other"],
     requestType: "business_request",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What service do you provide?",
+        placeholder: "Plumbing, detailing, electrical, cleaning...",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Where do you work?",
+        placeholder: "Cities, counties, or service radius",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "Are you available now?",
+        placeholder: "Now, this week, next week",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "What proof/profile info should be reviewed?",
+        placeholder: "License, insurance, certifications, portfolio",
+        required: true,
+      },
+    ],
   },
   browse_activity: {
     heading: "See what’s happening nearby",
     prompt: "What kind of local activity do you want to see?",
     chips: ["Posts", "Events", "Listings", "Requests", "Local businesses"],
     requestType: "other",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What do you want to see?",
+        placeholder: "Jobs, listings, events, help requests",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Near what area?",
+        placeholder: "City, county, or neighborhood",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "Today, this week, or anytime?",
+        placeholder: "Choose a time window",
+        required: true,
+      },
+    ],
   },
   browse_only: {
     heading: "Start anywhere",
     prompt: "Search for local help, listings, services, jobs, people, or places.",
     chips: ["Home repair", "Vehicle service", "Local help", "Listings", "Events"],
     requestType: "other",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What do you want to do first?",
+        placeholder: "Search local help, listing, or service",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Where should Scout focus?",
+        placeholder: "City, county, or neighborhood",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "When are you trying to do this?",
+        placeholder: "Now, this week, flexible",
+      },
+    ],
   },
 };
 
@@ -739,6 +933,14 @@ function DirectConnectRequestComposer({
   const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(2);
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
+  const [detailAnswers, setDetailAnswers] = useState<
+    Record<"what" | "where" | "when" | "details", string>
+  >({
+    what: "",
+    where: "",
+    when: "",
+    details: "",
+  });
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
@@ -1210,6 +1412,18 @@ function DirectConnectRequestComposer({
   });
 
   const canSubmit = title.trim().length >= 3 && description.trim().length >= 10;
+  const requiredQuestions =
+    intentConfig?.detailQuestions?.filter((question) => question.required) || [];
+  const hasRequiredAnswers =
+    requiredQuestions.length === 0
+      ? canSubmit
+      : requiredQuestions.every((question) => detailAnswers[question.key].trim().length >= 2);
+  const reviewCardReady = hasRequiredAnswers;
+  const reviewTitle = detailAnswers.what.trim() || title.trim() || "Request";
+  const reviewSummary =
+    detailAnswers.details.trim() || description.trim() || "No extra details yet.";
+  const reviewLocation = detailAnswers.where.trim() || "Location pending";
+  const reviewTiming = detailAnswers.when.trim() || "Timing pending";
   const selectedContractorCount = selectedContractorIds.length;
 
   const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1250,7 +1464,7 @@ function DirectConnectRequestComposer({
   };
 
   const handleOpenDispatchSheet = () => {
-    if (!canSubmit || createMutation.isPending) return;
+    if (!reviewCardReady || createMutation.isPending) return;
     if (!isAuthenticated) {
       persistDirectConnectDraft({ selectedProviderIds: selectedContractorIds });
       toast({
@@ -1317,6 +1531,7 @@ function DirectConnectRequestComposer({
                     onClick={() => {
                       markRequestStarted("title");
                       setTitle(chip);
+                      setDetailAnswers((current) => ({ ...current, what: chip }));
                     }}
                     className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
                   >
@@ -1342,31 +1557,62 @@ function DirectConnectRequestComposer({
             ))}
           </select>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-xs text-[color:var(--text-secondary)]">Title</label>
-          <Input
-            value={title}
-            onChange={(event) => {
-              markRequestStarted("title");
-              setTitle(event.target.value);
-            }}
-            placeholder={activeRequestMeta.titlePlaceholder}
-            className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs text-[color:var(--text-secondary)]">Scope</label>
-          <Textarea
-            value={description}
-            onChange={(event) => {
-              markRequestStarted("description");
-              setDescription(event.target.value);
-            }}
-            placeholder={activeRequestMeta.descriptionPlaceholder}
-            rows={3}
-            className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
-          />
-        </div>
+        {intentConfig?.detailQuestions?.map((question) => (
+          <div key={question.key} className="space-y-1.5">
+            <label className="text-xs text-[color:var(--text-secondary)]">
+              {question.label}
+              {question.required ? " *" : ""}
+            </label>
+            {question.key === "details" ? (
+              <Textarea
+                value={detailAnswers[question.key]}
+                onChange={(event) => {
+                  markRequestStarted("description");
+                  const next = event.target.value;
+                  setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                  setDescription(next);
+                }}
+                placeholder={question.placeholder}
+                rows={3}
+                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+              />
+            ) : (
+              <Input
+                value={detailAnswers[question.key]}
+                onChange={(event) => {
+                  markRequestStarted("title");
+                  const next = event.target.value;
+                  setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                  if (question.key === "what") setTitle(next);
+                }}
+                placeholder={question.placeholder}
+                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+              />
+            )}
+          </div>
+        ))}
+        {reviewCardReady && (
+          <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
+              Request Review Card
+            </p>
+            <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
+              {reviewTitle}
+            </h3>
+            <p className="mt-1 text-xs text-[color:var(--text-secondary)]">{reviewSummary}</p>
+            <div className="mt-2 grid gap-1 text-xs text-[color:var(--text-secondary)]">
+              <p>
+                <span className="text-[color:var(--text-primary)]">Location:</span> {reviewLocation}
+              </p>
+              <p>
+                <span className="text-[color:var(--text-primary)]">Timing:</span> {reviewTiming}
+              </p>
+            </div>
+            <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
+              Review before sharing. Contact stays gated until you approve.
+            </p>
+          </div>
+        )}
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <label className="text-xs text-[color:var(--text-secondary)]">Request photos</label>
@@ -1463,13 +1709,13 @@ function DirectConnectRequestComposer({
         <div className="flex justify-end">
           <Button
             onClick={handleOpenDispatchSheet}
-            disabled={createMutation.isPending || !canSubmit}
+            disabled={createMutation.isPending || !reviewCardReady}
             className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
             {createMutation.isPending
               ? "Sending..."
               : isAuthenticated
-                ? "Send request"
+                ? "Review before sharing"
                 : "Sign in to send"}
           </Button>
         </div>
