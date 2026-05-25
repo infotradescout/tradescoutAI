@@ -453,9 +453,65 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     CREATE TABLE IF NOT EXISTS job_punch_list_items (
       id text PRIMARY KEY,
       workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      status text NOT NULL DEFAULT 'open',
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
       title text NOT NULL,
-      note text NULL,
+      description text NULL,
+      status text NOT NULL DEFAULT 'open',
+      created_by text NULL,
+      assigned_to text NULL,
+      due_date timestamptz NULL,
+      resolved_at timestamptz NULL,
+      requester_responded_at timestamptz NULL,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS request_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS business_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS contractor_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS description text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS created_by text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS assigned_to text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS resolved_at timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_punch_list_items ADD COLUMN IF NOT EXISTS requester_responded_at timestamptz NULL`
+  );
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS job_completion_requests (
+      id text PRIMARY KEY,
+      workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
+      status text NOT NULL DEFAULT 'requested',
+      business_notes text NULL,
+      requester_notes text NULL,
+      requested_at timestamptz NOT NULL DEFAULT now(),
+      responded_at timestamptz NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
@@ -555,6 +611,16 @@ function normalizeLifecycleEvent(eventType: string): LifecycleStatus | null {
     case "change_order_change_requested":
     case "change_order_voided":
     case "punch_list_started":
+    case "punch_item_created":
+    case "punch_item_acknowledged":
+    case "punch_item_started":
+    case "punch_item_resolved":
+    case "punch_item_approved":
+    case "punch_item_rejected":
+    case "punch_item_waived":
+    case "completion_requested":
+    case "completion_confirmed":
+    case "completion_rejected":
     case "punch_item_completed":
     case "invoice_sent":
     case "receipt_uploaded":
@@ -661,6 +727,18 @@ async function resolveLifecycleRecipients(requestId: string, eventType: string) 
       "change_order_declined",
       "change_order_change_requested",
       "change_order_voided",
+      "punch_list_started",
+      "punch_item_created",
+      "punch_item_acknowledged",
+      "punch_item_started",
+      "punch_item_resolved",
+      "punch_item_approved",
+      "punch_item_rejected",
+      "punch_item_waived",
+      "completion_requested",
+      "completion_confirmed",
+      "completion_rejected",
+      "job_completed",
     ].includes(eventType)
   ) {
     const contractorRows = await db.execute(sql`
@@ -816,6 +894,10 @@ export function getAllowedLifecycleActions(args: {
           "update_checkpoint",
           "complete_checkpoint",
           "create_change_order",
+          "create_punch_item",
+          "acknowledge_punch_item",
+          "resolve_punch_item",
+          "request_completion",
           "add_punch_list_item",
           "mark_ready_for_punchout",
         ];
@@ -859,6 +941,13 @@ export function getAllowedLifecycleActions(args: {
         "approve_change_order",
         "decline_change_order",
         "request_change_order_changes",
+        "create_punch_item",
+        "approve_punch_item",
+        "reject_punch_item",
+        "waive_punch_item",
+        "review_completion_request",
+        "confirm_completion",
+        "reject_completion",
         "add_punch_list_item",
       ];
     case "invoicing":
@@ -983,6 +1072,16 @@ export async function appendDispatchEvent(args: {
     | "change_order_change_requested"
     | "change_order_voided"
     | "punch_list_started"
+    | "punch_item_created"
+    | "punch_item_acknowledged"
+    | "punch_item_started"
+    | "punch_item_resolved"
+    | "punch_item_approved"
+    | "punch_item_rejected"
+    | "punch_item_waived"
+    | "completion_requested"
+    | "completion_confirmed"
+    | "completion_rejected"
     | "punch_item_completed"
     | "invoice_sent"
     | "receipt_uploaded"

@@ -550,6 +550,37 @@ const changeOrderRespondSchema = z.object({
   note: z.string().max(1200).optional(),
 });
 
+const punchItemCreateSchema = z.object({
+  title: z.string().min(2).max(160),
+  description: z.string().max(1600).optional(),
+  assignedTo: z.string().max(120).optional(),
+  dueDate: z.string().datetime().optional(),
+});
+
+const punchItemUpdateSchema = z.object({
+  title: z.string().min(2).max(160).optional(),
+  description: z.string().max(1600).optional(),
+  assignedTo: z.string().max(120).nullable().optional(),
+  dueDate: z.string().datetime().nullable().optional(),
+  status: z
+    .enum(["acknowledged", "in_progress", "resolved", "rejected", "waived", "canceled"])
+    .optional(),
+});
+
+const punchItemRespondSchema = z.object({
+  decision: z.enum(["approve_resolved", "reject_resolved", "waive_item"]),
+  note: z.string().max(1200).optional(),
+});
+
+const completionRequestCreateSchema = z.object({
+  businessNotes: z.string().max(2000).optional(),
+});
+
+const completionRequestRespondSchema = z.object({
+  decision: z.enum(["confirm", "reject"]),
+  requesterNotes: z.string().max(2000).optional(),
+});
+
 function resolveTargetProviderIds(body: {
   targetContractorIds?: string[];
   targetProviderIds?: string[];
@@ -2333,11 +2364,7 @@ export function registerDirectConnectRoutes(app: Express) {
               COUNT(c.id)::int AS checkpoint_count,
               COUNT(c.id) FILTER (WHERE c.status NOT IN ('approved', 'completed', 'canceled'))::int AS open_checkpoint_count,
               (
-                SELECT c2.status
-                FROM job_checkpoints c2
-                WHERE c2.workspace_id = w.id
-                ORDER BY c2.created_at DESC
-                LIMIT 1
+                SELECT c2.status FROM job_checkpoints c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
               ) AS latest_checkpoint_status
             FROM direct_connect_job_workspaces w
             LEFT JOIN job_checkpoints c ON c.workspace_id = w.id
@@ -2369,13 +2396,9 @@ export function registerDirectConnectRoutes(app: Express) {
             SELECT
               w.request_id,
               COUNT(c.id)::int AS change_order_count,
-              COUNT(c.id) FILTER (WHERE c.status IN ('draft', 'sent', 'change_requested'))::int AS open_change_order_count,
+              COUNT(c.id) FILTER (WHERE c.status IN ('draft','sent','change_requested'))::int AS open_change_order_count,
               (
-                SELECT c2.status
-                FROM job_change_orders c2
-                WHERE c2.workspace_id = w.id
-                ORDER BY c2.created_at DESC
-                LIMIT 1
+                SELECT c2.status FROM job_change_orders c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
               ) AS latest_change_order_status
             FROM direct_connect_job_workspaces w
             LEFT JOIN job_change_orders c ON c.workspace_id = w.id
@@ -2391,6 +2414,70 @@ export function registerDirectConnectRoutes(app: Express) {
                 : null,
               changeOrderCount: Number(row.change_order_count || 0),
               openChangeOrderCount: Number(row.open_change_order_count || 0),
+            });
+          }
+        }
+        const punchSummaryByRequestId = new Map<
+          string,
+          {
+            latestPunchListStatus: string | null;
+            punchItemCount: number;
+            openPunchItemCount: number;
+          }
+        >();
+        if (requestIds.length) {
+          const punchRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(p.id)::int AS punch_item_count,
+              COUNT(p.id) FILTER (WHERE p.status NOT IN ('resolved','waived','canceled'))::int AS open_punch_item_count,
+              (
+                SELECT p2.status FROM job_punch_list_items p2 WHERE p2.workspace_id = w.id ORDER BY p2.created_at DESC LIMIT 1
+              ) AS latest_punch_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_punch_list_items p ON p.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (punchRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || punchSummaryByRequestId.has(key)) continue;
+            punchSummaryByRequestId.set(key, {
+              latestPunchListStatus: row.latest_punch_status
+                ? String(row.latest_punch_status)
+                : null,
+              punchItemCount: Number(row.punch_item_count || 0),
+              openPunchItemCount: Number(row.open_punch_item_count || 0),
+            });
+          }
+        }
+        const completionSummaryByRequestId = new Map<
+          string,
+          { latestCompletionStatus: string | null; activeCompletionRequestId: string | null }
+        >();
+        if (requestIds.length) {
+          const completionRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              (
+                SELECT c2.id FROM job_completion_requests c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
+              ) AS active_completion_request_id,
+              (
+                SELECT c3.status FROM job_completion_requests c3 WHERE c3.workspace_id = w.id ORDER BY c3.created_at DESC LIMIT 1
+              ) AS latest_completion_status
+            FROM direct_connect_job_workspaces w
+            WHERE w.request_id = ANY(${requestIds}::text[])
+          `);
+          for (const row of (completionRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || completionSummaryByRequestId.has(key)) continue;
+            completionSummaryByRequestId.set(key, {
+              latestCompletionStatus: row.latest_completion_status
+                ? String(row.latest_completion_status)
+                : null,
+              activeCompletionRequestId: row.active_completion_request_id
+                ? String(row.active_completion_request_id)
+                : null,
             });
           }
         }
@@ -2602,6 +2689,9 @@ export function registerDirectConnectRoutes(app: Express) {
           const scheduleMeta = scheduleSummaryByRequestId.get(String(r.id)) || null;
           const checkpointMeta = checkpointSummaryByRequestId.get(String(r.id)) || null;
           const changeOrderMeta = changeOrderSummaryByRequestId.get(String(r.id)) || null;
+          const punchMeta = punchSummaryByRequestId.get(String(r.id)) || null;
+          const completionMeta = completionSummaryByRequestId.get(String(r.id)) || null;
+          const workspaceMeta = workspaceByRequestId.get(String(r.id)) || null;
           return {
             ...r,
             attachmentCount: getAttachmentCount(r),
@@ -2639,13 +2729,23 @@ export function registerDirectConnectRoutes(app: Express) {
             latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
             scheduleProposalCount: scheduleMeta?.scheduleProposalCount ?? 0,
             activeScheduleProposalId: scheduleMeta?.activeScheduleProposalId ?? null,
-            latestWorkStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+            latestWorkStatus: workspaceMeta?.status ? String(workspaceMeta.status) : null,
             latestCheckpointStatus: checkpointMeta?.latestCheckpointStatus ?? null,
             checkpointCount: checkpointMeta?.checkpointCount ?? 0,
             openCheckpointCount: checkpointMeta?.openCheckpointCount ?? 0,
             latestChangeOrderStatus: changeOrderMeta?.latestChangeOrderStatus ?? null,
             changeOrderCount: changeOrderMeta?.changeOrderCount ?? 0,
             openChangeOrderCount: changeOrderMeta?.openChangeOrderCount ?? 0,
+            latestPunchListStatus: punchMeta?.latestPunchListStatus ?? null,
+            punchItemCount: punchMeta?.punchItemCount ?? 0,
+            openPunchItemCount: punchMeta?.openPunchItemCount ?? 0,
+            latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+            activeCompletionRequestId: completionMeta?.activeCompletionRequestId ?? null,
+            completionBlockedReason:
+              completionMeta?.latestCompletionStatus === "requested" &&
+              (punchMeta?.openPunchItemCount ?? 0) > 0
+                ? "open_punch_items"
+                : null,
           };
         });
 
@@ -2879,6 +2979,47 @@ export function registerDirectConnectRoutes(app: Express) {
         const changeOrderSummary = changeOrderSummaryRows
           ? (((changeOrderSummaryRows.rows || []) as any[])[0] ?? null)
           : null;
+        const punchSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS punch_item_count,
+                  COUNT(id) FILTER (WHERE status NOT IN ('resolved', 'waived', 'canceled'))::int AS open_punch_item_count,
+                  (
+                    SELECT status
+                    FROM job_punch_list_items
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_punch_status
+                FROM job_punch_list_items
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const punchSummary = punchSummaryRows
+          ? (((punchSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const completionSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  (
+                    SELECT id
+                    FROM job_completion_requests
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_completion_request_id,
+                  (
+                    SELECT status
+                    FROM job_completion_requests
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_completion_status
+              `)
+          : null;
+        const completionSummary = completionSummaryRows
+          ? (((completionSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
         await appendDispatchEvent({
           requestId,
           actorType: "requester",
@@ -2965,6 +3106,22 @@ export function registerDirectConnectRoutes(app: Express) {
             : null,
           changeOrderCount: Number(changeOrderSummary?.change_order_count || 0),
           openChangeOrderCount: Number(changeOrderSummary?.open_change_order_count || 0),
+          latestPunchListStatus: punchSummary?.latest_punch_status
+            ? String(punchSummary.latest_punch_status)
+            : null,
+          punchItemCount: Number(punchSummary?.punch_item_count || 0),
+          openPunchItemCount: Number(punchSummary?.open_punch_item_count || 0),
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          activeCompletionRequestId: completionSummary?.active_completion_request_id
+            ? String(completionSummary.active_completion_request_id)
+            : null,
+          completionBlockedReason:
+            completionSummary?.latest_completion_status === "requested" &&
+            Number(punchSummary?.open_punch_item_count || 0) > 0
+              ? "open_punch_items"
+              : null,
           allowedLifecycleActions,
           responses: contractorResponses,
           responseCount: contractorResponses.length,
@@ -5481,6 +5638,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const scheduleMeta = scheduleSummaryByRequestId.get(requestId) || null;
           const checkpointMeta = checkpointSummaryByRequestId.get(requestId) || null;
           const changeOrderMeta = changeOrderSummaryByRequestId.get(requestId) || null;
+          const punchMeta = punchSummaryByRequestId.get(requestId) || null;
+          const completionMeta = completionSummaryByRequestId.get(requestId) || null;
           const workspace = workspaceByRequestId.get(requestId) || null;
           const allowedLifecycleActions = workspace
             ? getAllowedLifecycleActions({
@@ -5524,6 +5683,16 @@ export function registerDirectConnectRoutes(app: Express) {
             latestChangeOrderStatus: changeOrderMeta?.latestChangeOrderStatus ?? null,
             changeOrderCount: changeOrderMeta?.changeOrderCount ?? 0,
             openChangeOrderCount: changeOrderMeta?.openChangeOrderCount ?? 0,
+            latestPunchListStatus: punchMeta?.latestPunchListStatus ?? null,
+            punchItemCount: punchMeta?.punchItemCount ?? 0,
+            openPunchItemCount: punchMeta?.openPunchItemCount ?? 0,
+            latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+            activeCompletionRequestId: completionMeta?.activeCompletionRequestId ?? null,
+            completionBlockedReason:
+              completionMeta?.latestCompletionStatus === "requested" &&
+              (punchMeta?.openPunchItemCount ?? 0) > 0
+                ? "open_punch_items"
+                : null,
             jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
             activeStage: workspace?.active_stage ? String(workspace.active_stage) : null,
             latestJobStatus: workspace?.status ? String(workspace.status) : null,
@@ -5766,6 +5935,22 @@ export function registerDirectConnectRoutes(app: Express) {
             : null,
           changeOrderCount: Number(changeOrderSummary?.change_order_count || 0),
           openChangeOrderCount: Number(changeOrderSummary?.open_change_order_count || 0),
+          latestPunchListStatus: punchSummary?.latest_punch_status
+            ? String(punchSummary.latest_punch_status)
+            : null,
+          punchItemCount: Number(punchSummary?.punch_item_count || 0),
+          openPunchItemCount: Number(punchSummary?.open_punch_item_count || 0),
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          activeCompletionRequestId: completionSummary?.active_completion_request_id
+            ? String(completionSummary.active_completion_request_id)
+            : null,
+          completionBlockedReason:
+            completionSummary?.latest_completion_status === "requested" &&
+            Number(punchSummary?.open_punch_item_count || 0) > 0
+              ? "open_punch_items"
+              : null,
           jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
           activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
           latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
@@ -7340,12 +7525,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(201).json({ checkpointId, status: checkpointStatus, jobWorkspaceId });
       } catch (error) {
         console.error("Error creating checkpoint:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to create checkpoint",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to create checkpoint",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -7456,12 +7639,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, checkpointId });
       } catch (error) {
         console.error("Error updating checkpoint:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to update checkpoint",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to update checkpoint",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -7477,12 +7658,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const checkpointId = String(req.params.checkpointId || "").trim();
         const parse = checkpointRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid checkpoint response payload",
-              issues: parse.error.flatten(),
-            });
+          return res.status(400).json({
+            message: "Invalid checkpoint response payload",
+            issues: parse.error.flatten(),
+          });
         }
         const rows = await db.execute(sql`
           SELECT c.id, c.request_id, c.requester_user_id
@@ -7517,12 +7696,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, checkpointId, status: nextStatus });
       } catch (error) {
         console.error("Error responding to checkpoint:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to respond to checkpoint",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to respond to checkpoint",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -7651,12 +7828,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(201).json({ changeOrderId, status: "sent", totalDelta, jobWorkspaceId });
       } catch (error) {
         console.error("Error creating change order:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to create change order",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to create change order",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -7743,12 +7918,10 @@ export function registerDirectConnectRoutes(app: Express) {
         });
       } catch (error) {
         console.error("Error loading change order:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to load change order",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to load change order",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -7764,12 +7937,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const changeOrderId = String(req.params.changeOrderId || "").trim();
         const parse = changeOrderRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid change order response payload",
-              issues: parse.error.flatten(),
-            });
+          return res.status(400).json({
+            message: "Invalid change order response payload",
+            issues: parse.error.flatten(),
+          });
         }
         const rows = await db.execute(sql`
           SELECT id, request_id, requester_user_id, status
@@ -7817,10 +7988,513 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, changeOrderId, status: nextStatus });
       } catch (error) {
         console.error("Error responding to change order:", error);
+        return res.status(500).json({
+          message: "Failed to respond to change order",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/ready-for-punchout",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const acceptedEstimateRows = await db.execute(sql`
+          SELECT id FROM job_estimates WHERE workspace_id = ${jobWorkspaceId} AND status = 'accepted' LIMIT 1
+        `);
+        if (!((acceptedEstimateRows.rows || []) as any[])[0]) {
+          return res.status(409).json({ message: "Punchout requires an accepted estimate." });
+        }
+        const startedRows = await db.execute(sql`
+          SELECT id FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+            AND status IN ('in_progress', 'schedule_proposed', 'schedule_change_requested', 'job_scheduled', 'punchout')
+          LIMIT 1
+        `);
+        if (!((startedRows.rows || []) as any[])[0]) {
+          return res.status(409).json({ message: "Punchout requires work to be started." });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can start punchout." });
+        }
+
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'punch_list', status = 'punchout', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "punch_list_started",
+          metadata: { jobWorkspaceId },
+        });
+        return res.status(200).json({ ok: true, jobWorkspaceId, status: "punchout" });
+      } catch (error) {
+        console.error("Error marking ready for punchout:", error);
         return res
           .status(500)
           .json({
-            message: "Failed to respond to change order",
+            message: "Failed to mark ready for punchout",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/punch-list-items",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const parse = punchItemCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success)
+          return res
+            .status(400)
+            .json({ message: "Invalid punch item payload", issues: parse.error.flatten() });
+
+        const workspaceRows = await db.execute(
+          sql`SELECT id, request_id, requester_user_id, business_id, contractor_id FROM direct_connect_job_workspaces WHERE id = ${jobWorkspaceId} LIMIT 1`
+        );
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const acceptedEstimateRows = await db.execute(
+          sql`SELECT id FROM job_estimates WHERE workspace_id = ${jobWorkspaceId} AND status = 'accepted' LIMIT 1`
+        );
+        if (!((acceptedEstimateRows.rows || []) as any[])[0])
+          return res.status(409).json({ message: "Punch list requires an accepted estimate." });
+
+        const isRequester = String(workspace.requester_user_id || "") === userId;
+        let canBusinessWrite = false;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              );
+          canBusinessWrite = Boolean(((eligibilityResult.rows || []) as any[])[0]);
+        }
+        if (!isRequester && !canBusinessWrite)
+          return res.status(403).json({ message: "Not allowed to create punch list items." });
+
+        const punchItemId = createId("punch");
+        await db.execute(sql`
+        INSERT INTO job_punch_list_items (
+          id, workspace_id, request_id, requester_user_id, business_id, contractor_id, title, description, status, created_by, assigned_to, due_date, created_at, updated_at
+        ) VALUES (
+          ${punchItemId}, ${jobWorkspaceId}, ${String(workspace.request_id)}, ${String(workspace.requester_user_id || "")},
+          ${workspace.business_id ? String(workspace.business_id) : null}, ${workspace.contractor_id ? String(workspace.contractor_id) : null},
+          ${parse.data.title.trim()}, ${parse.data.description ? parse.data.description.trim() : null}, 'open', ${userId},
+          ${parse.data.assignedTo ? parse.data.assignedTo.trim() : null}, ${parse.data.dueDate ? new Date(parse.data.dueDate).toISOString() : null}, now(), now()
+        )
+      `);
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: isRequester ? "requester" : "contractor",
+          actorId: userId,
+          eventType: "punch_item_created",
+          metadata: { punchItemId },
+        });
+        return res.status(201).json({ punchItemId, status: "open", jobWorkspaceId });
+      } catch (error) {
+        console.error("Error creating punch list item:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to create punch list item",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/direct-connect/jobs/:jobWorkspaceId/punch-list-items/:punchItemId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const punchItemId = String(req.params.punchItemId || "").trim();
+        const parse = punchItemUpdateSchema.safeParse(req.body ?? {});
+        if (!parse.success)
+          return res
+            .status(400)
+            .json({ message: "Invalid punch item update payload", issues: parse.error.flatten() });
+
+        const rows = await db.execute(sql`
+        SELECT p.id, p.request_id, p.requester_user_id, p.status
+        FROM job_punch_list_items p
+        WHERE p.id = ${punchItemId} AND p.workspace_id = ${jobWorkspaceId}
+        LIMIT 1
+      `);
+        const item = ((rows.rows || []) as any[])[0] || null;
+        if (!item) return res.status(404).json({ message: "Punch list item not found" });
+
+        const workspaceRows = await db.execute(
+          sql`SELECT request_id FROM direct_connect_job_workspaces WHERE id = ${jobWorkspaceId} LIMIT 1`
+        );
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            )
+          : await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            );
+        if (!((eligibilityResult.rows || []) as any[])[0])
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can update punch list items." });
+
+        await db.execute(sql`
+        UPDATE job_punch_list_items
+        SET
+          title = COALESCE(${parse.data.title ? parse.data.title.trim() : null}, title),
+          description = COALESCE(${parse.data.description ? parse.data.description.trim() : null}, description),
+          assigned_to = CASE WHEN ${parse.data.assignedTo === null} THEN NULL WHEN ${typeof parse.data.assignedTo === "string"} THEN ${parse.data.assignedTo ? parse.data.assignedTo.trim() : null} ELSE assigned_to END,
+          due_date = CASE WHEN ${parse.data.dueDate === null} THEN NULL WHEN ${typeof parse.data.dueDate === "string"} THEN ${parse.data.dueDate ? new Date(parse.data.dueDate).toISOString() : null}::timestamptz ELSE due_date END,
+          status = COALESCE(${parse.data.status ? parse.data.status : null}, status),
+          resolved_at = CASE WHEN ${parse.data.status === "resolved"} THEN now() ELSE resolved_at END,
+          updated_at = now()
+        WHERE id = ${punchItemId}
+      `);
+
+        let eventType: "punch_item_acknowledged" | "punch_item_started" | "punch_item_resolved" =
+          "punch_item_acknowledged";
+        if (parse.data.status === "in_progress") eventType = "punch_item_started";
+        if (parse.data.status === "resolved") eventType = "punch_item_resolved";
+        await appendDispatchEvent({
+          requestId: String(item.request_id || ""),
+          actorType: "contractor",
+          actorId: userId,
+          eventType,
+          metadata: { punchItemId, status: parse.data.status || String(item.status || "") },
+        });
+        return res.status(200).json({ ok: true, punchItemId });
+      } catch (error) {
+        console.error("Error updating punch list item:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to update punch list item",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/punch-list-items/:punchItemId/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const punchItemId = String(req.params.punchItemId || "").trim();
+        const parse = punchItemRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success)
+          return res
+            .status(400)
+            .json({
+              message: "Invalid punch item response payload",
+              issues: parse.error.flatten(),
+            });
+        const rows = await db.execute(
+          sql`SELECT id, request_id, requester_user_id, status FROM job_punch_list_items WHERE id = ${punchItemId} AND workspace_id = ${jobWorkspaceId} LIMIT 1`
+        );
+        const item = ((rows.rows || []) as any[])[0] || null;
+        if (!item) return res.status(404).json({ message: "Punch list item not found" });
+        if (String(item.requester_user_id || "") !== userId)
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to this punch item." });
+
+        let nextStatus: "resolved" | "open" | "waived" = "open";
+        let eventType: "punch_item_approved" | "punch_item_rejected" | "punch_item_waived" =
+          "punch_item_rejected";
+        if (parse.data.decision === "approve_resolved") {
+          nextStatus = "resolved";
+          eventType = "punch_item_approved";
+        } else if (parse.data.decision === "waive_item") {
+          nextStatus = "waived";
+          eventType = "punch_item_waived";
+        }
+        await db.execute(
+          sql`UPDATE job_punch_list_items SET status = ${nextStatus}, requester_responded_at = now(), updated_at = now() WHERE id = ${punchItemId}`
+        );
+        await appendDispatchEvent({
+          requestId: String(item.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType,
+          metadata: { punchItemId, note: parse.data.note ? parse.data.note.trim() : null },
+        });
+        return res.status(200).json({ ok: true, punchItemId, status: nextStatus });
+      } catch (error) {
+        console.error("Error responding to punch list item:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to respond to punch list item",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/completion-request",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const parse = completionRequestCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success)
+          return res
+            .status(400)
+            .json({ message: "Invalid completion request payload", issues: parse.error.flatten() });
+
+        const workspaceRows = await db.execute(
+          sql`SELECT id, request_id, requester_user_id FROM direct_connect_job_workspaces WHERE id = ${jobWorkspaceId} LIMIT 1`
+        );
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const acceptedEstimateRows = await db.execute(
+          sql`SELECT id FROM job_estimates WHERE workspace_id = ${jobWorkspaceId} AND status = 'accepted' LIMIT 1`
+        );
+        if (!((acceptedEstimateRows.rows || []) as any[])[0])
+          return res
+            .status(409)
+            .json({ message: "Completion request requires an accepted estimate." });
+        const startedRows = await db.execute(
+          sql`SELECT id FROM direct_connect_job_workspaces WHERE id = ${jobWorkspaceId} AND active_stage IN ('in_progress','punch_list','checkpoint','change_order') LIMIT 1`
+        );
+        if (!((startedRows.rows || []) as any[])[0])
+          return res.status(409).json({ message: "Completion request requires started work." });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            )
+          : await db.execute(
+              sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+            );
+        if (!((eligibilityResult.rows || []) as any[])[0])
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can request completion." });
+
+        const completionRequestId = createId("complete");
+        await db.execute(sql`
+        INSERT INTO job_completion_requests (
+          id, workspace_id, request_id, requester_user_id, business_id, contractor_id, status, business_notes, requested_at, created_at, updated_at
+        ) VALUES (
+          ${completionRequestId}, ${jobWorkspaceId}, ${String(workspace.request_id)}, ${String(workspace.requester_user_id || "")},
+          null, ${contractorId}, 'requested', ${parse.data.businessNotes ? parse.data.businessNotes.trim() : null}, now(), now(), now()
+        )
+      `);
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "completion_requested",
+          metadata: { completionRequestId },
+        });
+        return res.status(201).json({ completionRequestId, status: "requested", jobWorkspaceId });
+      } catch (error) {
+        console.error("Error requesting completion:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to request completion",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/completion-request/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const parse = completionRequestRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success)
+          return res
+            .status(400)
+            .json({
+              message: "Invalid completion response payload",
+              issues: parse.error.flatten(),
+            });
+
+        const completionRows = await db.execute(sql`
+        SELECT id, request_id, requester_user_id, status
+        FROM job_completion_requests
+        WHERE workspace_id = ${jobWorkspaceId}
+        ORDER BY created_at DESC
+        LIMIT 1
+      `);
+        const completionRequest = ((completionRows.rows || []) as any[])[0] || null;
+        if (!completionRequest)
+          return res.status(404).json({ message: "Completion request not found" });
+        if (String(completionRequest.requester_user_id || "") !== userId)
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to completion." });
+        if (String(completionRequest.status || "requested") !== "requested")
+          return res.status(409).json({ message: "Completion request is no longer pending." });
+
+        if (parse.data.decision === "confirm") {
+          const unresolvedRows = await db.execute(sql`
+          SELECT COUNT(*)::int AS count
+          FROM job_punch_list_items
+          WHERE workspace_id = ${jobWorkspaceId}
+            AND status NOT IN ('resolved', 'waived', 'canceled')
+        `);
+          const unresolvedCount = Number(((unresolvedRows.rows || []) as any[])[0]?.count || 0);
+          if (unresolvedCount > 0) {
+            return res
+              .status(409)
+              .json({
+                message: "Unresolved punch list items block completion.",
+                completionBlockedReason: "open_punch_items",
+              });
+          }
+        }
+
+        const nextStatus = parse.data.decision === "confirm" ? "confirmed" : "rejected";
+        await db.execute(sql`
+        UPDATE job_completion_requests
+        SET status = ${nextStatus}, requester_notes = ${parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null}, responded_at = now(), updated_at = now()
+        WHERE id = ${String(completionRequest.id)}
+      `);
+        if (parse.data.decision === "confirm") {
+          await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'completed', status = 'completed', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+        }
+        await appendDispatchEvent({
+          requestId: String(completionRequest.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType:
+            parse.data.decision === "confirm" ? "completion_confirmed" : "completion_rejected",
+          metadata: { completionRequestId: String(completionRequest.id) },
+        });
+        if (parse.data.decision === "confirm") {
+          await appendDispatchEvent({
+            requestId: String(completionRequest.request_id || ""),
+            actorType: "system",
+            actorId: null,
+            eventType: "job_completed",
+            metadata: { completionRequestId: String(completionRequest.id) },
+          });
+        }
+        return res
+          .status(200)
+          .json({
+            ok: true,
+            completionRequestId: String(completionRequest.id),
+            status: nextStatus,
+          });
+      } catch (error) {
+        console.error("Error responding to completion request:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to respond to completion request",
             requestId: (req as any).requestId || null,
           });
       }
