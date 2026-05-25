@@ -29161,6 +29161,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/dashboard", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
       if (!user) {
@@ -29184,18 +29187,32 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         conversations: [],
       };
 
+      const safeQuery = async <T>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> => {
+        try {
+          return await fn();
+        } catch (error) {
+          console.warn(`[dashboard] failed to load ${label}; using fallback`, error);
+          return fallback;
+        }
+      };
+
       // Fetch contractor-specific data
       if (user.role === "contractor") {
         const contractor = await storage.getContractorByUserId(userId);
 
         if (contractor) {
           // Get contractor's assigned leads (projects)
-          const contractorLeads = await db
-            .select()
-            .from(leads)
-            .where(eq(leads.contractorId, contractor.id))
-            .orderBy(desc(leads.createdAt))
-            .limit(10);
+          const contractorLeads = await safeQuery(
+            "contractor leads",
+            () =>
+              db
+                .select()
+                .from(leads)
+                .where(eq(leads.contractorId, contractor.id))
+                .orderBy(desc(leads.createdAt))
+                .limit(10),
+            [] as any[]
+          );
 
           dashboardData.myProjects = contractorLeads.map((lead: any) => ({
             id: lead.id,
@@ -29210,22 +29227,32 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           ).length;
 
           // Get contractor's quotes
-          const contractorQuotes = await db
-            .select()
-            .from(quotes)
-            .where(eq(quotes.contractorId, contractor.id))
-            .orderBy(desc(quotes.createdAt))
-            .limit(10);
+          const contractorQuotes = await safeQuery(
+            "contractor quotes",
+            () =>
+              db
+                .select()
+                .from(quotes)
+                .where(eq(quotes.contractorId, contractor.id))
+                .orderBy(desc(quotes.createdAt))
+                .limit(10),
+            [] as any[]
+          );
 
           dashboardData.quotes = contractorQuotes;
 
           // Get contractor's conversations
-          const contractorConversations = await db
-            .select()
-            .from(conversations)
-            .where(eq(conversations.contractorId, contractor.id))
-            .orderBy(desc(conversations.lastMessageAt))
-            .limit(10);
+          const contractorConversations = await safeQuery(
+            "contractor conversations",
+            () =>
+              db
+                .select()
+                .from(conversations)
+                .where(eq(conversations.contractorId, contractor.id))
+                .orderBy(desc(conversations.lastMessageAt))
+                .limit(10),
+            [] as any[]
+          );
 
           dashboardData.conversations = contractorConversations;
         }
@@ -29234,12 +29261,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       // Fetch homeowner-specific data
       if (user.role === "homeowner") {
         // Get homeowner's leads (project requests)
-        const homeownerLeads = await db
-          .select()
-          .from(leads)
-          .where(eq(leads.userId, userId))
-          .orderBy(desc(leads.createdAt))
-          .limit(10);
+        const homeownerLeads = await safeQuery(
+          "homeowner leads",
+          () =>
+            db
+              .select()
+              .from(leads)
+              .where(eq(leads.userId, userId))
+              .orderBy(desc(leads.createdAt))
+              .limit(10),
+          [] as any[]
+        );
 
         dashboardData.myProjects = homeownerLeads.map((lead: any) => ({
           id: lead.id,
@@ -29254,24 +29286,34 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         ).length;
 
         // Get homeowner's conversations
-        const homeownerConversations = await db
-          .select()
-          .from(conversations)
-          .where(eq(conversations.homeownerId, userId))
-          .orderBy(desc(conversations.lastMessageAt))
-          .limit(10);
+        const homeownerConversations = await safeQuery(
+          "homeowner conversations",
+          () =>
+            db
+              .select()
+              .from(conversations)
+              .where(eq(conversations.homeownerId, userId))
+              .orderBy(desc(conversations.lastMessageAt))
+              .limit(10),
+          [] as any[]
+        );
 
         dashboardData.conversations = homeownerConversations;
 
         // Get quotes from conversations
         if (homeownerConversations.length > 0) {
           const conversationIds = homeownerConversations.map((c: any) => c.id);
-          const homeownerQuotes = await db
-            .select()
-            .from(quotes)
-            .where(sql`${quotes.conversationId} = ANY(${conversationIds})`)
-            .orderBy(desc(quotes.createdAt))
-            .limit(10);
+          const homeownerQuotes = await safeQuery(
+            "homeowner quotes",
+            () =>
+              db
+                .select()
+                .from(quotes)
+                .where(sql`${quotes.conversationId} = ANY(${conversationIds})`)
+                .orderBy(desc(quotes.createdAt))
+                .limit(10),
+            [] as any[]
+          );
 
           dashboardData.quotes = homeownerQuotes;
         }
@@ -29279,10 +29321,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         // Get saved contractors count
         const savedContractorsTable = (db as any).query?.savedContractors?.table;
         if (savedContractorsTable) {
-          const savedContractorRows = await db
-            .select()
-            .from(savedContractorsTable)
-            .where(eq((savedContractorsTable as any).userId, userId));
+          const savedContractorRows = await safeQuery(
+            "saved contractors",
+            () =>
+              db
+                .select()
+                .from(savedContractorsTable)
+                .where(eq((savedContractorsTable as any).userId, userId)),
+            [] as any[]
+          );
           dashboardData.stats.savedContractors = savedContractorRows.length;
         } else {
           dashboardData.stats.savedContractors = 0;
@@ -29290,12 +29337,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
 
       // Get marketplace listings for all users
-      const userListings = await db
-        .select()
-        .from(marketplaceListings)
-        .where(eq(marketplaceListings.sellerId, userId))
-        .orderBy(desc(marketplaceListings.createdAt))
-        .limit(10);
+      const userListings = await safeQuery(
+        "marketplace listings",
+        () =>
+          db
+            .select()
+            .from(marketplaceListings)
+            .where(eq(marketplaceListings.sellerId, userId))
+            .orderBy(desc(marketplaceListings.createdAt))
+            .limit(10),
+        [] as any[]
+      );
 
       dashboardData.myListings = userListings;
       dashboardData.stats.marketplaceListings = userListings.filter(
@@ -29305,12 +29357,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       // Get realtor listings if user is a realtor
       const realEstateListingsTable = (db as any).query?.realEstateListings?.table;
       if (user.role === "realtor" && realEstateListingsTable) {
-        const realtorListings = await db
-          .select()
-          .from(realEstateListingsTable)
-          .where(eq((realEstateListingsTable as any).sellerId, userId))
-          .orderBy(desc((realEstateListingsTable as any).createdAt))
-          .limit(10);
+        const realtorListings = await safeQuery(
+          "realtor listings",
+          () =>
+            db
+              .select()
+              .from(realEstateListingsTable)
+              .where(eq((realEstateListingsTable as any).sellerId, userId))
+              .orderBy(desc((realEstateListingsTable as any).createdAt))
+              .limit(10),
+          [] as any[]
+        );
         dashboardData.realEstateListings = realtorListings;
         dashboardData.stats.realEstateListings = realtorListings.filter(
           (l: any) => l.status === "active"
@@ -29318,12 +29375,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
 
       // Get recent community activity
-      const recentPosts = await db
-        .select()
-        .from(communityPosts)
-        .where(eq(communityPosts.authorId, userId))
-        .orderBy(desc(communityPosts.createdAt))
-        .limit(5);
+      const recentPosts = await safeQuery(
+        "recent posts",
+        () =>
+          db
+            .select()
+            .from(communityPosts)
+            .where(eq(communityPosts.authorId, userId))
+            .orderBy(desc(communityPosts.createdAt))
+            .limit(5),
+        [] as any[]
+      );
 
       dashboardData.recentActivity = recentPosts.map((post: any) => ({
         id: post.id,
