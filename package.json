@@ -23,7 +23,7 @@
     "test:run": "node scripts/check-node-spawn.mjs && cross-env NODE_ENV=test vitest run",
     "e2e": "node scripts/check-node-spawn.mjs && cross-env NODE_ENV=test playwright test",
     "e2e:ui": "cross-env NODE_ENV=test playwright test --ui",
-    "test:e2e": "cross-env NODE_ENV=test playwright test",
+    "test:e2e": "node scripts/run-e2e-with-testdb.mjs",
     "test:release-gates": "cross-env NODE_ENV=test node scripts/run-release-gates.mjs",
     "test:release-gates:local": "node scripts/run-release-gates-local.mjs",
     "report:release-gates": "node scripts/report-release-gates.mjs",

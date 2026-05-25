@@ -2,6 +2,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { trackShellEvent } from "./lib/analytics";
+import { I18nProvider } from "./lib/i18n";
 
 const BOOT_FALLBACK_ID = "ts-boot-fallback";
 const BOOT_MESSAGE_ID = "ts-boot-fallback-message";
@@ -413,7 +414,11 @@ async function bootstrap() {
   // StrictMode intentionally double-mounts in dev,
   // which was breaking Scout, animations, and OAuth.
   try {
-    root.render(<App />);
+    root.render(
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    );
     document.body.setAttribute(APP_READY_ATTR, "true");
     window.requestAnimationFrame(() => {
       hideBootFallback();

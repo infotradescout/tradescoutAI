@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 type OnboardingLane =
   | "find_help"
@@ -21,55 +23,59 @@ type OnboardingLane =
 
 type OnboardingAsset = "home" | "vehicle" | "project" | "business" | "saved_search";
 
-const INTENT_OPTIONS: Array<{ label: string; detail: string; lane: OnboardingLane }> = [
+const INTENT_OPTIONS: Array<{
+  labelKey: string;
+  detailKey: string;
+  lane: OnboardingLane;
+}> = [
   {
-    label: "Fix or improve something",
-    detail: "Get matched with the right local person for the job.",
+    labelKey: "onboarding.intent.fixImprove",
+    detailKey: "onboarding.intent.fixImproveDetail",
     lane: "manage_projects",
   },
   {
-    label: "Service or repair a vehicle",
-    detail: "Find the right local help for vehicle service and repairs.",
+    labelKey: "onboarding.intent.vehicleService",
+    detailKey: "onboarding.intent.vehicleServiceDetail",
     lane: "find_help",
   },
   {
-    label: "Find a person or business",
-    detail: "Post what you need and review matches before contact opens.",
+    labelKey: "onboarding.intent.findPersonBusiness",
+    detailKey: "onboarding.intent.findPersonBusinessDetail",
     lane: "find_help",
   },
   {
-    label: "Sell or list something",
-    detail: "List items locally and connect with the right buyer.",
+    labelKey: "onboarding.intent.sellList",
+    detailKey: "onboarding.intent.sellListDetail",
     lane: "sell_items",
   },
   {
-    label: "Help with property or real estate",
-    detail: "Route property work to the right local person or business.",
+    labelKey: "onboarding.intent.propertyRealEstate",
+    detailKey: "onboarding.intent.propertyRealEstateDetail",
     lane: "real_estate",
   },
   {
-    label: "Offer my services",
-    detail: "Set up your service presence and respond to local needs.",
+    labelKey: "onboarding.intent.offerServices",
+    detailKey: "onboarding.intent.offerServicesDetail",
     lane: "offer_services",
   },
   {
-    label: "Browse local activity",
-    detail: "See nearby updates, people, and opportunities.",
+    labelKey: "onboarding.intent.browseActivity",
+    detailKey: "onboarding.intent.browseActivityDetail",
     lane: "community",
   },
   {
-    label: "Just looking around",
-    detail: "Explore now and set up more context later.",
+    labelKey: "onboarding.intent.justLooking",
+    detailKey: "onboarding.intent.justLookingDetail",
     lane: "browse_only",
   },
 ];
 
-const ASSET_OPTIONS: Array<{ label: string; asset: OnboardingAsset }> = [
-  { label: "A home", asset: "home" },
-  { label: "A vehicle", asset: "vehicle" },
-  { label: "A project", asset: "project" },
-  { label: "A business", asset: "business" },
-  { label: "A saved search", asset: "saved_search" },
+const ASSET_OPTIONS: Array<{ labelKey: string; asset: OnboardingAsset }> = [
+  { labelKey: "onboarding.assets.home", asset: "home" },
+  { labelKey: "onboarding.assets.vehicle", asset: "vehicle" },
+  { labelKey: "onboarding.assets.project", asset: "project" },
+  { labelKey: "onboarding.assets.business", asset: "business" },
+  { labelKey: "onboarding.assets.savedSearch", asset: "saved_search" },
 ];
 
 const LEGACY_LANE_MAP: Record<string, { lane: OnboardingLane; asset?: OnboardingAsset }> = {
@@ -99,6 +105,7 @@ function mapIncomingLane(rawLane: string): {
 
 export default function OnboardingIntent() {
   const { user, isAuthenticated } = useAuth();
+  const { t } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
@@ -209,10 +216,15 @@ export default function OnboardingIntent() {
             disabled={isBusy}
             className="px-0 text-white/60 hover:text-white hover:bg-transparent"
           >
-            Back
+            {t("common.back")}
           </Button>
-          <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">
-            {laneChosen ? "Step 2/2" : "Step 1/2"}
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">
+              {laneChosen
+                ? t("onboarding.step", { current: 2, total: 2 })
+                : t("onboarding.step", { current: 1, total: 2 })}
+            </div>
           </div>
         </div>
 
@@ -223,7 +235,7 @@ export default function OnboardingIntent() {
               <span className="text-xs uppercase tracking-[0.2em] text-white/60">TRADESCOUT</span>
             </div>
             <CardTitle className="text-lg font-semibold text-white">
-              {laneChosen ? "What should TradeScout remember for you?" : "What do you need done?"}
+              {laneChosen ? t("onboarding.assetTitle") : t("onboarding.intentTitle")}
             </CardTitle>
           </CardHeader>
 
@@ -238,8 +250,8 @@ export default function OnboardingIntent() {
                     onClick={() => handleChooseIntent(option.lane)}
                     className="rounded-xl border border-white/10 bg-tsBg px-3 py-2.5 text-left transition hover:border-ts-orange/60 hover:bg-black/40"
                   >
-                    <div className="text-sm font-semibold text-white">{option.label}</div>
-                    <div className="mt-1 text-xs text-white/65">{option.detail}</div>
+                    <div className="text-sm font-semibold text-white">{t(option.labelKey)}</div>
+                    <div className="mt-1 text-xs text-white/65">{t(option.detailKey)}</div>
                   </button>
                 ))}
               </div>
@@ -262,7 +274,7 @@ export default function OnboardingIntent() {
                             : "border-white/10 bg-tsBg hover:border-ts-orange/60 hover:bg-black/40"
                         }`}
                       >
-                        <div className="text-sm font-semibold text-white">{option.label}</div>
+                        <div className="text-sm font-semibold text-white">{t(option.labelKey)}</div>
                       </button>
                     );
                   })}
@@ -272,12 +284,14 @@ export default function OnboardingIntent() {
                     onClick={handleSaveAssets}
                     className="rounded-xl border border-white/10 bg-tsBg px-3 py-2.5 text-left transition hover:border-ts-orange/60 hover:bg-black/40"
                   >
-                    <div className="text-sm font-semibold text-white">Nothing yet</div>
+                    <div className="text-sm font-semibold text-white">
+                      {t("onboarding.nothingYet")}
+                    </div>
                   </button>
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleSaveAssets} disabled={isBusy}>
-                    Continue
+                    {t("common.continue")}
                   </Button>
                   <Button
                     size="sm"
@@ -285,12 +299,10 @@ export default function OnboardingIntent() {
                     onClick={() => setSelectedLane(null)}
                     disabled={isBusy}
                   >
-                    Change intent
+                    {t("onboarding.changeIntent")}
                   </Button>
                 </div>
-                <p className="text-[11px] text-white/55">
-                  Roles describe why you are here. Assets describe what you manage.
-                </p>
+                <p className="text-[11px] text-white/55">{t("onboarding.roleAssetHint")}</p>
               </>
             )}
           </CardContent>

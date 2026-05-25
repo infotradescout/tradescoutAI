@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useScoutLocation } from "./hooks/useScoutLocation";
 import {
   useScoutHomeSnapshot,
@@ -259,18 +261,22 @@ function toneClasses(tone: ContinueItem["tone"]): {
 }
 
 function ScoutHero({ locationLabel }: { locationLabel?: string }) {
+  const { t } = useI18n();
   return (
     <section className="px-4 pt-2 pb-0.5">
-      <h1 className="text-5xl font-black tracking-tight text-white">Scout</h1>
+      <div className="mb-1 flex items-center justify-between">
+        <h1 className="text-5xl font-black tracking-tight text-white">{t("scout.title")}</h1>
+        <LanguageSwitcher />
+      </div>
       <button type="button" className="mt-1.5 inline-flex items-center gap-2 text-lg text-zinc-300">
         <MapPin className="h-5 w-5 text-ts-orange" />
-        {locationLabel || "Set location"}
+        {locationLabel || t("scout.setLocation")}
         <ChevronDown className="h-4 w-4" />
       </button>
       <p className="mt-1.5 max-w-[340px] text-[15px] leading-snug text-zinc-400">
-        Find, fix, sell, check, or continue anything local.
+        {t("scout.tagline")}
       </p>
-      <p className="mt-1 text-[13px] text-zinc-500">Start with search or pick an area below.</p>
+      <p className="mt-1 text-[13px] text-zinc-500">{t("scout.helper")}</p>
     </section>
   );
 }
@@ -313,10 +319,11 @@ function ContinueRail({
   items: ContinueItem[];
   onPromptSelect: (prompt: string) => void;
 }) {
+  const { t } = useI18n();
   if (items.length === 0) return null;
   return (
     <section className="px-4 pt-1">
-      <h2 className="text-2xl font-bold leading-tight text-white">Continue where you left off</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.continueTitle")}</h2>
       <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">
         <div className="mt-2 flex snap-x snap-mandatory gap-3">
           {items.map((item) => (
@@ -373,9 +380,10 @@ const EXPLORE_ITEMS: Array<{
 ];
 
 function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => void }) {
+  const { t } = useI18n();
   return (
     <section className="px-4 pt-1.5">
-      <h2 className="text-2xl font-bold leading-tight text-white">Explore around you</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.exploreTitle")}</h2>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
         {EXPLORE_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -601,11 +609,12 @@ function NearbyList({
   rows: SignalRowData[];
   onPromptSelect: (prompt: string) => void;
 }) {
+  const { t } = useI18n();
   if (rows.length === 0) return null;
 
   return (
     <section className="px-4 pt-2">
-      <h2 className="text-2xl font-bold leading-tight text-white">Nearby right now</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.nearbyTitle")}</h2>
       <div className="mt-2 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
         {rows.map((row) => {
           const Icon = row.icon;
@@ -649,10 +658,11 @@ function LocalSnapshot({
       }
     | undefined;
 }) {
+  const { t } = useI18n();
   if (!snapshot) return null;
   return (
     <section className="px-4 pt-2 pb-2">
-      <h2 className="text-2xl font-bold leading-tight text-white">Local snapshot</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.snapshotTitle")}</h2>
       <div className="mt-2 grid grid-cols-2 gap-2">
         <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
           <p className="text-2xl font-semibold text-white">
@@ -680,13 +690,12 @@ function LocalSnapshot({
 }
 
 function EmptyContextHint() {
+  const { t } = useI18n();
   return (
     <section className="px-4 pt-3 pb-2">
       <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-        <h2 className="text-base font-semibold text-white">Nothing to continue yet.</h2>
-        <p className="mt-1 text-sm text-zinc-400">
-          Search once, save something, or start a request and Scout will keep it here.
-        </p>
+        <h2 className="text-base font-semibold text-white">{t("scout.emptyTitle")}</h2>
+        <p className="mt-1 text-sm text-zinc-400">{t("scout.emptyBody")}</p>
       </div>
     </section>
   );

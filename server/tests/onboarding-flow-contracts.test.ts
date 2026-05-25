@@ -27,22 +27,22 @@ describe("onboarding flow contracts", () => {
     const intentSource = read("client/src/pages/onboarding-intent.tsx");
 
     expect(intentSource).toContain('apiRequest("POST", "/api/onboarding/start"');
-    expect(intentSource).toContain("What do you need done?");
-    expect(intentSource).toContain("Fix or improve something");
-    expect(intentSource).toContain("Service or repair a vehicle");
-    expect(intentSource).toContain("Find a person or business");
-    expect(intentSource).toContain("Sell or list something");
-    expect(intentSource).toContain("Help with property or real estate");
-    expect(intentSource).toContain("Offer my services");
-    expect(intentSource).toContain("Browse local activity");
-    expect(intentSource).toContain("Just looking around");
-    expect(intentSource).toContain("What should TradeScout remember for you?");
-    expect(intentSource).toContain("A home");
-    expect(intentSource).toContain("A vehicle");
-    expect(intentSource).toContain("A project");
-    expect(intentSource).toContain("A business");
-    expect(intentSource).toContain("A saved search");
-    expect(intentSource).toContain("Nothing yet");
+    expect(intentSource).toContain('t("onboarding.intentTitle")');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.fixImprove"');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.vehicleService"');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.findPersonBusiness"');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.sellList"');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.propertyRealEstate"');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.offerServices"');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.browseActivity"');
+    expect(intentSource).toContain('labelKey: "onboarding.intent.justLooking"');
+    expect(intentSource).toContain('t("onboarding.assetTitle")');
+    expect(intentSource).toContain('labelKey: "onboarding.assets.home"');
+    expect(intentSource).toContain('labelKey: "onboarding.assets.vehicle"');
+    expect(intentSource).toContain('labelKey: "onboarding.assets.project"');
+    expect(intentSource).toContain('labelKey: "onboarding.assets.business"');
+    expect(intentSource).toContain('labelKey: "onboarding.assets.savedSearch"');
+    expect(intentSource).toContain('t("onboarding.nothingYet")');
     expect(intentSource).toContain(
       "navigate(`/direct-connect?intent=${encodeURIComponent(intent)}`);"
     );

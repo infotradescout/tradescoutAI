@@ -100,6 +100,92 @@ function toNumber(value: unknown) {
   return Number.isFinite(n) ? n : 0;
 }
 
+type TimelinePhase =
+  | "request"
+  | "response"
+  | "contact"
+  | "estimate"
+  | "acceptance"
+  | "payment"
+  | "scheduling"
+  | "work"
+  | "checkpoint"
+  | "change_order"
+  | "punch_list"
+  | "completion"
+  | "invoice"
+  | "receipt"
+  | "trust";
+
+function mapEventTypeToPhase(eventType: string): TimelinePhase {
+  if (
+    [
+      "request_finalized",
+      "request_shared",
+      "request_route_ready",
+      "request_route_blocked",
+      "candidate_eligible",
+      "candidate_ineligible",
+    ].includes(eventType)
+  )
+    return "request";
+  if (["contractor_responded", "contractor_viewed_request"].includes(eventType)) return "response";
+  if (
+    ["contact_requested", "contact_approved", "contact_denied", "contact_released"].includes(
+      eventType
+    )
+  )
+    return "contact";
+  if (eventType.startsWith("estimate_"))
+    return eventType === "estimate_accepted" ? "acceptance" : "estimate";
+  if (
+    [
+      "deposit_requested",
+      "deposit_acknowledged",
+      "deposit_paid_outside_platform",
+      "deposit_waived",
+      "payment_request_canceled",
+      "payment_recorded",
+    ].includes(eventType)
+  )
+    return "payment";
+  if (
+    [
+      "schedule_proposed",
+      "schedule_accepted",
+      "schedule_change_requested",
+      "schedule_declined",
+      "job_scheduled",
+    ].includes(eventType)
+  )
+    return "scheduling";
+  if (eventType === "work_started") return "work";
+  if (eventType.startsWith("checkpoint_")) return "checkpoint";
+  if (eventType.startsWith("change_order_")) return "change_order";
+  if (eventType.startsWith("punch_")) return "punch_list";
+  if (
+    [
+      "completion_requested",
+      "completion_confirmed",
+      "completion_rejected",
+      "job_completed",
+    ].includes(eventType)
+  )
+    return "completion";
+  if (eventType.startsWith("invoice_")) return "invoice";
+  if (eventType.startsWith("receipt_")) return "receipt";
+  return "trust";
+}
+
+function timelineCopyForEvent(eventType: string) {
+  const normalized = eventType.replace(/_/g, " ");
+  const title = normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  return {
+    title,
+    description: title,
+  };
+}
+
 function normalizeEstimateStatus(value: unknown) {
   const status = String(value || "draft").trim();
   if (
@@ -110,6 +196,78 @@ function normalizeEstimateStatus(value: unknown) {
     return status;
   }
   return "draft";
+}
+
+function buildTrustOutcomeSummary(args: {
+  latestCompletionStatus: string | null;
+  openPunchItemCount: number;
+  openChangeOrderCount: number;
+  latestInvoiceStatus: string | null;
+  latestReceiptStatus: string | null;
+  requestStatus: string | null;
+}) {
+  const completionConfirmedByRequester = args.latestCompletionStatus === "confirmed";
+  const requestCompleted = completionConfirmedByRequester;
+  let trustSummaryLabel:
+    | "completed_cleanly"
+    | "completed_with_records_pending"
+    | "completion_disputed"
+    | "invoice_disputed"
+    | "punch_items_unresolved"
+    | "job_closed_without_completion"
+    | "in_progress" = "in_progress";
+
+  if (args.latestInvoiceStatus === "disputed") trustSummaryLabel = "invoice_disputed";
+  else if (args.latestCompletionStatus === "rejected") trustSummaryLabel = "completion_disputed";
+  else if (args.requestStatus === "closed" && !completionConfirmedByRequester)
+    trustSummaryLabel = "job_closed_without_completion";
+  else if (args.openPunchItemCount > 0) trustSummaryLabel = "punch_items_unresolved";
+  else if (completionConfirmedByRequester && (args.latestInvoiceStatus || args.latestReceiptStatus))
+    trustSummaryLabel = "completed_with_records_pending";
+  else if (completionConfirmedByRequester) trustSummaryLabel = "completed_cleanly";
+
+  return {
+    requestCompleted,
+    completionConfirmedByRequester,
+    unresolvedPunchItemsCount: args.openPunchItemCount,
+    openChangeOrdersCount: args.openChangeOrderCount,
+    invoiceStatus: args.latestInvoiceStatus,
+    receiptStatus: args.latestReceiptStatus,
+    reviewEligible: completionConfirmedByRequester,
+    disputeFlag:
+      args.latestInvoiceStatus === "disputed" || args.latestCompletionStatus === "rejected",
+    trustSummaryLabel,
+  };
+}
+
+function nextActionForRequester(args: {
+  contactGateState: string;
+  latestEstimateStatus: string | null;
+  latestScheduleStatus: string | null;
+  latestCompletionStatus: string | null;
+  latestInvoiceStatus: string | null;
+}) {
+  if (args.contactGateState === "contractor_requested") return "approve_or_decline_contact";
+  if (args.latestEstimateStatus === "sent") return "review_estimate";
+  if (args.latestScheduleStatus === "proposed") return "review_schedule";
+  if (args.latestCompletionStatus === "requested") return "review_completion_request";
+  if (args.latestInvoiceStatus === "sent") return "review_invoice";
+  return "wait_for_business";
+}
+
+function nextActionForBusiness(args: {
+  contactGateState: string;
+  latestEstimateStatus: string | null;
+  latestCompletionStatus: string | null;
+  latestInvoiceStatus: string | null;
+}) {
+  if (args.contactGateState === "locked") return "wait_for_contact_approval";
+  if (!args.latestEstimateStatus) return "create_estimate";
+  if (args.latestEstimateStatus === "change_requested") return "revise_estimate";
+  if (args.latestCompletionStatus === "confirmed" && !args.latestInvoiceStatus)
+    return "create_invoice";
+  if (args.latestInvoiceStatus === "disputed") return "review_invoice_dispute";
+  return "continue_workflow";
 }
 
 type DirectConnectBypassSource = "none" | "privileged" | "environment" | "manual";
@@ -2855,6 +3013,9 @@ export function registerDirectConnectRoutes(app: Express) {
             scheduleProposalCount: scheduleMeta?.scheduleProposalCount ?? 0,
             activeScheduleProposalId: scheduleMeta?.activeScheduleProposalId ?? null,
             latestWorkStatus: workspaceMeta?.status ? String(workspaceMeta.status) : null,
+            currentPhase: workspaceMeta?.active_stage
+              ? String(workspaceMeta.active_stage)
+              : "request",
             latestCheckpointStatus: checkpointMeta?.latestCheckpointStatus ?? null,
             checkpointCount: checkpointMeta?.checkpointCount ?? 0,
             openCheckpointCount: checkpointMeta?.openCheckpointCount ?? 0,
@@ -2872,6 +3033,31 @@ export function registerDirectConnectRoutes(app: Express) {
             latestReceiptStatus: receiptMeta?.latestReceiptStatus ?? null,
             latestPaymentRecordStatus: receiptMeta?.latestPaymentRecordStatus ?? null,
             receiptCount: receiptMeta?.receiptCount ?? 0,
+            nextActionForRequester: nextActionForRequester({
+              contactGateState: dispatchMeta?.contact_gate_state
+                ? String(dispatchMeta.contact_gate_state)
+                : "locked",
+              latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+              latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
+              latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+              latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+            }),
+            nextActionForBusiness: nextActionForBusiness({
+              contactGateState: dispatchMeta?.contact_gate_state
+                ? String(dispatchMeta.contact_gate_state)
+                : "locked",
+              latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+              latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+              latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+            }),
+            trustOutcomeStatus: buildTrustOutcomeSummary({
+              latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+              openPunchItemCount: punchMeta?.openPunchItemCount ?? 0,
+              openChangeOrderCount: changeOrderMeta?.openChangeOrderCount ?? 0,
+              latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+              latestReceiptStatus: receiptMeta?.latestReceiptStatus ?? null,
+              requestStatus: r.status ? String(r.status) : null,
+            }).trustSummaryLabel,
             completionBlockedReason:
               completionMeta?.latestCompletionStatus === "requested" &&
               (punchMeta?.openPunchItemCount ?? 0) > 0
@@ -3233,6 +3419,68 @@ export function registerDirectConnectRoutes(app: Express) {
             metadata: { count: contractorResponses.length, compatibility: true },
           }).catch(() => undefined);
         }
+        const timelineItems = ((eventRows.rows || []) as any[]).map((eventRow: any) => {
+          const eventType = String(eventRow.event_type || "");
+          const copy = timelineCopyForEvent(eventType);
+          return {
+            id: String(eventRow.event_id || ""),
+            requestId,
+            jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
+            eventType,
+            phase: mapEventTypeToPhase(eventType),
+            title: copy.title,
+            description: copy.description,
+            actorType: String(eventRow.actor_type || "system"),
+            actorLabel: String(eventRow.actor_type || "system"),
+            visibility: "both",
+            createdAt: eventRow.created_at || null,
+            metadataSummary: {},
+          };
+        });
+        const latestTimelineItem = timelineItems.length
+          ? timelineItems[timelineItems.length - 1]
+          : null;
+        const trustOutcome = buildTrustOutcomeSummary({
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          openPunchItemCount: Number(punchSummary?.open_punch_item_count || 0),
+          openChangeOrderCount: Number(changeOrderSummary?.open_change_order_count || 0),
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+          latestReceiptStatus: receiptSummary?.latest_receipt_status
+            ? String(receiptSummary.latest_receipt_status)
+            : null,
+          requestStatus: requestRow.status ? String(requestRow.status) : null,
+        });
+        const nextRequester = nextActionForRequester({
+          contactGateState: String(dispatch?.contact_gate_state || "locked"),
+          latestEstimateStatus: estimateSummary?.latest_estimate_status
+            ? String(estimateSummary.latest_estimate_status)
+            : null,
+          latestScheduleStatus: scheduleSummary?.latest_schedule_status
+            ? String(scheduleSummary.latest_schedule_status)
+            : null,
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+        });
+        const nextBusiness = nextActionForBusiness({
+          contactGateState: String(dispatch?.contact_gate_state || "locked"),
+          latestEstimateStatus: estimateSummary?.latest_estimate_status
+            ? String(estimateSummary.latest_estimate_status)
+            : null,
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+        });
 
         return res.status(200).json({
           requestId,
@@ -3258,6 +3506,9 @@ export function registerDirectConnectRoutes(app: Express) {
           unreadStatusCount,
           jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
           activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
+          currentPhase:
+            latestTimelineItem?.phase ??
+            mapEventTypeToPhase(String(dispatch?.last_event_type || "request_shared")),
           latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
           latestEstimateStatus: estimateSummary?.latest_estimate_status
             ? String(estimateSummary.latest_estimate_status)
@@ -3313,6 +3564,21 @@ export function registerDirectConnectRoutes(app: Express) {
             ? String(receiptSummary.latest_payment_record_status)
             : null,
           receiptCount: Number(receiptSummary?.receipt_count || 0),
+          nextActionForRequester: nextRequester,
+          nextActionForBusiness: nextBusiness,
+          trustOutcomeStatus: trustOutcome.trustSummaryLabel,
+          completionStatus: trustOutcome.completionConfirmedByRequester ? "confirmed" : "pending",
+          financialStatus:
+            (invoiceSummary?.latest_invoice_status
+              ? String(invoiceSummary.latest_invoice_status)
+              : null) ||
+            (receiptSummary?.latest_receipt_status
+              ? String(receiptSummary.latest_receipt_status)
+              : null) ||
+            "none",
+          timelinePreview: timelineItems.slice(Math.max(0, timelineItems.length - 5)),
+          latestTimelineItem,
+          trustOutcome,
           completionBlockedReason:
             completionSummary?.latest_completion_status === "requested" &&
             Number(punchSummary?.open_punch_item_count || 0) > 0
@@ -3331,11 +3597,7 @@ export function registerDirectConnectRoutes(app: Express) {
             status: String(assignment.status || "suggested"),
             updatedAt: assignment.updatedAt || assignment.createdAt || null,
           })),
-          timeline: ((eventRows.rows || []) as any[]).map((eventRow: any) => ({
-            type: String(eventRow.event_type || ""),
-            actorType: String(eventRow.actor_type || ""),
-            at: eventRow.created_at || null,
-          })),
+          timeline: timelineItems,
           allowedRequesterActions: {
             canApproveContact:
               String(dispatch?.contact_gate_state || "locked") === "contractor_requested",
@@ -3356,6 +3618,151 @@ export function registerDirectConnectRoutes(app: Express) {
         console.error("Error fetching direct connect request detail:", error);
         return res.status(500).json({
           message: "Failed to load request detail",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/requests/:id/timeline",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const requestId = String(req.params.id || "").trim();
+        if (!requestId) return res.status(400).json({ message: "Request id is required" });
+
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId));
+        if (!requestRow) return res.status(404).json({ message: "Work request not found" });
+        if (String(requestRow.createdByUserId || "") !== userId) {
+          return res.status(403).json({ message: "Request not available for this requester" });
+        }
+
+        const workspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const events = await db.execute(sql`
+          SELECT event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
+          FROM direct_connect_dispatch_events
+          WHERE request_id = ${requestId}
+          ORDER BY created_at ASC
+        `);
+        const timeline = ((events.rows || []) as any[]).map((row) => {
+          const eventType = String(row.event_type || "");
+          const copy = timelineCopyForEvent(eventType);
+          return {
+            id: String(row.event_id),
+            requestId: String(row.request_id || requestId),
+            jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
+            eventType,
+            phase: mapEventTypeToPhase(eventType),
+            title: copy.title,
+            description: copy.description,
+            actorType: String(row.actor_type || "system"),
+            actorLabel: String(row.actor_type || "system"),
+            visibility: "both",
+            createdAt: row.created_at || null,
+            metadataSummary: {},
+          };
+        });
+
+        return res.status(200).json({
+          requestId,
+          jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
+          timeline,
+          latestTimelineItem: timeline.length ? timeline[timeline.length - 1] : null,
+        });
+      } catch (error) {
+        console.error("Error loading requester timeline:", error);
+        return res.status(500).json({
+          message: "Failed to load timeline",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/timeline",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const requesterOwns = String(workspace.requester_user_id || "") === userId;
+        let contractorCanView = false;
+        if (!requesterOwns) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligible = contractorId
+            ? await db.execute(
+                sql`SELECT request_id FROM direct_connect_dispatch_candidates WHERE request_id = ${String(workspace.request_id)} AND eligibility_state = 'eligible' AND (contractor_id = ${contractorId} OR responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT request_id FROM direct_connect_dispatch_candidates WHERE request_id = ${String(workspace.request_id)} AND eligibility_state = 'eligible' AND (responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND worker_id = ${workerId})) LIMIT 1`
+              );
+          contractorCanView = Boolean(((eligible.rows || []) as any[])[0]);
+        }
+        if (!requesterOwns && !contractorCanView) {
+          return res.status(403).json({ message: "Timeline not available for this account" });
+        }
+
+        const events = await db.execute(sql`
+          SELECT event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
+          FROM direct_connect_dispatch_events
+          WHERE request_id = ${String(workspace.request_id)}
+          ORDER BY created_at ASC
+        `);
+        const timeline = ((events.rows || []) as any[]).map((row) => {
+          const eventType = String(row.event_type || "");
+          const copy = timelineCopyForEvent(eventType);
+          return {
+            id: String(row.event_id),
+            requestId: String(row.request_id || workspace.request_id),
+            jobWorkspaceId: String(workspace.id),
+            eventType,
+            phase: mapEventTypeToPhase(eventType),
+            title: copy.title,
+            description: copy.description,
+            actorType: String(row.actor_type || "system"),
+            actorLabel: String(row.actor_type || "system"),
+            visibility: "both",
+            createdAt: row.created_at || null,
+            metadataSummary: {},
+          };
+        });
+        return res.status(200).json({
+          requestId: String(workspace.request_id),
+          jobWorkspaceId: String(workspace.id),
+          timeline,
+          latestTimelineItem: timeline.length ? timeline[timeline.length - 1] : null,
+        });
+      } catch (error) {
+        console.error("Error loading job timeline:", error);
+        return res.status(500).json({
+          message: "Failed to load job timeline",
           requestId: (req as any).requestId || null,
         });
       }
@@ -5899,8 +6306,30 @@ export function registerDirectConnectRoutes(app: Express) {
                 : null,
             jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
             activeStage: workspace?.active_stage ? String(workspace.active_stage) : null,
+            currentPhase: workspace?.active_stage ? String(workspace.active_stage) : "request",
             latestJobStatus: workspace?.status ? String(workspace.status) : null,
             allowedLifecycleActions,
+            nextActionForRequester: nextActionForRequester({
+              contactGateState: String(row.contact_gate_state || "locked"),
+              latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+              latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
+              latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+              latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+            }),
+            nextActionForBusiness: nextActionForBusiness({
+              contactGateState: String(row.contact_gate_state || "locked"),
+              latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+              latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+              latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+            }),
+            trustOutcomeStatus: buildTrustOutcomeSummary({
+              latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
+              openPunchItemCount: punchMeta?.openPunchItemCount ?? 0,
+              openChangeOrderCount: changeOrderMeta?.openChangeOrderCount ?? 0,
+              latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
+              latestReceiptStatus: receiptMeta?.latestReceiptStatus ?? null,
+              requestStatus: null,
+            }).trustSummaryLabel,
           });
         }
 
@@ -6172,7 +6601,25 @@ export function registerDirectConnectRoutes(app: Express) {
           jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
           activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
           latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+          currentPhase:
+            latestTimelineItem?.phase ??
+            (jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : "request"),
           allowedLifecycleActions,
+          nextActionForRequester: nextRequester,
+          nextActionForBusiness: nextBusiness,
+          trustOutcomeStatus: trustOutcome.trustSummaryLabel,
+          completionStatus: trustOutcome.completionConfirmedByRequester ? "confirmed" : "pending",
+          financialStatus:
+            (invoiceSummary?.latest_invoice_status
+              ? String(invoiceSummary.latest_invoice_status)
+              : null) ||
+            (receiptSummary?.latest_receipt_status
+              ? String(receiptSummary.latest_receipt_status)
+              : null) ||
+            "none",
+          timelinePreview: timelineItems.slice(Math.max(0, timelineItems.length - 5)),
+          latestTimelineItem,
+          trustOutcome,
           visibilityState: String(candidate.visibility_state || "private"),
           allowedActions: {
             canRespond: true,
@@ -6196,6 +6643,7 @@ export function registerDirectConnectRoutes(app: Express) {
           createdAt: candidate.created_at || null,
           updatedAt: candidate.updated_at || null,
           homeownerContact: null,
+          timeline: timelineItems,
         });
       } catch (error) {
         console.error("Error fetching contractor routed direct connect request detail:", error);

@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 
 // Load test environment variables
 dotenv.config({ path: "tests/.env" });
+dotenv.config({ path: ".env.test" });
+dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 const baseURL = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://localhost:5002";
 process.env.BASE_URL = baseURL;

@@ -121,19 +121,69 @@ export function userNeedsOnboarding(user: unknown): boolean {
   return resolveOnboardingState(user) !== "complete";
 }
 
+function hasLocalArea(user: Record<string, any>): boolean {
+  const locationCommitted = user.locationCommitted === true;
+  const stateCode = typeof user.stateCode === "string" ? user.stateCode.trim().toUpperCase() : "";
+  const countyFips = typeof user.countyFips === "string" ? user.countyFips.trim() : "";
+  return locationCommitted && stateCode.length === 2 && /^\d{5}$/.test(countyFips);
+}
+
+function hasSelectedIntent(user: Record<string, any>): boolean {
+  const lane =
+    user?.preferences?.onboarding?.state?.lane ||
+    user?.preferences?.onboardingState?.lane ||
+    user?.preferences?.unifiedOnboarding?.state?.lane ||
+    user?.preferences?.onboarding?.lane;
+  return typeof lane === "string" && lane.trim().length > 0;
+}
+
+function hasBusinessProfileBasics(user: Record<string, any>): boolean {
+  const businessName =
+    (typeof user.businessName === "string" && user.businessName.trim()) ||
+    (typeof user.companyName === "string" && user.companyName.trim()) ||
+    (typeof user?.preferences?.businessProfile?.businessName === "string" &&
+      user.preferences.businessProfile.businessName.trim()) ||
+    (typeof user?.preferences?.provisional?.profileDraft?.businessName === "string" &&
+      user.preferences.provisional.profileDraft.businessName.trim()) ||
+    "";
+
+  const businessType =
+    (typeof user.businessType === "string" && user.businessType.trim()) ||
+    (typeof user?.preferences?.businessProfile?.businessType === "string" &&
+      user.preferences.businessProfile.businessType.trim()) ||
+    (typeof user?.preferences?.provisional?.profileDraft?.businessType === "string" &&
+      user.preferences.provisional.profileDraft.businessType.trim()) ||
+    "";
+
+  return businessName.length > 0 && businessType.length > 0;
+}
+
 export function resolveOnboardingState(user: unknown): OnboardingState {
   if (!user || typeof user !== "object") return "needs_profile";
   const record = user as Record<string, any>;
+
+  const explicitCompletion = record.onboardingCompleted === true;
+  if (explicitCompletion) return "complete";
+
+  if (!hasLocalArea(record)) return "needs_profile";
+
   const locationCommitted = record.locationCommitted === true;
-  const setupComplete = hasCompletedSetup({
+  const locationShapeComplete = hasCompletedSetup({
     onboardingCompleted: record.onboardingCompleted,
     profileVersion: record.profileVersion,
     locationCommitted,
     stateCode: locationCommitted ? record.stateCode : null,
     countyFips: locationCommitted ? record.countyFips : null,
   });
-  if (setupComplete) return "complete";
-  return userHasProfileBasics(user) ? "needs_intent" : "needs_profile";
+  if (!locationShapeComplete) return "needs_profile";
+
+  if (!userHasProfileBasics(user)) return "needs_profile";
+
+  if (isBusinessUser(record, null) && !hasBusinessProfileBasics(record)) {
+    return "needs_profile";
+  }
+
+  return hasSelectedIntent(record) ? "complete" : "needs_intent";
 }
 
 export function userHasProfileBasics(user: unknown): boolean {
