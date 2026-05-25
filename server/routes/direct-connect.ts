@@ -503,6 +503,53 @@ const scheduleProposalRespondSchema = z.object({
   note: z.string().max(1200).optional(),
 });
 
+const checkpointCreateSchema = z.object({
+  title: z.string().min(2).max(160),
+  description: z.string().max(1600).optional(),
+  dueDate: z.string().datetime().optional(),
+  status: z
+    .enum(["planned", "in_progress", "completed", "requester_review", "approved", "issue_reported"])
+    .optional(),
+});
+
+const checkpointUpdateSchema = z.object({
+  title: z.string().min(2).max(160).optional(),
+  description: z.string().max(1600).optional(),
+  dueDate: z.string().datetime().nullable().optional(),
+  status: z
+    .enum([
+      "planned",
+      "in_progress",
+      "completed",
+      "requester_review",
+      "approved",
+      "issue_reported",
+      "canceled",
+    ])
+    .optional(),
+});
+
+const checkpointRespondSchema = z.object({
+  decision: z.enum(["approve", "report_issue"]),
+  note: z.string().max(1200).optional(),
+});
+
+const changeOrderCreateSchema = z.object({
+  title: z.string().min(2).max(160),
+  reason: z.string().max(1200).optional(),
+  scopeChangeSummary: z.string().min(5).max(2000),
+  materialDelta: z.number().min(0).max(100000000).optional(),
+  laborDelta: z.number().min(0).max(100000000).optional(),
+  otherDelta: z.number().min(0).max(100000000).optional(),
+  timelineDeltaDays: z.number().int().min(0).max(3650).optional(),
+  note: z.string().max(1200).optional(),
+});
+
+const changeOrderRespondSchema = z.object({
+  decision: z.enum(["approve", "decline", "request_changes"]),
+  note: z.string().max(1200).optional(),
+});
+
 function resolveTargetProviderIds(body: {
   targetContractorIds?: string[];
   targetProviderIds?: string[];
@@ -2271,6 +2318,82 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           }
         }
+        const checkpointSummaryByRequestId = new Map<
+          string,
+          {
+            latestCheckpointStatus: string | null;
+            checkpointCount: number;
+            openCheckpointCount: number;
+          }
+        >();
+        if (requestIds.length) {
+          const checkpointRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(c.id)::int AS checkpoint_count,
+              COUNT(c.id) FILTER (WHERE c.status NOT IN ('approved', 'completed', 'canceled'))::int AS open_checkpoint_count,
+              (
+                SELECT c2.status
+                FROM job_checkpoints c2
+                WHERE c2.workspace_id = w.id
+                ORDER BY c2.created_at DESC
+                LIMIT 1
+              ) AS latest_checkpoint_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_checkpoints c ON c.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (checkpointRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || checkpointSummaryByRequestId.has(key)) continue;
+            checkpointSummaryByRequestId.set(key, {
+              latestCheckpointStatus: row.latest_checkpoint_status
+                ? String(row.latest_checkpoint_status)
+                : null,
+              checkpointCount: Number(row.checkpoint_count || 0),
+              openCheckpointCount: Number(row.open_checkpoint_count || 0),
+            });
+          }
+        }
+        const changeOrderSummaryByRequestId = new Map<
+          string,
+          {
+            latestChangeOrderStatus: string | null;
+            changeOrderCount: number;
+            openChangeOrderCount: number;
+          }
+        >();
+        if (requestIds.length) {
+          const changeOrderRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(c.id)::int AS change_order_count,
+              COUNT(c.id) FILTER (WHERE c.status IN ('draft', 'sent', 'change_requested'))::int AS open_change_order_count,
+              (
+                SELECT c2.status
+                FROM job_change_orders c2
+                WHERE c2.workspace_id = w.id
+                ORDER BY c2.created_at DESC
+                LIMIT 1
+              ) AS latest_change_order_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_change_orders c ON c.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (changeOrderRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || changeOrderSummaryByRequestId.has(key)) continue;
+            changeOrderSummaryByRequestId.set(key, {
+              latestChangeOrderStatus: row.latest_change_order_status
+                ? String(row.latest_change_order_status)
+                : null,
+              changeOrderCount: Number(row.change_order_count || 0),
+              openChangeOrderCount: Number(row.open_change_order_count || 0),
+            });
+          }
+        }
 
         const responseCountByRequestId = new Map<string, number>();
         const contactRequestCountByRequestId = new Map<string, number>();
@@ -2477,6 +2600,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const estimateMeta = estimateSummaryByRequestId.get(String(r.id)) || null;
           const paymentMeta = paymentSummaryByRequestId.get(String(r.id)) || null;
           const scheduleMeta = scheduleSummaryByRequestId.get(String(r.id)) || null;
+          const checkpointMeta = checkpointSummaryByRequestId.get(String(r.id)) || null;
+          const changeOrderMeta = changeOrderSummaryByRequestId.get(String(r.id)) || null;
           return {
             ...r,
             attachmentCount: getAttachmentCount(r),
@@ -2514,6 +2639,13 @@ export function registerDirectConnectRoutes(app: Express) {
             latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
             scheduleProposalCount: scheduleMeta?.scheduleProposalCount ?? 0,
             activeScheduleProposalId: scheduleMeta?.activeScheduleProposalId ?? null,
+            latestWorkStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+            latestCheckpointStatus: checkpointMeta?.latestCheckpointStatus ?? null,
+            checkpointCount: checkpointMeta?.checkpointCount ?? 0,
+            openCheckpointCount: checkpointMeta?.openCheckpointCount ?? 0,
+            latestChangeOrderStatus: changeOrderMeta?.latestChangeOrderStatus ?? null,
+            changeOrderCount: changeOrderMeta?.changeOrderCount ?? 0,
+            openChangeOrderCount: changeOrderMeta?.openChangeOrderCount ?? 0,
           };
         });
 
@@ -2709,6 +2841,44 @@ export function registerDirectConnectRoutes(app: Express) {
         const scheduleSummary = scheduleSummaryRows
           ? (((scheduleSummaryRows.rows || []) as any[])[0] ?? null)
           : null;
+        const checkpointSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS checkpoint_count,
+                  COUNT(id) FILTER (WHERE status NOT IN ('approved', 'completed', 'canceled'))::int AS open_checkpoint_count,
+                  (
+                    SELECT status
+                    FROM job_checkpoints
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_checkpoint_status
+                FROM job_checkpoints
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const checkpointSummary = checkpointSummaryRows
+          ? (((checkpointSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const changeOrderSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS change_order_count,
+                  COUNT(id) FILTER (WHERE status IN ('draft', 'sent', 'change_requested'))::int AS open_change_order_count,
+                  (
+                    SELECT status
+                    FROM job_change_orders
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_change_order_status
+                FROM job_change_orders
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const changeOrderSummary = changeOrderSummaryRows
+          ? (((changeOrderSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
         await appendDispatchEvent({
           requestId,
           actorType: "requester",
@@ -2784,6 +2954,17 @@ export function registerDirectConnectRoutes(app: Express) {
           activeScheduleProposalId: scheduleSummary?.active_schedule_proposal_id
             ? String(scheduleSummary.active_schedule_proposal_id)
             : null,
+          latestWorkStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+          latestCheckpointStatus: checkpointSummary?.latest_checkpoint_status
+            ? String(checkpointSummary.latest_checkpoint_status)
+            : null,
+          checkpointCount: Number(checkpointSummary?.checkpoint_count || 0),
+          openCheckpointCount: Number(checkpointSummary?.open_checkpoint_count || 0),
+          latestChangeOrderStatus: changeOrderSummary?.latest_change_order_status
+            ? String(changeOrderSummary.latest_change_order_status)
+            : null,
+          changeOrderCount: Number(changeOrderSummary?.change_order_count || 0),
+          openChangeOrderCount: Number(changeOrderSummary?.open_change_order_count || 0),
           allowedLifecycleActions,
           responses: contractorResponses,
           responseCount: contractorResponses.length,
@@ -5298,6 +5479,8 @@ export function registerDirectConnectRoutes(app: Express) {
           const estimateMeta = estimateSummaryByRequestId.get(requestId) || null;
           const paymentMeta = paymentSummaryByRequestId.get(requestId) || null;
           const scheduleMeta = scheduleSummaryByRequestId.get(requestId) || null;
+          const checkpointMeta = checkpointSummaryByRequestId.get(requestId) || null;
+          const changeOrderMeta = changeOrderSummaryByRequestId.get(requestId) || null;
           const workspace = workspaceByRequestId.get(requestId) || null;
           const allowedLifecycleActions = workspace
             ? getAllowedLifecycleActions({
@@ -5334,6 +5517,13 @@ export function registerDirectConnectRoutes(app: Express) {
             latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
             scheduleProposalCount: scheduleMeta?.scheduleProposalCount ?? 0,
             activeScheduleProposalId: scheduleMeta?.activeScheduleProposalId ?? null,
+            latestWorkStatus: workspace?.status ? String(workspace.status) : null,
+            latestCheckpointStatus: checkpointMeta?.latestCheckpointStatus ?? null,
+            checkpointCount: checkpointMeta?.checkpointCount ?? 0,
+            openCheckpointCount: checkpointMeta?.openCheckpointCount ?? 0,
+            latestChangeOrderStatus: changeOrderMeta?.latestChangeOrderStatus ?? null,
+            changeOrderCount: changeOrderMeta?.changeOrderCount ?? 0,
+            openChangeOrderCount: changeOrderMeta?.openChangeOrderCount ?? 0,
             jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
             activeStage: workspace?.active_stage ? String(workspace.active_stage) : null,
             latestJobStatus: workspace?.status ? String(workspace.status) : null,
@@ -5565,6 +5755,17 @@ export function registerDirectConnectRoutes(app: Express) {
           activeScheduleProposalId: scheduleSummary?.active_schedule_proposal_id
             ? String(scheduleSummary.active_schedule_proposal_id)
             : null,
+          latestWorkStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+          latestCheckpointStatus: checkpointSummary?.latest_checkpoint_status
+            ? String(checkpointSummary.latest_checkpoint_status)
+            : null,
+          checkpointCount: Number(checkpointSummary?.checkpoint_count || 0),
+          openCheckpointCount: Number(checkpointSummary?.open_checkpoint_count || 0),
+          latestChangeOrderStatus: changeOrderSummary?.latest_change_order_status
+            ? String(changeOrderSummary.latest_change_order_status)
+            : null,
+          changeOrderCount: Number(changeOrderSummary?.change_order_count || 0),
+          openChangeOrderCount: Number(changeOrderSummary?.open_change_order_count || 0),
           jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
           activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
           latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
@@ -6645,12 +6846,10 @@ export function registerDirectConnectRoutes(app: Express) {
         });
       } catch (error) {
         console.error("Error creating payment request:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to create payment request",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to create payment request",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -6666,12 +6865,10 @@ export function registerDirectConnectRoutes(app: Express) {
         const paymentRequestId = String(req.params.paymentRequestId || "").trim();
         const parse = paymentRequestRespondSchema.safeParse(req.body ?? {});
         if (!parse.success) {
-          return res
-            .status(400)
-            .json({
-              message: "Invalid payment request response payload",
-              issues: parse.error.flatten(),
-            });
+          return res.status(400).json({
+            message: "Invalid payment request response payload",
+            issues: parse.error.flatten(),
+          });
         }
 
         const rows = await db.execute(sql`
@@ -6722,12 +6919,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, paymentRequestId, status: nextStatus });
       } catch (error) {
         console.error("Error responding to payment request:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to respond to payment request",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to respond to payment request",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -6863,12 +7058,10 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(201).json({ scheduleProposalId, status: "proposed", jobWorkspaceId });
       } catch (error) {
         console.error("Error proposing schedule:", error);
-        return res
-          .status(500)
-          .json({
-            message: "Failed to propose schedule",
-            requestId: (req as any).requestId || null,
-          });
+        return res.status(500).json({
+          message: "Failed to propose schedule",
+          requestId: (req as any).requestId || null,
+        });
       }
     }
   );
@@ -6947,10 +7140,687 @@ export function registerDirectConnectRoutes(app: Express) {
         return res.status(200).json({ ok: true, scheduleProposalId, status: nextStatus });
       } catch (error) {
         console.error("Error responding to schedule proposal:", error);
+        return res.status(500).json({
+          message: "Failed to respond to schedule proposal",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/start-work",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const acceptedEstimateRows = await db.execute(sql`
+          SELECT id
+          FROM job_estimates
+          WHERE workspace_id = ${jobWorkspaceId}
+            AND status = 'accepted'
+          LIMIT 1
+        `);
+        if (!((acceptedEstimateRows.rows || []) as any[])[0]) {
+          return res.status(409).json({ message: "Work start requires an accepted estimate." });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res.status(403).json({ message: "Only the eligible business can start work." });
+        }
+
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'in_progress', status = 'in_progress', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "work_started",
+          metadata: { jobWorkspaceId },
+        });
+        return res.status(200).json({ ok: true, jobWorkspaceId, status: "in_progress" });
+      } catch (error) {
+        console.error("Error starting work:", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to start work", requestId: (req as any).requestId || null });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/checkpoints",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const parse = checkpointCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid checkpoint payload", issues: parse.error.flatten() });
+        }
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, business_id, contractor_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const acceptedEstimateRows = await db.execute(sql`
+          SELECT id
+          FROM job_estimates
+          WHERE workspace_id = ${jobWorkspaceId}
+            AND status = 'accepted'
+          LIMIT 1
+        `);
+        if (!((acceptedEstimateRows.rows || []) as any[])[0]) {
+          return res.status(409).json({ message: "Checkpoints require an accepted estimate." });
+        }
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can create checkpoints." });
+        }
+
+        const checkpointId = createId("chk");
+        const checkpointStatus = parse.data.status || "planned";
+        await db.execute(sql`
+          INSERT INTO job_checkpoints (
+            id, workspace_id, request_id, requester_user_id, business_id, contractor_id,
+            title, description, status, due_date, created_by, created_at, updated_at
+          )
+          VALUES (
+            ${checkpointId},
+            ${jobWorkspaceId},
+            ${String(workspace.request_id)},
+            ${String(workspace.requester_user_id || "")},
+            ${workspace.business_id ? String(workspace.business_id) : null},
+            ${workspace.contractor_id ? String(workspace.contractor_id) : contractorId},
+            ${parse.data.title.trim()},
+            ${parse.data.description ? parse.data.description.trim() : null},
+            ${checkpointStatus},
+            ${parse.data.dueDate ? new Date(parse.data.dueDate).toISOString() : null},
+            ${userId},
+            now(),
+            now()
+          )
+        `);
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "checkpoint_created",
+          metadata: { checkpointId, status: checkpointStatus },
+        });
+        return res.status(201).json({ checkpointId, status: checkpointStatus, jobWorkspaceId });
+      } catch (error) {
+        console.error("Error creating checkpoint:", error);
         return res
           .status(500)
           .json({
-            message: "Failed to respond to schedule proposal",
+            message: "Failed to create checkpoint",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/direct-connect/jobs/:jobWorkspaceId/checkpoints/:checkpointId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const checkpointId = String(req.params.checkpointId || "").trim();
+        const parse = checkpointUpdateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid checkpoint update payload", issues: parse.error.flatten() });
+        }
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const checkpointRows = await db.execute(sql`
+          SELECT id, status
+          FROM job_checkpoints
+          WHERE id = ${checkpointId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const checkpoint = ((checkpointRows.rows || []) as any[])[0] || null;
+        if (!checkpoint) return res.status(404).json({ message: "Checkpoint not found" });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can update checkpoints." });
+        }
+
+        await db.execute(sql`
+          UPDATE job_checkpoints
+          SET
+            title = COALESCE(${parse.data.title ? parse.data.title.trim() : null}, title),
+            description = COALESCE(${parse.data.description ? parse.data.description.trim() : null}, description),
+            due_date = CASE
+              WHEN ${parse.data.dueDate === null} THEN NULL
+              WHEN ${typeof parse.data.dueDate === "string"} THEN ${parse.data.dueDate ? new Date(parse.data.dueDate).toISOString() : null}::timestamptz
+              ELSE due_date
+            END,
+            status = COALESCE(${parse.data.status ? parse.data.status : null}, status),
+            completed_at = CASE WHEN ${parse.data.status === "completed"} THEN now() ELSE completed_at END,
+            updated_at = now()
+          WHERE id = ${checkpointId}
+        `);
+
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "checkpoint_updated",
+          metadata: { checkpointId, status: parse.data.status || String(checkpoint.status || "") },
+        });
+        if (parse.data.status === "completed") {
+          await appendDispatchEvent({
+            requestId: String(workspace.request_id),
+            actorType: "contractor",
+            actorId: userId,
+            eventType: "checkpoint_completed",
+            metadata: { checkpointId },
+          });
+        }
+        return res.status(200).json({ ok: true, checkpointId });
+      } catch (error) {
+        console.error("Error updating checkpoint:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to update checkpoint",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/checkpoints/:checkpointId/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const checkpointId = String(req.params.checkpointId || "").trim();
+        const parse = checkpointRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({
+              message: "Invalid checkpoint response payload",
+              issues: parse.error.flatten(),
+            });
+        }
+        const rows = await db.execute(sql`
+          SELECT c.id, c.request_id, c.requester_user_id
+          FROM job_checkpoints c
+          WHERE c.id = ${checkpointId}
+            AND c.workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const checkpoint = ((rows.rows || []) as any[])[0] || null;
+        if (!checkpoint) return res.status(404).json({ message: "Checkpoint not found" });
+        if (String(checkpoint.requester_user_id || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to this checkpoint." });
+        }
+
+        const nextStatus = parse.data.decision === "approve" ? "approved" : "issue_reported";
+        const eventType =
+          parse.data.decision === "approve" ? "checkpoint_approved" : "checkpoint_issue_reported";
+        await db.execute(sql`
+          UPDATE job_checkpoints
+          SET status = ${nextStatus}, requester_responded_at = now(), updated_at = now()
+          WHERE id = ${checkpointId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(checkpoint.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType,
+          metadata: { checkpointId, note: parse.data.note ? parse.data.note.trim() : null },
+        });
+        return res.status(200).json({ ok: true, checkpointId, status: nextStatus });
+      } catch (error) {
+        console.error("Error responding to checkpoint:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to respond to checkpoint",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/change-orders",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const parse = changeOrderCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid change order payload", issues: parse.error.flatten() });
+        }
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, business_id, contractor_id
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const acceptedEstimateRows = await db.execute(sql`
+          SELECT id
+          FROM job_estimates
+          WHERE workspace_id = ${jobWorkspaceId}
+            AND status = 'accepted'
+          LIMIT 1
+        `);
+        if (!((acceptedEstimateRows.rows || []) as any[])[0]) {
+          return res.status(409).json({ message: "Change orders require an accepted estimate." });
+        }
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can create change orders." });
+        }
+
+        const materialDelta = parse.data.materialDelta ?? 0;
+        const laborDelta = parse.data.laborDelta ?? 0;
+        const otherDelta = parse.data.otherDelta ?? 0;
+        const totalDelta = materialDelta + laborDelta + otherDelta;
+        const changeOrderId = createId("chg");
+        await db.execute(sql`
+          INSERT INTO job_change_orders (
+            id, workspace_id, request_id, requester_user_id, business_id, contractor_id,
+            title, reason, scope_change_summary, material_delta, labor_delta, other_delta, total_delta,
+            timeline_delta_days, status, created_by, sent_at, created_at, updated_at
+          )
+          VALUES (
+            ${changeOrderId},
+            ${jobWorkspaceId},
+            ${String(workspace.request_id)},
+            ${String(workspace.requester_user_id || "")},
+            ${workspace.business_id ? String(workspace.business_id) : null},
+            ${workspace.contractor_id ? String(workspace.contractor_id) : contractorId},
+            ${parse.data.title.trim()},
+            ${parse.data.reason ? parse.data.reason.trim() : null},
+            ${parse.data.scopeChangeSummary.trim()},
+            ${materialDelta},
+            ${laborDelta},
+            ${otherDelta},
+            ${totalDelta},
+            ${parse.data.timelineDeltaDays ?? null},
+            'sent',
+            ${userId},
+            now(),
+            now(),
+            now()
+          )
+        `);
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "change_order_created",
+          metadata: { changeOrderId, totalDelta },
+        });
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "change_order_sent",
+          metadata: {
+            changeOrderId,
+            totalDelta,
+            note: parse.data.note ? parse.data.note.trim() : null,
+          },
+        });
+        return res.status(201).json({ changeOrderId, status: "sent", totalDelta, jobWorkspaceId });
+      } catch (error) {
+        console.error("Error creating change order:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to create change order",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/change-orders/:changeOrderId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const changeOrderId = String(req.params.changeOrderId || "").trim();
+
+        const rows = await db.execute(sql`
+          SELECT c.*, w.requester_user_id
+          FROM job_change_orders c
+          JOIN direct_connect_job_workspaces w ON w.id = c.workspace_id
+          WHERE c.id = ${changeOrderId}
+            AND c.workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const changeOrder = ((rows.rows || []) as any[])[0] || null;
+        if (!changeOrder) return res.status(404).json({ message: "Change order not found" });
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const isRequester = String(changeOrder.requester_user_id || "") === userId;
+        const isEligibleBusiness = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(changeOrder.request_id || "")}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(changeOrder.request_id || "")}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!isRequester && !((isEligibleBusiness.rows || []) as any[])[0]) {
+          return res.status(403).json({ message: "Not allowed to view this change order." });
+        }
+
+        return res.status(200).json({
+          id: String(changeOrder.id),
+          jobWorkspaceId: String(changeOrder.workspace_id),
+          requestId: String(changeOrder.request_id || ""),
+          title: String(changeOrder.title || ""),
+          reason: changeOrder.reason ? String(changeOrder.reason) : null,
+          scopeChangeSummary: String(changeOrder.scope_change_summary || ""),
+          materialDelta: Number(changeOrder.material_delta || 0),
+          laborDelta: Number(changeOrder.labor_delta || 0),
+          otherDelta: Number(changeOrder.other_delta || 0),
+          totalDelta: Number(changeOrder.total_delta || 0),
+          timelineDeltaDays:
+            changeOrder.timeline_delta_days === null ||
+            changeOrder.timeline_delta_days === undefined
+              ? null
+              : Number(changeOrder.timeline_delta_days),
+          status: String(changeOrder.status || "draft"),
+          sentAt: changeOrder.sent_at || null,
+          respondedAt: changeOrder.responded_at || null,
+          createdAt: changeOrder.created_at || null,
+          updatedAt: changeOrder.updated_at || null,
+        });
+      } catch (error) {
+        console.error("Error loading change order:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to load change order",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/change-orders/:changeOrderId/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const changeOrderId = String(req.params.changeOrderId || "").trim();
+        const parse = changeOrderRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({
+              message: "Invalid change order response payload",
+              issues: parse.error.flatten(),
+            });
+        }
+        const rows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, status
+          FROM job_change_orders
+          WHERE id = ${changeOrderId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const changeOrder = ((rows.rows || []) as any[])[0] || null;
+        if (!changeOrder) return res.status(404).json({ message: "Change order not found" });
+        if (String(changeOrder.requester_user_id || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to this change order." });
+        }
+        if (String(changeOrder.status || "sent") !== "sent") {
+          return res.status(409).json({ message: "Only sent change orders can be responded to." });
+        }
+
+        let nextStatus: "approved" | "declined" | "change_requested" = "declined";
+        let eventType:
+          | "change_order_approved"
+          | "change_order_declined"
+          | "change_order_change_requested" = "change_order_declined";
+        if (parse.data.decision === "approve") {
+          nextStatus = "approved";
+          eventType = "change_order_approved";
+        } else if (parse.data.decision === "request_changes") {
+          nextStatus = "change_requested";
+          eventType = "change_order_change_requested";
+        }
+
+        await db.execute(sql`
+          UPDATE job_change_orders
+          SET status = ${nextStatus}, responded_at = now(), updated_at = now()
+          WHERE id = ${changeOrderId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(changeOrder.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType,
+          metadata: { changeOrderId, note: parse.data.note ? parse.data.note.trim() : null },
+        });
+        return res.status(200).json({ ok: true, changeOrderId, status: nextStatus });
+      } catch (error) {
+        console.error("Error responding to change order:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to respond to change order",
             requestId: (req as any).requestId || null,
           });
       }

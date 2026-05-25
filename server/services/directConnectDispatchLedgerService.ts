@@ -351,9 +351,17 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     CREATE TABLE IF NOT EXISTS job_checkpoints (
       id text PRIMARY KEY,
       workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      status text NOT NULL DEFAULT 'open',
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
       title text NOT NULL,
-      note text NULL,
+      description text NULL,
+      status text NOT NULL DEFAULT 'planned',
+      due_date timestamptz NULL,
+      completed_at timestamptz NULL,
+      requester_responded_at timestamptz NULL,
+      created_by text NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
@@ -362,13 +370,85 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     CREATE TABLE IF NOT EXISTS job_change_orders (
       id text PRIMARY KEY,
       workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
-      status text NOT NULL DEFAULT 'open',
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
       title text NOT NULL,
-      note text NULL,
+      reason text NULL,
+      scope_change_summary text NULL,
+      material_delta numeric NULL,
+      labor_delta numeric NULL,
+      other_delta numeric NULL,
+      total_delta numeric NULL,
+      timeline_delta_days integer NULL,
+      status text NOT NULL DEFAULT 'draft',
+      created_by text NULL,
+      sent_at timestamptz NULL,
+      responded_at timestamptz NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
   `);
+  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS request_id text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS business_id text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS contractor_id text NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS description text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS due_date timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS completed_at timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS requester_responded_at timestamptz NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_checkpoints ADD COLUMN IF NOT EXISTS created_by text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS request_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS business_id text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS contractor_id text NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS reason text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS scope_change_summary text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS material_delta numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS labor_delta numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS other_delta numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS total_delta numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS timeline_delta_days integer NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS created_by text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_change_orders ADD COLUMN IF NOT EXISTS responded_at timestamptz NULL`
+  );
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS job_punch_list_items (
       id text PRIMARY KEY,
@@ -463,9 +543,17 @@ function normalizeLifecycleEvent(eventType: string): LifecycleStatus | null {
     case "job_scheduled":
     case "deposit_recorded":
     case "work_started":
+    case "checkpoint_created":
     case "checkpoint_updated":
+    case "checkpoint_completed":
+    case "checkpoint_approved":
+    case "checkpoint_issue_reported":
     case "change_order_created":
+    case "change_order_sent":
     case "change_order_approved":
+    case "change_order_declined":
+    case "change_order_change_requested":
+    case "change_order_voided":
     case "punch_list_started":
     case "punch_item_completed":
     case "invoice_sent":
@@ -561,6 +649,18 @@ async function resolveLifecycleRecipients(requestId: string, eventType: string) 
       "schedule_change_requested",
       "schedule_declined",
       "job_scheduled",
+      "work_started",
+      "checkpoint_created",
+      "checkpoint_updated",
+      "checkpoint_completed",
+      "checkpoint_approved",
+      "checkpoint_issue_reported",
+      "change_order_created",
+      "change_order_sent",
+      "change_order_approved",
+      "change_order_declined",
+      "change_order_change_requested",
+      "change_order_voided",
     ].includes(eventType)
   ) {
     const contractorRows = await db.execute(sql`
@@ -698,10 +798,12 @@ export function getAllowedLifecycleActions(args: {
         return ["add_material_item", "add_labor_item", "send_estimate", "revise_estimate"];
       case "acceptance":
         return [
+          "start_work",
           "request_deposit",
           "create_payment_request",
           "propose_schedule",
           "create_checkpoint",
+          "create_change_order",
           "mark_not_moving_forward",
         ];
       case "deposit":
@@ -712,6 +814,7 @@ export function getAllowedLifecycleActions(args: {
       case "punch_list":
         return [
           "update_checkpoint",
+          "complete_checkpoint",
           "create_change_order",
           "add_punch_list_item",
           "mark_ready_for_punchout",
@@ -750,8 +853,12 @@ export function getAllowedLifecycleActions(args: {
     case "punch_list":
       return [
         "review_checkpoint",
+        "approve_checkpoint",
+        "report_checkpoint_issue",
+        "review_change_order",
         "approve_change_order",
-        "reject_change_order",
+        "decline_change_order",
+        "request_change_order_changes",
         "add_punch_list_item",
       ];
     case "invoicing":
@@ -864,9 +971,17 @@ export async function appendDispatchEvent(args: {
     | "deposit_recorded"
     | "schedule_proposed"
     | "work_started"
+    | "checkpoint_created"
     | "checkpoint_updated"
+    | "checkpoint_completed"
+    | "checkpoint_approved"
+    | "checkpoint_issue_reported"
     | "change_order_created"
+    | "change_order_sent"
     | "change_order_approved"
+    | "change_order_declined"
+    | "change_order_change_requested"
+    | "change_order_voided"
     | "punch_list_started"
     | "punch_item_completed"
     | "invoice_sent"
