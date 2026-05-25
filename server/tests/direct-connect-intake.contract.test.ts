@@ -37,8 +37,36 @@ describe("direct connect intake contracts", () => {
 
   it("renders a request review card once required intent details are complete", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("const reviewCardReady = hasRequiredAnswers;");
+    expect(source).toContain('const reviewCardReady = completeness.level !== "too_vague";');
+    expect(source).toContain(
+      'const requestReadyToShare = completeness.level === "ready_to_share";'
+    );
     expect(source).toContain("Request Review Card");
     expect(source).toContain("reviewCardReady && (");
+  });
+
+  it("adds request ready finalization state before sharing", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(source).toContain("Request Ready");
+    expect(source).toContain("Share request");
+    expect(source).toContain("Edit request");
+    expect(source).toContain("Review before sharing. Contact stays gated until you approve.");
+  });
+
+  it("evaluates request completeness with user-facing quality states", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(source).toContain("function evaluateRequestCompleteness");
+    expect(source).toContain("Ready to share");
+    expect(source).toContain("Needs one more detail");
+    expect(source).toContain("Too vague to route well");
+  });
+
+  it("keeps submit payload contract with expected request fields", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(source).toContain("title: title.trim()");
+    expect(source).toContain("description: description.trim()");
+    expect(source).toContain("category: activeRequestMeta.category");
+    expect(source).toContain("payload.countyFips = defaultCountyFips");
+    expect(source).toContain("payload.stateCode = stateCode.trim().toUpperCase()");
   });
 });

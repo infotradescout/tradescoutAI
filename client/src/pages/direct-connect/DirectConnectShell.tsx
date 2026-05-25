@@ -83,6 +83,12 @@ type DirectConnectIntentConfig = {
   }>;
 };
 
+type RequestCompleteness = {
+  level: "ready_to_share" | "needs_one_more_detail" | "too_vague";
+  message: string;
+  missing: string[];
+};
+
 const DIRECT_CONNECT_TABS: Section[] = [
   "post",
   "pros",
@@ -661,6 +667,42 @@ function getRequestStageLabel(stage: RequestWorkflowStage): string {
   }
 }
 
+function evaluateRequestCompleteness(params: {
+  answers: Record<"what" | "where" | "when" | "details", string>;
+  requiredQuestions: Array<{ key: "what" | "where" | "when" | "details"; label: string }>;
+  title: string;
+  description: string;
+}): RequestCompleteness {
+  const missing = params.requiredQuestions
+    .filter((question) => params.answers[question.key].trim().length < 2)
+    .map((question) => question.label.replace(/\s*\*$/, ""));
+
+  const hasMeaningfulTitle =
+    params.title.trim().length >= 3 || params.answers.what.trim().length >= 3;
+  const hasMeaningfulDescription =
+    params.description.trim().length >= 10 || params.answers.details.trim().length >= 10;
+
+  if (!hasMeaningfulTitle && !hasMeaningfulDescription) {
+    return {
+      level: "too_vague",
+      message: "Too vague to route well",
+      missing: missing.length > 0 ? missing : ["Add what you need and one useful detail"],
+    };
+  }
+  if (missing.length > 0) {
+    return {
+      level: "needs_one_more_detail",
+      message: "Needs one more detail",
+      missing,
+    };
+  }
+  return {
+    level: "ready_to_share",
+    message: "Ready to share",
+    missing: [],
+  };
+}
+
 function getRequestStageSummary(stage: RequestWorkflowStage): string {
   switch (stage) {
     case "ready_to_send":
@@ -933,6 +975,7 @@ function DirectConnectRequestComposer({
   const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(2);
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
+  const [showRequestReady, setShowRequestReady] = useState(false);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
   >({
@@ -1360,6 +1403,7 @@ function DirectConnectRequestComposer({
       setBudgetMax("");
       setShowOptional(false);
       setShowDispatchSheet(false);
+      setShowRequestReady(false);
       setDispatchMode("top_count");
       setDispatchCount(2);
       setDirectorySearch("");
@@ -1411,14 +1455,16 @@ function DirectConnectRequestComposer({
     },
   });
 
-  const canSubmit = title.trim().length >= 3 && description.trim().length >= 10;
   const requiredQuestions =
     intentConfig?.detailQuestions?.filter((question) => question.required) || [];
-  const hasRequiredAnswers =
-    requiredQuestions.length === 0
-      ? canSubmit
-      : requiredQuestions.every((question) => detailAnswers[question.key].trim().length >= 2);
-  const reviewCardReady = hasRequiredAnswers;
+  const completeness = evaluateRequestCompleteness({
+    answers: detailAnswers,
+    requiredQuestions,
+    title,
+    description,
+  });
+  const reviewCardReady = completeness.level !== "too_vague";
+  const requestReadyToShare = completeness.level === "ready_to_share";
   const reviewTitle = detailAnswers.what.trim() || title.trim() || "Request";
   const reviewSummary =
     detailAnswers.details.trim() || description.trim() || "No extra details yet.";
@@ -1464,7 +1510,7 @@ function DirectConnectRequestComposer({
   };
 
   const handleOpenDispatchSheet = () => {
-    if (!reviewCardReady || createMutation.isPending) return;
+    if (!requestReadyToShare || createMutation.isPending) return;
     if (!isAuthenticated) {
       persistDirectConnectDraft({ selectedProviderIds: selectedContractorIds });
       toast({
@@ -1476,6 +1522,11 @@ function DirectConnectRequestComposer({
       return;
     }
     setShowDispatchSheet(true);
+  };
+
+  const openRequestReadyState = () => {
+    if (!reviewCardReady || createMutation.isPending) return;
+    setShowRequestReady(true);
   };
 
   const handleSendWithSelection = () => {
@@ -1611,6 +1662,61 @@ function DirectConnectRequestComposer({
             <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
               Review before sharing. Contact stays gated until you approve.
             </p>
+            <div className="mt-2 inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
+              {completeness.message}
+            </div>
+            {completeness.missing.length > 0 && (
+              <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
+                Add: {completeness.missing.join(" · ")}
+              </p>
+            )}
+          </div>
+        )}
+        {showRequestReady && (
+          <div className="space-y-2 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3">
+            <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
+              Request Ready
+            </h3>
+            <p className="text-xs text-[color:var(--text-secondary)]">
+              Your request is reviewable and still follows review-before-contact.
+            </p>
+            <div className="grid gap-1 text-xs text-[color:var(--text-secondary)]">
+              <p>
+                <span className="text-[color:var(--text-primary)]">Request type:</span>{" "}
+                {activeRequestMeta.label}
+              </p>
+              <p>
+                <span className="text-[color:var(--text-primary)]">Location / county:</span>{" "}
+                {reviewLocation}
+              </p>
+              <p>
+                <span className="text-[color:var(--text-primary)]">Urgency:</span> {reviewTiming}
+              </p>
+              <p>
+                <span className="text-[color:var(--text-primary)]">Summary:</span> {reviewSummary}
+              </p>
+              <p>
+                <span className="text-[color:var(--text-primary)]">Who may see it:</span> local
+                businesses in your routing area
+              </p>
+              <p>
+                <span className="text-[color:var(--text-primary)]">What is not shared yet:</span>{" "}
+                direct contact details until you approve
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={handleOpenDispatchSheet}
+                disabled={!requestReadyToShare || createMutation.isPending}
+                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+              >
+                Share request
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowRequestReady(false)}>
+                Edit request
+              </Button>
+            </div>
           </div>
         )}
         <div className="space-y-2">
@@ -1708,7 +1814,7 @@ function DirectConnectRequestComposer({
         </div>
         <div className="flex justify-end">
           <Button
-            onClick={handleOpenDispatchSheet}
+            onClick={openRequestReadyState}
             disabled={createMutation.isPending || !reviewCardReady}
             className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
