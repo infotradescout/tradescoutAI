@@ -23,41 +23,45 @@ type OnboardingAsset = "home" | "vehicle" | "project" | "business" | "saved_sear
 
 const INTENT_OPTIONS: Array<{ label: string; detail: string; lane: OnboardingLane }> = [
   {
-    label: "Find local help",
-    detail: "Post requests and compare trusted replies",
-    lane: "find_help",
-  },
-  {
-    label: "Manage a project",
-    detail: "Track jobs, quotes, updates, and outcomes",
+    label: "Fix or improve something",
+    detail: "Get matched with the right local person for the job.",
     lane: "manage_projects",
   },
   {
-    label: "Offer services",
-    detail: "Set up your service flow and visibility",
-    lane: "offer_services",
+    label: "Service or repair a vehicle",
+    detail: "Find the right local help for vehicle service and repairs.",
+    lane: "find_help",
+  },
+  {
+    label: "Find a person or business",
+    detail: "Post what you need and review matches before contact opens.",
+    lane: "find_help",
   },
   {
     label: "Sell or list something",
-    detail: "List items and track local demand",
+    detail: "List items locally and connect with the right buyer.",
     lane: "sell_items",
   },
   {
-    label: "Real estate / property work",
-    detail: "Property-focused workflows and activity",
+    label: "Help with property or real estate",
+    detail: "Route property work to the right local person or business.",
     lane: "real_estate",
   },
   {
-    label: "Run a local business",
-    detail: "Business profile and local operations",
-    lane: "business",
+    label: "Offer my services",
+    detail: "Set up your service presence and respond to local needs.",
+    lane: "offer_services",
   },
   {
-    label: "See what’s happening nearby",
-    detail: "Community activity and local updates",
+    label: "Browse local activity",
+    detail: "See nearby updates, people, and opportunities.",
     lane: "community",
   },
-  { label: "Just browse for now", detail: "Explore first, set up more later", lane: "browse_only" },
+  {
+    label: "Just looking around",
+    detail: "Explore now and set up more context later.",
+    lane: "browse_only",
+  },
 ];
 
 const ASSET_OPTIONS: Array<{ label: string; asset: OnboardingAsset }> = [
@@ -219,7 +223,7 @@ export default function OnboardingIntent() {
               <span className="text-xs uppercase tracking-[0.2em] text-white/60">TRADESCOUT</span>
             </div>
             <CardTitle className="text-lg font-semibold text-white">
-              {laneChosen ? "What should TradeScout remember for you?" : "What brings you here?"}
+              {laneChosen ? "What should TradeScout remember for you?" : "What do you need done?"}
             </CardTitle>
           </CardHeader>
 
