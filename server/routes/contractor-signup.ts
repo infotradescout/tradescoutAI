@@ -1,8 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
 import { emailService } from "../services/emailService";
-import { ClaimSource, ClaimType, isValidCountyFips } from "../services/claimEventSchema";
-import { writeClaimEvent } from "../services/claimEventService";
+import {
+  startUnifiedOnboarding,
+  submitUnifiedOnboardingClaim,
+} from "../services/onboardingService";
 
 const router = Router();
 
@@ -44,6 +46,30 @@ router.post("/api/contractor-signup", async (req, res) => {
     // Import storage dynamically to avoid circular dependency
     const { storage } = await import("../storage");
 
+    // Legacy compatibility wrapper: route contractor signup through unified onboarding.
+    await startUnifiedOnboarding(storage as any, {
+      userId,
+      lane: "service_provider",
+      claimType: "provides_services",
+      legacySource: "contractor_signup",
+      profile: {
+        fullName: validatedData.companyName,
+        phone: validatedData.phone,
+        location: {
+          state: validatedData.primaryState,
+          county: validatedData.primaryCounty,
+        },
+      },
+    });
+    await submitUnifiedOnboardingClaim(storage as any, {
+      userId,
+      lane: "service_provider",
+      claimType: "provides_services",
+      countyFips: validatedData.primaryCounty,
+      countyName: validatedData.primaryCounty,
+      legacySource: "contractor_signup",
+    });
+
     // Create a contractor application record
     const application = await storage.createContractorApplication({
       userId,
@@ -69,34 +95,6 @@ router.post("/api/contractor-signup", async (req, res) => {
     });
 
     console.log("Contractor application saved to database:", application.id);
-
-    // Claims-first: record intent to provide services as a starter path (no capabilities unlocked)
-    const countyFips = validatedData.primaryCounty;
-    if (isValidCountyFips(countyFips)) {
-      try {
-        await writeClaimEvent({
-          userId,
-          claimType: ClaimType.PROVIDES_SERVICES,
-          countyFips,
-          countyName: validatedData.primaryCounty,
-          source: ClaimSource.SIGNUP,
-          claimTimestamp: new Date(),
-          metadata: {
-            path: "contractor_starter",
-            verificationStatus: "pending",
-            companyName: validatedData.companyName,
-            email: validatedData.email,
-          },
-        });
-      } catch (claimErr) {
-        console.warn("Contractor starter claim write skipped", { claimErr });
-      }
-    } else {
-      console.warn("Contractor starter claim skipped due to invalid county fips", {
-        userId,
-        countyFips,
-      });
-    }
 
     // Send email notifications (if SendGrid configured)
     try {

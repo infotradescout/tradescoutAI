@@ -14,6 +14,7 @@ import { generateGeminiTextWithFallback } from "./ai/geminiFallback";
 import { detectImportDelimiter, parseDelimitedImport } from "./utils/adminBusinessImportParser";
 import { parseXlsxImport } from "./utils/adminBusinessImportXlsx";
 import { contractorSignupRouter } from "./routes/contractor-signup";
+import { onboardingRouter } from "./routes/onboarding";
 import { businessesRouter } from "./routes/businesses";
 import { businessDirectoryPublicRouter } from "./routes/business-directory-public";
 import { cityPublicRouter } from "./routes/city-public";
@@ -28659,6 +28660,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.use(metalsRouter);
 
   // Register contractor signup routes
+  app.use(onboardingRouter);
   app.use(contractorSignupRouter);
 
   // Register Hardrock commercial landing + staff directory routes
