@@ -135,9 +135,22 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     CREATE TABLE IF NOT EXISTS job_estimates (
       id text PRIMARY KEY,
       workspace_id text NOT NULL REFERENCES direct_connect_job_workspaces(id) ON DELETE CASCADE,
+      request_id text NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE SET NULL,
+      requester_user_id text NULL,
+      business_id text NULL,
+      contractor_id text NULL,
+      title text NULL,
+      scope_summary text NULL,
       status text NOT NULL DEFAULT 'draft',
-      note text NULL,
+      subtotal_materials numeric NULL,
+      subtotal_labor numeric NULL,
+      subtotal_other numeric NULL,
+      total_estimate numeric NULL,
+      terms text NULL,
+      expiration_date timestamptz NULL,
       created_by text NULL,
+      sent_at timestamptz NULL,
+      responded_at timestamptz NULL,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
     );
@@ -147,13 +160,71 @@ export async function ensureDirectConnectDispatchLedgerTables() {
       id text PRIMARY KEY,
       estimate_id text NOT NULL REFERENCES job_estimates(id) ON DELETE CASCADE,
       line_type text NOT NULL,
-      label text NOT NULL,
+      name text NOT NULL,
+      description text NULL,
       quantity numeric NULL,
+      unit text NULL,
+      rate numeric NULL,
       unit_price numeric NULL,
-      amount numeric NULL,
+      total_cost numeric NULL,
+      supplier text NULL,
+      sku text NULL,
+      notes text NULL,
       created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
+  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS request_id text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS requester_user_id text NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS business_id text NULL`);
+  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS contractor_id text NULL`);
+  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS title text NULL`);
+  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS scope_summary text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS subtotal_materials numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS subtotal_labor numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS subtotal_other numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS total_estimate numeric NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS terms text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS expiration_date timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS sent_at timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimates ADD COLUMN IF NOT EXISTS responded_at timestamptz NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS name text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS description text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS unit text NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS rate numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS total_cost numeric NULL`
+  );
+  await db.execute(
+    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS supplier text NULL`
+  );
+  await db.execute(sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS sku text NULL`);
+  await db.execute(
+    sql`ALTER TABLE job_estimate_line_items ADD COLUMN IF NOT EXISTS notes text NULL`
+  );
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS job_material_items (
       id text PRIMARY KEY,
@@ -306,10 +377,12 @@ function normalizeLifecycleEvent(eventType: string): LifecycleStatus | null {
     case "job_workspace_created":
       return "contact_released";
     case "estimate_started":
+    case "estimate_line_item_added":
     case "estimate_sent":
     case "estimate_accepted":
     case "estimate_change_requested":
     case "estimate_declined":
+    case "estimate_voided":
     case "deposit_requested":
     case "deposit_recorded":
     case "schedule_proposed":
@@ -672,10 +745,12 @@ export async function appendDispatchEvent(args: {
     | "request_closed"
     | "job_workspace_created"
     | "estimate_started"
+    | "estimate_line_item_added"
     | "estimate_sent"
     | "estimate_accepted"
     | "estimate_change_requested"
     | "estimate_declined"
+    | "estimate_voided"
     | "deposit_requested"
     | "deposit_recorded"
     | "schedule_proposed"

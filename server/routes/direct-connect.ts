@@ -90,6 +90,28 @@ function resolveAnonymousSessionId(req: Request): string {
   return "";
 }
 
+function createId(prefix: string) {
+  return `${prefix}_${randomBytes(12).toString("hex")}`;
+}
+
+function toNumber(value: unknown) {
+  if (value === null || value === undefined || value === "") return 0;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normalizeEstimateStatus(value: unknown) {
+  const status = String(value || "draft").trim();
+  if (
+    ["draft", "sent", "accepted", "change_requested", "declined", "expired", "void"].includes(
+      status
+    )
+  ) {
+    return status;
+  }
+  return "draft";
+}
+
 type DirectConnectBypassSource = "none" | "privileged" | "environment" | "manual";
 
 interface DirectConnectVerificationBypassContext {
@@ -418,6 +440,40 @@ const contractorConsoleResponseSchema = z.object({
   message: z.string().max(600).optional(),
   availability: z.string().max(160).optional(),
   estimatedTiming: z.string().max(160).optional(),
+});
+
+const estimateCreateSchema = z.object({
+  title: z.string().min(3).max(160),
+  scopeSummary: z.string().min(10).max(2000),
+  terms: z.string().max(2000).optional(),
+  expirationDate: z.string().datetime().optional(),
+  subtotalOther: z.number().min(0).max(100000000).optional(),
+});
+
+const estimateUpdateSchema = estimateCreateSchema.partial().extend({
+  status: z.enum(["draft", "change_requested", "void"]).optional(),
+});
+
+const estimateSendSchema = z.object({
+  note: z.string().max(500).optional(),
+});
+
+const estimateRespondSchema = z.object({
+  decision: z.enum(["accept", "request_changes", "decline"]),
+  note: z.string().max(1200).optional(),
+});
+
+const estimateLineItemSchema = z.object({
+  lineType: z.enum(["material", "labor", "permits", "disposal", "travel", "equipment", "other"]),
+  name: z.string().min(2).max(160),
+  description: z.string().max(1200).optional(),
+  quantity: z.number().positive().max(1000000),
+  unit: z.string().min(1).max(40),
+  unitCost: z.number().min(0).max(100000000).optional(),
+  rate: z.number().min(0).max(100000000).optional(),
+  supplier: z.string().max(160).optional(),
+  sku: z.string().max(120).optional(),
+  notes: z.string().max(1200).optional(),
 });
 
 function resolveTargetProviderIds(body: {
@@ -2066,6 +2122,50 @@ export function registerDirectConnectRoutes(app: Express) {
             workspaceByRequestId.set(key, row);
           }
         }
+        const estimateSummaryByRequestId = new Map<
+          string,
+          {
+            activeEstimateId: string | null;
+            latestEstimateStatus: string | null;
+            estimateCount: number;
+          }
+        >();
+        if (requestIds.length) {
+          const estimateRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(e.id)::int AS estimate_count,
+              (
+                SELECT e2.id
+                FROM job_estimates e2
+                WHERE e2.workspace_id = w.id
+                ORDER BY e2.created_at DESC
+                LIMIT 1
+              ) AS active_estimate_id,
+              (
+                SELECT e3.status
+                FROM job_estimates e3
+                WHERE e3.workspace_id = w.id
+                ORDER BY e3.created_at DESC
+                LIMIT 1
+              ) AS latest_estimate_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_estimates e ON e.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (estimateRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || estimateSummaryByRequestId.has(key)) continue;
+            estimateSummaryByRequestId.set(key, {
+              activeEstimateId: row.active_estimate_id ? String(row.active_estimate_id) : null,
+              latestEstimateStatus: row.latest_estimate_status
+                ? String(row.latest_estimate_status)
+                : null,
+              estimateCount: Number(row.estimate_count || 0),
+            });
+          }
+        }
 
         const responseCountByRequestId = new Map<string, number>();
         const contactRequestCountByRequestId = new Map<string, number>();
@@ -2269,6 +2369,7 @@ export function registerDirectConnectRoutes(app: Express) {
 
           const dispatchMeta = dispatchMetaByRequestId.get(String(r.id)) || null;
           const lifecycleMeta = lifecycleByRequestId.get(String(r.id)) || null;
+          const estimateMeta = estimateSummaryByRequestId.get(String(r.id)) || null;
           return {
             ...r,
             attachmentCount: getAttachmentCount(r),
@@ -2298,6 +2399,9 @@ export function registerDirectConnectRoutes(app: Express) {
               r.createdAt ??
               null,
             unreadStatusCount: unreadStatusCountByRequestId.get(String(r.id)) ?? 0,
+            latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+            estimateCount: estimateMeta?.estimateCount ?? 0,
+            activeEstimateId: estimateMeta?.activeEstimateId ?? null,
           };
         });
 
@@ -2425,6 +2529,31 @@ export function registerDirectConnectRoutes(app: Express) {
         const allowedLifecycleActions = jobWorkspace
           ? getAllowedLifecycleActions({ stage: workspaceStage, role: "requester" })
           : [];
+        const estimateSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS estimate_count,
+                  (
+                    SELECT id
+                    FROM job_estimates
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_estimate_id,
+                  (
+                    SELECT status
+                    FROM job_estimates
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_estimate_status
+                FROM job_estimates
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const estimateSummary = estimateSummaryRows
+          ? (((estimateSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
 
         await appendDispatchEvent({
           requestId,
@@ -2483,6 +2612,13 @@ export function registerDirectConnectRoutes(app: Express) {
           jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
           activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
           latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+          latestEstimateStatus: estimateSummary?.latest_estimate_status
+            ? String(estimateSummary.latest_estimate_status)
+            : null,
+          estimateCount: Number(estimateSummary?.estimate_count || 0),
+          activeEstimateId: estimateSummary?.active_estimate_id
+            ? String(estimateSummary.active_estimate_id)
+            : null,
           allowedLifecycleActions,
           responses: contractorResponses,
           responseCount: contractorResponses.length,
@@ -4814,6 +4950,19 @@ export function registerDirectConnectRoutes(app: Express) {
             ((candidateRows.rows || []) as any[]).map((row: any) => String(row.request_id || ""))
           )
         ).filter(Boolean);
+        const workspaceByRequestId = new Map<string, any>();
+        if (requestIds.length) {
+          const workspaceRows = await db.execute(sql`
+            SELECT request_id, id, status, active_stage, updated_at
+            FROM direct_connect_job_workspaces
+            WHERE request_id = ANY(${requestIds}::text[])
+          `);
+          for (const row of (workspaceRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || workspaceByRequestId.has(key)) continue;
+            workspaceByRequestId.set(key, row);
+          }
+        }
         const lifecycleByRequestId = new Map<
           string,
           { lifecycleStatus: string; latestStatus: string; latestStatusAt: unknown }
@@ -4852,6 +5001,50 @@ export function registerDirectConnectRoutes(app: Express) {
             unreadStatusCountByRequestId.set(String(row.request_id), Number(row.count || 0));
           }
         }
+        const estimateSummaryByRequestId = new Map<
+          string,
+          {
+            activeEstimateId: string | null;
+            latestEstimateStatus: string | null;
+            estimateCount: number;
+          }
+        >();
+        if (requestIds.length) {
+          const estimateRows = await db.execute(sql`
+            SELECT
+              w.request_id,
+              COUNT(e.id)::int AS estimate_count,
+              (
+                SELECT e2.id
+                FROM job_estimates e2
+                WHERE e2.workspace_id = w.id
+                ORDER BY e2.created_at DESC
+                LIMIT 1
+              ) AS active_estimate_id,
+              (
+                SELECT e3.status
+                FROM job_estimates e3
+                WHERE e3.workspace_id = w.id
+                ORDER BY e3.created_at DESC
+                LIMIT 1
+              ) AS latest_estimate_status
+            FROM direct_connect_job_workspaces w
+            LEFT JOIN job_estimates e ON e.workspace_id = w.id
+            WHERE w.request_id = ANY(${requestIds}::text[])
+            GROUP BY w.request_id, w.id
+          `);
+          for (const row of (estimateRows.rows || []) as any[]) {
+            const key = String(row.request_id || "");
+            if (!key || estimateSummaryByRequestId.has(key)) continue;
+            estimateSummaryByRequestId.set(key, {
+              activeEstimateId: row.active_estimate_id ? String(row.active_estimate_id) : null,
+              latestEstimateStatus: row.latest_estimate_status
+                ? String(row.latest_estimate_status)
+                : null,
+              estimateCount: Number(row.estimate_count || 0),
+            });
+          }
+        }
 
         const deduped = new Map<string, any>();
         for (const row of (candidateRows.rows || []) as any[]) {
@@ -4859,6 +5052,7 @@ export function registerDirectConnectRoutes(app: Express) {
           if (!requestId || deduped.has(requestId)) continue;
           const latestResponse = responseByRequest.get(requestId) || null;
           const lifecycleMeta = lifecycleByRequestId.get(requestId) || null;
+          const estimateMeta = estimateSummaryByRequestId.get(requestId) || null;
           const workspace = workspaceByRequestId.get(requestId) || null;
           const allowedLifecycleActions = workspace
             ? getAllowedLifecycleActions({
@@ -4887,6 +5081,9 @@ export function registerDirectConnectRoutes(app: Express) {
             latestStatus: lifecycleMeta?.latestStatus ?? null,
             latestStatusAt: lifecycleMeta?.latestStatusAt ?? null,
             unreadStatusCount: unreadStatusCountByRequestId.get(requestId) ?? 0,
+            latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+            estimateCount: estimateMeta?.estimateCount ?? 0,
+            activeEstimateId: estimateMeta?.activeEstimateId ?? null,
             jobWorkspaceId: workspace?.id ? String(workspace.id) : null,
             activeStage: workspace?.active_stage ? String(workspace.active_stage) : null,
             latestJobStatus: workspace?.status ? String(workspace.status) : null,
@@ -5052,6 +5249,31 @@ export function registerDirectConnectRoutes(app: Express) {
               role: "contractor",
             })
           : [];
+        const estimateSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS estimate_count,
+                  (
+                    SELECT id
+                    FROM job_estimates
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_estimate_id,
+                  (
+                    SELECT status
+                    FROM job_estimates
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_estimate_status
+                FROM job_estimates
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const estimateSummary = estimateSummaryRows
+          ? (((estimateSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
 
         return res.status(200).json({
           requestId,
@@ -5075,6 +5297,13 @@ export function registerDirectConnectRoutes(app: Express) {
           latestStatus: lifecycleStatus?.latestStatus ?? null,
           latestStatusAt: lifecycleStatus?.latestStatusAt ?? null,
           unreadStatusCount,
+          latestEstimateStatus: estimateSummary?.latest_estimate_status
+            ? String(estimateSummary.latest_estimate_status)
+            : null,
+          estimateCount: Number(estimateSummary?.estimate_count || 0),
+          activeEstimateId: estimateSummary?.active_estimate_id
+            ? String(estimateSummary.active_estimate_id)
+            : null,
           jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
           activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
           latestJobStatus: jobWorkspace?.status ? String(jobWorkspace.status) : null,
@@ -5325,6 +5554,714 @@ export function registerDirectConnectRoutes(app: Express) {
           message: "Failed to request contact",
           requestId: (req as any).requestId || null,
         });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/estimates",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+
+        const parse = estimateCreateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid estimate payload", issues: parse.error.flatten() });
+        }
+
+        const workspaceRows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, business_id, contractor_id, active_stage, status
+          FROM direct_connect_job_workspaces
+          WHERE id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+
+        const dispatchRows = await db.execute(sql`
+          SELECT contact_gate_state
+          FROM direct_connect_dispatch_requests
+          WHERE id = ${String(workspace.request_id)}
+          LIMIT 1
+        `);
+        const contactGateState = String(
+          ((dispatchRows.rows || []) as any[])[0]?.contact_gate_state || "locked"
+        );
+        if (contactGateState !== "released") {
+          return res.status(409).json({ message: "Estimate creation requires released contact." });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(workspace.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can create this estimate." });
+        }
+
+        const estimateId = createId("est");
+        await db.execute(sql`
+          INSERT INTO job_estimates (
+            id, workspace_id, request_id, requester_user_id, business_id, contractor_id, title, scope_summary,
+            status, subtotal_materials, subtotal_labor, subtotal_other, total_estimate, terms, expiration_date,
+            created_by, created_at, updated_at
+          )
+          VALUES (
+            ${estimateId},
+            ${jobWorkspaceId},
+            ${String(workspace.request_id)},
+            ${String(workspace.requester_user_id || "")},
+            ${workspace.business_id ? String(workspace.business_id) : null},
+            ${workspace.contractor_id ? String(workspace.contractor_id) : contractorId},
+            ${parse.data.title.trim()},
+            ${parse.data.scopeSummary.trim()},
+            'draft',
+            0,
+            0,
+            ${parse.data.subtotalOther ?? 0},
+            ${parse.data.subtotalOther ?? 0},
+            ${parse.data.terms ? parse.data.terms.trim() : null},
+            ${parse.data.expirationDate ? new Date(parse.data.expirationDate).toISOString() : null},
+            ${userId},
+            now(),
+            now()
+          )
+        `);
+
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'estimate', status = 'estimate_draft', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+
+        await appendDispatchEvent({
+          requestId: String(workspace.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "estimate_started",
+          metadata: { jobWorkspaceId, estimateId },
+        });
+
+        return res.status(201).json({
+          estimateId,
+          jobWorkspaceId,
+          status: "draft",
+          requestId: String(workspace.request_id),
+        });
+      } catch (error) {
+        console.error("Error creating estimate:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to create estimate",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/estimates/:estimateId/line-items",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const estimateId = String(req.params.estimateId || "").trim();
+        const parse = estimateLineItemSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid line item payload", issues: parse.error.flatten() });
+        }
+        const estimateRows = await db.execute(sql`
+          SELECT e.id, e.workspace_id, e.request_id, e.status
+          FROM job_estimates e
+          WHERE e.id = ${estimateId}
+            AND e.workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const estimate = ((estimateRows.rows || []) as any[])[0] || null;
+        if (!estimate) return res.status(404).json({ message: "Estimate not found" });
+        const estimateStatus = normalizeEstimateStatus(estimate.status);
+        if (!["draft", "change_requested"].includes(estimateStatus)) {
+          return res
+            .status(409)
+            .json({
+              message: "Line items can be edited only while estimate is draft or change requested.",
+            });
+        }
+
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(estimate.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(estimate.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can edit this estimate." });
+        }
+
+        const quantity = Number(parse.data.quantity);
+        const unitPrice = parse.data.unitCost ?? parse.data.rate ?? 0;
+        const totalCost = Number((quantity * Number(unitPrice)).toFixed(2));
+        const lineId = createId("eli");
+        await db.execute(sql`
+          INSERT INTO job_estimate_line_items (
+            id, estimate_id, line_type, name, description, quantity, unit, rate, unit_price, total_cost, supplier, sku, notes, created_at
+          )
+          VALUES (
+            ${lineId},
+            ${estimateId},
+            ${parse.data.lineType},
+            ${parse.data.name.trim()},
+            ${parse.data.description ? parse.data.description.trim() : null},
+            ${quantity},
+            ${parse.data.unit.trim()},
+            ${parse.data.rate ?? null},
+            ${parse.data.unitCost ?? null},
+            ${totalCost},
+            ${parse.data.supplier ? parse.data.supplier.trim() : null},
+            ${parse.data.sku ? parse.data.sku.trim() : null},
+            ${parse.data.notes ? parse.data.notes.trim() : null},
+            now()
+          )
+        `);
+
+        const totalsRows = await db.execute(sql`
+          SELECT
+            COALESCE(SUM(CASE WHEN line_type = 'material' THEN total_cost ELSE 0 END), 0) AS subtotal_materials,
+            COALESCE(SUM(CASE WHEN line_type = 'labor' THEN total_cost ELSE 0 END), 0) AS subtotal_labor,
+            COALESCE(SUM(CASE WHEN line_type NOT IN ('material', 'labor') THEN total_cost ELSE 0 END), 0) AS subtotal_other_lines
+          FROM job_estimate_line_items
+          WHERE estimate_id = ${estimateId}
+        `);
+        const totals = ((totalsRows.rows || []) as any[])[0] || {};
+        const material = toNumber(totals.subtotal_materials);
+        const labor = toNumber(totals.subtotal_labor);
+        const otherLines = toNumber(totals.subtotal_other_lines);
+        const currentEstimateRows = await db.execute(sql`
+          SELECT subtotal_other
+          FROM job_estimates
+          WHERE id = ${estimateId}
+          LIMIT 1
+        `);
+        const fixedOther = toNumber(((currentEstimateRows.rows || []) as any[])[0]?.subtotal_other);
+        const subtotalOther = Number((otherLines + fixedOther).toFixed(2));
+        const totalEstimate = Number((material + labor + subtotalOther).toFixed(2));
+        await db.execute(sql`
+          UPDATE job_estimates
+          SET subtotal_materials = ${material},
+              subtotal_labor = ${labor},
+              subtotal_other = ${subtotalOther},
+              total_estimate = ${totalEstimate},
+              updated_at = now()
+          WHERE id = ${estimateId}
+        `);
+
+        await appendDispatchEvent({
+          requestId: String(estimate.request_id),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "estimate_line_item_added",
+          metadata: { estimateId, lineType: parse.data.lineType, lineId },
+        });
+
+        return res.status(201).json({
+          lineItemId: lineId,
+          estimateId,
+          totals: {
+            subtotalMaterials: material,
+            subtotalLabor: labor,
+            subtotalOther,
+            totalEstimate,
+          },
+        });
+      } catch (error) {
+        console.error("Error adding estimate line item:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to add estimate line item",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/estimates/:estimateId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const estimateId = String(req.params.estimateId || "").trim();
+        if (!jobWorkspaceId || !estimateId) {
+          return res.status(400).json({ message: "jobWorkspaceId and estimateId are required" });
+        }
+        const rows = await db.execute(sql`
+          SELECT
+            e.id,
+            e.workspace_id,
+            e.request_id,
+            e.requester_user_id,
+            e.title,
+            e.scope_summary,
+            e.status,
+            e.subtotal_materials,
+            e.subtotal_labor,
+            e.subtotal_other,
+            e.total_estimate,
+            e.terms,
+            e.expiration_date,
+            e.sent_at,
+            e.responded_at,
+            e.created_at,
+            e.updated_at
+          FROM job_estimates e
+          WHERE e.id = ${estimateId}
+            AND e.workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const estimate = ((rows.rows || []) as any[])[0] || null;
+        if (!estimate) return res.status(404).json({ message: "Estimate not found" });
+        const status = normalizeEstimateStatus(estimate.status);
+        const requesterUserId = String(estimate.requester_user_id || "").trim();
+        const isRequester = requesterUserId === userId;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(sql`
+                SELECT c.request_id
+                FROM direct_connect_dispatch_candidates c
+                WHERE c.request_id = ${String(estimate.request_id)}
+                  AND c.eligibility_state = 'eligible'
+                  AND (
+                    c.contractor_id = ${contractorId}
+                    OR c.responder_user_id = ${userId}
+                    OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  )
+                LIMIT 1
+              `)
+            : await db.execute(sql`
+                SELECT c.request_id
+                FROM direct_connect_dispatch_candidates c
+                WHERE c.request_id = ${String(estimate.request_id)}
+                  AND c.eligibility_state = 'eligible'
+                  AND (
+                    c.responder_user_id = ${userId}
+                    OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  )
+                LIMIT 1
+              `);
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res.status(403).json({ message: "Estimate not available for this account." });
+          }
+        }
+        if (isRequester && status === "draft") {
+          return res.status(404).json({ message: "Estimate not available" });
+        }
+        const lineRows = await db.execute(sql`
+          SELECT id, line_type, name, description, quantity, unit, rate, unit_price, total_cost, supplier, sku, notes
+          FROM job_estimate_line_items
+          WHERE estimate_id = ${estimateId}
+          ORDER BY created_at ASC
+        `);
+        return res.status(200).json({
+          estimateId: String(estimate.id),
+          jobWorkspaceId: String(estimate.workspace_id),
+          requestId: String(estimate.request_id || ""),
+          title: String(estimate.title || ""),
+          scopeSummary: String(estimate.scope_summary || ""),
+          status,
+          subtotalMaterials: toNumber(estimate.subtotal_materials),
+          subtotalLabor: toNumber(estimate.subtotal_labor),
+          subtotalOther: toNumber(estimate.subtotal_other),
+          totalEstimate: toNumber(estimate.total_estimate),
+          terms: estimate.terms ? String(estimate.terms) : null,
+          expirationDate: estimate.expiration_date || null,
+          sentAt: estimate.sent_at || null,
+          respondedAt: estimate.responded_at || null,
+          createdAt: estimate.created_at || null,
+          updatedAt: estimate.updated_at || null,
+          lineItems: ((lineRows.rows || []) as any[]).map((item: any) => ({
+            id: String(item.id),
+            lineType: String(item.line_type || "other"),
+            name: String(item.name || ""),
+            description: item.description ? String(item.description) : null,
+            quantity: Number(item.quantity || 0),
+            unit: item.unit ? String(item.unit) : null,
+            rate: item.rate === null || item.rate === undefined ? null : Number(item.rate),
+            unitCost:
+              item.unit_price === null || item.unit_price === undefined
+                ? null
+                : Number(item.unit_price),
+            totalCost: Number(item.total_cost || 0),
+            supplier: item.supplier ? String(item.supplier) : null,
+            sku: item.sku ? String(item.sku) : null,
+            notes: item.notes ? String(item.notes) : null,
+          })),
+        });
+      } catch (error) {
+        console.error("Error fetching estimate:", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to load estimate", requestId: (req as any).requestId || null });
+      }
+    }
+  );
+
+  app.patch(
+    "/api/direct-connect/jobs/:jobWorkspaceId/estimates/:estimateId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const estimateId = String(req.params.estimateId || "").trim();
+        const parse = estimateUpdateSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid estimate update payload", issues: parse.error.flatten() });
+        }
+        const estimateRows = await db.execute(sql`
+          SELECT id, request_id, status
+          FROM job_estimates
+          WHERE id = ${estimateId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const estimate = ((estimateRows.rows || []) as any[])[0] || null;
+        if (!estimate) return res.status(404).json({ message: "Estimate not found" });
+        const status = normalizeEstimateStatus(estimate.status);
+        if (!["draft", "change_requested"].includes(status)) {
+          return res
+            .status(409)
+            .json({ message: "Only draft or change-requested estimates can be revised." });
+        }
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(estimate.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(estimate.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can revise this estimate." });
+        }
+        const payload = parse.data;
+        await db.execute(sql`
+          UPDATE job_estimates
+          SET
+            title = COALESCE(${payload.title ? payload.title.trim() : null}, title),
+            scope_summary = COALESCE(${payload.scopeSummary ? payload.scopeSummary.trim() : null}, scope_summary),
+            terms = COALESCE(${payload.terms ? payload.terms.trim() : null}, terms),
+            expiration_date = COALESCE(${payload.expirationDate ? new Date(payload.expirationDate).toISOString() : null}, expiration_date),
+            status = COALESCE(${payload.status ?? null}, status),
+            updated_at = now()
+          WHERE id = ${estimateId}
+        `);
+        const updateEventType = payload.status === "void" ? "estimate_voided" : "estimate_started";
+        await appendDispatchEvent({
+          requestId: String(estimate.request_id || ""),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: updateEventType,
+          metadata: { estimateId, revised: true },
+        });
+        return res.status(200).json({ ok: true, estimateId });
+      } catch (error) {
+        console.error("Error updating estimate:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to update estimate",
+            requestId: (req as any).requestId || null,
+          });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/estimates/:estimateId/send",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const estimateId = String(req.params.estimateId || "").trim();
+        const parse = estimateSendSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid estimate send payload", issues: parse.error.flatten() });
+        }
+        const rows = await db.execute(sql`
+          SELECT id, request_id, status
+          FROM job_estimates
+          WHERE id = ${estimateId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const estimate = ((rows.rows || []) as any[])[0] || null;
+        if (!estimate) return res.status(404).json({ message: "Estimate not found" });
+        const status = normalizeEstimateStatus(estimate.status);
+        if (!["draft", "change_requested"].includes(status)) {
+          return res.status(409).json({ message: "Only draft or revised estimates can be sent." });
+        }
+        const contractor = await storage.getContractorByUserId(userId);
+        const workerProfile = await db
+          .select({ id: (workers as any).id })
+          .from(workers as any)
+          .where(eq((workers as any).userId, userId))
+          .limit(1);
+        const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(estimate.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${String(estimate.request_id)}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
+        if (!((eligibilityResult.rows || []) as any[])[0]) {
+          return res
+            .status(403)
+            .json({ message: "Only the eligible business can send this estimate." });
+        }
+        await db.execute(sql`
+          UPDATE job_estimates
+          SET status = 'sent', sent_at = now(), updated_at = now()
+          WHERE id = ${estimateId}
+        `);
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = 'estimate', status = 'estimate_sent', updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(estimate.request_id || ""),
+          actorType: "contractor",
+          actorId: userId,
+          eventType: "estimate_sent",
+          metadata: { estimateId, note: parse.data.note ? parse.data.note.trim() : null },
+        });
+        return res.status(200).json({ ok: true, estimateId, status: "sent" });
+      } catch (error) {
+        console.error("Error sending estimate:", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to send estimate", requestId: (req as any).requestId || null });
+      }
+    }
+  );
+
+  app.post(
+    "/api/direct-connect/jobs/:jobWorkspaceId/estimates/:estimateId/respond",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const estimateId = String(req.params.estimateId || "").trim();
+        const parse = estimateRespondSchema.safeParse(req.body ?? {});
+        if (!parse.success) {
+          return res
+            .status(400)
+            .json({ message: "Invalid estimate response payload", issues: parse.error.flatten() });
+        }
+        const rows = await db.execute(sql`
+          SELECT id, request_id, requester_user_id, status
+          FROM job_estimates
+          WHERE id = ${estimateId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const estimate = ((rows.rows || []) as any[])[0] || null;
+        if (!estimate) return res.status(404).json({ message: "Estimate not found" });
+        if (String(estimate.requester_user_id || "") !== userId) {
+          return res
+            .status(403)
+            .json({ message: "Only the request owner can respond to this estimate." });
+        }
+        const status = normalizeEstimateStatus(estimate.status);
+        if (status !== "sent") {
+          return res.status(409).json({ message: "Only sent estimates can be responded to." });
+        }
+
+        let nextStatus: "accepted" | "change_requested" | "declined" = "declined";
+        let eventType: "estimate_accepted" | "estimate_change_requested" | "estimate_declined" =
+          "estimate_declined";
+        let workspaceStage: "acceptance" | "estimate" = "estimate";
+        let workspaceStatus = "estimate_declined";
+        if (parse.data.decision === "accept") {
+          nextStatus = "accepted";
+          eventType = "estimate_accepted";
+          workspaceStage = "acceptance";
+          workspaceStatus = "estimate_accepted";
+        } else if (parse.data.decision === "request_changes") {
+          nextStatus = "change_requested";
+          eventType = "estimate_change_requested";
+          workspaceStage = "estimate";
+          workspaceStatus = "estimate_change_requested";
+        }
+
+        await db.execute(sql`
+          UPDATE job_estimates
+          SET status = ${nextStatus}, responded_at = now(), updated_at = now()
+          WHERE id = ${estimateId}
+        `);
+        if (nextStatus === "accepted") {
+          await db.execute(sql`
+            INSERT INTO job_acceptances (id, workspace_id, estimate_id, accepted_by, accepted_at, note)
+            VALUES (${createId("acc")}, ${jobWorkspaceId}, ${estimateId}, ${userId}, now(), ${parse.data.note ? parse.data.note.trim() : null})
+          `);
+        }
+        await db.execute(sql`
+          UPDATE direct_connect_job_workspaces
+          SET active_stage = ${workspaceStage}, status = ${workspaceStatus}, updated_at = now()
+          WHERE id = ${jobWorkspaceId}
+        `);
+        await appendDispatchEvent({
+          requestId: String(estimate.request_id || ""),
+          actorType: "requester",
+          actorId: userId,
+          eventType,
+          metadata: { estimateId, note: parse.data.note ? parse.data.note.trim() : null },
+        });
+        return res.status(200).json({ ok: true, estimateId, status: nextStatus });
+      } catch (error) {
+        console.error("Error responding to estimate:", error);
+        return res
+          .status(500)
+          .json({
+            message: "Failed to respond to estimate",
+            requestId: (req as any).requestId || null,
+          });
       }
     }
   );
