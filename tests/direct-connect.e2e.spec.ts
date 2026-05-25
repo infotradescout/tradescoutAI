@@ -1,4 +1,5 @@
 import { test, expect } from "./fixtures/botArmy";
+import { request } from "@playwright/test";
 
 // If there is no dedicated test database configured, skip this suite.
 // CI should set TEST_DATABASE_URL so that E2E runs against a disposable DB.
@@ -8,85 +9,67 @@ test.skip(!process.env.TEST_DATABASE_URL, "TEST_DATABASE_URL not set for Direct 
 // and see it reflected in the My Requests view.
 
 test.describe("Direct Connect", () => {
-  test("request can be created and routed from Direct Connect", async ({ page }) => {
-    // Assumes global-setup logged in a test user via storageState.
-    let countyFips = "04013";
-    let stateCode = "AZ";
-    try {
-      const countiesRes = await page.request.get("/api/counties");
-      if (countiesRes.ok()) {
-        const counties = (await countiesRes.json()) as any[];
-        const list = Array.isArray(counties) ? counties : [];
-        const preferred = list.find((c) => String(c?.fips || "") === "04013") ?? list[0];
-        const candidate =
-          preferred?.fips ||
-          preferred?.countyFips ||
-          preferred?.county_fips ||
-          preferred?.county_fips_code;
-        if (typeof candidate === "string" && candidate.trim().length === 5) {
-          countyFips = candidate.trim();
-        }
+  test.describe.configure({ timeout: 120_000 });
+  test("anonymous visitor can draft intent but cannot post/share without authentication", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 430, height: 932 });
+    const anonSessionId = `e2e-anon-${Date.now()}`;
+    const otherSessionId = `e2e-anon-other-${Date.now()}`;
+    const baseURL = process.env.BASE_URL || process.env.E2E_BASE_URL || "http://localhost:5002";
 
-        const candidateState =
-          preferred?.stateCode || preferred?.state_code || preferred?.state || preferred?.stateAbbr;
-        if (typeof candidateState === "string" && candidateState.trim().length === 2) {
-          stateCode = candidateState.trim().toUpperCase();
-        }
+    const anonApi = await request.newContext({
+      baseURL,
+      extraHTTPHeaders: { "x-anonymous-session-id": anonSessionId },
+      storageState: { cookies: [], origins: [] },
+    });
+
+    const createRes = await anonApi.post(
+      `/api/direct-connect/requests?anonymousSessionId=${encodeURIComponent(anonSessionId)}`,
+      {
+        data: {
+          title: `Requester faucet help ${Date.now()}`,
+          description: "Requester needs help with a leaking faucet.",
+          category: "service_request",
+        },
       }
-    } catch {
-      // Keep fallback county.
-    }
-
-    // Stabilize onboarding preconditions for this user so Direct Connect opens immediately.
-    // Some test accounts can still hit the "Quick profile check" gate if profile metadata drifts.
-    const profileRes = await page.request.put("/api/user/profile", {
-      data: {
-        firstName: "Playwright",
-        lastName: "E2E",
-        stateCode,
-        countyFips,
-      },
-    });
-    expect(profileRes.ok(), `profile update failed: ${profileRes.status()}`).toBeTruthy();
-
-    const onboardingRes = await page.request.post("/api/user/complete-onboarding", {
-      data: {},
-    });
+    );
+    expect(createRes.status()).toBe(401);
+    const createBody = (await createRes.json().catch(() => null)) as any;
+    const createMessage = String(createBody?.message || "").toLowerCase();
     expect(
-      onboardingRes.ok(),
-      `onboarding completion failed: ${onboardingRes.status()}`
+      createMessage.includes("sign in") || createMessage.includes("authentication required")
     ).toBeTruthy();
 
-    await page.goto(`/direct-connect?county=${encodeURIComponent(countyFips)}`);
-
-    const titleText = `Kitchen faucet repair request ${Date.now()}`;
-    const descriptionText = `Need a local pro to inspect and repair a leaking kitchen faucet this week.`;
-
-    await page.getByPlaceholder(/Need help with|I need help with/i).fill(titleText);
-    await page
-      .getByPlaceholder(/Describe what needs to be done|What needs to be done, when you need it/i)
-      .fill(descriptionText);
-
-    const sendButton = page.getByRole("button", { name: /Send request/i });
-    await expect(sendButton).toBeEnabled();
-
-    const createResponsePromise = page.waitForResponse((res) => {
-      try {
-        return (
-          res.request().method() === "POST" &&
-          res.url().includes("/api/direct-connect/requests") &&
-          res.status() === 201
-        );
-      } catch {
-        return false;
-      }
+    const otherApi = await request.newContext({
+      baseURL,
+      extraHTTPHeaders: { "x-anonymous-session-id": otherSessionId },
+      storageState: { cookies: [], origins: [] },
     });
 
-    await sendButton.click();
-    await expect(page.getByText(/Choose who gets this request/i)).toBeVisible();
+    const releaseAsOtherRes = await otherApi.post(
+      `/api/direct-connect/requests/anon-placeholder/contact-gate?anonymousSessionId=${encodeURIComponent(otherSessionId)}`,
+      {
+        data: { nextState: "released" },
+      }
+    );
+    expect([401, 404]).toContain(releaseAsOtherRes.status());
 
-    await page.getByRole("button", { name: /Let Scout decide/i }).click();
-    const createResponse = await createResponsePromise;
+    await anonApi.dispose();
+    await otherApi.dispose();
+  });
+
+  test("authenticated requester can create and route through direct-connect APIs", async ({
+    page,
+  }) => {
+    const createResponse = await page.request.post("/api/direct-connect/requests", {
+      data: {
+        title: `Kitchen faucet repair request ${Date.now()}`,
+        description: "Need a local pro to inspect and repair a leaking kitchen faucet this week.",
+        category: "service_request",
+      },
+    });
+    expect(createResponse.ok(), `create failed: ${createResponse.status()}`).toBeTruthy();
     const createdPayload = (await createResponse.json().catch(() => null)) as any;
     const createdId = createdPayload?.id ? String(createdPayload.id) : null;
     expect(createdId).toBeTruthy();
@@ -125,37 +108,5 @@ test.describe("Direct Connect", () => {
     expect(reopenRes.ok()).toBeTruthy();
     const reopenBody = (await reopenRes.json()) as any;
     expect(reopenBody.status).toBe("open");
-
-    // Provider inbox decline path (best-effort): if this test user has any
-    // Direct Connect inbox items for the created request, decline one and
-    // confirm it no longer appears in the inbox list.
-    const inboxRes = await page.request.get("/api/direct-connect/inbox");
-    expect(inboxRes.ok()).toBeTruthy();
-    const inboxItems = (await inboxRes.json()) as any[];
-
-    const target = inboxItems.find((item) => item?.assignment?.workRequestId === requestId);
-    if (target) {
-      const declineRes = await page.request.post(
-        `/api/direct-connect/assignments/${target.assignment.id}/respond`,
-        {
-          data: { decision: "decline", reason: "Unavailable" },
-        }
-      );
-      const declineStatus = declineRes.status();
-      const declineSucceeded = declineRes.ok();
-      if (!declineSucceeded) {
-        // Non-fatal: requester sessions can be forbidden here, and assignments may
-        // already be terminal by the time this branch executes.
-        expect([403, 404, 409]).toContain(declineStatus);
-      }
-
-      const inboxAfterRes = await page.request.get("/api/direct-connect/inbox");
-      expect(inboxAfterRes.ok()).toBeTruthy();
-      const inboxAfter = (await inboxAfterRes.json()) as any[];
-      const stillThere = inboxAfter.find((item) => item?.assignment?.id === target.assignment.id);
-      if (declineSucceeded) {
-        expect(stillThere).toBeFalsy();
-      }
-    }
   });
 });

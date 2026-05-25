@@ -58,6 +58,33 @@ type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
 
+function readCookieValue(req: Request, name: string): string {
+  const raw = String((req.headers as any)?.cookie || "");
+  if (!raw) return "";
+  const parts = raw.split(";").map((part) => part.trim());
+  const hit = parts.find((part) => part.startsWith(`${name}=`));
+  if (!hit) return "";
+  const value = hit.slice(name.length + 1).trim();
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function resolveAnonymousSessionId(req: Request): string {
+  const fromHeader = String(req.headers["x-anonymous-session-id"] || "").trim();
+  if (fromHeader) return fromHeader;
+  const fromQuery = String((req.query as any)?.anonymousSessionId || "").trim();
+  if (fromQuery) return fromQuery;
+  const cookieCandidates = ["anonymousSessionId", "anonSessionId", "sessionId", "ts_session_id"];
+  for (const name of cookieCandidates) {
+    const value = readCookieValue(req, name);
+    if (value) return value;
+  }
+  return "";
+}
+
 type DirectConnectBypassSource = "none" | "privileged" | "environment" | "manual";
 
 interface DirectConnectVerificationBypassContext {
@@ -1892,8 +1919,13 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
       try {
-        const userId = req.user?.id || req.user?.claims?.sub;
-        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) {
+          return res.status(401).json({
+            code: "AUTH_REQUIRED_TO_VIEW_REQUESTS",
+            message: "Sign in is required to view posted Direct Connect requests.",
+          });
+        }
 
         const viewer = await storage.getUser(String(userId));
         const viewerCountyFips = String(
@@ -1909,10 +1941,8 @@ export function registerDirectConnectRoutes(app: Express) {
           typeof req.query?.countyFips === "string" ? String(req.query.countyFips).trim() : "";
         const effectiveCountyFips = queryCountyFips || viewerCountyFips;
 
-        const filters: any[] = [
-          eq(workRequests.createdByUserId, String(userId)),
-          eq(workRequests.source, "direct_connect" as any),
-        ];
+        const filters: any[] = [eq(workRequests.source, "direct_connect" as any)];
+        filters.push(eq(workRequests.createdByUserId, String(userId)));
         if (localOnly && effectiveCountyFips) {
           filters.push(eq(workRequests.countyFips, effectiveCountyFips));
         }
@@ -1967,14 +1997,16 @@ export function registerDirectConnectRoutes(app: Express) {
           return true;
         });
 
-        if (!filteredRequests.length) {
+        const ownedRequests = filteredRequests;
+
+        if (!ownedRequests.length) {
           return res.json([]);
         }
 
         // Keep share token lifecycle strict:
         // - live requests get/keep a token
         // - closed requests lose tokens
-        for (const row of filteredRequests as any[]) {
+        for (const row of ownedRequests as any[]) {
           const hasToken = String(row.shareToken || "").trim().length > 0;
           if (isShareableRequestStatus(row.status)) {
             if (!hasToken) {
@@ -1990,7 +2022,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        const requestIds = filteredRequests.map((r: any) => r.id);
+        const requestIds = ownedRequests.map((r: any) => r.id);
 
         const dispatchMetaByRequestId = new Map<string, any>();
         if (requestIds.length) {
@@ -2101,7 +2133,7 @@ export function registerDirectConnectRoutes(app: Express) {
               .from(conversations)
               .where(
                 and(
-                  eq(conversations.homeownerId, String(userId)),
+                  eq(conversations.homeownerId, String(userId || "")),
                   inArray(conversations.contractorId, allProviderKeys)
                 )
               )
@@ -2162,7 +2194,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        const enriched = filteredRequests.map((r: any) => {
+        const enriched = ownedRequests.map((r: any) => {
           const a = assignmentsByRequest.get(String(r.id)) || [];
           const suggestedCount = a.filter(
             (x: any) => x.status === "suggested" || x.status === "invited"
@@ -2226,7 +2258,12 @@ export function registerDirectConnectRoutes(app: Express) {
     async (req: AuthedRequest, res: Response) => {
       try {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
-        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        if (!userId) {
+          return res.status(401).json({
+            code: "AUTH_REQUIRED_TO_VIEW_REQUEST_DETAIL",
+            message: "Sign in is required to view posted Direct Connect request details.",
+          });
+        }
         const requestId = String(req.params.id || "").trim();
         if (!requestId) return res.status(400).json({ message: "Request id is required" });
 
@@ -2242,7 +2279,18 @@ export function registerDirectConnectRoutes(app: Express) {
             .status(400)
             .json({ message: "Only Direct Connect requests are supported here" });
         }
-        if (String(requestRow.createdByUserId || "") !== userId) {
+        const dispatchOwnerRows = await db.execute(sql`
+          SELECT user_id, anonymous_session_id
+          FROM direct_connect_dispatch_requests
+          WHERE id = ${requestId}
+          LIMIT 1
+        `);
+        const dispatchOwner = ((dispatchOwnerRows.rows || []) as any[])[0] || null;
+        const ownerUserId = String(
+          dispatchOwner?.user_id || requestRow.createdByUserId || ""
+        ).trim();
+        const authOwnerMatch = ownerUserId.length > 0 && ownerUserId === userId;
+        if (!authOwnerMatch) {
           return res.status(403).json({ message: "You can only view your own requests" });
         }
 
@@ -2301,8 +2349,15 @@ export function registerDirectConnectRoutes(app: Express) {
           requestId,
           actorType: "requester",
           actorId: userId,
-          eventType: "homeowner_viewed_request",
+          eventType: "requester_viewed_request",
           metadata: { surface: "direct_connect_requests_detail" },
+        }).catch(() => undefined);
+        await appendDispatchEvent({
+          requestId,
+          actorType: "requester",
+          actorId: userId,
+          eventType: "homeowner_viewed_request",
+          metadata: { surface: "direct_connect_requests_detail", compatibility: true },
         }).catch(() => undefined);
 
         if (contractorResponses.length > 0) {
@@ -2310,8 +2365,15 @@ export function registerDirectConnectRoutes(app: Express) {
             requestId,
             actorType: "requester",
             actorId: userId,
-            eventType: "homeowner_viewed_response",
+            eventType: "requester_viewed_response",
             metadata: { count: contractorResponses.length },
+          }).catch(() => undefined);
+          await appendDispatchEvent({
+            requestId,
+            actorType: "requester",
+            actorId: userId,
+            eventType: "homeowner_viewed_response",
+            metadata: { count: contractorResponses.length, compatibility: true },
           }).catch(() => undefined);
         }
 
@@ -2350,6 +2412,14 @@ export function registerDirectConnectRoutes(app: Express) {
             actorType: String(eventRow.actor_type || ""),
             at: eventRow.created_at || null,
           })),
+          allowedRequesterActions: {
+            canApproveContact:
+              String(dispatch?.contact_gate_state || "locked") === "contractor_requested",
+            canDenyContact:
+              String(dispatch?.contact_gate_state || "locked") === "contractor_requested",
+            canReleaseContact: String(dispatch?.contact_gate_state || "locked") === "user_approved",
+          },
+          // Backward compatibility for older clients/tests.
           allowedHomeownerActions: {
             canApproveContact:
               String(dispatch?.contact_gate_state || "locked") === "contractor_requested",
@@ -2647,6 +2717,12 @@ export function registerDirectConnectRoutes(app: Express) {
       try {
         const requestId = String(req.params.id || "").trim();
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) {
+          return res.status(401).json({
+            code: "AUTH_REQUIRED_TO_UPDATE_CONTACT_GATE",
+            message: "Sign in is required before approving or releasing contact.",
+          });
+        }
         const nextState = String((req.body as any)?.nextState || "").trim() as
           | "locked"
           | "contractor_requested"
@@ -2675,7 +2751,18 @@ export function registerDirectConnectRoutes(app: Express) {
           .from(workRequests)
           .where(eq(workRequests.id, requestId));
         if (!requestRow) return res.status(404).json({ message: "Work request not found" });
-        if (String(requestRow.createdByUserId || "") !== userId) {
+        const dispatchOwnerRows = await db.execute(sql`
+          SELECT user_id, anonymous_session_id
+          FROM direct_connect_dispatch_requests
+          WHERE id = ${requestId}
+          LIMIT 1
+        `);
+        const dispatchOwner = ((dispatchOwnerRows.rows || []) as any[])[0] || null;
+        const ownerUserId = String(
+          dispatchOwner?.user_id || requestRow.createdByUserId || ""
+        ).trim();
+        const authOwnerMatch = ownerUserId.length > 0 && ownerUserId === userId;
+        if (!authOwnerMatch) {
           return res
             .status(403)
             .json({ message: "Only the request owner can update contact approval" });
@@ -2719,7 +2806,7 @@ export function registerDirectConnectRoutes(app: Express) {
           actorType: "requester",
           actorId: userId,
           eventType,
-          metadata: { nextState, previousState: currentState, actor: "homeowner" },
+          metadata: { nextState, previousState: currentState, actor: "requester" },
         });
         return res.status(200).json({ requestId, contactGateState: nextState });
       } catch (error: any) {
@@ -3205,8 +3292,15 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
       try {
-        const userId = req.user?.id || req.user?.claims?.sub;
-        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) {
+          return res.status(401).json({
+            code: "AUTH_REQUIRED_TO_SHARE_REQUEST",
+            message:
+              "Create your free account to share this request. We ask requesters to sign in before sharing so local businesses know every request is real.",
+          });
+        }
+        const ownerUserId = userId;
 
         const parse = directConnectRequestSchema.safeParse(req.body ?? {});
         if (!parse.success) {
@@ -3223,81 +3317,86 @@ export function registerDirectConnectRoutes(app: Express) {
           });
         }
 
-        // C2-3: Verification gate - check homeowner address verification (REQUEST_CONTRACTOR_QUOTE action)
-        const viewer = await storage.getUser(String(userId));
-        const requesterRole = (viewer as any)?.role || "homeowner";
-        const firstName = String((viewer as any)?.firstName || "").trim();
-        const lastName = String((viewer as any)?.lastName || "").trim();
-        const fullName = String((viewer as any)?.name || (viewer as any)?.displayName || "").trim();
-        const hasName =
-          (firstName.length > 0 && lastName.length > 0) ||
-          fullName.split(/\s+/).filter(Boolean).length >= 2 ||
-          fullName.length >= 3;
-        const phoneDigits = String((viewer as any)?.phone || "")
-          .replace(/\D+/g, "")
-          .trim();
-        const userStateCode = String(
-          (viewer as any)?.stateCode || (viewer as any)?.state_code || ""
-        )
-          .trim()
-          .toUpperCase();
-        const userCountyFips = String(
-          (viewer as any)?.countyFips || (viewer as any)?.county_fips || ""
-        ).trim();
-        const hasLocation = /^[A-Z]{2}$/.test(userStateCode) && /^\d{5}$/.test(userCountyFips);
-        const hasContactInfo = phoneDigits.length >= 10;
+        // Authenticated requester gates (profile/verification) stay enforced.
+        const viewer = await storage.getUser(String(ownerUserId));
+        let bypassContext: ReturnType<typeof resolveDirectConnectVerificationBypass> | null = null;
+        if (viewer && ownerUserId) {
+          const requesterRole = (viewer as any)?.role || "homeowner";
+          const firstName = String((viewer as any)?.firstName || "").trim();
+          const lastName = String((viewer as any)?.lastName || "").trim();
+          const fullName = String(
+            (viewer as any)?.name || (viewer as any)?.displayName || ""
+          ).trim();
+          const hasName =
+            (firstName.length > 0 && lastName.length > 0) ||
+            fullName.split(/\s+/).filter(Boolean).length >= 2 ||
+            fullName.length >= 3;
+          const phoneDigits = String((viewer as any)?.phone || "")
+            .replace(/\D+/g, "")
+            .trim();
+          const userStateCode = String(
+            (viewer as any)?.stateCode || (viewer as any)?.state_code || ""
+          )
+            .trim()
+            .toUpperCase();
+          const userCountyFips = String(
+            (viewer as any)?.countyFips || (viewer as any)?.county_fips || ""
+          ).trim();
+          const hasLocation = /^[A-Z]{2}$/.test(userStateCode) && /^\d{5}$/.test(userCountyFips);
+          const hasContactInfo = phoneDigits.length >= 10;
 
-        if (!hasName || !hasLocation || !hasContactInfo) {
-          return res.status(428).json({
-            code: "PROFILE_BASICS_REQUIRED",
-            message:
-              "Name, location, and contact info are required before posting a Direct Connect request.",
-            required: {
-              name: !hasName,
-              location: !hasLocation,
-              contactInfo: !hasContactInfo,
-            },
-            next: "/onboarding/profile",
-          });
-        }
+          if (!hasName || !hasLocation || !hasContactInfo) {
+            return res.status(428).json({
+              code: "PROFILE_BASICS_REQUIRED",
+              message:
+                "Name, location, and contact info are required before posting a Direct Connect request.",
+              required: {
+                name: !hasName,
+                location: !hasLocation,
+                contactInfo: !hasContactInfo,
+              },
+              next: "/onboarding/profile",
+            });
+          }
 
-        const bypassContext = resolveDirectConnectVerificationBypass(req, viewer);
-        const canBypassVerification = bypassContext.active;
-        if (!canBypassVerification && bypassContext.deniedReason) {
-          await auditDirectConnectBypassUsage({
-            req,
-            actorUserId: String(userId),
-            context: bypassContext,
-            operation: "create",
-          });
-        }
-        if (
-          !canBypassVerification &&
-          requesterRole === "homeowner" &&
-          !(viewer as any)?.addressVerified
-        ) {
-          const { buildVerificationGateResponse } =
-            await import("../utils/explainAndOfferVerification");
+          bypassContext = resolveDirectConnectVerificationBypass(req, viewer);
+          const canBypassVerification = bypassContext.active;
+          if (!canBypassVerification && bypassContext.deniedReason) {
+            await auditDirectConnectBypassUsage({
+              req,
+              actorUserId: String(ownerUserId),
+              context: bypassContext,
+              operation: "create",
+            });
+          }
+          if (
+            !canBypassVerification &&
+            requesterRole === "homeowner" &&
+            !(viewer as any)?.addressVerified
+          ) {
+            const { buildVerificationGateResponse } =
+              await import("../utils/explainAndOfferVerification");
 
-          const gateResponse = buildVerificationGateResponse({
-            action: "REQUEST_CONTRACTOR_QUOTE",
-            missingRequirements: ["address"],
-            userRole: requesterRole,
-            targetUserId: undefined,
-            targetRole: "contractor",
-            context: { intent: "create_work_request", category: body.category },
-          });
-
-          return res.status(428).json({
-            code: "VERIFICATION_REQUIRED",
-            message: gateResponse.message,
-            ...gateResponse,
-            verificationRequired: {
+            const gateResponse = buildVerificationGateResponse({
               action: "REQUEST_CONTRACTOR_QUOTE",
-              retryPath: `/api/direct-connect/requests`,
-              context: { category: body.category, title: body.title },
-            },
-          });
+              missingRequirements: ["address"],
+              userRole: requesterRole,
+              targetUserId: undefined,
+              targetRole: "contractor",
+              context: { intent: "create_work_request", category: body.category },
+            });
+
+            return res.status(428).json({
+              code: "VERIFICATION_REQUIRED",
+              message: gateResponse.message,
+              ...gateResponse,
+              verificationRequired: {
+                action: "REQUEST_CONTRACTOR_QUOTE",
+                retryPath: `/api/direct-connect/requests`,
+                context: { category: body.category, title: body.title },
+              },
+            });
+          }
         }
 
         const budgetMinNumber = body.budgetMin ?? NaN;
@@ -3343,7 +3442,7 @@ export function registerDirectConnectRoutes(app: Express) {
         const [created] = await db
           .insert(workRequests)
           .values({
-            createdByUserId: String(userId),
+            createdByUserId: String(ownerUserId),
             title: sanitizedTitle,
             description: sanitizedDescription,
             category: body.category,
@@ -3401,12 +3500,13 @@ export function registerDirectConnectRoutes(app: Express) {
           };
           await persistFinalizedDispatchRequest({
             canonical,
-            userId: String(userId),
+            userId: String(ownerUserId),
+            anonymousSessionId: null,
           });
           await appendDispatchEvent({
             requestId: createdRequestId,
             actorType: "requester",
-            actorId: String(userId),
+            actorId: String(ownerUserId),
             eventType: "request_finalized",
             metadata: {
               category: body.category,
@@ -3424,7 +3524,7 @@ export function registerDirectConnectRoutes(app: Express) {
           await appendDispatchEvent({
             requestId: createdRequestId,
             actorType: "requester",
-            actorId: String(userId),
+            actorId: String(ownerUserId),
             eventType: "request_shared",
             metadata: { source: "direct_connect_create" },
           });
@@ -3435,7 +3535,7 @@ export function registerDirectConnectRoutes(app: Express) {
             await db.insert(workRequestEvents).values({
               workRequestId: created.id,
               type: "created",
-              actorUserId: String(userId),
+              actorUserId: ownerUserId ? String(ownerUserId) : null,
               metadata: { source: "direct_connect" },
             });
           } catch (e) {
@@ -3443,13 +3543,15 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
-        await auditDirectConnectBypassUsage({
-          req,
-          actorUserId: String(userId),
-          context: bypassContext,
-          operation: "create",
-          requestId: createdRequestId,
-        });
+        if (bypassContext && ownerUserId) {
+          await auditDirectConnectBypassUsage({
+            req,
+            actorUserId: String(ownerUserId),
+            context: bypassContext,
+            operation: "create",
+            requestId: createdRequestId,
+          });
+        }
 
         // Explicit targeting preserves requester choice; this is not automatic routing.
         if (created && targetProviderIds.length > 0) {
@@ -4473,56 +4575,103 @@ export function registerDirectConnectRoutes(app: Express) {
           .limit(1);
         const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
 
-        const candidateRows = await db.execute(sql`
-          SELECT
-            c.request_id,
-            c.eligibility_state,
-            c.eligibility_reasons,
-            c.ineligibility_reasons,
-            c.territory_matched,
-            c.category_matched,
-            c.verification_state,
-            c.profile_readiness,
-            c.contact_eligibility,
-            c.trust_state,
-            c.created_at AS candidate_created_at,
-            r.intent,
-            r.request_type,
-            r.category,
-            r.county,
-            r.city_area,
-            r.urgency,
-            r.description,
-            r.answers_json,
-            r.routing_readiness_state,
-            r.contact_gate_state,
-            r.created_at,
-            r.updated_at
-          FROM direct_connect_dispatch_candidates c
-          INNER JOIN direct_connect_dispatch_requests r
-            ON r.id = c.request_id
-          WHERE c.eligibility_state = 'eligible'
-            AND (
-              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
-              OR c.responder_user_id = ${userId}
-              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-            )
-          ORDER BY r.updated_at DESC, r.created_at DESC, c.created_at DESC
-        `);
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const candidateRows = contractorId
+          ? await db.execute(sql`
+              SELECT
+                c.request_id,
+                c.eligibility_state,
+                c.eligibility_reasons,
+                c.ineligibility_reasons,
+                c.territory_matched,
+                c.category_matched,
+                c.verification_state,
+                c.profile_readiness,
+                c.contact_eligibility,
+                c.trust_state,
+                c.created_at AS candidate_created_at,
+                r.intent,
+                r.request_type,
+                r.category,
+                r.county,
+                r.city_area,
+                r.urgency,
+                r.description,
+                r.answers_json,
+                r.routing_readiness_state,
+                r.contact_gate_state,
+                r.created_at,
+                r.updated_at
+              FROM direct_connect_dispatch_candidates c
+              INNER JOIN direct_connect_dispatch_requests r
+                ON r.id = c.request_id
+              WHERE c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              ORDER BY r.updated_at DESC, r.created_at DESC, c.created_at DESC
+            `)
+          : await db.execute(sql`
+              SELECT
+                c.request_id,
+                c.eligibility_state,
+                c.eligibility_reasons,
+                c.ineligibility_reasons,
+                c.territory_matched,
+                c.category_matched,
+                c.verification_state,
+                c.profile_readiness,
+                c.contact_eligibility,
+                c.trust_state,
+                c.created_at AS candidate_created_at,
+                r.intent,
+                r.request_type,
+                r.category,
+                r.county,
+                r.city_area,
+                r.urgency,
+                r.description,
+                r.answers_json,
+                r.routing_readiness_state,
+                r.contact_gate_state,
+                r.created_at,
+                r.updated_at
+              FROM direct_connect_dispatch_candidates c
+              INNER JOIN direct_connect_dispatch_requests r
+                ON r.id = c.request_id
+              WHERE c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              ORDER BY r.updated_at DESC, r.created_at DESC, c.created_at DESC
+            `);
 
         const responseByRequest = new Map<string, any>();
-        const responseRows = await db.execute(sql`
-          SELECT DISTINCT ON (request_id)
-            request_id,
-            response_type,
-            contact_request_state,
-            created_at
-          FROM direct_connect_contractor_responses
-          WHERE
-            (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
-            OR responder_user_id = ${userId}
-          ORDER BY request_id, created_at DESC
-        `);
+        const responseRows = contractorId
+          ? await db.execute(sql`
+              SELECT DISTINCT ON (request_id)
+                request_id,
+                response_type,
+                contact_request_state,
+                created_at
+              FROM direct_connect_contractor_responses
+              WHERE contractor_id = ${contractorId}
+                 OR responder_user_id = ${userId}
+              ORDER BY request_id, created_at DESC
+            `)
+          : await db.execute(sql`
+              SELECT DISTINCT ON (request_id)
+                request_id,
+                response_type,
+                contact_request_state,
+                created_at
+              FROM direct_connect_contractor_responses
+              WHERE responder_user_id = ${userId}
+              ORDER BY request_id, created_at DESC
+            `);
         for (const row of (responseRows.rows || []) as any[]) {
           responseByRequest.set(String(row.request_id), row);
         }
@@ -4581,44 +4730,83 @@ export function registerDirectConnectRoutes(app: Express) {
           .limit(1);
         const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
 
-        const candidateResult = await db.execute(sql`
-          SELECT
-            c.request_id,
-            c.eligibility_state,
-            c.eligibility_reasons,
-            c.ineligibility_reasons,
-            c.territory_matched,
-            c.category_matched,
-            c.verification_state,
-            c.profile_readiness,
-            c.contact_eligibility,
-            c.trust_state,
-            r.intent,
-            r.request_type,
-            r.category,
-            r.county,
-            r.city_area,
-            r.urgency,
-            r.description,
-            r.answers_json,
-            r.routing_readiness_state,
-            r.contact_gate_state,
-            r.visibility_state,
-            r.created_at,
-            r.updated_at
-          FROM direct_connect_dispatch_candidates c
-          INNER JOIN direct_connect_dispatch_requests r
-            ON r.id = c.request_id
-          WHERE c.request_id = ${requestId}
-            AND c.eligibility_state = 'eligible'
-            AND (
-              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
-              OR c.responder_user_id = ${userId}
-              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-            )
-          ORDER BY c.created_at DESC
-          LIMIT 1
-        `);
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const candidateResult = contractorId
+          ? await db.execute(sql`
+              SELECT
+                c.request_id,
+                c.eligibility_state,
+                c.eligibility_reasons,
+                c.ineligibility_reasons,
+                c.territory_matched,
+                c.category_matched,
+                c.verification_state,
+                c.profile_readiness,
+                c.contact_eligibility,
+                c.trust_state,
+                r.intent,
+                r.request_type,
+                r.category,
+                r.county,
+                r.city_area,
+                r.urgency,
+                r.description,
+                r.answers_json,
+                r.routing_readiness_state,
+                r.contact_gate_state,
+                r.visibility_state,
+                r.created_at,
+                r.updated_at
+              FROM direct_connect_dispatch_candidates c
+              INNER JOIN direct_connect_dispatch_requests r
+                ON r.id = c.request_id
+              WHERE c.request_id = ${requestId}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              ORDER BY c.created_at DESC
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT
+                c.request_id,
+                c.eligibility_state,
+                c.eligibility_reasons,
+                c.ineligibility_reasons,
+                c.territory_matched,
+                c.category_matched,
+                c.verification_state,
+                c.profile_readiness,
+                c.contact_eligibility,
+                c.trust_state,
+                r.intent,
+                r.request_type,
+                r.category,
+                r.county,
+                r.city_area,
+                r.urgency,
+                r.description,
+                r.answers_json,
+                r.routing_readiness_state,
+                r.contact_gate_state,
+                r.visibility_state,
+                r.created_at,
+                r.updated_at
+              FROM direct_connect_dispatch_candidates c
+              INNER JOIN direct_connect_dispatch_requests r
+                ON r.id = c.request_id
+              WHERE c.request_id = ${requestId}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              ORDER BY c.created_at DESC
+              LIMIT 1
+            `);
 
         const candidate = ((candidateResult.rows || []) as any[])[0];
         if (!candidate) {
@@ -4633,17 +4821,26 @@ export function registerDirectConnectRoutes(app: Express) {
           metadata: { surface: "contractor_console" },
         }).catch(() => undefined);
 
-        const latestResponseResult = await db.execute(sql`
-          SELECT response_type, contact_request_state, message, availability, estimated_timing, created_at
-          FROM direct_connect_contractor_responses
-          WHERE request_id = ${requestId}
-            AND (
-              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
-              OR responder_user_id = ${userId}
-            )
-          ORDER BY created_at DESC
-          LIMIT 1
-        `);
+        const latestResponseResult = contractorId
+          ? await db.execute(sql`
+              SELECT response_type, contact_request_state, message, availability, estimated_timing, created_at
+              FROM direct_connect_contractor_responses
+              WHERE request_id = ${requestId}
+                AND (
+                  contractor_id = ${contractorId}
+                  OR responder_user_id = ${userId}
+                )
+              ORDER BY created_at DESC
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT response_type, contact_request_state, message, availability, estimated_timing, created_at
+              FROM direct_connect_contractor_responses
+              WHERE request_id = ${requestId}
+                AND responder_user_id = ${userId}
+              ORDER BY created_at DESC
+              LIMIT 1
+            `);
         const latestResponse = ((latestResponseResult.rows || []) as any[])[0] || null;
 
         return res.status(200).json({
@@ -4723,33 +4920,55 @@ export function registerDirectConnectRoutes(app: Express) {
           .limit(1);
         const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
 
-        const eligibilityResult = await db.execute(sql`
-          SELECT c.request_id
-          FROM direct_connect_dispatch_candidates c
-          WHERE c.request_id = ${requestId}
-            AND c.eligibility_state = 'eligible'
-            AND (
-              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
-              OR c.responder_user_id = ${userId}
-              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-            )
-          LIMIT 1
-        `);
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${requestId}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${requestId}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
         if (!((eligibilityResult.rows || []) as any[])[0]) {
           return res.status(403).json({ message: "Request not available for this contractor" });
         }
 
-        const existing = await db.execute(sql`
-          SELECT id
-          FROM direct_connect_contractor_responses
-          WHERE request_id = ${requestId}
-            AND (
-              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
-              OR responder_user_id = ${userId}
-            )
-          ORDER BY created_at DESC
-          LIMIT 1
-        `);
+        const existing = contractorId
+          ? await db.execute(sql`
+              SELECT id
+              FROM direct_connect_contractor_responses
+              WHERE request_id = ${requestId}
+                AND (
+                  contractor_id = ${contractorId}
+                  OR responder_user_id = ${userId}
+                )
+              ORDER BY created_at DESC
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT id
+              FROM direct_connect_contractor_responses
+              WHERE request_id = ${requestId}
+                AND responder_user_id = ${userId}
+              ORDER BY created_at DESC
+              LIMIT 1
+            `);
         if (((existing.rows || []) as any[])[0]) {
           return res.status(409).json({ message: "A response already exists for this request." });
         }
@@ -4759,7 +4978,7 @@ export function registerDirectConnectRoutes(app: Express) {
           responseType === "interested" || responseType === "need_more_info";
         await recordContractorResponse({
           requestId,
-          contractorId: contractor?.id ? String(contractor.id) : null,
+          contractorId,
           responderUserId: userId,
           responseType,
           message: parse.data.message ? String(parse.data.message).trim() : null,
@@ -4811,33 +5030,55 @@ export function registerDirectConnectRoutes(app: Express) {
           .limit(1);
         const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
 
-        const eligibilityResult = await db.execute(sql`
-          SELECT c.request_id
-          FROM direct_connect_dispatch_candidates c
-          WHERE c.request_id = ${requestId}
-            AND c.eligibility_state = 'eligible'
-            AND (
-              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND c.contractor_id = ${contractor?.id ? String(contractor.id) : null})
-              OR c.responder_user_id = ${userId}
-              OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
-            )
-          LIMIT 1
-        `);
+        const contractorId = contractor?.id ? String(contractor.id) : null;
+        const eligibilityResult = contractorId
+          ? await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${requestId}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.contractor_id = ${contractorId}
+                  OR c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT c.request_id
+              FROM direct_connect_dispatch_candidates c
+              WHERE c.request_id = ${requestId}
+                AND c.eligibility_state = 'eligible'
+                AND (
+                  c.responder_user_id = ${userId}
+                  OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                )
+              LIMIT 1
+            `);
         if (!((eligibilityResult.rows || []) as any[])[0]) {
           return res.status(403).json({ message: "Request not available for this contractor" });
         }
 
-        const latestResponseResult = await db.execute(sql`
-          SELECT response_type
-          FROM direct_connect_contractor_responses
-          WHERE request_id = ${requestId}
-            AND (
-              (${contractor?.id ? String(contractor.id) : null} IS NOT NULL AND contractor_id = ${contractor?.id ? String(contractor.id) : null})
-              OR responder_user_id = ${userId}
-            )
-          ORDER BY created_at DESC
-          LIMIT 1
-        `);
+        const latestResponseResult = contractorId
+          ? await db.execute(sql`
+              SELECT response_type
+              FROM direct_connect_contractor_responses
+              WHERE request_id = ${requestId}
+                AND (
+                  contractor_id = ${contractorId}
+                  OR responder_user_id = ${userId}
+                )
+              ORDER BY created_at DESC
+              LIMIT 1
+            `)
+          : await db.execute(sql`
+              SELECT response_type
+              FROM direct_connect_contractor_responses
+              WHERE request_id = ${requestId}
+                AND responder_user_id = ${userId}
+              ORDER BY created_at DESC
+              LIMIT 1
+            `);
         const latestResponse = ((latestResponseResult.rows || []) as any[])[0];
         const responseType = String(latestResponse?.response_type || "");
         if (!["interested", "need_more_info"].includes(responseType)) {
