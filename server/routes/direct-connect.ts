@@ -10046,21 +10046,33 @@ export function registerDirectConnectRoutes(app: Express) {
             FOR UPDATE
           `);
           const assignment = (assignmentLockResult.rows?.[0] as any) || null;
+          const assignmentContractorId = assignment
+            ? String(assignment.contractorId ?? assignment.contractor_id ?? "")
+            : "";
+          const assignmentResponderUserId = assignment
+            ? String(assignment.responderUserId ?? assignment.responder_user_id ?? "")
+            : "";
+          const assignmentWorkerId = assignment
+            ? String(assignment.workerId ?? assignment.worker_id ?? "")
+            : "";
+          const assignmentWorkRequestId = assignment
+            ? String(assignment.workRequestId ?? assignment.work_request_id ?? "")
+            : "";
+          const assignmentStatus = assignment ? String(assignment.status || "") : "";
 
           // Authorization: the calling user must be the contractor, the responderUserId,
           // or the worker whose workerId is on the assignment.
-          const isContractorAssignment = contractor && assignment?.contractorId === contractor.id;
-          const isBusinessAssignment =
-            assignment && (assignment as any).responderUserId === String(userId);
+          const isContractorAssignment = contractor && assignmentContractorId === contractor.id;
+          const isBusinessAssignment = assignment && assignmentResponderUserId === String(userId);
           // Worker assignment: check if this user owns the worker profile linked to the assignment
           let isWorkerAssignment = false;
-          if (!isContractorAssignment && !isBusinessAssignment && assignment?.workerId) {
+          if (!isContractorAssignment && !isBusinessAssignment && assignmentWorkerId) {
             const [wp] = await tx
               .select({ id: (workers as any).id })
               .from(workers as any)
               .where(
                 and(
-                  eq((workers as any).id, String(assignment.workerId)),
+                  eq((workers as any).id, assignmentWorkerId),
                   eq((workers as any).userId, String(userId))
                 )
               )
@@ -10077,7 +10089,7 @@ export function registerDirectConnectRoutes(app: Express) {
           const requestLockResult = await tx.execute(sql`
             SELECT *
             FROM work_requests
-            WHERE id = ${assignment.workRequestId}
+            WHERE id = ${assignmentWorkRequestId}
             FOR UPDATE
           `);
           const requestRow = (requestLockResult.rows?.[0] as any) || null;
@@ -10086,7 +10098,6 @@ export function registerDirectConnectRoutes(app: Express) {
             return { status: 404 as const, body: { message: "Work request not found" } };
           }
 
-          const assignmentStatus = String(assignment.status || "");
           const canRespond = assignmentStatus === "suggested" || assignmentStatus === "invited";
           if (!canRespond) {
             if (decision === "accept" && assignmentStatus === "accepted") {

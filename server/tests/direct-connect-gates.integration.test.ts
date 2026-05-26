@@ -586,6 +586,78 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(String(inserted[0]?.source || "")).toBe("direct_connect");
   });
 
+  it("allows provider express-interest assignment id to be respondable with required acceptance fields", async () => {
+    const { agent: requesterAgent, user: requesterUser } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const { agent: providerAgent, user: providerUser } = await createAuthedAgent({
+      role: "contractor",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const [county] = await db.select().from(counties).limit(1);
+    expect(county).toBeTruthy();
+
+    await db
+      .update(users)
+      .set({
+        countyFips: String((county as any).fips),
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(users.id, String(requesterUser.id)));
+
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const [providerContractor] = await db
+      .insert(contractors)
+      .values({
+        userId: providerUser.id,
+        companyName: `Respondable Provider ${unique}`,
+        slug: `respondable-provider-${unique}`,
+        isActive: true,
+      } as any)
+      .returning();
+
+    await db.insert(contractorCounties).values({
+      contractorId: providerContractor.id,
+      countyId: (county as any).id,
+    } as any);
+
+    const createRes = await requesterAgent.post("/api/direct-connect/requests").send({
+      title: `Respondable assignment ${unique}`,
+      description: "Need a provider to confirm assignment response flow.",
+      category: "service_request",
+      countyFips: String((county as any).fips),
+      stateCode: String((county as any).stateCode || "").toUpperCase(),
+    });
+    expect(createRes.status).toBe(201);
+    const requestId = String(createRes.body?.id || "");
+    expect(requestId.length).toBeGreaterThan(0);
+
+    const expressRes = await providerAgent
+      .post(`/api/direct-connect/requests/${requestId}/express-interest`)
+      .send({});
+    expect([200, 201]).toContain(expressRes.status);
+    const assignmentId = String(expressRes.body?.assignment?.id || "");
+    expect(assignmentId.length).toBeGreaterThan(0);
+
+    const respondRes = await providerAgent
+      .post(`/api/direct-connect/assignments/${assignmentId}/respond`)
+      .send({
+        decision: "accept",
+        availabilityWindow: "This week",
+        priceBand: "standard",
+        scopeNote: "Can diagnose and complete this repair this week.",
+      });
+    expect([200, 201]).toContain(respondRes.status);
+    expect(respondRes.status).not.toBe(404);
+  });
+
   it("degrades optional list enrichment failures and still returns 200 request list", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",
