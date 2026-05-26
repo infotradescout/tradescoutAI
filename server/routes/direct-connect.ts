@@ -2564,14 +2564,31 @@ export function registerDirectConnectRoutes(app: Express) {
             // fail-soft for older environments before dispatch ledger bootstrap
           }
         }
+        const safeSelectRows = async (label: string, statement: () => Promise<unknown>) => {
+          try {
+            const result = await statement();
+            return (result as { rows?: unknown[] }).rows || [];
+          } catch (error) {
+            if (isSchemaMismatchError(error)) {
+              console.warn(
+                `[direct-connect] Schema mismatch while building request list metadata (${label}); continuing with fallback`,
+                error
+              );
+              return [];
+            }
+            throw error;
+          }
+        };
         const workspaceByRequestId = new Map<string, any>();
         if (requestIds.length) {
-          const workspaceRows = await db.execute(sql`
-            SELECT request_id, id, status, active_stage, updated_at
-            FROM direct_connect_job_workspaces
-            WHERE request_id = ANY(${requestIds}::text[])
-          `);
-          for (const row of (workspaceRows.rows || []) as any[]) {
+          const workspaceRows = await safeSelectRows("workspaces", () =>
+            db.execute(sql`
+              SELECT request_id, id, status, active_stage, updated_at
+              FROM direct_connect_job_workspaces
+              WHERE request_id = ANY(${requestIds}::text[])
+            `)
+          );
+          for (const row of workspaceRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || workspaceByRequestId.has(key)) continue;
             workspaceByRequestId.set(key, row);
@@ -2586,30 +2603,32 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const estimateRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(e.id)::int AS estimate_count,
-              (
-                SELECT e2.id
-                FROM job_estimates e2
-                WHERE e2.workspace_id = w.id
-                ORDER BY e2.created_at DESC
-                LIMIT 1
-              ) AS active_estimate_id,
-              (
-                SELECT e3.status
-                FROM job_estimates e3
-                WHERE e3.workspace_id = w.id
-                ORDER BY e3.created_at DESC
-                LIMIT 1
-              ) AS latest_estimate_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_estimates e ON e.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (estimateRows.rows || []) as any[]) {
+          const estimateRows = await safeSelectRows("estimate summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(e.id)::int AS estimate_count,
+                (
+                  SELECT e2.id
+                  FROM job_estimates e2
+                  WHERE e2.workspace_id = w.id
+                  ORDER BY e2.created_at DESC
+                  LIMIT 1
+                ) AS active_estimate_id,
+                (
+                  SELECT e3.status
+                  FROM job_estimates e3
+                  WHERE e3.workspace_id = w.id
+                  ORDER BY e3.created_at DESC
+                  LIMIT 1
+                ) AS latest_estimate_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_estimates e ON e.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of estimateRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || estimateSummaryByRequestId.has(key)) continue;
             estimateSummaryByRequestId.set(key, {
@@ -2626,23 +2645,25 @@ export function registerDirectConnectRoutes(app: Express) {
           { latestPaymentRequestStatus: string | null; paymentRequestCount: number }
         >();
         if (requestIds.length) {
-          const paymentRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(p.id)::int AS payment_request_count,
-              (
-                SELECT p2.status
-                FROM job_payment_requests p2
-                WHERE p2.workspace_id = w.id
-                ORDER BY p2.created_at DESC
-                LIMIT 1
-              ) AS latest_payment_request_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (paymentRows.rows || []) as any[]) {
+          const paymentRows = await safeSelectRows("payment summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(p.id)::int AS payment_request_count,
+                (
+                  SELECT p2.status
+                  FROM job_payment_requests p2
+                  WHERE p2.workspace_id = w.id
+                  ORDER BY p2.created_at DESC
+                  LIMIT 1
+                ) AS latest_payment_request_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of paymentRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || paymentSummaryByRequestId.has(key)) continue;
             paymentSummaryByRequestId.set(key, {
@@ -2662,30 +2683,32 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const scheduleRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(s.id)::int AS schedule_proposal_count,
-              (
-                SELECT s2.id
-                FROM job_schedule_proposals s2
-                WHERE s2.workspace_id = w.id
-                ORDER BY s2.created_at DESC
-                LIMIT 1
-              ) AS active_schedule_proposal_id,
-              (
-                SELECT s3.status
-                FROM job_schedule_proposals s3
-                WHERE s3.workspace_id = w.id
-                ORDER BY s3.created_at DESC
-                LIMIT 1
-              ) AS latest_schedule_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (scheduleRows.rows || []) as any[]) {
+          const scheduleRows = await safeSelectRows("schedule summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(s.id)::int AS schedule_proposal_count,
+                (
+                  SELECT s2.id
+                  FROM job_schedule_proposals s2
+                  WHERE s2.workspace_id = w.id
+                  ORDER BY s2.created_at DESC
+                  LIMIT 1
+                ) AS active_schedule_proposal_id,
+                (
+                  SELECT s3.status
+                  FROM job_schedule_proposals s3
+                  WHERE s3.workspace_id = w.id
+                  ORDER BY s3.created_at DESC
+                  LIMIT 1
+                ) AS latest_schedule_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of scheduleRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || scheduleSummaryByRequestId.has(key)) continue;
             scheduleSummaryByRequestId.set(key, {
@@ -2708,22 +2731,24 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const invoiceRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(i.id)::int AS invoice_count,
-              (
-                SELECT i2.id FROM job_invoices i2 WHERE i2.workspace_id = w.id ORDER BY i2.created_at DESC LIMIT 1
-              ) AS active_invoice_id,
-              (
-                SELECT i3.status FROM job_invoices i3 WHERE i3.workspace_id = w.id ORDER BY i3.created_at DESC LIMIT 1
-              ) AS latest_invoice_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_invoices i ON i.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (invoiceRows.rows || []) as any[]) {
+          const invoiceRows = await safeSelectRows("invoice summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(i.id)::int AS invoice_count,
+                (
+                  SELECT i2.id FROM job_invoices i2 WHERE i2.workspace_id = w.id ORDER BY i2.created_at DESC LIMIT 1
+                ) AS active_invoice_id,
+                (
+                  SELECT i3.status FROM job_invoices i3 WHERE i3.workspace_id = w.id ORDER BY i3.created_at DESC LIMIT 1
+                ) AS latest_invoice_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_invoices i ON i.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of invoiceRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || invoiceSummaryByRequestId.has(key)) continue;
             invoiceSummaryByRequestId.set(key, {
@@ -2744,22 +2769,24 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const receiptRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(r.id)::int AS receipt_count,
-              (
-                SELECT r2.status FROM job_receipts r2 WHERE r2.workspace_id = w.id ORDER BY r2.created_at DESC LIMIT 1
-              ) AS latest_receipt_status,
-              (
-                SELECT r3.status FROM job_receipts r3 WHERE r3.workspace_id = w.id AND r3.receipt_type = 'payment_record' ORDER BY r3.created_at DESC LIMIT 1
-              ) AS latest_payment_record_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_receipts r ON r.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (receiptRows.rows || []) as any[]) {
+          const receiptRows = await safeSelectRows("receipt summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(r.id)::int AS receipt_count,
+                (
+                  SELECT r2.status FROM job_receipts r2 WHERE r2.workspace_id = w.id ORDER BY r2.created_at DESC LIMIT 1
+                ) AS latest_receipt_status,
+                (
+                  SELECT r3.status FROM job_receipts r3 WHERE r3.workspace_id = w.id AND r3.receipt_type = 'payment_record' ORDER BY r3.created_at DESC LIMIT 1
+                ) AS latest_payment_record_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_receipts r ON r.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of receiptRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || receiptSummaryByRequestId.has(key)) continue;
             receiptSummaryByRequestId.set(key, {
@@ -2782,20 +2809,22 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const checkpointRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(c.id)::int AS checkpoint_count,
-              COUNT(c.id) FILTER (WHERE c.status NOT IN ('approved', 'completed', 'canceled'))::int AS open_checkpoint_count,
-              (
-                SELECT c2.status FROM job_checkpoints c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
-              ) AS latest_checkpoint_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_checkpoints c ON c.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (checkpointRows.rows || []) as any[]) {
+          const checkpointRows = await safeSelectRows("checkpoint summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(c.id)::int AS checkpoint_count,
+                COUNT(c.id) FILTER (WHERE c.status NOT IN ('approved', 'completed', 'canceled'))::int AS open_checkpoint_count,
+                (
+                  SELECT c2.status FROM job_checkpoints c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
+                ) AS latest_checkpoint_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_checkpoints c ON c.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of checkpointRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || checkpointSummaryByRequestId.has(key)) continue;
             checkpointSummaryByRequestId.set(key, {
@@ -2816,20 +2845,22 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const changeOrderRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(c.id)::int AS change_order_count,
-              COUNT(c.id) FILTER (WHERE c.status IN ('draft','sent','change_requested'))::int AS open_change_order_count,
-              (
-                SELECT c2.status FROM job_change_orders c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
-              ) AS latest_change_order_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_change_orders c ON c.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (changeOrderRows.rows || []) as any[]) {
+          const changeOrderRows = await safeSelectRows("change order summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(c.id)::int AS change_order_count,
+                COUNT(c.id) FILTER (WHERE c.status IN ('draft','sent','change_requested'))::int AS open_change_order_count,
+                (
+                  SELECT c2.status FROM job_change_orders c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
+                ) AS latest_change_order_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_change_orders c ON c.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of changeOrderRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || changeOrderSummaryByRequestId.has(key)) continue;
             changeOrderSummaryByRequestId.set(key, {
@@ -2850,20 +2881,22 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const punchRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(p.id)::int AS punch_item_count,
-              COUNT(p.id) FILTER (WHERE p.status NOT IN ('resolved','waived','canceled'))::int AS open_punch_item_count,
-              (
-                SELECT p2.status FROM job_punch_list_items p2 WHERE p2.workspace_id = w.id ORDER BY p2.created_at DESC LIMIT 1
-              ) AS latest_punch_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_punch_list_items p ON p.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (punchRows.rows || []) as any[]) {
+          const punchRows = await safeSelectRows("punch list summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(p.id)::int AS punch_item_count,
+                COUNT(p.id) FILTER (WHERE p.status NOT IN ('resolved','waived','canceled'))::int AS open_punch_item_count,
+                (
+                  SELECT p2.status FROM job_punch_list_items p2 WHERE p2.workspace_id = w.id ORDER BY p2.created_at DESC LIMIT 1
+                ) AS latest_punch_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_punch_list_items p ON p.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of punchRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || punchSummaryByRequestId.has(key)) continue;
             punchSummaryByRequestId.set(key, {
@@ -2880,19 +2913,21 @@ export function registerDirectConnectRoutes(app: Express) {
           { latestCompletionStatus: string | null; activeCompletionRequestId: string | null }
         >();
         if (requestIds.length) {
-          const completionRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              (
-                SELECT c2.id FROM job_completion_requests c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
-              ) AS active_completion_request_id,
-              (
-                SELECT c3.status FROM job_completion_requests c3 WHERE c3.workspace_id = w.id ORDER BY c3.created_at DESC LIMIT 1
-              ) AS latest_completion_status
-            FROM direct_connect_job_workspaces w
-            WHERE w.request_id = ANY(${requestIds}::text[])
-          `);
-          for (const row of (completionRows.rows || []) as any[]) {
+          const completionRows = await safeSelectRows("completion summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                (
+                  SELECT c2.id FROM job_completion_requests c2 WHERE c2.workspace_id = w.id ORDER BY c2.created_at DESC LIMIT 1
+                ) AS active_completion_request_id,
+                (
+                  SELECT c3.status FROM job_completion_requests c3 WHERE c3.workspace_id = w.id ORDER BY c3.created_at DESC LIMIT 1
+                ) AS latest_completion_status
+              FROM direct_connect_job_workspaces w
+              WHERE w.request_id = ANY(${requestIds}::text[])
+            `)
+          );
+          for (const row of completionRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || completionSummaryByRequestId.has(key)) continue;
             completionSummaryByRequestId.set(key, {
@@ -5016,36 +5051,49 @@ export function registerDirectConnectRoutes(app: Express) {
             createdAt: new Date().toISOString(),
             sourceSurface: "direct_connect",
           };
-          await persistFinalizedDispatchRequest({
-            canonical,
-            userId: String(ownerUserId),
-            anonymousSessionId: null,
-          });
-          await appendDispatchEvent({
-            requestId: createdRequestId,
-            actorType: "requester",
-            actorId: String(ownerUserId),
-            eventType: "request_finalized",
-            metadata: {
-              category: body.category,
-              routingReadiness,
-            },
-          });
-          await appendDispatchEvent({
-            requestId: createdRequestId,
-            actorType: "system",
-            actorId: null,
-            eventType:
-              routingReadiness === "route_ready" ? "request_route_ready" : "request_route_blocked",
-            metadata: { routingReadiness },
-          });
-          await appendDispatchEvent({
-            requestId: createdRequestId,
-            actorType: "requester",
-            actorId: String(ownerUserId),
-            eventType: "request_shared",
-            metadata: { source: "direct_connect_create" },
-          });
+          try {
+            await persistFinalizedDispatchRequest({
+              canonical,
+              userId: String(ownerUserId),
+              anonymousSessionId: null,
+            });
+            await appendDispatchEvent({
+              requestId: createdRequestId,
+              actorType: "requester",
+              actorId: String(ownerUserId),
+              eventType: "request_finalized",
+              metadata: {
+                category: body.category,
+                routingReadiness,
+              },
+            });
+            await appendDispatchEvent({
+              requestId: createdRequestId,
+              actorType: "system",
+              actorId: null,
+              eventType:
+                routingReadiness === "route_ready"
+                  ? "request_route_ready"
+                  : "request_route_blocked",
+              metadata: { routingReadiness },
+            });
+            await appendDispatchEvent({
+              requestId: createdRequestId,
+              actorType: "requester",
+              actorId: String(ownerUserId),
+              eventType: "request_shared",
+              metadata: { source: "direct_connect_create" },
+            });
+          } catch (error) {
+            if (isSchemaMismatchError(error)) {
+              console.warn(
+                "[direct-connect] Dispatch ledger schema mismatch while creating request; continuing with work request only",
+                error
+              );
+            } else {
+              throw error;
+            }
+          }
         }
 
         if (created) {

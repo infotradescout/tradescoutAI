@@ -553,6 +553,39 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(res.body.every((row: any) => String(row.source || "") === "direct_connect")).toBe(true);
   });
 
+  it("allows authenticated requester to create and immediately list direct connect requests", async () => {
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const createRes = await agent.post("/api/direct-connect/requests").send({
+      title: `DC create/list ${Date.now()}`,
+      description: "Quick integration check for authenticated request/list flow.",
+      category: "service_request",
+    });
+
+    expect(createRes.status).toBe(201);
+    const createdId = String(createRes.body?.id || "");
+    expect(createdId.length).toBeGreaterThan(0);
+
+    const listRes = await agent.get("/api/direct-connect/requests");
+    expect(listRes.status).toBe(200);
+    expect(Array.isArray(listRes.body)).toBe(true);
+    expect(listRes.body.some((row: any) => String(row.id || "") === createdId)).toBe(true);
+
+    const inserted = await db
+      .select()
+      .from(workRequests)
+      .where(
+        and(eq(workRequests.id, createdId), eq(workRequests.createdByUserId, String(user.id)))
+      );
+    expect(inserted).toHaveLength(1);
+    expect(String(inserted[0]?.source || "")).toBe("direct_connect");
+  });
+
   it("lists only current local community requests on the direct-connect board endpoint", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",
