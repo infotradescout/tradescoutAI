@@ -10414,12 +10414,17 @@ export function registerDirectConnectRoutes(app: Express) {
         const providerResponderUserId = isContractorProvider ? null : String(userId);
 
         const assignmentResult = await db.transaction(async (tx) => {
-          await tx.execute(sql`
-            SELECT id
+          const requestLockResult = await tx.execute(sql`
+            SELECT id, status
             FROM work_requests
             WHERE id = ${requestId}
             FOR UPDATE
           `);
+          const lockedRequestRow = (requestLockResult.rows?.[0] as any) || null;
+          if (!lockedRequestRow) {
+            return { requestMissing: true as const };
+          }
+          const lockedRequestStatus = String(lockedRequestRow.status || "");
 
           const existingQuery = isContractorProvider
             ? tx
@@ -10445,6 +10450,12 @@ export function registerDirectConnectRoutes(app: Express) {
 
           const [existing] = await existingQuery;
           if (existing) {
+            if (lockedRequestStatus === "open") {
+              await tx
+                .update(workRequests)
+                .set({ status: "routed", updatedAt: now })
+                .where(eq(workRequests.id, requestId));
+            }
             return { assignment: existing, alreadyAssigned: true };
           }
 
@@ -10482,8 +10493,18 @@ export function registerDirectConnectRoutes(app: Express) {
             console.warn("[direct-connect] Failed to record self-select event", e);
           }
 
+          if (lockedRequestStatus === "open") {
+            await tx
+              .update(workRequests)
+              .set({ status: "routed", updatedAt: now })
+              .where(eq(workRequests.id, requestId));
+          }
+
           return { assignment: created, alreadyAssigned: false };
         });
+        if ((assignmentResult as any)?.requestMissing) {
+          return res.status(404).json({ message: "Work request not found" });
+        }
         // Notify the requester that a provider has expressed interest
         try {
           const providerName = isContractorProvider

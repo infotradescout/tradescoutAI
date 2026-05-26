@@ -658,6 +658,74 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(respondRes.status).not.toBe(404);
   });
 
+  it("promotes open direct-connect requests to routed when provider expresses interest", async () => {
+    const { agent: requesterAgent, user: requesterUser } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+    const { agent: providerAgent, user: providerUser } = await createAuthedAgent({
+      role: "contractor",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const [county] = await db.select().from(counties).limit(1);
+    expect(county).toBeTruthy();
+
+    await db
+      .update(users)
+      .set({
+        countyFips: String((county as any).fips),
+        stateCode: String((county as any).stateCode || "").toUpperCase(),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(users.id, String(requesterUser.id)));
+
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1_000_000)}`;
+    const [providerContractor] = await db
+      .insert(contractors)
+      .values({
+        userId: providerUser.id,
+        companyName: `Route Promote Provider ${unique}`,
+        slug: `route-promote-provider-${unique}`,
+        isActive: true,
+      } as any)
+      .returning();
+
+    await db.insert(contractorCounties).values({
+      contractorId: providerContractor.id,
+      countyId: (county as any).id,
+    } as any);
+
+    const createRes = await requesterAgent.post("/api/direct-connect/requests").send({
+      title: `Route promote ${unique}`,
+      description: "Need direct connect request to move from open to routed.",
+      category: "service_request",
+      countyFips: String((county as any).fips),
+      stateCode: String((county as any).stateCode || "").toUpperCase(),
+      autoRoute: false,
+    });
+    expect(createRes.status).toBe(201);
+    const requestId = String(createRes.body?.id || "");
+    expect(requestId.length).toBeGreaterThan(0);
+    expect(String(createRes.body?.status || "")).toBe("open");
+
+    const expressRes = await providerAgent
+      .post(`/api/direct-connect/requests/${requestId}/express-interest`)
+      .send({});
+    expect([200, 201]).toContain(expressRes.status);
+
+    const [updatedRequest] = await db
+      .select({ status: workRequests.status })
+      .from(workRequests)
+      .where(eq(workRequests.id, requestId))
+      .limit(1);
+    expect(String(updatedRequest?.status || "")).toBe("routed");
+  });
+
   it("degrades optional list enrichment failures and still returns 200 request list", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",
