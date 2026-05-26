@@ -132,3 +132,59 @@ This section extends the core checklist above for the HOA capability pack only.
 - [ ] Set `ADMIN_SAFETY_KEY` in production secrets.
 - [ ] Rotate `ADMIN_SAFETY_KEY` on regular schedule and incident response.
 - [ ] Require support ticket/reference in `adminSafety.reason` policy.
+
+## Direct Connect Notifications Release Ledger
+
+### Current release state
+
+| Layer | Commit | Status |
+|---|---:|---|
+| Backend durability | `a6e02500` | ✅ Live |
+| Notification Center UI | `db3fd8ce` | ✅ Pushed |
+| Production confirmation | `db3fd8ce` | ⏳ Pending `x-tradescout-build` header flip |
+
+### Completion condition
+
+The Notification Center UI is not considered live until production returns:
+
+```txt
+x-tradescout-build: db3fd8ce...
+```
+
+Once confirmed, mark:
+
+`Notification UI live: ✅ db3fd8ce`
+
+### Required production confirmation matrix
+
+```bash
+curl -I "https://www.thetradescout.com/scout?unlock=exchange"
+curl -I "https://www.thetradescout.com/direct-connect"
+curl -I "https://www.thetradescout.com/api/dashboard"
+curl -i "https://www.thetradescout.com/api/direct-connect/notifications"
+```
+
+Expected:
+
+- `/scout?unlock=exchange` → `200`
+- `/direct-connect` → `200`
+- `/api/dashboard` unauth → `403`
+- `/api/direct-connect/notifications` unauth → `403`, not `500`
+- `x-tradescout-build` → `db3fd8ce...`
+
+### Post-confirmation authenticated lifecycle QA
+
+- Create or locate a requester account.
+- Create or locate a business account.
+- Trigger a Direct Connect lifecycle event.
+- Confirm requester/business notification generation.
+- Confirm unread badge appears.
+- Open notification center.
+- Mark one notification read.
+- Mark all notifications read.
+- Archive one notification.
+- Refresh page and confirm read/archive state persists.
+
+KPI:
+
+`Notification action completion with persisted state`
