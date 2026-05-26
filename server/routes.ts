@@ -122,6 +122,7 @@ import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice, DeviceAuthService } from "./deviceAuth";
 import { registerAdminDeviceSecurityRoutes } from "./routes/admin-device-security";
+import { buildIdentityHeadersMiddleware, resolveBuildRevision } from "./middleware/buildIdentityHeaders";
 import {
   addPropertyLifecycleEvent,
   requirePropertyProgramAccess,
@@ -1335,23 +1336,14 @@ const DEFAULT_FIRST_INTRO_APPENDIX =
   'TradeScout is a community operating system that keeps projects and dollars local. Homeowners and contractors can connect, message, and run the full job flow—quotes, scheduling, invoices, and payments (including off-site work). Beyond jobs, TradeScout includes a local marketplace, community feed and groups, and real neighborhood tools so communities can manage vendors, requests, budgets, and decisions with total transparency. Community Builders and the foundation layer add public accountability and local reinvestment—so TradeScout isn’t just "find a pro," it’s how a town organizes and improves itself.';
 
 export async function registerRoutes(app: any) {
-  const buildRevision =
-    process.env.RENDER_GIT_COMMIT ||
-    process.env.SOURCE_VERSION ||
-    process.env.GIT_COMMIT ||
-    "unknown";
+  const buildRevision = resolveBuildRevision();
 
   // Setup authentication
   await setupAuth(app);
 
-  // Emit build identity on every API response so production log/debug
-  // can confirm which revision is actually serving traffic.
-  app.use((req: any, res: any, next: any) => {
-    if (typeof req?.path === "string" && req.path.startsWith("/api/")) {
-      res.setHeader("X-TradeScout-Build", buildRevision);
-    }
-    next();
-  });
+  // Emit build identity on every response so production log/debug can confirm
+  // which revision is currently serving traffic.
+  app.use(buildIdentityHeadersMiddleware);
 
   // Anti-scraping guard: blocks obvious bots and throttles bursts
   app.use(antiScrapeShield);
@@ -29548,12 +29540,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // 1b. VERSION ENDPOINT (backend build metadata)
   app.get("/api/version", (req: Request, res: Response) => {
-    // Prefer explicit build metadata from env when available
-    const commit =
-      process.env.BUILD_COMMIT ||
-      process.env.VERCEL_GIT_COMMIT_SHA ||
-      process.env.RENDER_GIT_COMMIT ||
-      "unknown";
+    const commit = buildRevision;
     const builtAt = process.env.BUILD_AT || process.env.VERCEL_BUILD_TIME || undefined;
 
     res.json({
