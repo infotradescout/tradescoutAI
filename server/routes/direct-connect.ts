@@ -2576,7 +2576,11 @@ export function registerDirectConnectRoutes(app: Express) {
               );
               return [];
             }
-            throw error;
+            console.warn(
+              `[direct-connect] Optional metadata query failed while building request list (${label}); continuing with fallback`,
+              error
+            );
+            return [];
           }
         };
         const workspaceByRequestId = new Map<string, any>();
@@ -3068,15 +3072,11 @@ export function registerDirectConnectRoutes(app: Express) {
               )
               .orderBy(desc(conversations.createdAt));
           } catch (error) {
-            if (isSchemaMismatchError(error)) {
-              console.warn(
-                "[direct-connect] conversations schema mismatch while resolving accepted threads; continuing without conversation links",
-                error
-              );
-              conversationsForAccepted = [];
-            } else {
-              throw error;
-            }
+            const label = isSchemaMismatchError(error)
+              ? "[direct-connect] conversations schema mismatch while resolving accepted threads; continuing without conversation links"
+              : "[direct-connect] Optional conversation lookup failed while resolving accepted threads; continuing without conversation links";
+            console.warn(label, error);
+            conversationsForAccepted = [];
           }
         }
         // Single map keyed by contractorId (which is also userId for business/worker providers).
@@ -3093,15 +3093,11 @@ export function registerDirectConnectRoutes(app: Express) {
             .from(workRequestEvents)
             .where(inArray(workRequestEvents.workRequestId, requestIds));
         } catch (error) {
-          if (isSchemaMismatchError(error)) {
-            console.warn(
-              "[direct-connect] work_request_events schema mismatch while listing requests; continuing without event timeline",
-              error
-            );
-            events = [];
-          } else {
-            throw error;
-          }
+          const label = isSchemaMismatchError(error)
+            ? "[direct-connect] work_request_events schema mismatch while listing requests; continuing without event timeline"
+            : "[direct-connect] Optional event timeline lookup failed while listing requests; continuing without event timeline";
+          console.warn(label, error);
+          events = [];
         }
 
         const assignmentsByRequest = new Map<string, any[]>();

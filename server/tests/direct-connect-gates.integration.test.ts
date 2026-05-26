@@ -586,6 +586,51 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     expect(String(inserted[0]?.source || "")).toBe("direct_connect");
   });
 
+  it("degrades optional list enrichment failures and still returns 200 request list", async () => {
+    const { agent, user } = await createAuthedAgent({
+      role: "homeowner",
+      addressVerified: true,
+      emailVerified: true,
+      onboardingCompleted: true,
+    });
+
+    const createRes = await agent.post("/api/direct-connect/requests").send({
+      title: `DC enrichment fallback ${Date.now()}`,
+      description: "Regression test for optional enrichment query failures in list endpoint.",
+      category: "service_request",
+    });
+    expect(createRes.status).toBe(201);
+    const createdId = String(createRes.body?.id || "");
+    expect(createdId.length).toBeGreaterThan(0);
+
+    const originalExecute = (db.execute as any).bind(db);
+    const executeSpy = vi.spyOn(db as any, "execute").mockImplementation(async (statement: any) => {
+      const raw = String(statement || "");
+      if (raw.includes("direct_connect_job_workspaces")) {
+        throw new Error("synthetic optional enrichment failure");
+      }
+      return originalExecute(statement);
+    });
+
+    try {
+      const listRes = await agent.get("/api/direct-connect/requests");
+      expect(listRes.status).toBe(200);
+      expect(Array.isArray(listRes.body)).toBe(true);
+      expect(listRes.body.some((row: any) => String(row.id || "") === createdId)).toBe(true);
+    } finally {
+      executeSpy.mockRestore();
+    }
+
+    const inserted = await db
+      .select()
+      .from(workRequests)
+      .where(
+        and(eq(workRequests.id, createdId), eq(workRequests.createdByUserId, String(user.id)))
+      );
+    expect(inserted).toHaveLength(1);
+    expect(String(inserted[0]?.source || "")).toBe("direct_connect");
+  });
+
   it("lists only current local community requests on the direct-connect board endpoint", async () => {
     const { agent, user } = await createAuthedAgent({
       role: "homeowner",
