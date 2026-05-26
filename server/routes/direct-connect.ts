@@ -6415,6 +6415,53 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           }
         }
+        // Optional enrichment maps. These are read below to shape response metadata.
+        // Keep them initialized even when enrichment queries are omitted so list fetches
+        // never fail closed for providers.
+        const checkpointSummaryByRequestId = new Map<
+          string,
+          {
+            latestCheckpointStatus: string | null;
+            checkpointCount: number;
+            openCheckpointCount: number;
+          }
+        >();
+        const changeOrderSummaryByRequestId = new Map<
+          string,
+          {
+            latestChangeOrderStatus: string | null;
+            changeOrderCount: number;
+            openChangeOrderCount: number;
+          }
+        >();
+        const punchSummaryByRequestId = new Map<
+          string,
+          {
+            latestPunchListStatus: string | null;
+            punchItemCount: number;
+            openPunchItemCount: number;
+          }
+        >();
+        const completionSummaryByRequestId = new Map<
+          string,
+          { latestCompletionStatus: string | null; activeCompletionRequestId: string | null }
+        >();
+        const invoiceSummaryByRequestId = new Map<
+          string,
+          {
+            latestInvoiceStatus: string | null;
+            invoiceCount: number;
+            activeInvoiceId: string | null;
+          }
+        >();
+        const receiptSummaryByRequestId = new Map<
+          string,
+          {
+            latestReceiptStatus: string | null;
+            latestPaymentRecordStatus: string | null;
+            receiptCount: number;
+          }
+        >();
 
         const deduped = new Map<string, any>();
         for (const row of (candidateRows.rows || []) as any[]) {
