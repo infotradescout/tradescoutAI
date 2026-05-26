@@ -6138,8 +6138,29 @@ export function registerDirectConnectRoutes(app: Express) {
         const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
 
         const contractorId = contractor?.id ? String(contractor.id) : null;
-        const candidateRows = contractorId
-          ? await db.execute(sql`
+        const safeSelectRows = async (label: string, statement: () => Promise<unknown>) => {
+          try {
+            const result = await statement();
+            return (result as { rows?: unknown[] }).rows || [];
+          } catch (error) {
+            if (isSchemaMismatchError(error)) {
+              console.warn(
+                `[direct-connect] Schema mismatch while building contractor request list (${label}); continuing with fallback`,
+                error
+              );
+              return [];
+            }
+            console.warn(
+              `[direct-connect] Optional metadata query failed while building contractor request list (${label}); continuing with fallback`,
+              error
+            );
+            return [];
+          }
+        };
+
+        const candidateRows = await safeSelectRows("dispatch candidates", () =>
+          contractorId
+            ? db.execute(sql`
               SELECT
                 c.request_id,
                 c.eligibility_state,
@@ -6175,7 +6196,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 )
               ORDER BY r.updated_at DESC, r.created_at DESC, c.created_at DESC
             `)
-          : await db.execute(sql`
+            : db.execute(sql`
               SELECT
                 c.request_id,
                 c.eligibility_state,
@@ -6209,11 +6230,13 @@ export function registerDirectConnectRoutes(app: Express) {
                   OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
                 )
               ORDER BY r.updated_at DESC, r.created_at DESC, c.created_at DESC
-            `);
+            `)
+        );
 
         const responseByRequest = new Map<string, any>();
-        const responseRows = contractorId
-          ? await db.execute(sql`
+        const responseRows = await safeSelectRows("contractor responses", () =>
+          contractorId
+            ? db.execute(sql`
               SELECT DISTINCT ON (request_id)
                 request_id,
                 response_type,
@@ -6224,7 +6247,7 @@ export function registerDirectConnectRoutes(app: Express) {
                  OR responder_user_id = ${userId}
               ORDER BY request_id, created_at DESC
             `)
-          : await db.execute(sql`
+            : db.execute(sql`
               SELECT DISTINCT ON (request_id)
                 request_id,
                 response_type,
@@ -6233,23 +6256,24 @@ export function registerDirectConnectRoutes(app: Express) {
               FROM direct_connect_contractor_responses
               WHERE responder_user_id = ${userId}
               ORDER BY request_id, created_at DESC
-            `);
-        for (const row of (responseRows.rows || []) as any[]) {
+            `)
+        );
+        for (const row of responseRows as any[]) {
           responseByRequest.set(String(row.request_id), row);
         }
         const requestIds = Array.from(
-          new Set(
-            ((candidateRows.rows || []) as any[]).map((row: any) => String(row.request_id || ""))
-          )
+          new Set((candidateRows as any[]).map((row: any) => String(row.request_id || "")))
         ).filter(Boolean);
         const workspaceByRequestId = new Map<string, any>();
         if (requestIds.length) {
-          const workspaceRows = await db.execute(sql`
-            SELECT request_id, id, status, active_stage, updated_at
-            FROM direct_connect_job_workspaces
-            WHERE request_id = ANY(${requestIds}::text[])
-          `);
-          for (const row of (workspaceRows.rows || []) as any[]) {
+          const workspaceRows = await safeSelectRows("workspaces", () =>
+            db.execute(sql`
+              SELECT request_id, id, status, active_stage, updated_at
+              FROM direct_connect_job_workspaces
+              WHERE request_id = ANY(${requestIds}::text[])
+            `)
+          );
+          for (const row of workspaceRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || workspaceByRequestId.has(key)) continue;
             workspaceByRequestId.set(key, row);
@@ -6261,35 +6285,39 @@ export function registerDirectConnectRoutes(app: Express) {
         >();
         const unreadStatusCountByRequestId = new Map<string, number>();
         if (requestIds.length) {
-          const lifecycleRows = await db.execute(sql`
-            SELECT DISTINCT ON (request_id)
-              request_id,
-              lifecycle_status,
-              message_text,
-              created_at
-            FROM direct_connect_lifecycle_notifications
-            WHERE request_id = ANY(${requestIds}::text[])
-              AND recipient_type = 'contractor'
-              AND recipient_id = ${userId}
-            ORDER BY request_id, created_at DESC
-          `);
-          for (const row of (lifecycleRows.rows || []) as any[]) {
+          const lifecycleRows = await safeSelectRows("lifecycle notifications", () =>
+            db.execute(sql`
+              SELECT DISTINCT ON (request_id)
+                request_id,
+                lifecycle_status,
+                message_text,
+                created_at
+              FROM direct_connect_lifecycle_notifications
+              WHERE request_id = ANY(${requestIds}::text[])
+                AND recipient_type = 'contractor'
+                AND recipient_id = ${userId}
+              ORDER BY request_id, created_at DESC
+            `)
+          );
+          for (const row of lifecycleRows as any[]) {
             lifecycleByRequestId.set(String(row.request_id), {
               lifecycleStatus: String(row.lifecycle_status || ""),
               latestStatus: String(row.message_text || ""),
               latestStatusAt: row.created_at || null,
             });
           }
-          const unreadRows = await db.execute(sql`
-            SELECT request_id, COUNT(*)::int AS count
-            FROM direct_connect_lifecycle_notifications
-            WHERE request_id = ANY(${requestIds}::text[])
-              AND recipient_type = 'contractor'
-              AND recipient_id = ${userId}
-              AND is_read = false
-            GROUP BY request_id
-          `);
-          for (const row of (unreadRows.rows || []) as any[]) {
+          const unreadRows = await safeSelectRows("unread lifecycle counts", () =>
+            db.execute(sql`
+              SELECT request_id, COUNT(*)::int AS count
+              FROM direct_connect_lifecycle_notifications
+              WHERE request_id = ANY(${requestIds}::text[])
+                AND recipient_type = 'contractor'
+                AND recipient_id = ${userId}
+                AND is_read = false
+              GROUP BY request_id
+            `)
+          );
+          for (const row of unreadRows as any[]) {
             unreadStatusCountByRequestId.set(String(row.request_id), Number(row.count || 0));
           }
         }
@@ -6302,30 +6330,32 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const estimateRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(e.id)::int AS estimate_count,
-              (
-                SELECT e2.id
-                FROM job_estimates e2
-                WHERE e2.workspace_id = w.id
-                ORDER BY e2.created_at DESC
-                LIMIT 1
-              ) AS active_estimate_id,
-              (
-                SELECT e3.status
-                FROM job_estimates e3
-                WHERE e3.workspace_id = w.id
-                ORDER BY e3.created_at DESC
-                LIMIT 1
-              ) AS latest_estimate_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_estimates e ON e.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (estimateRows.rows || []) as any[]) {
+          const estimateRows = await safeSelectRows("estimate summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(e.id)::int AS estimate_count,
+                (
+                  SELECT e2.id
+                  FROM job_estimates e2
+                  WHERE e2.workspace_id = w.id
+                  ORDER BY e2.created_at DESC
+                  LIMIT 1
+                ) AS active_estimate_id,
+                (
+                  SELECT e3.status
+                  FROM job_estimates e3
+                  WHERE e3.workspace_id = w.id
+                  ORDER BY e3.created_at DESC
+                  LIMIT 1
+                ) AS latest_estimate_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_estimates e ON e.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of estimateRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || estimateSummaryByRequestId.has(key)) continue;
             estimateSummaryByRequestId.set(key, {
@@ -6342,23 +6372,25 @@ export function registerDirectConnectRoutes(app: Express) {
           { latestPaymentRequestStatus: string | null; paymentRequestCount: number }
         >();
         if (requestIds.length) {
-          const paymentRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(p.id)::int AS payment_request_count,
-              (
-                SELECT p2.status
-                FROM job_payment_requests p2
-                WHERE p2.workspace_id = w.id
-                ORDER BY p2.created_at DESC
-                LIMIT 1
-              ) AS latest_payment_request_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (paymentRows.rows || []) as any[]) {
+          const paymentRows = await safeSelectRows("payment summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(p.id)::int AS payment_request_count,
+                (
+                  SELECT p2.status
+                  FROM job_payment_requests p2
+                  WHERE p2.workspace_id = w.id
+                  ORDER BY p2.created_at DESC
+                  LIMIT 1
+                ) AS latest_payment_request_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of paymentRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || paymentSummaryByRequestId.has(key)) continue;
             paymentSummaryByRequestId.set(key, {
@@ -6378,30 +6410,32 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         >();
         if (requestIds.length) {
-          const scheduleRows = await db.execute(sql`
-            SELECT
-              w.request_id,
-              COUNT(s.id)::int AS schedule_proposal_count,
-              (
-                SELECT s2.id
-                FROM job_schedule_proposals s2
-                WHERE s2.workspace_id = w.id
-                ORDER BY s2.created_at DESC
-                LIMIT 1
-              ) AS active_schedule_proposal_id,
-              (
-                SELECT s3.status
-                FROM job_schedule_proposals s3
-                WHERE s3.workspace_id = w.id
-                ORDER BY s3.created_at DESC
-                LIMIT 1
-              ) AS latest_schedule_status
-            FROM direct_connect_job_workspaces w
-            LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
-            WHERE w.request_id = ANY(${requestIds}::text[])
-            GROUP BY w.request_id, w.id
-          `);
-          for (const row of (scheduleRows.rows || []) as any[]) {
+          const scheduleRows = await safeSelectRows("schedule summaries", () =>
+            db.execute(sql`
+              SELECT
+                w.request_id,
+                COUNT(s.id)::int AS schedule_proposal_count,
+                (
+                  SELECT s2.id
+                  FROM job_schedule_proposals s2
+                  WHERE s2.workspace_id = w.id
+                  ORDER BY s2.created_at DESC
+                  LIMIT 1
+                ) AS active_schedule_proposal_id,
+                (
+                  SELECT s3.status
+                  FROM job_schedule_proposals s3
+                  WHERE s3.workspace_id = w.id
+                  ORDER BY s3.created_at DESC
+                  LIMIT 1
+                ) AS latest_schedule_status
+              FROM direct_connect_job_workspaces w
+              LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
+              WHERE w.request_id = ANY(${requestIds}::text[])
+              GROUP BY w.request_id, w.id
+            `)
+          );
+          for (const row of scheduleRows as any[]) {
             const key = String(row.request_id || "");
             if (!key || scheduleSummaryByRequestId.has(key)) continue;
             scheduleSummaryByRequestId.set(key, {
@@ -6464,7 +6498,7 @@ export function registerDirectConnectRoutes(app: Express) {
         >();
 
         const deduped = new Map<string, any>();
-        for (const row of (candidateRows.rows || []) as any[]) {
+        for (const row of candidateRows as any[]) {
           const requestId = String(row.request_id || "");
           if (!requestId || deduped.has(requestId)) continue;
           const latestResponse = responseByRequest.get(requestId) || null;
