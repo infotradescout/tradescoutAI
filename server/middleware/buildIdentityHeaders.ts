@@ -13,11 +13,7 @@ export function resolveBuildRevision(): string {
   );
 }
 
-export function buildIdentityHeadersMiddleware(
-  _req: Request,
-  res: Response,
-  next: NextFunction
-) {
+export function buildIdentityHeadersMiddleware(_req: Request, res: Response, next: NextFunction) {
   const buildRevision = resolveBuildRevision();
   res.setHeader("x-tradescout-build", buildRevision);
   res.setHeader("X-TradeScout-Build", buildRevision);

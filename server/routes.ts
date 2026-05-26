@@ -122,7 +122,10 @@ import { createServer } from "http";
 import { requireAddressVerification } from "./requireAddressVerification";
 import { checkTrustedDevice, DeviceAuthService } from "./deviceAuth";
 import { registerAdminDeviceSecurityRoutes } from "./routes/admin-device-security";
-import { buildIdentityHeadersMiddleware, resolveBuildRevision } from "./middleware/buildIdentityHeaders";
+import {
+  buildIdentityHeadersMiddleware,
+  resolveBuildRevision,
+} from "./middleware/buildIdentityHeaders";
 import {
   addPropertyLifecycleEvent,
   requirePropertyProgramAccess,
