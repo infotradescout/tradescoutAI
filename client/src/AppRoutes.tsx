@@ -267,6 +267,7 @@ const BusinessDirectoryPage = React.lazy(() => import("./pages/business-director
 
 // Business/provider features. Some imported pages retain legacy contractor filenames.
 const OfferServices = React.lazy(() => import("./pages/offer-services"));
+const ContractorApply = OfferServices;
 const ProfilePurchaseStatus = React.lazy(() => import("./pages/profile-purchase-status"));
 const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
@@ -847,7 +848,7 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Core pages */}
               {/* Business/provider application. Legacy contractor routes remain compatibility aliases. */}
               <Route path="/businesses/apply">
-                <RedirectTo to="/onboarding?lane=business" />
+                <LazyPage Component={ContractorApply} />
               </Route>
               <Route path="/contractor-signup">
                 <RedirectTo to="/onboarding?lane=offer_services" />

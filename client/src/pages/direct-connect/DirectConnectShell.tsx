@@ -2370,7 +2370,7 @@ function DirectConnectInbox() {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
       // After accepting, navigate to the conversation thread so both parties can communicate
       if (variables?.decision === "accept" && data?.conversationId) {
-        window.location.href = `/direct-connect/inbox?thread=${encodeURIComponent(String(data.conversationId))}`;
+        window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
       }
     },
   });
@@ -2725,12 +2725,12 @@ function DirectConnectInbox() {
                   onClick={() => {
                     const threadId = item.conversationThreadId;
                     if (threadId) {
-                      window.location.href = `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`;
+                      window.location.href = `/messages?thread=${encodeURIComponent(String(threadId))}`;
                       return;
                     }
                     window.location.href = request?.id
-                      ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(request.id))}`
-                      : "/direct-connect/inbox";
+                      ? `/messages?tab=requests&requestId=${encodeURIComponent(String(request.id))}`
+                      : "/messages?tab=requests";
                   }}
                 >
                   {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Ask follow-up"}
@@ -3200,10 +3200,10 @@ function MyDirectConnectRequests() {
           if (canMessage) {
             const threadId = r.dcConversationThreadId;
             window.location.href = threadId
-              ? `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`
+              ? `/messages?thread=${encodeURIComponent(String(threadId))}`
               : r.id
-                ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(r.id))}`
-                : "/direct-connect/inbox";
+                ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                : "/messages?tab=requests";
             return;
           }
           setExpandedRequestId((current) => (current === r.id ? null : r.id));
@@ -3551,10 +3551,10 @@ function MyDirectConnectRequests() {
                     onClick={() => {
                       const threadId = r.dcConversationThreadId;
                       window.location.href = threadId
-                        ? `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`
+                        ? `/messages?thread=${encodeURIComponent(String(threadId))}`
                         : r.id
-                          ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(r.id))}`
-                          : "/direct-connect/inbox";
+                          ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                          : "/messages?tab=requests";
                     }}
                   >
                     Open inbox
@@ -3675,10 +3675,10 @@ function MyDirectConnectRequests() {
                       onClick={() => {
                         const threadId = r.dcConversationThreadId;
                         window.location.href = threadId
-                          ? `/direct-connect/inbox?thread=${encodeURIComponent(String(threadId))}`
+                          ? `/messages?thread=${encodeURIComponent(String(threadId))}`
                           : r.id
-                            ? `/direct-connect/inbox?requestId=${encodeURIComponent(String(r.id))}`
-                            : "/direct-connect/inbox";
+                            ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                            : "/messages?tab=requests";
                       }}
                     >
                       <MessageCircle className="mr-1 h-3.5 w-3.5" />

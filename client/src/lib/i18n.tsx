@@ -2,7 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 
 export type AppLanguage = "en" | "es";
 
-type TranslationValue = string | Record<string, TranslationValue>;
+interface TranslationBranch {
+  [key: string]: string | TranslationBranch;
+}
+type TranslationValue = string | TranslationBranch;
 
 type I18nContextValue = {
   language: AppLanguage;

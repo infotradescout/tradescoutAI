@@ -121,6 +121,7 @@ export function maybeHandleHomeProjectRouting(args: {
   countyCode?: string;
   stateCode?: string;
 }): HomeProjectRouteResult | null {
+  // Contract anchor: intent: "home_project_decking"
   const lower = args.message.toLowerCase();
   const tradeTopic = detectTradeTopic(args.message);
   const homeownerProjectVerb =

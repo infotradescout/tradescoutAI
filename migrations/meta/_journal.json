@@ -694,6 +694,13 @@
       "when": 1778667240000,
       "tag": "0095_profile_offers_finance_bridge",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1778667300000,
+      "tag": "0096_marketplace_value_bundle_shipping",
+      "breakpoints": true
     }
   ]
 }

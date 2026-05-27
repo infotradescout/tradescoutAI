@@ -777,7 +777,6 @@ export default function PreScoutSetup() {
         type: "onboarding_profile_submitted",
         presenceType: (presenceType as "personal" | "represent_business") ?? null,
         hasBusinessName: Boolean(businessName?.trim()),
-        businessType: presenceType === "represent_business" ? businessType : null,
         hasCountyFips: Boolean(countyFips?.trim()),
         locationSource: locationSource ?? null,
         ts: new Date().toISOString(),

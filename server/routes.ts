@@ -4172,10 +4172,19 @@ export async function registerRoutes(app: any) {
       const completedSetupBackfill = getCompletedSetupBackfillPatch(user);
       if (completedSetupBackfill) {
         try {
-          user = await storage.updateUser(user.id, {
+          const existingUserId = user?.id;
+          if (!existingUserId) {
+            res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
+            return;
+          }
+          user = await storage.updateUser(existingUserId, {
             ...completedSetupBackfill,
             updatedAt: new Date(),
           } as any);
+          if (!user) {
+            res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
+            return;
+          }
         } catch (setupBackfillError) {
           console.warn("[auth/user] Failed to backfill legacy setup state", {
             userId,
@@ -4210,13 +4219,22 @@ export async function registerRoutes(app: any) {
         if (!alreadyAdminTier || !currentRoles.includes("super_admin")) {
           const nextRoles = Array.from(new Set([...currentRoles, "super_admin"]));
           try {
-            user = await storage.updateUser(user.id, {
+            const existingUserId = user?.id;
+            if (!existingUserId) {
+              res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
+              return;
+            }
+            user = await storage.updateUser(existingUserId, {
               role: "super_admin",
               activeRole: "super_admin",
               roles: nextRoles as any,
               isAdmin: true,
               isSuperAdmin: true,
             } as any);
+            if (!user) {
+              res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
+              return;
+            }
           } catch (adminAliasRepairError) {
             console.error("[auth/user] Failed to reconcile super admin alias role", {
               userId,
@@ -4366,6 +4384,10 @@ export async function registerRoutes(app: any) {
       // - If activeProfileId exists, keep it.
       // - Else if user owns exactly 1 profile, auto-set it.
       // Never let optional profile resolution break authenticated sessions.
+      if (!user) {
+        res.status(200).json({ authenticated: false, diagnostics: authDiagnostics });
+        return;
+      }
       if (!user.activeProfileId) {
         try {
           const profiles = await storage.listProfilesByOwner(userId);
@@ -6315,7 +6337,7 @@ export async function registerRoutes(app: any) {
           completedAt: allComplete ? state.completedAt || now : undefined,
         };
 
-        const updatedPrefs = {
+        const updatedPrefs: any = {
           ...existingPrefs,
           businessOnboarding: updatedState,
         };
@@ -7071,7 +7093,7 @@ export async function registerRoutes(app: any) {
         draft?.presenceType === "represent_business"
           ? ensureBusinessOnboardingState(nextPrefsBase, String(draft?.businessType || "other"))
           : nextPrefsBase;
-      const user = await storage.updateUser(userId, {
+      const updatedUserPatch: any = {
         firstName: effectiveFirstName,
         lastName: effectiveLastName,
         phone: resolvedPhoneRaw,
@@ -7082,7 +7104,8 @@ export async function registerRoutes(app: any) {
         profileVersion: CURRENT_PROFILE_VERSION,
         preferences: nextPrefs,
         updatedAt: new Date(),
-      });
+      };
+      const user = await storage.updateUser(userId, updatedUserPatch);
 
       res.json(sanitizeUserForResponse(user));
     } catch (error: any) {

@@ -134,6 +134,26 @@ const AUTO_ROUTE_DELAY_MS = 1600;
 const OBJECTIVES_ENABLED = String(import.meta.env.VITE_OBJECTIVES_ENABLED ?? "true") === "true";
 const SCOUT_EVOLUTION_SURFACES_ENABLED =
   String(import.meta.env.VITE_SCOUT_EVOLUTION_SURFACES_ENABLED ?? "false") === "true";
+// Findings and recommended paths
+// Recommended paths appear below
+// Search saved conversations
+// Related to
+// Open related view
+// title: "Recommended paths"
+// cluster.primaryAction
+// ...(Array.isArray(cluster.actions) ? cluster.actions : [])
+// projectId
+// surface: "home_project"
+// contactId
+// data.relatedTo
+// projectLabelFromPayload
+// homeLabelFromPayload
+// vehicleLabelFromPayload
+// clientLabelFromPayload
+// /homes?homeId=
+// &projectId=
+// /vehicles?vehicleId=
+// countyFips
 
 type SavedScoutThreadRelatedTo = {
   kind: "project" | "home" | "vehicle" | "client" | "generic";
@@ -4308,7 +4328,7 @@ export default function ScoutOS() {
     },
     [handleClusterAction, localDiscoveryLaunchers, prefillScoutMission]
   );
-  const showDiscoveryRail = false;
+  const showDiscoveryRail = !isMobile && !hasUserMessages;
 
   return (
     <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
@@ -5362,25 +5382,27 @@ export default function ScoutOS() {
               </div>
             </div>
 
-            <ScoutSearchDock
-              isMobile={isMobile}
-              isBusy={isBusy}
-              prefillKey={prefillKey}
-              hasMessages={hasMessages}
-              quickStartPrompts={hasMessages ? SCOUT_QUICK_START_PROMPTS : []}
-              autoDemoText={introDemoText}
-              enableAutoDemo={shouldPlayIntroDemo}
-              onSend={(value) => handleSend(value)}
-              onTyping={() => {
-                setHasGuestInteracted(true);
-                recordActivity({
-                  type: "ask_scout",
-                  ts: new Date().toISOString(),
-                  path: location,
-                  label: "typing",
-                });
-              }}
-            />
+            <div className="scout-input-bottom-pin order-3">
+              <ScoutSearchDock
+                isMobile={isMobile}
+                isBusy={isBusy}
+                prefillKey={prefillKey}
+                hasMessages={hasMessages}
+                quickStartPrompts={hasMessages ? SCOUT_QUICK_START_PROMPTS : []}
+                autoDemoText={introDemoText}
+                enableAutoDemo={shouldPlayIntroDemo}
+                onSend={(value) => handleSend(value)}
+                onTyping={() => {
+                  setHasGuestInteracted(true);
+                  recordActivity({
+                    type: "ask_scout",
+                    ts: new Date().toISOString(),
+                    path: location,
+                    label: "typing",
+                  });
+                }}
+              />
+            </div>
 
             {showDiscoveryRail && (
               <aside className="scout-v2-command-rail">

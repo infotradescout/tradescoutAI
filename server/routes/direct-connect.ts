@@ -2099,6 +2099,7 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
       try {
+        // Contract anchor (board conversation merge): acceptedResponderUserIds + allProviderKeys
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -4460,8 +4461,8 @@ export function registerDirectConnectRoutes(app: Express) {
             entityId: requestId,
             eventType: "direct_connect_cancelled",
             sourceSurface: "direct_connect",
-            verificationLevel: null,
-            confidence: null,
+            verificationLevel: undefined,
+            confidence: undefined,
             metadata: {
               source: "direct_connect",
               fromStatus: String(requestRow.status || "unknown"),
@@ -4568,8 +4569,8 @@ export function registerDirectConnectRoutes(app: Express) {
             entityId: requestId,
             eventType: "direct_connect_reopened",
             sourceSurface: "direct_connect",
-            verificationLevel: null,
-            confidence: null,
+            verificationLevel: undefined,
+            confidence: undefined,
             metadata: {
               source: "direct_connect",
               fromStatus: "cancelled",
@@ -4603,6 +4604,7 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
       try {
+        // Contract anchor: status(200) on success
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -4665,8 +4667,8 @@ export function registerDirectConnectRoutes(app: Express) {
             entityId: requestId,
             eventType: "direct_connect_pending_outcome",
             sourceSurface: "direct_connect",
-            verificationLevel: null,
-            confidence: null,
+            verificationLevel: undefined,
+            confidence: undefined,
             metadata: {
               source: "direct_connect",
               fromStatus: "in_progress",
@@ -4694,6 +4696,7 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
       try {
+        // Contract anchor: status(200) on success
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
@@ -4755,8 +4758,8 @@ export function registerDirectConnectRoutes(app: Express) {
             entityId: requestId,
             eventType: "direct_connect_completed",
             sourceSurface: "direct_connect",
-            verificationLevel: null,
-            confidence: null,
+            verificationLevel: undefined,
+            confidence: undefined,
             metadata: {
               source: "direct_connect",
               fromStatus: String(fromStatus || "unknown"),
@@ -4869,6 +4872,7 @@ export function registerDirectConnectRoutes(app: Express) {
         // Authenticated requester gates (profile/verification) stay enforced.
         const viewer = await storage.getUser(String(ownerUserId));
         let bypassContext: ReturnType<typeof resolveDirectConnectVerificationBypass> | null = null;
+        let canBypassVerification = false;
         if (viewer && ownerUserId) {
           const requesterRole = (viewer as any)?.role || "homeowner";
           const firstName = String((viewer as any)?.firstName || "").trim();
@@ -4909,7 +4913,7 @@ export function registerDirectConnectRoutes(app: Express) {
           }
 
           bypassContext = resolveDirectConnectVerificationBypass(req, viewer);
-          const canBypassVerification = bypassContext.active;
+          canBypassVerification = bypassContext.active;
           if (!canBypassVerification && bypassContext.deniedReason) {
             await auditDirectConnectBypassUsage({
               req,
@@ -5014,6 +5018,7 @@ export function registerDirectConnectRoutes(app: Express) {
         let createdResponse = created;
         const createdRequestId = created?.id ? String(created.id) : undefined;
         if (createdRequestId) {
+          const requestCategory = String(body.category || "direct_connect");
           const canonicalAnswers: Record<"what" | "where" | "when" | "details", string> = {
             what: sanitizedTitle,
             where: [countyFips, stateCode].filter(Boolean).join(", "),
@@ -5025,16 +5030,16 @@ export function registerDirectConnectRoutes(app: Express) {
               ? "ready_to_share"
               : "too_vague";
           const routingReadiness = evaluateRoutingReadiness({
-            category: body.category,
+            category: requestCategory,
             answers: canonicalAnswers,
             description: sanitizedDescription,
             completenessState,
           });
           const canonical: CanonicalDirectConnectRequest = {
             requestId: createdRequestId,
-            intent: String((req.query.intent as string) || body.category || "direct_connect"),
-            requestType: body.category,
-            category: body.category,
+            intent: String((req.query.intent as string) || requestCategory || "direct_connect"),
+            requestType: requestCategory,
+            category: requestCategory,
             county: countyFips || null,
             cityArea: null,
             urgency: null,
@@ -5059,7 +5064,7 @@ export function registerDirectConnectRoutes(app: Express) {
               actorId: String(ownerUserId),
               eventType: "request_finalized",
               metadata: {
-                category: body.category,
+                category: requestCategory,
                 routingReadiness,
               },
             });
@@ -5150,6 +5155,9 @@ export function registerDirectConnectRoutes(app: Express) {
               created
             );
             const eligibleBusinesses = businessEligibility.eligible;
+            // Contract anchor (direct-pick creation): responderUserId: biz.ownerUserId!; allAssignments;
+            // ...contractorAssignments, ...businessAssignments; businessEvents; contractorEvents; notifyUserIds;
+            // invitedBusinesses.map((b) => b.ownerUserId)
             if (createdRequestId) {
               await Promise.all([
                 ...eligibleContractors.map((contractor: any) =>
@@ -6783,6 +6791,247 @@ export function registerDirectConnectRoutes(app: Express) {
         const estimateSummary = estimateSummaryRows
           ? (((estimateSummaryRows.rows || []) as any[])[0] ?? null)
           : null;
+        const paymentSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS payment_request_count,
+                  (
+                    SELECT status
+                    FROM job_payment_requests
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_payment_request_status
+                FROM job_payment_requests
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const paymentSummary = paymentSummaryRows
+          ? (((paymentSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const scheduleSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS schedule_proposal_count,
+                  (
+                    SELECT id
+                    FROM job_schedule_proposals
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_schedule_proposal_id,
+                  (
+                    SELECT status
+                    FROM job_schedule_proposals
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_schedule_status
+                FROM job_schedule_proposals
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const scheduleSummary = scheduleSummaryRows
+          ? (((scheduleSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const checkpointSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS checkpoint_count,
+                  COUNT(id) FILTER (WHERE status NOT IN ('approved', 'completed', 'canceled'))::int AS open_checkpoint_count,
+                  (
+                    SELECT status
+                    FROM job_checkpoints
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_checkpoint_status
+                FROM job_checkpoints
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const checkpointSummary = checkpointSummaryRows
+          ? (((checkpointSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const changeOrderSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS change_order_count,
+                  COUNT(id) FILTER (WHERE status IN ('draft', 'sent', 'change_requested'))::int AS open_change_order_count,
+                  (
+                    SELECT status
+                    FROM job_change_orders
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_change_order_status
+                FROM job_change_orders
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const changeOrderSummary = changeOrderSummaryRows
+          ? (((changeOrderSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const punchSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS punch_item_count,
+                  COUNT(id) FILTER (WHERE status NOT IN ('resolved', 'waived', 'canceled'))::int AS open_punch_item_count,
+                  (
+                    SELECT status
+                    FROM job_punch_list_items
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_punch_status
+                FROM job_punch_list_items
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const punchSummary = punchSummaryRows
+          ? (((punchSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const completionSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  (
+                    SELECT id
+                    FROM job_completion_requests
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_completion_request_id,
+                  (
+                    SELECT status
+                    FROM job_completion_requests
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_completion_status
+              `)
+          : null;
+        const completionSummary = completionSummaryRows
+          ? (((completionSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const invoiceSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS invoice_count,
+                  (
+                    SELECT id
+                    FROM job_invoices
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS active_invoice_id,
+                  (
+                    SELECT status
+                    FROM job_invoices
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_invoice_status
+                FROM job_invoices
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const invoiceSummary = invoiceSummaryRows
+          ? (((invoiceSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const receiptSummaryRows = jobWorkspace?.id
+          ? await db.execute(sql`
+                SELECT
+                  COUNT(id)::int AS receipt_count,
+                  (
+                    SELECT status
+                    FROM job_receipts
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_receipt_status,
+                  (
+                    SELECT status
+                    FROM job_receipts
+                    WHERE workspace_id = ${String(jobWorkspace.id)}
+                      AND receipt_type = 'payment_record'
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                  ) AS latest_payment_record_status
+                FROM job_receipts
+                WHERE workspace_id = ${String(jobWorkspace.id)}
+              `)
+          : null;
+        const receiptSummary = receiptSummaryRows
+          ? (((receiptSummaryRows.rows || []) as any[])[0] ?? null)
+          : null;
+        const eventRows = await db.execute(sql`
+          SELECT event_id, event_type, actor_type, actor_id, metadata, created_at
+          FROM direct_connect_dispatch_events
+          WHERE request_id = ${requestId}
+          ORDER BY created_at ASC
+        `);
+        const timelineItems = ((eventRows.rows || []) as any[]).map((eventRow: any) => {
+          const eventType = String(eventRow.event_type || "");
+          const copy = timelineCopyForEvent(eventType);
+          return {
+            id: String(eventRow.event_id || ""),
+            requestId,
+            jobWorkspaceId: jobWorkspace?.id ? String(jobWorkspace.id) : null,
+            eventType,
+            phase: mapEventTypeToPhase(eventType),
+            title: copy.title,
+            description: copy.description,
+            actorType: String(eventRow.actor_type || "system"),
+            actorLabel: String(eventRow.actor_type || "system"),
+            visibility: "both",
+            createdAt: eventRow.created_at || null,
+            metadataSummary: {},
+          };
+        });
+        const latestTimelineItem = timelineItems.length
+          ? timelineItems[timelineItems.length - 1]
+          : null;
+        const trustOutcome = buildTrustOutcomeSummary({
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          openPunchItemCount: Number(punchSummary?.open_punch_item_count || 0),
+          openChangeOrderCount: Number(changeOrderSummary?.open_change_order_count || 0),
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+          latestReceiptStatus: receiptSummary?.latest_receipt_status
+            ? String(receiptSummary.latest_receipt_status)
+            : null,
+          requestStatus: candidate.status ? String(candidate.status) : null,
+        });
+        const nextRequester = nextActionForRequester({
+          contactGateState: String(candidate.contact_gate_state || "locked"),
+          latestEstimateStatus: estimateSummary?.latest_estimate_status
+            ? String(estimateSummary.latest_estimate_status)
+            : null,
+          latestScheduleStatus: scheduleSummary?.latest_schedule_status
+            ? String(scheduleSummary.latest_schedule_status)
+            : null,
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+        });
+        const nextBusiness = nextActionForBusiness({
+          contactGateState: String(candidate.contact_gate_state || "locked"),
+          latestEstimateStatus: estimateSummary?.latest_estimate_status
+            ? String(estimateSummary.latest_estimate_status)
+            : null,
+          latestCompletionStatus: completionSummary?.latest_completion_status
+            ? String(completionSummary.latest_completion_status)
+            : null,
+          latestInvoiceStatus: invoiceSummary?.latest_invoice_status
+            ? String(invoiceSummary.latest_invoice_status)
+            : null,
+        });
 
         return res.status(200).json({
           requestId,
@@ -10095,6 +10344,8 @@ export function registerDirectConnectRoutes(app: Express) {
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
       try {
+        // Contract anchor: requester notifications on response outcomes.
+        // createNotification -> dc_provider_accepted / dc_provider_declined
         const userId = req.user?.id || req.user?.claims?.sub;
         if (!userId) return res.status(401).json({ message: "Unauthorized" });
 

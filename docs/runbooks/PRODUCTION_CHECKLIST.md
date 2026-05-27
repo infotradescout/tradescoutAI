@@ -188,3 +188,25 @@ Expected:
 KPI:
 
 `Notification action completion with persisted state`
+
+### Contractor request list blocker closeout (resolved)
+
+- Resolved production build: `6849e73d4e7c8ac45232e9a340d7ce891705d081`
+- Endpoint: `GET /api/direct-connect/contractor/requests`
+- Auth mode: provider session cookie
+- Result: `200 OK`
+- Accepted response shape: valid JSON array (`[]` allowed)
+
+### Ongoing lightweight regression smoke (required each deploy)
+
+```bash
+curl -I "https://www.thetradescout.com/direct-connect"
+curl -i "https://www.thetradescout.com/api/direct-connect/contractor/requests" \
+  -H "Cookie: <provider_cookie>"
+```
+
+Expected:
+
+- `x-tradescout-build` matches latest deployed commit
+- provider-auth `GET /api/direct-connect/contractor/requests` returns `200`, not `500`
+- response remains a JSON array shape

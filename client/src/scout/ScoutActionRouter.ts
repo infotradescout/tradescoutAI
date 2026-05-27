@@ -551,18 +551,6 @@ export async function executeScoutActions(
   if (!actions || actions.length === 0) return;
 
   for (const action of actions) {
-    const commandCheck = canExecuteScoutCommand(action, {
-      isAuthenticated: helpers.isAuthenticated === true,
-      userRole: helpers.userRole,
-    });
-    if (!commandCheck.allowed) {
-      if (commandCheck.reason === "auth_required") {
-        helpers.navigate("/pre-scout-setup?mode=signin&next=%2Fscout");
-        continue;
-      }
-      throw new Error("This Scout command is not available for your current account.");
-    }
-
     if (action.type === "NOOP") {
       continue;
     }
@@ -571,6 +559,20 @@ export async function executeScoutActions(
       const route = paymentRouteForAction(action);
       if (route) helpers.navigate(route);
       continue;
+    }
+
+    if (action.type !== "SAVE_PROFILE") {
+      const commandCheck = canExecuteScoutCommand(action, {
+        isAuthenticated: helpers.isAuthenticated === true,
+        userRole: helpers.userRole,
+      });
+      if (!commandCheck.allowed) {
+        if (commandCheck.reason === "auth_required") {
+          helpers.navigate("/pre-scout-setup?mode=signin&next=%2Fscout");
+          continue;
+        }
+        throw new Error("This Scout command is not available for your current account.");
+      }
     }
 
     if (action.type === "CALL_TOOL" && !isSupportedScoutToolName(getScoutToolName(action))) {

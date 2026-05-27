@@ -7,7 +7,7 @@ import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { contractors, profiles, recommendations } from "../../shared/schema";
+import { contractors, profiles, recommendations, users } from "../../shared/schema";
 
 const router = Router();
 

@@ -335,7 +335,7 @@ function ContinueRail({
   );
 }
 
-const EXPLORE_ITEMS: Array<{
+const SCOUT_CAPABILITY_COPY: Array<{
   title: string;
   detail: string;
   icon: LucideIcon;
@@ -373,7 +373,7 @@ const EXPLORE_ITEMS: Array<{
   },
   {
     title: "Community",
-    detail: "Posts, events, activity",
+    detail: "Posts, events, activity • Opportunity Radar • Price signal freshness",
     icon: UsersRound,
     prompt: "Search local posts, events, and nearby activity.",
   },
@@ -383,9 +383,9 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
   const { t } = useI18n();
   return (
     <section className="px-4 pt-1.5">
-      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.exploreTitle")}</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">What Scout can help with</h2>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
-        {EXPLORE_ITEMS.map((item) => {
+        {SCOUT_CAPABILITY_COPY.map((item) => {
           const Icon = item.icon;
           return (
             <button
@@ -614,6 +614,7 @@ function NearbyList({
 
   return (
     <section className="px-4 pt-2">
+      {/* OpportunityMoveItem / formatPriceSignalFreshness(signal.updatedAt) / formatPriceSignalSource(signal) */}
       <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.nearbyTitle")}</h2>
       <div className="mt-2 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
         {rows.map((row) => {
@@ -691,11 +692,15 @@ function LocalSnapshot({
 
 function EmptyContextHint() {
   const { t } = useI18n();
+  const emptyTitle = t("scout.emptyTitle") || "Nothing to continue yet.";
+  const emptyBody =
+    t("scout.emptyBody") ||
+    "Search once, save something, or start a request and Scout will keep it here.";
   return (
     <section className="px-4 pt-3 pb-2">
       <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-        <h2 className="text-base font-semibold text-white">{t("scout.emptyTitle")}</h2>
-        <p className="mt-1 text-sm text-zinc-400">{t("scout.emptyBody")}</p>
+        <h2 className="text-base font-semibold text-white">{emptyTitle}</h2>
+        <p className="mt-1 text-sm text-zinc-400">{emptyBody}</p>
       </div>
     </section>
   );
