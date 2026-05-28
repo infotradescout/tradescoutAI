@@ -38,3 +38,17 @@ curl "/api/admin/audit-log?from=2026-05-01T00:00:00.000Z&to=2026-05-31T23:59:59.
 - Unknown query params are ignored.
 - Write behavior is unchanged (`logAdminAction` remains the write source).
 - This slice only hardens audit-history reads and does not add any mutation authority.
+
+## Admin UI controls (v2.12)
+
+- Page: `client/src/pages/admin-audit-log.tsx`
+- Filter controls:
+  - `limit`: `50 | 100 | 200 | 500`
+  - `sort`: `Newest first (desc)` / `Oldest first (asc)`
+  - `action`: text input
+  - `actorId`: text input
+  - `from`/`to`: datetime-local inputs converted to ISO UTC query values
+- Buttons:
+  - `Apply`: submits current filters to `GET /api/admin/audit-log`
+  - `Reset`: clears filters back to defaults (`limit=200`, `sort=desc`)
+- Rendering contract remains `response = { log, count }` and UI reads `log`.
