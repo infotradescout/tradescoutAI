@@ -48,6 +48,16 @@ import {
 } from "../../shared/schema";
 import { and } from "drizzle-orm";
 
+function parseIsoDateParam(value: unknown): Date | null {
+  if (typeof value !== "string") return null;
+  const raw = value.trim();
+  if (!raw) return null;
+  const isoUtcPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+  if (!isoUtcPattern.test(raw)) return new Date("invalid");
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? new Date("invalid") : parsed;
+}
+
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
  *
@@ -121,7 +131,36 @@ export function mountAdminRoutes(app: any) {
       try {
         const limitRaw = Number(req.query.limit ?? 100);
         const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, limitRaw)) : 100;
-        const log = await getAdminAuditLog(limit);
+        const action = String(req.query.action ?? "").trim();
+        const actorId = String(req.query.actorId ?? "").trim();
+        const sort =
+          String(req.query.sort ?? "desc")
+            .trim()
+            .toLowerCase() === "asc"
+            ? "asc"
+            : "desc";
+        const from = parseIsoDateParam(req.query.from);
+        const to = parseIsoDateParam(req.query.to);
+
+        if (from && Number.isNaN(from.getTime())) {
+          return res
+            .status(400)
+            .json({ message: "Invalid from timestamp. Use strict ISO UTC format." });
+        }
+        if (to && Number.isNaN(to.getTime())) {
+          return res
+            .status(400)
+            .json({ message: "Invalid to timestamp. Use strict ISO UTC format." });
+        }
+
+        const log = await getAdminAuditLog({
+          limit,
+          action: action || undefined,
+          actorId: actorId || undefined,
+          from: from || undefined,
+          to: to || undefined,
+          sort,
+        });
         res.json({ log, count: log.length });
       } catch (error: any) {
         console.error("Error fetching admin audit log:", error);
