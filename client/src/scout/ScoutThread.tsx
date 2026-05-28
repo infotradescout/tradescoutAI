@@ -164,9 +164,9 @@ function IntentDetailCollector({
     () => buildIntentDetailPrompts(userMessage, locality),
     [locality, userMessage]
   );
-  const nextPrompt = prompts[0];
+  const nextPrompts = prompts.slice(0, 2);
   const shouldShow =
-    Boolean(nextPrompt) &&
+    nextPrompts.length > 0 &&
     (status === "resolving_context" ||
       status === "checking_documents" ||
       status === "ready" ||
@@ -183,15 +183,17 @@ function IntentDetailCollector({
         </p>
       </div>
       <div className="scout-intent-collector__chips">
-        <button
-          key={nextPrompt.label}
-          type="button"
-          className="scout-intent-collector__chip"
-          onClick={() => onPrefill?.(nextPrompt.prompt)}
-          disabled={!onPrefill}
-        >
-          {nextPrompt.label}
-        </button>
+        {nextPrompts.map((prompt) => (
+          <button
+            key={prompt.label}
+            type="button"
+            className="scout-intent-collector__chip"
+            onClick={() => onPrefill?.(prompt.prompt)}
+            disabled={!onPrefill}
+          >
+            {prompt.label}
+          </button>
+        ))}
       </div>
     </div>
   );

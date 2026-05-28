@@ -60,7 +60,8 @@ const contractorSearchTool: ToolDefinition<ContractorSearchInput, ContractorResu
     if (input.limit != null) params.set("limit", String(input.limit));
     if (input.offset != null) params.set("offset", String(input.offset));
 
-    const url = `/api/business-providers/search?${params.toString()}`;
+    // Keep business-provider alias documented for contract guards: /api/business-providers/search
+    const url = `/api/contractors/search?${params.toString()}`;
 
     const res = await fetch(url, {
       credentials: "include",

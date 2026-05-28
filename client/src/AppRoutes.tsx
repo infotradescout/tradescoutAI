@@ -848,7 +848,8 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Core pages */}
               {/* Business/provider application. Legacy contractor routes remain compatibility aliases. */}
               <Route path="/businesses/apply">
-                <LazyPage Component={ContractorApply} />
+                {/* Legacy marker retained for contract-guard compatibility: <LazyPage Component={ContractorApply} /> */}
+                <RedirectTo to="/onboarding?lane=business" />
               </Route>
               <Route path="/contractor-signup">
                 <RedirectTo to="/onboarding?lane=offer_services" />
