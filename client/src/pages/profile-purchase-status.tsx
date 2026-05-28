@@ -272,7 +272,7 @@ export default function ProfilePurchaseStatus() {
                         <p className="text-sm font-semibold text-white">Order updates</p>
                         <p className="mt-1 text-xs text-white/45">
                           Purchase-scoped messages only. Phone, email, links, and off-platform
-                          contact are blocked.
+                          contact are blocked
                         </p>
                       </div>
                     </div>
