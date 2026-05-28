@@ -1,13 +1,14 @@
 import { Router, type Request, Response } from "express";
 import { isAuthenticated } from "../auth";
 import {
-  getProposedBlueprints,
+  getToolBlueprintQueue,
   getProposalById,
   approveBlueprint,
   rejectBlueprint,
   deferBlueprint,
   mergeBlueprints,
 } from "../scout/toolDiscoveryObserver";
+import { toolProposalStatusEnum } from "../../shared/schema";
 
 const router = Router();
 
@@ -28,6 +29,38 @@ const getAdminUserId = (req: Request): string => {
   return String(userId);
 };
 
+function parseToolBlueprintQueueQuery(req: Request) {
+  const statusParam = String(req.query.status || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const allowedStatuses = new Set(toolProposalStatusEnum.enumValues);
+  const safeStatuses = statusParam.filter((status) => allowedStatuses.has(status as any)) as Array<
+    "proposed" | "approved" | "rejected" | "deferred" | "merged"
+  >;
+
+  const minRiskScore = Number.parseInt(String(req.query.minRiskScore || ""), 10);
+  const maxRiskScore = Number.parseInt(String(req.query.maxRiskScore || ""), 10);
+  const minImpactScore = Number.parseInt(String(req.query.minImpactScore || ""), 10);
+  const sortParam = String(req.query.sort || "risk_desc");
+  const limitParam = Number.parseInt(String(req.query.limit || "25"), 10);
+  const offsetParam = Number.parseInt(String(req.query.offset || "0"), 10);
+
+  // Client decided_by/decidedBy is intentionally ignored for this queue endpoint.
+  void req.query.decided_by;
+  void req.query.decidedBy;
+
+  return {
+    status: safeStatuses,
+    minRiskScore: Number.isFinite(minRiskScore) ? minRiskScore : undefined,
+    maxRiskScore: Number.isFinite(maxRiskScore) ? maxRiskScore : undefined,
+    minImpactScore: Number.isFinite(minImpactScore) ? minImpactScore : undefined,
+    sort: sortParam,
+    limit: Number.isFinite(limitParam) ? Math.min(100, Math.max(1, limitParam)) : 25,
+    offset: Number.isFinite(offsetParam) ? Math.max(0, offsetParam) : 0,
+  };
+}
+
 /**
  * ADMIN ONLY - Tool Discovery Routes
  *
@@ -40,7 +73,16 @@ const getAdminUserId = (req: Request): string => {
  */
 router.get("/tool-blueprints", async (req: Request, res: Response) => {
   try {
-    const proposed = await getProposedBlueprints();
+    const query = parseToolBlueprintQueueQuery(req);
+    const proposed = await getToolBlueprintQueue({
+      status: query.status,
+      minRiskScore: query.minRiskScore,
+      maxRiskScore: query.maxRiskScore,
+      minImpactScore: query.minImpactScore,
+      sort: query.sort as any,
+      limit: query.limit,
+      offset: query.offset,
+    });
 
     return res.json({
       blueprints: proposed,

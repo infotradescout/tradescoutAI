@@ -19,7 +19,7 @@ import {
   toolProposalDecisions,
   type ToolProposal,
 } from "../../shared/schema";
-import { eq, and, gte, desc, sql, count, countDistinct } from "drizzle-orm";
+import { eq, and, gte, desc, sql, count, countDistinct, asc, inArray, type SQL } from "drizzle-orm";
 import type { Primitive } from "./governor";
 
 // ============================================================================
@@ -297,6 +297,82 @@ export async function getProposedBlueprints(): Promise<ToolProposal[]> {
       },
     },
     orderBy: [desc(toolProposals.riskScore), desc(toolProposals.impactScore)],
+  });
+}
+
+export type ToolBlueprintQueueSort =
+  | "risk_desc"
+  | "impact_desc"
+  | "updated_desc"
+  | "created_desc"
+  | "risk_asc";
+
+export type ToolBlueprintQueueQuery = {
+  status?: Array<"proposed" | "deferred" | "approved" | "rejected" | "merged">;
+  minRiskScore?: number;
+  maxRiskScore?: number;
+  minImpactScore?: number;
+  limit?: number;
+  offset?: number;
+  sort?: ToolBlueprintQueueSort;
+};
+
+export async function getToolBlueprintQueue(
+  query: ToolBlueprintQueueQuery = {}
+): Promise<ToolProposal[]> {
+  const allowedStatuses = new Set(["proposed", "deferred", "approved", "rejected", "merged"]);
+  const requestedStatuses = Array.isArray(query.status) ? query.status : [];
+  const safeStatuses = requestedStatuses.filter((status) =>
+    allowedStatuses.has(status)
+  ) as ToolBlueprintQueueQuery["status"];
+  const statuses = safeStatuses && safeStatuses.length > 0 ? safeStatuses : (["proposed"] as const);
+
+  const minRiskScore = Number.isFinite(query.minRiskScore) ? Number(query.minRiskScore) : undefined;
+  const maxRiskScore = Number.isFinite(query.maxRiskScore) ? Number(query.maxRiskScore) : undefined;
+  const minImpactScore = Number.isFinite(query.minImpactScore)
+    ? Number(query.minImpactScore)
+    : undefined;
+  const limit = Math.min(100, Math.max(1, Number(query.limit || 25)));
+  const offset = Math.max(0, Number(query.offset || 0));
+
+  const conditions: SQL<unknown>[] = [inArray(toolProposals.status, [...statuses])];
+  if (minRiskScore != null) {
+    conditions.push(gte(toolProposals.riskScore, minRiskScore));
+  }
+  if (maxRiskScore != null) {
+    conditions.push(sql`${toolProposals.riskScore} <= ${maxRiskScore}`);
+  }
+  if (minImpactScore != null) {
+    conditions.push(gte(toolProposals.impactScore, minImpactScore));
+  }
+
+  const orderBy =
+    query.sort === "risk_asc"
+      ? [asc(toolProposals.riskScore), desc(toolProposals.updatedAt), desc(toolProposals.id)]
+      : query.sort === "impact_desc"
+        ? [desc(toolProposals.impactScore), desc(toolProposals.riskScore), desc(toolProposals.id)]
+        : query.sort === "updated_desc"
+          ? [desc(toolProposals.updatedAt), desc(toolProposals.riskScore), desc(toolProposals.id)]
+          : query.sort === "created_desc"
+            ? [desc(toolProposals.createdAt), desc(toolProposals.riskScore), desc(toolProposals.id)]
+            : [
+                desc(toolProposals.riskScore),
+                desc(toolProposals.impactScore),
+                desc(toolProposals.updatedAt),
+                desc(toolProposals.id),
+              ];
+
+  return await db.query.toolProposals.findMany({
+    where: and(...conditions),
+    with: {
+      evidence: {
+        limit: 10,
+        orderBy: desc(toolProposalEvidence.createdAt),
+      },
+    },
+    orderBy,
+    limit,
+    offset,
   });
 }
 

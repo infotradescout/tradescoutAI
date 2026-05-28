@@ -16,6 +16,7 @@
 import type { Situation, OutcomeGraph, ScoutAction, Primitive } from "./governor";
 import * as toolDiscoveryDB from "./toolDiscoveryDB";
 import type { PatternInstance } from "./toolDiscoveryDB";
+import type { ToolBlueprintQueueQuery } from "./toolDiscoveryDB";
 
 // ============================================================================
 // OFFLINE OBSERVATION - Runs after user interaction completes
@@ -240,6 +241,10 @@ function generateFingerprint(goal: string, missingCapability: string): string {
  */
 export function getProposedBlueprints() {
   return toolDiscoveryDB.getProposedBlueprints();
+}
+
+export function getToolBlueprintQueue(query?: ToolBlueprintQueueQuery) {
+  return toolDiscoveryDB.getToolBlueprintQueue(query);
 }
 
 /**
