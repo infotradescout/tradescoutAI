@@ -28,6 +28,12 @@ export type HomeIdPersistenceState = {
   updatedAt: string;
 };
 
+export type HomeIdPersistenceFetcher = (
+  method: "GET" | "PUT",
+  url: string,
+  body?: unknown
+) => Promise<any>;
+
 const STORAGE_KEY_PREFIX = "homeid:persistence:v1:";
 
 function storageKey(homeId: string): string {
@@ -99,7 +105,7 @@ function sanitizeState(raw: unknown): HomeIdPersistenceState | null {
   };
 }
 
-export function loadHomeIdPersistence(homeId: string): {
+function loadLocal(homeId: string): {
   state: HomeIdPersistenceState | null;
   warning?: string;
 } {
@@ -115,7 +121,7 @@ export function loadHomeIdPersistence(homeId: string): {
   }
 }
 
-export function saveHomeIdPersistence(
+function saveLocal(
   homeId: string,
   state: HomeIdPersistenceState
 ): {
@@ -131,6 +137,54 @@ export function saveHomeIdPersistence(
     return {
       ok: false,
       warning: "HomeID changes could not be saved locally. You can keep working.",
+    };
+  }
+}
+
+export async function loadHomeIdPersistence(
+  homeId: string,
+  fetcher?: HomeIdPersistenceFetcher
+): Promise<{ state: HomeIdPersistenceState | null; warning?: string }> {
+  const local = loadLocal(homeId);
+  if (!fetcher || !homeId) return local;
+
+  try {
+    const response = await fetcher("GET", `/api/homeid/${encodeURIComponent(homeId)}/persistence`);
+    const state = sanitizeState(response?.persistence);
+    if (state) {
+      saveLocal(homeId, state);
+      return { state };
+    }
+    return local;
+  } catch {
+    if (local.state) return local;
+    return {
+      state: null,
+      warning: "Server persistence unavailable. Using local HomeID data when possible.",
+    };
+  }
+}
+
+export async function saveHomeIdPersistence(
+  homeId: string,
+  state: HomeIdPersistenceState,
+  fetcher?: HomeIdPersistenceFetcher
+): Promise<{ ok: boolean; warning?: string }> {
+  const local = saveLocal(homeId, state);
+  if (!fetcher || !homeId) return local;
+
+  try {
+    await fetcher("PUT", `/api/homeid/${encodeURIComponent(homeId)}/property-details`, {
+      propertyDetails: state.propertyDetails,
+    });
+    await fetcher("PUT", `/api/homeid/${encodeURIComponent(homeId)}/request-packets`, {
+      requestPackets: state.requestPackets,
+    });
+    return local;
+  } catch {
+    return {
+      ok: local.ok,
+      warning: "Server save unavailable. HomeID changes are kept locally.",
     };
   }
 }
