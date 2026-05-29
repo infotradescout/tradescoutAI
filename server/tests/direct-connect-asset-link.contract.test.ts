@@ -12,6 +12,11 @@ describe("direct connect asset link contracts", () => {
     expect(source).toContain("assetComponentId: z.string().trim().min(1).max(120).optional()");
     expect(source).toContain("assetComponentType: z");
     expect(source).toContain("homeContextIntent: z");
+    expect(source).toContain("homePacketId: z.string().trim().min(1).max(120).optional()");
+    expect(source).toContain(
+      "homePacketSelectedDetailIds: z.array(z.string().trim().min(1).max(120)).max(50).optional()"
+    );
+    expect(source).toContain('homePacketReadinessState: z.enum(["ready_for_handoff"]).optional()');
   });
 
   it("records asset link metadata as a request event", () => {
@@ -19,6 +24,9 @@ describe("direct connect asset link contracts", () => {
     expect(source).toContain('type: "asset_linked"');
     expect(source).toContain("metadata: { assetLink }");
     expect(source).toContain('source: "direct_connect_request"');
+    expect(source).toContain("homePacketId: body.homePacketId || null");
+    expect(source).toContain("homePacketSelectedDetailIds: body.homePacketSelectedDetailIds || []");
+    expect(source).toContain("homePacketReadinessState: body.homePacketReadinessState || null");
   });
 
   it("captures request context into HomeID for create/update intents", () => {

@@ -568,6 +568,9 @@ const directConnectRequestSchema = z.object({
   homeContextIntent: z
     .enum(["link_existing", "create_from_request", "update_from_request", "skip_for_now"])
     .optional(),
+  homePacketId: z.string().trim().min(1).max(120).optional(),
+  homePacketSelectedDetailIds: z.array(z.string().trim().min(1).max(120)).max(50).optional(),
+  homePacketReadinessState: z.enum(["ready_for_handoff"]).optional(),
 });
 
 const ADMIN_DIRECT_CONNECT_CATEGORIES = [
@@ -641,6 +644,9 @@ async function appendHomeIdRequestContextRecord(params: {
   componentId?: string | null;
   componentLabel?: string | null;
   homeContextIntent: string;
+  homePacketId?: string | null;
+  homePacketSelectedDetailIds?: string[] | null;
+  homePacketReadinessState?: string | null;
 }) {
   await db.insert(userHomeRecords).values({
     homeId: params.homeId,
@@ -658,6 +664,11 @@ async function appendHomeIdRequestContextRecord(params: {
       componentLabel: params.componentLabel || null,
       status: "needs_review",
       homeContextIntent: params.homeContextIntent,
+      homePacketId: params.homePacketId || null,
+      homePacketSelectedDetailIds: Array.isArray(params.homePacketSelectedDetailIds)
+        ? params.homePacketSelectedDetailIds
+        : [],
+      homePacketReadinessState: params.homePacketReadinessState || null,
       capturedAt: new Date().toISOString(),
     }),
     tags: ["homeid", "direct_connect", "needs_review"],
@@ -5239,6 +5250,9 @@ export function registerDirectConnectRoutes(app: Express) {
           assetComponentType: body.assetComponentType || null,
           assetLabel: body.assetLabel || null,
           homeContextIntent: body.homeContextIntent || "skip_for_now",
+          homePacketId: body.homePacketId || null,
+          homePacketSelectedDetailIds: body.homePacketSelectedDetailIds || [],
+          homePacketReadinessState: body.homePacketReadinessState || null,
           source: "direct_connect_request",
         };
 
@@ -5299,6 +5313,9 @@ export function registerDirectConnectRoutes(app: Express) {
                 componentId: body.assetComponentId || null,
                 componentLabel: body.assetLabel || null,
                 homeContextIntent,
+                homePacketId: body.homePacketId || null,
+                homePacketSelectedDetailIds: body.homePacketSelectedDetailIds || [],
+                homePacketReadinessState: body.homePacketReadinessState || null,
               });
             } else if (requestedHomeId && !ownedLinkedHome) {
               await db.insert(workRequestEvents).values({

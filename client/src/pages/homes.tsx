@@ -233,6 +233,7 @@ export default function HomesVault() {
   const [editingPacketId, setEditingPacketId] = useState<string | null>(null);
   const [lastServerSyncAt, setLastServerSyncAt] = useState<string | null>(null);
   const [handoffPreview, setHandoffPreview] = useState<HomeIdHandoffPreview | null>(null);
+  const [handoffPreviewPacketId, setHandoffPreviewPacketId] = useState<string | null>(null);
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -529,6 +530,84 @@ export default function HomesVault() {
     },
   });
 
+  const createDirectConnectDraftMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedHomeId) throw new Error("Select a home first");
+      if (!handoffPreview) throw new Error("Prepare a handoff preview first");
+      if (!handoffPreviewPacketId) throw new Error("Packet reference missing");
+      const packet = requestPackets.find((item) => item.id === handoffPreviewPacketId);
+      if (!packet) throw new Error("Saved packet not found");
+
+      const componentTypeByCategory: Record<string, string> = {
+        roof: "roof",
+        hvac: "hvac",
+        plumbing: "plumbing",
+        electrical: "electrical",
+        foundation: "foundation",
+        exterior: "exterior",
+        interior: "interior",
+        appliances: "appliance",
+        permits_documents: "permit_document",
+        other: "other",
+      };
+
+      const firstDetail = handoffPreview.selectedPropertyDetails[0];
+      const firstComponentType = firstDetail
+        ? componentTypeByCategory[firstDetail.category] || "other"
+        : "other";
+
+      const title = `${handoffPreview.requestType} request for ${handoffPreview.homeType}`.slice(
+        0,
+        180
+      );
+      const includedDetailLines = handoffPreview.selectedPropertyDetails
+        .slice(0, 6)
+        .map((detail) => `${detail.category.replaceAll("_", " ")}: ${detail.note}`);
+      const descriptionSections = [
+        "Prepared from HomeID handoff preview.",
+        "Included HomeID details:",
+        ...includedDetailLines.map((line) => `- ${line}`),
+        handoffPreview.nonBlockingContext.length > 0
+          ? `Non-blocking context: ${handoffPreview.nonBlockingContext.join("; ")}`
+          : "",
+      ].filter(Boolean);
+
+      const payload: any = {
+        title,
+        description: descriptionSections.join("\n"),
+        category: handoffPreview.requestType,
+        autoRoute: false,
+        homeId: selectedHomeId,
+        assetComponentType: firstComponentType,
+        assetLabel: firstDetail ? firstDetail.category.replaceAll("_", " ") : "home context",
+        homeContextIntent: "update_from_request",
+        homePacketId: packet.id,
+        homePacketSelectedDetailIds: [...packet.selectedDetailIds],
+        homePacketReadinessState: handoffPreview.packetReadinessState,
+      };
+
+      return apiRequest("POST", "/api/direct-connect/requests", payload);
+    },
+    onSuccess: (data: any) => {
+      const requestId = String(data?.id || "");
+      toast({
+        title: "Direct Connect draft created",
+        description: requestId
+          ? `Draft request ${requestId} is saved with HomeID references.`
+          : "Draft request is saved with HomeID references.",
+      });
+      setHandoffPreview(null);
+      setHandoffPreviewPacketId(null);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to create Direct Connect draft",
+        description: formatUserFacingErrorMessage(err, "Try again."),
+        variant: "destructive",
+      });
+    },
+  });
+
   const selectedHome = useMemo(() => {
     if (!selectedHomeId) return null;
     return homes.find((h: any) => String(h?.id || "") === selectedHomeId) || null;
@@ -566,6 +645,7 @@ export default function HomesVault() {
       setHomeIdPersistenceWarning(null);
       setLastServerSyncAt(null);
       setHandoffPreview(null);
+      setHandoffPreviewPacketId(null);
       return;
     }
     (async () => {
@@ -581,6 +661,7 @@ export default function HomesVault() {
       setHomeIdPersistenceWarning(warning || null);
       setLastServerSyncAt(source === "server" ? new Date().toISOString() : null);
       setHandoffPreview(null);
+      setHandoffPreviewPacketId(null);
     })();
     return () => {
       cancelled = true;
@@ -676,6 +757,7 @@ export default function HomesVault() {
     setEditingPacketId(null);
     setPacketSelectedDetailIds([]);
     setHandoffPreview(null);
+    setHandoffPreviewPacketId(null);
   }
 
   function resumeRequestPacket(packetId: string) {
@@ -685,6 +767,7 @@ export default function HomesVault() {
     setPacketRequestType(packet.requestType);
     setPacketSelectedDetailIds(packet.selectedDetailIds);
     setHandoffPreview(null);
+    setHandoffPreviewPacketId(null);
   }
 
   function isPacketDbSaved(packet: HomeIdRequestPacket): boolean {
@@ -741,6 +824,7 @@ export default function HomesVault() {
 
     if (!preview) return;
     setHandoffPreview(preview);
+    setHandoffPreviewPacketId(packet.id);
   }
 
   const localCompletionBoost =
@@ -1179,7 +1263,7 @@ export default function HomesVault() {
                         <CardHeader>
                           <CardTitle className="text-base">HomeID handoff preview</CardTitle>
                           <CardDescription className="text-xs">
-                            Preview only. This does not create a Direct Connect request.
+                            Review the payload, then create a Direct Connect draft without dispatch.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-xs">
@@ -1221,9 +1305,15 @@ export default function HomesVault() {
                             )}
                           </div>
                           <div className="rounded border p-3 text-muted-foreground">
-                            Next step later: this preview payload can be passed to Direct Connect
-                            when transaction creation is enabled in a future slice.
+                            This creates a draft request only. No provider dispatch, routing, or
+                            payment happens here.
                           </div>
+                          <Button
+                            onClick={() => createDirectConnectDraftMutation.mutate()}
+                            disabled={createDirectConnectDraftMutation.isPending}
+                          >
+                            Create Direct Connect draft
+                          </Button>
                         </CardContent>
                       </Card>
                     ) : null}
