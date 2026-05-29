@@ -54,6 +54,14 @@ const HOME_TYPE_OPTIONS = [
   { value: "other", label: "Other" },
 ] as const;
 
+const HOME_CREATOR_ROLE_OPTIONS = [
+  { value: "homeowner", label: "I own this property" },
+  { value: "property_manager", label: "I manage this property" },
+  { value: "realtor", label: "I represent this property" },
+  { value: "builder", label: "I built this property" },
+  { value: "homescout_sale_flow", label: "I'm preparing it for sale" },
+] as const;
+
 function formatHomeTitle(home: any): string {
   const nickname = typeof home?.nickname === "string" ? home.nickname.trim() : "";
   if (nickname) return nickname;
@@ -151,6 +159,7 @@ export default function HomesVault() {
     stateCode: "",
     zipCode: "",
     propertyType: "single_family",
+    creatorRole: "homeowner",
     yearBuilt: "",
   });
 
@@ -202,7 +211,7 @@ export default function HomesVault() {
         stateCode: newHome.stateCode?.trim() || undefined,
         zipCode: newHome.zipCode?.trim() || undefined,
         homeType: newHome.propertyType,
-        creatorRole: "homeowner",
+        creatorRole: newHome.creatorRole,
         propertyType: newHome.propertyType?.trim() || undefined,
         yearBuilt: newHome.yearBuilt?.trim() ? Number.parseInt(newHome.yearBuilt, 10) : undefined,
       };
@@ -217,6 +226,7 @@ export default function HomesVault() {
         stateCode: "",
         zipCode: "",
         propertyType: "single_family",
+        creatorRole: "homeowner",
         yearBuilt: "",
       });
       await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
@@ -496,8 +506,8 @@ export default function HomesVault() {
   return (
     <Page className="max-w-6xl">
       <Section
-        title="Homes"
-        subtitle="Private records for your properties: inspections, upgrades, appliances, and documents."
+        title="HomeID"
+        subtitle="HomeID is the living record for your property. Track repairs, upgrades, maintenance, warranties, documents, and service history in one place."
       >
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-6">
@@ -542,8 +552,10 @@ export default function HomesVault() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Add a home</CardTitle>
-                <CardDescription>Keep it private, add details later.</CardDescription>
+                <CardTitle>Start HomeID</CardTitle>
+                <CardDescription>
+                  Create your HomeID with the minimum details, then fill the rest over time.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 gap-3">
@@ -612,6 +624,24 @@ export default function HomesVault() {
                       </Select>
                     </div>
                     <div>
+                      <Label>Your role</Label>
+                      <Select
+                        value={newHome.creatorRole}
+                        onValueChange={(v) => setNewHome((p) => ({ ...p, creatorRole: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HOME_CREATOR_ROLE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <Label>Year built</Label>
                       <Input
                         value={newHome.yearBuilt}
@@ -628,7 +658,7 @@ export default function HomesVault() {
                   onClick={() => createHomeMutation.mutate()}
                   disabled={createHomeMutation.isPending}
                 >
-                  Add home
+                  {createHomeMutation.isPending ? "Starting HomeID..." : "Start HomeID"}
                 </Button>
               </CardContent>
             </Card>
@@ -666,6 +696,22 @@ export default function HomesVault() {
                           {homeIdDashboard?.completionState || "Loading completion..."}
                         </div>
                         <div className="text-xs">{homeIdDashboard?.personaMessage || ""}</div>
+                        {Array.isArray(homeIdDashboard?.requestPrompts) &&
+                        homeIdDashboard.requestPrompts.length > 0 ? (
+                          <div className="pt-2 space-y-1">
+                            <div className="text-xs font-medium">Missing items to tackle next</div>
+                            {homeIdDashboard.requestPrompts
+                              .slice(0, 5)
+                              .map((prompt: any, idx: number) => (
+                                <div
+                                  key={`${String(prompt?.reason || "prompt")}-${idx}`}
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  - {String(prompt?.reason || "Complete remaining HomeID details")}
+                                </div>
+                              ))}
+                          </div>
+                        ) : null}
                       </CardContent>
                     </Card>
 
