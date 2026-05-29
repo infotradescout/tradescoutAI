@@ -234,6 +234,17 @@ export default function HomesVault() {
   const [lastServerSyncAt, setLastServerSyncAt] = useState<string | null>(null);
   const [handoffPreview, setHandoffPreview] = useState<HomeIdHandoffPreview | null>(null);
   const [handoffPreviewPacketId, setHandoffPreviewPacketId] = useState<string | null>(null);
+  const [directConnectDraft, setDirectConnectDraft] = useState<{
+    requestId: string;
+    homeId: string;
+    homePacketId: string;
+    selectedDetailIds: string[];
+    requestType: string;
+    description: string;
+    assetComponentType: string;
+    assetLabel: string;
+    readinessState: string;
+  } | null>(null);
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -596,12 +607,85 @@ export default function HomesVault() {
           ? `Draft request ${requestId} is saved with HomeID references.`
           : "Draft request is saved with HomeID references.",
       });
+      const packet = requestPackets.find((item) => item.id === handoffPreviewPacketId);
+      if (requestId && handoffPreview && packet) {
+        const componentTypeByCategory: Record<string, string> = {
+          roof: "roof",
+          hvac: "hvac",
+          plumbing: "plumbing",
+          electrical: "electrical",
+          foundation: "foundation",
+          exterior: "exterior",
+          interior: "interior",
+          appliances: "appliance",
+          permits_documents: "permit_document",
+          other: "other",
+        };
+        const firstDetail = handoffPreview.selectedPropertyDetails[0];
+        const firstComponentType = firstDetail
+          ? componentTypeByCategory[firstDetail.category] || "other"
+          : "other";
+        const includedDetailLines = handoffPreview.selectedPropertyDetails
+          .slice(0, 6)
+          .map((detail) => `${detail.category.replaceAll("_", " ")}: ${detail.note}`);
+        const descriptionSections = [
+          "Prepared from HomeID handoff preview.",
+          "Included HomeID details:",
+          ...includedDetailLines.map((line) => `- ${line}`),
+          handoffPreview.nonBlockingContext.length > 0
+            ? `Non-blocking context: ${handoffPreview.nonBlockingContext.join("; ")}`
+            : "",
+        ].filter(Boolean);
+        setDirectConnectDraft({
+          requestId,
+          homeId: selectedHomeId || "",
+          homePacketId: packet.id,
+          selectedDetailIds: [...packet.selectedDetailIds],
+          requestType: handoffPreview.requestType,
+          description: descriptionSections.join("\n"),
+          assetComponentType: firstComponentType,
+          assetLabel: firstDetail ? firstDetail.category.replaceAll("_", " ") : "home context",
+          readinessState: handoffPreview.packetReadinessState,
+        });
+      }
       setHandoffPreview(null);
       setHandoffPreviewPacketId(null);
     },
     onError: (err: any) => {
       toast({
         title: "Failed to create Direct Connect draft",
+        description: formatUserFacingErrorMessage(err, "Try again."),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const submitDirectConnectDraftMutation = useMutation({
+    mutationFn: async () => {
+      if (!directConnectDraft) throw new Error("Create a draft first");
+      return apiRequest(
+        "POST",
+        `/api/direct-connect/requests/${encodeURIComponent(directConnectDraft.requestId)}/submit-homeid-draft`,
+        {
+          homeId: directConnectDraft.homeId,
+          homePacketId: directConnectDraft.homePacketId,
+          selectedDetailIds: directConnectDraft.selectedDetailIds,
+        }
+      );
+    },
+    onSuccess: (data: any) => {
+      const requestId = String(data?.requestId || directConnectDraft?.requestId || "");
+      toast({
+        title: "Direct Connect request submitted",
+        description: requestId
+          ? `Request ${requestId} submitted from HomeID draft.`
+          : "Request submitted from HomeID draft.",
+      });
+      setDirectConnectDraft(null);
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Failed to submit Direct Connect draft",
         description: formatUserFacingErrorMessage(err, "Try again."),
         variant: "destructive",
       });
@@ -646,6 +730,7 @@ export default function HomesVault() {
       setLastServerSyncAt(null);
       setHandoffPreview(null);
       setHandoffPreviewPacketId(null);
+      setDirectConnectDraft(null);
       return;
     }
     (async () => {
@@ -662,6 +747,7 @@ export default function HomesVault() {
       setLastServerSyncAt(source === "server" ? new Date().toISOString() : null);
       setHandoffPreview(null);
       setHandoffPreviewPacketId(null);
+      setDirectConnectDraft(null);
     })();
     return () => {
       cancelled = true;
@@ -758,6 +844,7 @@ export default function HomesVault() {
     setPacketSelectedDetailIds([]);
     setHandoffPreview(null);
     setHandoffPreviewPacketId(null);
+    setDirectConnectDraft(null);
   }
 
   function resumeRequestPacket(packetId: string) {
@@ -768,6 +855,7 @@ export default function HomesVault() {
     setPacketSelectedDetailIds(packet.selectedDetailIds);
     setHandoffPreview(null);
     setHandoffPreviewPacketId(null);
+    setDirectConnectDraft(null);
   }
 
   function isPacketDbSaved(packet: HomeIdRequestPacket): boolean {
@@ -1314,6 +1402,51 @@ export default function HomesVault() {
                           >
                             Create Direct Connect draft
                           </Button>
+                        </CardContent>
+                      </Card>
+                    ) : null}
+
+                    {directConnectDraft ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">
+                            Direct Connect draft review and submit
+                          </CardTitle>
+                          <CardDescription className="text-xs">
+                            Confirm this draft before submission. No routing, dispatch, payment, or
+                            notifications are triggered here.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-xs">
+                          <div className="rounded border p-3 space-y-1">
+                            <div>Direct Connect draft id: {directConnectDraft.requestId}</div>
+                            <div>Request type: {directConnectDraft.requestType}</div>
+                            <div>HomeID reference: {directConnectDraft.homeId}</div>
+                            <div>Home packet reference: {directConnectDraft.homePacketId}</div>
+                            <div>
+                              Selected HomeID details: {directConnectDraft.selectedDetailIds.length}
+                            </div>
+                            <div>Readiness state: {directConnectDraft.readinessState}</div>
+                            <div>Asset component type: {directConnectDraft.assetComponentType}</div>
+                            <div>Asset label: {directConnectDraft.assetLabel}</div>
+                          </div>
+                          <div className="rounded border p-3">
+                            <div className="font-medium mb-1">Request context preview</div>
+                            <pre className="whitespace-pre-wrap text-muted-foreground">
+                              {directConnectDraft.description}
+                            </pre>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              onClick={() => submitDirectConnectDraftMutation.mutate()}
+                              disabled={submitDirectConnectDraftMutation.isPending}
+                            >
+                              Submit Direct Connect request
+                            </Button>
+                            <Button variant="outline" onClick={() => setDirectConnectDraft(null)}>
+                              Dismiss draft review
+                            </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ) : null}

@@ -5275,6 +5275,25 @@ export function registerDirectConnectRoutes(app: Express) {
           }
         }
 
+        if (created?.id && body.homePacketId) {
+          try {
+            await db.insert(workRequestEvents).values({
+              workRequestId: created.id,
+              type: "homeid_draft_created",
+              actorUserId: ownerUserId ? String(ownerUserId) : null,
+              metadata: {
+                source: "homeid_packet",
+                homeId: body.homeId || null,
+                homePacketId: body.homePacketId,
+                selectedDetailIds: body.homePacketSelectedDetailIds || [],
+                readinessState: body.homePacketReadinessState || null,
+              },
+            });
+          } catch (e) {
+            console.warn("[direct-connect] Failed to record homeid_draft_created event", e);
+          }
+        }
+
         if (created?.id && String(body.homeContextIntent || "skip_for_now") !== "skip_for_now") {
           try {
             const requestedHomeId = String(body.homeId || "").trim() || null;
@@ -5591,6 +5610,115 @@ export function registerDirectConnectRoutes(app: Express) {
   );
 
   // Staff-facing: create a Direct Connect request for a user account
+  app.post(
+    "/api/direct-connect/requests/:id/submit-homeid-draft",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const requestId = String(req.params.id || "").trim();
+        if (!requestId) return res.status(400).json({ message: "Request id is required" });
+
+        const payload = (req.body ?? {}) as {
+          homeId?: string;
+          homePacketId?: string;
+          selectedDetailIds?: string[];
+        };
+        const homeId = String(payload.homeId || "").trim();
+        const homePacketId = String(payload.homePacketId || "").trim();
+        const selectedDetailIds = Array.isArray(payload.selectedDetailIds)
+          ? payload.selectedDetailIds
+              .map((id) => String(id || "").trim())
+              .filter(Boolean)
+              .slice(0, 50)
+          : [];
+
+        const [requestRow] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId))
+          .limit(1);
+        if (!requestRow) return res.status(404).json({ message: "Work request not found" });
+        if (String(requestRow.createdByUserId || "") !== userId) {
+          return res.status(403).json({ message: "Request not available for this requester" });
+        }
+
+        await db
+          .update(workRequests)
+          .set({ updatedAt: new Date() })
+          .where(eq(workRequests.id, requestId));
+
+        try {
+          await db.insert(workRequestEvents).values({
+            workRequestId: requestId,
+            type: "homeid_draft_reviewed",
+            actorUserId: userId,
+            metadata: {
+              source: "homeid_packet",
+              homeId: homeId || null,
+              homePacketId: homePacketId || null,
+              selectedDetailIds,
+            },
+          });
+          await db.insert(workRequestEvents).values({
+            workRequestId: requestId,
+            type: "homeid_draft_submitted",
+            actorUserId: userId,
+            metadata: {
+              source: "homeid_packet",
+              homeId: homeId || null,
+              homePacketId: homePacketId || null,
+              selectedDetailIds,
+              directConnectRequestId: requestId,
+            },
+          });
+        } catch (e) {
+          console.warn("[direct-connect] Failed to record homeid draft submit events", e);
+        }
+
+        if (homeId && homePacketId) {
+          const ownedHome = await resolveOwnedHomeForDirectConnect(userId, homeId);
+          if (ownedHome) {
+            try {
+              await db.insert(userHomeRecords).values({
+                homeId,
+                createdByUserId: userId,
+                recordType: "note",
+                title: "homeid:direct_connect_request_submitted",
+                details: JSON.stringify({
+                  source: "homeid_packet",
+                  event: "direct_connect_request_submitted",
+                  directConnectRequestId: requestId,
+                  homePacketId,
+                  selectedDetailIds,
+                  submittedAt: new Date().toISOString(),
+                }),
+                tags: ["homeid", "direct_connect", "submitted"],
+                updatedAt: new Date(),
+              } as any);
+            } catch (e) {
+              console.warn("[direct-connect] Failed to write HomeID submit backlink record", e);
+            }
+          }
+        }
+
+        return res.status(200).json({
+          requestId,
+          status: String(requestRow.status || "open"),
+          submitted: true,
+          source: "homeid_packet",
+        });
+      } catch (error) {
+        console.error("Error submitting homeid draft request:", error);
+        return res.status(500).json({
+          message: "Failed to submit HomeID draft request",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
   app.post(
     "/api/admin/direct-connect/requests",
     isAuthenticated,

@@ -1,0 +1,29 @@
+import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+
+const read = (relativePath: string) =>
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
+
+describe("assetid phase 1g homeid draft submit contracts", () => {
+  it("exposes submit endpoint for HomeID-generated Direct Connect drafts", () => {
+    const source = read("server/routes/direct-connect.ts");
+    expect(source).toContain('"/api/direct-connect/requests/:id/submit-homeid-draft"');
+    expect(source).toContain('type: "homeid_draft_reviewed"');
+    expect(source).toContain('type: "homeid_draft_submitted"');
+  });
+
+  it("writes HomeID backlink record when draft is submitted", () => {
+    const source = read("server/routes/direct-connect.ts");
+    expect(source).toContain('title: "homeid:direct_connect_request_submitted"');
+    expect(source).toContain('event: "direct_connect_request_submitted"');
+    expect(source).toContain('source: "homeid_packet"');
+  });
+
+  it("shows explicit draft review and submit UI in Homes flow", () => {
+    const source = read("client/src/pages/homes.tsx");
+    expect(source).toContain("Direct Connect draft review and submit");
+    expect(source).toContain("Submit Direct Connect request");
+    expect(source).toContain("/submit-homeid-draft");
+  });
+});
