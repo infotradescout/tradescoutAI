@@ -7,6 +7,7 @@ import {
   USER_HOME_DOCUMENT_TYPES,
   USER_HOME_RECORD_TYPES,
   businesses,
+  homeReportShares,
   homeProjectPlans,
   homeProjects,
   homeMaintenanceSchedules,
@@ -19,6 +20,56 @@ import {
 import { addPropertyLifecycleEvent } from "../services/propertyLifecycleService";
 
 const router = Router();
+
+const HOME_TYPES = [
+  "single_family",
+  "townhome",
+  "condo",
+  "duplex",
+  "triplex_fourplex",
+  "multi_family",
+  "manufactured_home",
+  "mobile_home",
+  "new_build",
+  "land_lot",
+  "commercial_residential_mixed",
+  "rental_unit",
+  "other",
+] as const;
+
+const HOME_AUTHORITY_ROLES = [
+  "owner",
+  "pending_owner",
+  "builder_of_record",
+  "agent_delegate",
+  "property_manager",
+  "admin",
+] as const;
+
+const HOME_CREATOR_ROLES = [
+  "homeowner",
+  "builder",
+  "realtor",
+  "property_manager",
+  "admin",
+  "homescout_sale_flow",
+] as const;
+
+const HOMEID_CORE_REQUIREMENTS: Record<(typeof HOME_TYPES)[number], string[]> = {
+  single_family: ["roof", "hvac", "water_heater", "foundation", "permits", "appliances"],
+  townhome: ["roof", "hvac", "water_heater", "hoa_docs", "appliances"],
+  condo: ["hoa_docs", "unit_systems", "shared_systems", "insurance_docs", "appliances"],
+  duplex: ["roof", "hvac", "water_heater", "electrical_panel", "permits"],
+  triplex_fourplex: ["roof", "hvac", "water_heater", "electrical_panel", "permits"],
+  multi_family: ["roof", "hvac", "water_heater", "electrical_panel", "permits"],
+  manufactured_home: ["vin_or_serial", "title_docs", "lot_land_relationship", "tie_downs"],
+  mobile_home: ["vin_or_serial", "title_docs", "lot_land_relationship", "skirting", "tie_downs"],
+  new_build: ["builder_record", "permits", "warranties", "subcontractors", "inspection_milestones"],
+  land_lot: ["parcel_apn", "county_context", "zoning_context"],
+  commercial_residential_mixed: ["permits", "inspection_milestones", "occupancy_docs"],
+  rental_unit: ["property_manager_authority", "tenant_safe_visibility", "service_history"],
+  other: ["custom_core_facts"],
+};
 
 const createHomeSchema = z.object({
   nickname: z.string().trim().min(1).max(160).optional(),
@@ -34,6 +85,46 @@ const createHomeSchema = z.object({
     .regex(/^[0-9]{5}$/)
     .optional(),
   zipCode: z.string().trim().min(3).max(12).optional(),
+});
+
+const createHomeIdSchema = z.object({
+  nickname: z.string().trim().min(1).max(160).optional(),
+  address1: z.string().trim().min(1).max(180).optional(),
+  address2: z.string().trim().min(1).max(180).optional(),
+  city: z.string().trim().min(1).max(120).optional(),
+  stateCode: z.string().trim().length(2).optional(),
+  countyFips: z
+    .string()
+    .trim()
+    .regex(/^[0-9]{5}$/)
+    .optional(),
+  zipCode: z.string().trim().min(3).max(12).optional(),
+  yearBuilt: z.number().int().min(1600).max(2100).optional(),
+  homeType: z.enum(HOME_TYPES),
+  creatorRole: z.enum(HOME_CREATOR_ROLES).default("homeowner"),
+  creatorSubjectId: z.string().trim().min(1).max(120).optional(),
+});
+
+const addHomeIdAuthoritySchema = z.object({
+  subjectId: z.string().trim().min(1).max(120),
+  role: z.enum(HOME_AUTHORITY_ROLES),
+  status: z.enum(["active", "closed"]).default("active"),
+  endedAt: z.string().trim().optional(),
+  note: z.string().trim().max(2000).optional(),
+});
+
+const createRequestPacketSchema = z.object({
+  requestType: z.string().trim().min(2).max(80),
+  selectedFields: z.array(z.string().trim().min(1).max(80)).max(120),
+});
+
+const proposeRequestEvidenceSchema = z.object({
+  requestId: z.string().trim().min(1).max(120),
+  title: z.string().trim().min(2).max(220),
+  details: z.string().trim().max(20_000).optional(),
+  documentType: z.enum(USER_HOME_DOCUMENT_TYPES).optional(),
+  objectKey: z.string().trim().min(3).max(600).optional(),
+  originalName: z.string().trim().max(260).optional(),
 });
 
 const createRecordSchema = z.object({
@@ -175,6 +266,58 @@ function addDays(d: Date, days: number): Date {
   return next;
 }
 
+function parseJsonObjectSafe(input: unknown): Record<string, any> | null {
+  if (typeof input !== "string") return null;
+  try {
+    const parsed = JSON.parse(input);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function homeIdRoleFromCreator(creatorRole: (typeof HOME_CREATOR_ROLES)[number]) {
+  switch (creatorRole) {
+    case "builder":
+      return "builder_of_record";
+    case "realtor":
+      return "agent_delegate";
+    case "property_manager":
+      return "property_manager";
+    case "admin":
+      return "admin";
+    case "homeowner":
+    case "homescout_sale_flow":
+    default:
+      return "pending_owner";
+  }
+}
+
+function completionStateFromScore(score: number): string {
+  if (score <= 24) return "Started";
+  if (score <= 49) return "Basic HomeID";
+  if (score <= 74) return "Useful HomeID";
+  if (score <= 94) return "Verified HomeID";
+  return "Transfer-ready HomeID";
+}
+
+function personaMessage(args: {
+  score: number;
+  state: string;
+  persona: "homeowner" | "realtor" | "builder" | "property_manager" | "admin" | "other";
+  missingHints: string[];
+}) {
+  const topHints = args.missingHints.slice(0, 3).join(", ") || "key records";
+  if (args.persona === "realtor") {
+    return `This HomeID is ${args.score}% listing-ready. Add ${topHints} to improve buyer confidence.`;
+  }
+  if (args.persona === "builder") {
+    return `This HomeID is ${args.score}% handoff-ready. Add ${topHints} to complete closeout.`;
+  }
+  return `Your HomeID is ${args.score}% complete (${args.state}). Add ${topHints} to move forward.`;
+}
+
 function monthsBetweenInclusive(from: Date, to: Date): number {
   const f = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), 1));
   const t = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1));
@@ -222,6 +365,70 @@ router.post("/api/homes", isAuthenticated, async (req: any, res) => {
   res.status(201).json({ home: created });
 });
 
+router.post("/api/homeid/create", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const body = createHomeIdSchema.parse(req.body ?? {});
+  const [created] = await db
+    .insert(userHomes)
+    .values({
+      ownerUserId: userId,
+      nickname: body.nickname || null,
+      propertyType: body.homeType,
+      yearBuilt: body.yearBuilt ?? null,
+      address1: body.address1 || null,
+      address2: body.address2 || null,
+      city: body.city || null,
+      stateCode: body.stateCode || null,
+      countyFips: body.countyFips || null,
+      zipCode: body.zipCode || null,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  if (!created) return res.status(500).json({ message: "Failed to create HomeID" });
+
+  const authoritySubjectId = body.creatorSubjectId || userId;
+  await db.insert(userHomeRecords).values({
+    homeId: created.id,
+    createdByUserId: userId,
+    recordType: "note",
+    title: "homeid:authority",
+    details: JSON.stringify({
+      subjectId: authoritySubjectId,
+      role: homeIdRoleFromCreator(body.creatorRole),
+      status: "active",
+      source: "homeid_create",
+      creatorRole: body.creatorRole,
+      createdAt: new Date().toISOString(),
+    }),
+    tags: ["homeid", "authority"],
+    updatedAt: new Date(),
+  } as any);
+
+  await db.insert(userHomeRecords).values({
+    homeId: created.id,
+    createdByUserId: userId,
+    recordType: "note",
+    title: "homeid:creation",
+    details: JSON.stringify({
+      homeType: body.homeType,
+      creatorRole: body.creatorRole,
+      requiredCoreFacts: HOMEID_CORE_REQUIREMENTS[body.homeType],
+      createdAt: new Date().toISOString(),
+    }),
+    tags: ["homeid", "creation"],
+    updatedAt: new Date(),
+  } as any);
+
+  res.status(201).json({
+    home: created,
+    homeType: body.homeType,
+    requiredCoreFacts: HOMEID_CORE_REQUIREMENTS[body.homeType],
+  });
+});
+
 router.get("/api/homes/:homeId", isAuthenticated, async (req: any, res) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ message: "Authentication required" });
@@ -255,6 +462,304 @@ router.get("/api/homes/:homeId", isAuthenticated, async (req: any, res) => {
 
   res.json({ home, records, appliances, documents });
 });
+
+router.get("/api/homes/:homeId/homeid-dashboard", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const [records, appliances, documents, schedules, shares] = await Promise.all([
+    db
+      .select()
+      .from(userHomeRecords)
+      .where(eq(userHomeRecords.homeId, homeId))
+      .orderBy(desc(userHomeRecords.createdAt))
+      .limit(500),
+    db.select().from(userHomeAppliances).where(eq(userHomeAppliances.homeId, homeId)).limit(500),
+    db.select().from(userHomeDocuments).where(eq(userHomeDocuments.homeId, homeId)).limit(500),
+    db
+      .select()
+      .from(homeMaintenanceSchedules)
+      .where(
+        and(
+          eq(homeMaintenanceSchedules.userHomeId, homeId),
+          eq(homeMaintenanceSchedules.ownerUserId, userId)
+        )
+      )
+      .limit(500),
+    db
+      .select()
+      .from(homeReportShares)
+      .where(and(eq(homeReportShares.userHomeId, homeId), eq(homeReportShares.ownerUserId, userId)))
+      .limit(500),
+  ]);
+
+  const homeType = (String((home as any).propertyType || "other").trim() ||
+    "other") as (typeof HOME_TYPES)[number];
+  const requiredCoreFacts = HOMEID_CORE_REQUIREMENTS[homeType] || HOMEID_CORE_REQUIREMENTS.other;
+  const authorityRecords = records
+    .filter((r: any) => String(r.title || "").trim() === "homeid:authority")
+    .map((r: any) => parseJsonObjectSafe(r.details))
+    .filter(Boolean) as Array<Record<string, any>>;
+
+  const identityComplete = Boolean(
+    (home as any).address1 &&
+    (home as any).city &&
+    (home as any).stateCode &&
+    (home as any).countyFips &&
+    (home as any).zipCode &&
+    (home as any).propertyType &&
+    (home as any).yearBuilt
+  );
+  const authorityComplete = authorityRecords.some((a) => a.status === "active");
+  const coreFactsComplete = requiredCoreFacts.every((fact) =>
+    records.some((r: any) => {
+      const text =
+        `${String(r.title || "")} ${String(r.details || "")} ${(Array.isArray(r.tags) ? r.tags : []).join(" ")}`.toLowerCase();
+      return text.includes(String(fact).toLowerCase());
+    })
+  );
+  const systemsComplete = appliances.length > 0;
+  const maintenanceComplete =
+    schedules.length > 0 || records.some((r: any) => r.recordType === "maintenance");
+  const evidenceComplete = documents.length > 0;
+  const visibilityComplete = shares.length > 0;
+  const transferComplete = records.some((r: any) => {
+    const title = String(r.title || "").toLowerCase();
+    const details = String(r.details || "").toLowerCase();
+    return (
+      title.includes("handoff") || title.includes("transfer") || details.includes("handoff_ready")
+    );
+  });
+
+  const sections = {
+    identity: { complete: identityComplete, weight: 15 },
+    authority: { complete: authorityComplete, weight: 15 },
+    coreFacts: { complete: coreFactsComplete, weight: 15 },
+    systems: { complete: systemsComplete, weight: 15 },
+    maintenance: { complete: maintenanceComplete, weight: 10 },
+    evidence: { complete: evidenceComplete, weight: 10 },
+    visibility: { complete: visibilityComplete, weight: 10 },
+    transfer: { complete: transferComplete, weight: 10 },
+  };
+
+  const completionScore = Object.values(sections).reduce(
+    (sum, section) => sum + (section.complete ? section.weight : 0),
+    0
+  );
+  const completionState = completionStateFromScore(completionScore);
+  const missingHints: string[] = [];
+  if (!identityComplete) missingHints.push("identity and address");
+  if (!authorityComplete) missingHints.push("authority and claim status");
+  if (!coreFactsComplete) missingHints.push("home-type core facts");
+  if (!systemsComplete) missingHints.push("systems and appliance details");
+  if (!maintenanceComplete) missingHints.push("maintenance history");
+  if (!evidenceComplete) missingHints.push("documents and evidence");
+  if (!visibilityComplete) missingHints.push("visibility and sharing settings");
+  if (!transferComplete) missingHints.push("transfer and handoff readiness");
+
+  const persona = (String(req.query.persona || "homeowner").trim() || "homeowner") as
+    | "homeowner"
+    | "realtor"
+    | "builder"
+    | "property_manager"
+    | "admin"
+    | "other";
+
+  const requestPrompts = missingHints.slice(0, 6).map((reason) => ({
+    promptType:
+      reason.includes("maintenance") || reason.includes("history")
+        ? "request_service"
+        : reason.includes("documents")
+          ? "upload_evidence"
+          : "add_record",
+    reason,
+    suggestedIntent: reason.includes("maintenance")
+      ? "maintain"
+      : reason.includes("core facts")
+        ? "inspect"
+        : "document",
+  }));
+
+  const buyerPacketReadiness = visibilityComplete && transferComplete && evidenceComplete;
+  const handoffReady = completionScore >= 95 && authorityComplete;
+
+  res.json({
+    homeId,
+    homeType,
+    completionScore,
+    completionState,
+    sections,
+    requiredCoreFacts,
+    authority: authorityRecords,
+    requestPrompts,
+    buyerPacketReadiness,
+    handoffReady,
+    personaMessage: personaMessage({
+      score: completionScore,
+      state: completionState,
+      persona,
+      missingHints,
+    }),
+    overview: {
+      homeType,
+      claimAuthorityStatus: authorityComplete ? "active" : "missing",
+      lastUpdatedAt: (home as any).updatedAt,
+      nextMaintenanceDue:
+        schedules
+          .map((s: any) => s.nextDueAt)
+          .filter(Boolean)
+          .sort((a: any, b: any) => new Date(a).getTime() - new Date(b).getTime())[0] || null,
+      openFindingsCount: records.filter((r: any) => {
+        const t = String(r.title || "").toLowerCase();
+        return t.includes("finding") || t.includes("remediation");
+      }).length,
+      recentEvents: records.slice(0, 5).map((r: any) => ({
+        id: r.id,
+        recordType: r.recordType,
+        title: r.title,
+        createdAt: r.createdAt,
+      })),
+      linkedRequestShares: shares.length,
+    },
+  });
+});
+
+router.post("/api/homes/:homeId/homeid-authority", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const body = addHomeIdAuthoritySchema.parse(req.body ?? {});
+  const payload = {
+    subjectId: body.subjectId,
+    role: body.role,
+    status: body.status,
+    endedAt: body.endedAt || null,
+    note: body.note || null,
+    changedAt: new Date().toISOString(),
+  };
+
+  const [record] = await db
+    .insert(userHomeRecords)
+    .values({
+      homeId,
+      createdByUserId: userId,
+      recordType: "note",
+      title: "homeid:authority",
+      details: JSON.stringify(payload),
+      tags: ["homeid", "authority"],
+      updatedAt: new Date(),
+    } as any)
+    .returning();
+  await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+
+  res.status(201).json({ authority: payload, recordId: record?.id || null });
+});
+
+router.post("/api/homes/:homeId/homeid/request-packet", isAuthenticated, async (req: any, res) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ message: "Authentication required" });
+  const homeId = String(req.params.homeId || "").trim();
+  if (!homeId) return res.status(400).json({ message: "homeId required" });
+  const home = await requireHomeOwner(userId, homeId);
+  if (!home) return res.status(404).json({ message: "Home not found" });
+
+  const body = createRequestPacketSchema.parse(req.body ?? {});
+  const sanitizedFields = Array.from(
+    new Set(body.selectedFields.map((v) => v.trim()).filter(Boolean))
+  );
+
+  const packet = {
+    requestType: body.requestType,
+    selectedFields: sanitizedFields,
+    createdAt: new Date().toISOString(),
+    createdByUserId: userId,
+  };
+
+  const [record] = await db
+    .insert(userHomeRecords)
+    .values({
+      homeId,
+      createdByUserId: userId,
+      recordType: "note",
+      title: "homeid:request_packet",
+      details: JSON.stringify(packet),
+      tags: ["homeid", "request_packet"],
+      updatedAt: new Date(),
+    } as any)
+    .returning();
+
+  await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+  res.status(201).json({ packet, recordId: record?.id || null });
+});
+
+router.post(
+  "/api/homes/:homeId/homeid/request-evidence-proposal",
+  isAuthenticated,
+  async (req: any, res) => {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+    const homeId = String(req.params.homeId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const body = proposeRequestEvidenceSchema.parse(req.body ?? {});
+    const [proposalRecord] = await db
+      .insert(userHomeRecords)
+      .values({
+        homeId,
+        createdByUserId: userId,
+        recordType: "maintenance",
+        title: body.title,
+        details: JSON.stringify({
+          requestId: body.requestId,
+          verificationStatus: "proposed",
+          details: body.details || null,
+          proposedAt: new Date().toISOString(),
+        }),
+        tags: ["homeid", "request_completed", "evidence_proposed"],
+        updatedAt: new Date(),
+      } as any)
+      .returning();
+
+    let document: any = null;
+    if (body.objectKey) {
+      const [createdDoc] = await db
+        .insert(userHomeDocuments)
+        .values({
+          homeId,
+          recordId: proposalRecord?.id || null,
+          uploadedByUserId: userId,
+          documentType: body.documentType || "other",
+          objectKey: body.objectKey,
+          originalName: body.originalName || null,
+        } as any)
+        .returning();
+      document = createdDoc ?? null;
+    }
+
+    await db.update(userHomes).set({ updatedAt: new Date() }).where(eq(userHomes.id, homeId));
+    res.status(201).json({
+      proposal: {
+        homeId,
+        requestId: body.requestId,
+        verificationStatus: "proposed",
+        recordId: proposalRecord?.id || null,
+      },
+      document,
+    });
+  }
+);
 
 router.get("/api/homes/:homeId/maintenance-schedules", isAuthenticated, async (req: any, res) => {
   const userId = getUserId(req);

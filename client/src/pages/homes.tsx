@@ -38,6 +38,22 @@ const DOCUMENT_TYPES = [
   { value: "other", label: "Other" },
 ] as const;
 
+const HOME_TYPE_OPTIONS = [
+  { value: "single_family", label: "Single-family" },
+  { value: "townhome", label: "Townhome" },
+  { value: "condo", label: "Condo" },
+  { value: "duplex", label: "Duplex" },
+  { value: "triplex_fourplex", label: "Triplex/Fourplex" },
+  { value: "multi_family", label: "Multi-family" },
+  { value: "manufactured_home", label: "Manufactured home" },
+  { value: "mobile_home", label: "Mobile home" },
+  { value: "new_build", label: "New build" },
+  { value: "land_lot", label: "Land lot" },
+  { value: "commercial_residential_mixed", label: "Commercial/Residential mixed" },
+  { value: "rental_unit", label: "Rental unit" },
+  { value: "other", label: "Other" },
+] as const;
+
 function formatHomeTitle(home: any): string {
   const nickname = typeof home?.nickname === "string" ? home.nickname.trim() : "";
   if (nickname) return nickname;
@@ -89,6 +105,15 @@ export default function HomesVault() {
   const records = Array.isArray(homeDetail?.records) ? homeDetail.records : [];
   const appliances = Array.isArray(homeDetail?.appliances) ? homeDetail.appliances : [];
   const documents = Array.isArray(homeDetail?.documents) ? homeDetail.documents : [];
+  const homeIdDashboardQuery = useQuery({
+    queryKey: [
+      selectedHomeId
+        ? `/api/homes/${selectedHomeId}/homeid-dashboard?persona=homeowner`
+        : "/api/homes/_none/homeid-dashboard",
+    ],
+    enabled: Boolean(selectedHomeId),
+  });
+  const homeIdDashboard = homeIdDashboardQuery.data as any;
 
   const schedulesQuery = useQuery({
     queryKey: [
@@ -125,7 +150,7 @@ export default function HomesVault() {
     city: "",
     stateCode: "",
     zipCode: "",
-    propertyType: "",
+    propertyType: "single_family",
     yearBuilt: "",
   });
 
@@ -176,10 +201,12 @@ export default function HomesVault() {
         city: newHome.city?.trim() || undefined,
         stateCode: newHome.stateCode?.trim() || undefined,
         zipCode: newHome.zipCode?.trim() || undefined,
+        homeType: newHome.propertyType,
+        creatorRole: "homeowner",
         propertyType: newHome.propertyType?.trim() || undefined,
         yearBuilt: newHome.yearBuilt?.trim() ? Number.parseInt(newHome.yearBuilt, 10) : undefined,
       };
-      return apiRequest("POST", "/api/homes", payload);
+      return apiRequest("POST", "/api/homeid/create", payload);
     },
     onSuccess: async (data: any) => {
       toast({ title: "Home added" });
@@ -189,7 +216,7 @@ export default function HomesVault() {
         city: "",
         stateCode: "",
         zipCode: "",
-        propertyType: "",
+        propertyType: "single_family",
         yearBuilt: "",
       });
       await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
@@ -567,14 +594,22 @@ export default function HomesVault() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <Label>Property type</Label>
-                      <Input
+                      <Label>Home type</Label>
+                      <Select
                         value={newHome.propertyType}
-                        onChange={(e) =>
-                          setNewHome((p) => ({ ...p, propertyType: e.target.value }))
-                        }
-                        placeholder="house, condo, etc"
-                      />
+                        onValueChange={(v) => setNewHome((p) => ({ ...p, propertyType: v }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select home type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {HOME_TYPE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label>Year built</Label>
@@ -616,6 +651,24 @@ export default function HomesVault() {
                   <div className="text-sm text-muted-foreground">Loading...</div>
                 ) : (
                   <>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">HomeID completion</CardTitle>
+                        <CardDescription className="text-xs">
+                          Completion measures trust and handoff readiness.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="text-2xl font-semibold">
+                          {homeIdDashboard ? `${homeIdDashboard.completionScore}%` : "--"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {homeIdDashboard?.completionState || "Loading completion..."}
+                        </div>
+                        <div className="text-xs">{homeIdDashboard?.personaMessage || ""}</div>
+                      </CardContent>
+                    </Card>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
                         <CardHeader>
