@@ -139,6 +139,25 @@ type DirectConnectDraftSnapshot = {
   requestType: RequestType;
   showOptional: boolean;
   selectedProviderIds: string[];
+  selectedHomeId?: string;
+  assetComponentType?:
+    | "roof"
+    | "hvac"
+    | "plumbing"
+    | "electrical"
+    | "foundation"
+    | "exterior"
+    | "interior"
+    | "appliance"
+    | "permit_document"
+    | "other";
+  assetComponentId?: string;
+  assetLabel?: string;
+  homeContextIntent?:
+    | "link_existing"
+    | "create_from_request"
+    | "update_from_request"
+    | "skip_for_now";
   attachmentKeys: string[];
   detailAnswers?: Record<"what" | "where" | "when" | "details", string>;
 };
@@ -956,6 +975,25 @@ type DirectConnectCreateDispatch = {
   autoRoute?: boolean;
   dispatchMode?: DispatchMode;
   dispatchCount?: number;
+  homeId?: string;
+  assetComponentId?: string;
+  assetComponentType?:
+    | "roof"
+    | "hvac"
+    | "plumbing"
+    | "electrical"
+    | "foundation"
+    | "exterior"
+    | "interior"
+    | "appliance"
+    | "permit_document"
+    | "other";
+  assetLabel?: string;
+  homeContextIntent?:
+    | "link_existing"
+    | "create_from_request"
+    | "update_from_request"
+    | "skip_for_now";
 };
 
 function parseNumberOrNull(value: unknown): number | null {
@@ -1091,6 +1129,24 @@ function DirectConnectRequestComposer({
   const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(2);
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
+  const [selectedHomeId, setSelectedHomeId] = useState<string>("");
+  const [assetComponentType, setAssetComponentType] = useState<
+    | "roof"
+    | "hvac"
+    | "plumbing"
+    | "electrical"
+    | "foundation"
+    | "exterior"
+    | "interior"
+    | "appliance"
+    | "permit_document"
+    | "other"
+  >("other");
+  const [assetLabel, setAssetLabel] = useState("");
+  const [assetComponentId, setAssetComponentId] = useState("");
+  const [homeContextIntent, setHomeContextIntent] = useState<
+    "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now"
+  >("skip_for_now");
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
@@ -1103,6 +1159,14 @@ function DirectConnectRequestComposer({
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
+
+  const homesQuery = useQuery({
+    queryKey: ["/api/homes"],
+    enabled: isAuthenticated,
+  });
+  const homes = Array.isArray((homesQuery.data as any)?.homes)
+    ? (homesQuery.data as any).homes
+    : [];
   const currentReturnPath = () => {
     if (typeof window === "undefined") return location || "/direct-connect";
     return `${window.location.pathname}${window.location.search || ""}`;
@@ -1176,6 +1240,35 @@ function DirectConnectRequestComposer({
     }
     setShowOptional(Boolean(parsed.showOptional));
     setSelectedContractorIds(parsedProviderIds);
+    if (typeof parsed.selectedHomeId === "string") setSelectedHomeId(parsed.selectedHomeId.trim());
+    if (
+      parsed.assetComponentType === "roof" ||
+      parsed.assetComponentType === "hvac" ||
+      parsed.assetComponentType === "plumbing" ||
+      parsed.assetComponentType === "electrical" ||
+      parsed.assetComponentType === "foundation" ||
+      parsed.assetComponentType === "exterior" ||
+      parsed.assetComponentType === "interior" ||
+      parsed.assetComponentType === "appliance" ||
+      parsed.assetComponentType === "permit_document" ||
+      parsed.assetComponentType === "other"
+    ) {
+      setAssetComponentType(parsed.assetComponentType);
+    }
+    if (typeof parsed.assetComponentId === "string") {
+      setAssetComponentId(parsed.assetComponentId.trim());
+    }
+    if (typeof parsed.assetLabel === "string") {
+      setAssetLabel(parsed.assetLabel.trim());
+    }
+    if (
+      parsed.homeContextIntent === "link_existing" ||
+      parsed.homeContextIntent === "create_from_request" ||
+      parsed.homeContextIntent === "update_from_request" ||
+      parsed.homeContextIntent === "skip_for_now"
+    ) {
+      setHomeContextIntent(parsed.homeContextIntent);
+    }
     setDraftAttachmentKeys(Array.from(new Set(parsedAttachmentKeys)).slice(0, 6));
     if (parsed.detailAnswers) {
       setDetailAnswers({
@@ -1211,6 +1304,11 @@ function DirectConnectRequestComposer({
             .filter(Boolean)
         )
       ),
+      selectedHomeId: selectedHomeId.trim(),
+      assetComponentType,
+      assetComponentId: assetComponentId.trim(),
+      assetLabel: assetLabel.trim(),
+      homeContextIntent,
       attachmentKeys: Array.from(
         new Set(
           (draftAttachmentKeys || []).filter((item) => typeof item === "string" && item.trim())
@@ -1340,6 +1438,42 @@ function DirectConnectRequestComposer({
     "employment",
     "buy_sell",
     "other",
+  ];
+
+  const homeContextIntentOptions: Array<{
+    value: "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now";
+    label: string;
+  }> = [
+    { value: "link_existing", label: "Link to existing HomeID" },
+    { value: "create_from_request", label: "Create HomeID from this request" },
+    { value: "update_from_request", label: "Update HomeID from this request" },
+    { value: "skip_for_now", label: "Skip for now" },
+  ];
+
+  const assetComponentTypeOptions: Array<{
+    value:
+      | "roof"
+      | "hvac"
+      | "plumbing"
+      | "electrical"
+      | "foundation"
+      | "exterior"
+      | "interior"
+      | "appliance"
+      | "permit_document"
+      | "other";
+    label: string;
+  }> = [
+    { value: "roof", label: "Roof" },
+    { value: "hvac", label: "HVAC" },
+    { value: "plumbing", label: "Plumbing" },
+    { value: "electrical", label: "Electrical" },
+    { value: "foundation", label: "Foundation" },
+    { value: "exterior", label: "Exterior" },
+    { value: "interior", label: "Interior" },
+    { value: "appliance", label: "Appliance" },
+    { value: "permit_document", label: "Permit / Document" },
+    { value: "other", label: "Other" },
   ];
 
   const activeRequestMeta = requestTypeMeta[requestType];
@@ -1492,6 +1626,14 @@ function DirectConnectRequestComposer({
       } else if (typeof dispatch?.autoRoute === "boolean") {
         payload.autoRoute = dispatch.autoRoute;
       }
+      if (dispatch?.homeContextIntent && dispatch.homeContextIntent !== "skip_for_now") {
+        payload.homeContextIntent = dispatch.homeContextIntent;
+      }
+      if (dispatch?.homeId?.trim()) payload.homeId = dispatch.homeId.trim();
+      if (dispatch?.assetComponentType) payload.assetComponentType = dispatch.assetComponentType;
+      if (dispatch?.assetComponentId?.trim())
+        payload.assetComponentId = dispatch.assetComponentId.trim();
+      if (dispatch?.assetLabel?.trim()) payload.assetLabel = dispatch.assetLabel.trim();
 
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
@@ -1538,6 +1680,11 @@ function DirectConnectRequestComposer({
       setDispatchCount(2);
       setDirectorySearch("");
       setSelectedContractorIds([]);
+      setSelectedHomeId("");
+      setAssetComponentType("other");
+      setAssetComponentId("");
+      setAssetLabel("");
+      setHomeContextIntent("skip_for_now");
       requestStartedRef.current = false;
       clearAttachments();
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
@@ -1690,6 +1837,11 @@ function DirectConnectRequestComposer({
       autoRoute: false,
       dispatchMode,
       dispatchCount: dispatchMode === "top_count" ? dispatchCount : targetProviderIds.length,
+      homeId: selectedHomeId.trim() || undefined,
+      assetComponentType: assetComponentType || undefined,
+      assetComponentId: assetComponentId.trim() || undefined,
+      assetLabel: assetLabel.trim() || undefined,
+      homeContextIntent,
     });
   };
 
@@ -1699,6 +1851,11 @@ function DirectConnectRequestComposer({
       autoRoute: true,
       dispatchMode,
       dispatchCount: 0,
+      homeId: selectedHomeId.trim() || undefined,
+      assetComponentType: assetComponentType || undefined,
+      assetComponentId: assetComponentId.trim() || undefined,
+      assetLabel: assetLabel.trim() || undefined,
+      homeContextIntent,
     });
   };
 
@@ -1761,6 +1918,104 @@ function DirectConnectRequestComposer({
               </option>
             ))}
           </select>
+        </div>
+        <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
+          <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+            HomeID link (optional)
+          </p>
+          <p className="text-xs text-[color:var(--text-secondary)]">
+            Link this request to an existing HomeID/component or create/update HomeID from request
+            context.
+          </p>
+          <div className="space-y-1.5">
+            <label className="text-xs text-[color:var(--text-secondary)]">
+              Home context intent
+            </label>
+            <select
+              value={homeContextIntent}
+              onChange={(event) =>
+                setHomeContextIntent(
+                  event.target.value as
+                    | "link_existing"
+                    | "create_from_request"
+                    | "update_from_request"
+                    | "skip_for_now"
+                )
+              }
+              className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+            >
+              {homeContextIntentOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-[color:var(--text-secondary)]">Link to home</label>
+            <select
+              value={selectedHomeId}
+              onChange={(event) => setSelectedHomeId(event.target.value)}
+              className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+            >
+              <option value="">Not linked</option>
+              {homes.map((home: any) => (
+                <option key={String(home?.id || "")} value={String(home?.id || "")}>
+                  {String(home?.nickname || home?.address1 || home?.id || "Home")}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-xs text-[color:var(--text-secondary)]">Component type</label>
+              <select
+                value={assetComponentType}
+                onChange={(event) =>
+                  setAssetComponentType(
+                    event.target.value as
+                      | "roof"
+                      | "hvac"
+                      | "plumbing"
+                      | "electrical"
+                      | "foundation"
+                      | "exterior"
+                      | "interior"
+                      | "appliance"
+                      | "permit_document"
+                      | "other"
+                  )
+                }
+                className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+              >
+                {assetComponentTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-[color:var(--text-secondary)]">Component label</label>
+              <Input
+                value={assetLabel}
+                onChange={(event) => setAssetLabel(event.target.value)}
+                placeholder="Upstairs AC, main panel, etc."
+                className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)]"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-[color:var(--text-secondary)]">
+              Existing component ID (optional)
+            </label>
+            <Input
+              value={assetComponentId}
+              onChange={(event) => setAssetComponentId(event.target.value)}
+              placeholder="component_abc123"
+              className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)]"
+            />
+          </div>
         </div>
         {intentConfig?.detailQuestions?.map((question) => (
           <div key={question.key} className="space-y-1.5">
