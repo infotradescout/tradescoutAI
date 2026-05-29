@@ -731,6 +731,137 @@ async function createHomeIdShellFromRequest(params: {
   return createdHome;
 }
 
+type HomeIdTimelineContext = {
+  homeId: string;
+  requestOwnerUserId: string;
+  homePacketId: string | null;
+  selectedDetailIds: string[];
+  componentType: string | null;
+  componentLabel: string | null;
+};
+
+async function resolveHomeIdTimelineContextForRequest(
+  requestId: string
+): Promise<HomeIdTimelineContext | null> {
+  const [requestRow] = await db
+    .select()
+    .from(workRequests)
+    .where(eq(workRequests.id, requestId))
+    .limit(1);
+  if (!requestRow?.createdByUserId) return null;
+
+  const requestOwnerUserId = String(requestRow.createdByUserId);
+  const timelineCandidates = await db
+    .select({
+      metadata: workRequestEvents.metadata,
+      createdAt: workRequestEvents.createdAt,
+    })
+    .from(workRequestEvents)
+    .where(eq(workRequestEvents.workRequestId, requestId))
+    .orderBy(desc(workRequestEvents.createdAt))
+    .limit(30);
+
+  let homeId: string | null = null;
+  let homePacketId: string | null = null;
+  let selectedDetailIds: string[] = [];
+  let componentType: string | null = null;
+  let componentLabel: string | null = null;
+
+  for (const row of timelineCandidates as any[]) {
+    const metadata = row?.metadata && typeof row.metadata === "object" ? row.metadata : {};
+    const assetLink =
+      metadata?.assetLink && typeof metadata.assetLink === "object" ? metadata.assetLink : {};
+
+    if (!homeId) {
+      const directHomeId = String(metadata?.homeId || "").trim();
+      const assetHomeId = String(assetLink?.homeId || "").trim();
+      homeId = directHomeId || assetHomeId || null;
+    }
+    if (!homePacketId) {
+      const directPacketId = String(metadata?.homePacketId || "").trim();
+      const assetPacketId = String(assetLink?.homePacketId || "").trim();
+      homePacketId = directPacketId || assetPacketId || null;
+    }
+    if (selectedDetailIds.length === 0) {
+      const directIds = Array.isArray(metadata?.selectedDetailIds)
+        ? metadata.selectedDetailIds
+        : [];
+      const assetIds = Array.isArray(assetLink?.homePacketSelectedDetailIds)
+        ? assetLink.homePacketSelectedDetailIds
+        : [];
+      const ids = [...directIds, ...assetIds]
+        .map((id: unknown) => String(id || "").trim())
+        .filter(Boolean)
+        .slice(0, 50);
+      if (ids.length > 0) selectedDetailIds = ids;
+    }
+    if (!componentType) {
+      componentType = String(assetLink?.assetComponentType || "").trim() || null;
+    }
+    if (!componentLabel) {
+      componentLabel = String(assetLink?.assetLabel || "").trim() || null;
+    }
+  }
+
+  if (!homeId) return null;
+  const ownedHome = await resolveOwnedHomeForDirectConnect(requestOwnerUserId, homeId);
+  if (!ownedHome?.id) return null;
+
+  return {
+    homeId: String(ownedHome.id),
+    requestOwnerUserId,
+    homePacketId,
+    selectedDetailIds,
+    componentType,
+    componentLabel,
+  };
+}
+
+async function appendHomeIdTimelineEventFromDirectConnect(params: {
+  requestId: string;
+  eventType:
+    | "direct_connect_request_submitted"
+    | "direct_connect_estimate_sent"
+    | "direct_connect_estimate_accepted"
+    | "direct_connect_scheduled"
+    | "direct_connect_work_started"
+    | "direct_connect_change_order_created"
+    | "direct_connect_completed"
+    | "direct_connect_cancelled";
+  title: string;
+  summary?: string | null;
+  occurredAt?: string;
+}) {
+  const context = await resolveHomeIdTimelineContextForRequest(params.requestId);
+  if (!context) return;
+
+  const nowIso = new Date().toISOString();
+  const occurredAt = params.occurredAt || nowIso;
+  await db.insert(userHomeRecords).values({
+    homeId: context.homeId,
+    createdByUserId: context.requestOwnerUserId,
+    recordType: "note",
+    title: `homeid:timeline:${params.eventType}`,
+    details: JSON.stringify({
+      homeId: context.homeId,
+      directConnectRequestId: params.requestId,
+      homePacketId: context.homePacketId || null,
+      selectedDetailIds: context.selectedDetailIds,
+      componentType: context.componentType || null,
+      componentLabel: context.componentLabel || null,
+      eventType: params.eventType,
+      source: "direct_connect_jobflow",
+      title: params.title,
+      summary: params.summary || null,
+      occurredAt,
+      createdAt: nowIso,
+    }),
+    tags: ["homeid", "timeline", "direct_connect_jobflow", params.eventType],
+    occurredAt: new Date(occurredAt),
+    updatedAt: new Date(),
+  } as any);
+}
+
 const contractorConsoleResponseSchema = z.object({
   responseType: z.enum(["interested", "need_more_info", "not_a_fit", "unavailable"]),
   message: z.string().max(600).optional(),
@@ -4623,6 +4754,13 @@ export function registerDirectConnectRoutes(app: Express) {
           console.warn("[direct-connect] Failed to record outcome event for cancel", e);
         }
 
+        await appendHomeIdTimelineEventFromDirectConnect({
+          requestId,
+          eventType: "direct_connect_cancelled",
+          title: "Direct Connect request cancelled",
+          summary: "The linked Direct Connect request was cancelled.",
+        });
+
         res.status(200).json({ status: "cancelled" });
       } catch (error: any) {
         console.error("Error cancelling direct connect request:", error);
@@ -4964,6 +5102,12 @@ export function registerDirectConnectRoutes(app: Express) {
         } catch (e) {
           console.warn("[direct-connect] Failed to send completion notifications to providers", e);
         }
+        await appendHomeIdTimelineEventFromDirectConnect({
+          requestId,
+          eventType: "direct_connect_completed",
+          title: "Direct Connect request completed",
+          summary: "The linked Direct Connect request was marked complete.",
+        });
         res.status(200).json({ status: "completed" });
       } catch (error: any) {
         console.error("Error completing direct connect request:", error);
@@ -5702,6 +5846,13 @@ export function registerDirectConnectRoutes(app: Express) {
             }
           }
         }
+
+        await appendHomeIdTimelineEventFromDirectConnect({
+          requestId,
+          eventType: "direct_connect_request_submitted",
+          title: "Direct Connect request submitted",
+          summary: "A HomeID-linked request was reviewed and submitted.",
+        });
 
         return res.status(200).json({
           requestId,
@@ -8348,6 +8499,12 @@ export function registerDirectConnectRoutes(app: Express) {
           eventType: "estimate_sent",
           metadata: { estimateId, note: parse.data.note ? parse.data.note.trim() : null },
         });
+        await appendHomeIdTimelineEventFromDirectConnect({
+          requestId: String(estimate.request_id || ""),
+          eventType: "direct_connect_estimate_sent",
+          title: "Estimate sent",
+          summary: "A contractor sent an estimate for this request.",
+        });
         return res.status(200).json({ ok: true, estimateId, status: "sent" });
       } catch (error) {
         console.error("Error sending estimate:", error);
@@ -8432,6 +8589,14 @@ export function registerDirectConnectRoutes(app: Express) {
           eventType,
           metadata: { estimateId, note: parse.data.note ? parse.data.note.trim() : null },
         });
+        if (eventType === "estimate_accepted") {
+          await appendHomeIdTimelineEventFromDirectConnect({
+            requestId: String(estimate.request_id || ""),
+            eventType: "direct_connect_estimate_accepted",
+            title: "Estimate accepted",
+            summary: "The request owner accepted an estimate.",
+          });
+        }
         return res.status(200).json({ ok: true, estimateId, status: nextStatus });
       } catch (error) {
         console.error("Error responding to estimate:", error);
@@ -8861,6 +9026,12 @@ export function registerDirectConnectRoutes(app: Express) {
             eventType: "job_scheduled",
             metadata: { scheduleProposalId },
           });
+          await appendHomeIdTimelineEventFromDirectConnect({
+            requestId: String(proposal.request_id || ""),
+            eventType: "direct_connect_scheduled",
+            title: "Job scheduled",
+            summary: "A schedule proposal was accepted for this request.",
+          });
         }
         return res.status(200).json({ ok: true, scheduleProposalId, status: nextStatus });
       } catch (error) {
@@ -8951,6 +9122,12 @@ export function registerDirectConnectRoutes(app: Express) {
           actorId: userId,
           eventType: "work_started",
           metadata: { jobWorkspaceId },
+        });
+        await appendHomeIdTimelineEventFromDirectConnect({
+          requestId: String(workspace.request_id),
+          eventType: "direct_connect_work_started",
+          title: "Work started",
+          summary: "A contractor started work for this request.",
         });
         return res.status(200).json({ ok: true, jobWorkspaceId, status: "in_progress" });
       } catch (error) {
@@ -9353,6 +9530,12 @@ export function registerDirectConnectRoutes(app: Express) {
           actorId: userId,
           eventType: "change_order_created",
           metadata: { changeOrderId, totalDelta },
+        });
+        await appendHomeIdTimelineEventFromDirectConnect({
+          requestId: String(workspace.request_id),
+          eventType: "direct_connect_change_order_created",
+          title: "Change order created",
+          summary: "A change order was created for this request.",
         });
         await appendDispatchEvent({
           requestId: String(workspace.request_id),
@@ -10004,6 +10187,12 @@ export function registerDirectConnectRoutes(app: Express) {
             actorId: null,
             eventType: "job_completed",
             metadata: { completionRequestId: String(completionRequest.id) },
+          });
+          await appendHomeIdTimelineEventFromDirectConnect({
+            requestId: String(completionRequest.request_id || ""),
+            eventType: "direct_connect_completed",
+            title: "Job completed",
+            summary: "Direct Connect completion was confirmed for this request.",
           });
         }
         return res.status(200).json({
