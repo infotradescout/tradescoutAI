@@ -20,6 +20,34 @@ import {
 import { addPropertyLifecycleEvent } from "../services/propertyLifecycleService";
 
 const router = Router();
+type HomeIdServerPropertyDetail = {
+  id: string;
+  category: string;
+  note: string;
+  status: "known" | "needs_review";
+  createdAt: string;
+  savedAt: string;
+};
+
+type HomeIdServerRequestPacket = {
+  id: string;
+  requestType: string;
+  selectedDetailIds: string[];
+  missingHelpfulInfo: string[];
+  missingHelpfulInfoCount: number;
+  status: "draft" | "ready" | "needs_info";
+  createdAt: string;
+  savedAt: string;
+};
+
+const homeIdPersistenceStore = new Map<
+  string,
+  {
+    propertyDetails: HomeIdServerPropertyDetail[];
+    requestPackets: HomeIdServerRequestPacket[];
+    updatedAt: string;
+  }
+>();
 
 const HOME_TYPES = [
   "single_family",
@@ -125,6 +153,34 @@ const proposeRequestEvidenceSchema = z.object({
   documentType: z.enum(USER_HOME_DOCUMENT_TYPES).optional(),
   objectKey: z.string().trim().min(3).max(600).optional(),
   originalName: z.string().trim().max(260).optional(),
+});
+
+const homeIdPropertyDetailSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(120),
+  note: z.string().trim().min(1).max(20_000),
+  status: z.enum(["known", "needs_review"]),
+  createdAt: z.string().trim().min(1).max(80),
+  savedAt: z.string().trim().min(1).max(80),
+});
+
+const homeIdRequestPacketSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  requestType: z.string().trim().min(1).max(120),
+  selectedDetailIds: z.array(z.string().trim().min(1).max(120)).max(200),
+  missingHelpfulInfo: z.array(z.string().trim().min(1).max(200)).max(200),
+  missingHelpfulInfoCount: z.number().int().nonnegative(),
+  status: z.enum(["draft", "ready", "needs_info"]),
+  createdAt: z.string().trim().min(1).max(80),
+  savedAt: z.string().trim().min(1).max(80),
+});
+
+const upsertHomeIdPropertyDetailsSchema = z.object({
+  propertyDetails: z.array(homeIdPropertyDetailSchema).max(500),
+});
+
+const upsertHomeIdRequestPacketsSchema = z.object({
+  requestPackets: z.array(homeIdRequestPacketSchema).max(500),
 });
 
 const createRecordSchema = z.object({
@@ -427,6 +483,93 @@ router.post("/api/homeid/create", isAuthenticated, async (req: any, res) => {
     homeType: body.homeType,
     requiredCoreFacts: HOMEID_CORE_REQUIREMENTS[body.homeType],
   });
+});
+
+router.get("/api/homeid/:homeId/persistence", isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+    const homeId = String(req.params.homeId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const key = `${userId}:${homeId}`;
+    const persistence = homeIdPersistenceStore.get(key) || {
+      propertyDetails: [],
+      requestPackets: [],
+      updatedAt: new Date().toISOString(),
+    };
+    return res.json({ ok: true, persistence });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || "Could not load HomeID persistence" });
+  }
+});
+
+router.put("/api/homeid/:homeId/property-details", isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+    const homeId = String(req.params.homeId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const parsed = upsertHomeIdPropertyDetailsSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid property details payload", issues: parsed.error.issues });
+    }
+
+    const key = `${userId}:${homeId}`;
+    const existing = homeIdPersistenceStore.get(key);
+    const persistence = {
+      propertyDetails: parsed.data.propertyDetails,
+      requestPackets: existing?.requestPackets || [],
+      updatedAt: new Date().toISOString(),
+    };
+    homeIdPersistenceStore.set(key, persistence);
+    return res.json({ ok: true, persistence });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || "Could not save property details" });
+  }
+});
+
+router.put("/api/homeid/:homeId/request-packets", isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+    const homeId = String(req.params.homeId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const parsed = upsertHomeIdRequestPacketsSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid request packets payload", issues: parsed.error.issues });
+    }
+
+    const key = `${userId}:${homeId}`;
+    const existing = homeIdPersistenceStore.get(key);
+    const persistence = {
+      propertyDetails: existing?.propertyDetails || [],
+      requestPackets: parsed.data.requestPackets,
+      updatedAt: new Date().toISOString(),
+    };
+    homeIdPersistenceStore.set(key, persistence);
+    return res.json({ ok: true, persistence });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || "Could not save request packets" });
+  }
 });
 
 router.get("/api/homes/:homeId", isAuthenticated, async (req: any, res) => {

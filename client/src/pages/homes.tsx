@@ -553,6 +553,7 @@ export default function HomesVault() {
   }, [missingSnapshotCategories]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!selectedHomeId) {
       setPropertyDetails([]);
       setRequestPackets([]);
@@ -561,22 +562,37 @@ export default function HomesVault() {
       setHomeIdPersistenceWarning(null);
       return;
     }
-    const { state, warning } = loadHomeIdPersistence(selectedHomeId);
-    setPropertyDetails(state?.propertyDetails || []);
-    setRequestPackets(state?.requestPackets || []);
-    setPacketSelectedDetailIds([]);
-    setEditingPacketId(null);
-    setHomeIdPersistenceWarning(warning || null);
+    (async () => {
+      const { state, warning } = await loadHomeIdPersistence(selectedHomeId, (method, url, body) =>
+        apiRequest(method, url, body)
+      );
+      if (cancelled) return;
+      setPropertyDetails(state?.propertyDetails || []);
+      setRequestPackets(state?.requestPackets || []);
+      setPacketSelectedDetailIds([]);
+      setEditingPacketId(null);
+      setHomeIdPersistenceWarning(warning || null);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedHomeId]);
 
   useEffect(() => {
     if (!selectedHomeId) return;
-    const result = saveHomeIdPersistence(selectedHomeId, {
-      propertyDetails,
-      requestPackets,
-      updatedAt: new Date().toISOString(),
-    });
-    if (!result.ok && result.warning) setHomeIdPersistenceWarning(result.warning);
+    (async () => {
+      const result = await saveHomeIdPersistence(
+        selectedHomeId,
+        {
+          propertyDetails,
+          requestPackets,
+          updatedAt: new Date().toISOString(),
+        },
+        (method, url, body) => apiRequest(method, url, body)
+      );
+      if (!result.ok && result.warning) setHomeIdPersistenceWarning(result.warning);
+      if (result.ok && result.warning) setHomeIdPersistenceWarning(result.warning);
+    })();
   }, [selectedHomeId, propertyDetails, requestPackets]);
 
   function addSnapshotDetail() {
