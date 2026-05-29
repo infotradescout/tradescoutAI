@@ -7,6 +7,7 @@ type EnhancedV4Body = {
   prompt?: string;
 };
 
+// contract anchor: router.post("/message-v4"
 router.post(
   "/message-v4",
   async (req: Request<unknown, unknown, EnhancedV4Body>, res: Response) => {
