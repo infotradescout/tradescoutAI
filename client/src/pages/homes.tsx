@@ -23,6 +23,7 @@ import {
   type HomeIdRequestPacket,
 } from "@/lib/homeidPersistence";
 import { evaluateHomeIdPacketReadiness } from "@/lib/homeidPacketReadiness";
+import { buildHomeIdHandoffPreview, type HomeIdHandoffPreview } from "@/lib/homeidHandoffPreview";
 import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const RECORD_TYPES = [
@@ -231,6 +232,7 @@ export default function HomesVault() {
   const [packetSelectedDetailIds, setPacketSelectedDetailIds] = useState<string[]>([]);
   const [editingPacketId, setEditingPacketId] = useState<string | null>(null);
   const [lastServerSyncAt, setLastServerSyncAt] = useState<string | null>(null);
+  const [handoffPreview, setHandoffPreview] = useState<HomeIdHandoffPreview | null>(null);
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -563,6 +565,7 @@ export default function HomesVault() {
       setEditingPacketId(null);
       setHomeIdPersistenceWarning(null);
       setLastServerSyncAt(null);
+      setHandoffPreview(null);
       return;
     }
     (async () => {
@@ -577,6 +580,7 @@ export default function HomesVault() {
       setEditingPacketId(null);
       setHomeIdPersistenceWarning(warning || null);
       setLastServerSyncAt(source === "server" ? new Date().toISOString() : null);
+      setHandoffPreview(null);
     })();
     return () => {
       cancelled = true;
@@ -671,6 +675,7 @@ export default function HomesVault() {
 
     setEditingPacketId(null);
     setPacketSelectedDetailIds([]);
+    setHandoffPreview(null);
   }
 
   function resumeRequestPacket(packetId: string) {
@@ -679,6 +684,7 @@ export default function HomesVault() {
     setEditingPacketId(packet.id);
     setPacketRequestType(packet.requestType);
     setPacketSelectedDetailIds(packet.selectedDetailIds);
+    setHandoffPreview(null);
   }
 
   function isPacketDbSaved(packet: HomeIdRequestPacket): boolean {
@@ -697,6 +703,45 @@ export default function HomesVault() {
       }),
     [packetMissingHelpfulInfo.length, packetRequestType, packetSelectedDetailIds, selectedHomeId]
   );
+
+  const creatorRoleForPreview = useMemo(() => {
+    const authority = Array.isArray(homeIdDashboard?.authority) ? homeIdDashboard.authority : [];
+    const firstRole =
+      authority.length > 0 && typeof authority[0]?.role === "string" ? authority[0].role : null;
+    if (firstRole) return firstRole;
+    return "homeowner";
+  }, [homeIdDashboard?.authority]);
+
+  function prepareHandoffPreview(packet: HomeIdRequestPacket) {
+    const readiness = evaluateHomeIdPacketReadiness({
+      homeId: selectedHomeId,
+      requestType: packet.requestType,
+      selectedDetailIds: packet.selectedDetailIds,
+      missingHelpfulInfoCount: packet.missingHelpfulInfoCount,
+      isDbSaved: isPacketDbSaved(packet),
+    });
+    if (readiness.state !== "ready_for_handoff") return;
+
+    const selectedKnownNeedsReview = propertyDetails
+      .filter(
+        (detail) => packet.selectedDetailIds.includes(detail.id) && detail.status === "needs_review"
+      )
+      .map((detail) => `Review ${detail.category.replaceAll("_", " ")} note quality`);
+
+    const preview = buildHomeIdHandoffPreview({
+      homeId: selectedHomeId,
+      homeType:
+        String(selectedHome?.propertyType || homeIdDashboard?.homeType || "other").trim() ||
+        "other",
+      creatorRole: creatorRoleForPreview,
+      packet,
+      propertyDetails,
+      nonBlockingContext: selectedKnownNeedsReview.slice(0, 3),
+    });
+
+    if (!preview) return;
+    setHandoffPreview(preview);
+  }
 
   const localCompletionBoost =
     Math.min(20, propertyDetails.length * 2) + Math.min(10, requestPackets.length * 2);
@@ -1110,13 +1155,14 @@ export default function HomesVault() {
                                       <Button
                                         size="sm"
                                         disabled={disabled}
+                                        onClick={() => prepareHandoffPreview(packet)}
                                         title={
                                           disabled
                                             ? `Not ready: ${readiness.missing.join(", ")}`
-                                            : "Open handoff preparation preview"
+                                            : "Preview Direct Connect packet"
                                         }
                                       >
-                                        Prepare Direct Connect handoff
+                                        Preview Direct Connect packet
                                       </Button>
                                     );
                                   })()}
@@ -1127,6 +1173,60 @@ export default function HomesVault() {
                         </CardContent>
                       </Card>
                     </div>
+
+                    {handoffPreview ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">HomeID handoff preview</CardTitle>
+                          <CardDescription className="text-xs">
+                            Preview only. This does not create a Direct Connect request.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-xs">
+                          <div className="rounded border p-3 space-y-1">
+                            <div>HomeID: {handoffPreview.homeId}</div>
+                            <div>Home type: {handoffPreview.homeType}</div>
+                            <div>Creator role: {handoffPreview.creatorRole}</div>
+                            <div>Request type: {handoffPreview.requestType}</div>
+                            <div>Readiness: {handoffPreview.packetReadinessState}</div>
+                            <div>
+                              Packet saved:{" "}
+                              {new Date(handoffPreview.packetSavedAt).toLocaleString()}
+                            </div>
+                            <div>
+                              Preview generated:{" "}
+                              {new Date(handoffPreview.generatedAt).toLocaleString()}
+                            </div>
+                          </div>
+                          <div className="rounded border p-3">
+                            <div className="font-medium mb-1">Included details</div>
+                            {handoffPreview.selectedPropertyDetails.map((detail) => (
+                              <div key={detail.id} className="text-muted-foreground">
+                                {detail.category.replaceAll("_", " ")}: {detail.note}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="rounded border p-3">
+                            <div className="font-medium mb-1">Non-blocking missing context</div>
+                            {handoffPreview.nonBlockingContext.length > 0 ? (
+                              handoffPreview.nonBlockingContext.map((item, index) => (
+                                <div key={`${item}-${index}`} className="text-muted-foreground">
+                                  {item}
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-muted-foreground">
+                                No additional non-blocking context flagged.
+                              </div>
+                            )}
+                          </div>
+                          <div className="rounded border p-3 text-muted-foreground">
+                            Next step later: this preview payload can be passed to Direct Connect
+                            when transaction creation is enabled in a future slice.
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : null}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
