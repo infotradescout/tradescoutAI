@@ -62,6 +62,15 @@ const HOME_CREATOR_ROLE_OPTIONS = [
   { value: "homescout_sale_flow", label: "I'm preparing it for sale" },
 ] as const;
 
+const HOMEID_REQUEST_TYPE_OPTIONS = [
+  { value: "repair", label: "Repair" },
+  { value: "inspection", label: "Inspection" },
+  { value: "quote", label: "Quote" },
+  { value: "maintenance", label: "Maintenance" },
+  { value: "documentation", label: "Documentation" },
+  { value: "other", label: "Other" },
+] as const;
+
 const SNAPSHOT_CATEGORY_OPTIONS = [
   { value: "roof", label: "Roof" },
   { value: "hvac", label: "HVAC" },
@@ -239,6 +248,15 @@ export default function HomesVault() {
   const [homeSnapshotsByHomeId, setHomeSnapshotsByHomeId] = useState<
     Record<string, HomeSnapshotEntry[]>
   >({});
+  const [requestPacketStartedByHomeId, setRequestPacketStartedByHomeId] = useState<
+    Record<string, boolean>
+  >({});
+  const [requestPacketTypeByHomeId, setRequestPacketTypeByHomeId] = useState<
+    Record<string, string>
+  >({});
+  const [requestPacketSelectedDetailsByHomeId, setRequestPacketSelectedDetailsByHomeId] = useState<
+    Record<string, string[]>
+  >({});
 
   const homeSnapshots = selectedHomeId ? homeSnapshotsByHomeId[selectedHomeId] || [] : [];
   const knownSnapshots = homeSnapshots.filter((entry) => entry.status === "known");
@@ -252,6 +270,27 @@ export default function HomesVault() {
   const baseCompletionScore =
     typeof homeIdDashboard?.completionScore === "number" ? homeIdDashboard.completionScore : 0;
   const displayCompletionScore = Math.min(100, baseCompletionScore + snapshotCompletionBoost);
+  const requestPacketStarted = selectedHomeId
+    ? requestPacketStartedByHomeId[selectedHomeId] === true
+    : false;
+  const requestPacketType = selectedHomeId
+    ? requestPacketTypeByHomeId[selectedHomeId] || HOMEID_REQUEST_TYPE_OPTIONS[0].value
+    : HOMEID_REQUEST_TYPE_OPTIONS[0].value;
+  const requestPacketSelectedDetailIds = selectedHomeId
+    ? requestPacketSelectedDetailsByHomeId[selectedHomeId] || []
+    : [];
+  const selectedKnownDetails = knownSnapshots.filter((entry) =>
+    requestPacketSelectedDetailIds.includes(entry.id)
+  );
+  const missingHelpfulInfo = [
+    ...missingCategories.slice(0, 4).map((category) => `Missing ${category.label} detail`),
+    ...needsReviewSnapshots.slice(0, 2).map((entry) => {
+      const label =
+        SNAPSHOT_CATEGORY_OPTIONS.find((option) => option.value === entry.category)?.label ||
+        "Other";
+      return `Clarify ${label} note`;
+    }),
+  ].slice(0, 6);
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -324,6 +363,26 @@ export default function HomesVault() {
         status === "known"
           ? "HomeID is active. Keep adding facts to improve readiness."
           : "Saved to Needs Review. Add a more specific fact when ready.",
+    });
+  };
+
+  const startRequestPacket = () => {
+    if (!selectedHomeId) return;
+    setRequestPacketStartedByHomeId((prev) => ({ ...prev, [selectedHomeId]: true }));
+    if (!requestPacketTypeByHomeId[selectedHomeId]) {
+      setRequestPacketTypeByHomeId((prev) => ({
+        ...prev,
+        [selectedHomeId]: HOMEID_REQUEST_TYPE_OPTIONS[0].value,
+      }));
+    }
+  };
+
+  const toggleRequestPacketDetail = (detailId: string, checked: boolean) => {
+    if (!selectedHomeId) return;
+    setRequestPacketSelectedDetailsByHomeId((prev) => {
+      const existing = prev[selectedHomeId] || [];
+      const next = checked ? [...existing, detailId] : existing.filter((id) => id !== detailId);
+      return { ...prev, [selectedHomeId]: Array.from(new Set(next)) };
     });
   };
 
@@ -906,6 +965,150 @@ export default function HomesVault() {
                         </div>
                       </CardContent>
                     </Card>
+
+                    {knownSnapshots.length > 0 ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">HomeID Request Packet Builder</CardTitle>
+                          <CardDescription className="text-xs">
+                            Prepare a request packet from your HomeID details. Preview only.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {!requestPacketStarted ? (
+                            <div className="space-y-3">
+                              <div className="text-xs text-muted-foreground">
+                                Use this HomeID to prepare a request.
+                              </div>
+                              <Button variant="secondary" onClick={startRequestPacket}>
+                                Start request packet
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Request type</Label>
+                                <Select
+                                  value={requestPacketType}
+                                  onValueChange={(value) => {
+                                    if (!selectedHomeId) return;
+                                    setRequestPacketTypeByHomeId((prev) => ({
+                                      ...prev,
+                                      [selectedHomeId]: value,
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select request type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {HOMEID_REQUEST_TYPE_OPTIONS.map((option) => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="text-xs font-medium">Attach Known details</div>
+                                {knownSnapshots.map((entry) => {
+                                  const label =
+                                    SNAPSHOT_CATEGORY_OPTIONS.find(
+                                      (option) => option.value === entry.category
+                                    )?.label || "Other";
+                                  const checked = requestPacketSelectedDetailIds.includes(entry.id);
+                                  return (
+                                    <label
+                                      key={entry.id}
+                                      className="flex items-start gap-2 text-xs rounded border p-2 cursor-pointer"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={(event) =>
+                                          toggleRequestPacketDetail(entry.id, event.target.checked)
+                                        }
+                                      />
+                                      <span>
+                                        <span className="font-medium">{label}:</span> {entry.note}
+                                      </span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle className="text-sm">Request packet preview</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-2 text-xs">
+                                  <div>
+                                    <span className="font-medium">Home type:</span>{" "}
+                                    {HOME_TYPE_OPTIONS.find(
+                                      (option) =>
+                                        option.value ===
+                                        String(selectedHome?.propertyType || newHome.propertyType)
+                                    )?.label || "Unknown"}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Creator role:</span>{" "}
+                                    {HOME_CREATOR_ROLE_OPTIONS.find(
+                                      (option) =>
+                                        option.value ===
+                                        String(
+                                          selectedHome?.homeIdCreatorRole ||
+                                            selectedHome?.creatorRole ||
+                                            newHome.creatorRole
+                                        )
+                                    )?.label || "Unknown"}
+                                  </div>
+                                  <div>
+                                    <span className="font-medium">Request type:</span>{" "}
+                                    {HOMEID_REQUEST_TYPE_OPTIONS.find(
+                                      (option) => option.value === requestPacketType
+                                    )?.label || "Other"}
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="font-medium">Selected property details</div>
+                                    {selectedKnownDetails.length === 0 ? (
+                                      <div className="text-muted-foreground">
+                                        Select at least one Known detail to include.
+                                      </div>
+                                    ) : (
+                                      selectedKnownDetails.map((entry) => {
+                                        const label =
+                                          SNAPSHOT_CATEGORY_OPTIONS.find(
+                                            (option) => option.value === entry.category
+                                          )?.label || "Other";
+                                        return (
+                                          <div key={entry.id}>
+                                            - {label}: {entry.note}
+                                          </div>
+                                        );
+                                      })
+                                    )}
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="font-medium">Missing helpful info</div>
+                                    {missingHelpfulInfo.length === 0 ? (
+                                      <div className="text-muted-foreground">
+                                        No obvious missing info right now.
+                                      </div>
+                                    ) : (
+                                      missingHelpfulInfo.map((item, idx) => (
+                                        <div key={`${item}-${idx}`}>- {item}</div>
+                                      ))
+                                    )}
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ) : null}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
