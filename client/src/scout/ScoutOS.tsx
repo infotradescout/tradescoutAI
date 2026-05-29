@@ -214,6 +214,21 @@ type ScoutHomeIdDashboardResponse = {
   };
 };
 
+type HomeIdMaintenanceSuggestionType =
+  | "missing_info"
+  | "maintenance_check"
+  | "evidence_prompt"
+  | "request_packet_prompt"
+  | "seasonal_basic";
+
+type HomeIdMaintenanceSuggestion = {
+  id: string;
+  type: HomeIdMaintenanceSuggestionType;
+  title: string;
+  reason: string;
+  actionLabel: string;
+};
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -221,6 +236,159 @@ function asObject(value: unknown): Record<string, unknown> | null {
 
 function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : [];
+}
+
+function evaluateHomeIdMaintenanceSuggestions(args: {
+  monthIndex: number;
+  propertyDetails: Array<Record<string, unknown>>;
+  components: Array<Record<string, unknown>>;
+  evidence: Array<Record<string, unknown>>;
+  requestPackets: Array<Record<string, unknown>>;
+  recentActivity: Array<{ title: string }>;
+}): HomeIdMaintenanceSuggestion[] {
+  const suggestions: HomeIdMaintenanceSuggestion[] = [];
+  const seenIds = new Set<string>();
+  const add = (item: HomeIdMaintenanceSuggestion) => {
+    if (seenIds.has(item.id)) return;
+    seenIds.add(item.id);
+    suggestions.push(item);
+  };
+
+  const detailsByCategory = new Set(
+    args.propertyDetails
+      .map((detail) =>
+        String(detail.category || "")
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+  );
+  const componentList = args.components.map((component) => ({
+    id: String(component.id || "").trim(),
+    type: String(component.type || "")
+      .trim()
+      .toLowerCase(),
+    label: String(component.label || "").trim(),
+    status: String(component.status || "")
+      .trim()
+      .toLowerCase(),
+  }));
+  const evidenceList = args.evidence.map((entry) => ({
+    type: String(entry.evidenceType || "")
+      .trim()
+      .toLowerCase(),
+    componentId: String(entry.componentId || "").trim(),
+  }));
+  const hasCompletedWork = args.recentActivity.some((event) =>
+    /completed_work|completed/i.test(event.title || "")
+  );
+  const hasReceiptOrInvoiceEvidence = evidenceList.some(
+    (entry) => entry.type === "receipt" || entry.type === "invoice"
+  );
+
+  for (const component of componentList) {
+    if (component.status === "needs_review") {
+      add({
+        id: `review_${component.id || component.type || "component"}`,
+        type: "missing_info",
+        title: `Review ${component.label || component.type || "component"} details`,
+        reason: "This component is marked needs_review in HomeID.",
+        actionLabel: "Review in HomeID",
+      });
+    }
+  }
+
+  const roofComponent = componentList.find((component) => component.type === "roof");
+  if (roofComponent) {
+    const hasRoofEvidence = evidenceList.some(
+      (entry) => entry.componentId === roofComponent.id || entry.type === "photo"
+    );
+    if (!hasRoofEvidence && !detailsByCategory.has("roof")) {
+      add({
+        id: "roof_missing_info",
+        type: "missing_info",
+        title: "Add roof details if known",
+        reason: "Roof component exists without supporting roof detail or evidence.",
+        actionLabel: "Add roof detail",
+      });
+    }
+  }
+
+  const hvacComponent = componentList.find((component) => component.type === "hvac");
+  if (hvacComponent) {
+    const hasHvacServiceDetail =
+      detailsByCategory.has("hvac") ||
+      args.recentActivity.some((event) => /hvac|service/i.test(event.title || ""));
+    if (!hasHvacServiceDetail) {
+      add({
+        id: "hvac_maintenance_check",
+        type: "maintenance_check",
+        title: "Review HVAC service history",
+        reason: "HVAC component exists without clear service history in HomeID.",
+        actionLabel: "Add HVAC service detail",
+      });
+    }
+  }
+
+  const waterHeaterComponent = componentList.find((component) => component.type === "water_heater");
+  if (waterHeaterComponent && !detailsByCategory.has("water_heater")) {
+    add({
+      id: "water_heater_install_info",
+      type: "missing_info",
+      title: "Add water heater install details if known",
+      reason: "Water heater component exists without install detail in HomeID.",
+      actionLabel: "Add water heater detail",
+    });
+  }
+
+  if (hasCompletedWork && !hasReceiptOrInvoiceEvidence) {
+    add({
+      id: "completed_work_evidence_prompt",
+      type: "evidence_prompt",
+      title: "Attach receipt or invoice evidence",
+      reason: "Completed work exists but no receipt/invoice evidence is attached.",
+      actionLabel: "Add evidence",
+    });
+  }
+
+  const hasNeedsReviewComponent = componentList.some(
+    (component) => component.status === "needs_review"
+  );
+  const hasOpenPacket = args.requestPackets.some((packet) => {
+    const status = String(packet.status || "")
+      .trim()
+      .toLowerCase();
+    return status === "draft" || status === "needs_info";
+  });
+  if (hasNeedsReviewComponent && !hasOpenPacket) {
+    add({
+      id: "request_packet_prompt",
+      type: "request_packet_prompt",
+      title: "Prepare a request packet for unresolved components",
+      reason: "At least one component needs review and no open request packet exists.",
+      actionLabel: "Open request packets",
+    });
+  }
+
+  if (args.monthIndex >= 2 && args.monthIndex <= 7) {
+    add({
+      id: "seasonal_hvac_cooling",
+      type: "seasonal_basic",
+      title: "Review HVAC readiness",
+      reason: "Consider reviewing HVAC readiness before peak cooling season.",
+      actionLabel: "Check HomeID",
+    });
+  } else {
+    add({
+      id: "seasonal_heating_seal",
+      type: "seasonal_basic",
+      title: "Review heater and weather sealing readiness",
+      reason: "Consider reviewing heating and sealing readiness for colder months.",
+      actionLabel: "Check HomeID",
+    });
+  }
+
+  return suggestions.slice(0, 6);
 }
 
 function isWeakSuggestionLabel(label: string) {
@@ -3895,6 +4063,10 @@ export default function ScoutOS() {
         openRequestPacketCount: 0,
         missingCriticalInfoCount: 0,
         recentActivity: [] as Array<{ id: string; title: string; createdAt: string }>,
+        propertyDetails: [] as Array<Record<string, unknown>>,
+        components: [] as Array<Record<string, unknown>>,
+        evidence: [] as Array<Record<string, unknown>>,
+        requestPackets: [] as Array<Record<string, unknown>>,
       };
     }
 
@@ -3949,8 +4121,38 @@ export default function ScoutOS() {
       openRequestPacketCount,
       missingCriticalInfoCount: missingHints.length,
       recentActivity: recentEvents,
+      propertyDetails: propertyDetails.map((entry) => asObject(entry)).filter(Boolean) as Array<
+        Record<string, unknown>
+      >,
+      components: components.map((entry) => asObject(entry)).filter(Boolean) as Array<
+        Record<string, unknown>
+      >,
+      evidence: evidence.map((entry) => asObject(entry)).filter(Boolean) as Array<
+        Record<string, unknown>
+      >,
+      requestPackets: requestPackets.map((entry) => asObject(entry)).filter(Boolean) as Array<
+        Record<string, unknown>
+      >,
     };
   }, [homesData, primaryHomeId, homeIdRailPersistence, homeIdRailDashboard]);
+
+  const homeIdMaintenanceSuggestions = useMemo(() => {
+    if (!homeIdContextRail.hasHomeId) return [] as HomeIdMaintenanceSuggestion[];
+    return evaluateHomeIdMaintenanceSuggestions({
+      monthIndex: new Date().getMonth(),
+      propertyDetails: Array.isArray(homeIdContextRail.propertyDetails)
+        ? homeIdContextRail.propertyDetails
+        : [],
+      components: Array.isArray(homeIdContextRail.components) ? homeIdContextRail.components : [],
+      evidence: Array.isArray(homeIdContextRail.evidence) ? homeIdContextRail.evidence : [],
+      requestPackets: Array.isArray(homeIdContextRail.requestPackets)
+        ? homeIdContextRail.requestPackets
+        : [],
+      recentActivity: Array.isArray(homeIdContextRail.recentActivity)
+        ? homeIdContextRail.recentActivity
+        : [],
+    });
+  }, [homeIdContextRail]);
 
   const { data: vehiclesData } = useQuery<{
     vehicles?: Array<{
@@ -5649,6 +5851,48 @@ export default function ScoutOS() {
                               style={{ borderColor: "var(--border-subtle)" }}
                             >
                               No recent HomeID activity yet.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+                          Maintenance suggestions
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {homeIdMaintenanceSuggestions.length > 0 ? (
+                            homeIdMaintenanceSuggestions.map((suggestion) => (
+                              <div
+                                key={suggestion.id}
+                                className="rounded-lg border p-2 text-xs"
+                                style={{ borderColor: "var(--border-subtle)" }}
+                              >
+                                <p className="text-[color:var(--text-primary)] font-semibold">
+                                  {suggestion.title}
+                                </p>
+                                <p className="mt-1 text-[color:var(--text-muted)]">
+                                  {suggestion.reason}
+                                </p>
+                                <button
+                                  type="button"
+                                  className="mt-2 rounded border px-2 py-1 text-[11px] font-semibold"
+                                  style={{ borderColor: "var(--border-subtle)" }}
+                                  onClick={() =>
+                                    navigate(
+                                      `/homes?homeId=${encodeURIComponent(homeIdContextRail.homeId)}`
+                                    )
+                                  }
+                                >
+                                  {suggestion.actionLabel}
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <div
+                              className="rounded-lg border p-2 text-xs"
+                              style={{ borderColor: "var(--border-subtle)" }}
+                            >
+                              No maintenance suggestions yet.
                             </div>
                           )}
                         </div>
