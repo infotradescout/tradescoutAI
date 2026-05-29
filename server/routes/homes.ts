@@ -39,14 +39,34 @@ type HomeIdServerRequestPacket = {
   createdAt: string;
   savedAt: string;
 };
+type HomeIdComponentSource =
+  | "user_added"
+  | "direct_connect_request"
+  | "direct_connect_completed_work"
+  | "homeid_packet";
+
+type HomeIdServerComponent = {
+  id: string;
+  homeId: string;
+  type: string;
+  label: string;
+  status: "known" | "needs_review" | "unknown";
+  source: HomeIdComponentSource;
+  linkedDirectConnectRequestIds?: string[];
+  linkedHomePacketIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+};
 type HomeIdServerPersistenceState = {
   propertyDetails: HomeIdServerPropertyDetail[];
   requestPackets: HomeIdServerRequestPacket[];
+  components: HomeIdServerComponent[];
   updatedAt: string;
 };
 
 const HOMEID_PERSISTENCE_PROPERTY_DETAILS_TITLE = "homeid:persistence:property_details";
 const HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE = "homeid:persistence:request_packets";
+const HOMEID_PERSISTENCE_COMPONENTS_TITLE = "homeid:persistence:components";
 
 const HOME_TYPES = [
   "single_family",
@@ -180,6 +200,28 @@ const upsertHomeIdPropertyDetailsSchema = z.object({
 
 const upsertHomeIdRequestPacketsSchema = z.object({
   requestPackets: z.array(homeIdRequestPacketSchema).max(500),
+});
+
+const homeIdComponentSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  homeId: z.string().trim().min(1).max(120),
+  type: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(220),
+  status: z.enum(["known", "needs_review", "unknown"]),
+  source: z.enum([
+    "user_added",
+    "direct_connect_request",
+    "direct_connect_completed_work",
+    "homeid_packet",
+  ]),
+  linkedDirectConnectRequestIds: z.array(z.string().trim().min(1).max(120)).max(200).optional(),
+  linkedHomePacketIds: z.array(z.string().trim().min(1).max(120)).max(200).optional(),
+  createdAt: z.string().trim().min(1).max(80),
+  updatedAt: z.string().trim().min(1).max(80),
+});
+
+const upsertHomeIdComponentsSchema = z.object({
+  components: z.array(homeIdComponentSchema).max(800),
 });
 
 const createRecordSchema = z.object({
@@ -352,6 +394,7 @@ async function loadHomeIdPersistenceFromDb(
         inArray(userHomeRecords.title, [
           HOMEID_PERSISTENCE_PROPERTY_DETAILS_TITLE,
           HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE,
+          HOMEID_PERSISTENCE_COMPONENTS_TITLE,
         ])
       )
     );
@@ -362,9 +405,13 @@ async function loadHomeIdPersistenceFromDb(
   const requestPacketsRecord = rows.find(
     (row) => String(row.title || "").trim() === HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE
   );
+  const componentsRecord = rows.find(
+    (row) => String(row.title || "").trim() === HOMEID_PERSISTENCE_COMPONENTS_TITLE
+  );
 
   const propertyDetailsPayload = parseJsonObjectSafe(propertyDetailsRecord?.details);
   const requestPacketsPayload = parseJsonObjectSafe(requestPacketsRecord?.details);
+  const componentsPayload = parseJsonObjectSafe(componentsRecord?.details);
 
   const propertyDetails = Array.isArray(propertyDetailsPayload?.propertyDetails)
     ? (propertyDetailsPayload?.propertyDetails as HomeIdServerPropertyDetail[])
@@ -372,17 +419,23 @@ async function loadHomeIdPersistenceFromDb(
   const requestPackets = Array.isArray(requestPacketsPayload?.requestPackets)
     ? (requestPacketsPayload?.requestPackets as HomeIdServerRequestPacket[])
     : [];
+  const components = Array.isArray(componentsPayload?.components)
+    ? (componentsPayload?.components as HomeIdServerComponent[])
+    : [];
 
   const updatedAtCandidates = [
     String(propertyDetailsPayload?.updatedAt || "").trim(),
     String(requestPacketsPayload?.updatedAt || "").trim(),
+    String(componentsPayload?.updatedAt || "").trim(),
     propertyDetailsRecord?.updatedAt?.toISOString?.() || "",
     requestPacketsRecord?.updatedAt?.toISOString?.() || "",
+    componentsRecord?.updatedAt?.toISOString?.() || "",
   ].filter(Boolean);
 
   return {
     propertyDetails,
     requestPackets,
+    components,
     updatedAt: updatedAtCandidates[0] || new Date().toISOString(),
   };
 }
@@ -620,6 +673,7 @@ router.put("/api/homeid/:homeId/property-details", isAuthenticated, async (req: 
     const persistence = {
       propertyDetails: parsed.data.propertyDetails,
       requestPackets: existing?.requestPackets || [],
+      components: existing?.components || [],
       updatedAt: new Date().toISOString(),
     };
     await upsertHomeIdPersistenceRecord({
@@ -659,6 +713,7 @@ router.put("/api/homeid/:homeId/request-packets", isAuthenticated, async (req: a
     const persistence = {
       propertyDetails: existing?.propertyDetails || [],
       requestPackets: parsed.data.requestPackets,
+      components: existing?.components || [],
       updatedAt: new Date().toISOString(),
     };
     await upsertHomeIdPersistenceRecord({
@@ -673,6 +728,46 @@ router.put("/api/homeid/:homeId/request-packets", isAuthenticated, async (req: a
     return res.json({ ok: true, persistence });
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || "Could not save request packets" });
+  }
+});
+
+router.put("/api/homeid/:homeId/components", isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+    const homeId = String(req.params.homeId || "").trim();
+    if (!homeId) return res.status(400).json({ message: "homeId required" });
+
+    const home = await requireHomeOwner(userId, homeId);
+    if (!home) return res.status(404).json({ message: "Home not found" });
+
+    const parsed = upsertHomeIdComponentsSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid components payload", issues: parsed.error.issues });
+    }
+
+    const existing = await loadHomeIdPersistenceFromDb(homeId, userId);
+    const persistence = {
+      propertyDetails: existing?.propertyDetails || [],
+      requestPackets: existing?.requestPackets || [],
+      components: parsed.data.components,
+      updatedAt: new Date().toISOString(),
+    };
+    await upsertHomeIdPersistenceRecord({
+      homeId,
+      userId,
+      title: HOMEID_PERSISTENCE_COMPONENTS_TITLE,
+      payload: {
+        components: persistence.components,
+        updatedAt: persistence.updatedAt,
+      },
+    });
+    return res.json({ ok: true, persistence });
+  } catch (error: any) {
+    return res.status(500).json({ message: error?.message || "Could not save HomeID components" });
   }
 });
 

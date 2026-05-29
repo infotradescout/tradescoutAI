@@ -633,6 +633,165 @@ async function resolveOwnedHomeForDirectConnect(userId: string, homeId?: string 
   return home || null;
 }
 
+const HOMEID_PERSISTENCE_COMPONENTS_TITLE = "homeid:persistence:components";
+const HOMEID_COMPONENT_TYPES = new Set([
+  "roof",
+  "hvac",
+  "plumbing",
+  "electrical",
+  "foundation",
+  "exterior",
+  "interior",
+  "appliance",
+  "water_heater",
+  "custom",
+]);
+
+type HomeIdComponentStatus = "known" | "needs_review" | "unknown";
+type HomeIdComponentSource =
+  | "user_added"
+  | "direct_connect_request"
+  | "direct_connect_completed_work"
+  | "homeid_packet";
+
+type HomeIdComponentRecord = {
+  id: string;
+  homeId: string;
+  type: string;
+  label: string;
+  status: HomeIdComponentStatus;
+  source: HomeIdComponentSource;
+  linkedDirectConnectRequestIds?: string[];
+  linkedHomePacketIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+function parseJsonObjectSafe(input: unknown): Record<string, any> | null {
+  if (typeof input !== "string") return null;
+  try {
+    const parsed = JSON.parse(input);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeHomeIdComponentType(input?: string | null) {
+  const value = String(input || "")
+    .trim()
+    .toLowerCase();
+  if (!value) return "";
+  if (HOMEID_COMPONENT_TYPES.has(value)) return value;
+  return "custom";
+}
+
+async function upsertHomeIdComponentFromDirectConnect(params: {
+  homeId: string;
+  userId: string;
+  requestId: string;
+  homePacketId?: string | null;
+  componentType?: string | null;
+  componentLabel?: string | null;
+  source: HomeIdComponentSource;
+  status: HomeIdComponentStatus;
+}) {
+  const normalizedType = normalizeHomeIdComponentType(params.componentType);
+  const normalizedLabel = String(params.componentLabel || "").trim();
+  if (!normalizedType && !normalizedLabel) return null;
+
+  const [existingRecord] = await db
+    .select({
+      id: userHomeRecords.id,
+      details: userHomeRecords.details,
+    })
+    .from(userHomeRecords)
+    .where(
+      and(
+        eq(userHomeRecords.homeId, params.homeId),
+        eq(userHomeRecords.createdByUserId, params.userId),
+        eq(userHomeRecords.title, HOMEID_PERSISTENCE_COMPONENTS_TITLE)
+      )
+    )
+    .limit(1);
+
+  const payload = parseJsonObjectSafe(existingRecord?.details);
+  const existingComponents = Array.isArray(payload?.components)
+    ? (payload?.components as HomeIdComponentRecord[]) || []
+    : [];
+  const nowIso = new Date().toISOString();
+
+  const componentIndex = existingComponents.findIndex((component) => {
+    const typeMatch =
+      normalizedType &&
+      String(component.type || "")
+        .trim()
+        .toLowerCase() === normalizedType;
+    const labelMatch =
+      normalizedLabel &&
+      String(component.label || "")
+        .trim()
+        .toLowerCase() === normalizedLabel.toLowerCase();
+    return typeMatch || labelMatch;
+  });
+
+  const existing = componentIndex >= 0 ? existingComponents[componentIndex] : null;
+  const linkedRequestIds = new Set<string>(existing?.linkedDirectConnectRequestIds || []);
+  linkedRequestIds.add(params.requestId);
+  const linkedPacketIds = new Set<string>(existing?.linkedHomePacketIds || []);
+  if (params.homePacketId) linkedPacketIds.add(String(params.homePacketId));
+
+  const baseId = existing?.id || `cmp_${randomBytes(8).toString("hex")}`;
+  const nextComponent: HomeIdComponentRecord = {
+    id: baseId,
+    homeId: params.homeId,
+    type:
+      normalizedType ||
+      String(existing?.type || "")
+        .trim()
+        .toLowerCase() ||
+      "custom",
+    label: normalizedLabel || String(existing?.label || "").trim() || "Custom component",
+    status: params.status,
+    source: params.source,
+    linkedDirectConnectRequestIds: Array.from(linkedRequestIds).slice(0, 200),
+    linkedHomePacketIds: Array.from(linkedPacketIds).slice(0, 200),
+    createdAt: existing?.createdAt || nowIso,
+    updatedAt: nowIso,
+  };
+
+  const nextComponents =
+    componentIndex >= 0
+      ? existingComponents.map((component, idx) =>
+          idx === componentIndex ? nextComponent : component
+        )
+      : [...existingComponents, nextComponent];
+  const nextPayload = {
+    components: nextComponents,
+    updatedAt: nowIso,
+  };
+
+  if (existingRecord?.id) {
+    await db
+      .update(userHomeRecords)
+      .set({ details: JSON.stringify(nextPayload), updatedAt: new Date() } as any)
+      .where(eq(userHomeRecords.id, existingRecord.id));
+  } else {
+    await db.insert(userHomeRecords).values({
+      homeId: params.homeId,
+      createdByUserId: params.userId,
+      recordType: "note",
+      title: HOMEID_PERSISTENCE_COMPONENTS_TITLE,
+      details: JSON.stringify(nextPayload),
+      tags: ["homeid", "persistence", "components"],
+      updatedAt: new Date(),
+    } as any);
+  }
+
+  return nextComponent;
+}
+
 async function appendHomeIdRequestContextRecord(params: {
   homeId: string;
   userId: string;
@@ -674,6 +833,18 @@ async function appendHomeIdRequestContextRecord(params: {
     tags: ["homeid", "direct_connect", "needs_review"],
     updatedAt: new Date(),
   } as any);
+
+  await upsertHomeIdComponentFromDirectConnect({
+    homeId: params.homeId,
+    userId: params.userId,
+    requestId: params.requestId,
+    homePacketId: params.homePacketId || null,
+    componentType: params.componentType || null,
+    componentLabel: params.componentLabel || null,
+    source:
+      params.homeContextIntent === "link_existing" ? "homeid_packet" : "direct_connect_request",
+    status: "needs_review",
+  });
 }
 
 async function createHomeIdShellFromRequest(params: {
@@ -893,6 +1064,17 @@ async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
     occurredAt: new Date(completedAt),
     updatedAt: new Date(),
   } as any);
+
+  await upsertHomeIdComponentFromDirectConnect({
+    homeId: context.homeId,
+    userId: context.requestOwnerUserId,
+    requestId: params.requestId,
+    homePacketId: context.homePacketId || null,
+    componentType: context.componentType || null,
+    componentLabel: context.componentLabel || null,
+    source: "direct_connect_completed_work",
+    status: "known",
+  });
 }
 
 const contractorConsoleResponseSchema = z.object({
