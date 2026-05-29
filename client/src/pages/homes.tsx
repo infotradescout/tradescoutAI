@@ -62,6 +62,37 @@ const HOME_CREATOR_ROLE_OPTIONS = [
   { value: "homescout_sale_flow", label: "I'm preparing it for sale" },
 ] as const;
 
+const SNAPSHOT_CATEGORY_OPTIONS = [
+  { value: "roof", label: "Roof" },
+  { value: "hvac", label: "HVAC" },
+  { value: "plumbing", label: "Plumbing" },
+  { value: "electrical", label: "Electrical" },
+  { value: "foundation", label: "Foundation" },
+  { value: "exterior", label: "Exterior" },
+  { value: "interior", label: "Interior" },
+  { value: "appliances", label: "Appliances" },
+  { value: "permits_documents", label: "Permits / documents" },
+  { value: "other", label: "Other" },
+] as const;
+
+type SnapshotStatus = "known" | "needs_review";
+
+type HomeSnapshotEntry = {
+  id: string;
+  category: string;
+  note: string;
+  status: SnapshotStatus;
+  createdAt: string;
+};
+
+function isSnapshotNeedsReview(category: string, note: string): boolean {
+  const normalized = note.trim().toLowerCase();
+  if (!normalized) return true;
+  if (category === "other") return true;
+  const vaguePhrases = ["not sure", "unknown", "idk", "tbd", "maybe", "some issue", "n/a"];
+  return normalized.length < 18 || vaguePhrases.some((phrase) => normalized.includes(phrase));
+}
+
 function formatHomeTitle(home: any): string {
   const nickname = typeof home?.nickname === "string" ? home.nickname.trim() : "";
   if (nickname) return nickname;
@@ -201,6 +232,26 @@ export default function HomesVault() {
     monthlySavings: "",
     fundingSources: "",
   });
+  const [snapshotDraft, setSnapshotDraft] = useState<{ category: string; note: string }>({
+    category: SNAPSHOT_CATEGORY_OPTIONS[0].value,
+    note: "",
+  });
+  const [homeSnapshotsByHomeId, setHomeSnapshotsByHomeId] = useState<
+    Record<string, HomeSnapshotEntry[]>
+  >({});
+
+  const homeSnapshots = selectedHomeId ? homeSnapshotsByHomeId[selectedHomeId] || [] : [];
+  const knownSnapshots = homeSnapshots.filter((entry) => entry.status === "known");
+  const needsReviewSnapshots = homeSnapshots.filter((entry) => entry.status === "needs_review");
+  const knownCategories = new Set(knownSnapshots.map((entry) => entry.category));
+  const missingCategories = SNAPSHOT_CATEGORY_OPTIONS.filter(
+    (option) => !knownCategories.has(option.value)
+  );
+  const hasFirstSnapshotDetail = homeSnapshots.length > 0;
+  const snapshotCompletionBoost = Math.min(homeSnapshots.length * 4, 20);
+  const baseCompletionScore =
+    typeof homeIdDashboard?.completionScore === "number" ? homeIdDashboard.completionScore : 0;
+  const displayCompletionScore = Math.min(100, baseCompletionScore + snapshotCompletionBoost);
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -241,6 +292,40 @@ export default function HomesVault() {
       });
     },
   });
+
+  const saveSnapshotDetail = () => {
+    if (!selectedHomeId) return;
+    const note = snapshotDraft.note.trim();
+    if (!note) {
+      toast({
+        title: "Add a property detail first",
+        description: "Enter one real fact or note before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const category = snapshotDraft.category;
+    const status: SnapshotStatus = isSnapshotNeedsReview(category, note) ? "needs_review" : "known";
+    const newEntry: HomeSnapshotEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      category,
+      note,
+      status,
+      createdAt: new Date().toISOString(),
+    };
+    setHomeSnapshotsByHomeId((prev) => ({
+      ...prev,
+      [selectedHomeId]: [...(prev[selectedHomeId] || []), newEntry],
+    }));
+    setSnapshotDraft((prev) => ({ ...prev, note: "" }));
+    toast({
+      title: "Property detail added",
+      description:
+        status === "known"
+          ? "HomeID is active. Keep adding facts to improve readiness."
+          : "Saved to Needs Review. Add a more specific fact when ready.",
+    });
+  };
 
   const addRecordMutation = useMutation({
     mutationFn: async () => {
@@ -689,13 +774,16 @@ export default function HomesVault() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        <div className="text-2xl font-semibold">
-                          {homeIdDashboard ? `${homeIdDashboard.completionScore}%` : "--"}
-                        </div>
+                        <div className="text-2xl font-semibold">{`${displayCompletionScore}%`}</div>
                         <div className="text-xs text-muted-foreground">
                           {homeIdDashboard?.completionState || "Loading completion..."}
                         </div>
                         <div className="text-xs">{homeIdDashboard?.personaMessage || ""}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {hasFirstSnapshotDetail
+                            ? "HomeID is active. You have started saving property knowledge."
+                            : "Add your first property detail to activate HomeID memory."}
+                        </div>
                         {Array.isArray(homeIdDashboard?.requestPrompts) &&
                         homeIdDashboard.requestPrompts.length > 0 ? (
                           <div className="pt-2 space-y-1">
@@ -712,6 +800,110 @@ export default function HomesVault() {
                               ))}
                           </div>
                         ) : null}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">HomeID Snapshot Intake</CardTitle>
+                        <CardDescription className="text-xs">
+                          Add what you know about this home. One real detail starts your property
+                          memory.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {!hasFirstSnapshotDetail ? (
+                          <div className="text-xs rounded-md border border-dashed p-3 bg-muted/40">
+                            Add your first property detail to make this HomeID useful now.
+                          </div>
+                        ) : null}
+
+                        <div className="space-y-3">
+                          <div>
+                            <Label>Category</Label>
+                            <Select
+                              value={snapshotDraft.category}
+                              onValueChange={(v) =>
+                                setSnapshotDraft((p) => ({ ...p, category: v }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Choose a component category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {SNAPSHOT_CATEGORY_OPTIONS.map((option) => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>What do you know about this home?</Label>
+                            <Textarea
+                              value={snapshotDraft.note}
+                              onChange={(e) =>
+                                setSnapshotDraft((p) => ({ ...p, note: e.target.value }))
+                              }
+                              placeholder="Example: Roof replaced in 2019 with architectural shingles."
+                            />
+                          </div>
+                          <Button onClick={saveSnapshotDetail}>Save property detail</Button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium">Known</div>
+                            {knownSnapshots.length === 0 ? (
+                              <div className="text-xs text-muted-foreground">
+                                No known details yet.
+                              </div>
+                            ) : (
+                              knownSnapshots.map((entry) => (
+                                <div key={entry.id} className="text-xs rounded border p-2">
+                                  <div className="font-medium">
+                                    {SNAPSHOT_CATEGORY_OPTIONS.find(
+                                      (o) => o.value === entry.category
+                                    )?.label || "Other"}
+                                  </div>
+                                  <div className="text-muted-foreground">{entry.note}</div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium">Missing</div>
+                            {missingCategories.length === 0 ? (
+                              <div className="text-xs text-muted-foreground">
+                                Core categories started.
+                              </div>
+                            ) : (
+                              missingCategories.map((option) => (
+                                <div key={option.value} className="text-xs text-muted-foreground">
+                                  - {option.label}
+                                </div>
+                              ))
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <div className="text-xs font-medium">Needs Review</div>
+                            {needsReviewSnapshots.length === 0 ? (
+                              <div className="text-xs text-muted-foreground">No review items.</div>
+                            ) : (
+                              needsReviewSnapshots.map((entry) => (
+                                <div key={entry.id} className="text-xs rounded border p-2">
+                                  <div className="font-medium">
+                                    {SNAPSHOT_CATEGORY_OPTIONS.find(
+                                      (o) => o.value === entry.category
+                                    )?.label || "Other"}
+                                  </div>
+                                  <div className="text-muted-foreground">{entry.note}</div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
 
