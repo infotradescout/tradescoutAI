@@ -862,6 +862,39 @@ async function appendHomeIdTimelineEventFromDirectConnect(params: {
   } as any);
 }
 
+async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
+  requestId: string;
+  completedAt?: string;
+  workSummary?: string | null;
+}) {
+  const context = await resolveHomeIdTimelineContextForRequest(params.requestId);
+  if (!context) return;
+
+  const nowIso = new Date().toISOString();
+  const completedAt = params.completedAt || nowIso;
+  await db.insert(userHomeRecords).values({
+    homeId: context.homeId,
+    createdByUserId: context.requestOwnerUserId,
+    recordType: "note",
+    title: "homeid:completed_work_enrichment",
+    details: JSON.stringify({
+      source: "direct_connect_completed_work",
+      homeId: context.homeId,
+      directConnectRequestId: params.requestId,
+      homePacketId: context.homePacketId || null,
+      selectedDetailIds: context.selectedDetailIds,
+      componentType: context.componentType || null,
+      componentLabel: context.componentLabel || null,
+      completedAt,
+      workSummary: params.workSummary || null,
+      enrichedAt: nowIso,
+    }),
+    tags: ["homeid", "completed_work", "direct_connect"],
+    occurredAt: new Date(completedAt),
+    updatedAt: new Date(),
+  } as any);
+}
+
 const contractorConsoleResponseSchema = z.object({
   responseType: z.enum(["interested", "need_more_info", "not_a_fit", "unavailable"]),
   message: z.string().max(600).optional(),
@@ -5107,6 +5140,11 @@ export function registerDirectConnectRoutes(app: Express) {
           eventType: "direct_connect_completed",
           title: "Direct Connect request completed",
           summary: "The linked Direct Connect request was marked complete.",
+        });
+        await appendHomeIdCompletedWorkEnrichmentFromDirectConnect({
+          requestId,
+          completedAt: new Date().toISOString(),
+          workSummary: String(requestRow.description || requestRow.title || "").trim() || null,
         });
         res.status(200).json({ status: "completed" });
       } catch (error: any) {
@@ -10193,6 +10231,11 @@ export function registerDirectConnectRoutes(app: Express) {
             eventType: "direct_connect_completed",
             title: "Job completed",
             summary: "Direct Connect completion was confirmed for this request.",
+          });
+          await appendHomeIdCompletedWorkEnrichmentFromDirectConnect({
+            requestId: String(completionRequest.request_id || ""),
+            completedAt: new Date().toISOString(),
+            workSummary: parse.data.requesterNotes ? parse.data.requesterNotes.trim() : null,
           });
         }
         return res.status(200).json({
