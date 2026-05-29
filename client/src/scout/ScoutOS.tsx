@@ -229,6 +229,16 @@ type HomeIdMaintenanceSuggestion = {
   actionLabel: string;
 };
 
+type HomeIdSimilarLocalSignal = {
+  id: string;
+  category: string;
+  componentType: string;
+  sampleCount: number;
+  title: string;
+  reason: string;
+  actionLabel: string;
+};
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -389,6 +399,76 @@ function evaluateHomeIdMaintenanceSuggestions(args: {
   }
 
   return suggestions.slice(0, 6);
+}
+
+function mapSignalComponentType(
+  value: string,
+  knownComponentTypes: Set<string>
+): { componentType: string; category: string } | null {
+  const normalized = String(value || "").toLowerCase();
+  const match = (
+    key: string,
+    aliases: string[],
+    category: string
+  ): { componentType: string; category: string } | null => {
+    if (aliases.some((alias) => normalized.includes(alias)) || knownComponentTypes.has(key)) {
+      return { componentType: key, category };
+    }
+    return null;
+  };
+  return (
+    match("hvac", ["hvac", "ac", "air", "cooling", "heating", "furnace"], "maintenance") ||
+    match("roof", ["roof", "roofing"], "inspection") ||
+    match("water_heater", ["water heater", "heater"], "repair") ||
+    match("plumbing", ["plumbing", "pipe", "leak"], "repair") ||
+    match("electrical", ["electrical", "panel", "wiring"], "inspection") ||
+    match("exterior", ["exterior", "siding", "gutter"], "maintenance")
+  );
+}
+
+function evaluateHomeIdSimilarLocalSignals(args: {
+  components: Array<Record<string, unknown>>;
+  trendingPrompts: Array<Record<string, unknown>>;
+  minimumSampleCount: number;
+}): HomeIdSimilarLocalSignal[] {
+  const signals: HomeIdSimilarLocalSignal[] = [];
+  const seen = new Set<string>();
+  const knownComponentTypes = new Set(
+    args.components
+      .map((component) =>
+        String(component.type || "")
+          .trim()
+          .toLowerCase()
+      )
+      .filter(Boolean)
+  );
+
+  for (const prompt of args.trendingPrompts) {
+    const text = String(prompt.text || "").trim();
+    const category = String(prompt.category || "").trim();
+    const intent = String(prompt.intent || "").trim();
+    const count = Number(prompt.count || 0);
+    if (!text || !Number.isFinite(count) || count < args.minimumSampleCount) continue;
+    const combined = `${text} ${category} ${intent}`.toLowerCase();
+    const mapped = mapSignalComponentType(combined, knownComponentTypes);
+    if (!mapped) continue;
+    const id = `${mapped.componentType}_${count}_${intent || "signal"}`;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    signals.push({
+      id,
+      category: mapped.category,
+      componentType: mapped.componentType,
+      sampleCount: Math.floor(count),
+      title: `${mapped.componentType.replace("_", " ")} requests are active in your area`,
+      reason: `Local aggregate request activity reached ${Math.floor(
+        count
+      )} similar signals. This is aggregate-only and privacy-safe.`,
+      actionLabel: "Prepare request packet",
+    });
+  }
+
+  return signals.slice(0, 3);
 }
 
 function isWeakSuggestionLabel(label: string) {
@@ -4067,6 +4147,7 @@ export default function ScoutOS() {
         components: [] as Array<Record<string, unknown>>,
         evidence: [] as Array<Record<string, unknown>>,
         requestPackets: [] as Array<Record<string, unknown>>,
+        localTrendingPrompts: [] as Array<Record<string, unknown>>,
       };
     }
 
@@ -4133,8 +4214,17 @@ export default function ScoutOS() {
       requestPackets: requestPackets.map((entry) => asObject(entry)).filter(Boolean) as Array<
         Record<string, unknown>
       >,
+      localTrendingPrompts: asArray(scoutSourceSignalsQuery.data?.trendingPrompts)
+        .map((entry) => asObject(entry))
+        .filter(Boolean) as Array<Record<string, unknown>>,
     };
-  }, [homesData, primaryHomeId, homeIdRailPersistence, homeIdRailDashboard]);
+  }, [
+    homesData,
+    primaryHomeId,
+    homeIdRailPersistence,
+    homeIdRailDashboard,
+    scoutSourceSignalsQuery.data?.trendingPrompts,
+  ]);
 
   const homeIdMaintenanceSuggestions = useMemo(() => {
     if (!homeIdContextRail.hasHomeId) return [] as HomeIdMaintenanceSuggestion[];
@@ -4151,6 +4241,17 @@ export default function ScoutOS() {
       recentActivity: Array.isArray(homeIdContextRail.recentActivity)
         ? homeIdContextRail.recentActivity
         : [],
+    });
+  }, [homeIdContextRail]);
+
+  const homeIdSimilarLocalSignals = useMemo(() => {
+    if (!homeIdContextRail.hasHomeId) return [] as HomeIdSimilarLocalSignal[];
+    return evaluateHomeIdSimilarLocalSignals({
+      components: Array.isArray(homeIdContextRail.components) ? homeIdContextRail.components : [],
+      trendingPrompts: Array.isArray(homeIdContextRail.localTrendingPrompts)
+        ? homeIdContextRail.localTrendingPrompts
+        : [],
+      minimumSampleCount: 3,
     });
   }, [homeIdContextRail]);
 
@@ -5897,6 +5998,45 @@ export default function ScoutOS() {
                           )}
                         </div>
                       </div>
+                      {homeIdSimilarLocalSignals.length > 0 ? (
+                        <div>
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+                            Similar-home local signals
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            {homeIdSimilarLocalSignals.map((signal) => (
+                              <div
+                                key={signal.id}
+                                className="rounded-lg border p-2 text-xs"
+                                style={{ borderColor: "var(--border-subtle)" }}
+                              >
+                                <p className="text-[color:var(--text-primary)] font-semibold">
+                                  {signal.title}
+                                </p>
+                                <p className="mt-1 text-[color:var(--text-muted)]">
+                                  {signal.reason}
+                                </p>
+                                <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-muted)]">
+                                  {signal.category} · {signal.componentType} · sample{" "}
+                                  {signal.sampleCount}
+                                </p>
+                                <button
+                                  type="button"
+                                  className="mt-2 rounded border px-2 py-1 text-[11px] font-semibold"
+                                  style={{ borderColor: "var(--border-subtle)" }}
+                                  onClick={() =>
+                                    navigate(
+                                      `/homes?homeId=${encodeURIComponent(homeIdContextRail.homeId)}`
+                                    )
+                                  }
+                                >
+                                  {signal.actionLabel}
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
                       <Button
                         type="button"
                         variant="outline"
