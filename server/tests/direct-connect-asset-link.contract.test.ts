@@ -20,4 +20,18 @@ describe("direct connect asset link contracts", () => {
     expect(source).toContain("metadata: { assetLink }");
     expect(source).toContain('source: "direct_connect_request"');
   });
+
+  it("captures request context into HomeID for create/update intents", () => {
+    const source = read("server/routes/direct-connect.ts");
+    expect(source).toContain("createHomeIdShellFromRequest");
+    expect(source).toContain("appendHomeIdRequestContextRecord");
+    expect(source).toContain("homeid:direct_connect_request_context");
+    expect(source).toContain('status: "needs_review"');
+  });
+
+  it("keeps ownership guard when linking to existing HomeID", () => {
+    const source = read("server/routes/direct-connect.ts");
+    expect(source).toContain("resolveOwnedHomeForDirectConnect");
+    expect(source).toContain("skipped_not_owner");
+  });
 });

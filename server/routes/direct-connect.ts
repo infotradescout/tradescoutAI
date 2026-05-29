@@ -15,6 +15,8 @@ import {
   businesses,
   businessCounties,
   workers,
+  userHomes,
+  userHomeRecords,
 } from "@shared/schema";
 import {
   evaluateContractorEligibility,
@@ -616,6 +618,107 @@ const directConnectRouteRequestSchema = z.object({
   targetContractorIds: z.array(z.string().min(1)).max(25).optional(),
   targetProviderIds: z.array(z.string().min(1)).max(25).optional(),
 });
+
+async function resolveOwnedHomeForDirectConnect(userId: string, homeId?: string | null) {
+  const normalizedHomeId = String(homeId || "").trim();
+  if (!normalizedHomeId) return null;
+  const [home] = await db
+    .select()
+    .from(userHomes)
+    .where(and(eq(userHomes.id, normalizedHomeId), eq(userHomes.ownerUserId, userId)))
+    .limit(1);
+  return home || null;
+}
+
+async function appendHomeIdRequestContextRecord(params: {
+  homeId: string;
+  userId: string;
+  requestId: string;
+  title: string;
+  description: string;
+  requestCategory: string;
+  componentType?: string | null;
+  componentId?: string | null;
+  componentLabel?: string | null;
+  homeContextIntent: string;
+}) {
+  await db.insert(userHomeRecords).values({
+    homeId: params.homeId,
+    createdByUserId: params.userId,
+    recordType: "note",
+    title: "homeid:direct_connect_request_context",
+    details: JSON.stringify({
+      source: "direct_connect_request",
+      requestId: params.requestId,
+      requestCategory: params.requestCategory,
+      requestTitle: params.title,
+      requestDescription: params.description,
+      componentType: params.componentType || null,
+      componentId: params.componentId || null,
+      componentLabel: params.componentLabel || null,
+      status: "needs_review",
+      homeContextIntent: params.homeContextIntent,
+      capturedAt: new Date().toISOString(),
+    }),
+    tags: ["homeid", "direct_connect", "needs_review"],
+    updatedAt: new Date(),
+  } as any);
+}
+
+async function createHomeIdShellFromRequest(params: {
+  userId: string;
+  title: string;
+  requestCategory: string;
+  stateCode?: string | null;
+  countyFips?: string | null;
+}) {
+  const nickname = `From Direct Connect: ${params.title}`.slice(0, 120);
+  const [createdHome] = await db
+    .insert(userHomes)
+    .values({
+      ownerUserId: params.userId,
+      nickname,
+      propertyType: "other",
+      stateCode: params.stateCode || null,
+      countyFips: params.countyFips || null,
+      updatedAt: new Date(),
+    })
+    .returning();
+
+  if (!createdHome) return null;
+
+  await db.insert(userHomeRecords).values({
+    homeId: createdHome.id,
+    createdByUserId: params.userId,
+    recordType: "note",
+    title: "homeid:authority",
+    details: JSON.stringify({
+      subjectId: params.userId,
+      role: "owner",
+      status: "active",
+      source: "direct_connect_request",
+      createdAt: new Date().toISOString(),
+    }),
+    tags: ["homeid", "authority"],
+    updatedAt: new Date(),
+  } as any);
+
+  await db.insert(userHomeRecords).values({
+    homeId: createdHome.id,
+    createdByUserId: params.userId,
+    recordType: "note",
+    title: "homeid:creation",
+    details: JSON.stringify({
+      source: "direct_connect_request",
+      requestCategory: params.requestCategory,
+      createdAt: new Date().toISOString(),
+    }),
+    tags: ["homeid", "creation"],
+    updatedAt: new Date(),
+  } as any);
+
+  return createdHome;
+}
 
 const contractorConsoleResponseSchema = z.object({
   responseType: z.enum(["interested", "need_more_info", "not_a_fit", "unavailable"]),
@@ -5155,6 +5258,68 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           } catch (e) {
             console.warn("[direct-connect] Failed to record asset link event", e);
+          }
+        }
+
+        if (created?.id && String(body.homeContextIntent || "skip_for_now") !== "skip_for_now") {
+          try {
+            const requestedHomeId = String(body.homeId || "").trim() || null;
+            const ownedLinkedHome = await resolveOwnedHomeForDirectConnect(
+              ownerUserId,
+              requestedHomeId
+            );
+            const homeContextIntent = String(body.homeContextIntent || "skip_for_now");
+            let targetHomeId = ownedLinkedHome?.id ? String(ownedLinkedHome.id) : null;
+
+            if (!targetHomeId && homeContextIntent === "create_from_request") {
+              const createdHome = await createHomeIdShellFromRequest({
+                userId: ownerUserId,
+                title: sanitizedTitle,
+                requestCategory: String(body.category || "direct_connect"),
+                stateCode: stateCode || null,
+                countyFips: countyFips || null,
+              });
+              targetHomeId = createdHome?.id ? String(createdHome.id) : null;
+            }
+
+            if (
+              targetHomeId &&
+              (homeContextIntent === "create_from_request" ||
+                homeContextIntent === "update_from_request" ||
+                homeContextIntent === "link_existing")
+            ) {
+              await appendHomeIdRequestContextRecord({
+                homeId: targetHomeId,
+                userId: ownerUserId,
+                requestId: String(created.id),
+                title: sanitizedTitle,
+                description: sanitizedDescription,
+                requestCategory: String(body.category || "direct_connect"),
+                componentType: body.assetComponentType || null,
+                componentId: body.assetComponentId || null,
+                componentLabel: body.assetLabel || null,
+                homeContextIntent,
+              });
+            } else if (requestedHomeId && !ownedLinkedHome) {
+              await db.insert(workRequestEvents).values({
+                workRequestId: created.id,
+                type: "asset_linked",
+                actorUserId: ownerUserId ? String(ownerUserId) : null,
+                metadata: {
+                  assetLink: {
+                    homeId: requestedHomeId,
+                    homeContextIntent,
+                    source: "direct_connect_request",
+                    status: "skipped_not_owner",
+                  },
+                },
+              });
+            }
+          } catch (error) {
+            console.warn(
+              "[direct-connect] Failed to create/update HomeID from request context",
+              error
+            );
           }
         }
 
