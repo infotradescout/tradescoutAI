@@ -206,6 +206,23 @@ const BANNED_TERMS = ["fuck", "shit", "bitch", "asshole", "cunt", "slut", "whore
 
 const WEAK_SUGGESTION_PREFIXES = [/^ask\b/i, /^explain\b/i, /^tell me more\b/i];
 
+type ScoutHomeIdDashboardResponse = {
+  completionScore?: number;
+  requestPrompts?: Array<{ id?: string; reason?: string }>;
+  overview?: {
+    recentEvents?: Array<{ id?: string; title?: string; createdAt?: string }>;
+  };
+};
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function isWeakSuggestionLabel(label: string) {
   const trimmed = label.trim();
   return WEAK_SUGGESTION_PREFIXES.some((re) => re.test(trimmed));
@@ -3834,6 +3851,107 @@ export default function ScoutOS() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const primaryHomeId = useMemo(() => {
+    const homes = Array.isArray(homesData?.homes) ? homesData.homes : [];
+    if (homes.length === 0) return "";
+    const sorted = [...homes].sort((a, b) => {
+      const aTime = a?.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bTime = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return bTime - aTime;
+    });
+    return String(sorted[0]?.id || "").trim();
+  }, [homesData]);
+
+  const { data: homeIdRailPersistence } = useQuery<any>({
+    queryKey: ["/api/homeid/persistence", primaryHomeId, user?.id],
+    queryFn: () =>
+      apiRequest("GET", `/api/homeid/${encodeURIComponent(primaryHomeId)}/persistence`),
+    enabled: !!user?.id && !!primaryHomeId,
+    staleTime: 60 * 1000,
+  });
+
+  const { data: homeIdRailDashboard } = useQuery<ScoutHomeIdDashboardResponse>({
+    queryKey: ["/api/homes/homeid-dashboard", primaryHomeId, user?.id],
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/homes/${encodeURIComponent(primaryHomeId)}/homeid-dashboard?persona=homeowner`
+      ),
+    enabled: !!user?.id && !!primaryHomeId,
+    staleTime: 60 * 1000,
+  });
+
+  const homeIdContextRail = useMemo(() => {
+    const homes = Array.isArray(homesData?.homes) ? homesData.homes : [];
+    if (!primaryHomeId) {
+      return {
+        hasHomeId: false,
+        homeId: "",
+        homeLabel: "",
+        completionScore: 0,
+        knownPropertyDetailCount: 0,
+        componentCount: 0,
+        evidenceCount: 0,
+        openRequestPacketCount: 0,
+        missingCriticalInfoCount: 0,
+        recentActivity: [] as Array<{ id: string; title: string; createdAt: string }>,
+      };
+    }
+
+    const activeHome =
+      homes.find((home) => String(home.id) === primaryHomeId) ||
+      homes.find((home) => String(home.id || "").trim() === primaryHomeId);
+    const homeLabel =
+      (activeHome?.nickname && String(activeHome.nickname).trim()) ||
+      [activeHome?.city, activeHome?.stateCode].filter(Boolean).join(", ") ||
+      "Your HomeID";
+
+    const persistence = asObject(homeIdRailPersistence?.persistence);
+    const propertyDetails = asArray(persistence?.propertyDetails);
+    const requestPackets = asArray(persistence?.requestPackets);
+    const components = asArray(persistence?.components);
+    const evidence = asArray(persistence?.evidence);
+
+    const knownPropertyDetailCount = propertyDetails.filter((entry) => {
+      const row = asObject(entry);
+      return String(row?.status || "").trim() === "known";
+    }).length;
+    const openRequestPacketCount = requestPackets.filter((entry) => {
+      const row = asObject(entry);
+      const status = String(row?.status || "").trim();
+      return status === "draft" || status === "needs_info";
+    }).length;
+    const missingHints = asArray(homeIdRailDashboard?.requestPrompts);
+    const recentEvents = asArray(homeIdRailDashboard?.overview?.recentEvents)
+      .map((entry) => {
+        const row = asObject(entry);
+        const id = String(row?.id || "").trim();
+        const title = String(row?.title || "").trim();
+        const createdAt = String(row?.createdAt || "").trim();
+        if (!title) return null;
+        return {
+          id: id || `recent_${title}_${createdAt}`.slice(0, 80),
+          title,
+          createdAt,
+        };
+      })
+      .filter(Boolean)
+      .slice(0, 3) as Array<{ id: string; title: string; createdAt: string }>;
+
+    return {
+      hasHomeId: true,
+      homeId: primaryHomeId,
+      homeLabel,
+      completionScore: Number(homeIdRailDashboard?.completionScore || 0),
+      knownPropertyDetailCount,
+      componentCount: components.length,
+      evidenceCount: evidence.length,
+      openRequestPacketCount,
+      missingCriticalInfoCount: missingHints.length,
+      recentActivity: recentEvents,
+    };
+  }, [homesData, primaryHomeId, homeIdRailPersistence, homeIdRailDashboard]);
+
   const { data: vehiclesData } = useQuery<{
     vehicles?: Array<{
       id: string;
@@ -5448,6 +5566,120 @@ export default function ScoutOS() {
                       </button>
                     ))}
                   </div>
+                </div>
+
+                <div className="scout-v2-rail-card">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                      HomeID context
+                    </p>
+                    <Home className="h-4 w-4 text-ts-orange" />
+                  </div>
+                  {homeIdContextRail.hasHomeId ? (
+                    <div className="mt-4 space-y-3">
+                      <div
+                        className="rounded-xl border p-3"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          backgroundColor: "var(--surface-card)",
+                        }}
+                      >
+                        <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                          {homeIdContextRail.homeLabel}
+                        </p>
+                        <p className="mt-1 text-xs text-[color:var(--text-muted)]">
+                          Completion {Math.max(0, Math.min(100, homeIdContextRail.completionScore))}
+                          %
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div
+                          className="rounded-lg border p-2"
+                          style={{ borderColor: "var(--border-subtle)" }}
+                        >
+                          Known details: {homeIdContextRail.knownPropertyDetailCount}
+                        </div>
+                        <div
+                          className="rounded-lg border p-2"
+                          style={{ borderColor: "var(--border-subtle)" }}
+                        >
+                          Components: {homeIdContextRail.componentCount}
+                        </div>
+                        <div
+                          className="rounded-lg border p-2"
+                          style={{ borderColor: "var(--border-subtle)" }}
+                        >
+                          Evidence: {homeIdContextRail.evidenceCount}
+                        </div>
+                        <div
+                          className="rounded-lg border p-2"
+                          style={{ borderColor: "var(--border-subtle)" }}
+                        >
+                          Open packets: {homeIdContextRail.openRequestPacketCount}
+                        </div>
+                      </div>
+                      <div
+                        className="rounded-xl border p-3 text-xs"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          backgroundColor: "var(--surface-intermediate)",
+                          color: "var(--text-muted)",
+                        }}
+                      >
+                        Missing critical info: {homeIdContextRail.missingCriticalInfoCount}
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+                          Recent HomeID activity
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {homeIdContextRail.recentActivity.length > 0 ? (
+                            homeIdContextRail.recentActivity.map((event) => (
+                              <div
+                                key={event.id}
+                                className="rounded-lg border p-2 text-xs"
+                                style={{ borderColor: "var(--border-subtle)" }}
+                              >
+                                <p className="text-[color:var(--text-primary)]">{event.title}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <div
+                              className="rounded-lg border p-2 text-xs"
+                              style={{ borderColor: "var(--border-subtle)" }}
+                            >
+                              No recent HomeID activity yet.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() =>
+                          navigate(`/homes?homeId=${encodeURIComponent(homeIdContextRail.homeId)}`)
+                        }
+                      >
+                        Open HomeID dashboard
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="mt-4 space-y-3">
+                      <p className="text-sm text-[color:var(--text-muted)]">
+                        Start HomeID to track property facts, components, evidence, and request
+                        packet progress.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => navigate("/homes")}
+                      >
+                        Start HomeID
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="scout-v2-rail-card">
