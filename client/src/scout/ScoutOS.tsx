@@ -239,6 +239,28 @@ type HomeIdSimilarLocalSignal = {
   actionLabel: string;
 };
 
+type HomeIdActionCardType =
+  | "add_missing_fact"
+  | "review_component"
+  | "attach_evidence"
+  | "create_request_packet"
+  | "resume_request_packet"
+  | "view_homeid"
+  | "view_component";
+
+type HomeIdActionCard = {
+  id: string;
+  title: string;
+  reason: string;
+  source: "context" | "maintenance_suggestion" | "similar_home_signal";
+  actionType: HomeIdActionCardType;
+  targetHomeId: string;
+  targetComponentId?: string;
+  targetPacketId?: string;
+  ctaLabel: string;
+  href: string;
+};
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -469,6 +491,147 @@ function evaluateHomeIdSimilarLocalSignals(args: {
   }
 
   return signals.slice(0, 3);
+}
+
+function buildHomeIdActionCards(args: {
+  homeId: string;
+  components: Array<Record<string, unknown>>;
+  requestPackets: Array<Record<string, unknown>>;
+  maintenanceSuggestions: HomeIdMaintenanceSuggestion[];
+  similarSignals: HomeIdSimilarLocalSignal[];
+  missingCriticalInfoCount: number;
+}): HomeIdActionCard[] {
+  const cards: HomeIdActionCard[] = [];
+  const seen = new Set<string>();
+  const add = (card: HomeIdActionCard) => {
+    if (seen.has(card.id)) return;
+    seen.add(card.id);
+    cards.push(card);
+  };
+
+  const firstNeedsReviewComponent = args.components.find(
+    (component) =>
+      String(component.status || "")
+        .trim()
+        .toLowerCase() === "needs_review"
+  );
+  if (firstNeedsReviewComponent) {
+    const componentId = String(firstNeedsReviewComponent.id || "").trim();
+    add({
+      id: `review_component_${componentId || "first"}`,
+      title: `Review ${String(firstNeedsReviewComponent.label || "component")} details`,
+      reason: "This component is marked needs_review in HomeID.",
+      source: "context",
+      actionType: "review_component",
+      targetHomeId: args.homeId,
+      targetComponentId: componentId || undefined,
+      ctaLabel: "Review component",
+      href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+    });
+  }
+
+  const openPacket = args.requestPackets.find((packet) => {
+    const status = String(packet.status || "")
+      .trim()
+      .toLowerCase();
+    return status === "draft" || status === "needs_info";
+  });
+  if (openPacket) {
+    const packetId = String(openPacket.id || "").trim();
+    add({
+      id: `resume_packet_${packetId || "open"}`,
+      title: "Resume open request packet",
+      reason: "You have an open HomeID request packet that can be completed.",
+      source: "context",
+      actionType: "resume_request_packet",
+      targetHomeId: args.homeId,
+      targetPacketId: packetId || undefined,
+      ctaLabel: "Resume packet",
+      href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+    });
+  }
+
+  if (args.missingCriticalInfoCount > 0) {
+    add({
+      id: "add_missing_fact",
+      title: "Add missing HomeID facts",
+      reason: `${args.missingCriticalInfoCount} critical HomeID detail(s) are still missing.`,
+      source: "context",
+      actionType: "add_missing_fact",
+      targetHomeId: args.homeId,
+      ctaLabel: "Update HomeID",
+      href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+    });
+  }
+
+  for (const suggestion of args.maintenanceSuggestions) {
+    if (suggestion.type === "evidence_prompt") {
+      add({
+        id: `evidence_${suggestion.id}`,
+        title: suggestion.title,
+        reason: suggestion.reason,
+        source: "maintenance_suggestion",
+        actionType: "attach_evidence",
+        targetHomeId: args.homeId,
+        ctaLabel: "Add evidence",
+        href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+      });
+      continue;
+    }
+    if (suggestion.type === "request_packet_prompt") {
+      add({
+        id: `packet_${suggestion.id}`,
+        title: suggestion.title,
+        reason: suggestion.reason,
+        source: "maintenance_suggestion",
+        actionType: "create_request_packet",
+        targetHomeId: args.homeId,
+        ctaLabel: "Create packet",
+        href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+      });
+      continue;
+    }
+    if (suggestion.type === "missing_info" || suggestion.type === "maintenance_check") {
+      add({
+        id: `fact_${suggestion.id}`,
+        title: suggestion.title,
+        reason: suggestion.reason,
+        source: "maintenance_suggestion",
+        actionType: "add_missing_fact",
+        targetHomeId: args.homeId,
+        ctaLabel: "Update HomeID",
+        href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+      });
+    }
+  }
+
+  for (const signal of args.similarSignals) {
+    add({
+      id: `signal_${signal.id}`,
+      title: `Prepare ${signal.componentType.replace("_", " ")} request packet`,
+      reason: signal.reason,
+      source: "similar_home_signal",
+      actionType: "create_request_packet",
+      targetHomeId: args.homeId,
+      ctaLabel: "Create packet",
+      href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+    });
+  }
+
+  if (cards.length === 0) {
+    add({
+      id: "view_homeid",
+      title: "Open HomeID dashboard",
+      reason: "Review your property record and choose your next update.",
+      source: "context",
+      actionType: "view_homeid",
+      targetHomeId: args.homeId,
+      ctaLabel: "View HomeID",
+      href: `/homes?homeId=${encodeURIComponent(args.homeId)}`,
+    });
+  }
+
+  return cards.slice(0, 6);
 }
 
 function isWeakSuggestionLabel(label: string) {
@@ -4255,6 +4418,20 @@ export default function ScoutOS() {
     });
   }, [homeIdContextRail]);
 
+  const homeIdActionCards = useMemo(() => {
+    if (!homeIdContextRail.hasHomeId) return [] as HomeIdActionCard[];
+    return buildHomeIdActionCards({
+      homeId: homeIdContextRail.homeId,
+      components: Array.isArray(homeIdContextRail.components) ? homeIdContextRail.components : [],
+      requestPackets: Array.isArray(homeIdContextRail.requestPackets)
+        ? homeIdContextRail.requestPackets
+        : [],
+      maintenanceSuggestions: homeIdMaintenanceSuggestions,
+      similarSignals: homeIdSimilarLocalSignals,
+      missingCriticalInfoCount: Number(homeIdContextRail.missingCriticalInfoCount || 0),
+    });
+  }, [homeIdContextRail, homeIdMaintenanceSuggestions, homeIdSimilarLocalSignals]);
+
   const { data: vehiclesData } = useQuery<{
     vehicles?: Array<{
       id: string;
@@ -6037,6 +6214,37 @@ export default function ScoutOS() {
                           </div>
                         </div>
                       ) : null}
+                      <div>
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[color:var(--text-muted)]">
+                          HomeID action cards
+                        </p>
+                        <div className="mt-2 space-y-2">
+                          {homeIdActionCards.map((card) => (
+                            <div
+                              key={card.id}
+                              className="rounded-lg border p-2 text-xs"
+                              style={{ borderColor: "var(--border-subtle)" }}
+                            >
+                              <p className="text-[color:var(--text-primary)] font-semibold">
+                                {card.title}
+                              </p>
+                              <p className="mt-1 text-[color:var(--text-muted)]">{card.reason}</p>
+                              <p className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[color:var(--text-muted)]">
+                                source: {card.source.replaceAll("_", " ")} ·{" "}
+                                {card.actionType.replaceAll("_", " ")}
+                              </p>
+                              <button
+                                type="button"
+                                className="mt-2 rounded border px-2 py-1 text-[11px] font-semibold"
+                                style={{ borderColor: "var(--border-subtle)" }}
+                                onClick={() => navigate(card.href)}
+                              >
+                                {card.ctaLabel}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                       <Button
                         type="button"
                         variant="outline"
