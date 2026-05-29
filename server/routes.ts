@@ -105,6 +105,7 @@ import { getMarketSignalsSnapshot } from "./services/marketSignalsSnapshotJob";
 import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
 import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
 import { recordTrustLedgerEvent } from "./services/trustLedgerService";
+import { scoutcoinService } from "./services/scoutcoinService";
 import {
   buildPublicSolarPriceInsight,
   buildSolarProviderEstimate,
@@ -27307,6 +27308,186 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       res.status(500).json({ message: "Failed to transfer funds" });
     }
   });
+
+  // ==================== SCOUTCOIN (DISABLED-BY-DEFAULT) ====================
+  app.get("/api/scoutcoin/config", isAuthenticated, async (_req: any, res: any) => {
+    return res.json({
+      token: scoutcoinService.getTokenConfig(),
+      compliance: scoutcoinService.getComplianceConfig(),
+      price: scoutcoinService.getPriceConfig(),
+    });
+  });
+
+  app.get("/api/scoutcoin/wallet", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+      const registry = scoutcoinService.getWalletRegistryEntry(String(userId));
+      const balance = scoutcoinService.getUserBalance(String(userId));
+      return res.json({
+        registry,
+        balance,
+        token: scoutcoinService.getTokenConfig(),
+        price: scoutcoinService.getPriceConfig(),
+      });
+    } catch (error: any) {
+      return res.status(500).json({ message: "Failed to load ScoutCoin wallet" });
+    }
+  });
+
+  app.get("/api/scoutcoin/transactions", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+      const limitRaw = Number(req.query.limit ?? 50);
+      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(500, limitRaw)) : 50;
+      return res.json({
+        transactions: scoutcoinService.getUserTransactions(String(userId), limit),
+      });
+    } catch (error: any) {
+      return res.status(500).json({ message: "Failed to load ScoutCoin history" });
+    }
+  });
+
+  app.post("/api/scoutcoin/buy", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+      const amount = req.body?.amount;
+      const tx = scoutcoinService.buy(String(userId), amount);
+      return res.json({ success: true, transaction: tx });
+    } catch (error: any) {
+      return res.status(400).json({ message: String(error?.message || "Unable to buy ScoutCoin") });
+    }
+  });
+
+  app.post("/api/scoutcoin/send", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+      const toUserId = String(req.body?.toUserId || "").trim();
+      const amount = req.body?.amount;
+      const result = scoutcoinService.send(String(userId), toUserId, amount);
+      return res.json({ success: true, ...result });
+    } catch (error: any) {
+      return res
+        .status(400)
+        .json({ message: String(error?.message || "Unable to send ScoutCoin") });
+    }
+  });
+
+  app.post("/api/scoutcoin/redeem", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!userId) return res.status(401).json({ message: "User not authenticated" });
+      const amount = req.body?.amount;
+      const target = String(req.body?.target || "") as "trade_scout_perk" | "meal_partner_perk";
+      const tx = scoutcoinService.redeem(String(userId), amount, target);
+      return res.json({ success: true, transaction: tx });
+    } catch (error: any) {
+      return res
+        .status(400)
+        .json({ message: String(error?.message || "Unable to redeem ScoutCoin") });
+    }
+  });
+
+  app.get(
+    "/api/admin/scoutcoin/audit-log",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: any, res: any) => {
+      const limitRaw = Number(req.query.limit ?? 200);
+      const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(1000, limitRaw)) : 200;
+      return res.json({
+        log: scoutcoinService.getAuditLog(limit),
+        count: Math.min(limit, scoutcoinService.getAuditLog(limit).length),
+      });
+    }
+  );
+
+  app.post(
+    "/api/admin/scoutcoin/kyc",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: any, res: any) => {
+      try {
+        const actorId = req.user?.claims?.sub || req.user?.id || null;
+        const userId = String(req.body?.userId || "").trim();
+        const kycStatus = String(req.body?.kycStatus || "").trim() as
+          | "unverified"
+          | "pending"
+          | "verified"
+          | "rejected";
+        if (!userId) return res.status(400).json({ message: "userId is required" });
+        const registry = scoutcoinService.setKycStatus(
+          userId,
+          kycStatus,
+          actorId ? String(actorId) : undefined
+        );
+        return res.json({ success: true, registry });
+      } catch (error: any) {
+        return res.status(400).json({ message: String(error?.message || "Unable to update KYC") });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/scoutcoin/freeze",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: any, res: any) => {
+      try {
+        const actorId = req.user?.claims?.sub || req.user?.id || null;
+        const userId = String(req.body?.userId || "").trim();
+        const frozen = Boolean(req.body?.frozen);
+        const reason = String(req.body?.reason || "").trim();
+        if (!userId) return res.status(400).json({ message: "userId is required" });
+        const registry = scoutcoinService.freezeWallet(
+          userId,
+          frozen,
+          actorId ? String(actorId) : undefined,
+          reason || undefined
+        );
+        return res.json({ success: true, registry });
+      } catch (error: any) {
+        return res
+          .status(400)
+          .json({ message: String(error?.message || "Unable to update freeze state") });
+      }
+    }
+  );
+
+  app.post(
+    "/api/admin/scoutcoin/config",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: any, res: any) => {
+      try {
+        const body = req.body || {};
+        if (body?.tokenStatus) {
+          scoutcoinService.setTokenStatus(
+            String(body.tokenStatus) as "disabled" | "testnet" | "mainnet"
+          );
+        }
+        if (body?.price) {
+          scoutcoinService.setPriceConfig(body.price);
+        }
+        if (body?.compliance) {
+          scoutcoinService.setComplianceConfig(body.compliance);
+        }
+        return res.json({
+          success: true,
+          token: scoutcoinService.getTokenConfig(),
+          price: scoutcoinService.getPriceConfig(),
+          compliance: scoutcoinService.getComplianceConfig(),
+        });
+      } catch (error: any) {
+        return res
+          .status(400)
+          .json({ message: String(error?.message || "Unable to update ScoutCoin config") });
+      }
+    }
+  );
 
   // Create contractor payment intent
   app.post(

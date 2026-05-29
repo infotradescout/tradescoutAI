@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { Page, Section } from "@/components/layout/PagePrimitives";
+import { ScoutCoinPanel } from "@/components/wallet/ScoutCoinPanel";
 
 interface WalletBalanceResponse {
   balance: string;
@@ -149,17 +150,15 @@ export default function WalletPage() {
       <Page className="max-w-3xl">
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-foreground">
-              TradeScout Wallet
-            </CardTitle>
+            <CardTitle className="text-2xl font-bold text-foreground">TradeScout Wallet</CardTitle>
             <CardDescription className="text-muted-foreground">
               Sign in to view and use your TradeScout balance.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Your wallet is tied to your TradeScout account. Please log in to see your balance
-              and send funds.
+              Your wallet is tied to your TradeScout account. Please log in to see your balance and
+              send funds.
             </p>
           </CardContent>
         </Card>
@@ -210,7 +209,6 @@ export default function WalletPage() {
         }
         subtitle="Use your on-platform earnings to pay for marketplace items or send funds to other members."
       >
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
@@ -522,6 +520,8 @@ export default function WalletPage() {
             )}
           </CardContent>
         </Card>
+
+        <ScoutCoinPanel />
       </Section>
     </Page>
   );
