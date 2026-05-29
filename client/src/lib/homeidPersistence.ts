@@ -9,7 +9,7 @@ export type HomeIdPropertyDetail = {
   savedAt: string;
 };
 
-export type HomeIdRequestPacketStatus = "draft" | "ready" | "needs_info";
+export type HomeIdRequestPacketStatus = "draft" | "needs_info" | "ready_for_handoff";
 
 export type HomeIdRequestPacket = {
   id: string;
@@ -33,6 +33,8 @@ export type HomeIdPersistenceFetcher = (
   url: string,
   body?: unknown
 ) => Promise<any>;
+
+export type HomeIdPersistenceSource = "server" | "local" | "none";
 
 const STORAGE_KEY_PREFIX = "homeid:persistence:v1:";
 
@@ -81,7 +83,11 @@ function sanitizeState(raw: unknown): HomeIdPersistenceState | null {
           : missingHelpfulInfo.length;
       const statusValue = String(entry.status || "").trim();
       const status: HomeIdRequestPacketStatus =
-        statusValue === "ready" || statusValue === "needs_info" ? statusValue : "draft";
+        statusValue === "ready_for_handoff" || statusValue === "needs_info"
+          ? statusValue
+          : statusValue === "ready"
+            ? "ready_for_handoff"
+            : "draft";
       const createdAt = String(entry.createdAt || "").trim() || new Date().toISOString();
       const savedAt = String(entry.savedAt || "").trim() || createdAt;
       if (!id || !requestType) return null;
@@ -144,23 +150,28 @@ function saveLocal(
 export async function loadHomeIdPersistence(
   homeId: string,
   fetcher?: HomeIdPersistenceFetcher
-): Promise<{ state: HomeIdPersistenceState | null; warning?: string }> {
+): Promise<{
+  state: HomeIdPersistenceState | null;
+  warning?: string;
+  source: HomeIdPersistenceSource;
+}> {
   const local = loadLocal(homeId);
-  if (!fetcher || !homeId) return local;
+  if (!fetcher || !homeId) return { ...local, source: local.state ? "local" : "none" };
 
   try {
     const response = await fetcher("GET", `/api/homeid/${encodeURIComponent(homeId)}/persistence`);
     const state = sanitizeState(response?.persistence);
     if (state) {
       saveLocal(homeId, state);
-      return { state };
+      return { state, source: "server" };
     }
-    return local;
+    return { ...local, source: local.state ? "local" : "none" };
   } catch {
-    if (local.state) return local;
+    if (local.state) return { ...local, source: "local" };
     return {
       state: null,
       warning: "Server persistence unavailable. Using local HomeID data when possible.",
+      source: "none",
     };
   }
 }
@@ -169,9 +180,9 @@ export async function saveHomeIdPersistence(
   homeId: string,
   state: HomeIdPersistenceState,
   fetcher?: HomeIdPersistenceFetcher
-): Promise<{ ok: boolean; warning?: string }> {
+): Promise<{ ok: boolean; warning?: string; serverSaved: boolean }> {
   const local = saveLocal(homeId, state);
-  if (!fetcher || !homeId) return local;
+  if (!fetcher || !homeId) return { ...local, serverSaved: false };
 
   try {
     await fetcher("PUT", `/api/homeid/${encodeURIComponent(homeId)}/property-details`, {
@@ -180,11 +191,12 @@ export async function saveHomeIdPersistence(
     await fetcher("PUT", `/api/homeid/${encodeURIComponent(homeId)}/request-packets`, {
       requestPackets: state.requestPackets,
     });
-    return local;
+    return { ...local, serverSaved: true };
   } catch {
     return {
       ok: local.ok,
       warning: "Server save unavailable. HomeID changes are kept locally.",
+      serverSaved: false,
     };
   }
 }

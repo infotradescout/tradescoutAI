@@ -169,7 +169,7 @@ const homeIdRequestPacketSchema = z.object({
   selectedDetailIds: z.array(z.string().trim().min(1).max(120)).max(200),
   missingHelpfulInfo: z.array(z.string().trim().min(1).max(200)).max(200),
   missingHelpfulInfoCount: z.number().int().nonnegative(),
-  status: z.enum(["draft", "ready", "needs_info"]),
+  status: z.enum(["draft", "needs_info", "ready_for_handoff"]),
   createdAt: z.string().trim().min(1).max(80),
   savedAt: z.string().trim().min(1).max(80),
 });

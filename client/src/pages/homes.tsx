@@ -22,6 +22,7 @@ import {
   type HomeIdPropertyDetail,
   type HomeIdRequestPacket,
 } from "@/lib/homeidPersistence";
+import { evaluateHomeIdPacketReadiness } from "@/lib/homeidPacketReadiness";
 import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const RECORD_TYPES = [
@@ -229,6 +230,7 @@ export default function HomesVault() {
   const [packetRequestType, setPacketRequestType] = useState<string>(HOMEID_REQUEST_TYPES[0]);
   const [packetSelectedDetailIds, setPacketSelectedDetailIds] = useState<string[]>([]);
   const [editingPacketId, setEditingPacketId] = useState<string | null>(null);
+  const [lastServerSyncAt, setLastServerSyncAt] = useState<string | null>(null);
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -560,11 +562,13 @@ export default function HomesVault() {
       setPacketSelectedDetailIds([]);
       setEditingPacketId(null);
       setHomeIdPersistenceWarning(null);
+      setLastServerSyncAt(null);
       return;
     }
     (async () => {
-      const { state, warning } = await loadHomeIdPersistence(selectedHomeId, (method, url, body) =>
-        apiRequest(method, url, body)
+      const { state, warning, source } = await loadHomeIdPersistence(
+        selectedHomeId,
+        (method, url, body) => apiRequest(method, url, body)
       );
       if (cancelled) return;
       setPropertyDetails(state?.propertyDetails || []);
@@ -572,6 +576,7 @@ export default function HomesVault() {
       setPacketSelectedDetailIds([]);
       setEditingPacketId(null);
       setHomeIdPersistenceWarning(warning || null);
+      setLastServerSyncAt(source === "server" ? new Date().toISOString() : null);
     })();
     return () => {
       cancelled = true;
@@ -592,6 +597,7 @@ export default function HomesVault() {
       );
       if (!result.ok && result.warning) setHomeIdPersistenceWarning(result.warning);
       if (result.ok && result.warning) setHomeIdPersistenceWarning(result.warning);
+      if (result.serverSaved) setLastServerSyncAt(new Date().toISOString());
     })();
   }, [selectedHomeId, propertyDetails, requestPackets]);
 
@@ -623,9 +629,14 @@ export default function HomesVault() {
     const selected = propertyDetails.filter((detail) =>
       packetSelectedDetailIds.includes(detail.id)
     );
-    const hasNeedsReview = selected.some((detail) => detail.status === "needs_review");
-    const status: HomeIdRequestPacket["status"] =
-      packetMissingHelpfulInfo.length > 0 ? "needs_info" : hasNeedsReview ? "draft" : "ready";
+    const readiness = evaluateHomeIdPacketReadiness({
+      homeId: selectedHomeId,
+      requestType: packetRequestType,
+      selectedDetailIds: packetSelectedDetailIds,
+      missingHelpfulInfoCount: packetMissingHelpfulInfo.length,
+      isDbSaved: false,
+    });
+    const status: HomeIdRequestPacket["status"] = readiness.state;
 
     setRequestPackets((prev) => {
       if (editingPacketId) {
@@ -669,6 +680,23 @@ export default function HomesVault() {
     setPacketRequestType(packet.requestType);
     setPacketSelectedDetailIds(packet.selectedDetailIds);
   }
+
+  function isPacketDbSaved(packet: HomeIdRequestPacket): boolean {
+    if (!lastServerSyncAt) return false;
+    return new Date(packet.savedAt).getTime() <= new Date(lastServerSyncAt).getTime();
+  }
+
+  const draftPacketReadiness = useMemo(
+    () =>
+      evaluateHomeIdPacketReadiness({
+        homeId: selectedHomeId,
+        requestType: packetRequestType,
+        selectedDetailIds: packetSelectedDetailIds,
+        missingHelpfulInfoCount: packetMissingHelpfulInfo.length,
+        isDbSaved: false,
+      }),
+    [packetMissingHelpfulInfo.length, packetRequestType, packetSelectedDetailIds, selectedHomeId]
+  );
 
   const localCompletionBoost =
     Math.min(20, propertyDetails.length * 2) + Math.min(10, requestPackets.length * 2);
@@ -1004,6 +1032,20 @@ export default function HomesVault() {
                               </div>
                             )}
                           </div>
+                          <div className="rounded border p-2 text-xs">
+                            <div className="font-medium">
+                              Packet readiness: {draftPacketReadiness.state}
+                            </div>
+                            {draftPacketReadiness.missing.length > 0 ? (
+                              <div className="text-muted-foreground">
+                                {draftPacketReadiness.missing.join(", ")}
+                              </div>
+                            ) : (
+                              <div className="text-muted-foreground">
+                                Packet can be saved and prepared for handoff.
+                              </div>
+                            )}
+                          </div>
                           <Button
                             className="w-full"
                             onClick={saveRequestPacketDraft}
@@ -1041,16 +1083,44 @@ export default function HomesVault() {
                                     {packet.missingHelpfulInfoCount}
                                   </div>
                                   <div className="text-muted-foreground">
+                                    db-saved: {isPacketDbSaved(packet) ? "yes" : "pending"}
+                                  </div>
+                                  <div className="text-muted-foreground">
                                     saved: {new Date(packet.savedAt).toLocaleString()}
                                   </div>
                                 </div>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => resumeRequestPacket(packet.id)}
-                                >
-                                  Resume
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => resumeRequestPacket(packet.id)}
+                                  >
+                                    Resume
+                                  </Button>
+                                  {(() => {
+                                    const readiness = evaluateHomeIdPacketReadiness({
+                                      homeId: selectedHomeId,
+                                      requestType: packet.requestType,
+                                      selectedDetailIds: packet.selectedDetailIds,
+                                      missingHelpfulInfoCount: packet.missingHelpfulInfoCount,
+                                      isDbSaved: isPacketDbSaved(packet),
+                                    });
+                                    const disabled = readiness.state !== "ready_for_handoff";
+                                    return (
+                                      <Button
+                                        size="sm"
+                                        disabled={disabled}
+                                        title={
+                                          disabled
+                                            ? `Not ready: ${readiness.missing.join(", ")}`
+                                            : "Open handoff preparation preview"
+                                        }
+                                      >
+                                        Prepare Direct Connect handoff
+                                      </Button>
+                                    );
+                                  })()}
+                                </div>
                               </div>
                             ))
                           )}
