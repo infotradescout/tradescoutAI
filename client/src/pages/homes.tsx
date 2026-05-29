@@ -94,6 +94,19 @@ type HomeSnapshotEntry = {
   createdAt: string;
 };
 
+type RequestPacketStatus = "draft" | "ready" | "needs_info";
+
+type HomeRequestPacketDraft = {
+  id: string;
+  requestType: string;
+  selectedDetailIds: string[];
+  missingInfoCount: number;
+  selectedDetailCount: number;
+  status: RequestPacketStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
 function isSnapshotNeedsReview(category: string, note: string): boolean {
   const normalized = note.trim().toLowerCase();
   if (!normalized) return true;
@@ -257,6 +270,12 @@ export default function HomesVault() {
   const [requestPacketSelectedDetailsByHomeId, setRequestPacketSelectedDetailsByHomeId] = useState<
     Record<string, string[]>
   >({});
+  const [requestPacketDraftsByHomeId, setRequestPacketDraftsByHomeId] = useState<
+    Record<string, HomeRequestPacketDraft[]>
+  >({});
+  const [requestPacketEditingDraftIdByHomeId, setRequestPacketEditingDraftIdByHomeId] = useState<
+    Record<string, string | null>
+  >({});
 
   const homeSnapshots = selectedHomeId ? homeSnapshotsByHomeId[selectedHomeId] || [] : [];
   const knownSnapshots = homeSnapshots.filter((entry) => entry.status === "known");
@@ -291,6 +310,12 @@ export default function HomesVault() {
       return `Clarify ${label} note`;
     }),
   ].slice(0, 6);
+  const requestPacketDrafts = selectedHomeId
+    ? requestPacketDraftsByHomeId[selectedHomeId] || []
+    : [];
+  const editingDraftId = selectedHomeId
+    ? requestPacketEditingDraftIdByHomeId[selectedHomeId] || null
+    : null;
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -384,6 +409,60 @@ export default function HomesVault() {
       const next = checked ? [...existing, detailId] : existing.filter((id) => id !== detailId);
       return { ...prev, [selectedHomeId]: Array.from(new Set(next)) };
     });
+  };
+
+  const computeRequestPacketStatus = (
+    selectedDetailCount: number,
+    missingInfoCount: number
+  ): RequestPacketStatus => {
+    if (selectedDetailCount === 0) return "draft";
+    if (missingInfoCount > 0) return "needs_info";
+    return "ready";
+  };
+
+  const saveRequestPacketDraft = () => {
+    if (!selectedHomeId) return;
+    const nowIso = new Date().toISOString();
+    const selectedDetailCount = selectedKnownDetails.length;
+    const missingInfoCount = missingHelpfulInfo.length;
+    const status = computeRequestPacketStatus(selectedDetailCount, missingInfoCount);
+    const draftId = editingDraftId || `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const existing = requestPacketDraftsByHomeId[selectedHomeId] || [];
+    const existingDraft = existing.find((draft) => draft.id === draftId);
+    const nextDraft: HomeRequestPacketDraft = {
+      id: draftId,
+      requestType: requestPacketType,
+      selectedDetailIds: requestPacketSelectedDetailIds,
+      selectedDetailCount,
+      missingInfoCount,
+      status,
+      createdAt: existingDraft?.createdAt || nowIso,
+      updatedAt: nowIso,
+    };
+    const nextDrafts = existingDraft
+      ? existing.map((draft) => (draft.id === draftId ? nextDraft : draft))
+      : [nextDraft, ...existing];
+    setRequestPacketDraftsByHomeId((prev) => ({ ...prev, [selectedHomeId]: nextDrafts }));
+    setRequestPacketEditingDraftIdByHomeId((prev) => ({ ...prev, [selectedHomeId]: draftId }));
+    toast({
+      title: existingDraft ? "Request packet updated" : "Request packet saved",
+      description: `Status: ${status.replace("_", " ")}`,
+    });
+  };
+
+  const resumeRequestPacketDraft = (draftId: string) => {
+    if (!selectedHomeId) return;
+    const draft = (requestPacketDraftsByHomeId[selectedHomeId] || []).find(
+      (item) => item.id === draftId
+    );
+    if (!draft) return;
+    setRequestPacketStartedByHomeId((prev) => ({ ...prev, [selectedHomeId]: true }));
+    setRequestPacketTypeByHomeId((prev) => ({ ...prev, [selectedHomeId]: draft.requestType }));
+    setRequestPacketSelectedDetailsByHomeId((prev) => ({
+      ...prev,
+      [selectedHomeId]: draft.selectedDetailIds,
+    }));
+    setRequestPacketEditingDraftIdByHomeId((prev) => ({ ...prev, [selectedHomeId]: draftId }));
   };
 
   const addRecordMutation = useMutation({
@@ -1104,8 +1183,65 @@ export default function HomesVault() {
                                   </div>
                                 </CardContent>
                               </Card>
+                              <div className="flex flex-wrap gap-2">
+                                <Button onClick={saveRequestPacketDraft}>
+                                  {editingDraftId ? "Save changes" : "Save draft packet"}
+                                </Button>
+                              </div>
                             </div>
                           )}
+                        </CardContent>
+                      </Card>
+                    ) : null}
+
+                    {requestPacketDrafts.length > 0 ? (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Saved request packets</CardTitle>
+                          <CardDescription className="text-xs">
+                            Draft and prepared packets you can resume and edit.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {requestPacketDrafts.map((draft) => (
+                            <div
+                              key={draft.id}
+                              className="rounded border p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+                            >
+                              <div className="text-xs space-y-1">
+                                <div>
+                                  <span className="font-medium">Type:</span>{" "}
+                                  {HOMEID_REQUEST_TYPE_OPTIONS.find(
+                                    (option) => option.value === draft.requestType
+                                  )?.label || "Other"}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Selected details:</span>{" "}
+                                  {draft.selectedDetailCount}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Missing info:</span>{" "}
+                                  {draft.missingInfoCount}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Status:</span>{" "}
+                                  {draft.status.replace("_", " ")}
+                                </div>
+                                <div className="text-muted-foreground">
+                                  Saved: {new Date(draft.updatedAt).toLocaleString()}
+                                </div>
+                              </div>
+                              <div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => resumeRequestPacketDraft(draft.id)}
+                                >
+                                  Resume packet
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
                         </CardContent>
                       </Card>
                     ) : null}
