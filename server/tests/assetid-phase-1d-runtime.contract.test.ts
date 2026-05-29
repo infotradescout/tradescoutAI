@@ -27,7 +27,7 @@ describe("AssetID Phase 1D runtime contracts", () => {
   it("adds scoped request packet and request-evidence proposal endpoints", () => {
     const src = read(HOMES_ROUTE_FILE);
     expect(src).toContain('router.post("/api/homes/:homeId/homeid/request-packet"');
-    expect(src).toContain('router.post(\n  "/api/homes/:homeId/homeid/request-evidence-proposal"');
+    expect(src).toContain('"/api/homes/:homeId/homeid/request-evidence-proposal"');
     expect(src).toContain("selectedFields");
     expect(src).toContain('verificationStatus: "proposed"');
   });

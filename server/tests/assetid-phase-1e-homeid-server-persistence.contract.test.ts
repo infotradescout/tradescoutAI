@@ -24,10 +24,21 @@ describe("AssetID Phase 1E server persistence contracts", () => {
     expect(src).toContain('status: z.enum(["known", "needs_review"])');
   });
 
-  it("persists by authenticated home owner scope", () => {
+  it("persists by authenticated home owner scope using database records", () => {
     const src = read(HOMES_ROUTE_FILE);
-    expect(src).toContain("const key = `${userId}:${homeId}`");
     expect(src).toContain("const home = await requireHomeOwner(userId, homeId)");
-    expect(src).toContain("homeIdPersistenceStore.set(key, persistence)");
+    expect(src).toContain("async function loadHomeIdPersistenceFromDb(");
+    expect(src).toContain(".from(userHomeRecords)");
+    expect(src).toContain("HOMEID_PERSISTENCE_PROPERTY_DETAILS_TITLE");
+    expect(src).toContain("HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE");
+  });
+
+  it("keeps endpoint contract and supports read-after-write flow", () => {
+    const src = read(HOMES_ROUTE_FILE);
+    expect(src).toContain('return res.status(401).json({ message: "Authentication required" })');
+    expect(src).toContain('return res.status(404).json({ message: "Home not found" })');
+    expect(src).toContain("const existing = await loadHomeIdPersistenceFromDb(homeId, userId)");
+    expect(src).toContain("requestPackets: existing?.requestPackets || []");
+    expect(src).toContain("propertyDetails: existing?.propertyDetails || []");
   });
 });

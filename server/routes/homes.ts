@@ -39,15 +39,14 @@ type HomeIdServerRequestPacket = {
   createdAt: string;
   savedAt: string;
 };
+type HomeIdServerPersistenceState = {
+  propertyDetails: HomeIdServerPropertyDetail[];
+  requestPackets: HomeIdServerRequestPacket[];
+  updatedAt: string;
+};
 
-const homeIdPersistenceStore = new Map<
-  string,
-  {
-    propertyDetails: HomeIdServerPropertyDetail[];
-    requestPackets: HomeIdServerRequestPacket[];
-    updatedAt: string;
-  }
->();
+const HOMEID_PERSISTENCE_PROPERTY_DETAILS_TITLE = "homeid:persistence:property_details";
+const HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE = "homeid:persistence:request_packets";
 
 const HOME_TYPES = [
   "single_family",
@@ -333,6 +332,102 @@ function parseJsonObjectSafe(input: unknown): Record<string, any> | null {
   }
 }
 
+async function loadHomeIdPersistenceFromDb(
+  homeId: string,
+  userId: string
+): Promise<HomeIdServerPersistenceState> {
+  const rows = await db
+    .select({
+      id: userHomeRecords.id,
+      title: userHomeRecords.title,
+      details: userHomeRecords.details,
+      updatedAt: userHomeRecords.updatedAt,
+      createdAt: userHomeRecords.createdAt,
+    })
+    .from(userHomeRecords)
+    .where(
+      and(
+        eq(userHomeRecords.homeId, homeId),
+        eq(userHomeRecords.createdByUserId, userId),
+        inArray(userHomeRecords.title, [
+          HOMEID_PERSISTENCE_PROPERTY_DETAILS_TITLE,
+          HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE,
+        ])
+      )
+    );
+
+  const propertyDetailsRecord = rows.find(
+    (row) => String(row.title || "").trim() === HOMEID_PERSISTENCE_PROPERTY_DETAILS_TITLE
+  );
+  const requestPacketsRecord = rows.find(
+    (row) => String(row.title || "").trim() === HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE
+  );
+
+  const propertyDetailsPayload = parseJsonObjectSafe(propertyDetailsRecord?.details);
+  const requestPacketsPayload = parseJsonObjectSafe(requestPacketsRecord?.details);
+
+  const propertyDetails = Array.isArray(propertyDetailsPayload?.propertyDetails)
+    ? (propertyDetailsPayload?.propertyDetails as HomeIdServerPropertyDetail[])
+    : [];
+  const requestPackets = Array.isArray(requestPacketsPayload?.requestPackets)
+    ? (requestPacketsPayload?.requestPackets as HomeIdServerRequestPacket[])
+    : [];
+
+  const updatedAtCandidates = [
+    String(propertyDetailsPayload?.updatedAt || "").trim(),
+    String(requestPacketsPayload?.updatedAt || "").trim(),
+    propertyDetailsRecord?.updatedAt?.toISOString?.() || "",
+    requestPacketsRecord?.updatedAt?.toISOString?.() || "",
+  ].filter(Boolean);
+
+  return {
+    propertyDetails,
+    requestPackets,
+    updatedAt: updatedAtCandidates[0] || new Date().toISOString(),
+  };
+}
+
+async function upsertHomeIdPersistenceRecord(args: {
+  homeId: string;
+  userId: string;
+  title: string;
+  payload: Record<string, unknown>;
+}) {
+  const [existing] = await db
+    .select({ id: userHomeRecords.id })
+    .from(userHomeRecords)
+    .where(
+      and(
+        eq(userHomeRecords.homeId, args.homeId),
+        eq(userHomeRecords.createdByUserId, args.userId),
+        eq(userHomeRecords.title, args.title)
+      )
+    )
+    .limit(1);
+
+  const details = JSON.stringify(args.payload);
+  if (existing?.id) {
+    await db
+      .update(userHomeRecords)
+      .set({
+        details,
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(userHomeRecords.id, existing.id));
+    return;
+  }
+
+  await db.insert(userHomeRecords).values({
+    homeId: args.homeId,
+    createdByUserId: args.userId,
+    recordType: "note",
+    title: args.title,
+    details,
+    tags: ["homeid", "persistence"],
+    updatedAt: new Date(),
+  } as any);
+}
+
 function homeIdRoleFromCreator(creatorRole: (typeof HOME_CREATOR_ROLES)[number]) {
   switch (creatorRole) {
     case "builder":
@@ -496,12 +591,7 @@ router.get("/api/homeid/:homeId/persistence", isAuthenticated, async (req: any, 
     const home = await requireHomeOwner(userId, homeId);
     if (!home) return res.status(404).json({ message: "Home not found" });
 
-    const key = `${userId}:${homeId}`;
-    const persistence = homeIdPersistenceStore.get(key) || {
-      propertyDetails: [],
-      requestPackets: [],
-      updatedAt: new Date().toISOString(),
-    };
+    const persistence = await loadHomeIdPersistenceFromDb(homeId, userId);
     return res.json({ ok: true, persistence });
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || "Could not load HomeID persistence" });
@@ -526,14 +616,21 @@ router.put("/api/homeid/:homeId/property-details", isAuthenticated, async (req: 
         .json({ message: "Invalid property details payload", issues: parsed.error.issues });
     }
 
-    const key = `${userId}:${homeId}`;
-    const existing = homeIdPersistenceStore.get(key);
+    const existing = await loadHomeIdPersistenceFromDb(homeId, userId);
     const persistence = {
       propertyDetails: parsed.data.propertyDetails,
       requestPackets: existing?.requestPackets || [],
       updatedAt: new Date().toISOString(),
     };
-    homeIdPersistenceStore.set(key, persistence);
+    await upsertHomeIdPersistenceRecord({
+      homeId,
+      userId,
+      title: HOMEID_PERSISTENCE_PROPERTY_DETAILS_TITLE,
+      payload: {
+        propertyDetails: persistence.propertyDetails,
+        updatedAt: persistence.updatedAt,
+      },
+    });
     return res.json({ ok: true, persistence });
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || "Could not save property details" });
@@ -558,14 +655,21 @@ router.put("/api/homeid/:homeId/request-packets", isAuthenticated, async (req: a
         .json({ message: "Invalid request packets payload", issues: parsed.error.issues });
     }
 
-    const key = `${userId}:${homeId}`;
-    const existing = homeIdPersistenceStore.get(key);
+    const existing = await loadHomeIdPersistenceFromDb(homeId, userId);
     const persistence = {
       propertyDetails: existing?.propertyDetails || [],
       requestPackets: parsed.data.requestPackets,
       updatedAt: new Date().toISOString(),
     };
-    homeIdPersistenceStore.set(key, persistence);
+    await upsertHomeIdPersistenceRecord({
+      homeId,
+      userId,
+      title: HOMEID_PERSISTENCE_REQUEST_PACKETS_TITLE,
+      payload: {
+        requestPackets: persistence.requestPackets,
+        updatedAt: persistence.updatedAt,
+      },
+    });
     return res.json({ ok: true, persistence });
   } catch (error: any) {
     return res.status(500).json({ message: error?.message || "Could not save request packets" });
