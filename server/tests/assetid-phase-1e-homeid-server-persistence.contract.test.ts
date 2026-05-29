@@ -20,7 +20,7 @@ describe("AssetID Phase 1E server persistence contracts", () => {
     const src = read(HOMES_ROUTE_FILE);
     expect(src).toContain("const homeIdPropertyDetailSchema = z.object(");
     expect(src).toContain("const homeIdRequestPacketSchema = z.object(");
-    expect(src).toContain('status: z.enum(["draft", "ready", "needs_info"])');
+    expect(src).toContain('status: z.enum(["draft", "needs_info", "ready_for_handoff"])');
     expect(src).toContain('status: z.enum(["known", "needs_review"])');
   });
 
