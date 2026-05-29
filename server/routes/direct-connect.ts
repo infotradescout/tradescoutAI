@@ -634,6 +634,7 @@ async function resolveOwnedHomeForDirectConnect(userId: string, homeId?: string 
 }
 
 const HOMEID_PERSISTENCE_COMPONENTS_TITLE = "homeid:persistence:components";
+const HOMEID_PERSISTENCE_EVIDENCE_TITLE = "homeid:persistence:evidence";
 const HOMEID_COMPONENT_TYPES = new Set([
   "roof",
   "hvac",
@@ -653,6 +654,22 @@ type HomeIdComponentSource =
   | "direct_connect_request"
   | "direct_connect_completed_work"
   | "homeid_packet";
+type HomeIdEvidenceSource =
+  | "user_uploaded"
+  | "direct_connect_request"
+  | "direct_connect_completed_work"
+  | "homeid_packet";
+type HomeIdEvidenceType =
+  | "photo"
+  | "document"
+  | "receipt"
+  | "invoice"
+  | "inspection_report"
+  | "warranty"
+  | "manual"
+  | "model_plate"
+  | "other";
+type HomeIdEvidenceStatus = "pending" | "verified" | "needs_review";
 
 type HomeIdComponentRecord = {
   id: string;
@@ -663,6 +680,24 @@ type HomeIdComponentRecord = {
   source: HomeIdComponentSource;
   linkedDirectConnectRequestIds?: string[];
   linkedHomePacketIds?: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+type HomeIdEvidenceRecord = {
+  id: string;
+  homeId: string;
+  componentId?: string;
+  directConnectRequestId?: string;
+  homePacketId?: string;
+  selectedDetailIds?: string[];
+  evidenceType: HomeIdEvidenceType;
+  title: string;
+  description?: string;
+  source: HomeIdEvidenceSource;
+  status: HomeIdEvidenceStatus;
+  fileUrl?: string;
+  fileName?: string;
+  mimeType?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -845,6 +880,86 @@ async function appendHomeIdRequestContextRecord(params: {
       params.homeContextIntent === "link_existing" ? "homeid_packet" : "direct_connect_request",
     status: "needs_review",
   });
+}
+
+async function upsertHomeIdEvidenceFromDirectConnect(params: {
+  homeId: string;
+  userId: string;
+  requestId: string;
+  homePacketId?: string | null;
+  selectedDetailIds?: string[];
+  componentId?: string | null;
+  evidenceType: HomeIdEvidenceType;
+  title: string;
+  description?: string | null;
+  source: HomeIdEvidenceSource;
+  status: HomeIdEvidenceStatus;
+  fileUrl?: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+}) {
+  const [existingRecord] = await db
+    .select({
+      id: userHomeRecords.id,
+      details: userHomeRecords.details,
+    })
+    .from(userHomeRecords)
+    .where(
+      and(
+        eq(userHomeRecords.homeId, params.homeId),
+        eq(userHomeRecords.createdByUserId, params.userId),
+        eq(userHomeRecords.title, HOMEID_PERSISTENCE_EVIDENCE_TITLE)
+      )
+    )
+    .limit(1);
+
+  const payload = parseJsonObjectSafe(existingRecord?.details);
+  const existingEvidence = Array.isArray(payload?.evidence)
+    ? (payload?.evidence as HomeIdEvidenceRecord[]) || []
+    : [];
+  const nowIso = new Date().toISOString();
+  const nextEvidence: HomeIdEvidenceRecord = {
+    id: `evd_${randomBytes(8).toString("hex")}`,
+    homeId: params.homeId,
+    componentId: params.componentId || undefined,
+    directConnectRequestId: params.requestId,
+    homePacketId: params.homePacketId || undefined,
+    selectedDetailIds: (Array.isArray(params.selectedDetailIds) ? params.selectedDetailIds : [])
+      .map((id) => String(id || "").trim())
+      .filter(Boolean)
+      .slice(0, 200),
+    evidenceType: params.evidenceType,
+    title: params.title.trim().slice(0, 220),
+    description: params.description ? params.description.trim().slice(0, 2000) : undefined,
+    source: params.source,
+    status: params.status,
+    fileUrl: params.fileUrl ? params.fileUrl.trim().slice(0, 1000) : undefined,
+    fileName: params.fileName ? params.fileName.trim().slice(0, 260) : undefined,
+    mimeType: params.mimeType ? params.mimeType.trim().slice(0, 120) : undefined,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+
+  const nextPayload = {
+    evidence: [...existingEvidence, nextEvidence].slice(-1200),
+    updatedAt: nowIso,
+  };
+  if (existingRecord?.id) {
+    await db
+      .update(userHomeRecords)
+      .set({ details: JSON.stringify(nextPayload), updatedAt: new Date() } as any)
+      .where(eq(userHomeRecords.id, existingRecord.id));
+  } else {
+    await db.insert(userHomeRecords).values({
+      homeId: params.homeId,
+      createdByUserId: params.userId,
+      recordType: "note",
+      title: HOMEID_PERSISTENCE_EVIDENCE_TITLE,
+      details: JSON.stringify(nextPayload),
+      tags: ["homeid", "persistence", "evidence"],
+      updatedAt: new Date(),
+    } as any);
+  }
 }
 
 async function createHomeIdShellFromRequest(params: {
@@ -1075,6 +1190,35 @@ async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
     source: "direct_connect_completed_work",
     status: "known",
   });
+
+  const [requestRow] = await db
+    .select({ attachments: workRequests.attachments })
+    .from(workRequests)
+    .where(eq(workRequests.id, params.requestId))
+    .limit(1);
+  const rawAttachments = (requestRow as any)?.attachments;
+  const attachmentKeys = Array.isArray(rawAttachments)
+    ? rawAttachments
+        .map((value: unknown) => String(value || "").trim())
+        .filter((value: string) => value.length >= 10)
+        .slice(0, 8)
+    : [];
+  if (attachmentKeys.length > 0) {
+    await upsertHomeIdEvidenceFromDirectConnect({
+      homeId: context.homeId,
+      userId: context.requestOwnerUserId,
+      requestId: params.requestId,
+      homePacketId: context.homePacketId || null,
+      selectedDetailIds: context.selectedDetailIds,
+      evidenceType: "document",
+      title: "Direct Connect completed-work attachment",
+      description: "Captured from completed Direct Connect request attachment reference.",
+      source: "direct_connect_completed_work",
+      status: "needs_review",
+      fileUrl: attachmentKeys[0],
+      fileName: `direct-connect-${params.requestId}-attachment-1`,
+    });
+  }
 }
 
 const contractorConsoleResponseSchema = z.object({
