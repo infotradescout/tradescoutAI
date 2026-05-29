@@ -67,6 +67,17 @@ describe("direct connect intake contracts", () => {
     expect(source).toContain("category: activeRequestMeta.category");
     expect(source).toContain("payload.countyFips = defaultCountyFips");
     expect(source).toContain("payload.stateCode = stateCode.trim().toUpperCase()");
+    expect(source).toContain("payload.homeContextIntent = dispatch.homeContextIntent");
+    expect(source).toContain("payload.homeId = dispatch.homeId.trim()");
+    expect(source).toContain("payload.assetComponentType = dispatch.assetComponentType");
+  });
+
+  it("adds optional HomeID asset linking controls without blocking request flow", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    expect(source).toContain("HomeID link (optional)");
+    expect(source).toContain("Home context intent");
+    expect(source).toContain("Link to home");
+    expect(source).toContain("handleSkipAndAutoRoute");
   });
 
   it("builds a canonical direct connect request and routing readiness state after finalization", () => {

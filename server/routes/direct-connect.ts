@@ -546,6 +546,26 @@ const directConnectRequestSchema = z.object({
   attachments: z.array(z.string().trim().min(10).max(600)).max(8).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
   targetProviderIds: z.array(z.string().min(1)).optional(),
+  homeId: z.string().trim().min(1).max(120).optional(),
+  assetComponentId: z.string().trim().min(1).max(120).optional(),
+  assetComponentType: z
+    .enum([
+      "roof",
+      "hvac",
+      "plumbing",
+      "electrical",
+      "foundation",
+      "exterior",
+      "interior",
+      "appliance",
+      "permit_document",
+      "other",
+    ])
+    .optional(),
+  assetLabel: z.string().trim().max(180).optional(),
+  homeContextIntent: z
+    .enum(["link_existing", "create_from_request", "update_from_request", "skip_for_now"])
+    .optional(),
 });
 
 const ADMIN_DIRECT_CONNECT_CATEGORIES = [
@@ -5107,6 +5127,34 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           } catch (e) {
             console.warn("[direct-connect] Failed to record work request created event", e);
+          }
+        }
+
+        const assetLink = {
+          homeId: body.homeId || null,
+          assetComponentId: body.assetComponentId || null,
+          assetComponentType: body.assetComponentType || null,
+          assetLabel: body.assetLabel || null,
+          homeContextIntent: body.homeContextIntent || "skip_for_now",
+          source: "direct_connect_request",
+        };
+
+        if (
+          created &&
+          (assetLink.homeId ||
+            assetLink.assetComponentId ||
+            assetLink.assetComponentType ||
+            assetLink.homeContextIntent !== "skip_for_now")
+        ) {
+          try {
+            await db.insert(workRequestEvents).values({
+              workRequestId: created.id,
+              type: "asset_linked",
+              actorUserId: ownerUserId ? String(ownerUserId) : null,
+              metadata: { assetLink },
+            });
+          } catch (e) {
+            console.warn("[direct-connect] Failed to record asset link event", e);
           }
         }
 
