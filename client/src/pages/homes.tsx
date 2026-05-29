@@ -16,6 +16,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import {
+  loadHomeIdPersistence,
+  saveHomeIdPersistence,
+  type HomeIdPropertyDetail,
+  type HomeIdRequestPacket,
+} from "@/lib/homeidPersistence";
 import { Page, Section } from "@/components/layout/PagePrimitives";
 
 const RECORD_TYPES = [
@@ -52,6 +58,28 @@ const HOME_TYPE_OPTIONS = [
   { value: "commercial_residential_mixed", label: "Commercial/Residential mixed" },
   { value: "rental_unit", label: "Rental unit" },
   { value: "other", label: "Other" },
+] as const;
+
+const HOMEID_SNAPSHOT_CATEGORIES = [
+  "roof",
+  "hvac",
+  "plumbing",
+  "electrical",
+  "foundation",
+  "exterior",
+  "interior",
+  "appliances",
+  "permits_documents",
+  "other",
+] as const;
+
+const HOMEID_REQUEST_TYPES = [
+  "repair",
+  "inspection",
+  "quote",
+  "maintenance",
+  "documentation",
+  "other",
 ] as const;
 
 function formatHomeTitle(home: any): string {
@@ -192,6 +220,15 @@ export default function HomesVault() {
     monthlySavings: "",
     fundingSources: "",
   });
+
+  const [homeIdPersistenceWarning, setHomeIdPersistenceWarning] = useState<string | null>(null);
+  const [snapshotCategory, setSnapshotCategory] = useState<string>(HOMEID_SNAPSHOT_CATEGORIES[0]);
+  const [snapshotNote, setSnapshotNote] = useState("");
+  const [propertyDetails, setPropertyDetails] = useState<HomeIdPropertyDetail[]>([]);
+  const [requestPackets, setRequestPackets] = useState<HomeIdRequestPacket[]>([]);
+  const [packetRequestType, setPacketRequestType] = useState<string>(HOMEID_REQUEST_TYPES[0]);
+  const [packetSelectedDetailIds, setPacketSelectedDetailIds] = useState<string[]>([]);
+  const [editingPacketId, setEditingPacketId] = useState<string | null>(null);
 
   const createHomeMutation = useMutation({
     mutationFn: async () => {
@@ -493,6 +530,137 @@ export default function HomesVault() {
     return homes.find((h: any) => String(h?.id || "") === selectedHomeId) || null;
   }, [homes, selectedHomeId]);
 
+  const knownDetails = useMemo(
+    () => propertyDetails.filter((detail) => detail.status === "known"),
+    [propertyDetails]
+  );
+
+  const needsReviewDetails = useMemo(
+    () => propertyDetails.filter((detail) => detail.status === "needs_review"),
+    [propertyDetails]
+  );
+
+  const missingSnapshotCategories = useMemo(() => {
+    const knownCategories = new Set(knownDetails.map((detail) => detail.category));
+    return HOMEID_SNAPSHOT_CATEGORIES.filter((category) => !knownCategories.has(category));
+  }, [knownDetails]);
+
+  const packetMissingHelpfulInfo = useMemo(() => {
+    if (missingSnapshotCategories.length === 0) return [] as string[];
+    return missingSnapshotCategories
+      .slice(0, 3)
+      .map((category) => `Add ${category.replaceAll("_", " ")}`);
+  }, [missingSnapshotCategories]);
+
+  useEffect(() => {
+    if (!selectedHomeId) {
+      setPropertyDetails([]);
+      setRequestPackets([]);
+      setPacketSelectedDetailIds([]);
+      setEditingPacketId(null);
+      setHomeIdPersistenceWarning(null);
+      return;
+    }
+    const { state, warning } = loadHomeIdPersistence(selectedHomeId);
+    setPropertyDetails(state?.propertyDetails || []);
+    setRequestPackets(state?.requestPackets || []);
+    setPacketSelectedDetailIds([]);
+    setEditingPacketId(null);
+    setHomeIdPersistenceWarning(warning || null);
+  }, [selectedHomeId]);
+
+  useEffect(() => {
+    if (!selectedHomeId) return;
+    const result = saveHomeIdPersistence(selectedHomeId, {
+      propertyDetails,
+      requestPackets,
+      updatedAt: new Date().toISOString(),
+    });
+    if (!result.ok && result.warning) setHomeIdPersistenceWarning(result.warning);
+  }, [selectedHomeId, propertyDetails, requestPackets]);
+
+  function addSnapshotDetail() {
+    const note = snapshotNote.trim();
+    if (!note) return;
+    const now = new Date().toISOString();
+    const detail: HomeIdPropertyDetail = {
+      id: `detail_${Math.random().toString(36).slice(2, 10)}`,
+      category: snapshotCategory,
+      note,
+      status: note.length < 20 ? "needs_review" : "known",
+      createdAt: now,
+      savedAt: now,
+    };
+    setPropertyDetails((prev) => [detail, ...prev]);
+    setSnapshotNote("");
+  }
+
+  function togglePacketDetail(detailId: string) {
+    setPacketSelectedDetailIds((prev) =>
+      prev.includes(detailId) ? prev.filter((id) => id !== detailId) : [...prev, detailId]
+    );
+  }
+
+  function saveRequestPacketDraft() {
+    if (packetSelectedDetailIds.length === 0) return;
+    const now = new Date().toISOString();
+    const selected = propertyDetails.filter((detail) =>
+      packetSelectedDetailIds.includes(detail.id)
+    );
+    const hasNeedsReview = selected.some((detail) => detail.status === "needs_review");
+    const status: HomeIdRequestPacket["status"] =
+      packetMissingHelpfulInfo.length > 0 ? "needs_info" : hasNeedsReview ? "draft" : "ready";
+
+    setRequestPackets((prev) => {
+      if (editingPacketId) {
+        return prev.map((packet) =>
+          packet.id === editingPacketId
+            ? {
+                ...packet,
+                requestType: packetRequestType,
+                selectedDetailIds: [...packetSelectedDetailIds],
+                missingHelpfulInfo: packetMissingHelpfulInfo,
+                missingHelpfulInfoCount: packetMissingHelpfulInfo.length,
+                status,
+                savedAt: now,
+              }
+            : packet
+        );
+      }
+      return [
+        {
+          id: `packet_${Math.random().toString(36).slice(2, 10)}`,
+          requestType: packetRequestType,
+          selectedDetailIds: [...packetSelectedDetailIds],
+          missingHelpfulInfo: packetMissingHelpfulInfo,
+          missingHelpfulInfoCount: packetMissingHelpfulInfo.length,
+          status,
+          createdAt: now,
+          savedAt: now,
+        },
+        ...prev,
+      ];
+    });
+
+    setEditingPacketId(null);
+    setPacketSelectedDetailIds([]);
+  }
+
+  function resumeRequestPacket(packetId: string) {
+    const packet = requestPackets.find((item) => item.id === packetId);
+    if (!packet) return;
+    setEditingPacketId(packet.id);
+    setPacketRequestType(packet.requestType);
+    setPacketSelectedDetailIds(packet.selectedDetailIds);
+  }
+
+  const localCompletionBoost =
+    Math.min(20, propertyDetails.length * 2) + Math.min(10, requestPackets.length * 2);
+  const displayedCompletionScore = Math.min(
+    100,
+    Number(homeIdDashboard?.completionScore || 0) + localCompletionBoost
+  );
+
   return (
     <Page className="max-w-6xl">
       <Section
@@ -660,14 +828,219 @@ export default function HomesVault() {
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <div className="text-2xl font-semibold">
-                          {homeIdDashboard ? `${homeIdDashboard.completionScore}%` : "--"}
+                          {homeIdDashboard ? `${displayedCompletionScore}%` : "--"}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {homeIdDashboard?.completionState || "Loading completion..."}
                         </div>
                         <div className="text-xs">{homeIdDashboard?.personaMessage || ""}</div>
+                        {homeIdPersistenceWarning ? (
+                          <div className="text-xs text-amber-700">{homeIdPersistenceWarning}</div>
+                        ) : null}
                       </CardContent>
                     </Card>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">HomeID snapshot intake</CardTitle>
+                          <CardDescription className="text-xs">
+                            Add a property fact to keep HomeID active after reload.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div>
+                            <Label>Component category</Label>
+                            <Select value={snapshotCategory} onValueChange={setSnapshotCategory}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {HOMEID_SNAPSHOT_CATEGORIES.map((category) => (
+                                  <SelectItem key={category} value={category}>
+                                    {category.replaceAll("_", " ")}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Property detail</Label>
+                            <Textarea
+                              value={snapshotNote}
+                              onChange={(e) => setSnapshotNote(e.target.value)}
+                              placeholder="Example: HVAC replaced in 2021, annual spring service."
+                            />
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={addSnapshotDetail}
+                            disabled={!snapshotNote.trim()}
+                          >
+                            Save detail
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Snapshot status</CardTitle>
+                          <CardDescription className="text-xs">
+                            Known, missing, and needs-review details persist per HomeID.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm">
+                          <div>
+                            <div className="font-medium">Known ({knownDetails.length})</div>
+                            <div className="text-xs text-muted-foreground">
+                              {knownDetails.length
+                                ? knownDetails
+                                    .slice(0, 4)
+                                    .map((detail) => detail.category.replaceAll("_", " "))
+                                    .join(", ")
+                                : "Add your first known detail."}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              Needs review ({needsReviewDetails.length})
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {needsReviewDetails.length
+                                ? needsReviewDetails
+                                    .slice(0, 3)
+                                    .map((detail) => detail.note)
+                                    .join(" | ")
+                                : "No review items."}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="font-medium">
+                              Missing ({missingSnapshotCategories.length})
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {missingSnapshotCategories.length
+                                ? missingSnapshotCategories
+                                    .slice(0, 5)
+                                    .map((category) => category.replaceAll("_", " "))
+                                    .join(", ")
+                                : "Core snapshot categories covered."}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Prepared request packet</CardTitle>
+                          <CardDescription className="text-xs">
+                            Save and resume packet drafts without dispatching to providers.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div>
+                            <Label>Request type</Label>
+                            <Select value={packetRequestType} onValueChange={setPacketRequestType}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select request type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {HOMEID_REQUEST_TYPES.map((requestType) => (
+                                  <SelectItem key={requestType} value={requestType}>
+                                    {requestType}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Attach known details</Label>
+                            {knownDetails.length === 0 ? (
+                              <div className="text-xs text-muted-foreground">
+                                Add a known property detail to start a packet.
+                              </div>
+                            ) : (
+                              knownDetails.map((detail) => (
+                                <label key={detail.id} className="flex items-start gap-2 text-xs">
+                                  <input
+                                    type="checkbox"
+                                    checked={packetSelectedDetailIds.includes(detail.id)}
+                                    onChange={() => togglePacketDetail(detail.id)}
+                                  />
+                                  <span>
+                                    {detail.category.replaceAll("_", " ")}: {detail.note}
+                                  </span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                          <div className="rounded border p-2 text-xs">
+                            <div>Missing helpful info: {packetMissingHelpfulInfo.length}</div>
+                            {packetMissingHelpfulInfo.length > 0 ? (
+                              <div className="text-muted-foreground">
+                                {packetMissingHelpfulInfo.join(", ")}
+                              </div>
+                            ) : (
+                              <div className="text-muted-foreground">
+                                No critical gaps detected.
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            className="w-full"
+                            onClick={saveRequestPacketDraft}
+                            disabled={packetSelectedDetailIds.length === 0}
+                          >
+                            {editingPacketId ? "Save packet changes" : "Save request packet"}
+                          </Button>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Saved request packets</CardTitle>
+                          <CardDescription className="text-xs">
+                            Resume any packet draft from this HomeID.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          {requestPackets.length === 0 ? (
+                            <div className="text-xs text-muted-foreground">
+                              No saved packets yet.
+                            </div>
+                          ) : (
+                            requestPackets.map((packet) => (
+                              <div
+                                key={packet.id}
+                                className="rounded border p-2 text-xs flex items-center justify-between gap-2"
+                              >
+                                <div>
+                                  <div className="font-medium">
+                                    {packet.requestType} - {packet.status}
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    details: {packet.selectedDetailIds.length} - missing:{" "}
+                                    {packet.missingHelpfulInfoCount}
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    saved: {new Date(packet.savedAt).toLocaleString()}
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => resumeRequestPacket(packet.id)}
+                                >
+                                  Resume
+                                </Button>
+                              </div>
+                            ))
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
