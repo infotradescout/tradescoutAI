@@ -177,3 +177,7 @@ Rationale:
 - `npm run test` -> required at closeout
 - `npm run build` -> required at closeout
 - Working tree -> clean at closeout commit
+
+## Post-Closeout Watch
+- Slice 39 monitoring runbook:
+  - `docs/runbooks/SLICE39_POST_CLOSEOUT_PRODUCTION_WATCH.md`
