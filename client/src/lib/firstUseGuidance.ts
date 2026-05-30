@@ -24,8 +24,8 @@ export const FIRST_USE_STEP_OPTIONS: FirstUsefulStepOption[] = [
   {
     id: "fix_improve",
     label: "Fix or improve my home",
-    description: "Open Direct Connect and prepare a request.",
-    href: "/direct-connect?intent=fix_improve",
+    description: "Open Direct Connect and start a request with HomeID link context.",
+    href: "/direct-connect?intent=fix_improve&homeContext=prompt_link",
   },
   {
     id: "keep_track",
@@ -48,7 +48,7 @@ export const FIRST_USE_STEP_OPTIONS: FirstUsefulStepOption[] = [
   {
     id: "continue_saved",
     label: "Continue something I started",
-    description: "Open Scout and continue saved context.",
+    description: "Open Scout and continue your saved context.",
     href: "/scout?tab=continue",
   },
   {
