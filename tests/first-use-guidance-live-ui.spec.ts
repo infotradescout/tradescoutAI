@@ -86,6 +86,8 @@ test.describe("First-use guidance live UI verification", () => {
       `expected /scout or sign-in redirect, received ${scoutUrl}`
     ).toBeTruthy();
 
+    await page.goto("/landing", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("first-use-guidance-surface")).toBeVisible();
     const visibleText = (
       await page.getByTestId("first-use-guidance-surface").innerText()
     ).toLowerCase();

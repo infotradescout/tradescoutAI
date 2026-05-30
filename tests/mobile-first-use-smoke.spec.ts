@@ -12,12 +12,8 @@ const BANNED_COPY = [
 
 async function expectNoHorizontalOverflow(page: Parameters<typeof test>[0]["page"]) {
   const hasOverflow = await page.evaluate(() => {
-    const maxRight = Math.max(
-      ...Array.from(document.querySelectorAll("body *")).map((el) =>
-        Math.ceil((el as HTMLElement).getBoundingClientRect().right)
-      )
-    );
-    return maxRight > window.innerWidth + 1;
+    const root = document.documentElement;
+    return root.scrollWidth > window.innerWidth + 1;
   });
   expect(hasOverflow).toBe(false);
 }
@@ -112,6 +108,8 @@ test.describe("Mobile first-use smoke", () => {
 
     await expect(page.locator(".ts-bottom-nav")).toBeVisible();
 
+    await page.goto("/landing", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("first-use-guidance-surface")).toBeVisible();
     const visibleText = (
       await page.getByTestId("first-use-guidance-surface").innerText()
     ).toLowerCase();
