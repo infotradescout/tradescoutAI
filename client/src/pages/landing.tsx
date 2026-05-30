@@ -49,6 +49,14 @@ import {
 } from "@/components/ui/accordion";
 import { RevenueDisclosureSection } from "@/components/RevenueDisclosureSection";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
+import { FirstUsefulStepLauncher } from "@/components/guidance/FirstUsefulStepLauncher";
+import {
+  DIRECT_CONNECT_GUIDANCE_TEXT,
+  HOMEID_GUIDANCE_TEXT,
+  SCOUT_GUIDANCE_TEXT,
+  TRADE_SCOUT_PRODUCT_EXPLANATION,
+} from "@/lib/firstUseGuidance";
 import { resolveLandingVariant } from "./landingVariants";
 import {
   bootstrapDemandAttribution,
@@ -1107,6 +1115,28 @@ export default function Home() {
       />
       <Navbar variant={trackedVariant} />
       <main className="relative z-10">
+        <section className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 gap-3">
+            <div className="rounded-xl border border-white/10 bg-tsCard/90 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.24)]">
+              <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <FirstUseGuidanceCard
+                title="Scout is your discovery page."
+                description={SCOUT_GUIDANCE_TEXT}
+              />
+              <FirstUseGuidanceCard
+                title="HomeID keeps your home history organized."
+                description={HOMEID_GUIDANCE_TEXT}
+              />
+              <FirstUseGuidanceCard
+                title="Direct Connect prepares your request."
+                description={DIRECT_CONNECT_GUIDANCE_TEXT}
+              />
+            </div>
+            <FirstUsefulStepLauncher />
+          </div>
+        </section>
         <HeroSection variant={trackedVariant} />
         <StatsBar />
         <HowItWorksSection />
