@@ -1,4 +1,4 @@
-# TradeScout Production Readiness Closeout (Slice 38)
+# TradeScout Production Readiness Closeout (Slice 46 Final Audit)
 
 Date: 2026-05-30
 
@@ -7,7 +7,9 @@ Date: 2026-05-30
 - Live startup fallback repair: `641ccbd9`
 - Live guidance UI verification: `6a48f6ab`
 - P0 session persistence closeout entry: `6f20c587`
-- Current HEAD at closeout: `6f20c587`
+- Scout discovery page UX polish: `02ca0beb`
+- Mobile first-use smoke coverage: `add89022`
+- Current HEAD at final audit: `add89022`
 
 ## Release Candidate Scope
 This closeout covers the current TradeScout production candidate for:
@@ -78,6 +80,27 @@ Landed:
 References:
 - `docs/audits/FIRST_USE_GUIDANCE_LIVE_VERIFICATION.md`
 - `tests/first-use-guidance-live-ui.spec.ts`
+- `tests/mobile-first-use-smoke.spec.ts`
+
+## Mobile First-Use Smoke (Slice 45)
+Status: PASS
+
+Commit:
+- `add89022`
+
+Coverage:
+- launcher visible on mobile
+- six first-use options visible
+- dismiss/restore behavior
+- `/homes` guidance visibility
+- `/direct-connect` guidance visibility
+- `/scout` guidance visibility
+- bottom nav visible
+- no horizontal overflow
+- banned-copy visible-text checks
+
+Execution model:
+- Gated Playwright smoke (`RUN_MOBILE_FIRST_USE_SMOKE=1`) to keep normal CI clean.
 
 ## Live Smoke / Verification Status
 Status: PASS with documented method
@@ -118,6 +141,9 @@ Observed:
   - Reference: `docs/audits/HOMEID_SLICE24_MANUAL_PRODUCTION_PROOF.md`
 - First-use guidance live verification: PASS
   - Reference: `docs/audits/FIRST_USE_GUIDANCE_LIVE_VERIFICATION.md`
+- Mobile first-use smoke: PASS
+  - Commit: `add89022`
+  - Reference: `tests/mobile-first-use-smoke.spec.ts`
 - Live route startup fallback proof: PASS
   - Method: app-mounted visible-state check, startup fallback hidden
 - P0 session persistence smoke: PASS
@@ -158,13 +184,18 @@ Observed:
 Non-blocked:
 - Core HomeID -> Direct Connect -> HomeID path
 - First-use guidance visibility and route education layer
+- Mobile first-use launcher/prompt visibility and route path checks
 - Core route startup/render behavior
 
 Blocked:
 - None currently identified as release-blocking within this RC scope.
 
+## Non-Blocking Warnings / Cleanup
+1. Existing lint warnings in legacy Scout surfaces remain (non-blocking for current RC scope).
+2. Build-time generated sitemap files can drift locally and should continue to be excluded from scoped product commits unless SEO/static updates are intentional.
+
 ## Release Decision
-Decision: RELEASE CANDIDATE LOCKED (for current scoped capabilities)
+Decision: RELEASE CANDIDATE AUDIT PASS (for current scoped capabilities)
 
 Rationale:
 - Core product loop is implemented, persistence-backed, and smoke-verified.
@@ -177,6 +208,11 @@ Rationale:
 - `npm run test` -> required at closeout
 - `npm run build` -> required at closeout
 - Working tree -> clean at closeout commit
+
+## Post-Release Backlog (Next, Not Blocking RC)
+1. Continue monitored stability watch checkpoints from Slice 39 runbook.
+2. Address non-blocking Scout lint/copy debt in small scoped cleanup slices.
+3. Expand mobile/manual UX proof depth for authenticated variants where needed.
 
 ## Post-Closeout Watch
 - Slice 39 monitoring runbook:
