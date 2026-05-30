@@ -20,6 +20,7 @@ import {
 import { addPropertyLifecycleEvent } from "../services/propertyLifecycleService";
 
 const router = Router();
+const HOMEID_DASHBOARD_SECTION_TIMEOUT_MS = 2500;
 type HomeIdServerPropertyDetail = {
   id: string;
   category: string;
@@ -394,6 +395,54 @@ const upsertHomeProjectPlanSchema = z.object({
 
 function getUserId(req: any): string {
   return String((req.user as any)?.claims?.sub || (req.user as any)?.id || "").trim();
+}
+
+async function runDashboardSection<T>(args: {
+  section: string;
+  homeId: string;
+  userId: string;
+  run: () => Promise<T>;
+  fallback: T;
+  timeoutMs?: number;
+  warnings: string[];
+}): Promise<T> {
+  const timeoutMs = args.timeoutMs ?? HOMEID_DASHBOARD_SECTION_TIMEOUT_MS;
+  const started = Date.now();
+  const timeoutPromise = new Promise<T>((resolve) => {
+    setTimeout(() => resolve(args.fallback), timeoutMs);
+  });
+  try {
+    const result = await Promise.race([args.run(), timeoutPromise]);
+    const elapsed = Date.now() - started;
+    if (result === args.fallback && elapsed >= timeoutMs) {
+      const warning = `section_timeout:${args.section}`;
+      args.warnings.push(warning);
+      console.warn("[homeid-dashboard] section timed out", {
+        section: args.section,
+        homeId: args.homeId,
+        userId: args.userId,
+        elapsedMs: elapsed,
+      });
+    } else {
+      console.info("[homeid-dashboard] section completed", {
+        section: args.section,
+        homeId: args.homeId,
+        userId: args.userId,
+        elapsedMs: elapsed,
+      });
+    }
+    return result;
+  } catch (error: any) {
+    const warning = `section_error:${args.section}`;
+    args.warnings.push(warning);
+    console.error("[homeid-dashboard] section failed", {
+      section: args.section,
+      homeId: args.homeId,
+      userId: args.userId,
+      error: error?.message || String(error),
+    });
+    return args.fallback;
+  }
 }
 
 async function requireHomeOwner(userId: string, homeId: string) {
@@ -944,33 +993,81 @@ router.get("/api/homes/:homeId/homeid-dashboard", isAuthenticated, async (req: a
   const homeId = String(req.params.homeId || "").trim();
   if (!homeId) return res.status(400).json({ message: "homeId required" });
 
+  const dashboardStarted = Date.now();
   const home = await requireHomeOwner(userId, homeId);
   if (!home) return res.status(404).json({ message: "Home not found" });
 
+  const warnings: string[] = [];
   const [records, appliances, documents, schedules, shares] = await Promise.all([
-    db
-      .select()
-      .from(userHomeRecords)
-      .where(eq(userHomeRecords.homeId, homeId))
-      .orderBy(desc(userHomeRecords.createdAt))
-      .limit(500),
-    db.select().from(userHomeAppliances).where(eq(userHomeAppliances.homeId, homeId)).limit(500),
-    db.select().from(userHomeDocuments).where(eq(userHomeDocuments.homeId, homeId)).limit(500),
-    db
-      .select()
-      .from(homeMaintenanceSchedules)
-      .where(
-        and(
-          eq(homeMaintenanceSchedules.userHomeId, homeId),
-          eq(homeMaintenanceSchedules.ownerUserId, userId)
-        )
-      )
-      .limit(500),
-    db
-      .select()
-      .from(homeReportShares)
-      .where(and(eq(homeReportShares.userHomeId, homeId), eq(homeReportShares.ownerUserId, userId)))
-      .limit(500),
+    runDashboardSection({
+      section: "records",
+      homeId,
+      userId,
+      warnings,
+      fallback: [] as any[],
+      run: () =>
+        db
+          .select()
+          .from(userHomeRecords)
+          .where(eq(userHomeRecords.homeId, homeId))
+          .orderBy(desc(userHomeRecords.createdAt))
+          .limit(500),
+    }),
+    runDashboardSection({
+      section: "appliances",
+      homeId,
+      userId,
+      warnings,
+      fallback: [] as any[],
+      run: () =>
+        db
+          .select()
+          .from(userHomeAppliances)
+          .where(eq(userHomeAppliances.homeId, homeId))
+          .limit(500),
+    }),
+    runDashboardSection({
+      section: "documents",
+      homeId,
+      userId,
+      warnings,
+      fallback: [] as any[],
+      run: () =>
+        db.select().from(userHomeDocuments).where(eq(userHomeDocuments.homeId, homeId)).limit(500),
+    }),
+    runDashboardSection({
+      section: "maintenance_schedules",
+      homeId,
+      userId,
+      warnings,
+      fallback: [] as any[],
+      run: () =>
+        db
+          .select()
+          .from(homeMaintenanceSchedules)
+          .where(
+            and(
+              eq(homeMaintenanceSchedules.userHomeId, homeId),
+              eq(homeMaintenanceSchedules.ownerUserId, userId)
+            )
+          )
+          .limit(500),
+    }),
+    runDashboardSection({
+      section: "report_shares",
+      homeId,
+      userId,
+      warnings,
+      fallback: [] as any[],
+      run: () =>
+        db
+          .select()
+          .from(homeReportShares)
+          .where(
+            and(eq(homeReportShares.userHomeId, homeId), eq(homeReportShares.ownerUserId, userId))
+          )
+          .limit(500),
+    }),
   ]);
 
   const homeType = (String((home as any).propertyType || "other").trim() ||
@@ -1063,6 +1160,13 @@ router.get("/api/homes/:homeId/homeid-dashboard", isAuthenticated, async (req: a
   const buyerPacketReadiness = visibilityComplete && transferComplete && evidenceComplete;
   const handoffReady = completionScore >= 95 && authorityComplete;
 
+  console.info("[homeid-dashboard] completed", {
+    homeId,
+    userId,
+    totalElapsedMs: Date.now() - dashboardStarted,
+    warningsCount: warnings.length,
+  });
+
   res.json({
     homeId,
     homeType,
@@ -1101,6 +1205,7 @@ router.get("/api/homes/:homeId/homeid-dashboard", isAuthenticated, async (req: a
       })),
       linkedRequestShares: shares.length,
     },
+    warnings,
   });
 });
 
