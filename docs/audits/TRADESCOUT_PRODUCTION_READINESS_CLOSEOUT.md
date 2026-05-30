@@ -91,6 +91,27 @@ References:
 - `docs/audits/HOMEID_SLICE24_MANUAL_PRODUCTION_PROOF.md`
 - `docs/audits/FIRST_USE_GUIDANCE_LIVE_VERIFICATION.md`
 
+## P0 Session Persistence Production Smoke
+Status: PASS (no blocker)
+
+Commit:
+- `c2a18ff9045280bb06925d7c3bc40032f4f9b42f`
+
+Validated against production using:
+- `/api/auth/login`
+- `/api/auth/user` twice to simulate refresh persistence
+- protected route navigation checks
+
+Roles:
+- `customer`: PASS
+- `linked_food_truck`: PASS
+- `super_admin`: PASS
+
+Observed:
+- `super_admin` first attempt hit expected `429` during rapid repeated login attempts
+- second attempt succeeded
+- no blocking issues identified
+
 ## Route Health Checklist (RC)
 - `/` -> PASS
 - `/homes` -> PASS (auth/context dependent rendering expected)
