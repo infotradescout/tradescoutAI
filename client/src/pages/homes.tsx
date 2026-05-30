@@ -546,7 +546,7 @@ export default function HomesVault() {
   const createDirectConnectDraftMutation = useMutation({
     mutationFn: async () => {
       if (!selectedHomeId) throw new Error("Select a home first");
-      if (!handoffPreview) throw new Error("Prepare a handoff preview first");
+      if (!handoffPreview) throw new Error("Prepare a request preview first");
       if (!handoffPreviewPacketId) throw new Error("Packet reference missing");
       const packet = requestPackets.find((item) => item.id === handoffPreviewPacketId);
       if (!packet) throw new Error("Saved packet not found");
@@ -577,7 +577,7 @@ export default function HomesVault() {
         .slice(0, 6)
         .map((detail) => `${detail.category.replaceAll("_", " ")}: ${detail.note}`);
       const descriptionSections = [
-        "Prepared from HomeID handoff preview.",
+        "Prepared from HomeID request preview.",
         "Included HomeID details:",
         ...includedDetailLines.map((line) => `- ${line}`),
         handoffPreview.nonBlockingContext.length > 0
@@ -631,7 +631,7 @@ export default function HomesVault() {
           .slice(0, 6)
           .map((detail) => `${detail.category.replaceAll("_", " ")}: ${detail.note}`);
         const descriptionSections = [
-          "Prepared from HomeID handoff preview.",
+          "Prepared from HomeID request preview.",
           "Included HomeID details:",
           ...includedDetailLines.map((line) => `- ${line}`),
           handoffPreview.nonBlockingContext.length > 0
@@ -1100,7 +1100,7 @@ export default function HomesVault() {
                       <CardHeader>
                         <CardTitle className="text-base">HomeID completion</CardTitle>
                         <CardDescription className="text-xs">
-                          Completion measures trust and handoff readiness.
+                          Completion measures trust and request readiness.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
@@ -1275,7 +1275,7 @@ export default function HomesVault() {
                               </div>
                             ) : (
                               <div className="text-muted-foreground">
-                                Packet can be saved and prepared for handoff.
+                                Packet can be saved and prepared for request review.
                               </div>
                             )}
                           </div>
@@ -1365,7 +1365,7 @@ export default function HomesVault() {
                     {handoffPreview ? (
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">HomeID handoff preview</CardTitle>
+                          <CardTitle className="text-base">HomeID request preview</CardTitle>
                           <CardDescription className="text-xs">
                             Review the payload, then create a Direct Connect draft without dispatch.
                           </CardDescription>

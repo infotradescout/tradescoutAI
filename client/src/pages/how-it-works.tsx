@@ -61,7 +61,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       question: "What is Scout actually responsible for?",
       answer:
-        "Scout helps you figure out what to do next, takes you to the right page, and keeps progress moving.",
+        "Scout shows what to do next, takes you to the right page, and keeps progress moving.",
     },
     {
       question: "What happens in Direct Connect?",
@@ -73,7 +73,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
   const steps = [
     {
       icon: MessageSquare,
-      title: "Ask Scout",
+      title: "Open Scout",
       desc: "Tell Scout what you need help with.",
     },
     {
@@ -119,7 +119,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: MessageSquare,
       title: "Scout keeps it simple",
-      desc: "Scout helps you move through the platform without bouncing between disconnected pages.",
+      desc: "Scout shows how to move through the platform without bouncing between disconnected pages.",
       bullets: [
         "Ask questions about contractors, projects, or pricing",
         "Start a request directly from chat",
@@ -143,7 +143,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: Zap,
       title: "Less menu hunting",
-      desc: "Scout helps guide the process so you spend less time figuring out what to click next.",
+      desc: "Scout shows guide the process so you spend less time figuring out what to click next.",
     },
     {
       icon: Lock,
@@ -155,9 +155,9 @@ const HowItWorksPage = memo(function HowItWorksPage() {
   return (
     <>
       <SEOHelmet
-        title="How TradeScout Works | Ask Scout, Find Trusted Local Help, and Take Action"
-        description="Learn how TradeScout helps users ask Scout for help, find trusted local pros, compare options, manage local decisions, and move from discovery to action with trust built in."
-        keywords="how tradescout works, ask scout for help, find trusted local help, direct connect, community verification score, local operating system"
+        title="How TradeScout Works | Open Scout and Find Trusted Local Help"
+        description="Learn how TradeScout shows local options, supports clear requests, and moves from discovery to follow-through with trust built in."
+        keywords="how tradescout works, open scout, find trusted local help, direct connect, community verification score, local operating system"
         canonical="https://www.thetradescout.com/how-it-works"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -188,8 +188,8 @@ const HowItWorksPage = memo(function HowItWorksPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
             >
-              Ask Scout, review your local options, and move into action without spam or pay-to-play
-              rankings.
+              Open Scout, review your local options, and move into action without spam or
+              pay-to-play rankings.
             </motion.p>
           </div>
         </section>
@@ -334,7 +334,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 Ready to Get Started?
               </h2>
               <p className="text-white/70 text-sm mb-4">
-                Ask Scout a question or start finding local help.
+                Open Scout a question or start finding local help.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">

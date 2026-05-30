@@ -90,7 +90,7 @@ export const ScoutHasDonePanel: React.FC = () => {
       </div>
 
       <p className="text-[11px]" style={{ color: "var(--text-secondary)" }}>
-        Scout helps you search first, then choose whether to save, ask more, or contact.
+        Scout shows what to review first, then you can save, continue, or contact.
       </p>
     </Card>
   );

@@ -602,8 +602,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
                 Better matches.
               </h2>
               <p className="text-base text-white/70 mb-5">
-                Scout helps you review focused local options first, then open contact only when you
-                are ready.
+                Scout shows focused local options first, then opens contact only when you are ready.
               </p>
               <div className="space-y-2.5">
                 {features.map((feature, i) => {

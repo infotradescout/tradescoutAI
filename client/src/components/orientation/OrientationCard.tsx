@@ -78,9 +78,9 @@ export function OrientationCard({
                 <h2 className="text-lg md:text-2xl font-bold text-white">What is TradeScout?</h2>
               </div>
               <p className="text-sm md:text-base text-white/70 mb-2 md:mb-3">
-                TradeScout helps you find local help, compare options, and keep projects moving in
-                one place. Scout is the built-in guide that helps you figure out what to do next
-                without bouncing between a bunch of different pages and apps.
+                TradeScout shows local help, compare options, and keeps projects moving in one
+                place. Scout is the built-in guide that helps you figure out what to do next without
+                bouncing between a bunch of different pages and apps.
               </p>
               <div className="mt-1 md:mt-2 text-xs md:text-sm text-white/70 space-y-1.5">
                 <p className="font-semibold text-white/70">Scout is especially useful if:</p>
@@ -100,7 +100,7 @@ export function OrientationCard({
                 className="w-full bg-ts-orange hover:bg-ts-orange-dark text-sm md:text-base"
                 onClick={handleTourClick}
               >
-                Ask Scout for a quick tour
+                Open Scout for a quick start
               </Button>
               <Button
                 type="button"

@@ -44,7 +44,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   headlineLines: ["Trusted Local Help", "Routed by Scout"],
   subhead:
     "Tell Scout what you need, review clearer local options, and open contact only when the fit looks right.",
-  primaryCta: { label: "Ask Scout", href: "/scout" },
+  primaryCta: { label: "Open Scout", href: "/scout" },
   secondaryCta: { label: "Create Account", href: "/pre-scout-setup?mode=create" },
   navLinks: [
     { label: "How It Works", href: "#how-it-works" },
@@ -62,7 +62,7 @@ const DEFAULT_VARIANT: LandingVariant = {
     sectionLabel: "Who It's For",
     sectionTitle: "Built To Run Local Decisions Clearly",
     sectionDesc:
-      "Scout helps people move from uncertainty to action with clearer next steps and less back-and-forth.",
+      "Scout shows people move from uncertainty to action with clearer next steps and less back-and-forth.",
     cards: [
       {
         title: "For People Hiring",
@@ -77,8 +77,8 @@ const DEFAULT_VARIANT: LandingVariant = {
   cta: {
     label: "Start With Scout",
     titleLines: ["Need help with something", "local? Start here."],
-    desc: "Ask Scout first. You can figure out the right path before you create an account or open contact.",
-    primaryLabel: "Ask Scout",
+    desc: "Open Scout first. You can figure out the right path before you create an account or open contact.",
+    primaryLabel: "Open Scout",
     primaryHref: "/scout",
     secondaryLabel: "Create Account",
     secondaryHref: "/pre-scout-setup?mode=create",
@@ -91,12 +91,12 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Trusted Work Pipeline",
     headlineLines: ["Operate Inside", "The Trusted", "Local Work System"],
     subhead:
-      "TradeScout helps serious businesses get better local opportunities without bidding chaos or lead reselling.",
+      "TradeScout shows serious businesses get better local opportunities without bidding chaos or lead reselling.",
     audience: {
       sectionLabel: "For Businesses",
       sectionTitle: "Get Better Jobs, Not Bigger Spam Lists",
       sectionDesc:
-        "TradeScout helps you compete on trust and delivery. Visibility comes from verified work, not ad spend.",
+        "TradeScout supports trust-based competition and delivery. Visibility comes from verified work, not ad spend.",
       cards: [
         { title: "Better Leads", desc: "Requests come with clearer context and less noise." },
         { title: "Fair Exposure", desc: "The best providers rise through trust and consistency." },
@@ -108,7 +108,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Local Help Without Headaches",
     headlineLines: ["Use Scout To", "Run The", "Right Local Decision"],
     subhead:
-      "Scout helps you move a local project from uncertainty to action with 1-3 relevant options, visible trust context, and no spam calls.",
+      "Scout shows a local project path from uncertainty to clarity with 1-3 relevant options, visible trust context, and no spam calls.",
     audience: {
       sectionLabel: "For Homeowners",
       sectionTitle: "Less Noise. Better Decisions.",
@@ -125,12 +125,12 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Local Network, On Demand",
     headlineLines: ["Run Deal-Critical", "Local Work", "Through Scout"],
     subhead:
-      "Scout helps you line up reliable local businesses for showings, repairs, and timeline-sensitive work.",
+      "Scout shows how to line up reliable local businesses for showings, repairs, and timeline-sensitive work.",
     audience: {
       sectionLabel: "For Realtors",
       sectionTitle: "Make The Work Part Easy",
       sectionDesc:
-        "Scout helps you coordinate the right people locally so your clients stay confident and your timelines stay tight.",
+        "Scout shows how to coordinate the right people locally so your clients stay confident and your timelines stay tight.",
       cards: [
         { title: "Showings & Punch Lists", desc: "Get the right help fast, without chaos." },
         { title: "Client Confidence", desc: "Trust signals you can explain, not guesswork." },
@@ -142,7 +142,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Community Operations",
     headlineLines: ["Community Work", "Run With", "Governed Clarity"],
     subhead:
-      "Scout helps communities coordinate local providers with clear approvals and cleaner communication.",
+      "Scout shows communities coordinate local providers with clear approvals and cleaner communication.",
     audience: {
       sectionLabel: "For Communities",
       sectionTitle: "Decisions You Can Audit",
@@ -158,7 +158,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     displayName: "Property Managers",
     badgeText: "Multi-Property Coordination",
     headlineLines: ["Coordinate", "Local Operations", "Without Contact Chaos"],
-    subhead: "Scout helps property teams line up trusted local providers without contact chaos.",
+    subhead: "Scout shows property teams line up trusted local providers without contact chaos.",
     audience: {
       sectionLabel: "For Property Teams",
       sectionTitle: "Portfolio Workflows, Simplified",
@@ -175,7 +175,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Trusted Service Network",
     headlineLines: ["Protect Deals", "With Governed", "Local Execution"],
     subhead:
-      "Scout helps your borrowers access trustworthy local service pathways that reduce friction before close.",
+      "Scout shows trustworthy local service pathways for borrowers that reduce friction before close.",
     audience: {
       sectionLabel: "For Lenders",
       sectionTitle: "Less Friction, Better Outcomes",
@@ -192,7 +192,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Claims Support Network",
     headlineLines: ["Guide Claims", "Through Trusted", "Local Response"],
     subhead:
-      "Scout helps policyholders connect to relevant local providers when speed, documentation, and trust matter.",
+      "Scout shows policyholders connect to relevant local providers when speed, documentation, and trust matter.",
     audience: {
       sectionLabel: "For Insurance Teams",
       sectionTitle: "Claims Support Without Noise",
@@ -209,7 +209,7 @@ const BASE_VARIANTS: Record<string, Partial<LandingVariant>> = {
     badgeText: "Local Distribution Intelligence",
     headlineLines: ["Reach Local", "Demand Through", "Better Paths"],
     subhead:
-      "Scout helps suppliers and vendors connect with real local demand without spam-based distribution.",
+      "Scout shows suppliers and vendors connect with real local demand without spam-based distribution.",
     audience: {
       sectionLabel: "For Suppliers",
       sectionTitle: "Higher-Quality Local Reach",
@@ -491,7 +491,7 @@ function buildTradePatch(trade: Trade): Partial<LandingVariant> {
     displayName: trade.name,
     badgeText: `${badge} • ${trade.name}`,
     headlineLines: ["Find Local", tradeLabel, "You Can Trust"],
-    subhead: `Scout helps you connect with trusted local ${tradeLower} providers. ${trade.description}. No lead reselling. No pay-to-play.`,
+    subhead: `Scout shows trusted local ${tradeLower} providers. ${trade.description}. No lead reselling. No pay-to-play.`,
     primaryCta: {
       label: `Find ${ctaTarget}`,
       href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
@@ -572,7 +572,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
       displayName: audienceTradeName,
       badgeText: `${trade.name} • Homeowner Match`,
       headlineLines: ["Find Trusted", tradeLabel, "Near You"],
-      subhead: `Scout helps homeowners connect with trusted local ${tradeLower} providers without spam calls or bidding chaos.`,
+      subhead: `Scout shows homeowners connect with trusted local ${tradeLower} providers without spam calls or bidding chaos.`,
       primaryCta: {
         label: `Find ${ctaTarget}`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
@@ -607,7 +607,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
       displayName: audienceTradeName,
       badgeText: `${trade.name} • Realtor Workflow`,
       headlineLines: ["Close Faster With", tradeLabel, "Support"],
-      subhead: `Scout helps Realtors source trusted local ${tradeLower} providers for timeline-sensitive property work.`,
+      subhead: `Scout shows Realtors source trusted local ${tradeLower} providers for timeline-sensitive property work.`,
       primaryCta: {
         label: `Find ${tradeLabel} Businesses`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
@@ -636,7 +636,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
       displayName: `${opsAudience} • ${trade.name}`,
       badgeText: `${trade.name} • Operations Routing`,
       headlineLines: ["Coordinate", tradeLabel, "With Audit Clarity"],
-      subhead: `Scout helps ${opsAudience.toLowerCase()} route ${tradeLower} work with clear intent and accountability.`,
+      subhead: `Scout shows ${opsAudience.toLowerCase()} route ${tradeLower} work with clear intent and accountability.`,
       primaryCta: {
         label: `Coordinate ${tradeLabel}`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
@@ -666,7 +666,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
       displayName: `${financeAudience} • ${trade.name}`,
       badgeText: `${trade.name} • Client Support`,
       headlineLines: ["Support Clients With", tradeLabel, "That Delivers"],
-      subhead: `Scout helps ${financeAudience.toLowerCase()} route clients to trusted ${tradeLower} pathways when timing matters.`,
+      subhead: `Scout shows ${financeAudience.toLowerCase()} route clients to trusted ${tradeLower} pathways when timing matters.`,
       primaryCta: {
         label: `Start ${tradeLabel} Routing`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,
@@ -694,7 +694,7 @@ function buildAudienceTradePatch(baseKey: string, trade: Trade): Partial<Landing
       displayName: audienceTradeName,
       badgeText: `${trade.name} • Supplier Reach`,
       headlineLines: ["Reach", tradeLabel, "Businesses Locally"],
-      subhead: `Scout helps suppliers connect offers to relevant ${tradeLower} audiences through trust-shaped local flows.`,
+      subhead: `Scout shows suppliers connect offers to relevant ${tradeLower} audiences through trust-shaped local flows.`,
       primaryCta: {
         label: `Reach ${tradeLabel} Businesses`,
         href: `/pre-scout-setup?mode=create&trade=${encodeURIComponent(trade.slug)}`,

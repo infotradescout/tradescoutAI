@@ -197,7 +197,7 @@ const buildFeatureNav = (opts?: {
       label: "Scout",
       href: "/scout",
       icon: <Compass className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
-      description: "Ask Scout for the next action.",
+      description: "Open Scout to review what to do next.",
     },
     {
       label: "Commercial",
@@ -337,7 +337,7 @@ function buildMobileFlowNav(items: NavItem[], contactRequestCount = 0): NavItem[
           icon: <Users className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
         },
     scout
-      ? { ...scout, label: "Scout", description: "Ask Scout what to do next." }
+      ? { ...scout, label: "Scout", description: "Open Scout to review what to do next." }
       : {
           label: "Scout",
           href: "/scout",

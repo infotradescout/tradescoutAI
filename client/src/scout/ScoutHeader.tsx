@@ -27,13 +27,13 @@ export function ScoutHeader({ locationLabel }: ScoutHeaderProps) {
         className="max-w-2xl text-[13px] md:text-[15px] leading-relaxed"
         style={{ color: "var(--text-muted)" }}
       >
-        Scout helps you find local help, compare options, and know what to check before contacting
-        anyone{hasSpecificLocation && communityText ? ` near ${communityText}` : ""}.
+        Scout shows local activity, saved context, and what to review before contacting anyone
+        {hasSpecificLocation && communityText ? ` near ${communityText}` : ""}.
       </p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {[
           ["Find local help", "Contractors, services, and people nearby"],
-          ["Ask Scout", "Questions, next steps, and what to check first"],
+          ["Open Scout", "Questions, next steps, and what to check first"],
           ["Check prices", "Normal ranges before you call anyone"],
           ["See nearby activity", "Local posts, requests, and useful signals"],
           [

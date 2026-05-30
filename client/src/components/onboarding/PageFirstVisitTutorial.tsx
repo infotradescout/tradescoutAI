@@ -153,8 +153,7 @@ export function getPageTutorial(path: string): TutorialContent {
   if (path.startsWith("/scout")) {
     return {
       title: "Scout quick guide",
-      description:
-        "Ask Scout what you need, and Scout helps you choose your next step without menu hunting.",
+      description: "Open Scout with what you need, and review your next step without menu hunting.",
       bullets: [
         "Type what you need in everyday words.",
         "Use Scout links and actions to move directly to the right page.",
@@ -172,7 +171,7 @@ export function getPageTutorial(path: string): TutorialContent {
       bullets: [
         "Prioritize posts tied to your local area and current decisions.",
         "Use comments to clarify context, not to replace action.",
-        "When ready, move to Direct Connect or ask Scout to route the next step.",
+        "When ready, move to Direct Connect or use Scout to route the next step.",
       ],
       primaryAction: "Use community",
     };
@@ -184,7 +183,7 @@ export function getPageTutorial(path: string): TutorialContent {
       description: "This is where you see local activity and decide what to follow up on.",
       bullets: [
         "Read posts to understand context before taking action.",
-        "Use Ask Scout or Direct Connect when you are ready to move forward.",
+        "Use Open Scout or Direct Connect when you are ready to move forward.",
         "Keep actions local and relevant to your local context.",
       ],
       primaryAction: "Explore feed",
@@ -254,7 +253,7 @@ export function getPageTutorial(path: string): TutorialContent {
         "Use this page to coordinate local property operations with clear visibility for residents and teams.",
       bullets: [
         "Prioritize items with resident impact or deadline risk.",
-        "Keep status updates specific so handoffs stay reliable.",
+        "Keep status updates specific so transitions stay reliable.",
         "Route ambiguous ownership issues through Scout before escalation.",
       ],
       primaryAction: "Run operations",
@@ -354,7 +353,7 @@ export function getPageTutorial(path: string): TutorialContent {
       bullets: [
         "Open the article that matches your current page or action.",
         "Apply one fix step at a time and confirm results.",
-        "If still blocked, ask Scout and include what you already tried.",
+        "If still blocked, open Scout and include what you already tried.",
       ],
       primaryAction: "Use help",
     };

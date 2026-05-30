@@ -60,7 +60,7 @@ const commandSources = [
   },
 ];
 
-const contactSteps = ["Ask Scout", "Review the next step", "Choose what to do"];
+const contactSteps = ["Open Scout", "Review the next step", "Choose what to do"];
 
 const trendBars = ["h-[36%]", "h-[48%]", "h-[42%]", "h-[58%]", "h-[67%]", "h-[76%]", "h-[84%]"];
 
@@ -81,7 +81,7 @@ const missionSteps = [
   },
   {
     title: "Missing info stays honest",
-    description: "If TradeScout has not indexed something yet, Scout says so plainly.",
+    description: "If TradeScout has not indexed something yet, Scout displays that clearly.",
   },
   {
     title: "Contact stays protected",
@@ -98,7 +98,7 @@ const capabilityPanels = [
     title: "Search everything",
     icon: MapPinned,
     kicker: "Site plus local",
-    body: "Scout helps you find TradeScout pages, local activity, useful services, posts, requests, prices, and things worth checking before you act.",
+    body: "Scout shows TradeScout pages, local activity, useful services, posts, requests, prices, and things worth checking.",
     evidence: "site pages\nnearby posts\nlocal services",
   },
   {
@@ -119,7 +119,7 @@ const capabilityPanels = [
     title: "Contact guard",
     icon: ShieldCheck,
     kicker: "No surprise contact sharing",
-    body: "Scout helps you review the next step before contact info or a request path is opened.",
+    body: "Scout shows the next step before contact info or a request path is opened.",
     evidence: "ask first\nreview next step\nchoose contact",
   },
   {
@@ -245,7 +245,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
     <div className="font-body text-white">
       <SEOHelmet
         title="Scout Help | TradeScout"
-        description="Scout helps TradeScout users search the site and find nearby help, posts, requests, prices, rules, events, and safe next steps."
+        description="Scout shows TradeScout users search the site and find nearby help, posts, requests, prices, rules, events, and safe next steps."
         canonical="https://www.thetradescout.com/help/scout"
       />
 
@@ -296,8 +296,8 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                   Contact stays protected
                 </div>
                 <p className="mt-2 text-xs leading-relaxed text-white/55">
-                  Seeing someone does not mean sharing contact info. Scout helps you review the next
-                  step first.
+                  Seeing someone does not mean sharing contact info. Scout shows the next step
+                  first.
                 </p>
               </div>
             </aside>
@@ -569,8 +569,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                       <div className="rounded-2xl border border-ts-orange/20 bg-ts-orange/10 p-5">
                         <p className="text-sm font-semibold text-white">Contact rule</p>
                         <p className="mt-3 text-sm leading-relaxed text-white/70">
-                          Scout helps you review the next step before sharing contact info or making
-                          a request.
+                          Scout shows the next step before sharing contact info or making a request.
                         </p>
                       </div>
                     </div>

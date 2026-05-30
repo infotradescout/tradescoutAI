@@ -13,11 +13,11 @@ describe("Scout entry framing contracts", () => {
 
     expect(source).toContain("What do you need help with today?");
     expect(source).toContain(
-      "Scout helps you find local help, compare options, and know what to check before contacting"
+      "Scout shows local activity, saved context, and what to review before contacting"
     );
-    expect(source).toContain("compare options");
+    expect(source).toContain("saved context");
     expect(source).toContain("Find local help");
-    expect(source).toContain("Ask Scout");
+    expect(source).toContain("Open Scout");
     expect(source).toContain("Check prices");
     expect(source).toContain("See nearby activity");
     expect(source).toContain("Start a material run");
