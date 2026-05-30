@@ -1115,7 +1115,10 @@ export default function Home() {
       />
       <Navbar variant={trackedVariant} />
       <main className="relative z-10">
-        <section className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+        <section
+          data-testid="first-use-guidance-surface"
+          className="mx-auto w-full max-w-7xl px-4 pt-6 sm:px-6 lg:px-8"
+        >
           <div className="grid grid-cols-1 gap-3">
             <div className="rounded-xl border border-white/10 bg-tsCard/90 p-4 shadow-[0_12px_36px_rgba(0,0,0,0.24)]">
               <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
@@ -1134,7 +1137,9 @@ export default function Home() {
                 description={DIRECT_CONNECT_GUIDANCE_TEXT}
               />
             </div>
-            <FirstUsefulStepLauncher />
+            <div data-testid="first-use-launcher">
+              <FirstUsefulStepLauncher />
+            </div>
           </div>
         </section>
         <HeroSection variant={trackedVariant} />

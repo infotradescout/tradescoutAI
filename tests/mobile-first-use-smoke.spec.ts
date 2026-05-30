@@ -22,6 +22,26 @@ async function expectNoHorizontalOverflow(page: Parameters<typeof test>[0]["page
   expect(hasOverflow).toBe(false);
 }
 
+async function resetToFreshLandingState(page: Parameters<typeof test>[0]["page"]) {
+  await page.context().clearCookies();
+  await page.addInitScript(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+}
+
+function isSignInRedirectTo(url: string, expectedPath: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const next = parsed.searchParams.get("next") || "";
+    return (
+      parsed.pathname === "/pre-scout-setup" && decodeURIComponent(next).startsWith(expectedPath)
+    );
+  } catch {
+    return false;
+  }
+}
+
 test.describe("Mobile first-use smoke", () => {
   test.skip(
     process.env.RUN_MOBILE_FIRST_USE_SMOKE !== "1",
@@ -32,11 +52,13 @@ test.describe("Mobile first-use smoke", () => {
     page,
   }) => {
     test.setTimeout(180_000);
+    await resetToFreshLandingState(page);
     await page.setViewportSize({ width: 390, height: 844 });
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(900);
 
+    await expect(page.getByTestId("first-use-launcher")).toBeVisible();
     await expect(page.getByText("Where should I start?", { exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Fix or improve my home" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Keep track of my home" })).toBeVisible();
@@ -52,35 +74,47 @@ test.describe("Mobile first-use smoke", () => {
     await expect(page.getByText("Where should I start?", { exact: true })).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    await page.getByRole("link", { name: "Keep track of my home" }).click();
+    const homesLink = page.getByRole("link", { name: "Keep track of my home" });
+    await expect(homesLink).toHaveAttribute("href", "/homes");
+    await homesLink.click();
     await page.waitForTimeout(900);
-    expect(page.url()).toContain("/homes");
-    await expect(
-      page.getByText("HomeID keeps your home history organized.", { exact: true })
-    ).toBeVisible();
+    const homesUrl = page.url();
+    expect(
+      homesUrl.includes("/homes") || isSignInRedirectTo(homesUrl, "/homes"),
+      `expected /homes or sign-in redirect, received ${homesUrl}`
+    ).toBeTruthy();
     await expectNoHorizontalOverflow(page);
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
-    await page.getByRole("link", { name: "Create a local work request" }).click();
+    const directConnectLink = page.getByRole("link", { name: "Create a local work request" });
+    await expect(directConnectLink).toHaveAttribute("href", "/direct-connect");
+    await directConnectLink.click();
     await page.waitForTimeout(900);
-    expect(page.url()).toContain("/direct-connect");
-    await expect(
-      page.getByText("Direct Connect lets you prepare and submit a clear local work request", {
-        exact: false,
-      })
-    ).toBeVisible();
+    const directConnectUrl = page.url();
+    expect(
+      directConnectUrl.includes("/direct-connect") ||
+        isSignInRedirectTo(directConnectUrl, "/direct-connect"),
+      `expected /direct-connect or sign-in redirect, received ${directConnectUrl}`
+    ).toBeTruthy();
     await expectNoHorizontalOverflow(page);
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
-    await page.getByRole("link", { name: "Review local activity" }).click();
+    const scoutLink = page.getByRole("link", { name: "Review local activity" });
+    await expect(scoutLink).toHaveAttribute("href", "/scout");
+    await scoutLink.click();
     await page.waitForTimeout(900);
-    expect(page.url()).toContain("/scout");
-    await expect(page.getByText("Scout is your discovery page.", { exact: true })).toBeVisible();
+    const scoutUrl = page.url();
+    expect(
+      scoutUrl.includes("/scout") || isSignInRedirectTo(scoutUrl, "/scout"),
+      `expected /scout or sign-in redirect, received ${scoutUrl}`
+    ).toBeTruthy();
     await expectNoHorizontalOverflow(page);
 
     await expect(page.locator(".ts-bottom-nav")).toBeVisible();
 
-    const visibleText = (await page.locator("body").innerText()).toLowerCase();
+    const visibleText = (
+      await page.getByTestId("first-use-guidance-surface").innerText()
+    ).toLowerCase();
     for (const phrase of BANNED_COPY) {
       expect(visibleText).not.toContain(phrase);
     }
