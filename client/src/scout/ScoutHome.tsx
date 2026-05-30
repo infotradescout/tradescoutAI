@@ -277,10 +277,10 @@ function ScoutHero({ locationLabel }: { locationLabel?: string }) {
         <ChevronDown className="h-4 w-4" />
       </button>
       <p className="mt-1.5 max-w-[340px] text-[15px] leading-snug text-zinc-400">
-        Scout shows what is happening in your area.
+        Scout is your discovery page for local activity and saved context.
       </p>
       <p className="mt-1 text-[13px] text-zinc-500">
-        Review local activity and saved context before you continue.
+        Review HomeID updates, request history, and items worth reviewing before you continue.
       </p>
     </section>
   );
@@ -388,7 +388,7 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
   const { t } = useI18n();
   return (
     <section className="px-4 pt-1.5">
-      <h2 className="text-2xl font-bold leading-tight text-white">What Scout can help with</h2>
+      <h2 className="text-2xl font-bold leading-tight text-white">Explore what to review next</h2>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
         {SCOUT_CAPABILITY_COPY.map((item) => {
           const Icon = item.icon;

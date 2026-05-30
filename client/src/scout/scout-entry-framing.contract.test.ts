@@ -22,9 +22,7 @@ describe("Scout entry framing contracts", () => {
     expect(source).toContain("See nearby activity");
     expect(source).toContain("Start a material run");
     expect(source).toContain("Open messages");
-    expect(source).toContain(
-      "Send a material list or supplier link and Scout can help turn it into a Supply Run."
-    );
+    expect(source).toContain("Send a material list or supplier link to turn it into a Supply Run.");
   });
 
   it("input row and quick-start surfaces use plain language", () => {
@@ -50,7 +48,7 @@ describe("Scout entry framing contracts", () => {
     const experienceSource = read("client/src/scout/scoutExperience.ts");
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(homeSource).toContain("What Scout can help with");
+    expect(homeSource).toContain("Explore what to review next");
     expect(homeSource).toContain("SCOUT_CAPABILITY_COPY");
     expect(experienceSource).toContain("Plan work");
     expect(experienceSource).toContain("Collect the right details");

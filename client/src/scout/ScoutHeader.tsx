@@ -38,7 +38,7 @@ export function ScoutHeader({ locationLabel }: ScoutHeaderProps) {
           ["See nearby activity", "Local posts, requests, and useful signals"],
           [
             "Start a material run",
-            "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+            "Send a material list or supplier link to turn it into a Supply Run.",
           ],
           ["Open messages", "Review conversations when contact is already open"],
         ].map(([label, detail]) => (
