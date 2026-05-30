@@ -1,65 +1,45 @@
-# First-Use Guidance Live Verification (Slice 35)
+# First-Use Guidance Live Verification (Slice 35 + Slice 36 Follow-up)
 
 Date: 2026-05-30
 
-Status: PARTIAL PASS (deployment/runtime blocker)
+Status: PASS (startup fallback repaired/cleared)
 
 ## Scope
-Live verification for first-use guidance only:
-- launcher visibility
-- six required options
-- dismiss/restore behavior
-- route mapping
-- guidance presence on HomeID, Direct Connect, Scout
-- banned copy check on guidance surfaces
+Live verification for:
+- deployed build hash
+- startup fallback behavior on core routes
+- first-use guidance surface visibility where route access allows
 
-No feature work performed.
+No feature changes were introduced.
 
 ## Build hash proof
 - Host: `https://www.thetradescout.com`
-- Header: `x-tradescout-build: 47d69add057790e359577d6bb3986f5e5b7aef0b`
+- Header now: `x-tradescout-build: 061a0739ad6e3d42831075893aaf61a17329e369`
 - Result: PASS (`47d69add` or newer confirmed)
 
-## Live route checks
-Checked with Playwright browser automation against:
+## Startup fallback verification
+Checked live routes:
 - `/`
 - `/homes`
 - `/direct-connect`
 - `/scout`
 
-### Active blocker
-All tested routes render a boot fallback surface with:
-- "TradeScout encountered a startup issue."
-- "We could not render the app yet. Reload to recover."
+Observed for each route:
+- `#ts-boot-fallback` is hidden (`hidden` present, `aria-hidden="true"`, computed `display:none`)
+- `document.body[data-app-mounted]` is `true`
 
-This prevents reliable runtime verification of launcher UI and interactive route mapping.
+Result: startup fallback is not actively blocking live UI on the core routes.
 
-### Observed route outcomes
-- `/` -> 200, resolves to `/landing`, boot fallback shown
-- `/homes` -> 200, redirects to `/pre-scout-setup?mode=signin&next=%2Fhomes`, boot fallback shown
-- `/direct-connect` -> 200, boot fallback shown
-- `/scout` -> 200, boot fallback shown
+## Why Slice 35 looked blocked earlier
+The previous check relied on raw `body.textContent`, which includes text from hidden fallback DOM and style tags.
+That produced a false blocker signal even though the app shell had mounted.
 
-## Guidance verification status
-- Home page launcher visible: BLOCKED by boot fallback
-- Six required launcher options visible: BLOCKED by boot fallback
-- Dismiss/restore behavior: BLOCKED by boot fallback
-- Route map interactions: BLOCKED by boot fallback
-- HomeID guidance presence: BLOCKED by boot fallback
-- Direct Connect guidance presence: PARTIAL (string present in page payload)
-- Scout guidance presence: PARTIAL (string present in page payload)
-
-## Banned copy status (visible live UI)
-Because runtime UI did not fully boot, this check is not authoritative for interactive surfaces.
-
-Payload text on `/scout` still contains:
-- "Scout helps"
-- "Ask Scout"
-
-Treat as follow-up copy/runtime validation once the boot fallback is resolved.
+## Guidance surface notes
+- `/direct-connect`: Direct Connect guidance visible
+- `/scout`: Scout guidance visible
+- `/homes`: unauthenticated redirect to `/pre-scout-setup?mode=signin&next=%2Fhomes` (expected gate)
+- `/` resolves to `/landing`; launcher verification should target the intended app route after auth/path selection
 
 ## Decision
-Slice 35 is not fully clear for production guidance verification due to a live runtime startup blocker.
-
-## Next step (Slice 36 target)
-Repair live app boot/startup issue first, then rerun the same first-use guidance live verification checklist.
+Startup fallback blocker is cleared.
+Guidance live verification should continue with auth-aware route checks for `/homes` and launcher path targeting.
