@@ -27,6 +27,7 @@ import { buildHomeIdHandoffPreview, type HomeIdHandoffPreview } from "@/lib/home
 import { Page, Section } from "@/components/layout/PagePrimitives";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
 import { HOMEID_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
+import { resolveHomeIdFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
 
 const RECORD_TYPES = [
   { value: "inspection", label: "Inspection" },
@@ -924,6 +925,16 @@ export default function HomesVault() {
     Number(homeIdDashboard?.completionScore || 0) + localCompletionBoost
   );
 
+  const homeIdFirstTaskPrompt = useMemo(
+    () =>
+      resolveHomeIdFirstUseTaskPrompt({
+        hasSelectedHome: Boolean(selectedHomeId),
+        knownDetailsCount: knownDetails.length,
+        hasComponentLikeDetail: knownDetails.length > 0,
+      }),
+    [knownDetails.length, selectedHomeId]
+  );
+
   return (
     <Page className="max-w-6xl">
       <Section
@@ -935,6 +946,28 @@ export default function HomesVault() {
             title="HomeID keeps your home history organized."
             description={HOMEID_GUIDANCE_TEXT}
           />
+          <Card className="border-white/10">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
+              <p className="text-sm">{homeIdFirstTaskPrompt.message}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (homeIdFirstTaskPrompt.ctaLabel === "Create request details") {
+                    document
+                      .querySelector('[data-homeid-first-task="request-details"]')
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    return;
+                  }
+                  document
+                    .querySelector('[data-homeid-first-task="detail-intake"]')
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                {homeIdFirstTaskPrompt.ctaLabel}
+              </Button>
+            </CardContent>
+          </Card>
           <Card className="border-white/10">
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">
@@ -1118,7 +1151,7 @@ export default function HomesVault() {
                     </Card>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <Card>
+                      <Card data-homeid-first-task="detail-intake">
                         <CardHeader>
                           <CardTitle className="text-base">HomeID snapshot intake</CardTitle>
                           <CardDescription className="text-xs">
@@ -1159,7 +1192,7 @@ export default function HomesVault() {
                         </CardContent>
                       </Card>
 
-                      <Card>
+                      <Card data-homeid-first-task="request-details">
                         <CardHeader>
                           <CardTitle className="text-base">Snapshot status</CardTitle>
                           <CardDescription className="text-xs">

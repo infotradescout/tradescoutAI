@@ -20,6 +20,7 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useScoutLocation } from "./hooks/useScoutLocation";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
 import { SCOUT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
+import { resolveScoutFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
 import {
   useScoutHomeSnapshot,
   type OpportunityMove,
@@ -827,6 +828,14 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   const shouldShowEmptyContext = !hasPersonalizedScoutContext;
   const shouldShowSnapshot =
     hasPersonalizedScoutContext && (hasCategorySelectionOrSearch || hasRealContinuation);
+  const scoutFirstTaskPrompt = useMemo(
+    () =>
+      resolveScoutFirstUseTaskPrompt({
+        hasHomeIdUpdates: nearbyRows.some((row) => row.category === "homes"),
+        hasSavedContext: hasRealContinuation,
+      }),
+    [hasRealContinuation, nearbyRows]
+  );
   const shouldShowSetupNudge = useMemo(() => {
     if (!isAuthenticated || !onboardingStatus) return false;
     const lane = onboardingStatus.lane;
@@ -855,6 +864,26 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
           title="Scout is your discovery page."
           description={SCOUT_GUIDANCE_TEXT}
         />
+        <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+          <p className="text-sm text-zinc-300">{scoutFirstTaskPrompt.message}</p>
+          <button
+            type="button"
+            className="mt-3 inline-flex rounded-lg border border-ts-orange/50 bg-ts-orange/10 px-3 py-1.5 text-xs font-semibold text-ts-orange"
+            onClick={() => {
+              if (scoutFirstTaskPrompt.ctaLabel === "Review HomeID") {
+                onPromptSelect("Review my HomeID updates and what to check next.");
+                return;
+              }
+              if (scoutFirstTaskPrompt.ctaLabel === "Review context") {
+                onPromptSelect("Review my saved context and show what I should continue.");
+                return;
+              }
+              onPromptSelect("Show me where to start with HomeID or Direct Connect.");
+            }}
+          >
+            {scoutFirstTaskPrompt.ctaLabel}
+          </button>
+        </div>
       </section>
       {shouldShowSetupNudge && setupNudge ? (
         <SetupNudgeCard config={setupNudge} onPromptSelect={onPromptSelect} />

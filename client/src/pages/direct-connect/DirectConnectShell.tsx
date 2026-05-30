@@ -32,6 +32,7 @@ import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
 import { DIRECT_CONNECT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
+import { resolveDirectConnectFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import {
   getDirectConnectInboxNextStepCopy,
@@ -4275,6 +4276,18 @@ export default function DirectConnectShell() {
       enabled: isAuthenticated,
     }
   );
+
+  const { data: homesData } = useQuery<{ homes?: Array<{ id: string }> }>({
+    queryKey: ["/api/homes", "first-use-context"],
+    queryFn: async () => {
+      const res = await fetch("/api/homes");
+      if (!res.ok) return { homes: [] };
+      return res.json();
+    },
+    enabled: isAuthenticated,
+  });
+
+  const hasHomeIdContext = Boolean(Array.isArray(homesData?.homes) && homesData.homes.length > 0);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const queryClient = useQueryClient();
   const userRole = String((user as any)?.role || "").toLowerCase();
@@ -4429,6 +4442,15 @@ export default function DirectConnectShell() {
       inConversation: countRequestsByStage(requestsData, "active_conversation"),
     }),
     [requestsData]
+  );
+
+  const directConnectFirstTaskPrompt = useMemo(
+    () =>
+      resolveDirectConnectFirstUseTaskPrompt({
+        requestCount: requestsData?.length || 0,
+        hasHomeIdContext,
+      }),
+    [hasHomeIdContext, requestsData]
   );
 
   useEffect(() => {
@@ -4589,6 +4611,31 @@ export default function DirectConnectShell() {
           title="Direct Connect prepares your request."
           description={DIRECT_CONNECT_GUIDANCE_TEXT}
         />
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
+            <p className="text-sm text-[color:var(--text-primary)]">
+              {directConnectFirstTaskPrompt.message}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-[color:var(--border-subtle)]"
+              onClick={() => {
+                if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
+                  navigate("/homes");
+                  return;
+                }
+                if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
+                  navigate("/direct-connect/engagements");
+                  return;
+                }
+                navigate("/direct-connect");
+              }}
+            >
+              {directConnectFirstTaskPrompt.ctaLabel}
+            </Button>
+          </CardContent>
+        </Card>
 
         {!isAuthenticated && isPensacolaLaunchPath ? (
           <div className="rounded-lg border border-ts-orange/35 bg-ts-orange/10 px-3 py-2.5 md:px-4 md:py-3">
