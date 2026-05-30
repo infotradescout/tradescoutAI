@@ -249,6 +249,79 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      CREATE TABLE IF NOT EXISTS home_maintenance_schedules (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_home_id varchar NOT NULL REFERENCES user_homes(id) ON DELETE CASCADE,
+        title varchar(220) NOT NULL,
+        description text,
+        category varchar(64),
+        cadence_days integer NOT NULL DEFAULT 30,
+        next_due_at timestamp NOT NULL,
+        last_completed_at timestamp,
+        status varchar(24) NOT NULL DEFAULT 'active',
+        assigned_business_id varchar REFERENCES businesses(id) ON DELETE SET NULL,
+        share_with_assigned_provider boolean NOT NULL DEFAULT false,
+        share_address boolean NOT NULL DEFAULT false,
+        metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+        created_at timestamp DEFAULT now(),
+        updated_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_home_maint_sched_owner
+      ON home_maintenance_schedules(owner_user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_home_maint_sched_home
+      ON home_maintenance_schedules(user_home_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_home_maint_sched_next_due
+      ON home_maintenance_schedules(next_due_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_home_maint_sched_assigned_biz
+      ON home_maintenance_schedules(assigned_business_id)
+    `);
+
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS home_report_shares (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        owner_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        shared_by_user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        thread_id varchar NOT NULL,
+        thread_type varchar(24) NOT NULL DEFAULT 'marketplace',
+        user_home_id varchar NOT NULL REFERENCES user_homes(id) ON DELETE CASCADE,
+        include_address boolean NOT NULL DEFAULT false,
+        include_documents boolean NOT NULL DEFAULT false,
+        metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+        revoked_at timestamp,
+        created_at timestamp NOT NULL DEFAULT now(),
+        updated_at timestamp NOT NULL DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_home_report_shares_thread
+      ON home_report_shares(thread_id, created_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_home_report_shares_home
+      ON home_report_shares(user_home_id, created_at)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_home_report_shares_owner
+      ON home_report_shares(owner_user_id, updated_at)
+    `);
+
+    await client.query(`
       DO $$ BEGIN
         CREATE TYPE user_intent AS ENUM ('person', 'business');
       EXCEPTION
