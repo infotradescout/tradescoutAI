@@ -57,6 +57,31 @@ Status: verified_smoke_pass
   - No verification bypass used.
   - No lifecycle guard weakening.
 
+## Slice 29 dashboard timeout repair
+- Commit:
+  - `61f058aa` (`fix: prevent HomeID dashboard live smoke timeout`)
+- Change summary:
+  - Added timeout-safe HomeID dashboard section loading for:
+    - records
+    - appliances
+    - documents
+    - maintenance_schedules
+    - report_shares
+  - Added per-section timing/error logging and non-blocking warning collection.
+  - Dashboard now returns partial sections + warnings instead of hanging if one section stalls.
+
+### Validation after fix
+- `npm run check` -> pass
+- `npm run test` -> pass
+- `npm run build` -> pass
+- Local verified smoke:
+  - `RUN_HOMEID_PRODUCTION_SMOKE=1 npm run test:e2e -- tests/homeid-production-smoke.spec.ts` -> pass (no unverified bypass)
+
+### Live deployment gate status (as of 2026-05-30)
+- Live build header still reports:
+  - `x-tradescout-build: b3c3870a29ad94037db594d4a832b7242a4490a3`
+- This is pre-fix (`61f058aa` not deployed yet), so a conclusive live re-check of the timeout fix is pending deployment rollout.
+
 ## Lifecycle guard note
 - Completion guard remains enforced:
   - `/api/direct-connect/requests/:id/complete` only accepts `in_progress` or `pending_outcome`.
