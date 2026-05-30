@@ -253,11 +253,11 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Sign in to send");
     expect(directConnectShellFile).toContain("currentReturnPath");
     expect(directConnectShellFile).toContain("/pre-scout-setup?mode=signin&next=");
-    expect(directConnectShellFile).toContain("Choose who gets this request");
+    expect(directConnectShellFile).toContain("Choose who can receive this request");
     expect(directConnectShellFile).toContain("Send to top local companies");
     expect(directConnectShellFile).toContain("How many companies should receive this request?");
-    expect(directConnectShellFile).toContain("Ordered by location fit first, then CVS score.");
-    expect(directConnectShellFile).toContain("Let Scout decide");
+    expect(directConnectShellFile).toContain("Ordered by local fit first, then trust score.");
+    expect(directConnectShellFile).toContain("Continue without selection");
     expect(directConnectShellFile).toContain("targetProviderIds");
   });
 

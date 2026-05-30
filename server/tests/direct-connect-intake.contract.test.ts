@@ -31,8 +31,8 @@ describe("direct connect intake contracts", () => {
 
   it("preserves review-before-contact copy in intake flow", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("Review before sharing. Contact stays gated until you approve.");
-    expect(source).toContain("Choose who gets this request");
+    expect(source).toContain("Review request details first. No one is contacted until you submit.");
+    expect(source).toContain("Choose who can receive this request");
   });
 
   it("renders a request review card once required intent details are complete", () => {
@@ -40,16 +40,16 @@ describe("direct connect intake contracts", () => {
     expect(source).toContain('const reviewCardReady = completeness.level !== "too_vague";');
     expect(source).toContain("const requestReadyToShare =");
     expect(source).toContain('routingReadiness === "route_ready"');
-    expect(source).toContain("Request Review Card");
+    expect(source).toContain("Request details review");
     expect(source).toContain("reviewCardReady && (");
   });
 
   it("adds request ready finalization state before sharing", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("Request Ready");
-    expect(source).toContain("Share request");
+    expect(source).toContain("Ready to submit");
+    expect(source).toContain("Submit when ready");
     expect(source).toContain("Edit request");
-    expect(source).toContain("Review before sharing. Contact stays gated until you approve.");
+    expect(source).toContain("Review request details first. No one is contacted until you submit.");
   });
 
   it("evaluates request completeness with user-facing quality states", () => {
@@ -75,8 +75,8 @@ describe("direct connect intake contracts", () => {
   it("adds optional HomeID asset linking controls without blocking request flow", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain("HomeID link (optional)");
-    expect(source).toContain("Home context intent");
-    expect(source).toContain("Link to home");
+    expect(source).toContain("How should this connect to HomeID?");
+    expect(source).toContain("Link HomeID");
     expect(source).toContain("handleSkipAndAutoRoute");
   });
 

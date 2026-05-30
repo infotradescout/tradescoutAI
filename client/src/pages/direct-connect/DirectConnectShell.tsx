@@ -1865,7 +1865,7 @@ function DirectConnectRequestComposer({
   return (
     <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
       <CardHeader className="hidden pb-2 md:block">
-        <CardTitle className="text-base">New request</CardTitle>
+        <CardTitle className="text-base">Prepare a request</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
         {prefillTargetUserId && (
@@ -1927,12 +1927,11 @@ function DirectConnectRequestComposer({
             HomeID link (optional)
           </p>
           <p className="text-xs text-[color:var(--text-secondary)]">
-            Link this request to an existing HomeID/component or create/update HomeID from request
-            context.
+            Link a HomeID so this request stays connected to the right home history.
           </p>
           <div className="space-y-1.5">
             <label className="text-xs text-[color:var(--text-secondary)]">
-              Home context intent
+              How should this connect to HomeID?
             </label>
             <select
               value={homeContextIntent}
@@ -1955,7 +1954,7 @@ function DirectConnectRequestComposer({
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">Link to home</label>
+            <label className="text-xs text-[color:var(--text-secondary)]">Link HomeID</label>
             <select
               value={selectedHomeId}
               onChange={(event) => setSelectedHomeId(event.target.value)}
@@ -1971,7 +1970,9 @@ function DirectConnectRequestComposer({
           </div>
           <div className="grid gap-2 md:grid-cols-2">
             <div className="space-y-1.5">
-              <label className="text-xs text-[color:var(--text-secondary)]">Component type</label>
+              <label className="text-xs text-[color:var(--text-secondary)]">
+                System or component
+              </label>
               <select
                 value={assetComponentType}
                 onChange={(event) =>
@@ -2057,7 +2058,7 @@ function DirectConnectRequestComposer({
         {reviewCardReady && (
           <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
-              Request Review Card
+              Request details review
             </p>
             <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
               {reviewTitle}
@@ -2072,23 +2073,23 @@ function DirectConnectRequestComposer({
               </p>
             </div>
             <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
-              Review before sharing. Contact stays gated until you approve.
+              Review request details first. No one is contacted until you submit.
             </p>
             <div className="mt-2 inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
               {completeness.message}
             </div>
             <div className="mt-2 inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
               {routingReadiness === "route_ready"
-                ? "Routing ready"
+                ? "Ready to submit"
                 : routingReadiness === "needs_location"
-                  ? "Needs location to route"
+                  ? "Add location to submit"
                   : routingReadiness === "needs_category"
-                    ? "Needs category to route"
+                    ? "Add request type to submit"
                     : routingReadiness === "needs_scope"
-                      ? "Needs scope to route"
+                      ? "Add request details to submit"
                       : routingReadiness === "manual_review"
-                        ? "Needs manual review"
-                        : "Blocked from routing"}
+                        ? "Needs review"
+                        : "Not ready to submit"}
             </div>
             {completeness.missing.length > 0 && (
               <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
@@ -2100,10 +2101,10 @@ function DirectConnectRequestComposer({
         {showRequestReady && (
           <div className="space-y-2 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3">
             <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
-              Request Ready
+              Ready to submit
             </h3>
             <p className="text-xs text-[color:var(--text-secondary)]">
-              Your request is reviewable and still follows review-before-contact.
+              Your request details are ready. Submit when ready, before anyone is contacted.
             </p>
             <div className="grid gap-1 text-xs text-[color:var(--text-secondary)]">
               <p>
@@ -2122,14 +2123,14 @@ function DirectConnectRequestComposer({
               </p>
               <p>
                 <span className="text-[color:var(--text-primary)]">Who may see it:</span> local
-                businesses in your routing area
+                businesses in your area
               </p>
               <p>
                 <span className="text-[color:var(--text-primary)]">What is not shared yet:</span>{" "}
                 direct contact details until you approve
               </p>
               <p>
-                <span className="text-[color:var(--text-primary)]">Routing readiness:</span>{" "}
+                <span className="text-[color:var(--text-primary)]">Submission readiness:</span>{" "}
                 {canonicalRequest.routingReadiness}
               </p>
             </div>
@@ -2140,7 +2141,7 @@ function DirectConnectRequestComposer({
                 disabled={!requestReadyToShare || createMutation.isPending}
                 className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
               >
-                Share request
+                Submit when ready
               </Button>
               <Button type="button" variant="outline" onClick={() => setShowRequestReady(false)}>
                 Edit request
@@ -2250,7 +2251,7 @@ function DirectConnectRequestComposer({
             {createMutation.isPending
               ? "Sending..."
               : isAuthenticated
-                ? "Review before sharing"
+                ? "Review request details"
                 : "Sign in to send"}
           </Button>
         </div>
@@ -2261,13 +2262,13 @@ function DirectConnectRequestComposer({
             className="w-full overflow-y-auto border-l-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-4 sm:max-w-xl"
           >
             <SheetHeader>
-              <SheetTitle>Choose who gets this request</SheetTitle>
+              <SheetTitle>Choose who can receive this request</SheetTitle>
             </SheetHeader>
 
             <div className="mt-4 space-y-4">
               <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
                 <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                  Dispatch mode
+                  Request send mode
                 </p>
                 <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
@@ -2282,7 +2283,7 @@ function DirectConnectRequestComposer({
                   >
                     <p className="font-medium">Send to top local companies</p>
                     <p className="mt-1 text-[11px]">
-                      Pick 1-3. TradeScout preselects the top matches by location + CVS.
+                      Pick 1-3 based on local fit and trust checks.
                     </p>
                   </button>
                   <button
@@ -2296,9 +2297,7 @@ function DirectConnectRequestComposer({
                     )}
                   >
                     <p className="font-medium">Send directly to a company</p>
-                    <p className="mt-1 text-[11px]">
-                      Start with none selected, then choose the company you already have in mind.
-                    </p>
+                    <p className="mt-1 text-[11px]">Choose a company you already have in mind.</p>
                   </button>
                 </div>
               </div>
@@ -2340,7 +2339,7 @@ function DirectConnectRequestComposer({
                   className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
                 />
                 <p className="text-[11px] text-[color:var(--text-secondary)]">
-                  Ordered by location fit first, then CVS score.
+                  Ordered by local fit first, then trust score.
                 </p>
               </div>
 
@@ -2422,7 +2421,7 @@ function DirectConnectRequestComposer({
                 <p className="text-xs text-[color:var(--text-secondary)]">
                   {selectedContractorCount > 0
                     ? `${selectedContractorCount} compan${selectedContractorCount === 1 ? "y" : "ies"} selected.`
-                    : "No companies selected yet. If there is no appropriate match, we will manually route this to a reputable local company, and you still approve before contact is unlocked."}
+                    : "No companies selected yet. You can still continue, and direct contact stays locked until you approve."}
                 </p>
               </div>
 
@@ -2444,7 +2443,7 @@ function DirectConnectRequestComposer({
                     disabled={createMutation.isPending}
                     className="border-[color:var(--border-subtle)] text-xs"
                   >
-                    {createMutation.isPending ? "Sending..." : "Let Scout decide"}
+                    {createMutation.isPending ? "Sending..." : "Continue without selection"}
                   </Button>
                   <Button
                     type="button"
@@ -4611,6 +4610,14 @@ export default function DirectConnectShell() {
           title="Direct Connect prepares your request."
           description={DIRECT_CONNECT_GUIDANCE_TEXT}
         />
+        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="pt-4">
+            <p className="text-sm text-[color:var(--text-primary)]">
+              Prepare a request, link HomeID if needed, review request details, and submit when
+              ready. This happens before anyone is contacted.
+            </p>
+          </CardContent>
+        </Card>
         <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
             <p className="text-sm text-[color:var(--text-primary)]">
