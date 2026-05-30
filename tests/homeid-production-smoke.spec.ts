@@ -15,6 +15,7 @@ test.describe("HomeID manual browser production proof", () => {
       data: {
         firstName: "HomeID",
         lastName: "Smoke",
+        phone: "6025550100",
         stateCode: "AZ",
         countyFips: "04013",
       },
