@@ -25,6 +25,8 @@ import {
 import { evaluateHomeIdPacketReadiness } from "@/lib/homeidPacketReadiness";
 import { buildHomeIdHandoffPreview, type HomeIdHandoffPreview } from "@/lib/homeidHandoffPreview";
 import { Page, Section } from "@/components/layout/PagePrimitives";
+import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
+import { HOMEID_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 
 const RECORD_TYPES = [
   { value: "inspection", label: "Inspection" },
@@ -928,6 +930,20 @@ export default function HomesVault() {
         title="Homes"
         subtitle="Private records for your properties: inspections, upgrades, appliances, and documents."
       >
+        <div className="mb-6 space-y-3">
+          <FirstUseGuidanceCard
+            title="HomeID keeps your home history organized."
+            description={HOMEID_GUIDANCE_TEXT}
+          />
+          <Card className="border-white/10">
+            <CardContent className="pt-4">
+              <p className="text-sm text-muted-foreground">
+                Start HomeID with a home type, then add details over time. You can review request
+                details before submitting to Direct Connect.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-6">
             <Card>

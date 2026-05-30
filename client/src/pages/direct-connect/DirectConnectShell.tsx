@@ -30,6 +30,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
+import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
+import { DIRECT_CONNECT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import {
   getDirectConnectInboxNextStepCopy,
@@ -4582,6 +4584,11 @@ export default function DirectConnectShell() {
             )}
           </div>
         </div>
+
+        <FirstUseGuidanceCard
+          title="Direct Connect prepares your request."
+          description={DIRECT_CONNECT_GUIDANCE_TEXT}
+        />
 
         {!isAuthenticated && isPensacolaLaunchPath ? (
           <div className="rounded-lg border border-ts-orange/35 bg-ts-orange/10 px-3 py-2.5 md:px-4 md:py-3">

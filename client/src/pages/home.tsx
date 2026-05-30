@@ -22,6 +22,14 @@ import {
 import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
+import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
+import { FirstUsefulStepLauncher } from "@/components/guidance/FirstUsefulStepLauncher";
+import {
+  DIRECT_CONNECT_GUIDANCE_TEXT,
+  HOMEID_GUIDANCE_TEXT,
+  SCOUT_GUIDANCE_TEXT,
+  TRADE_SCOUT_PRODUCT_EXPLANATION,
+} from "@/lib/firstUseGuidance";
 
 export default function Home() {
   const { user } = useAuth();
@@ -65,6 +73,29 @@ export default function Home() {
             Welcome back, {user?.firstName || "User"}
           </h1>
           <p className="text-white/70">Here's what's happening in your area</p>
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-3">
+          <Card className="border-ts-orange/30 bg-tsCard">
+            <CardContent className="p-4 md:p-5">
+              <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
+            </CardContent>
+          </Card>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <FirstUseGuidanceCard
+              title="Scout is your discovery page."
+              description={SCOUT_GUIDANCE_TEXT}
+            />
+            <FirstUseGuidanceCard
+              title="HomeID keeps your home history organized."
+              description={HOMEID_GUIDANCE_TEXT}
+            />
+            <FirstUseGuidanceCard
+              title="Direct Connect prepares your request."
+              description={DIRECT_CONNECT_GUIDANCE_TEXT}
+            />
+          </div>
+          <FirstUsefulStepLauncher />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">

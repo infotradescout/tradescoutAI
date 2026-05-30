@@ -18,6 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useScoutLocation } from "./hooks/useScoutLocation";
+import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
+import { SCOUT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 import {
   useScoutHomeSnapshot,
   type OpportunityMove,
@@ -274,9 +276,11 @@ function ScoutHero({ locationLabel }: { locationLabel?: string }) {
         <ChevronDown className="h-4 w-4" />
       </button>
       <p className="mt-1.5 max-w-[340px] text-[15px] leading-snug text-zinc-400">
-        {t("scout.tagline")}
+        Scout shows what is happening in your area.
       </p>
-      <p className="mt-1 text-[13px] text-zinc-500">{t("scout.helper")}</p>
+      <p className="mt-1 text-[13px] text-zinc-500">
+        Review local activity and saved context before you continue.
+      </p>
     </section>
   );
 }
@@ -846,6 +850,12 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   return (
     <div className="scout-home-surface pb-[calc(var(--scout-search-dock-height)+var(--global-nav-height)+env(safe-area-inset-bottom)+96px)]">
       <ScoutHero locationLabel={location.label} />
+      <section className="px-4 pt-2">
+        <FirstUseGuidanceCard
+          title="Scout is your discovery page."
+          description={SCOUT_GUIDANCE_TEXT}
+        />
+      </section>
       {shouldShowSetupNudge && setupNudge ? (
         <SetupNudgeCard config={setupNudge} onPromptSelect={onPromptSelect} />
       ) : null}
