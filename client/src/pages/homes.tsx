@@ -971,8 +971,8 @@ export default function HomesVault() {
           <Card className="border-white/10">
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">
-                Start HomeID with a home type, then add details over time. You can review request
-                details before submitting to Direct Connect.
+                HomeID is your home history in one place. Add details over time, review what needs
+                attention, and prepare request details before submitting to Direct Connect.
               </p>
             </CardContent>
           </Card>
@@ -1119,7 +1119,8 @@ export default function HomesVault() {
                   {selectedHome ? formatHomeTitle(selectedHome) : "Select a home"}
                 </CardTitle>
                 <CardDescription>
-                  Add records over time. This data will power home reports and suggestions later.
+                  Keep this home history current so your systems, documents, request details, and
+                  completed work stay organized.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1131,9 +1132,9 @@ export default function HomesVault() {
                   <>
                     <Card>
                       <CardHeader>
-                        <CardTitle className="text-base">HomeID completion</CardTitle>
+                        <CardTitle className="text-base">Home history summary</CardTitle>
                         <CardDescription className="text-xs">
-                          Completion measures trust and request readiness.
+                          See what has been added, what needs review, and what to do next.
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
@@ -1153,9 +1154,9 @@ export default function HomesVault() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card data-homeid-first-task="detail-intake">
                         <CardHeader>
-                          <CardTitle className="text-base">HomeID snapshot intake</CardTitle>
+                          <CardTitle className="text-base">Home history</CardTitle>
                           <CardDescription className="text-xs">
-                            Add a property fact to keep HomeID active after reload.
+                            Add one home detail at a time so this record stays useful.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -1194,9 +1195,9 @@ export default function HomesVault() {
 
                       <Card data-homeid-first-task="request-details">
                         <CardHeader>
-                          <CardTitle className="text-base">Snapshot status</CardTitle>
+                          <CardTitle className="text-base">Items to review</CardTitle>
                           <CardDescription className="text-xs">
-                            Known, missing, and needs-review details persist per HomeID.
+                            See what is known, what needs review, and what is still missing.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
@@ -1208,7 +1209,7 @@ export default function HomesVault() {
                                     .slice(0, 4)
                                     .map((detail) => detail.category.replaceAll("_", " "))
                                     .join(", ")
-                                : "Add your first known detail."}
+                                : "No home details yet. Add your first detail to start your home history."}
                             </div>
                           </div>
                           <div>
@@ -1221,7 +1222,7 @@ export default function HomesVault() {
                                     .slice(0, 3)
                                     .map((detail) => detail.note)
                                     .join(" | ")
-                                : "No review items."}
+                                : "No review items right now."}
                             </div>
                           </div>
                           <div>
@@ -1234,7 +1235,7 @@ export default function HomesVault() {
                                     .slice(0, 5)
                                     .map((category) => category.replaceAll("_", " "))
                                     .join(", ")
-                                : "Core snapshot categories covered."}
+                                : "Core home categories are covered."}
                             </div>
                           </div>
                         </CardContent>
@@ -1244,9 +1245,9 @@ export default function HomesVault() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Prepared request packet</CardTitle>
+                          <CardTitle className="text-base">Request details</CardTitle>
                           <CardDescription className="text-xs">
-                            Save and resume packet drafts without dispatching to providers.
+                            Save and resume request details before anyone is contacted.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -1269,7 +1270,7 @@ export default function HomesVault() {
                             <Label>Attach known details</Label>
                             {knownDetails.length === 0 ? (
                               <div className="text-xs text-muted-foreground">
-                                Add a known property detail to start a packet.
+                                Add a home detail first to prepare request details.
                               </div>
                             ) : (
                               knownDetails.map((detail) => (
@@ -1293,9 +1294,7 @@ export default function HomesVault() {
                                 {packetMissingHelpfulInfo.join(", ")}
                               </div>
                             ) : (
-                              <div className="text-muted-foreground">
-                                No critical gaps detected.
-                              </div>
+                              <div className="text-muted-foreground">No major gaps detected.</div>
                             )}
                           </div>
                           <div className="rounded border p-2 text-xs">
@@ -1308,7 +1307,7 @@ export default function HomesVault() {
                               </div>
                             ) : (
                               <div className="text-muted-foreground">
-                                Packet can be saved and prepared for request review.
+                                Request details can be saved and prepared for review.
                               </div>
                             )}
                           </div>
@@ -1317,22 +1316,22 @@ export default function HomesVault() {
                             onClick={saveRequestPacketDraft}
                             disabled={packetSelectedDetailIds.length === 0}
                           >
-                            {editingPacketId ? "Save packet changes" : "Save request packet"}
+                            {editingPacketId ? "Save request changes" : "Save request details"}
                           </Button>
                         </CardContent>
                       </Card>
 
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Saved request packets</CardTitle>
+                          <CardTitle className="text-base">Saved request details</CardTitle>
                           <CardDescription className="text-xs">
-                            Resume any packet draft from this HomeID.
+                            Resume any saved request detail draft from this home history.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {requestPackets.length === 0 ? (
                             <div className="text-xs text-muted-foreground">
-                              No saved packets yet.
+                              No saved request details yet.
                             </div>
                           ) : (
                             requestPackets.map((packet) => (
@@ -1398,9 +1397,9 @@ export default function HomesVault() {
                     {handoffPreview ? (
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">HomeID request preview</CardTitle>
+                          <CardTitle className="text-base">Request details preview</CardTitle>
                           <CardDescription className="text-xs">
-                            Review the payload, then create a Direct Connect draft without dispatch.
+                            Review what will be included, then create a Direct Connect draft.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-xs">
@@ -1503,9 +1502,9 @@ export default function HomesVault() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Add a record</CardTitle>
+                          <CardTitle className="text-base">Completed work</CardTitle>
                           <CardDescription className="text-xs">
-                            Inspection, maintenance, upgrades, notes.
+                            Add completed work notes, inspections, maintenance, or upgrades.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -1582,9 +1581,9 @@ export default function HomesVault() {
 
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Add an appliance</CardTitle>
+                          <CardTitle className="text-base">Systems and appliances</CardTitle>
                           <CardDescription className="text-xs">
-                            Brand, model, serial, install date.
+                            Add major systems and appliances so this home record stays useful.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -1965,9 +1964,9 @@ export default function HomesVault() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Upload a document</CardTitle>
+                          <CardTitle className="text-base">Documents and evidence</CardTitle>
                           <CardDescription className="text-xs">
-                            Stored privately in your account.
+                            Add receipts, invoices, photos, reports, and manuals when you have them.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
@@ -2006,15 +2005,18 @@ export default function HomesVault() {
 
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Documents</CardTitle>
+                          <CardTitle className="text-base">Saved documents and evidence</CardTitle>
                           <CardDescription className="text-xs">
-                            {documents.length ? `${documents.length} saved` : "No documents yet"}
+                            {documents.length
+                              ? `${documents.length} saved`
+                              : "No documents or evidence yet"}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {documents.length === 0 ? (
                             <div className="text-sm text-muted-foreground">
-                              Upload receipts, reports, manuals...
+                              No documents or evidence yet. Attach receipts, invoices, photos, or
+                              reports when available.
                             </div>
                           ) : (
                             documents.slice(0, 12).map((d: any) => {
@@ -2057,15 +2059,15 @@ export default function HomesVault() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Timeline</CardTitle>
+                          <CardTitle className="text-base">Completed work timeline</CardTitle>
                           <CardDescription className="text-xs">
-                            {records.length ? `${records.length} records` : "No records yet"}
+                            {records.length ? `${records.length} records` : "No completed work yet"}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {records.length === 0 ? (
                             <div className="text-sm text-muted-foreground">
-                              Add your first record above.
+                              No completed work yet. Add your first completed work note above.
                             </div>
                           ) : (
                             records.slice(0, 12).map((r: any) => (
@@ -2095,15 +2097,18 @@ export default function HomesVault() {
 
                       <Card>
                         <CardHeader>
-                          <CardTitle className="text-base">Appliances</CardTitle>
+                          <CardTitle className="text-base">Systems and appliances list</CardTitle>
                           <CardDescription className="text-xs">
-                            {appliances.length ? `${appliances.length} saved` : "No appliances yet"}
+                            {appliances.length
+                              ? `${appliances.length} saved`
+                              : "No systems or appliances yet"}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
                           {appliances.length === 0 ? (
                             <div className="text-sm text-muted-foreground">
-                              Add appliances above.
+                              No systems added yet. Add your HVAC, roof, water heater, or other
+                              major systems to keep this home record useful.
                             </div>
                           ) : (
                             appliances.slice(0, 12).map((a: any) => (
