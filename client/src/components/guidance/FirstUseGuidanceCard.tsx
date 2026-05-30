@@ -8,12 +8,15 @@ export function FirstUseGuidanceCard({
   description: string;
 }) {
   return (
-    <Card className="border-white/10 bg-tsCard">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base text-white">{title}</CardTitle>
+    <Card className="border-white/10 bg-tsCard/95 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+      <CardHeader className="space-y-2 pb-1">
+        <span className="h-1.5 w-12 rounded-full bg-ts-orange/70" aria-hidden="true" />
+        <CardTitle className="text-base leading-tight text-white md:text-[1.03rem]">
+          {title}
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-white/75">{description}</p>
+      <CardContent className="pt-1">
+        <p className="text-sm leading-relaxed text-white/78">{description}</p>
       </CardContent>
     </Card>
   );

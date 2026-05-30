@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, Compass } from "lucide-react";
 import { FIRST_USE_STEP_OPTIONS } from "@/lib/firstUseGuidance";
 
 const DISMISS_KEY = "ts:first-use-launcher:dismissed:v1";
@@ -28,13 +29,15 @@ export function FirstUsefulStepLauncher() {
 
   if (dismissed) {
     return (
-      <Card className="border-white/10 bg-tsCard">
-        <CardContent className="flex items-center justify-between gap-3 p-4">
-          <p className="text-sm text-white/75">Need a starting point? Reopen first-use choices.</p>
+      <Card className="border-white/10 bg-tsCard/95 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-relaxed text-white/75">
+            Need a starting point? Reopen first-use choices.
+          </p>
           <Button
             size="sm"
             variant="outline"
-            className="border-white/15 text-white"
+            className="border-white/20 text-white hover:border-ts-orange/40 hover:bg-ts-orange/10"
             onClick={showAgain}
           >
             Show choices
@@ -45,25 +48,42 @@ export function FirstUsefulStepLauncher() {
   }
 
   return (
-    <Card className="border-white/10 bg-tsCard">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base text-white">Where should I start?</CardTitle>
-        <div className="pt-1">
+    <Card className="border-white/10 bg-tsCard/95 shadow-[0_12px_36px_rgba(0,0,0,0.24)]">
+      <CardHeader className="space-y-2 pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-[11px] tracking-wide text-white/80">
+              <Compass className="h-3.5 w-3.5 text-ts-orange" aria-hidden="true" />
+              First-use guide
+            </div>
+            <CardTitle className="text-base leading-tight text-white md:text-lg">
+              Where should I start?
+            </CardTitle>
+          </div>
           <button
             type="button"
             onClick={dismiss}
-            className="text-xs text-white/65 underline-offset-2 hover:text-white/85 hover:underline"
+            className="rounded px-1 text-xs text-white/65 underline-offset-2 transition hover:text-white/85 hover:underline"
           >
             Dismiss
           </button>
         </div>
+        <p className="text-sm leading-relaxed text-white/74">
+          Pick one path. You can switch anytime.
+        </p>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-2 md:grid-cols-2">
+      <CardContent className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
         {FIRST_USE_STEP_OPTIONS.map((option) => (
           <Link key={option.id} href={option.href}>
-            <a className="block rounded-lg border border-white/10 bg-black/20 px-3 py-2 transition hover:border-ts-orange/40">
-              <p className="text-sm font-semibold text-white">{option.label}</p>
-              <p className="mt-1 text-xs text-white/70">{option.description}</p>
+            <a className="group block rounded-lg border border-white/10 bg-black/20 px-3.5 py-3 transition hover:border-ts-orange/40 hover:bg-black/30">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold text-white">{option.label}</p>
+                <ArrowRight
+                  className="mt-0.5 h-4 w-4 shrink-0 text-white/50 transition group-hover:translate-x-0.5 group-hover:text-ts-orange"
+                  aria-hidden="true"
+                />
+              </div>
+              <p className="mt-1.5 text-xs leading-relaxed text-white/72">{option.description}</p>
             </a>
           </Link>
         ))}
