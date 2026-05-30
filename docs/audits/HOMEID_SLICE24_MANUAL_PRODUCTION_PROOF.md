@@ -1,7 +1,7 @@
 # HomeID Slice 24 Manual Production Proof
 
 Date: 2026-05-30  
-Status: pass_with_lifecycle_guard_alignment
+Status: verified_smoke_pass
 
 ## Scope lock
 - No new product feature scope added.
@@ -22,8 +22,8 @@ Status: pass_with_lifecycle_guard_alignment
 - Result:
   - Initial blocker (resolved): `relation "user_homes" does not exist`
   - Lifecycle alignment applied: smoke now checks request status and only calls `/complete` when status is lifecycle-valid (`in_progress` or `pending_outcome`).
-  - Gated run PASS:
-    - `RUN_HOMEID_PRODUCTION_SMOKE=1 DIRECT_CONNECT_UNVERIFIED_BYPASS=1 npm run test:e2e -- tests/homeid-production-smoke.spec.ts`
+  - Verified-path gated run PASS (no unverified bypass):
+    - `RUN_HOMEID_PRODUCTION_SMOKE=1 npm run test:e2e -- tests/homeid-production-smoke.spec.ts`
 
 ## Lifecycle guard note
 - Completion guard remains enforced:
@@ -47,8 +47,7 @@ This removes the `user_homes missing` and HomeID dashboard table-missing blocker
 1. Bootstrap test DB with latest schema/migrations including `user_homes`.
 2. Run:
    - `RUN_HOMEID_PRODUCTION_SMOKE=1 npm run test:e2e -- tests/homeid-production-smoke.spec.ts`
-3. Optionally set `DIRECT_CONNECT_UNVERIFIED_BYPASS=1` in non-production test environments where address verification is intentionally strict.
-4. Record PASS/FAIL and attach trace/screenshot artifacts from `.playwright/test-results`.
+3. Record PASS/FAIL and attach trace/screenshot artifacts from `.playwright/test-results`.
 
 ## Intended 12-step proof in the smoke
 1. Start/create HomeID.

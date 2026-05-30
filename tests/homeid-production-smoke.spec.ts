@@ -11,6 +11,29 @@ test.describe("HomeID manual browser production proof", () => {
   }) => {
     test.setTimeout(180_000);
 
+    const authUserRes = await page.request.get("/api/auth/user");
+    expect(authUserRes.ok(), `auth user fetch failed: ${authUserRes.status()}`).toBeTruthy();
+    const authUserJson = (await authUserRes.json()) as any;
+    const authUserId = String(authUserJson?.id || authUserJson?.user?.id || "").trim();
+    const isAddressVerified = Boolean(
+      authUserJson?.addressVerified ?? authUserJson?.user?.addressVerified
+    );
+
+    if (authUserId && !isAddressVerified) {
+      const verifyRes = await page.request.post(
+        `/api/admin/user-controls/verify/${encodeURIComponent(authUserId)}`,
+        {
+          data: {
+            reason: "HomeID production smoke verified path requirement",
+          },
+        }
+      );
+      expect(
+        verifyRes.ok(),
+        `verification prerequisite failed: ${verifyRes.status()}`
+      ).toBeTruthy();
+    }
+
     const profileRes = await page.request.put("/api/user/profile", {
       data: {
         firstName: "HomeID",
