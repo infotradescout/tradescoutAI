@@ -6,7 +6,8 @@ Date: 2026-05-30
 - Baseline first-use guidance rollout: `8e3686fe`
 - Live startup fallback repair: `641ccbd9`
 - Live guidance UI verification: `6a48f6ab`
-- Current HEAD at closeout: `6a48f6ab`
+- P0 session persistence closeout entry: `6f20c587`
+- Current HEAD at closeout: `6f20c587`
 
 ## Release Candidate Scope
 This closeout covers the current TradeScout production candidate for:
@@ -111,6 +112,16 @@ Observed:
 - `super_admin` first attempt hit expected `429` during rapid repeated login attempts
 - second attempt succeeded
 - no blocking issues identified
+
+## Production Proof Matrix
+- HomeID verified smoke: PASS
+  - Reference: `docs/audits/HOMEID_SLICE24_MANUAL_PRODUCTION_PROOF.md`
+- First-use guidance live verification: PASS
+  - Reference: `docs/audits/FIRST_USE_GUIDANCE_LIVE_VERIFICATION.md`
+- Live route startup fallback proof: PASS
+  - Method: app-mounted visible-state check, startup fallback hidden
+- P0 session persistence smoke: PASS
+  - Commit: `c2a18ff9045280bb06925d7c3bc40032f4f9b42f`
 
 ## Route Health Checklist (RC)
 - `/` -> PASS
