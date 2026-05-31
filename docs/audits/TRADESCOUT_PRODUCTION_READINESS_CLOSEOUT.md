@@ -283,3 +283,12 @@ Rationale:
   - Prompt-view now emits on first request-start path as a production-safe fallback.
   - Render-time prompt-view tracking remains intact and deduped by ref guard.
   - Link/create/skip and submit-after-skip behavior preserved.
+
+## Slice 69 Status Note
+- Direct Connect request composer usability fix artifact:
+  - `docs/audits/SLICE69_DIRECT_CONNECT_REQUEST_COMPOSER_USABILITY_FIX.md`
+- Current state:
+  - Core Direct Connect request inputs now lead the screen.
+  - Home Record is compact and optional, shown after core request details.
+  - Advanced component ID field is removed from the default request flow.
+  - Skip remains non-blocking; Home Record link/create/skip behavior remains available.

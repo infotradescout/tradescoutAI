@@ -12,12 +12,15 @@ describe("direct connect home record link prompt conversion contract", () => {
   it("renders home-record prompt language and keeps skip path non-blocking", () => {
     const source = fs.readFileSync(shellPath, "utf8");
     expect(source).toContain("Home record (optional)");
-    expect(source).toContain("How should this request use home details?");
-    expect(source).toContain("Link this to my home");
-    expect(source).toContain("Create a home record");
+    expect(source).toContain(
+      "Save this with a home record to avoid retyping property details later."
+    );
+    expect(source).toContain("Show options");
     expect(source).toContain("Use saved home details");
-    expect(source).toContain("Continue without a home record");
-    expect(source).toContain("You can skip this for now. Your request will still be created.");
+    expect(source).toContain("Create a home record");
+    expect(source).toContain("Skip for now");
+    expect(source).toContain("How should this request use home details?");
+    expect(source).toContain("Advanced component IDs stay hidden in the default request flow.");
     expect(source).toContain("handleSkipAndAutoRoute");
   });
 
@@ -42,6 +45,11 @@ describe("direct connect home record link prompt conversion contract", () => {
     expect(source).toContain('{hasExistingHomes ? "Select a saved home" : "No saved homes yet"}');
     expect(source).toContain("if (!hasExistingHomes) return;");
     expect(source).toContain('setHomeContextIntent("link_existing")');
+    expect(source).toContain(
+      "const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);"
+    );
+    expect(source).toContain('showHomeRecordDetails && homeContextIntent !== "skip_for_now"');
+    expect(source).not.toContain("Existing component ID (optional)");
   });
 
   it("fires prompt viewed on render and keeps skip submission non-blocking", () => {
@@ -57,5 +65,17 @@ describe("direct connect home record link prompt conversion contract", () => {
     expect(source).toContain('source: "direct_connect_submit_after_home_record_skip"');
     expect(source).toContain("createMutation.mutate({");
     expect(source).toContain("handleSkipAndAutoRoute");
+  });
+
+  it("keeps core request fields before home record controls", () => {
+    const source = fs.readFileSync(shellPath, "utf8");
+    const requestTypeIndex = source.indexOf("What do you need?");
+    const homeRecordIndex = source.indexOf("Home record (optional)");
+    const requestPhotosIndex = source.indexOf("Request photos");
+    expect(requestTypeIndex).toBeGreaterThan(-1);
+    expect(requestPhotosIndex).toBeGreaterThan(-1);
+    expect(homeRecordIndex).toBeGreaterThan(-1);
+    expect(requestTypeIndex).toBeLessThan(homeRecordIndex);
+    expect(requestPhotosIndex).toBeLessThan(homeRecordIndex);
   });
 });

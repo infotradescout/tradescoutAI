@@ -1164,6 +1164,7 @@ function DirectConnectRequestComposer({
   const [homeContextIntent, setHomeContextIntent] = useState<
     "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now"
   >("skip_for_now");
+  const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
@@ -1497,6 +1498,38 @@ function DirectConnectRequestComposer({
   ];
 
   const activeRequestMeta = requestTypeMeta[requestType];
+
+  const selectHomeRecordIntent = (
+    nextIntent: "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now",
+    source: string
+  ) => {
+    setHomeContextIntent(nextIntent);
+    const userState = user?.id ? "authenticated" : "anonymous";
+    if (nextIntent === "skip_for_now") {
+      trackDirectConnectHomeRecordSkipped({
+        userState,
+        source,
+        componentType: assetComponentType || undefined,
+      });
+      homeRecordSkippedRef.current = true;
+      return;
+    }
+    homeRecordSkippedRef.current = false;
+    if (nextIntent === "create_from_request") {
+      trackDirectConnectHomeRecordCreateSelected({
+        userState,
+        source,
+        componentType: assetComponentType || undefined,
+      });
+      return;
+    }
+    trackDirectConnectHomeRecordLinkSelected({
+      userState,
+      source,
+      homeId: selectedHomeId || undefined,
+      componentType: assetComponentType || undefined,
+    });
+  };
 
   const emitHomeRecordPromptViewed = (sourceOverride?: string) => {
     if (homeRecordPromptViewedRef.current) return;
@@ -2027,152 +2060,6 @@ function DirectConnectRequestComposer({
             ))}
           </select>
         </div>
-        <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
-          <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-            Home record (optional)
-          </p>
-          <p className="text-xs text-[color:var(--text-secondary)]">
-            Save property details with this request so you can avoid retyping later and keep a
-            useful home history over time.
-          </p>
-          <p className="text-[11px] text-[color:var(--text-secondary)]">
-            This can help contractors understand your home or project faster.
-          </p>
-          <div className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">
-              How should this request use home details?
-            </label>
-            <select
-              value={homeContextIntent}
-              onChange={(event) => {
-                const nextIntent = event.target.value as
-                  | "link_existing"
-                  | "create_from_request"
-                  | "update_from_request"
-                  | "skip_for_now";
-                setHomeContextIntent(nextIntent);
-                const userState = user?.id ? "authenticated" : "anonymous";
-                if (nextIntent === "skip_for_now") {
-                  trackDirectConnectHomeRecordSkipped({
-                    userState,
-                    source: "home_record_intent_select_skip",
-                    componentType: assetComponentType || undefined,
-                  });
-                  homeRecordSkippedRef.current = true;
-                } else if (nextIntent === "create_from_request") {
-                  trackDirectConnectHomeRecordCreateSelected({
-                    userState,
-                    source: "home_record_intent_select_create",
-                    componentType: assetComponentType || undefined,
-                  });
-                } else {
-                  trackDirectConnectHomeRecordLinkSelected({
-                    userState,
-                    source: `home_record_intent_select_${nextIntent}`,
-                    homeId: selectedHomeId || undefined,
-                    componentType: assetComponentType || undefined,
-                  });
-                }
-              }}
-              className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
-            >
-              {homeContextIntentOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">
-              Use saved home details
-            </label>
-            <select
-              value={selectedHomeId}
-              onChange={(event) => {
-                const nextHomeId = event.target.value;
-                setSelectedHomeId(nextHomeId);
-                const userState = user?.id ? "authenticated" : "anonymous";
-                if (nextHomeId) {
-                  if (homeContextIntent === "skip_for_now") {
-                    setHomeContextIntent("link_existing");
-                  }
-                  trackDirectConnectHomeRecordLinkSelected({
-                    userState,
-                    source: "home_record_select_saved_home",
-                    homeId: nextHomeId,
-                    componentType: assetComponentType || undefined,
-                  });
-                }
-              }}
-              className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
-            >
-              <option value="">
-                {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
-              </option>
-              {homes.map((home: any) => (
-                <option key={String(home?.id || "")} value={String(home?.id || "")}>
-                  {String(home?.nickname || home?.address1 || home?.id || "Home")}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            <div className="space-y-1.5">
-              <label className="text-xs text-[color:var(--text-secondary)]">
-                System or component
-              </label>
-              <select
-                value={assetComponentType}
-                onChange={(event) =>
-                  setAssetComponentType(
-                    event.target.value as
-                      | "roof"
-                      | "hvac"
-                      | "plumbing"
-                      | "electrical"
-                      | "foundation"
-                      | "exterior"
-                      | "interior"
-                      | "appliance"
-                      | "permit_document"
-                      | "other"
-                  )
-                }
-                className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
-              >
-                {assetComponentTypeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-[color:var(--text-secondary)]">Component label</label>
-              <Input
-                value={assetLabel}
-                onChange={(event) => setAssetLabel(event.target.value)}
-                placeholder="Upstairs AC, main panel, etc."
-                className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)]"
-              />
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">
-              Existing component ID (optional)
-            </label>
-            <Input
-              value={assetComponentId}
-              onChange={(event) => setAssetComponentId(event.target.value)}
-              placeholder="component_abc123"
-              className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)]"
-            />
-          </div>
-          <p className="text-[11px] text-[color:var(--text-secondary)]">
-            You can skip this for now. Your request will still be created.
-          </p>
-        </div>
         {intentConfig?.detailQuestions?.map((question) => (
           <div key={question.key} className="space-y-1.5">
             <label className="text-xs text-[color:var(--text-secondary)]">
@@ -2346,6 +2233,180 @@ function DirectConnectRequestComposer({
                   </button>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+        <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+                Home record (optional)
+              </p>
+              <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                Save this with a home record to avoid retyping property details later.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-[color:var(--text-secondary)]"
+              onClick={() => setShowHomeRecordDetails((current) => !current)}
+            >
+              {showHomeRecordDetails ? "Hide options" : "Show options"}
+            </Button>
+          </div>
+          <div className="grid gap-2 md:grid-cols-3">
+            <Button
+              type="button"
+              variant={homeContextIntent === "link_existing" ? "default" : "outline"}
+              onClick={() => {
+                setShowHomeRecordDetails(true);
+                selectHomeRecordIntent("link_existing", "home_record_compact_link_selected");
+              }}
+              className={
+                homeContextIntent === "link_existing" ? "bg-ts-orange text-text-black" : ""
+              }
+            >
+              Use saved home details
+            </Button>
+            <Button
+              type="button"
+              variant={homeContextIntent === "create_from_request" ? "default" : "outline"}
+              onClick={() => {
+                setShowHomeRecordDetails(true);
+                selectHomeRecordIntent(
+                  "create_from_request",
+                  "home_record_compact_create_selected"
+                );
+              }}
+              className={
+                homeContextIntent === "create_from_request" ? "bg-ts-orange text-text-black" : ""
+              }
+            >
+              Create a home record
+            </Button>
+            <Button
+              type="button"
+              variant={homeContextIntent === "skip_for_now" ? "default" : "outline"}
+              onClick={() => {
+                setShowHomeRecordDetails(false);
+                selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected");
+              }}
+              className={homeContextIntent === "skip_for_now" ? "bg-ts-orange text-text-black" : ""}
+            >
+              Skip for now
+            </Button>
+          </div>
+          {showHomeRecordDetails && homeContextIntent !== "skip_for_now" && (
+            <div className="space-y-2 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
+              <div className="space-y-1.5">
+                <label className="text-xs text-[color:var(--text-secondary)]">
+                  How should this request use home details?
+                </label>
+                <select
+                  value={homeContextIntent}
+                  onChange={(event) => {
+                    const nextIntent = event.target.value as
+                      | "link_existing"
+                      | "create_from_request"
+                      | "update_from_request"
+                      | "skip_for_now";
+                    selectHomeRecordIntent(nextIntent, `home_record_intent_select_${nextIntent}`);
+                    if (nextIntent === "skip_for_now") {
+                      setShowHomeRecordDetails(false);
+                    }
+                  }}
+                  className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+                >
+                  {homeContextIntentOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-[color:var(--text-secondary)]">
+                  Use saved home details
+                </label>
+                <select
+                  value={selectedHomeId}
+                  onChange={(event) => {
+                    const nextHomeId = event.target.value;
+                    setSelectedHomeId(nextHomeId);
+                    const userState = user?.id ? "authenticated" : "anonymous";
+                    if (nextHomeId) {
+                      selectHomeRecordIntent(
+                        "link_existing",
+                        "home_record_select_saved_home_auto_link"
+                      );
+                      trackDirectConnectHomeRecordLinkSelected({
+                        userState,
+                        source: "home_record_select_saved_home",
+                        homeId: nextHomeId,
+                        componentType: assetComponentType || undefined,
+                      });
+                    }
+                  }}
+                  className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+                >
+                  <option value="">
+                    {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
+                  </option>
+                  {homes.map((home: any) => (
+                    <option key={String(home?.id || "")} value={String(home?.id || "")}>
+                      {String(home?.nickname || home?.address1 || home?.id || "Home")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[color:var(--text-secondary)]">
+                    System or component
+                  </label>
+                  <select
+                    value={assetComponentType}
+                    onChange={(event) =>
+                      setAssetComponentType(
+                        event.target.value as
+                          | "roof"
+                          | "hvac"
+                          | "plumbing"
+                          | "electrical"
+                          | "foundation"
+                          | "exterior"
+                          | "interior"
+                          | "appliance"
+                          | "permit_document"
+                          | "other"
+                      )
+                    }
+                    className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+                  >
+                    {assetComponentTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs text-[color:var(--text-secondary)]">
+                    Component label
+                  </label>
+                  <Input
+                    value={assetLabel}
+                    onChange={(event) => setAssetLabel(event.target.value)}
+                    placeholder="Upstairs AC, main panel, etc."
+                    className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                Advanced component IDs stay hidden in the default request flow.
+              </p>
             </div>
           )}
         </div>
