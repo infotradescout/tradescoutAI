@@ -230,3 +230,10 @@ Rationale:
   - Staff/super-admin endpoint access verified (`200`).
   - Non-staff access denial verified (`401` unauthenticated path).
   - Admin `/admin/platform-analytics` Product KPI Audit block verified visible.
+
+## Slice 62 Status Note
+- KPI baseline artifact:
+  - `docs/audits/SLICE62_KPI_BASELINE_REPORT.md`
+- Current state:
+  - First live baseline snapshot captured.
+  - Funnel baselines documented for first-use, HomeID, Direct Connect, and Scout.
