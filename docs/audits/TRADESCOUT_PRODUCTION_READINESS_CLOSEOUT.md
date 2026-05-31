@@ -237,3 +237,12 @@ Rationale:
 - Current state:
   - First live baseline snapshot captured.
   - Funnel baselines documented for first-use, HomeID, Direct Connect, and Scout.
+
+## Slice 63 Status Note
+- KPI-driven priority artifact:
+  - `docs/audits/SLICE63_KPI_DRIVEN_FUNNEL_PRIORITY_REVIEW.md`
+- Current state:
+  - Weakest baseline drop-off selected:
+    - `direct_connect_request_started -> direct_connect_homeid_link_selected` (`0%` in baseline window).
+  - Next P1 improvement selected:
+    - Direct Connect HomeID link prompt clarity + placement.
