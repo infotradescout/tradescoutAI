@@ -46,8 +46,13 @@ describe("direct connect home record link prompt conversion contract", () => {
 
   it("fires prompt viewed on render and keeps skip submission non-blocking", () => {
     const source = fs.readFileSync(shellPath, "utf8");
+    expect(source).toContain("const emitHomeRecordPromptViewed =");
     expect(source).toContain("trackDirectConnectHomeRecordPromptViewed({");
     expect(source).toContain("if (homeRecordPromptViewedRef.current) return;");
+    expect(source).toContain(
+      'emitHomeRecordPromptViewed("direct_connect_home_record_prompt_request_start")'
+    );
+    expect(source).toContain("sourceOverride ||");
     expect(source).toContain("trackDirectConnectRequestSubmittedAfterHomeRecordSkip({");
     expect(source).toContain('source: "direct_connect_submit_after_home_record_skip"');
     expect(source).toContain("createMutation.mutate({");

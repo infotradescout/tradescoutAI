@@ -12,7 +12,7 @@ Date: 2026-05-31
 - Slice 64: `b2296620`
 - Slice 65: `a84a5c0d`
 - Slice 66: `52c29813`
-- Slice 67 (this update): `pending-at-commit-time`
+- Slice 67 (this update): `e93d7884`
 
 ## Live Build Verification
 - Endpoint checked: `GET /api/health`
@@ -25,45 +25,50 @@ Date: 2026-05-31
 ## KPI Endpoint Access Verification
 - Endpoint: `GET /api/analytics/product-kpi/summary`
 - Unauthenticated check result: `403` (staff-gated as expected)
-- Staff-authenticated pull:
-  - Not executed in this session context (no staff cookie/session material provided to this run).
+- Staff-authenticated pull result: `200`
 
-## Required Funnel Fields (Status)
-- `direct_connect_request_started`: pending staff-auth pull
-- `direct_connect_home_record_prompt_viewed`: pending staff-auth pull
-- `direct_connect_home_record_link_selected`: pending staff-auth pull
-- `direct_connect_home_record_create_selected`: pending staff-auth pull
-- `direct_connect_home_record_skipped`: pending staff-auth pull
-- `direct_connect_request_submitted_after_home_record_skip`: pending staff-auth pull
-- `direct_connect_homeid_link_selected`: pending staff-auth pull
+Measurement window:
+- from: `2026-05-24T19:22:32.690Z`
+- to: `2026-05-31T19:22:32.690Z`
+- total events: `5`
 
-Derived rates (pending staff-auth pull):
-- prompt view rate
-- link/select rate from prompt viewed
-- create rate from prompt viewed
-- skip rate from prompt viewed
-- submit-after-skip rate from skipped
-- abandonment after prompt (if inferable)
+## Required Funnel Fields
+- `direct_connect_request_started`: `5`
+- `direct_connect_home_record_prompt_viewed`: `0`
+- `direct_connect_home_record_link_selected`: `0`
+- `direct_connect_home_record_create_selected`: `0`
+- `direct_connect_home_record_skipped`: `0`
+- `direct_connect_request_submitted_after_home_record_skip`: `0`
+- `direct_connect_homeid_link_selected`: `0`
+- `direct_connect_homeid_created_from_request`: `0`
+- `direct_connect_homeid_updated_from_request`: `0`
+
+Breakdowns:
+- `bySurface`: `unknown: 5`
+- `byUserState`: `unknown: 5`
+
+Derived rates:
+- prompt view rate: `0 / 5 = 0%`
+- link/select rate from prompt viewed: not measurable (`prompt_viewed = 0`)
+- create rate from prompt viewed: not measurable (`prompt_viewed = 0`)
+- skip rate from prompt viewed: not measurable (`prompt_viewed = 0`)
+- submit-after-skip rate from skipped: not measurable (`skipped = 0`)
+- abandonment after prompt: not inferable (`prompt_viewed = 0`)
 
 ## Decision Outcome
-Status: **PARTIAL PASS / LIVE STAFF-AUTH PULL PENDING**
+Status: **PASS (decision-ready)**
 
-What is complete:
-1. Production is confirmed on `52c29813+`.
-2. KPI endpoint gating is confirmed intact.
-3. Slice 66 render coverage + event wiring remains valid.
-
-What is still required:
-1. Execute staff-authenticated KPI summary pull against live.
-2. Record fresh post-Slice-64 counts.
-3. Apply Slice 67 decision rules using real counts.
+Final decision:
+1. Production deployment and staff-auth KPI access are confirmed.
+2. `direct_connect_request_started > 0` while `direct_connect_home_record_prompt_viewed = 0`.
+3. This indicates a production visibility/tracking gap for the Home Record prompt in the real request-start flow.
 
 ## Next P1 (Narrow)
-- Run a staff-authenticated `GET /api/analytics/product-kpi/summary` in production and finalize the funnel decision.
-- Do not change Direct Connect UX until those counts are captured.
+- Slice 68: **Direct Connect Home Record Prompt Production Visibility Fix**
+- Do not redesign CTA/copy yet.
+- Fix render coverage and/or prompt-view event firing in production request-start paths first.
 
 ## Validation
-- `npm run check`: pending
-- `npm run test`: pending
-- `npm run build`: pending
-
+- `npm run check`: PASS
+- `npm run test`: PASS
+- `npm run build`: PASS

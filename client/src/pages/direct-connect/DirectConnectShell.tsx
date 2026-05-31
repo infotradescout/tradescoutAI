@@ -1498,11 +1498,28 @@ function DirectConnectRequestComposer({
 
   const activeRequestMeta = requestTypeMeta[requestType];
 
+  const emitHomeRecordPromptViewed = (sourceOverride?: string) => {
+    if (homeRecordPromptViewedRef.current) return;
+    homeRecordPromptViewedRef.current = true;
+    const userState = user?.id ? "authenticated" : "anonymous";
+    trackDirectConnectHomeRecordPromptViewed({
+      userState,
+      source:
+        sourceOverride ||
+        (hasExistingHomes
+          ? "direct_connect_home_record_prompt_with_saved_home"
+          : "direct_connect_home_record_prompt_no_saved_home"),
+      homeId: selectedHomeId || undefined,
+      componentType: assetComponentType || undefined,
+    });
+  };
+
   const markRequestStarted = (
     field: "type" | "title" | "description" | "attachment" | "budget"
   ) => {
     if (requestStartedRef.current) return;
     requestStartedRef.current = true;
+    emitHomeRecordPromptViewed("direct_connect_home_record_prompt_request_start");
     const userState = user?.id ? "authenticated" : "anonymous";
     void trackShellEvent({
       type: "direct_connect_request_started",
@@ -1604,17 +1621,7 @@ function DirectConnectRequestComposer({
   }, []);
 
   useEffect(() => {
-    if (homeRecordPromptViewedRef.current) return;
-    homeRecordPromptViewedRef.current = true;
-    const userState = user?.id ? "authenticated" : "anonymous";
-    trackDirectConnectHomeRecordPromptViewed({
-      userState,
-      source: hasExistingHomes
-        ? "direct_connect_home_record_prompt_with_saved_home"
-        : "direct_connect_home_record_prompt_no_saved_home",
-      homeId: selectedHomeId || undefined,
-      componentType: assetComponentType || undefined,
-    });
+    emitHomeRecordPromptViewed();
   }, [assetComponentType, hasExistingHomes, selectedHomeId, user?.id]);
 
   useEffect(() => {

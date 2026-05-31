@@ -270,6 +270,16 @@ Rationale:
 - Staff-authenticated live KPI pull + funnel decision artifact:
   - `docs/audits/SLICE67_STAFF_AUTH_LIVE_KPI_PULL_FUNNEL_DECISION.md`
 - Current state:
-  - Live deployment now confirms `x-tradescout-build: 52c29813...` (`Slice 66+`).
-  - KPI endpoint staff gating remains enforced (`403` in unauthenticated context).
-  - Final post-Slice-64 funnel decision remains pending a staff-authenticated KPI summary pull.
+  - Live deployment confirms `x-tradescout-build: 52c29813...` (`Slice 66+`).
+  - Staff-authenticated KPI pull completed (`200`) with fresh 7-day window counts.
+  - Decision: `direct_connect_request_started > 0` with `direct_connect_home_record_prompt_viewed = 0`.
+  - Next P1 selected: Slice 68 production visibility/event-firing fix.
+
+## Slice 68 Status Note
+- Direct Connect home record prompt production visibility fix artifact:
+  - `docs/audits/SLICE68_DIRECT_CONNECT_HOME_RECORD_PROMPT_PRODUCTION_VISIBILITY_FIX.md`
+- Current state:
+  - Added one-time prompt-view emission helper in Direct Connect shell.
+  - Prompt-view now emits on first request-start path as a production-safe fallback.
+  - Render-time prompt-view tracking remains intact and deduped by ref guard.
+  - Link/create/skip and submit-after-skip behavior preserved.
