@@ -48,7 +48,7 @@ export function FirstUsefulStepLauncher() {
   }
 
   return (
-    <Card className="border-white/10 bg-tsCard/95 shadow-[0_12px_36px_rgba(0,0,0,0.24)]">
+    <Card className="border-ts-orange/30 bg-tsCard/95 shadow-[0_14px_40px_rgba(0,0,0,0.28)]">
       <CardHeader className="space-y-2 pb-2">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
@@ -56,7 +56,7 @@ export function FirstUsefulStepLauncher() {
               <Compass className="h-3.5 w-3.5 text-ts-orange" aria-hidden="true" />
               First-use guide
             </div>
-            <CardTitle className="text-base leading-tight text-white md:text-lg">
+            <CardTitle className="text-[1.02rem] leading-tight text-white md:text-lg">
               Where should I start?
             </CardTitle>
           </div>

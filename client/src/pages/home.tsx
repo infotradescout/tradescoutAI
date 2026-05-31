@@ -75,12 +75,13 @@ export default function Home() {
           <p className="text-white/70">Here's what's happening in your area</p>
         </div>
 
-        <div className="mb-6 grid grid-cols-1 gap-3">
+        <div className="mb-5 grid grid-cols-1 gap-2.5 md:mb-6">
           <Card className="border-ts-orange/30 bg-tsCard">
-            <CardContent className="p-4 md:p-5">
+            <CardContent className="p-3.5 md:p-5">
               <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
             </CardContent>
           </Card>
+          <FirstUsefulStepLauncher />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <FirstUseGuidanceCard
               title="Scout is your discovery page."
@@ -95,7 +96,6 @@ export default function Home() {
               description={DIRECT_CONNECT_GUIDANCE_TEXT}
             />
           </div>
-          <FirstUsefulStepLauncher />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
