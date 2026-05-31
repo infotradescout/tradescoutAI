@@ -221,3 +221,10 @@ Rationale:
 ## Post-Closeout Watch
 - Slice 39 monitoring runbook:
   - `docs/runbooks/SLICE39_POST_CLOSEOUT_PRODUCTION_WATCH.md`
+
+## Slice 61 Status Note
+- KPI audit live verification artifact:
+  - `docs/audits/SLICE61_PRODUCT_KPI_AUDIT_LIVE_VERIFICATION.md`
+- Current state:
+  - Live non-staff denial verified.
+  - Staff/UI verification pending deployment of build `7fa2734d` or newer.
