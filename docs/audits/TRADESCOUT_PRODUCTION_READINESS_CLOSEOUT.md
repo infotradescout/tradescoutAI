@@ -1,6 +1,6 @@
 # TradeScout Production Readiness Closeout (Slice 46 Final Audit)
 
-Date: 2026-05-30
+Date: 2026-05-31
 
 ## Build / Commit Range
 - Baseline first-use guidance rollout: `8e3686fe`
@@ -81,6 +81,10 @@ References:
 - `docs/audits/FIRST_USE_GUIDANCE_LIVE_VERIFICATION.md`
 - `tests/first-use-guidance-live-ui.spec.ts`
 - `tests/mobile-first-use-smoke.spec.ts`
+
+Live recovery note:
+- Slice 48 first-use watch failure was resolved on live build `139c11900ec432da26d6538c70368eab1a460b9b`.
+- Desktop and mobile first-use live smoke specs both pass.
 
 ## Mobile First-Use Smoke (Slice 45)
 Status: PASS

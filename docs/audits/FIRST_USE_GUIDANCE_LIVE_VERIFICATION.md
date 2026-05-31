@@ -1,6 +1,6 @@
 # First-Use Guidance Live Verification (Slice 37)
 
-Date: 2026-05-30 (updated)
+Date: 2026-05-31 (updated)
 
 Status: PASS (startup clear and guidance verification covered)
 
@@ -17,8 +17,8 @@ No feature changes were introduced.
 
 ## Build hash proof
 - Host: `https://www.thetradescout.com`
-- Header now: `x-tradescout-build: 061a0739ad6e3d42831075893aaf61a17329e369`
-- Result: PASS (`641ccbd9` not yet visible live; deployed build is still `061a0739`)
+- Header now: `x-tradescout-build: 139c11900ec432da26d6538c70368eab1a460b9b`
+- Result: PASS (live build contains Slice 50 recovery behavior and passes both live first-use specs)
 
 ## Startup fallback verification
 Checked live routes:
@@ -35,10 +35,10 @@ Result: startup fallback is not actively blocking live UI on the core routes.
 
 ## First-use guidance visibility findings
 - `/landing`:
-  - Launcher heading `Where should I start?` not visible
-  - Six launcher options not visible
-  - Dismiss/restore controls not visible
-  - Route mapping links not present to click
+  - Launcher heading `Where should I start?` visible
+  - Six launcher options visible
+  - Dismiss/restore controls visible and functional
+  - Route mapping links present and valid
 - `/homes`:
   - Redirects to `/pre-scout-setup?mode=signin&next=%2Fhomes` (expected auth gate)
   - HomeID guidance not visible pre-auth
@@ -46,7 +46,7 @@ Result: startup fallback is not actively blocking live UI on the core routes.
   - Direct Connect guidance visible
 - `/scout`:
   - Scout guidance visible
-  - Visible banned-copy hits found: `Scout helps`, `Ask Scout`
+  - No banned-copy hits in first-use guidance surface checks
 
 ## New guard added
 - Added gated live Playwright smoke:
@@ -55,9 +55,9 @@ Result: startup fallback is not actively blocking live UI on the core routes.
   - Verifies launcher/options/dismiss-route mapping/guidance surfaces/banned copy
 
 ## Decision
-First-use guidance verification is considered PASS for release-candidate scope with:
+First-use guidance live verification is PASS for release-candidate scope with:
 - live startup fallback cleared on core routes
-- first-use guidance live UI coverage in the gated Playwright spec
-- mobile first-use smoke coverage added in Slice 45
+- `tests/first-use-guidance-live-ui.spec.ts` passing live with `RUN_LIVE_GUIDANCE_UI_SMOKE=1`
+- `tests/mobile-first-use-smoke.spec.ts` passing live with `RUN_MOBILE_FIRST_USE_SMOKE=1`
 
-Remaining copy debt outside this verification scope should be tracked as non-blocking cleanup, not a release blocker.
+Slice 48 first-use watch failure is resolved.

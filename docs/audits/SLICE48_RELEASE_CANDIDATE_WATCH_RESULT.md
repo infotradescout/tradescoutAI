@@ -1,11 +1,13 @@
 # Slice 48 — Release Candidate Watch Result
 
 ## Decision
-- Result: **FAIL**
-- Reason: first-use guidance live UI regression on `/landing` (desktop + mobile smoke)
+- Initial Result (2026-05-30): **FAIL**
+- Current Result (2026-05-31): **PASS (recovered)**
+- Recovery Reason: first-use guidance launcher now renders on `/landing`; both live first-use specs pass
 - Baseline runbook: `docs/audits/SLICE47_RELEASE_CANDIDATE_DEPLOYMENT_WATCH.md`
-- Observed build header: `2886561850e274caf0e0d6b204f585d5f84264a5`
-- Watch date (America/Chicago): 2026-05-30
+- Observed build header (initial fail): `2886561850e274caf0e0d6b204f585d5f84264a5`
+- Observed build header (recovery pass): `139c11900ec432da26d6538c70368eab1a460b9b`
+- Watch dates (America/Chicago): 2026-05-30 to 2026-05-31
 
 ## Checkpoint Results
 
@@ -38,28 +40,28 @@
 ### First-Use Guidance Live UI Smoke
 - Spec: `tests/first-use-guidance-live-ui.spec.ts`
 - Env: `RUN_LIVE_GUIDANCE_UI_SMOKE=1`
-- Result: **FAIL**
-- Failure: `Where should I start?` not visible on `/landing`
+- Initial Result: **FAIL**
+- Recovery Result: **PASS** (2026-05-31)
 
 ### Mobile First-Use Smoke
 - Spec: `tests/mobile-first-use-smoke.spec.ts`
 - Env: `RUN_MOBILE_FIRST_USE_SMOKE=1`
-- Result: **FAIL**
-- Failure: `Where should I start?` not visible on `/landing`
+- Initial Result: **FAIL**
+- Recovery Result: **PASS** (2026-05-31)
 
 ### Session Persistence
 - Status: PASS (carried from locked production closeout evidence)
 - Source: `docs/audits/TRADESCOUT_PRODUCTION_READINESS_CLOSEOUT.md`
 
 ## Blocking Issue
-- Surface: first-use guidance rendering on `/landing`
-- Severity: P1 release blocker under Slice 47 alert thresholds
-- Expected: launcher and six choices visible on `/landing`
-- Actual: launcher text not found in live UI for both desktop and mobile smoke
+- Initial blocker (2026-05-30): first-use guidance rendering on `/landing` (P1)
+- Current status (2026-05-31): **resolved**
 
-## Recommended Next Slice
-- Slice 49 — First-Use Guidance Live Regression Repair
-- Goal: restore live launcher visibility and pass both first-use live UI smoke specs
+## Recovery Outcome
+- Slice 49 / Slice 50 recovery path validated live on build `139c1190`.
+- `/landing` launcher visible with required six choices.
+- Desktop and mobile live first-use specs both pass.
+- Slice 48 watch failure is closed.
 
 ## Commands Run
 ```bash
