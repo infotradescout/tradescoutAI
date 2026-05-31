@@ -35,4 +35,22 @@ describe("direct connect home record link prompt conversion contract", () => {
     expect(analyticsSource).toContain("direct_connect_home_record_skipped");
     expect(analyticsSource).toContain("direct_connect_request_submitted_after_home_record_skip");
   });
+
+  it("keeps render coverage for existing-home and no-home states in request prep", () => {
+    const source = fs.readFileSync(shellPath, "utf8");
+    expect(source).toContain("const hasExistingHomes = homes.length > 0;");
+    expect(source).toContain('{hasExistingHomes ? "Select a saved home" : "No saved homes yet"}');
+    expect(source).toContain("if (!hasExistingHomes) return;");
+    expect(source).toContain('setHomeContextIntent("link_existing")');
+  });
+
+  it("fires prompt viewed on render and keeps skip submission non-blocking", () => {
+    const source = fs.readFileSync(shellPath, "utf8");
+    expect(source).toContain("trackDirectConnectHomeRecordPromptViewed({");
+    expect(source).toContain("if (homeRecordPromptViewedRef.current) return;");
+    expect(source).toContain("trackDirectConnectRequestSubmittedAfterHomeRecordSkip({");
+    expect(source).toContain('source: "direct_connect_submit_after_home_record_skip"');
+    expect(source).toContain("createMutation.mutate({");
+    expect(source).toContain("handleSkipAndAutoRoute");
+  });
 });

@@ -255,3 +255,13 @@ Rationale:
   - Latest available baseline window remains pre-Slice 64 traffic for the new prompt events.
   - Next P1 is measurement-first:
     - fresh live KPI refresh window before any new Direct Connect redesign work.
+
+## Slice 66 Status Note
+- Direct Connect render coverage + KPI refresh artifact:
+  - `docs/audits/SLICE66_DIRECT_CONNECT_HOME_RECORD_PROMPT_RENDER_COVERAGE_LIVE_KPI_REFRESH.md`
+- Current state:
+  - Render coverage for existing-home, no-home, and skip non-blocking flows is verified in request-prep path.
+  - Prompt/link/create/skip/submitted-after-skip events are verified wired and contract-covered.
+  - Live build header confirms `a84a5c0d...` is deployed.
+  - Staff-gated KPI endpoint remains access-controlled (`403` for non-staff context).
+  - Fresh post-Slice-64 funnel decision still requires staff-authenticated live KPI pull.
