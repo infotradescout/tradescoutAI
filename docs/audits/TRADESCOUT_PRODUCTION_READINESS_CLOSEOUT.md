@@ -226,5 +226,7 @@ Rationale:
 - KPI audit live verification artifact:
   - `docs/audits/SLICE61_PRODUCT_KPI_AUDIT_LIVE_VERIFICATION.md`
 - Current state:
-  - Live non-staff denial verified.
-  - Staff/UI verification pending deployment of build `7fa2734d` or newer.
+  - Live build verified at `9511078fabbacd5e48b17d2e4c7076d850cdaadf` (`7fa2734d+`).
+  - Staff/super-admin endpoint access verified (`200`).
+  - Non-staff access denial verified (`401` unauthenticated path).
+  - Admin `/admin/platform-analytics` Product KPI Audit block verified visible.

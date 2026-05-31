@@ -12,31 +12,29 @@ Scope: Live verification for Slice 60 KPI audit endpoint + internal admin view o
 ## Evidence Collected
 1. Live build header check:
    - `curl -I https://www.thetradescout.com/api/health`
-   - `x-tradescout-build: 3a4ee03bac8da2afb16de23dac87ff3ac68799ce`
-2. Non-staff/unauthenticated endpoint probe:
-   - `curl -i https://www.thetradescout.com/api/analytics/product-kpi/summary`
-   - HTTP `403`
-   - Body: `{"error":"Automated scraping is blocked."}`
+   - `x-tradescout-build: 9511078fabbacd5e48b17d2e4c7076d850cdaadf` (newer than `7fa2734d`)
+2. Staff/super-admin API verification:
+   - Authenticated login: `POST /api/auth/login` -> `200`
+   - Authenticated request: `GET /api/analytics/product-kpi/summary` -> `200`
+   - Response includes counts/breakdowns payload (no 500/timeout)
+3. Non-staff denial verification:
+   - Unauthenticated request: `GET /api/analytics/product-kpi/summary` -> `401`
+   - Body: `{"message":"Authentication required"}`
+4. Admin UI verification:
+   - Route: `/admin/platform-analytics`
+   - **Product KPI Audit (internal)** block visible for authenticated super-admin
+   - Evidence screenshot: `test-results/slice61-kpi-admin-ui-wait20s.png`
 
 ## Result
-Status: PARTIAL PASS / LIVE PENDING
+Status: PASS
 
-Pass:
-- Non-staff/unauthenticated access is denied in live.
-
-Pending:
-- Live build is still `3a4ee03b`, which is older than Slice 60 commit `7fa2734d`.
-- Staff-access verification and live admin UI verification cannot be completed against the old build.
-
-## Next Verification Step (After Deploy)
-Re-run once `x-tradescout-build` is `7fa2734d` or newer:
-1. Staff-authenticated request:
-   - `GET /api/analytics/product-kpi/summary` returns `200` with counts/breakdowns.
-2. Non-staff request:
-   - remains denied (`403`/`401` acceptable).
-3. Admin UI:
-   - `/admin/platform-analytics` Overview shows **Product KPI Audit (internal)** and loads counts.
+All required live checks passed:
+1. Build header is `7fa2734d+` -> PASS
+2. Staff/super-admin endpoint access -> PASS (`200`)
+3. Non-staff access denied -> PASS (`401`)
+4. Admin Overview KPI block renders -> PASS
+5. Counts/breakdowns return without `500/timeout` -> PASS
 
 ## Release Impact
-- Not a product behavior blocker.
-- Live verification checklist remains open until deployment catches up.
+- Slice 61 live verification gate is closed.
+- KPI audit endpoint/UI is confirmed live for staff-only access.
