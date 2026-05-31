@@ -39,7 +39,12 @@ import {
   trackFirstUseTaskPromptViewed,
 } from "@/lib/firstUseAnalytics";
 import {
+  trackDirectConnectHomeRecordCreateSelected,
+  trackDirectConnectHomeRecordLinkSelected,
+  trackDirectConnectHomeRecordPromptViewed,
+  trackDirectConnectHomeRecordSkipped,
   trackDirectConnectHomeIdLinkSelected,
+  trackDirectConnectRequestSubmittedAfterHomeRecordSkip,
   trackDirectConnectRequestStarted,
 } from "@/lib/coreProductAnalytics";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
@@ -1171,6 +1176,8 @@ function DirectConnectRequestComposer({
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
+  const homeRecordPromptViewedRef = useRef(false);
+  const homeRecordSkippedRef = useRef(false);
 
   const homesQuery = useQuery({
     queryKey: ["/api/homes"],
@@ -1179,6 +1186,7 @@ function DirectConnectRequestComposer({
   const homes = Array.isArray((homesQuery.data as any)?.homes)
     ? (homesQuery.data as any).homes
     : [];
+  const hasExistingHomes = homes.length > 0;
   const currentReturnPath = () => {
     if (typeof window === "undefined") return location || "/direct-connect";
     return `${window.location.pathname}${window.location.search || ""}`;
@@ -1456,10 +1464,10 @@ function DirectConnectRequestComposer({
     value: "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now";
     label: string;
   }> = [
-    { value: "link_existing", label: "Link to existing HomeID" },
-    { value: "create_from_request", label: "Create HomeID from this request" },
-    { value: "update_from_request", label: "Update HomeID from this request" },
-    { value: "skip_for_now", label: "Skip for now" },
+    { value: "link_existing", label: "Link this to my home" },
+    { value: "create_from_request", label: "Create a home record" },
+    { value: "update_from_request", label: "Use saved home details" },
+    { value: "skip_for_now", label: "Continue without a home record" },
   ];
 
   const assetComponentTypeOptions: Array<{
@@ -1596,6 +1604,30 @@ function DirectConnectRequestComposer({
   }, []);
 
   useEffect(() => {
+    if (homeRecordPromptViewedRef.current) return;
+    homeRecordPromptViewedRef.current = true;
+    const userState = user?.id ? "authenticated" : "anonymous";
+    trackDirectConnectHomeRecordPromptViewed({
+      userState,
+      source: hasExistingHomes
+        ? "direct_connect_home_record_prompt_with_saved_home"
+        : "direct_connect_home_record_prompt_no_saved_home",
+      homeId: selectedHomeId || undefined,
+      componentType: assetComponentType || undefined,
+    });
+  }, [assetComponentType, hasExistingHomes, selectedHomeId, user?.id]);
+
+  useEffect(() => {
+    if (!hasExistingHomes) return;
+    if (selectedHomeId) return;
+    if (homeContextIntent !== "skip_for_now") return;
+    const firstHomeId = String((homes[0] as any)?.id || "").trim();
+    if (!firstHomeId) return;
+    setSelectedHomeId(firstHomeId);
+    setHomeContextIntent("link_existing");
+  }, [hasExistingHomes, homeContextIntent, homes, selectedHomeId]);
+
+  useEffect(() => {
     if (!intentConfig) return;
     if (hasAppliedIntentDefaultsRef.current) return;
     hasAppliedIntentDefaultsRef.current = true;
@@ -1670,6 +1702,17 @@ function DirectConnectRequestComposer({
           source: variables?.homeContextIntent || "direct_connect_submit",
         });
       }
+      if (
+        homeRecordSkippedRef.current ||
+        variables?.homeContextIntent === "skip_for_now" ||
+        (!variables?.homeId && !variables?.homeContextIntent)
+      ) {
+        trackDirectConnectRequestSubmittedAfterHomeRecordSkip({
+          userState,
+          source: "direct_connect_submit_after_home_record_skip",
+          componentType: variables?.assetComponentType || undefined,
+        });
+      }
       trackShellEvent({
         type: "scout_query",
         payload: {
@@ -1713,6 +1756,7 @@ function DirectConnectRequestComposer({
       setAssetComponentId("");
       setAssetLabel("");
       setHomeContextIntent("skip_for_now");
+      homeRecordSkippedRef.current = false;
       requestStartedRef.current = false;
       clearAttachments();
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
@@ -1860,6 +1904,28 @@ function DirectConnectRequestComposer({
 
   const handleSendWithSelection = () => {
     const targetProviderIds = Array.from(new Set(selectedContractorIds));
+    const userState = user?.id ? "authenticated" : "anonymous";
+    if (homeContextIntent === "link_existing" || homeContextIntent === "update_from_request") {
+      trackDirectConnectHomeRecordLinkSelected({
+        userState,
+        source: homeContextIntent,
+        homeId: selectedHomeId.trim() || undefined,
+        componentType: assetComponentType || undefined,
+      });
+    } else if (homeContextIntent === "create_from_request") {
+      trackDirectConnectHomeRecordCreateSelected({
+        userState,
+        source: homeContextIntent,
+        componentType: assetComponentType || undefined,
+      });
+    } else {
+      trackDirectConnectHomeRecordSkipped({
+        userState,
+        source: "skip_for_now_send_with_selection",
+        componentType: assetComponentType || undefined,
+      });
+      homeRecordSkippedRef.current = true;
+    }
     createMutation.mutate({
       targetProviderIds,
       autoRoute: false,
@@ -1874,6 +1940,13 @@ function DirectConnectRequestComposer({
   };
 
   const handleSkipAndAutoRoute = () => {
+    const userState = user?.id ? "authenticated" : "anonymous";
+    trackDirectConnectHomeRecordSkipped({
+      userState,
+      source: "skip_for_now_continue_without_selection",
+      componentType: assetComponentType || undefined,
+    });
+    homeRecordSkippedRef.current = true;
     createMutation.mutate({
       targetProviderIds: [],
       autoRoute: true,
@@ -1949,26 +2022,51 @@ function DirectConnectRequestComposer({
         </div>
         <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-            HomeID link (optional)
+            Home record (optional)
           </p>
           <p className="text-xs text-[color:var(--text-secondary)]">
-            Link a HomeID so this request stays connected to the right home history.
+            Save property details with this request so you can avoid retyping later and keep a
+            useful home history over time.
+          </p>
+          <p className="text-[11px] text-[color:var(--text-secondary)]">
+            This can help contractors understand your home or project faster.
           </p>
           <div className="space-y-1.5">
             <label className="text-xs text-[color:var(--text-secondary)]">
-              How should this connect to HomeID?
+              How should this request use home details?
             </label>
             <select
               value={homeContextIntent}
-              onChange={(event) =>
-                setHomeContextIntent(
-                  event.target.value as
-                    | "link_existing"
-                    | "create_from_request"
-                    | "update_from_request"
-                    | "skip_for_now"
-                )
-              }
+              onChange={(event) => {
+                const nextIntent = event.target.value as
+                  | "link_existing"
+                  | "create_from_request"
+                  | "update_from_request"
+                  | "skip_for_now";
+                setHomeContextIntent(nextIntent);
+                const userState = user?.id ? "authenticated" : "anonymous";
+                if (nextIntent === "skip_for_now") {
+                  trackDirectConnectHomeRecordSkipped({
+                    userState,
+                    source: "home_record_intent_select_skip",
+                    componentType: assetComponentType || undefined,
+                  });
+                  homeRecordSkippedRef.current = true;
+                } else if (nextIntent === "create_from_request") {
+                  trackDirectConnectHomeRecordCreateSelected({
+                    userState,
+                    source: "home_record_intent_select_create",
+                    componentType: assetComponentType || undefined,
+                  });
+                } else {
+                  trackDirectConnectHomeRecordLinkSelected({
+                    userState,
+                    source: `home_record_intent_select_${nextIntent}`,
+                    homeId: selectedHomeId || undefined,
+                    componentType: assetComponentType || undefined,
+                  });
+                }
+              }}
               className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
             >
               {homeContextIntentOptions.map((option) => (
@@ -1979,13 +2077,32 @@ function DirectConnectRequestComposer({
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">Link HomeID</label>
+            <label className="text-xs text-[color:var(--text-secondary)]">
+              Use saved home details
+            </label>
             <select
               value={selectedHomeId}
-              onChange={(event) => setSelectedHomeId(event.target.value)}
+              onChange={(event) => {
+                const nextHomeId = event.target.value;
+                setSelectedHomeId(nextHomeId);
+                const userState = user?.id ? "authenticated" : "anonymous";
+                if (nextHomeId) {
+                  if (homeContextIntent === "skip_for_now") {
+                    setHomeContextIntent("link_existing");
+                  }
+                  trackDirectConnectHomeRecordLinkSelected({
+                    userState,
+                    source: "home_record_select_saved_home",
+                    homeId: nextHomeId,
+                    componentType: assetComponentType || undefined,
+                  });
+                }
+              }}
               className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
             >
-              <option value="">Not linked</option>
+              <option value="">
+                {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
+              </option>
               {homes.map((home: any) => (
                 <option key={String(home?.id || "")} value={String(home?.id || "")}>
                   {String(home?.nickname || home?.address1 || home?.id || "Home")}
@@ -2045,6 +2162,9 @@ function DirectConnectRequestComposer({
               className="bg-[color:var(--surface-card)] border-[color:var(--border-subtle)]"
             />
           </div>
+          <p className="text-[11px] text-[color:var(--text-secondary)]">
+            You can skip this for now. Your request will still be created.
+          </p>
         </div>
         {intentConfig?.detailQuestions?.map((question) => (
           <div key={question.key} className="space-y-1.5">

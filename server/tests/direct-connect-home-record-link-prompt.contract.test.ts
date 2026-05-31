@@ -1,0 +1,38 @@
+import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+
+const shellPath = path.resolve(
+  process.cwd(),
+  "client/src/pages/direct-connect/DirectConnectShell.tsx"
+);
+const analyticsPath = path.resolve(process.cwd(), "client/src/lib/coreProductAnalytics.ts");
+
+describe("direct connect home record link prompt conversion contract", () => {
+  it("renders home-record prompt language and keeps skip path non-blocking", () => {
+    const source = fs.readFileSync(shellPath, "utf8");
+    expect(source).toContain("Home record (optional)");
+    expect(source).toContain("How should this request use home details?");
+    expect(source).toContain("Link this to my home");
+    expect(source).toContain("Create a home record");
+    expect(source).toContain("Use saved home details");
+    expect(source).toContain("Continue without a home record");
+    expect(source).toContain("You can skip this for now. Your request will still be created.");
+    expect(source).toContain("handleSkipAndAutoRoute");
+  });
+
+  it("tracks conversion events for prompt viewed, selections, skip, and submit-after-skip", () => {
+    const shellSource = fs.readFileSync(shellPath, "utf8");
+    const analyticsSource = fs.readFileSync(analyticsPath, "utf8");
+    expect(shellSource).toContain("trackDirectConnectHomeRecordPromptViewed");
+    expect(shellSource).toContain("trackDirectConnectHomeRecordLinkSelected");
+    expect(shellSource).toContain("trackDirectConnectHomeRecordCreateSelected");
+    expect(shellSource).toContain("trackDirectConnectHomeRecordSkipped");
+    expect(shellSource).toContain("trackDirectConnectRequestSubmittedAfterHomeRecordSkip");
+    expect(analyticsSource).toContain("direct_connect_home_record_prompt_viewed");
+    expect(analyticsSource).toContain("direct_connect_home_record_link_selected");
+    expect(analyticsSource).toContain("direct_connect_home_record_create_selected");
+    expect(analyticsSource).toContain("direct_connect_home_record_skipped");
+    expect(analyticsSource).toContain("direct_connect_request_submitted_after_home_record_skip");
+  });
+});

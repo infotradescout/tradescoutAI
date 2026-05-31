@@ -142,6 +142,54 @@ export function trackDirectConnectRequestStarted(args: DirectConnectArgs) {
   });
 }
 
+type DirectConnectHomeRecordEventType =
+  | "direct_connect_home_record_prompt_viewed"
+  | "direct_connect_home_record_link_selected"
+  | "direct_connect_home_record_create_selected"
+  | "direct_connect_home_record_skipped"
+  | "direct_connect_request_submitted_after_home_record_skip";
+
+function trackDirectConnectHomeRecordEvent(
+  type: DirectConnectHomeRecordEventType,
+  args: DirectConnectArgs
+) {
+  void trackShellEvent({
+    type,
+    surface: "direct_connect",
+    userState: args.userState,
+    viewport: getDeviceType(),
+    source: args.source || "direct_connect_ui",
+    homeId: args.homeId,
+    requestId: args.requestId,
+    packetId: args.packetId,
+    componentType: args.componentType,
+    ts: nowIso(),
+  });
+}
+
+export function trackDirectConnectHomeRecordPromptViewed(args: DirectConnectArgs) {
+  trackDirectConnectHomeRecordEvent("direct_connect_home_record_prompt_viewed", args);
+}
+
+export function trackDirectConnectHomeRecordLinkSelected(args: DirectConnectArgs) {
+  trackDirectConnectHomeRecordEvent("direct_connect_home_record_link_selected", args);
+}
+
+export function trackDirectConnectHomeRecordCreateSelected(args: DirectConnectArgs) {
+  trackDirectConnectHomeRecordEvent("direct_connect_home_record_create_selected", args);
+}
+
+export function trackDirectConnectHomeRecordSkipped(args: DirectConnectArgs) {
+  trackDirectConnectHomeRecordEvent("direct_connect_home_record_skipped", args);
+}
+
+export function trackDirectConnectRequestSubmittedAfterHomeRecordSkip(args: DirectConnectArgs) {
+  trackDirectConnectHomeRecordEvent(
+    "direct_connect_request_submitted_after_home_record_skip",
+    args
+  );
+}
+
 export function trackDirectConnectHomeIdCreatedFromRequest(args: DirectConnectArgs) {
   void trackShellEvent({
     type: "direct_connect_homeid_created_from_request",

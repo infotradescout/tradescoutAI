@@ -254,6 +254,11 @@ export type ShellEvent =
       type:
         | "direct_connect_request_started"
         | "direct_connect_homeid_link_selected"
+        | "direct_connect_home_record_prompt_viewed"
+        | "direct_connect_home_record_link_selected"
+        | "direct_connect_home_record_create_selected"
+        | "direct_connect_home_record_skipped"
+        | "direct_connect_request_submitted_after_home_record_skip"
         | "direct_connect_homeid_created_from_request"
         | "direct_connect_homeid_updated_from_request";
       surface: "direct_connect";
