@@ -265,3 +265,11 @@ Rationale:
   - Live build header confirms `a84a5c0d...` is deployed.
   - Staff-gated KPI endpoint remains access-controlled (`403` for non-staff context).
   - Fresh post-Slice-64 funnel decision still requires staff-authenticated live KPI pull.
+
+## Slice 67 Status Note
+- Staff-authenticated live KPI pull + funnel decision artifact:
+  - `docs/audits/SLICE67_STAFF_AUTH_LIVE_KPI_PULL_FUNNEL_DECISION.md`
+- Current state:
+  - Live deployment now confirms `x-tradescout-build: 52c29813...` (`Slice 66+`).
+  - KPI endpoint staff gating remains enforced (`403` in unauthenticated context).
+  - Final post-Slice-64 funnel decision remains pending a staff-authenticated KPI summary pull.
