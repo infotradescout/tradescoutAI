@@ -54,3 +54,33 @@ From fix + validation records for `2785b4b5`:
 
 ## Recommendation
 Do not jump to broad P2 work yet. If desired, run one additional narrow spacing pass focused only on reducing residual empty visual depth under the first viewport on `/landing` and `/`, then re-capture the same 4 screenshots.
+
+---
+
+# Slice 56 — Final Landing/Home Visual Proof Update
+
+Date: 2026-05-31  
+Follow-up fix commit: `eef1b8bd`
+
+## Slice 56 Screenshot Artifacts (Post-Fix)
+- `docs/audits/artifacts/slice56/landing-desktop.png`
+- `docs/audits/artifacts/slice56/landing-mobile.png`
+- `docs/audits/artifacts/slice56/home-desktop.png`
+- `docs/audits/artifacts/slice56/home-mobile.png`
+
+## Final Comparison Outcome
+
+### 1) P1: /landing and / above-the-fold dead-space
+- Slice 54 status: partial recovery.
+- Slice 56 result: additional vertical tightening on `/landing` and `/` improves first-viewport density and brings first-use content forward.
+- Final status: **CLOSED (P1 resolved)**.
+
+### 2) Mobile launcher prominence
+- Slice 54 status: recovered.
+- Slice 56 result: prominence remains recovered with launcher still clearly surfaced on first viewport.
+- Final status: **RECOVERED (maintained)**.
+
+## Acceptance Decision
+- Slice 56 status: **PASS**
+- P1 dead-space item: **closed**
+- No product behavior changes introduced in proof update.
