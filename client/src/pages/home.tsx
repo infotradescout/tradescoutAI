@@ -67,15 +67,15 @@ export default function Home() {
       pageHeight={window.innerHeight - 80}
       scrollToTop={false}
     >
-      <div className="max-w-7xl mx-auto ts-surface px-4 sm:px-6 lg:px-8 py-6 md:py-12">
-        <div className="mb-5 md:mb-8">
+      <div className="max-w-7xl mx-auto ts-surface px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+        <div className="mb-4 md:mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
             Welcome back, {user?.firstName || "User"}
           </h1>
           <p className="text-white/70">Here's what's happening in your area</p>
         </div>
 
-        <div className="mb-5 grid grid-cols-1 gap-2.5 md:mb-6">
+        <div className="mb-4 grid grid-cols-1 gap-2 md:mb-5">
           <Card className="border-ts-orange/30 bg-tsCard">
             <CardContent className="p-3.5 md:p-5">
               <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>

@@ -274,12 +274,12 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
   return (
     <section
       ref={heroRef}
-      className="ts-landing-hero relative flex min-h-[42vh] items-center overflow-hidden md:min-h-[48vh] lg:min-h-[56vh]"
+      className="ts-landing-hero relative flex min-h-[34vh] items-start overflow-hidden md:min-h-[40vh] lg:min-h-[48vh]"
     >
       <motion.div
         // eslint-disable-next-line no-restricted-syntax -- framer-motion transform props (non-color styles)
         style={{ y: heroY, opacity: heroOpacity }}
-        className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-12 pt-10 sm:px-6 md:pb-14 md:pt-14 lg:px-8 lg:pb-16 lg:pt-16"
+        className="relative z-10 mx-auto w-full max-w-7xl px-4 pb-8 pt-6 sm:px-6 md:pb-10 md:pt-9 lg:px-8 lg:pb-12 lg:pt-10"
       >
         <div className="w-full md:max-w-3xl">
           {variant.showBadge !== false && (
@@ -389,7 +389,7 @@ function HeroSection({ variant }: { variant: ReturnType<typeof useLandingVariant
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="absolute bottom-0.5 md:bottom-2 left-1/2 -translate-x-1/2"
+        className="absolute bottom-0 left-1/2 -translate-x-1/2"
       >
         <motion.div animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 2 }}>
           <ChevronDown className="w-6 h-6 text-white/40" />
@@ -1117,7 +1117,7 @@ export default function Home() {
       <main className="relative z-10">
         <section
           data-testid="first-use-guidance-surface"
-          className="mx-auto w-full max-w-7xl px-4 pt-3 sm:px-6 sm:pt-4 lg:px-8"
+          className="mx-auto w-full max-w-7xl px-4 pt-2 sm:px-6 sm:pt-3 lg:px-8"
         >
           <div className="grid grid-cols-1 gap-2.5">
             <div className="rounded-xl border border-white/10 bg-tsCard/90 p-3.5 shadow-[0_12px_36px_rgba(0,0,0,0.24)] md:p-4">
