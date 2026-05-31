@@ -16,7 +16,10 @@ describe("product KPI audit route contract", () => {
     expect(source).toContain('"homeid_started"');
     expect(source).toContain('"direct_connect_homeid_link_selected"');
     expect(source).toContain('"direct_connect_home_record_prompt_viewed"');
+    expect(source).toContain('"direct_connect_home_record_link_selected"');
+    expect(source).toContain('"direct_connect_home_record_create_selected"');
     expect(source).toContain('"direct_connect_home_record_skipped"');
+    expect(source).toContain('"direct_connect_request_submitted_after_home_record_skip"');
     expect(source).toContain('"scout_homeid_action_card_clicked"');
   });
 });

@@ -128,4 +128,84 @@ describe("core product KPI analytics delivery", () => {
       packetId: "packet_2",
     });
   });
+
+  it("persists Direct Connect home-record prompt conversion KPI events", async () => {
+    const app = makeApp();
+    const ts = new Date().toISOString();
+
+    const promptViewedEvent = {
+      type: "direct_connect_home_record_prompt_viewed",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "desktop",
+      source: "direct_connect_home_record_prompt_with_saved_home",
+      homeId: "home_3",
+      ts,
+    };
+
+    const linkSelectedEvent = {
+      type: "direct_connect_home_record_link_selected",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "desktop",
+      source: "home_record_select_saved_home",
+      homeId: "home_3",
+      componentType: "hvac",
+      ts,
+    };
+
+    const createSelectedEvent = {
+      type: "direct_connect_home_record_create_selected",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "desktop",
+      source: "home_record_intent_select_create",
+      componentType: "roof",
+      ts,
+    };
+
+    const skippedEvent = {
+      type: "direct_connect_home_record_skipped",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "mobile",
+      source: "home_record_intent_select_skip",
+      componentType: "other",
+      ts,
+    };
+
+    const submitAfterSkipEvent = {
+      type: "direct_connect_request_submitted_after_home_record_skip",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "mobile",
+      source: "direct_connect_submit_after_home_record_skip",
+      ts,
+    };
+
+    expect((await request(app).post("/api/analytics/shell").send(promptViewedEvent)).status).toBe(
+      204
+    );
+    expect((await request(app).post("/api/analytics/shell").send(linkSelectedEvent)).status).toBe(
+      204
+    );
+    expect((await request(app).post("/api/analytics/shell").send(createSelectedEvent)).status).toBe(
+      204
+    );
+    expect((await request(app).post("/api/analytics/shell").send(skippedEvent)).status).toBe(204);
+    expect(
+      (await request(app).post("/api/analytics/shell").send(submitAfterSkipEvent)).status
+    ).toBe(204);
+
+    await flushAsyncWork();
+
+    expect(logEventMock).toHaveBeenCalledTimes(5);
+    expect(logEventMock.mock.calls[0][0]).toBe("direct_connect_home_record_prompt_viewed");
+    expect(logEventMock.mock.calls[1][0]).toBe("direct_connect_home_record_link_selected");
+    expect(logEventMock.mock.calls[2][0]).toBe("direct_connect_home_record_create_selected");
+    expect(logEventMock.mock.calls[3][0]).toBe("direct_connect_home_record_skipped");
+    expect(logEventMock.mock.calls[4][0]).toBe(
+      "direct_connect_request_submitted_after_home_record_skip"
+    );
+  });
 });

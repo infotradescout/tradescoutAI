@@ -246,3 +246,12 @@ Rationale:
     - `direct_connect_request_started -> direct_connect_homeid_link_selected` (`0%` in baseline window).
   - Next P1 improvement selected:
     - Direct Connect HomeID link prompt clarity + placement.
+
+## Slice 65 Status Note
+- Direct Connect home-record prompt re-baseline artifact:
+  - `docs/audits/SLICE65_DIRECT_CONNECT_HOME_RECORD_PROMPT_KPI_REBASELINE.md`
+- Current state:
+  - Slice 64 prompt-conversion events are confirmed visible in KPI audit allowlist and delivery contracts.
+  - Latest available baseline window remains pre-Slice 64 traffic for the new prompt events.
+  - Next P1 is measurement-first:
+    - fresh live KPI refresh window before any new Direct Connect redesign work.
