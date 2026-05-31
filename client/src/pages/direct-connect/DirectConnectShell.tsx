@@ -38,6 +38,10 @@ import {
   trackFirstUseTaskPromptClicked,
   trackFirstUseTaskPromptViewed,
 } from "@/lib/firstUseAnalytics";
+import {
+  trackDirectConnectHomeIdLinkSelected,
+  trackDirectConnectRequestStarted,
+} from "@/lib/coreProductAnalytics";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import {
   getDirectConnectInboxNextStepCopy,
@@ -1491,6 +1495,7 @@ function DirectConnectRequestComposer({
   ) => {
     if (requestStartedRef.current) return;
     requestStartedRef.current = true;
+    const userState = user?.id ? "authenticated" : "anonymous";
     void trackShellEvent({
       type: "direct_connect_request_started",
       category: activeRequestMeta.category,
@@ -1498,6 +1503,12 @@ function DirectConnectRequestComposer({
       source: prefillSource || null,
       deviceType: getDeviceType(),
       ts: new Date().toISOString(),
+    });
+    trackDirectConnectRequestStarted({
+      userState,
+      source: prefillSource || "direct_connect_start",
+      homeId: selectedHomeId || undefined,
+      componentType: assetComponentType || undefined,
     });
   };
 
@@ -1650,6 +1661,15 @@ function DirectConnectRequestComposer({
       const selectedCount = Array.isArray(variables?.targetProviderIds)
         ? variables.targetProviderIds.length
         : 0;
+      const userState = user?.id ? "authenticated" : "anonymous";
+      if (variables?.homeId || variables?.homeContextIntent === "create_from_request") {
+        trackDirectConnectHomeIdLinkSelected({
+          userState,
+          homeId: variables?.homeId || undefined,
+          componentType: variables?.assetComponentType || undefined,
+          source: variables?.homeContextIntent || "direct_connect_submit",
+        });
+      }
       trackShellEvent({
         type: "scout_query",
         payload: {

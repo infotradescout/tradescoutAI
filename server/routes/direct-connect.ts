@@ -5844,6 +5844,31 @@ export function registerDirectConnectRoutes(app: Express) {
                 homePacketSelectedDetailIds: body.homePacketSelectedDetailIds || [],
                 homePacketReadinessState: body.homePacketReadinessState || null,
               });
+              if (
+                homeContextIntent === "create_from_request" ||
+                homeContextIntent === "update_from_request"
+              ) {
+                await storage.logEvent(
+                  homeContextIntent === "create_from_request"
+                    ? "direct_connect_homeid_created_from_request"
+                    : "direct_connect_homeid_updated_from_request",
+                  {
+                    type:
+                      homeContextIntent === "create_from_request"
+                        ? "direct_connect_homeid_created_from_request"
+                        : "direct_connect_homeid_updated_from_request",
+                    surface: "direct_connect",
+                    source: "direct_connect_server",
+                    userState: "authenticated",
+                    viewport: "desktop",
+                    homeId: targetHomeId,
+                    requestId: String(created.id),
+                    packetId: body.homePacketId || null,
+                    componentType: body.assetComponentType || null,
+                    ts: new Date().toISOString(),
+                  }
+                );
+              }
             } else if (requestedHomeId && !ownedLinkedHome) {
               await db.insert(workRequestEvents).values({
                 workRequestId: created.id,

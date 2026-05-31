@@ -34,6 +34,16 @@ import {
   trackFirstUseTaskPromptClicked,
   trackFirstUseTaskPromptViewed,
 } from "@/lib/firstUseAnalytics";
+import {
+  trackHomeIdComponentAdded,
+  trackHomeIdDirectConnectDraftCreated,
+  trackHomeIdDirectConnectRequestSubmitted,
+  trackHomeIdEvidenceAdded,
+  trackHomeIdFirstDetailAdded,
+  trackHomeIdRequestPacketCreated,
+  trackHomeIdRequestPacketReady,
+  trackHomeIdStarted,
+} from "@/lib/coreProductAnalytics";
 
 const RECORD_TYPES = [
   { value: "inspection", label: "Inspection" },
@@ -285,7 +295,14 @@ export default function HomesVault() {
       });
       await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
       const id = String(data?.home?.id || "");
-      if (id) setSelectedHomeId(id);
+      if (id) {
+        trackHomeIdStarted({
+          userState: firstUseUserState,
+          homeId: id,
+          source: "homeid_create",
+        });
+        setSelectedHomeId(id);
+      }
     },
     onError: (err: any) => {
       toast({
@@ -351,6 +368,12 @@ export default function HomesVault() {
         notes: "",
       });
       if (selectedHomeId) {
+        trackHomeIdComponentAdded({
+          userState: firstUseUserState,
+          homeId: selectedHomeId,
+          source: "homeid_appliance",
+          componentType: "appliance",
+        });
         await queryClient.invalidateQueries({ queryKey: [`/api/homes/${selectedHomeId}`] });
         await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
       }
@@ -386,6 +409,11 @@ export default function HomesVault() {
       setDocFile(null);
       setDocType("other");
       if (selectedHomeId) {
+        trackHomeIdEvidenceAdded({
+          userState: firstUseUserState,
+          homeId: selectedHomeId,
+          source: "homeid_document_upload",
+        });
         await queryClient.invalidateQueries({ queryKey: [`/api/homes/${selectedHomeId}`] });
         await queryClient.invalidateQueries({ queryKey: ["/api/homes"] });
       }
@@ -620,6 +648,13 @@ export default function HomesVault() {
       });
       const packet = requestPackets.find((item) => item.id === handoffPreviewPacketId);
       if (requestId && handoffPreview && packet) {
+        trackHomeIdDirectConnectDraftCreated({
+          userState: firstUseUserState,
+          homeId: selectedHomeId || "",
+          requestId,
+          packetId: packet.id,
+          source: "homeid_to_direct_connect_draft",
+        });
         const componentTypeByCategory: Record<string, string> = {
           roof: "roof",
           hvac: "hvac",
@@ -692,6 +727,15 @@ export default function HomesVault() {
           ? `Request ${requestId} submitted from HomeID draft.`
           : "Request submitted from HomeID draft.",
       });
+      if (directConnectDraft?.homeId) {
+        trackHomeIdDirectConnectRequestSubmitted({
+          userState: firstUseUserState,
+          homeId: directConnectDraft.homeId,
+          requestId: requestId || directConnectDraft.requestId,
+          packetId: directConnectDraft.homePacketId,
+          source: "homeid_draft_submit",
+        });
+      }
       setDirectConnectDraft(null);
     },
     onError: (err: any) => {
@@ -796,6 +840,22 @@ export default function HomesVault() {
       savedAt: now,
     };
     setPropertyDetails((prev) => [detail, ...prev]);
+    if (selectedHomeId) {
+      trackHomeIdFirstDetailAdded({
+        userState: firstUseUserState,
+        homeId: selectedHomeId,
+        source: "homeid_snapshot_intake",
+        componentType: snapshotCategory,
+      });
+      if (snapshotCategory !== "other") {
+        trackHomeIdComponentAdded({
+          userState: firstUseUserState,
+          homeId: selectedHomeId,
+          source: "homeid_snapshot_intake",
+          componentType: snapshotCategory,
+        });
+      }
+    }
     setSnapshotNote("");
   }
 
@@ -820,8 +880,10 @@ export default function HomesVault() {
     });
     const status: HomeIdRequestPacket["status"] = readiness.state;
 
+    let trackedPacketId = "";
     setRequestPackets((prev) => {
       if (editingPacketId) {
+        trackedPacketId = editingPacketId;
         return prev.map((packet) =>
           packet.id === editingPacketId
             ? {
@@ -836,9 +898,11 @@ export default function HomesVault() {
             : packet
         );
       }
+      const newPacketId = `packet_${Math.random().toString(36).slice(2, 10)}`;
+      trackedPacketId = newPacketId;
       return [
         {
-          id: `packet_${Math.random().toString(36).slice(2, 10)}`,
+          id: newPacketId,
           requestType: packetRequestType,
           selectedDetailIds: [...packetSelectedDetailIds],
           missingHelpfulInfo: packetMissingHelpfulInfo,
@@ -856,6 +920,23 @@ export default function HomesVault() {
     setHandoffPreview(null);
     setHandoffPreviewPacketId(null);
     setDirectConnectDraft(null);
+
+    if (selectedHomeId && trackedPacketId) {
+      trackHomeIdRequestPacketCreated({
+        userState: firstUseUserState,
+        homeId: selectedHomeId,
+        packetId: trackedPacketId,
+        source: editingPacketId ? "homeid_packet_update" : "homeid_packet_create",
+      });
+      if (status === "ready_for_handoff") {
+        trackHomeIdRequestPacketReady({
+          userState: firstUseUserState,
+          homeId: selectedHomeId,
+          packetId: trackedPacketId,
+          source: "homeid_packet_readiness",
+        });
+      }
+    }
   }
 
   function resumeRequestPacket(packetId: string) {

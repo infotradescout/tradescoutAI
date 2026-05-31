@@ -109,6 +109,10 @@ import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { hasCompletedSetup } from "@/lib/setupState";
 import { trackShellEvent } from "@/lib/analytics";
 import {
+  trackScoutHomeIdActionCardClicked,
+  trackScoutHomeIdContextViewed,
+} from "@/lib/coreProductAnalytics";
+import {
   LIVE_READINESS_QUICK_START_PROMPT,
   SCOUT_QUICK_START_PROMPTS,
 } from "./scoutQuickStartPrompts";
@@ -4432,6 +4436,15 @@ export default function ScoutOS() {
     });
   }, [homeIdContextRail, homeIdMaintenanceSuggestions, homeIdSimilarLocalSignals]);
 
+  useEffect(() => {
+    if (!homeIdContextRail.hasHomeId) return;
+    trackScoutHomeIdContextViewed({
+      userState: user?.id ? "authenticated" : "anonymous",
+      homeId: homeIdContextRail.homeId,
+      source: "scout_homeid_context_rail",
+    });
+  }, [homeIdContextRail.hasHomeId, homeIdContextRail.homeId, user?.id]);
+
   const { data: vehiclesData } = useQuery<{
     vehicles?: Array<{
       id: string;
@@ -6237,7 +6250,21 @@ export default function ScoutOS() {
                                 type="button"
                                 className="mt-2 rounded border px-2 py-1 text-[11px] font-semibold"
                                 style={{ borderColor: "var(--border-subtle)" }}
-                                onClick={() => navigate(card.href)}
+                                onClick={() => {
+                                  trackScoutHomeIdActionCardClicked({
+                                    userState: user?.id ? "authenticated" : "anonymous",
+                                    homeId: card.targetHomeId,
+                                    actionCardType: card.actionType,
+                                    componentType:
+                                      card.actionType === "view_component" ||
+                                      card.actionType === "review_component"
+                                        ? card.targetComponentId
+                                        : undefined,
+                                    packetId: card.targetPacketId,
+                                    source: card.source,
+                                  });
+                                  navigate(card.href);
+                                }}
                               >
                                 {card.ctaLabel}
                               </button>

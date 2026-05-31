@@ -228,6 +228,56 @@ export type ShellEvent =
       userState: "anonymous" | "authenticated";
       viewport: DeviceType;
       ts: string;
+    }
+  // ── Core HomeID / Direct Connect / Scout KPI events ────────────────────
+  | {
+      type:
+        | "homeid_started"
+        | "homeid_first_detail_added"
+        | "homeid_component_added"
+        | "homeid_evidence_added"
+        | "homeid_request_packet_created"
+        | "homeid_request_packet_ready"
+        | "homeid_direct_connect_draft_created"
+        | "homeid_direct_connect_request_submitted";
+      surface: "homes";
+      userState: "anonymous" | "authenticated";
+      viewport: DeviceType;
+      source: string;
+      homeId?: string;
+      requestId?: string;
+      packetId?: string;
+      componentType?: string;
+      ts: string;
+    }
+  | {
+      type:
+        | "direct_connect_request_started"
+        | "direct_connect_homeid_link_selected"
+        | "direct_connect_homeid_created_from_request"
+        | "direct_connect_homeid_updated_from_request";
+      surface: "direct_connect";
+      userState: "anonymous" | "authenticated";
+      viewport: DeviceType;
+      source: string;
+      homeId?: string;
+      requestId?: string;
+      packetId?: string;
+      componentType?: string;
+      ts: string;
+    }
+  | {
+      type: "scout_homeid_context_viewed" | "scout_homeid_action_card_clicked";
+      surface: "scout";
+      userState: "anonymous" | "authenticated";
+      viewport: DeviceType;
+      source: string;
+      homeId?: string;
+      actionCardType?: string;
+      componentType?: string;
+      requestId?: string;
+      packetId?: string;
+      ts: string;
     };
 
 export function getDeviceType(): DeviceType {
