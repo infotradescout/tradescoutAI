@@ -292,3 +292,12 @@ Rationale:
   - Home Record is compact and optional, shown after core request details.
   - Advanced component ID field is removed from the default request flow.
   - Skip remains non-blocking; Home Record link/create/skip behavior remains available.
+
+## Slice 70 Status Note
+- Direct Connect mobile usability smoke + post-fix KPI check artifact:
+  - `docs/audits/SLICE70_DIRECT_CONNECT_MOBILE_USABILITY_SMOKE_POST_FIX_KPI.md`
+- Current state:
+  - Live build header confirms Slice 69 deployment (`9734ed6b...`).
+  - Added focused mobile smoke coverage for Direct Connect request-first composer hierarchy.
+  - KPI endpoint remains staff-gated in unauthenticated context (`403`), with automated scraping blocked.
+  - Fresh post-fix KPI counts remain pending staff-authenticated browser pull.
