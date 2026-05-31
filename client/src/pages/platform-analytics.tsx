@@ -116,6 +116,27 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     staleTime: 30 * 1000,
   });
 
+  type ProductKpiSummaryResponse = {
+    window: { from: string; to: string };
+    totalEvents: number;
+    countsByEvent: Record<string, number>;
+    breakdowns: {
+      bySurface: Record<string, number>;
+      byUserState: Record<string, number>;
+      byOptionId: Record<string, number>;
+      byTargetRoute: Record<string, number>;
+      byComponentType: Record<string, number>;
+      byActionCardType: Record<string, number>;
+    };
+  };
+
+  const { data: productKpiSummary } = useQuery<ProductKpiSummaryResponse>({
+    queryKey: ["/api/analytics/product-kpi/summary"],
+    queryFn: () => apiRequest("GET", "/api/analytics/product-kpi/summary"),
+    enabled: outcomeRolesAllowed,
+    staleTime: 30 * 1000,
+  });
+
   type AdminStatsResponse = {
     totalUsers: number;
     totalContractors?: number;
@@ -505,7 +526,6 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
           </Select>
         }
       >
-
         {/* Analytics Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-muted border-border">
@@ -572,6 +592,63 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                 );
               })}
             </div>
+
+            {productKpiSummary && (
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5 text-ts-orange" />
+                    Product KPI Audit (internal)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm text-white/70">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {Object.entries(productKpiSummary.countsByEvent).map(([eventType, total]) => (
+                      <div
+                        key={eventType}
+                        className="rounded-lg border border-white/10 bg-black/20 p-3"
+                      >
+                        <p className="text-[11px] uppercase tracking-[0.08em] text-white/50">
+                          {eventType.replaceAll("_", " ")}
+                        </p>
+                        <p className="mt-1 text-xl font-semibold text-white">{total}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs font-semibold text-white/80">By surface</p>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {Object.entries(productKpiSummary.breakdowns.bySurface).map(
+                          ([key, value]) => (
+                            <li key={key} className="flex items-center justify-between">
+                              <span>{key}</span>
+                              <span className="font-mono">{value}</span>
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs font-semibold text-white/80">By user state</p>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {Object.entries(productKpiSummary.breakdowns.byUserState).map(
+                          ([key, value]) => (
+                            <li key={key} className="flex items-center justify-between">
+                              <span>{key}</span>
+                              <span className="font-mono">{value}</span>
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/50">
+                    Total tracked events: {productKpiSummary.totalEvents.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Scout Draft Funnel */}
             {scoutDraftSummary && (
@@ -1188,7 +1265,7 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
             </div>
           </TabsContent>
         </Tabs>
-       </Section>
+      </Section>
     </Page>
   );
 });

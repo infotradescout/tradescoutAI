@@ -13,6 +13,27 @@ const DEMAND_EVENT_TYPES = [
   "demand.intent_submitted",
 ] as const;
 
+const PRODUCT_KPI_EVENT_TYPES = [
+  "first_use_guidance_viewed",
+  "first_use_launcher_viewed",
+  "first_use_option_clicked",
+  "first_use_task_prompt_clicked",
+  "homeid_started",
+  "homeid_first_detail_added",
+  "homeid_component_added",
+  "homeid_evidence_added",
+  "homeid_request_packet_created",
+  "homeid_request_packet_ready",
+  "homeid_direct_connect_draft_created",
+  "homeid_direct_connect_request_submitted",
+  "direct_connect_request_started",
+  "direct_connect_homeid_link_selected",
+  "direct_connect_homeid_created_from_request",
+  "direct_connect_homeid_updated_from_request",
+  "scout_homeid_context_viewed",
+  "scout_homeid_action_card_clicked",
+] as const;
+
 type DemandEventType = (typeof DEMAND_EVENT_TYPES)[number];
 
 type DemandCounts = {
@@ -417,6 +438,103 @@ export function registerAnalyticsRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching demand analytics timeline", error);
       res.status(500).json({ message: "Failed to fetch demand analytics timeline" });
+    }
+  });
+
+  // Internal: first-use + core product KPI audit summary.
+  app.get("/api/analytics/product-kpi/summary", isStaff, async (req: Request, res: Response) => {
+    try {
+      const { from, to } = resolveHoursWindow((req.query || {}) as Record<string, unknown>, 24 * 7);
+
+      const [countsResult, breakdownResult] = await Promise.all([
+        pool.query(
+          `
+            SELECT event_type, COUNT(*)::int AS total
+            FROM events
+            WHERE event_type = ANY($1::text[])
+              AND created_at >= $2
+              AND created_at < $3
+            GROUP BY event_type
+            ORDER BY event_type ASC
+          `,
+          [PRODUCT_KPI_EVENT_TYPES, from, to]
+        ),
+        pool.query(
+          `
+            SELECT
+              event_type,
+              COALESCE(NULLIF(data->>'surface', ''), 'unknown') AS surface,
+              COALESCE(NULLIF(data->>'userState', ''), 'unknown') AS user_state,
+              COALESCE(NULLIF(data->>'optionId', ''), '') AS option_id,
+              COALESCE(NULLIF(data->>'targetRoute', ''), '') AS target_route,
+              COALESCE(NULLIF(data->>'componentType', ''), '') AS component_type,
+              COALESCE(NULLIF(data->>'actionCardType', ''), '') AS action_card_type,
+              COUNT(*)::int AS total
+            FROM events
+            WHERE event_type = ANY($1::text[])
+              AND created_at >= $2
+              AND created_at < $3
+            GROUP BY 1, 2, 3, 4, 5, 6, 7
+            ORDER BY total DESC
+            LIMIT 800
+          `,
+          [PRODUCT_KPI_EVENT_TYPES, from, to]
+        ),
+      ]);
+
+      const countsByEvent: Record<string, number> = Object.fromEntries(
+        PRODUCT_KPI_EVENT_TYPES.map((eventType) => [eventType, 0])
+      );
+      for (const row of countsResult.rows || []) {
+        const eventType = String((row as any).event_type || "");
+        const total = toNumber((row as any).total);
+        if (eventType in countsByEvent) countsByEvent[eventType] = total;
+      }
+
+      const breakdowns = {
+        bySurface: {} as Record<string, number>,
+        byUserState: {} as Record<string, number>,
+        byOptionId: {} as Record<string, number>,
+        byTargetRoute: {} as Record<string, number>,
+        byComponentType: {} as Record<string, number>,
+        byActionCardType: {} as Record<string, number>,
+      };
+
+      for (const row of breakdownResult.rows || []) {
+        const surface = String((row as any).surface || "unknown").trim() || "unknown";
+        const userState = String((row as any).user_state || "unknown").trim() || "unknown";
+        const optionId = String((row as any).option_id || "").trim();
+        const targetRoute = String((row as any).target_route || "").trim();
+        const componentType = String((row as any).component_type || "").trim();
+        const actionCardType = String((row as any).action_card_type || "").trim();
+        const total = toNumber((row as any).total);
+
+        breakdowns.bySurface[surface] = (breakdowns.bySurface[surface] || 0) + total;
+        breakdowns.byUserState[userState] = (breakdowns.byUserState[userState] || 0) + total;
+        if (optionId)
+          breakdowns.byOptionId[optionId] = (breakdowns.byOptionId[optionId] || 0) + total;
+        if (targetRoute)
+          breakdowns.byTargetRoute[targetRoute] =
+            (breakdowns.byTargetRoute[targetRoute] || 0) + total;
+        if (componentType)
+          breakdowns.byComponentType[componentType] =
+            (breakdowns.byComponentType[componentType] || 0) + total;
+        if (actionCardType)
+          breakdowns.byActionCardType[actionCardType] =
+            (breakdowns.byActionCardType[actionCardType] || 0) + total;
+      }
+
+      const totalEvents = Object.values(countsByEvent).reduce((sum, value) => sum + value, 0);
+
+      return res.json({
+        window: { from: from.toISOString(), to: to.toISOString() },
+        totalEvents,
+        countsByEvent,
+        breakdowns,
+      });
+    } catch (error) {
+      console.error("Error fetching product KPI summary", error);
+      return res.status(500).json({ message: "Failed to fetch product KPI summary" });
     }
   });
 
