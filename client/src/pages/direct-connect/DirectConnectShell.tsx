@@ -33,6 +33,11 @@ import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
 import { DIRECT_CONNECT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 import { resolveDirectConnectFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
+import {
+  trackFirstUseGuidanceViewed,
+  trackFirstUseTaskPromptClicked,
+  trackFirstUseTaskPromptViewed,
+} from "@/lib/firstUseAnalytics";
 import { PENSACOLA_COUNTY_CODE } from "@/lib/pensacolaClusters";
 import {
   getDirectConnectInboxNextStepCopy,
@@ -4194,6 +4199,7 @@ function MyDirectConnectRequests() {
 export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
   const pathOnly = useMemo(() => getPathOnly(location), [location]);
   const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
@@ -4453,6 +4459,23 @@ export default function DirectConnectShell() {
   );
 
   useEffect(() => {
+    trackFirstUseGuidanceViewed("direct_connect", firstUseUserState);
+  }, [firstUseUserState]);
+
+  useEffect(() => {
+    trackFirstUseTaskPromptViewed({
+      surface: "direct_connect",
+      promptMessage: directConnectFirstTaskPrompt.message,
+      ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+      userState: firstUseUserState,
+    });
+  }, [
+    directConnectFirstTaskPrompt.ctaLabel,
+    directConnectFirstTaskPrompt.message,
+    firstUseUserState,
+  ]);
+
+  useEffect(() => {
     if (!isAuthenticated) return;
     if (pathOnly !== "/direct-connect") return;
     if (!shouldResolveDirectConnectEntry(directConnectEntry)) return;
@@ -4628,14 +4651,38 @@ export default function DirectConnectShell() {
               variant="outline"
               className="border-[color:var(--border-subtle)]"
               onClick={() => {
+                let targetRoute = "/direct-connect";
                 if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
+                  targetRoute = "/homes";
+                  trackFirstUseTaskPromptClicked({
+                    surface: "direct_connect",
+                    promptMessage: directConnectFirstTaskPrompt.message,
+                    ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                    targetRoute,
+                    userState: firstUseUserState,
+                  });
                   navigate("/homes");
                   return;
                 }
                 if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
+                  targetRoute = "/direct-connect/engagements";
+                  trackFirstUseTaskPromptClicked({
+                    surface: "direct_connect",
+                    promptMessage: directConnectFirstTaskPrompt.message,
+                    ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                    targetRoute,
+                    userState: firstUseUserState,
+                  });
                   navigate("/direct-connect/engagements");
                   return;
                 }
+                trackFirstUseTaskPromptClicked({
+                  surface: "direct_connect",
+                  promptMessage: directConnectFirstTaskPrompt.message,
+                  ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                  targetRoute,
+                  userState: firstUseUserState,
+                });
                 navigate("/direct-connect");
               }}
             >

@@ -63,6 +63,8 @@ import {
   trackDemandEvent,
   withDemandQueryParams,
 } from "@/lib/demandEngine";
+import { useAuth } from "@/hooks/useAuth";
+import { trackFirstUseGuidanceViewed } from "@/lib/firstUseAnalytics";
 
 function useLandingVariant() {
   const [location] = useLocation();
@@ -1047,6 +1049,8 @@ function Footer({ variant }: { variant: ReturnType<typeof useLandingVariant> }) 
 
 // ---- Main Page ----
 export default function Home() {
+  const { user } = useAuth();
+  const firstUseUserState = user ? "authenticated" : "anonymous";
   const [location] = useLocation();
   const rawLocation = String(location || "");
   const pathOnly = rawLocation.split("?")[0].replace(/\/+$/, "") || "/";
@@ -1097,6 +1101,10 @@ export default function Home() {
     void trackDemandEvent("landing_view", { variant: trackedVariant.key });
   }, [trackedVariant.key]);
 
+  useEffect(() => {
+    trackFirstUseGuidanceViewed("landing", firstUseUserState);
+  }, [firstUseUserState]);
+
   return (
     <div className="ts-landing relative flex flex-col overflow-x-clip text-white font-body">
       <div aria-hidden className="ts-landing__field pointer-events-none absolute inset-0" />
@@ -1124,7 +1132,7 @@ export default function Home() {
               <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
             </div>
             <div data-testid="first-use-launcher">
-              <FirstUsefulStepLauncher />
+              <FirstUsefulStepLauncher surface="landing" userState={firstUseUserState} />
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <FirstUseGuidanceCard

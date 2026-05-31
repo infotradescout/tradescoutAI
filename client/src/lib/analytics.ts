@@ -197,6 +197,37 @@ export type ShellEvent =
       directTargets: number;
       deviceType: DeviceType;
       ts: string;
+    }
+  // ── First-use guidance KPI events ────────────────────────────────────────
+  | {
+      type:
+        | "first_use_guidance_viewed"
+        | "first_use_launcher_viewed"
+        | "first_use_launcher_dismissed"
+        | "first_use_launcher_restored";
+      surface: "landing" | "home" | "homes" | "direct_connect" | "scout";
+      userState: "anonymous" | "authenticated";
+      viewport: DeviceType;
+      ts: string;
+    }
+  | {
+      type: "first_use_option_clicked";
+      surface: "landing" | "home" | "homes" | "direct_connect" | "scout";
+      optionId: string;
+      targetRoute: string;
+      userState: "anonymous" | "authenticated";
+      viewport: DeviceType;
+      ts: string;
+    }
+  | {
+      type: "first_use_task_prompt_viewed" | "first_use_task_prompt_clicked";
+      surface: "landing" | "home" | "homes" | "direct_connect" | "scout";
+      promptMessage: string;
+      ctaLabel: string;
+      targetRoute?: string;
+      userState: "anonymous" | "authenticated";
+      viewport: DeviceType;
+      ts: string;
     };
 
 export function getDeviceType(): DeviceType {

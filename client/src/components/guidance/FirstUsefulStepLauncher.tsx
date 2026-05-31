@@ -4,27 +4,50 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, Compass } from "lucide-react";
 import { FIRST_USE_STEP_OPTIONS } from "@/lib/firstUseGuidance";
+import {
+  trackFirstUseLauncherDismissed,
+  trackFirstUseLauncherRestored,
+  trackFirstUseLauncherViewed,
+  trackFirstUseOptionClicked,
+  type FirstUseSurface,
+  type FirstUseUserState,
+} from "@/lib/firstUseAnalytics";
 
 const DISMISS_KEY = "ts:first-use-launcher:dismissed:v1";
 
-export function FirstUsefulStepLauncher() {
+export function FirstUsefulStepLauncher({
+  surface,
+  userState,
+}: {
+  surface: FirstUseSurface;
+  userState: FirstUseUserState;
+}) {
   const [dismissed, setDismissed] = useState(false);
+  const [storageLoaded, setStorageLoaded] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     setDismissed(window.localStorage.getItem(DISMISS_KEY) === "1");
+    setStorageLoaded(true);
   }, []);
+
+  useEffect(() => {
+    if (!storageLoaded || dismissed) return;
+    trackFirstUseLauncherViewed(surface, userState);
+  }, [dismissed, storageLoaded, surface, userState]);
 
   const dismiss = () => {
     setDismissed(true);
     if (typeof window === "undefined") return;
     window.localStorage.setItem(DISMISS_KEY, "1");
+    trackFirstUseLauncherDismissed(surface, userState);
   };
 
   const showAgain = () => {
     setDismissed(false);
     if (typeof window === "undefined") return;
     window.localStorage.removeItem(DISMISS_KEY);
+    trackFirstUseLauncherRestored(surface, userState);
   };
 
   if (dismissed) {
@@ -75,7 +98,17 @@ export function FirstUsefulStepLauncher() {
       <CardContent className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
         {FIRST_USE_STEP_OPTIONS.map((option) => (
           <Link key={option.id} href={option.href}>
-            <a className="group block rounded-lg border border-white/10 bg-black/20 px-3.5 py-3 transition hover:border-ts-orange/40 hover:bg-black/30">
+            <a
+              className="group block rounded-lg border border-white/10 bg-black/20 px-3.5 py-3 transition hover:border-ts-orange/40 hover:bg-black/30"
+              onClick={() =>
+                trackFirstUseOptionClicked({
+                  surface,
+                  optionId: option.id,
+                  targetRoute: option.href,
+                  userState,
+                })
+              }
+            >
               <div className="flex items-start justify-between gap-2">
                 <p className="text-sm font-semibold text-white">{option.label}</p>
                 <ArrowRight

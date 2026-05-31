@@ -28,6 +28,12 @@ import { Page, Section } from "@/components/layout/PagePrimitives";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
 import { HOMEID_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 import { resolveHomeIdFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  trackFirstUseGuidanceViewed,
+  trackFirstUseTaskPromptClicked,
+  trackFirstUseTaskPromptViewed,
+} from "@/lib/firstUseAnalytics";
 
 const RECORD_TYPES = [
   { value: "inspection", label: "Inspection" },
@@ -111,6 +117,8 @@ function initialProjectIdFromUrl(): string | null {
 }
 
 export default function HomesVault() {
+  const { user } = useAuth();
+  const firstUseUserState = user ? "authenticated" : "anonymous";
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedHomeId, setSelectedHomeId] = useState<string | null>(() => initialHomeIdFromUrl());
@@ -935,6 +943,19 @@ export default function HomesVault() {
     [knownDetails.length, selectedHomeId]
   );
 
+  useEffect(() => {
+    trackFirstUseGuidanceViewed("homes", firstUseUserState);
+  }, [firstUseUserState]);
+
+  useEffect(() => {
+    trackFirstUseTaskPromptViewed({
+      surface: "homes",
+      promptMessage: homeIdFirstTaskPrompt.message,
+      ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+      userState: firstUseUserState,
+    });
+  }, [firstUseUserState, homeIdFirstTaskPrompt.ctaLabel, homeIdFirstTaskPrompt.message]);
+
   return (
     <Page className="max-w-6xl">
       <Section
@@ -953,6 +974,17 @@ export default function HomesVault() {
                 size="sm"
                 variant="outline"
                 onClick={() => {
+                  const targetRoute =
+                    homeIdFirstTaskPrompt.ctaLabel === "Create request details"
+                      ? "/direct-connect"
+                      : "/homes";
+                  trackFirstUseTaskPromptClicked({
+                    surface: "homes",
+                    promptMessage: homeIdFirstTaskPrompt.message,
+                    ctaLabel: homeIdFirstTaskPrompt.ctaLabel,
+                    targetRoute,
+                    userState: firstUseUserState,
+                  });
                   if (homeIdFirstTaskPrompt.ctaLabel === "Create request details") {
                     document
                       .querySelector('[data-homeid-first-task="request-details"]')

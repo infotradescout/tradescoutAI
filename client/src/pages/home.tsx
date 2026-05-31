@@ -30,10 +30,17 @@ import {
   SCOUT_GUIDANCE_TEXT,
   TRADE_SCOUT_PRODUCT_EXPLANATION,
 } from "@/lib/firstUseGuidance";
+import { trackFirstUseGuidanceViewed } from "@/lib/firstUseAnalytics";
+import { useEffect } from "react";
 
 export default function Home() {
   const { user } = useAuth();
+  const firstUseUserState = user ? "authenticated" : "anonymous";
   const userLocation = useUserLocation();
+
+  useEffect(() => {
+    trackFirstUseGuidanceViewed("home", firstUseUserState);
+  }, [firstUseUserState]);
 
   const formatCurrency = (amount: number) =>
     new Intl.NumberFormat("en-US", {
@@ -81,7 +88,7 @@ export default function Home() {
               <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
             </CardContent>
           </Card>
-          <FirstUsefulStepLauncher />
+          <FirstUsefulStepLauncher surface="home" userState={firstUseUserState} />
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <FirstUseGuidanceCard
               title="Scout is your discovery page."
