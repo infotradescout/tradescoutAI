@@ -10,6 +10,8 @@ type FirstUseBaseEvent = {
   ts: string;
 };
 
+const seenFirstUseViewEvents = new Set<string>();
+
 function base(surface: FirstUseSurface, userState: FirstUseUserState): FirstUseBaseEvent {
   return {
     surface,
@@ -19,10 +21,26 @@ function base(surface: FirstUseSurface, userState: FirstUseUserState): FirstUseB
   };
 }
 
+function onceKey(type: string, surface: FirstUseSurface, userState: FirstUseUserState, extra = "") {
+  return `${type}|${surface}|${userState}|${extra}`;
+}
+
+function shouldTrackOnce(key: string): boolean {
+  if (seenFirstUseViewEvents.has(key)) return false;
+  seenFirstUseViewEvents.add(key);
+  return true;
+}
+
+// test hook only
+export function __resetFirstUseAnalyticsSeenForTests() {
+  seenFirstUseViewEvents.clear();
+}
+
 export function trackFirstUseGuidanceViewed(
   surface: FirstUseSurface,
   userState: FirstUseUserState
 ) {
+  if (!shouldTrackOnce(onceKey("first_use_guidance_viewed", surface, userState))) return;
   void trackShellEvent({
     type: "first_use_guidance_viewed",
     ...base(surface, userState),
@@ -33,6 +51,7 @@ export function trackFirstUseLauncherViewed(
   surface: FirstUseSurface,
   userState: FirstUseUserState
 ) {
+  if (!shouldTrackOnce(onceKey("first_use_launcher_viewed", surface, userState))) return;
   void trackShellEvent({
     type: "first_use_launcher_viewed",
     ...base(surface, userState),
@@ -79,6 +98,18 @@ export function trackFirstUseTaskPromptViewed(args: {
   ctaLabel: string;
   userState: FirstUseUserState;
 }) {
+  if (
+    !shouldTrackOnce(
+      onceKey(
+        "first_use_task_prompt_viewed",
+        args.surface,
+        args.userState,
+        `${args.promptMessage}|${args.ctaLabel}`
+      )
+    )
+  ) {
+    return;
+  }
   void trackShellEvent({
     type: "first_use_task_prompt_viewed",
     promptMessage: args.promptMessage,
