@@ -451,3 +451,13 @@ Rationale:
   - Verified contact-gate release invariants remain enforced in oversight-adjacent requester/contractor payload paths.
   - Verified preview/test/HomeID provenance markers remain explicit for staff-safe interpretation.
   - Verified assignment visibility integrity remains independent from paid/featured/subscription ranking fields.
+
+## Slice 84 Status Note
+- Direct Connect doctrine regression matrix artifact:
+  - `docs/audits/SLICE84_DIRECT_CONNECT_DOCTRINE_REGRESSION_MATRIX.md`
+- Current state:
+  - Added consolidated doctrine regression matrix coverage spanning requester, contractor, assignment/routing, notification, and staff/admin oversight surfaces.
+  - Locked no-pay-to-play/no-ranking-advantage invariants across routing visibility contracts.
+  - Locked contact-gate doctrine invariants (redaction before release; decision-before-contact).
+  - Locked Home Record optionality and preview/test/HomeID artifact suppression invariants.
+  - Locked KPI allowlist presence for key Direct Connect submission funnel events.
