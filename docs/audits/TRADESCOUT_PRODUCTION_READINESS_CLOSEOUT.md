@@ -461,3 +461,13 @@ Rationale:
   - Locked contact-gate doctrine invariants (redaction before release; decision-before-contact).
   - Locked Home Record optionality and preview/test/HomeID artifact suppression invariants.
   - Locked KPI allowlist presence for key Direct Connect submission funnel events.
+
+## Slice 85 Status Note
+- Direct Connect launch gate v1 summary artifact:
+  - `docs/audits/SLICE85_DIRECT_CONNECT_LAUNCH_GATE_V1_SUMMARY.md`
+- Current state:
+  - Consolidated Slices 70-84 into a launch-readiness decision boundary.
+  - Classified Direct Connect as `local hardening PASS / live KPI deferred` (not falsely fully production-proven).
+  - Reaffirmed blocking rules around contact leakage, pay-to-play influence, Home Record requirement, preview artifact leakage, and unaudited staff bypass.
+  - Reaffirmed deferred production-only evidence: fresh live KPI pull + fresh board visual artifact.
+  - Reaffirmed session hygiene and cookie safety: rotate session and do not reuse previously exposed cookie.
