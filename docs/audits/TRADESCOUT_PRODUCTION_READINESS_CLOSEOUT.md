@@ -384,3 +384,18 @@ Rationale:
   - No lifecycle/contact-gate bypass introduced.
   - No paid placement, lead-selling, or ranking advantage behavior introduced.
 
+## Slice 78 Status Note
+- Direct Connect request assignment integrity harness artifact:
+  - `docs/audits/SLICE78_DIRECT_CONNECT_REQUEST_ASSIGNMENT_INTEGRITY_HARNESS.md`
+- Current state:
+  - Added code-only assignment integrity contract coverage for:
+    - eligible-only contractor/provider assignment visibility
+    - `direct_connect_request_visible_to_contractors` event emission on assignment creation
+    - Home Record/HomeID optionality (not required for routing)
+    - non-routing HomeID draft submit path validation
+    - HomeID preview-draft marker presence for artifact suppression
+    - unauthorized/non-eligible provider access/action blocking
+    - requester contact redaction pre-gate
+    - routing independence from paid/featured/subscription fields
+  - No staff auth/cookie/live KPI flow touched in this slice.
+
