@@ -356,3 +356,16 @@ Rationale:
     - `artifacts/tradescout-staff-kpi-smoke-latest.json`
   - Missing-cookie and non-staff access failure paths are explicit and safe.
 
+## Slice 76 Status Note
+- Direct Connect submission funnel contract harness artifact:
+  - `docs/audits/SLICE76_DIRECT_CONNECT_SUBMISSION_FUNNEL_CONTRACT_HARNESS.md`
+- Current state:
+  - Added code-only contract harness proving Slice 72 funnel event wiring across:
+    - review opened
+    - request submitted
+    - visible to contractors
+    - contractor action started
+  - Verified request review/submit remains non-blocking without Home Record selection.
+  - Verified product KPI allowlist includes all funnel events required for live measurement.
+  - Confirmed contact gate stays review-first before share/release paths.
+
