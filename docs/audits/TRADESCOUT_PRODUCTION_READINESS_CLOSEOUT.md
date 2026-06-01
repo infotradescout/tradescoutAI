@@ -343,3 +343,16 @@ Rationale:
   - Saved-home labels are cleaned to human-readable values; generated/test-like labels are suppressed.
   - Internal QA copy is removed from user-facing request composer text.
 
+## Slice 75A Status Note
+- Staff production KPI smoke runner artifact:
+  - `docs/audits/SLICE75A_STAFF_PRODUCTION_KPI_SMOKE_RUNNER.md`
+- Current state:
+  - Added repeatable staff-auth production KPI smoke script:
+    - `scripts/tradescout-staff-kpi-smoke.ts`
+  - Added npm entrypoint:
+    - `npm run smoke:staff-kpi`
+  - Script checks production build header and staff-gated KPI summary.
+  - Script prints Direct Connect funnel counts + rates and writes:
+    - `artifacts/tradescout-staff-kpi-smoke-latest.json`
+  - Missing-cookie and non-staff access failure paths are explicit and safe.
+

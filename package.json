@@ -15,6 +15,7 @@
     "report:scout-outcome-funnel": "node scripts/report-scout-outcome-funnel.mjs",
     "verify:scout-continuity": "npm run test:run -- server/tests/scout-primary-action-contract.test.ts server/tests/scout-response-contract.test.ts && npm run report:scout-outcome-funnel -- --days=30",
     "report:scout-quality": "npx tsx scripts/report-scout-quality.ts",
+    "smoke:staff-kpi": "npx tsx scripts/tradescout-staff-kpi-smoke.ts",
     "report:test-skip-delta": "node scripts/report-test-skip-delta.mjs",
     "enforce:scout-behaviors": "node scripts/enforce-scout-behavior-registry.mjs",
     "start": "cross-env NODE_ENV=production node dist/index.js",
