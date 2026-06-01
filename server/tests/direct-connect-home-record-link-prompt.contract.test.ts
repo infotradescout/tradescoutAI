@@ -12,15 +12,14 @@ describe("direct connect home record link prompt conversion contract", () => {
   it("renders home-record prompt language and keeps skip path non-blocking", () => {
     const source = fs.readFileSync(shellPath, "utf8");
     expect(source).toContain("Home record (optional)");
-    expect(source).toContain(
-      "Save this with a home record to avoid retyping property details later."
-    );
+    expect(source).toContain("Optional: save this with a home record.");
+    expect(source).toContain("Keep property details ready for future requests.");
     expect(source).toContain("Show options");
     expect(source).toContain("Use saved home details");
     expect(source).toContain("Create a home record");
     expect(source).toContain("Skip for now");
-    expect(source).toContain("How should this request use home details?");
-    expect(source).toContain("Advanced component IDs stay hidden in the default request flow.");
+    expect(source).not.toContain("How should this request use home details?");
+    expect(source).not.toContain("Advanced component IDs stay hidden in the default request flow.");
     expect(source).toContain("handleSkipAndAutoRoute");
   });
 
@@ -45,10 +44,12 @@ describe("direct connect home record link prompt conversion contract", () => {
     expect(source).toContain('{hasExistingHomes ? "Select a saved home" : "No saved homes yet"}');
     expect(source).toContain("if (!hasExistingHomes) return;");
     expect(source).toContain('setHomeContextIntent("link_existing")');
+    expect(source).toContain("function toCleanHomeLabel(home: any): string");
+    expect(source).toContain('return nickname ? "My home" : "Saved home";');
     expect(source).toContain(
       "const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);"
     );
-    expect(source).toContain('showHomeRecordDetails && homeContextIntent !== "skip_for_now"');
+    expect(source).toContain('showHomeRecordDetails && homeContextIntent === "link_existing"');
     expect(source).not.toContain("Existing component ID (optional)");
   });
 

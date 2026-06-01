@@ -333,3 +333,13 @@ Rationale:
   - Home Record controls are visually secondary by default.
   - Disabled review now gives explicit missing-field guidance.
 
+## Slice 74 Status Note
+- Direct Connect Home Record collapse + saved-home label cleanup artifact:
+  - `docs/audits/SLICE74_DIRECT_CONNECT_HOME_RECORD_COLLAPSE_SAVED_HOME_LABEL_CLEANUP.md`
+- Current state:
+  - Home Record remains collapsed by default with compact optional copy.
+  - Expanded home-link controls appear only after explicit user action.
+  - Duplicate Home Record control path is removed from the composer.
+  - Saved-home labels are cleaned to human-readable values; generated/test-like labels are suppressed.
+  - Internal QA copy is removed from user-facing request composer text.
+

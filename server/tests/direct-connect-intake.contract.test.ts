@@ -75,10 +75,8 @@ describe("direct connect intake contracts", () => {
   it("adds optional HomeID asset linking controls without blocking request flow", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain("Home record (optional)");
-    expect(source).toContain(
-      "Save this with a home record to avoid retyping property details later."
-    );
-    expect(source).toContain("How should this request use home details?");
+    expect(source).toContain("Optional: save this with a home record.");
+    expect(source).not.toContain("How should this request use home details?");
     expect(source).toContain("Use saved home details");
     expect(source).toContain("Skip for now");
     expect(source).toContain("handleSkipAndAutoRoute");

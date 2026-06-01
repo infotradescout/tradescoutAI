@@ -151,6 +151,7 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
 const DIRECT_CONNECT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const GENERATED_HOME_LABEL_PATTERN = /^(slice\d+\s+\d+|\d{8,}|[a-f0-9]{12,})$/i;
 
 type DirectConnectDraftSnapshot = {
   savedAt: number;
@@ -186,6 +187,19 @@ type DirectConnectDraftSnapshot = {
 };
 
 type FlowMode = "start" | "manage";
+
+function toCleanHomeLabel(home: any): string {
+  const nickname = String(home?.nickname || home?.name || home?.title || "").trim();
+  if (nickname && !GENERATED_HOME_LABEL_PATTERN.test(nickname.replace(/\s+/g, " "))) {
+    return nickname;
+  }
+  const address = String(home?.address1 || "").trim();
+  if (address) return address;
+  const city = String(home?.city || "").trim();
+  const state = String(home?.state || "").trim();
+  if (city && state) return `${city}, ${state}`;
+  return nickname ? "My home" : "Saved home";
+}
 
 const SECTION_META: Record<
   Section,
@@ -1452,16 +1466,6 @@ function DirectConnectRequestComposer({
     "other",
   ];
 
-  const homeContextIntentOptions: Array<{
-    value: "link_existing" | "create_from_request" | "update_from_request" | "skip_for_now";
-    label: string;
-  }> = [
-    { value: "link_existing", label: "Link this to my home" },
-    { value: "create_from_request", label: "Create a home record" },
-    { value: "update_from_request", label: "Use saved home details" },
-    { value: "skip_for_now", label: "Continue without a home record" },
-  ];
-
   const assetComponentTypeOptions: Array<{
     value:
       | "roof"
@@ -2294,7 +2298,10 @@ function DirectConnectRequestComposer({
                 Home record (optional)
               </p>
               <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                Save this with a home record to avoid retyping property details later.
+                Optional: save this with a home record.
+              </p>
+              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                Keep property details ready for future requests.
               </p>
             </div>
             <Button
@@ -2353,34 +2360,8 @@ function DirectConnectRequestComposer({
               </Button>
             </div>
           )}
-          {showHomeRecordDetails && homeContextIntent !== "skip_for_now" && (
+          {showHomeRecordDetails && homeContextIntent === "link_existing" && (
             <div className="space-y-2 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
-              <div className="space-y-1.5">
-                <label className="text-xs text-[color:var(--text-secondary)]">
-                  How should this request use home details?
-                </label>
-                <select
-                  value={homeContextIntent}
-                  onChange={(event) => {
-                    const nextIntent = event.target.value as
-                      | "link_existing"
-                      | "create_from_request"
-                      | "update_from_request"
-                      | "skip_for_now";
-                    selectHomeRecordIntent(nextIntent, `home_record_intent_select_${nextIntent}`);
-                    if (nextIntent === "skip_for_now") {
-                      setShowHomeRecordDetails(false);
-                    }
-                  }}
-                  className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
-                >
-                  {homeContextIntentOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
               <div className="space-y-1.5">
                 <label className="text-xs text-[color:var(--text-secondary)]">
                   Use saved home details
@@ -2411,7 +2392,7 @@ function DirectConnectRequestComposer({
                   </option>
                   {homes.map((home: any) => (
                     <option key={String(home?.id || "")} value={String(home?.id || "")}>
-                      {String(home?.nickname || home?.address1 || home?.id || "Home")}
+                      {toCleanHomeLabel(home)}
                     </option>
                   ))}
                 </select>
@@ -2459,9 +2440,6 @@ function DirectConnectRequestComposer({
                   />
                 </div>
               </div>
-              <p className="text-[11px] text-[color:var(--text-secondary)]">
-                Advanced component IDs stay hidden in the default request flow.
-              </p>
             </div>
           )}
         </div>
