@@ -429,3 +429,14 @@ Rationale:
   - Live KPI pull remains explicitly deferred pending safe staff session rotation and local cookie-based smoke-runner execution.
   - Deferred board visual proof and live funnel drop-off measurement are called out as the remaining production-only evidence gaps.
   - Next P1 options are formalized with recommendation: choose KPI pull after session rotation, otherwise continue with notification/email contract hardening.
+
+## Slice 82 Status Note
+- Direct Connect notification/email delivery contract harness artifact:
+  - `docs/audits/SLICE82_DIRECT_CONNECT_NOTIFICATION_EMAIL_DELIVERY_CONTRACT_HARNESS.md`
+- Current state:
+  - Added code-only notification safety coverage across routed visibility, contractor action, and contact-gated requester updates.
+  - Verified routed notifications stay platform-contained and target assigned/eligible provider user IDs.
+  - Verified contact details remain gated/redacted before approved release state.
+  - Verified HomeID preview/draft artifact paths remain outside production-style routed notification behavior.
+  - Verified notification maps remain human-readable and free of lead-selling/paid-priority language.
+  - Verified notification eligibility remains independent from paid/featured/subscription ranking fields.
