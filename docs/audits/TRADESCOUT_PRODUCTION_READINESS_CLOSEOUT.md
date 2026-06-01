@@ -396,6 +396,15 @@ Rationale:
     - HomeID preview-draft marker presence for artifact suppression
     - unauthorized/non-eligible provider access/action blocking
     - requester contact redaction pre-gate
-    - routing independence from paid/featured/subscription fields
+  - routing independence from paid/featured/subscription fields
   - No staff auth/cookie/live KPI flow touched in this slice.
+
+## Slice 79 Status Note
+- Direct Connect requester lifecycle status integrity artifact:
+  - `docs/audits/SLICE79_DIRECT_CONNECT_REQUESTER_LIFECYCLE_STATUS_INTEGRITY.md`
+- Current state:
+  - Hardened requester-facing card status mapping to one clear primary lifecycle label per state.
+  - Added contract coverage for draft, submitted/open, routed, responded/in-progress, and contact-gated requester states.
+  - Ensured status copy avoids raw/internal enum leakage and contradictory labels.
+  - Preserved existing contact-gate protections and HomeID preview/test artifact suppression behavior.
 
