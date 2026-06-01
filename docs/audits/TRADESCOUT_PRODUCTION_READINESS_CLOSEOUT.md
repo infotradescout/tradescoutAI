@@ -408,3 +408,14 @@ Rationale:
   - Ensured status copy avoids raw/internal enum leakage and contradictory labels.
   - Preserved existing contact-gate protections and HomeID preview/test artifact suppression behavior.
 
+
+## Slice 80 Status Note
+- Direct Connect end-to-end local lifecycle smoke artifact:
+  - `docs/audits/SLICE80_DIRECT_CONNECT_END_TO_END_LOCAL_LIFECYCLE_SMOKE.md`
+- Current state:
+  - Added integrated local lifecycle smoke coverage spanning requester create/review/submit through contractor visibility/action.
+  - Verified review-opened, submitted, visible-to-contractors, and contractor-action-started event wiring remains coherent in one lifecycle path.
+  - Verified contact-gate protections remain intact (requester contact redacted pre-gate, response-before-contact enforced, unauthorized access blocked).
+  - Verified requester-facing lifecycle status copy remains human-readable and non-contradictory.
+  - Verified preview/test/HomeID draft artifacts remain excluded from normal request visibility.
+  - Verified routing visibility remains independent from paid/featured/subscription ranking fields.
