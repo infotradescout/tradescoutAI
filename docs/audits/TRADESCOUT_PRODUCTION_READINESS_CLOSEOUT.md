@@ -440,3 +440,14 @@ Rationale:
   - Verified HomeID preview/draft artifact paths remain outside production-style routed notification behavior.
   - Verified notification maps remain human-readable and free of lead-selling/paid-priority language.
   - Verified notification eligibility remains independent from paid/featured/subscription ranking fields.
+
+## Slice 83 Status Note
+- Direct Connect admin/staff oversight contract harness artifact:
+  - `docs/audits/SLICE83_DIRECT_CONNECT_ADMIN_STAFF_OVERSIGHT_CONTRACT_HARNESS.md`
+- Current state:
+  - Added code-only oversight invariants coverage for staff/admin role-gated Direct Connect handling.
+  - Verified admin mutation path remains explicit and audited (`isStaff` gate + admin audit/bypass trace hooks).
+  - Verified support-visible lifecycle metadata remains available without read-only event side effects.
+  - Verified contact-gate release invariants remain enforced in oversight-adjacent requester/contractor payload paths.
+  - Verified preview/test/HomeID provenance markers remain explicit for staff-safe interpretation.
+  - Verified assignment visibility integrity remains independent from paid/featured/subscription ranking fields.
