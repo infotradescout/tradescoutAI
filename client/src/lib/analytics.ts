@@ -198,6 +198,19 @@ export type ShellEvent =
       deviceType: DeviceType;
       ts: string;
     }
+  | {
+      type: "direct_connect_request_review_opened";
+      category: string;
+      hasBudget: boolean;
+      attachmentCount: number;
+      homeContextIntent:
+        | "link_existing"
+        | "create_from_request"
+        | "update_from_request"
+        | "skip_for_now";
+      deviceType: DeviceType;
+      ts: string;
+    }
   // ── First-use guidance KPI events ────────────────────────────────────────
   | {
       type:
@@ -259,6 +272,10 @@ export type ShellEvent =
         | "direct_connect_home_record_create_selected"
         | "direct_connect_home_record_skipped"
         | "direct_connect_request_submitted_after_home_record_skip"
+        | "direct_connect_request_review_opened"
+        | "direct_connect_request_submitted"
+        | "direct_connect_request_visible_to_contractors"
+        | "direct_connect_contractor_action_started"
         | "direct_connect_homeid_created_from_request"
         | "direct_connect_homeid_updated_from_request";
       surface: "direct_connect";

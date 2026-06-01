@@ -2386,6 +2386,23 @@ export function registerDirectConnectRoutes(app: Express) {
       .where(eq(workRequests.id, requestId));
 
     try {
+      await storage.logEvent("direct_connect_request_visible_to_contractors", {
+        type: "direct_connect_request_visible_to_contractors",
+        surface: "direct_connect",
+        source: "direct_connect_server",
+        userState: "authenticated",
+        requestId,
+        visibleContractorCount: insertedAssignments.length,
+        dispatchMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
+        countyFips: countyFips || null,
+        tradeId: tradeRecord?.id || null,
+        ts: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn("[direct-connect] Failed to log request visibility event", e);
+    }
+
+    try {
       // Collect all userIds to notify: contractor owners + business owners.
       const notifyUserIds = new Set<string>();
       for (const a of insertedAssignments as any[]) {
@@ -6044,6 +6061,22 @@ export function registerDirectConnectRoutes(app: Express) {
                 .set({ status: "routed", updatedAt: now })
                 .where(eq(workRequests.id, created.id));
               try {
+                await storage.logEvent("direct_connect_request_visible_to_contractors", {
+                  type: "direct_connect_request_visible_to_contractors",
+                  surface: "direct_connect",
+                  source: "direct_connect_server",
+                  userState: "authenticated",
+                  requestId: String(created.id),
+                  visibleContractorCount: allAssignments.length,
+                  dispatchMode: "direct_targeted",
+                  countyFips: countyFips || null,
+                  tradeId: body.tradeId || null,
+                  ts: new Date().toISOString(),
+                });
+              } catch (e) {
+                console.warn("[direct-connect] Failed to log direct-target visibility event", e);
+              }
+              try {
                 const contractorEvents = eligibleContractors.map((contractor) => ({
                   workRequestId: created.id,
                   type: "provider_invited" as const,
@@ -6609,6 +6642,25 @@ export function registerDirectConnectRoutes(app: Express) {
                 .update(workRequests)
                 .set({ status: "routed", updatedAt: now })
                 .where(eq(workRequests.id, created.id));
+              try {
+                await storage.logEvent("direct_connect_request_visible_to_contractors", {
+                  type: "direct_connect_request_visible_to_contractors",
+                  surface: "direct_connect",
+                  source: "direct_connect_server",
+                  userState: "authenticated",
+                  requestId: String(created.id),
+                  visibleContractorCount: allAssignments.length,
+                  dispatchMode: "direct_targeted_admin",
+                  countyFips: countyFips || null,
+                  tradeId: resolvedTrade?.slug || null,
+                  ts: new Date().toISOString(),
+                });
+              } catch (e) {
+                console.warn(
+                  "[direct-connect] Failed to log admin direct-target visibility event",
+                  e
+                );
+              }
               try {
                 const contractorEvents = eligibleContractors.map((contractor) => ({
                   workRequestId: created.id,
@@ -11543,6 +11595,17 @@ export function registerDirectConnectRoutes(app: Express) {
         }
         try {
           const { assignment: updatedAssignment, responseSummary } = result.body as any;
+          await storage.logEvent("direct_connect_contractor_action_started", {
+            type: "direct_connect_contractor_action_started",
+            surface: "direct_connect",
+            source: "direct_connect_server",
+            userState: "authenticated",
+            requestId: String(updatedAssignment.workRequestId || ""),
+            assignmentId: String(updatedAssignment.id || ""),
+            decision: String(updatedAssignment.status || decision),
+            responderType: contractor ? "contractor" : "business_or_worker",
+            ts: new Date().toISOString(),
+          });
           const responseType =
             updatedAssignment.status === "accepted"
               ? "interested"

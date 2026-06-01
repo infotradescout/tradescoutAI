@@ -1930,6 +1930,15 @@ function DirectConnectRequestComposer({
 
   const openRequestReadyState = () => {
     if (!reviewCardReady || createMutation.isPending) return;
+    void trackShellEvent({
+      type: "direct_connect_request_review_opened",
+      category: activeRequestMeta.category,
+      hasBudget: Boolean(budgetMin.trim() || budgetMax.trim()),
+      attachmentCount: attachments.length,
+      homeContextIntent,
+      deviceType: getDeviceType(),
+      ts: new Date().toISOString(),
+    });
     setShowRequestReady(true);
   };
 
