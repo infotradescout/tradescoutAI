@@ -2094,6 +2094,57 @@ function DirectConnectRequestComposer({
             )}
           </div>
         ))}
+        {!intentConfig && (
+          <>
+            <div className="space-y-1.5">
+              <label className="text-xs text-[color:var(--text-secondary)]">
+                What do you need help with? *
+              </label>
+              <Input
+                value={title}
+                onChange={(event) => {
+                  markRequestStarted("title");
+                  const next = event.target.value;
+                  setTitle(next);
+                  setDetailAnswers((current) => ({ ...current, what: next }));
+                }}
+                placeholder="Short request title"
+                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-[color:var(--text-secondary)]">
+                Describe the job *
+              </label>
+              <Textarea
+                value={description}
+                onChange={(event) => {
+                  markRequestStarted("description");
+                  const next = event.target.value;
+                  setDescription(next);
+                  setDetailAnswers((current) => ({ ...current, details: next }));
+                }}
+                placeholder="Tell us what is going on"
+                rows={3}
+                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-[color:var(--text-secondary)]">
+                Where is the job? *
+              </label>
+              <Input
+                value={detailAnswers.where}
+                onChange={(event) => {
+                  markRequestStarted("title");
+                  setDetailAnswers((current) => ({ ...current, where: event.target.value }));
+                }}
+                placeholder="City, county, ZIP, or service area"
+                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+              />
+            </div>
+          </>
+        )}
         {reviewCardReady && (
           <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
             <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
@@ -2256,48 +2307,52 @@ function DirectConnectRequestComposer({
               {showHomeRecordDetails ? "Hide options" : "Show options"}
             </Button>
           </div>
-          <div className="grid gap-2 md:grid-cols-3">
-            <Button
-              type="button"
-              variant={homeContextIntent === "link_existing" ? "default" : "outline"}
-              onClick={() => {
-                setShowHomeRecordDetails(true);
-                selectHomeRecordIntent("link_existing", "home_record_compact_link_selected");
-              }}
-              className={
-                homeContextIntent === "link_existing" ? "bg-ts-orange text-text-black" : ""
-              }
-            >
-              Use saved home details
-            </Button>
-            <Button
-              type="button"
-              variant={homeContextIntent === "create_from_request" ? "default" : "outline"}
-              onClick={() => {
-                setShowHomeRecordDetails(true);
-                selectHomeRecordIntent(
-                  "create_from_request",
-                  "home_record_compact_create_selected"
-                );
-              }}
-              className={
-                homeContextIntent === "create_from_request" ? "bg-ts-orange text-text-black" : ""
-              }
-            >
-              Create a home record
-            </Button>
-            <Button
-              type="button"
-              variant={homeContextIntent === "skip_for_now" ? "default" : "outline"}
-              onClick={() => {
-                setShowHomeRecordDetails(false);
-                selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected");
-              }}
-              className={homeContextIntent === "skip_for_now" ? "bg-ts-orange text-text-black" : ""}
-            >
-              Skip for now
-            </Button>
-          </div>
+          {showHomeRecordDetails && (
+            <div className="grid gap-2 md:grid-cols-3">
+              <Button
+                type="button"
+                variant={homeContextIntent === "link_existing" ? "default" : "outline"}
+                onClick={() => {
+                  setShowHomeRecordDetails(true);
+                  selectHomeRecordIntent("link_existing", "home_record_compact_link_selected");
+                }}
+                className={
+                  homeContextIntent === "link_existing" ? "bg-ts-orange text-text-black" : ""
+                }
+              >
+                Use saved home details
+              </Button>
+              <Button
+                type="button"
+                variant={homeContextIntent === "create_from_request" ? "default" : "outline"}
+                onClick={() => {
+                  setShowHomeRecordDetails(true);
+                  selectHomeRecordIntent(
+                    "create_from_request",
+                    "home_record_compact_create_selected"
+                  );
+                }}
+                className={
+                  homeContextIntent === "create_from_request" ? "bg-ts-orange text-text-black" : ""
+                }
+              >
+                Create a home record
+              </Button>
+              <Button
+                type="button"
+                variant={homeContextIntent === "skip_for_now" ? "default" : "outline"}
+                onClick={() => {
+                  setShowHomeRecordDetails(false);
+                  selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected");
+                }}
+                className={
+                  homeContextIntent === "skip_for_now" ? "bg-ts-orange text-text-black" : ""
+                }
+              >
+                Skip for now
+              </Button>
+            </div>
+          )}
           {showHomeRecordDetails && homeContextIntent !== "skip_for_now" && (
             <div className="space-y-2 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
               <div className="space-y-1.5">
@@ -2468,6 +2523,12 @@ function DirectConnectRequestComposer({
                 : "Sign in to send"}
           </Button>
         </div>
+        {!reviewCardReady && (
+          <p className="text-xs text-[color:var(--text-secondary)]">
+            Add required details to continue:{" "}
+            {completeness.missing.length > 0 ? completeness.missing.join(" · ") : "request details"}
+          </p>
+        )}
 
         <Sheet open={showDispatchSheet} onOpenChange={setShowDispatchSheet}>
           <SheetContent
@@ -4840,19 +4901,30 @@ export default function DirectConnectShell() {
           </div>
         </div>
 
-        <FirstUseGuidanceCard
-          title="Direct Connect prepares your request."
-          description={DIRECT_CONNECT_GUIDANCE_TEXT}
-        />
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <div className={cn(activeSection === "post" ? "hidden md:block" : "")}>
+          <FirstUseGuidanceCard
+            title="Direct Connect prepares your request."
+            description={DIRECT_CONNECT_GUIDANCE_TEXT}
+          />
+        </div>
+        <Card
+          className={cn(
+            "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
+            activeSection === "post" ? "hidden md:block" : ""
+          )}
+        >
           <CardContent className="pt-4">
             <p className="text-sm text-[color:var(--text-primary)]">
-              Prepare a request, link HomeID if needed, review request details, and submit when
-              ready. This happens before anyone is contacted.
+              Prepare a request, add details, review request details, and submit when ready.
             </p>
           </CardContent>
         </Card>
-        <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        <Card
+          className={cn(
+            "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
+            activeSection === "post" ? "hidden md:block" : ""
+          )}
+        >
           <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
             <p className="text-sm text-[color:var(--text-primary)]">
               {directConnectFirstTaskPrompt.message}
@@ -4920,7 +4992,12 @@ export default function DirectConnectShell() {
           </div>
         ) : null}
 
-        <div className="rounded-lg border border-transparent bg-transparent p-0">
+        <div
+          className={cn(
+            "rounded-lg border border-transparent bg-transparent p-0",
+            activeSection === "post" ? "hidden md:block" : ""
+          )}
+        >
           <div className="grid grid-cols-3 gap-1 md:flex md:items-center md:gap-1.5">
             {DIRECT_CONNECT_TABS.map((section) => {
               const active = section === activeSection;
@@ -4954,6 +5031,33 @@ export default function DirectConnectShell() {
         </div>
 
         <div className="min-w-0 space-y-3">{centerContent}</div>
+        {activeSection === "post" && (
+          <div className="rounded-lg border border-transparent bg-transparent p-0 md:hidden">
+            <div className="grid grid-cols-3 gap-1">
+              {DIRECT_CONNECT_TABS.map((section) => {
+                const active = section === activeSection;
+                return (
+                  <button
+                    key={`mobile-post-${section}`}
+                    type="button"
+                    onClick={() => navigateSection(section)}
+                    className={cn(
+                      "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[13px] font-medium transition-colors",
+                      active
+                        ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)]/60 bg-[color:var(--surface-card)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                    )}
+                  >
+                    <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5">
+                      {SECTION_ICONS[section]}
+                    </span>
+                    <span className="truncate">{SECTION_SHORT_LABELS[section]}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <Sheet open={showNotificationCenter} onOpenChange={setShowNotificationCenter}>
           <SheetContent
             side="right"

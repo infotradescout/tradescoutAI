@@ -297,10 +297,9 @@ Rationale:
 - Direct Connect mobile usability smoke + post-fix KPI check artifact:
   - `docs/audits/SLICE70_DIRECT_CONNECT_MOBILE_USABILITY_SMOKE_POST_FIX_KPI.md`
 - Current state:
-  - Live build header confirms Slice 69 deployment (`9734ed6b...`).
-  - Added focused mobile smoke coverage for Direct Connect request-first composer hierarchy.
-  - KPI endpoint remains staff-gated in unauthenticated context (`403`), with automated scraping blocked.
-  - Fresh post-fix KPI counts remain pending staff-authenticated browser pull.
+  - KPI evidence is PASS on production (`request_started=5`, `prompt_viewed=5`, `100%` prompt-view rate).
+  - Mobile composer visual smoke is FAIL (request flow still too process/HomeID-first in live screenshot evidence).
+  - Decision: close Slice 70 as partial KPI PASS / mobile UX FAIL; move to mobile composer simplification.
 
 ## Slice 71 Status Note
 - Request data authenticity + card copy cleanup artifact:
@@ -322,5 +321,15 @@ Rationale:
     - `direct_connect_contractor_action_started`
   - Kept existing `direct_connect_request_started` and `direct_connect_request_submitted` in KPI allowlist.
   - Updated KPI contract test coverage for new funnel events.
-  - Slice 72 is instrumentation-complete but remains measurement-pending until fresh staff-authenticated production KPI pull after deploy.
+  - Slice 72 is complete and committed (`6f375ed49dc7ad45ef4327f6e1c037cbbffb7866`).
+
+## Slice 73 Status Note
+- Direct Connect mobile composer simplification artifact:
+  - `docs/audits/SLICE73_DIRECT_CONNECT_MOBILE_COMPOSER_SIMPLIFICATION.md`
+- Current state:
+  - Mobile request creation path now leads with composer fields on `post`.
+  - Top guidance/process cards are demoted on mobile `post` flow.
+  - Mobile nav pills are moved below the composer on `post` flow.
+  - Home Record controls are visually secondary by default.
+  - Disabled review now gives explicit missing-field guidance.
 
