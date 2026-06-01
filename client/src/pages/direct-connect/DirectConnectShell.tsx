@@ -53,6 +53,12 @@ import {
   getDirectConnectNextStepCopy,
 } from "./directConnectReadiness";
 import {
+  getDisplayLatestStatus,
+  getDisplayRequestDescription,
+  getDisplayRequestTitle,
+  looksLikeHiddenOrTestRequest,
+} from "./requestCardPresentation";
+import {
   SEOHelmet,
   createBreadcrumbStructuredData,
   createServiceStructuredData,
@@ -727,6 +733,7 @@ type DirectConnectRequest = {
   latestStatus?: string | null;
   latestStatusAt?: string | null;
   unreadStatusCount?: number | null;
+  isHomeIdPreviewDraft?: boolean | null;
 };
 
 type RequestFilter = "all" | "open" | "routed" | "in_progress" | "completed" | "cancelled";
@@ -931,22 +938,6 @@ function matchesRequestFilter(request: DirectConnectRequest, filter: RequestFilt
     return stage === "active_conversation" || stage === "pending_outcome";
   if (filter === "completed") return stage === "completed";
   return stage === "cancelled";
-}
-
-function looksLikeHiddenOrTestRequest(request: DirectConnectRequest): boolean {
-  const title = String(request.title || "").toLowerCase();
-  const description = String(request.description || "").toLowerCase();
-  const body = `${title} ${description}`;
-  if (body.includes("[hidden]")) return true;
-  const markers = [
-    "playwright",
-    "smoke test",
-    "e2e test",
-    "qa test",
-    "test request",
-    "integration test",
-  ];
-  return markers.some((marker) => body.includes(marker));
 }
 
 function isCurrentRequest(request: DirectConnectRequest): boolean {
@@ -3616,6 +3607,9 @@ function MyDirectConnectRequests() {
         const isExpanded = expandedRequestId === r.id;
         const isMobileActionOpen = mobileActionRequestId === r.id;
         const timelineStamp = r.dcLastEventAt || r.createdAt;
+        const displayTitle = getDisplayRequestTitle(r);
+        const displayDescription = getDisplayRequestDescription(r);
+        const displayLatestStatus = getDisplayLatestStatus(r);
         const statusFacts = [
           r.tradeId ? `Trade ${r.tradeId}` : null,
           r.countyFips ? formatCountyLabel(r.countyFips, r.stateCode) : null,
@@ -3689,7 +3683,7 @@ function MyDirectConnectRequests() {
                 type="button"
                 onClick={handleOpenRequest}
                 className="w-full text-left"
-                aria-label={`Open request ${r.title}`}
+                aria-label={`Open request ${displayTitle}`}
               >
                 <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/75 p-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0 flex-1 space-y-2">
@@ -3705,7 +3699,7 @@ function MyDirectConnectRequests() {
                       )}
                     </div>
                     <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
-                      {r.title}
+                      {displayTitle}
                     </h3>
                     <p className="text-sm text-[color:var(--text-secondary)]">
                       {interpreted.primaryPhrase}
@@ -3725,10 +3719,10 @@ function MyDirectConnectRequests() {
                         </p>
                       </div>
                     )}
-                    {r.latestStatus && (
+                    {displayLatestStatus && (
                       <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
                         <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                          {r.latestStatus}
+                          {displayLatestStatus}
                         </p>
                         {typeof r.unreadStatusCount === "number" && r.unreadStatusCount > 0 && (
                           <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
@@ -3750,7 +3744,7 @@ function MyDirectConnectRequests() {
               </button>
 
               <div className="space-y-2">
-                <p className="text-sm text-[color:var(--text-primary)]">{r.description}</p>
+                <p className="text-sm text-[color:var(--text-primary)]">{displayDescription}</p>
                 {statusFacts.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
                     {statusFacts.map((fact) => (

@@ -301,3 +301,14 @@ Rationale:
   - Added focused mobile smoke coverage for Direct Connect request-first composer hierarchy.
   - KPI endpoint remains staff-gated in unauthenticated context (`403`), with automated scraping blocked.
   - Fresh post-fix KPI counts remain pending staff-authenticated browser pull.
+
+## Slice 71 Status Note
+- Request data authenticity + card copy cleanup artifact:
+  - docs/audits/SLICE71_DIRECT_CONNECT_REQUEST_DATA_AUTHENTICITY_CARD_COPY_CLEANUP.md`r
+- Current state:
+  - Root cause classified as HomeID preview-generated draft artifacts leaking into normal requester board copy.
+  - Added server-side provenance signal (isHomeIdPreviewDraft) based on draft-created vs draft-submitted events.
+  - Added normal-board guard to hide preview/test artifacts while preserving real request rendering.
+  - Normalized user-facing request card text (raw enum/internal wording removed from card presentation layer).
+  - Clarified status wording to avoid contradictory board states (Ready to send, Waiting on pros, Open).
+

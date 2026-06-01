@@ -3734,6 +3734,8 @@ export function registerDirectConnectRoutes(app: Express) {
         }
 
         const lastEventByRequest = new Map<string, Date>();
+        const homeIdDraftCreatedByRequest = new Set<string>();
+        const homeIdDraftSubmittedByRequest = new Set<string>();
         for (const e of events as any[]) {
           const key = String(e.workRequestId);
           const ts = e.createdAt ? new Date(e.createdAt) : null;
@@ -3742,6 +3744,9 @@ export function registerDirectConnectRoutes(app: Express) {
           if (!existing || ts > existing) {
             lastEventByRequest.set(key, ts);
           }
+          const type = String((e as any).type || "").toLowerCase();
+          if (type === "homeid_draft_created") homeIdDraftCreatedByRequest.add(key);
+          if (type === "homeid_draft_submitted") homeIdDraftSubmittedByRequest.add(key);
         }
 
         const enriched = ownedRequests.map((r: any) => {
@@ -3802,6 +3807,9 @@ export function registerDirectConnectRoutes(app: Express) {
               r.createdAt ??
               null,
             unreadStatusCount: unreadStatusCountByRequestId.get(String(r.id)) ?? 0,
+            isHomeIdPreviewDraft:
+              homeIdDraftCreatedByRequest.has(String(r.id)) &&
+              !homeIdDraftSubmittedByRequest.has(String(r.id)),
             latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
             estimateCount: estimateMeta?.estimateCount ?? 0,
             activeEstimateId: estimateMeta?.activeEstimateId ?? null,

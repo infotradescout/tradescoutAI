@@ -606,16 +606,20 @@ export default function HomesVault() {
         ? componentTypeByCategory[firstDetail.category] || "other"
         : "other";
 
-      const title = `${handoffPreview.requestType} request for ${handoffPreview.homeType}`.slice(
-        0,
-        180
-      );
+      const humanRequestType = handoffPreview.requestType
+        .replaceAll("_", " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+      const humanHomeType =
+        String(handoffPreview.homeType || "").toLowerCase() === "single_family"
+          ? "single-family home"
+          : handoffPreview.homeType.replaceAll("_", " ");
+      const title = `${humanRequestType} request for ${humanHomeType}`.slice(0, 180);
       const includedDetailLines = handoffPreview.selectedPropertyDetails
         .slice(0, 6)
         .map((detail) => `${detail.category.replaceAll("_", " ")}: ${detail.note}`);
       const descriptionSections = [
-        "Prepared from HomeID request preview.",
-        "Included HomeID details:",
+        "Home details included for faster local matching.",
+        "Included home details:",
         ...includedDetailLines.map((line) => `- ${line}`),
         handoffPreview.nonBlockingContext.length > 0
           ? `Non-blocking context: ${handoffPreview.nonBlockingContext.join("; ")}`
@@ -675,8 +679,8 @@ export default function HomesVault() {
           .slice(0, 6)
           .map((detail) => `${detail.category.replaceAll("_", " ")}: ${detail.note}`);
         const descriptionSections = [
-          "Prepared from HomeID request preview.",
-          "Included HomeID details:",
+          "Home details included for faster local matching.",
+          "Included home details:",
           ...includedDetailLines.map((line) => `- ${line}`),
           handoffPreview.nonBlockingContext.length > 0
             ? `Non-blocking context: ${handoffPreview.nonBlockingContext.join("; ")}`

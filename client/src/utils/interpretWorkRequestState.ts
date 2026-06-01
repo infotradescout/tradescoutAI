@@ -18,7 +18,9 @@ export interface InterpretedWorkRequestState {
 // Map raw WorkRequest status to the canonical interpretation states
 // defined in DIRECT_CONNECT_STATE_VOCABULARY.md. This is an
 // interpretation layer only and does not change any underlying data.
-export function interpretWorkRequestStateForScout(workRequest: WorkRequest): InterpretedWorkRequestState {
+export function interpretWorkRequestStateForScout(
+  workRequest: WorkRequest
+): InterpretedWorkRequestState {
   const rawStatus = (workRequest.status || "open").toLowerCase();
 
   switch (rawStatus) {
@@ -52,7 +54,7 @@ export function interpretWorkRequestStateForScout(workRequest: WorkRequest): Int
     default:
       return {
         state: "Routing",
-        primaryPhrase: "Scout is routing this through Direct Connect.",
+        primaryPhrase: "Direct Connect is preparing this request for local providers.",
         secondaryPhrase: "It's on your Direct Connect board while coordination happens.",
       };
   }
