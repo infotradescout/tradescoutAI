@@ -419,3 +419,13 @@ Rationale:
   - Verified requester-facing lifecycle status copy remains human-readable and non-contradictory.
   - Verified preview/test/HomeID draft artifacts remain excluded from normal request visibility.
   - Verified routing visibility remains independent from paid/featured/subscription ranking fields.
+
+## Slice 81 Status Note
+- Direct Connect production readiness gate summary artifact:
+  - `docs/audits/SLICE81_DIRECT_CONNECT_PRODUCTION_READINESS_GATE_SUMMARY.md`
+- Current state:
+  - Consolidated Slices 70-80 into a single readiness decision boundary.
+  - Local lifecycle/contact-gate/routing/status-copy hardening stack is documented as complete.
+  - Live KPI pull remains explicitly deferred pending safe staff session rotation and local cookie-based smoke-runner execution.
+  - Deferred board visual proof and live funnel drop-off measurement are called out as the remaining production-only evidence gaps.
+  - Next P1 options are formalized with recommendation: choose KPI pull after session rotation, otherwise continue with notification/email contract hardening.
