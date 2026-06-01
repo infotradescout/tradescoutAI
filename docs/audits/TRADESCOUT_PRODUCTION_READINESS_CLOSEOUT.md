@@ -369,3 +369,18 @@ Rationale:
   - Verified product KPI allowlist includes all funnel events required for live measurement.
   - Confirmed contact gate stays review-first before share/release paths.
 
+## Slice 77 Status Note
+- Direct Connect contractor action surface review artifact:
+  - `docs/audits/SLICE77_DIRECT_CONNECT_CONTRACTOR_ACTION_SURFACE_REVIEW.md`
+- Current state:
+  - Added code-only contractor action surface contract coverage for:
+    - contractor request visibility routes
+    - contractor response/contact CTAs
+    - contractor action started event wiring
+    - pre-contact gate enforcement
+    - requester contact redaction in contractor payloads
+    - unauthorized/non-eligible access blocking
+    - human empty-state copy on contractor dashboard
+  - No lifecycle/contact-gate bypass introduced.
+  - No paid placement, lead-selling, or ranking advantage behavior introduced.
+
