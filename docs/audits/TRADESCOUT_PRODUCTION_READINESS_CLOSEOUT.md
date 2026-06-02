@@ -484,3 +484,14 @@ Rationale:
   - Reaffirmed blocking rules around contact leakage, pay-to-play influence, Home Record requirement, preview artifact leakage, and unaudited staff bypass.
   - Reaffirmed deferred production-only evidence: fresh live KPI pull + fresh board visual artifact.
   - Reaffirmed session hygiene and cookie safety: rotate session and do not reuse previously exposed cookie.
+
+## Slice 86 Status Note
+- Direct Connect production board visual proof artifact:
+  - `docs/audits/SLICE86_DIRECT_CONNECT_PRODUCTION_BOARD_VISUAL_PROOF.md`
+- Current state:
+  - Production Direct Connect mobile surfaces loaded successfully at `/direct-connect`, `/direct-connect/inbox`, and `/direct-connect/engagements`.
+  - Accessible production views showed no preview/test/HomeID draft artifacts as live demand.
+  - Accessible production views showed no visible email/phone-like contact leakage before contact gate release.
+  - Requester-facing copy and empty states were human-readable; no raw enum copy was observed.
+  - Home Record remained optional and secondary in the visible request composer.
+  - Decision: PARTIAL PASS because no populated contractor-facing board card was available in the unauthenticated production visual run.
