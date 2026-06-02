@@ -92,6 +92,27 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain("if (!looksLikeRealDisplayTitle(objectTitle)) return false;");
   });
 
+  it("exposes Scout as a local snapshot and action surface", () => {
+    const source = read("client/src/scout/ScoutHome.tsx");
+
+    expect(source).toContain("Local command center");
+    expect(source).toContain("Your local snapshot");
+    expect(source).toContain("Open Direct Connect requests");
+    expect(source).toContain("HomeID reminders");
+    expect(source).toContain("Recent activity");
+    expect(source).toContain("Suggested next actions");
+    expect(source).toContain("Search local help, requests, homes, and activity.");
+    expect(source).toContain(
+      'const res = await fetch("/api/direct-connect/requests", { credentials: "include" });'
+    );
+    expect(source).toContain('const res = await fetch("/api/homes", { credentials: "include" });');
+    expect(source).toContain(
+      "<LocalCommandCenter snapshot={localCommandSnapshot} onPromptSelect={onPromptSelect} />"
+    );
+    expect(source).toContain("HomeID reminders before contact opens.");
+    expect(source).not.toContain("Ask Scout to");
+  });
+
   it("scopes nearby rows to user interests and dedupes by category and title", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 

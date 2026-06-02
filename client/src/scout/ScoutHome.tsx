@@ -13,6 +13,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -90,6 +91,44 @@ type SetupNudgeConfig = {
   body: string;
   actionLabel: string;
   actionPrompt: string;
+};
+
+type ScoutLocalWorkRequest = {
+  id?: string | number | null;
+  title?: string | null;
+  status?: string | null;
+  lifecycleStatus?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type ScoutHomeRecordSummary = {
+  id?: string | number | null;
+  label?: string | null;
+  nickname?: string | null;
+  address?: string | null;
+  city?: string | null;
+  stateCode?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+type LocalSnapshotAction = {
+  id: string;
+  label: string;
+  detail: string;
+  prompt: string;
+  icon: LucideIcon;
+};
+
+type LocalCommandSnapshot = {
+  openRequestCount: number;
+  latestRequestTitle: string;
+  homeRecordCount: number;
+  homeReminderCount: number;
+  recentActivityCount: number;
+  localSignalCount: number;
+  nextActions: LocalSnapshotAction[];
 };
 
 const INVALID_CONTINUITY_LABELS = new Set([
@@ -176,6 +215,123 @@ function looksLikeRealDisplayTitle(value?: string | null): boolean {
 function formatCount(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(n);
+}
+
+async function fetchDirectConnectRequestsForScout(): Promise<ScoutLocalWorkRequest[]> {
+  const res = await fetch("/api/direct-connect/requests", { credentials: "include" });
+  if (!res.ok) return [];
+  const json = await res.json();
+  if (Array.isArray(json)) return json as ScoutLocalWorkRequest[];
+  if (Array.isArray(json?.requests)) return json.requests as ScoutLocalWorkRequest[];
+  return [];
+}
+
+async function fetchHomeRecordsForScout(): Promise<ScoutHomeRecordSummary[]> {
+  const res = await fetch("/api/homes", { credentials: "include" });
+  if (!res.ok) return [];
+  const json = await res.json();
+  if (Array.isArray(json)) return json as ScoutHomeRecordSummary[];
+  if (Array.isArray(json?.homes)) return json.homes as ScoutHomeRecordSummary[];
+  return [];
+}
+
+const CLOSED_DIRECT_CONNECT_STATES = new Set([
+  "archived",
+  "cancelled",
+  "canceled",
+  "closed",
+  "complete",
+  "completed",
+  "deleted",
+  "resolved",
+]);
+
+function isOpenDirectConnectRequest(request: ScoutLocalWorkRequest): boolean {
+  const state = String(request.lifecycleStatus || request.status || "")
+    .trim()
+    .toLowerCase();
+  if (!state) return true;
+  return !CLOSED_DIRECT_CONNECT_STATES.has(state);
+}
+
+function displayRequestTitle(request?: ScoutLocalWorkRequest): string {
+  const title = String(request?.title || "").trim();
+  return title || "Direct Connect request";
+}
+
+function buildLocalCommandSnapshot({
+  directConnectRequests,
+  homeRecords,
+  recentActivity,
+  localSignalCount,
+  hasRealContinuation,
+}: {
+  directConnectRequests: ScoutLocalWorkRequest[];
+  homeRecords: ScoutHomeRecordSummary[];
+  recentActivity: RecentActivity[];
+  localSignalCount: number;
+  hasRealContinuation: boolean;
+}): LocalCommandSnapshot {
+  const openRequests = directConnectRequests.filter(isOpenDirectConnectRequest);
+  const latestRequestTitle = displayRequestTitle(openRequests[0]);
+  const homeReminderCount = homeRecords.length > 0 ? 0 : 1;
+  const nextActions: LocalSnapshotAction[] = [];
+
+  if (openRequests.length > 0) {
+    nextActions.push({
+      id: "open-direct-connect",
+      label: "Review open request",
+      detail: latestRequestTitle,
+      prompt: "Show my open Direct Connect requests and the next safe step.",
+      icon: Hammer,
+    });
+  }
+
+  if (homeRecords.length > 0) {
+    nextActions.push({
+      id: "homeid-check",
+      label: "Review HomeID context",
+      detail: `${formatCount(homeRecords.length)} saved home${homeRecords.length === 1 ? "" : "s"}`,
+      prompt: "Review my HomeID reminders and home context.",
+      icon: Home,
+    });
+  } else {
+    nextActions.push({
+      id: "homeid-reminder",
+      label: "Add a HomeID when useful",
+      detail: "Optional context for future requests",
+      prompt: "Show me how HomeID can help after I start a request.",
+      icon: Home,
+    });
+  }
+
+  if (hasRealContinuation || recentActivity.length > 0) {
+    nextActions.push({
+      id: "continue-activity",
+      label: "Continue recent activity",
+      detail: `${formatCount(recentActivity.length)} recent item${recentActivity.length === 1 ? "" : "s"}`,
+      prompt: "Continue my recent local activity and show what needs attention.",
+      icon: Calendar,
+    });
+  }
+
+  nextActions.push({
+    id: "local-search",
+    label: "Search local help",
+    detail: "Requests, homes, providers, and activity",
+    prompt: "Search local help, requests, homes, and activity.",
+    icon: Search,
+  });
+
+  return {
+    openRequestCount: openRequests.length,
+    latestRequestTitle,
+    homeRecordCount: homeRecords.length,
+    homeReminderCount,
+    recentActivityCount: recentActivity.length,
+    localSignalCount,
+    nextActions: nextActions.slice(0, 4),
+  };
 }
 
 function continuityIconForThread(thread: ContinuityThread): LucideIcon {
@@ -277,10 +433,10 @@ function ScoutHero({ locationLabel }: { locationLabel?: string }) {
         <ChevronDown className="h-4 w-4" />
       </button>
       <p className="mt-1.5 max-w-[340px] text-[15px] leading-snug text-zinc-400">
-        Scout is your discovery page for local activity and saved context.
+        Scout is your local command surface for activity, saved context, and next steps.
       </p>
       <p className="mt-1 text-[13px] text-zinc-500">
-        Review HomeID updates, request history, and items worth reviewing before you continue.
+        Search locally, continue requests, and review HomeID reminders before contact opens.
       </p>
     </section>
   );
@@ -695,6 +851,127 @@ function LocalSnapshot({
   );
 }
 
+function LocalCommandCenter({
+  snapshot,
+  onPromptSelect,
+}: {
+  snapshot: LocalCommandSnapshot;
+  onPromptSelect: (prompt: string) => void;
+}) {
+  const stats = [
+    {
+      label: "Open Direct Connect requests",
+      value: snapshot.openRequestCount,
+      detail:
+        snapshot.openRequestCount > 0
+          ? snapshot.latestRequestTitle
+          : "No open request waiting on you",
+      icon: Hammer,
+    },
+    {
+      label: "HomeID reminders",
+      value: snapshot.homeReminderCount,
+      detail:
+        snapshot.homeRecordCount > 0
+          ? `${formatCount(snapshot.homeRecordCount)} saved home${snapshot.homeRecordCount === 1 ? "" : "s"}`
+          : "Optional, not required to start",
+      icon: Home,
+    },
+    {
+      label: "Recent activity",
+      value: snapshot.recentActivityCount,
+      detail: "Searches and local context",
+      icon: Calendar,
+    },
+    {
+      label: "Local signals",
+      value: snapshot.localSignalCount,
+      detail: "County activity and market context",
+      icon: MapPin,
+    },
+  ];
+
+  return (
+    <section className="px-4 pt-2">
+      <div className="overflow-hidden rounded-2xl border border-orange-500/20 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.18),rgba(9,9,11,0.96)_42%)] shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
+        <div className="border-b border-zinc-800/80 p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">
+            Local command center
+          </p>
+          <h2 className="mt-1 text-2xl font-black leading-tight text-white">Your local snapshot</h2>
+          <p className="mt-1 text-sm leading-snug text-zinc-400">
+            Open work, home context, recent activity, and suggested next actions in one place.
+          </p>
+          <button
+            type="button"
+            onClick={() => onPromptSelect("Search local help, requests, homes, and activity.")}
+            className="mt-3 flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-3 text-left"
+          >
+            <span className="inline-flex min-w-0 items-center gap-2">
+              <Search className="h-4 w-4 shrink-0 text-ts-orange" />
+              <span className="truncate text-sm font-semibold text-white">
+                Search local help, requests, homes, and activity.
+              </span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 p-3">
+          {stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={stat.label}
+                className="rounded-xl border border-zinc-800 bg-zinc-950/80 p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <Icon className="h-4 w-4 text-ts-orange" />
+                  <span className="text-2xl font-black text-white">{formatCount(stat.value)}</span>
+                </div>
+                <p className="mt-2 text-[13px] font-semibold leading-tight text-white">
+                  {stat.label}
+                </p>
+                <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
+                  {stat.detail}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-zinc-800/80 p-3">
+          <p className="px-1 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+            Suggested next actions
+          </p>
+          <div className="mt-2 space-y-2">
+            {snapshot.nextActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  onClick={() => onPromptSelect(action.prompt)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 text-left"
+                >
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-ts-orange">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-white">{action.label}</span>
+                    <span className="block truncate text-xs text-zinc-500">{action.detail}</span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function EmptyContextHint() {
   const { t } = useI18n();
   const emptyTitle = t("scout.emptyTitle") || "Nothing to continue yet.";
@@ -785,6 +1062,18 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   const { location } = useScoutLocation();
   const { data } = useScoutHomeSnapshot(location);
   const [onboardingStatus, setOnboardingStatus] = useState<UnifiedOnboardingState | null>(null);
+  const { data: directConnectRequests = [] } = useQuery<ScoutLocalWorkRequest[]>({
+    queryKey: ["/api/direct-connect/requests", "scout-local-snapshot"],
+    queryFn: fetchDirectConnectRequestsForScout,
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  });
+  const { data: homeRecords = [] } = useQuery<ScoutHomeRecordSummary[]>({
+    queryKey: ["/api/homes", "scout-local-snapshot"],
+    queryFn: fetchHomeRecordsForScout,
+    enabled: isAuthenticated,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -828,6 +1117,23 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   const shouldShowEmptyContext = !hasPersonalizedScoutContext;
   const shouldShowSnapshot =
     hasPersonalizedScoutContext && (hasCategorySelectionOrSearch || hasRealContinuation);
+  const localCommandSnapshot = useMemo(
+    () =>
+      buildLocalCommandSnapshot({
+        directConnectRequests,
+        homeRecords,
+        recentActivity: data?.recentActivity ?? [],
+        localSignalCount: nearbyRows.length,
+        hasRealContinuation,
+      }),
+    [
+      data?.recentActivity,
+      directConnectRequests,
+      hasRealContinuation,
+      homeRecords,
+      nearbyRows.length,
+    ]
+  );
   const scoutFirstTaskPrompt = useMemo(
     () =>
       resolveScoutFirstUseTaskPrompt({
@@ -891,6 +1197,7 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
       {hasRealContinuation ? (
         <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />
       ) : null}
+      <LocalCommandCenter snapshot={localCommandSnapshot} onPromptSelect={onPromptSelect} />
       <ExploreGrid onPromptSelect={onPromptSelect} />
       {hasPersonalizedFeed ? (
         <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />
