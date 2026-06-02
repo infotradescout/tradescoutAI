@@ -62,9 +62,24 @@ async function fetchJsonWithCookie<T>(
   return { status: response.status, json, text, headers: response.headers };
 }
 
+function isLikelyJsonResponse(text: string, headers: Headers): boolean {
+  const contentType = headers.get("content-type") || "";
+  if (contentType.toLowerCase().includes("application/json")) return true;
+  const trimmed = text.trim();
+  return trimmed.startsWith("{") || trimmed.startsWith("[");
+}
+
 async function run() {
   const origin = (process.env.TRADESCOUT_PRODUCTION_ORIGIN || DEFAULT_ORIGIN).trim();
-  const staffCookie = (process.env.TRADESCOUT_STAFF_COOKIE || "").trim();
+  const rawCookie = (process.env.TRADESCOUT_STAFF_COOKIE || "").trim();
+  const staffCookie = rawCookie
+    .replace(/^cookie:\s*/i, "")
+    .replace(/[\r\n\t]/g, " ")
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[^\x20-\x7E]/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 
   if (!staffCookie) {
     console.error("Set TRADESCOUT_STAFF_COOKIE from a logged-in staff session. Do not commit it.");
@@ -80,9 +95,31 @@ async function run() {
   console.log(`Health status: ${healthResponse.status}`);
   console.log(`Build header: ${buildHeader || "(missing)"}`);
 
-  const kpiUrl = `${origin}/api/analytics/product-kpi/summary`;
-  const kpi = await fetchJsonWithCookie<ProductKpiSummary>(kpiUrl, staffCookie);
+  const kpiCandidates = [
+    `${origin}/api/analytics/product-kpi/summary`,
+    `${origin}/direct-connect/api/analytics/product-kpi/summary`,
+  ];
+
+  const candidateResults = await Promise.all(
+    kpiCandidates.map((url) => fetchJsonWithCookie<ProductKpiSummary>(url, staffCookie))
+  );
+
+  let chosenIndex = 0;
+  const json200Index = candidateResults.findIndex(
+    (r) => r.status === 200 && !!r.json && isLikelyJsonResponse(r.text, r.headers)
+  );
+  if (json200Index >= 0) {
+    chosenIndex = json200Index;
+  } else {
+    const firstNonHtml = candidateResults.findIndex((r) => isLikelyJsonResponse(r.text, r.headers));
+    if (firstNonHtml >= 0) chosenIndex = firstNonHtml;
+  }
+
+  const kpi = candidateResults[chosenIndex];
+  const kpiUrlUsed = kpiCandidates[chosenIndex];
+
   console.log(`KPI status: ${kpi.status}`);
+  console.log(`KPI URL used: ${kpiUrlUsed}`);
 
   if (kpi.status === 403) {
     console.error("Staff auth failed or account is not staff.");
@@ -91,6 +128,14 @@ async function run() {
 
   if (kpi.status !== 200 || !kpi.json) {
     console.error("Failed to fetch KPI summary.");
+    if (!isLikelyJsonResponse(kpi.text, kpi.headers)) {
+      console.error("Endpoint returned non-JSON content (likely app HTML), not KPI API JSON.");
+    }
+    if (kpi.status === 401) {
+      console.error(
+        "Authentication required. Copy the full Request Headers Cookie value from a logged-in /api/analytics/product-kpi/summary or /direct-connect/api/analytics/product-kpi/summary request."
+      );
+    }
     if (kpi.text) console.error(kpi.text);
     process.exit(1);
   }

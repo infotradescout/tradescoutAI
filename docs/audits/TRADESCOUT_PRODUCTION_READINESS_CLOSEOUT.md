@@ -356,6 +356,19 @@ Rationale:
     - `artifacts/tradescout-staff-kpi-smoke-latest.json`
   - Missing-cookie and non-staff access failure paths are explicit and safe.
 
+## Slice 75B Status Note
+- Direct Connect live KPI pull artifact:
+  - `docs/audits/SLICE75B_DIRECT_CONNECT_LIVE_KPI_PULL.md`
+- Current state:
+  - Production health/build check is PASS (`200`, build `691c0f1f9a78bff91ced1722aef1ef9e9ec125a4`).
+  - Staff-gated KPI endpoint from local smoke runner remains blocked at `401 Authentication required`.
+  - Decision remains explicit: Slice 75B is DEFERRED (not PASS) pending successful staff-authenticated KPI `200` pull via `npm run smoke:staff-kpi`.
+  - Smoke runner hardened to reduce false positives:
+    - dual candidate KPI path probing
+    - explicit `KPI URL used` output
+    - non-JSON/HTML response rejection
+    - safe cookie normalization (no secret output)
+
 ## Slice 76 Status Note
 - Direct Connect submission funnel contract harness artifact:
   - `docs/audits/SLICE76_DIRECT_CONNECT_SUBMISSION_FUNNEL_CONTRACT_HARNESS.md`
