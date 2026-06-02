@@ -523,3 +523,13 @@ Rationale:
   - Preserved contact-gate doctrine, Home Record optionality, no-pay-to-play constraints, staff-auth safety, and sitemap exclusion boundaries.
   - Confirmed no code change is required unless the live proof run exposes a missing daily metric store, admin view, or Trust Ledger capture point.
   - Decision: PASS as an execution-tracker baseline.
+
+## Slice 90 Status Note
+- Pensacola provider target list v1 artifact:
+  - `docs/runbooks/SLICE90_PENSACOLA_PROVIDER_TARGET_LIST_V1.md`
+- Current state:
+  - Defined first Pensacola provider/trade categories, minimum density targets, qualification criteria, outreach stages, provider activation definition, weekly provider-density score, and blocker log.
+  - Established the first measurable supply-side KPI as Pensacola verified/active providers by trade.
+  - Preserved contact-gate doctrine, no-pay-to-play/no-lead-selling constraints, Home Record optionality, staff-auth safety, and sitemap exclusion boundaries.
+  - Confirmed no code change is required unless real outreach exposes a missing provider activation store, admin view, or Trust Ledger capture point.
+  - Decision: PASS as ops execution prep.
