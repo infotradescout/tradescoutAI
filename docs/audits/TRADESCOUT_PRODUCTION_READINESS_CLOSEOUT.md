@@ -495,3 +495,12 @@ Rationale:
   - Requester-facing copy and empty states were human-readable; no raw enum copy was observed.
   - Home Record remained optional and secondary in the visible request composer.
   - Decision: PARTIAL PASS because no populated contractor-facing board card was available in the unauthenticated production visual run.
+
+## Slice 87 Status Note
+- Direct Connect liquidity baseline v1 artifact:
+  - `docs/audits/SLICE87_DIRECT_CONNECT_LIQUIDITY_BASELINE_V1.md`
+- Current state:
+  - Defined first-county launch liquidity proof requirements for requester activation, contractor activation, board integrity, contact-gate preservation, Home Record optionality, and completed outcome evidence.
+  - Established go/no-go thresholds before county launch can be treated as production-proven.
+  - Confirmed no new analytics event is required yet; county-scoped reporting remains a possible future measurement gap after live data returns.
+  - Decision: PASS as a docs-only strategy baseline; no code change required.
