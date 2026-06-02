@@ -533,3 +533,13 @@ Rationale:
   - Preserved contact-gate doctrine, no-pay-to-play/no-lead-selling constraints, Home Record optionality, staff-auth safety, and sitemap exclusion boundaries.
   - Confirmed no code change is required unless real outreach exposes a missing provider activation store, admin view, or Trust Ledger capture point.
   - Decision: PASS as ops execution prep.
+
+## Slice 91 Status Note
+- Pensacola request seeding plan v1 artifact:
+  - `docs/runbooks/SLICE91_PENSACOLA_REQUEST_SEEDING_PLAN_V1.md`
+- Current state:
+  - Defined first Pensacola request categories, requester-source channels, minimum request detail requirements, route-ready criteria, manual monitoring rules, response SLA targets, and completed-outcome capture rules.
+  - Established the demand-side KPI path as Pensacola real route-ready requests created -> provider responses -> contact-gate releases -> completed outcomes.
+  - Preserved contact-gate doctrine, no-pay-to-play/no-lead-selling constraints, Home Record optionality, staff-auth safety, and sitemap exclusion boundaries.
+  - Confirmed no code change is required unless live seeding exposes a missing request-status, routing, provider-response, contact-gate, or completed-outcome capture point.
+  - Decision: PASS as demand-side ops prep.
