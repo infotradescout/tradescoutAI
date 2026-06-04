@@ -29,6 +29,9 @@ export async function createAuthedAgent(
     onboardingCompleted: boolean;
     firstName: string;
     lastName: string;
+    phone: string;
+    stateCode: string;
+    countyFips: string;
   }> = {}
 ): Promise<TestLoginResult> {
   const { app } = await createApp();
@@ -44,6 +47,9 @@ export async function createAuthedAgent(
     password: passwordHash,
     firstName: overrides.firstName ?? "Test",
     lastName: overrides.lastName ?? "User",
+    phone: overrides.phone ?? "5555550100",
+    stateCode: overrides.stateCode ?? "FL",
+    countyFips: overrides.countyFips ?? "12033",
     role: (overrides.role ?? "homeowner") as any,
     emailVerified: overrides.emailVerified ?? true,
     addressVerified: overrides.addressVerified ?? true,
@@ -78,6 +84,9 @@ export async function createUserOnly(
     onboardingCompleted: boolean;
     firstName: string;
     lastName: string;
+    phone: string;
+    stateCode: string;
+    countyFips: string;
   }> = {}
 ) {
   const email = `user+${crypto.randomUUID()}@tradescout.test`;
@@ -87,6 +96,9 @@ export async function createUserOnly(
     password: null,
     firstName: overrides.firstName ?? "Recipient",
     lastName: overrides.lastName ?? "User",
+    phone: overrides.phone ?? "5555550100",
+    stateCode: overrides.stateCode ?? "FL",
+    countyFips: overrides.countyFips ?? "12033",
     role: (overrides.role ?? "contractor") as any,
     emailVerified: overrides.emailVerified ?? true,
     addressVerified: overrides.addressVerified ?? true,

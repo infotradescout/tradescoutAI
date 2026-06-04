@@ -114,6 +114,24 @@ export async function ensureDirectConnectDispatchLedgerTables() {
     );
   `);
   await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS direct_connect_job_workspaces (
+      id text PRIMARY KEY,
+      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
+      requester_user_id text NOT NULL,
+      business_id text NULL,
+      contractor_id text NULL,
+      contractor_response_id text NULL,
+      source text NOT NULL DEFAULT 'direct_connect',
+      category text NULL,
+      county text NULL,
+      city_area text NULL,
+      status text NOT NULL DEFAULT 'contact_started',
+      active_stage text NOT NULL DEFAULT 'contact',
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS direct_connect_notifications (
       id text PRIMARY KEY,
       request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
@@ -145,24 +163,6 @@ export async function ensureDirectConnectDispatchLedgerTables() {
       COALESCE(recipient_user_id, ''),
       COALESCE(recipient_business_id, ''),
       notification_type
-    );
-  `);
-  await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS direct_connect_job_workspaces (
-      id text PRIMARY KEY,
-      request_id text NOT NULL REFERENCES direct_connect_dispatch_requests(id) ON DELETE CASCADE,
-      requester_user_id text NOT NULL,
-      business_id text NULL,
-      contractor_id text NULL,
-      contractor_response_id text NULL,
-      source text NOT NULL DEFAULT 'direct_connect',
-      category text NULL,
-      county text NULL,
-      city_area text NULL,
-      status text NOT NULL DEFAULT 'contact_started',
-      active_stage text NOT NULL DEFAULT 'contact',
-      created_at timestamptz NOT NULL DEFAULT now(),
-      updated_at timestamptz NOT NULL DEFAULT now()
     );
   `);
   await db.execute(sql`
@@ -1160,6 +1160,15 @@ export async function persistFinalizedDispatchRequest(args: {
   `);
 }
 
+function isMissingDispatchRequestParent(error: unknown): boolean {
+  const err = error as { code?: string; constraint?: string; detail?: string } | null;
+  return (
+    String(err?.code || "") === "23503" &&
+    String(err?.constraint || "").includes("direct_connect_dispatch") &&
+    String(err?.detail || "").includes("direct_connect_dispatch_requests")
+  );
+}
+
 export async function appendDispatchEvent(args: {
   requestId: string;
   actorType: "requester" | "contractor" | "system" | "staff";
@@ -1243,20 +1252,25 @@ export async function appendDispatchEvent(args: {
 }) {
   const eventId = randomUUID();
   const lifecycle = normalizeLifecycleEvent(args.eventType);
-  await db.execute(sql`
-    INSERT INTO direct_connect_dispatch_events (
-      event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
-    )
-    VALUES (
-      ${eventId},
-      ${args.requestId},
-      ${args.actorType},
-      ${args.actorId ?? null},
-      ${args.eventType},
-      ${JSON.stringify(args.metadata || {})}::jsonb,
-      now()
-    )
-  `);
+  try {
+    await db.execute(sql`
+      INSERT INTO direct_connect_dispatch_events (
+        event_id, request_id, actor_type, actor_id, event_type, metadata_json, created_at
+      )
+      VALUES (
+        ${eventId},
+        ${args.requestId},
+        ${args.actorType},
+        ${args.actorId ?? null},
+        ${args.eventType},
+        ${JSON.stringify(args.metadata || {})}::jsonb,
+        now()
+      )
+    `);
+  } catch (error) {
+    if (isMissingDispatchRequestParent(error)) return;
+    throw error;
+  }
   if (!lifecycle) return;
 
   const recipients = await resolveLifecycleRecipients(args.requestId, args.eventType);
@@ -1755,31 +1769,36 @@ export async function snapshotDispatchCandidate(args: {
   contactEligibility: boolean;
   trustState: string;
 }) {
-  await db.execute(sql`
-    INSERT INTO direct_connect_dispatch_candidates (
-      id, request_id, business_id, contractor_id, responder_user_id, worker_id,
-      eligibility_state, eligibility_reasons, ineligibility_reasons,
-      territory_matched, category_matched, verification_state, profile_readiness, contact_eligibility, trust_state, created_at
-    )
-    VALUES (
-      ${randomUUID()},
-      ${args.requestId},
-      ${args.businessId ?? null},
-      ${args.contractorId ?? null},
-      ${args.responderUserId ?? null},
-      ${args.workerId ?? null},
-      ${args.eligibility.status},
-      ${JSON.stringify(args.eligibilityReasons || [])}::jsonb,
-      ${JSON.stringify(args.ineligibilityReasons || [])}::jsonb,
-      ${args.territoryMatched},
-      ${args.categoryMatched},
-      ${args.verificationState},
-      ${args.profileReadiness},
-      ${args.contactEligibility},
-      ${args.trustState},
-      now()
-    )
-  `);
+  try {
+    await db.execute(sql`
+      INSERT INTO direct_connect_dispatch_candidates (
+        id, request_id, business_id, contractor_id, responder_user_id, worker_id,
+        eligibility_state, eligibility_reasons, ineligibility_reasons,
+        territory_matched, category_matched, verification_state, profile_readiness, contact_eligibility, trust_state, created_at
+      )
+      VALUES (
+        ${randomUUID()},
+        ${args.requestId},
+        ${args.businessId ?? null},
+        ${args.contractorId ?? null},
+        ${args.responderUserId ?? null},
+        ${args.workerId ?? null},
+        ${args.eligibility.status},
+        ${JSON.stringify(args.eligibilityReasons || [])}::jsonb,
+        ${JSON.stringify(args.ineligibilityReasons || [])}::jsonb,
+        ${args.territoryMatched},
+        ${args.categoryMatched},
+        ${args.verificationState},
+        ${args.profileReadiness},
+        ${args.contactEligibility},
+        ${args.trustState},
+        now()
+      )
+    `);
+  } catch (error) {
+    if (isMissingDispatchRequestParent(error)) return;
+    throw error;
+  }
 }
 
 export async function setDispatchContactGateState(args: {

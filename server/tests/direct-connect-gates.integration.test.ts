@@ -543,7 +543,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       competitionMode: "none",
     } as any);
 
-    const res = await agent.get("/api/direct-connect/requests");
+    const res = await agent.get("/api/direct-connect/requests?scope=all");
 
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
@@ -562,19 +562,15 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     });
 
     const createRes = await agent.post("/api/direct-connect/requests").send({
-      title: `DC create/list ${Date.now()}`,
-      description: "Quick integration check for authenticated request/list flow.",
+      title: "Direct Connect create list project",
+      description: "Quick project check for authenticated request list flow.",
       category: "service_request",
+      autoRoute: false,
     });
 
     expect(createRes.status).toBe(201);
     const createdId = String(createRes.body?.id || "");
     expect(createdId.length).toBeGreaterThan(0);
-
-    const listRes = await agent.get("/api/direct-connect/requests");
-    expect(listRes.status).toBe(200);
-    expect(Array.isArray(listRes.body)).toBe(true);
-    expect(listRes.body.some((row: any) => String(row.id || "") === createdId)).toBe(true);
 
     const inserted = await db
       .select()
@@ -582,6 +578,11 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
       .where(
         and(eq(workRequests.id, createdId), eq(workRequests.createdByUserId, String(user.id)))
       );
+    const listRes = await agent.get("/api/direct-connect/requests?scope=all");
+    expect(listRes.status).toBe(200);
+    expect(Array.isArray(listRes.body)).toBe(true);
+    expect(listRes.body.some((row: any) => String(row.id || "") === createdId)).toBe(true);
+
     expect(inserted).toHaveLength(1);
     expect(String(inserted[0]?.source || "")).toBe("direct_connect");
   });
@@ -735,9 +736,10 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     });
 
     const createRes = await agent.post("/api/direct-connect/requests").send({
-      title: `DC enrichment fallback ${Date.now()}`,
-      description: "Regression test for optional enrichment query failures in list endpoint.",
+      title: "Direct Connect enrichment fallback project",
+      description: "Project details for optional enrichment query fallback in list endpoint.",
       category: "service_request",
+      autoRoute: false,
     });
     expect(createRes.status).toBe(201);
     const createdId = String(createRes.body?.id || "");
@@ -753,7 +755,7 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     });
 
     try {
-      const listRes = await agent.get("/api/direct-connect/requests");
+      const listRes = await agent.get("/api/direct-connect/requests?scope=all");
       expect(listRes.status).toBe(200);
       expect(Array.isArray(listRes.body)).toBe(true);
       expect(listRes.body.some((row: any) => String(row.id || "") === createdId)).toBe(true);
