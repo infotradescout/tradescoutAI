@@ -111,7 +111,7 @@ describe("AppRoutes onboarding decisions", () => {
     expect(getPostLandingRoute(user)).toBe("/admin");
   });
 
-  it("routes fully onboarded regular users to Direct Connect", () => {
+  it("routes fully onboarded regular users to Scout", () => {
     const user = {
       onboardingCompleted: true,
       profileVersion: 999,
@@ -119,6 +119,6 @@ describe("AppRoutes onboarding decisions", () => {
     };
 
     expect(userNeedsOnboarding(user)).toBe(false);
-    expect(getPostLandingRoute(user)).toBe("/direct-connect");
+    expect(getPostLandingRoute(user)).toBe("/scout");
   });
 });

@@ -28,14 +28,14 @@ export default function Navigation() {
 
   const publicNavItems = [
     { href: "/", label: "Home", icon: Home },
-    { href: "/direct-connect", label: "Direct Connect", icon: Building },
     { href: "/scout", label: "Scout", icon: Calculator },
+    { href: "/direct-connect", label: "Direct Connect", icon: Building },
     // Growth Pack entry removed
   ];
 
   const authNavItems = [
-    { href: "/direct-connect", label: "Direct Connect", icon: ClipboardList },
     { href: "/scout", label: "Scout", icon: Calculator },
+    { href: "/direct-connect", label: "Direct Connect", icon: ClipboardList },
     // Business/provider navigation keeps provider tools available
     ...(isContractor
       ? [

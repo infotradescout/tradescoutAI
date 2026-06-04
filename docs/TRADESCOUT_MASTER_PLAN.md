@@ -224,7 +224,7 @@ Onboarding must classify the user fast and route them into the correct economic 
 
 Current state
 
-You have auth setup, profile basics, intent selection, Direct Connect defaulting, and recent cleanup around profile/location commitment.
+You have auth setup, profile basics, intent selection, Scout defaulting, and recent cleanup around profile/location commitment.
 
 Future state
 
@@ -286,6 +286,8 @@ provider verification completion
 buyer inquiry
 Next build
 
+Slice 94 continuation: Scout Local Snapshot Surface v1. Scout should be the primary local action, search, and activity surface before Direct Connect becomes the daily request product.
+
 Create onboarding state as a single product state machine:
 
 auth_started
@@ -310,7 +312,7 @@ You have a strong request lifecycle: draft, post, route, replies, inbox, structu
 
 Future state
 
-Direct Connect should become the default way local work gets done.
+Direct Connect should become the daily product for local request completion after Scout shows the local snapshot, suggested next actions, and safe request entry points.
 
 Required functions
 Request composer

@@ -9,10 +9,10 @@
 ### Landing Route
 - **Logged-out users** → `/pre-scout-setup` (onboarding sign-up)
 - **Authenticated users with incomplete onboarding** → `/onboarding/profile` or `/onboarding/intent`
-- **Authenticated users with complete onboarding** → `/direct-connect` (default work surface)
+- **Authenticated users with complete onboarding** → `/scout` (local snapshot and action surface)
 - **Admins** → `/admin` (moderation console)
 
-**Finding:** Direct Connect is the default post-onboarding work surface. Scout remains the guided bridge and support layer, but users should not land there before setup is complete.
+**Finding:** Scout is the default post-onboarding surface. Direct Connect remains the daily local request product, but users should land first in Scout's local snapshot so activity, HomeID reminders, and safe next actions stay visible before contact opens.
 
 ### UI Emphasis (What Loads First)
 
