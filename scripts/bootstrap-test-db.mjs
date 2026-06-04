@@ -1407,6 +1407,20 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      ALTER TABLE marketplace_listings
+        ADD COLUMN IF NOT EXISTS shipping_quote jsonb,
+        ADD COLUMN IF NOT EXISTS package_details jsonb,
+        ADD COLUMN IF NOT EXISTS listing_type varchar DEFAULT 'single',
+        ADD COLUMN IF NOT EXISTS bundle_purchase_mode varchar DEFAULT 'must_buy_all',
+        ADD COLUMN IF NOT EXISTS bundle_items jsonb,
+        ADD COLUMN IF NOT EXISTS value_guidance jsonb,
+        ADD COLUMN IF NOT EXISTS rarity_tags jsonb DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS rarity_confidence varchar,
+        ADD COLUMN IF NOT EXISTS rarity_sample_size integer DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS rarity_explanation text
+    `);
+
+    await client.query(`
       CREATE INDEX IF NOT EXISTS idx_marketplace_conversations_buyer
       ON marketplace_conversations(buyer_id)
     `);

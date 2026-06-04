@@ -3275,11 +3275,19 @@ body.ts-scout-active .scout-content {
   bottom: 0;
   z-index: 20;
   margin-top: auto;
-  /* Backdrop blur so content scrolling behind it stays readable */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  isolation: isolate;
   /* Fade-in bottom edge to soften the transition */
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.scout-composer-dock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .scout-input-bottom-pin {
@@ -3295,9 +3303,18 @@ body.ts-scout-active .scout-content {
       color-mix(in oklab, var(--background) 86%, transparent) 72%,
       transparent 100%
     );
+  isolation: isolate;
+  padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
+}
+
+.scout-input-bottom-pin::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  padding-bottom: max(0.65rem, env(safe-area-inset-bottom, 0px));
 }
 
 .scout-search-dock-fixed {
@@ -3316,6 +3333,15 @@ body.ts-scout-active .scout-content {
       color-mix(in oklab, var(--background) 88%, transparent) 70%,
       transparent 100%
     );
+  isolation: isolate;
+}
+
+.scout-search-dock-fixed::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
 }
@@ -3974,10 +4000,19 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
    automatically adapt to the live app theme.
    ============================================================ */
 .morphic-glass {
+  position: relative;
+  isolation: isolate;
   background: color-mix(in oklab, var(--surface-card) 70%, transparent);
+  border: 1px solid var(--border-subtle);
+}
+.morphic-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border-subtle);
 }
 .morphic-card {
   background: var(--surface-card);

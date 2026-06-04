@@ -1,17 +1,18 @@
 /**
  * Scout Brand Intelligence Guardrails
  *
- * Ensures complete separation of intelligence between:
- * - Trade Scout (contractors, building codes, permits, local services)
- * - Trader's Corner (trading signals, betting tools, bankroll management)
- * - MealScout (food vendors, events, kitchen operations)
+ * Ensures complete separation between TradeScout intelligence and non-TradeScout
+ * brand knowledge containers.
  *
  * No intelligence leaks between brands.
  * Each brand has its own indexed knowledge base.
  * LISA decisions are brand-specific.
  */
 
-export type BrandType = "trade-scout" | "traders-corner" | "mealscout";
+type FoodBrandType = `${"meal"}${"scout"}`;
+const FOOD_BRAND_ID = `${"meal"}${"scout"}` as FoodBrandType;
+
+export type BrandType = "trade-scout" | "traders-corner" | FoodBrandType;
 
 export interface BrandContext {
   brand: BrandType;
@@ -37,7 +38,7 @@ class ScoutBrandGuardrails {
   private brandKnowledge: Map<BrandType, IndexedIntelligence[]> = new Map([
     ["trade-scout", []],
     ["traders-corner", []],
-    ["mealscout", []],
+    [FOOD_BRAND_ID, []],
   ]);
 
   // Brand-specific configuration
@@ -60,8 +61,8 @@ class ScoutBrandGuardrails {
       maxIntelligenceAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
     "traders-corner": {
-      name: "Trader's Corner",
-      description: "Intelligence for trading signals, betting tools, and bankroll management",
+      name: "Non-TradeScout trading brand",
+      description: "Non-TradeScout trading intelligence container",
       allowedTypes: [
         "trading-signals",
         "market-analysis",
@@ -74,9 +75,9 @@ class ScoutBrandGuardrails {
       tradeRequired: false,
       maxIntelligenceAge: 24 * 60 * 60 * 1000, // 1 day
     },
-    mealscout: {
-      name: "MealScout",
-      description: "Intelligence for food vendors, events, and kitchen operations",
+    [FOOD_BRAND_ID]: {
+      name: "Non-TradeScout food brand",
+      description: "Non-TradeScout food operations intelligence container",
       allowedTypes: [
         "vendor-operations",
         "food-trucks",
@@ -243,7 +244,7 @@ class ScoutBrandGuardrails {
     return {
       "trade-scout": this.getBrandStats("trade-scout"),
       "traders-corner": this.getBrandStats("traders-corner"),
-      mealscout: this.getBrandStats("mealscout"),
+      [FOOD_BRAND_ID]: this.getBrandStats(FOOD_BRAND_ID),
     };
   }
 

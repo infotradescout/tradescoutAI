@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import {
   procurementModeLabels,
@@ -292,7 +293,7 @@ function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
         setError(product.message || "Could not read product details from that link.");
       }
     } catch (err: any) {
-      setError(err?.message || "Could not read that supplier link.");
+      setError(formatUserFacingErrorMessage(err, "Could not read that supplier link."));
     } finally {
       setResolvingItemIndex(null);
     }
@@ -345,7 +346,8 @@ function OrderForm({ mode }: { mode: "tradescout" | "grunt" }) {
           : `/utilities/supply-run/${id}`
       );
     },
-    onError: (err: any) => setError(err?.message || "Could not submit this order."),
+    onError: (err: any) =>
+      setError(formatUserFacingErrorMessage(err, "Could not submit this order.")),
   });
 
   const title = mode === "grunt" ? "Get Supplies Delivered" : "Start Supply Run";

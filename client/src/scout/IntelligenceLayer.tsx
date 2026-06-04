@@ -10,7 +10,7 @@ import { Sparkles, Shield } from "lucide-react";
    modules are assembled below it.
 
    Visual elements:
-   - Orange gradient accent line at top (1px)
+   - Theme accent line at top (1px)
    - "INTELLIGENCE LAYER" section label with sparkle icon
    - Large bold white heading (Scout's summary sentence)
    - Secondary subtext line
@@ -47,15 +47,16 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
     <div
       className="relative overflow-hidden rounded-2xl mb-4"
       style={{
-        background: "#111111",
-        border: "1px solid rgba(255,255,255,0.08)",
+        background: "var(--surface-card)",
+        border: "1px solid var(--border-primary)",
       }}
     >
-      {/* Orange gradient accent line — @reusable: scout-intelligence-card__accent-line */}
+      {/* Theme accent line — @reusable: scout-intelligence-card__accent-line */}
       <div
         className="absolute top-0 left-0 right-0 h-[2px]"
         style={{
-          background: "linear-gradient(90deg, #f97316 0%, rgba(249,115,22,0.4) 60%, transparent 100%)",
+          background: "var(--theme-accent-primary)",
+          opacity: 0.78,
         }}
         aria-hidden="true"
       />
@@ -75,23 +76,63 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
           preserveAspectRatio="xMaxYMid meet"
         >
           {/* Outer ellipse */}
-          <ellipse cx="80" cy="100" rx="55" ry="90" stroke="#f97316" strokeWidth="0.8" strokeOpacity="0.5" />
+          <ellipse
+            cx="80"
+            cy="100"
+            rx="55"
+            ry="90"
+            stroke="var(--theme-accent-primary)"
+            strokeWidth="0.8"
+            strokeOpacity="0.5"
+          />
           {/* Middle ellipse */}
-          <ellipse cx="80" cy="100" rx="38" ry="65" stroke="#f97316" strokeWidth="0.6" strokeOpacity="0.4" />
+          <ellipse
+            cx="80"
+            cy="100"
+            rx="38"
+            ry="65"
+            stroke="var(--theme-accent-primary)"
+            strokeWidth="0.6"
+            strokeOpacity="0.4"
+          />
           {/* Inner ellipse */}
-          <ellipse cx="80" cy="100" rx="20" ry="38" stroke="#f97316" strokeWidth="0.5" strokeOpacity="0.35" />
+          <ellipse
+            cx="80"
+            cy="100"
+            rx="20"
+            ry="38"
+            stroke="var(--theme-accent-primary)"
+            strokeWidth="0.5"
+            strokeOpacity="0.35"
+          />
           {/* Horizontal cross line */}
-          <line x1="25" y1="100" x2="135" y2="100" stroke="#f97316" strokeWidth="0.5" strokeOpacity="0.3" />
+          <line
+            x1="25"
+            y1="100"
+            x2="135"
+            y2="100"
+            stroke="var(--theme-accent-primary)"
+            strokeWidth="0.5"
+            strokeOpacity="0.3"
+          />
           {/* Vertical axis */}
-          <line x1="80" y1="10" x2="80" y2="190" stroke="#f97316" strokeWidth="0.5" strokeOpacity="0.25" />
+          <line
+            x1="80"
+            y1="10"
+            x2="80"
+            y2="190"
+            stroke="var(--theme-accent-primary)"
+            strokeWidth="0.5"
+            strokeOpacity="0.25"
+          />
           {/* Accent dot */}
-          <circle cx="80" cy="100" r="3" fill="#f97316" fillOpacity="0.7" />
+          <circle cx="80" cy="100" r="3" fill="var(--theme-accent-primary)" fillOpacity="0.7" />
           {/* Scattered dots */}
-          <circle cx="55" cy="68" r="1.2" fill="#f97316" fillOpacity="0.5" />
-          <circle cx="108" cy="82" r="1" fill="#f97316" fillOpacity="0.4" />
-          <circle cx="95" cy="130" r="1.5" fill="#f97316" fillOpacity="0.45" />
-          <circle cx="62" cy="145" r="1" fill="#f97316" fillOpacity="0.35" />
-          <circle cx="115" cy="115" r="0.8" fill="#f97316" fillOpacity="0.3" />
+          <circle cx="55" cy="68" r="1.2" fill="var(--theme-accent-primary)" fillOpacity="0.5" />
+          <circle cx="108" cy="82" r="1" fill="var(--theme-accent-primary)" fillOpacity="0.4" />
+          <circle cx="95" cy="130" r="1.5" fill="var(--theme-accent-primary)" fillOpacity="0.45" />
+          <circle cx="62" cy="145" r="1" fill="var(--theme-accent-primary)" fillOpacity="0.35" />
+          <circle cx="115" cy="115" r="0.8" fill="var(--theme-accent-primary)" fillOpacity="0.3" />
         </svg>
       </div>
 
@@ -99,10 +140,10 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
       <div className="relative z-10 p-5 pr-28">
         {/* Section label — @reusable: scout-section-label */}
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles size={13} style={{ color: "#f97316", flexShrink: 0 }} />
+          <Sparkles size={13} style={{ color: "var(--theme-accent-primary)", flexShrink: 0 }} />
           <span
             className="text-[10px] font-bold uppercase tracking-[0.18em]"
-            style={{ color: "#f97316" }}
+            style={{ color: "var(--theme-accent-primary)" }}
           >
             Intelligence Layer
           </span>
@@ -111,7 +152,7 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
             <span
               className="w-1.5 h-1.5 rounded-full ml-1"
               style={{
-                background: "#f97316",
+                background: "var(--theme-accent-primary)",
                 animation: "scout-pulse 0.9s ease-in-out infinite",
               }}
               aria-label="Processing"
@@ -124,7 +165,7 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
           <h2
             className="font-black leading-[1.15] mb-2"
             style={{
-              color: "#fafafa",
+              color: "var(--text-primary)",
               fontSize: "clamp(17px, 4vw, 22px)",
               fontFamily: "'Sora', 'Inter', sans-serif",
             }}
@@ -137,7 +178,7 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
         {subtext && (
           <p
             className="text-[13px] leading-relaxed mb-3"
-            style={{ color: "rgba(250,250,250,0.65)" }}
+            style={{ color: "var(--text-secondary)" }}
           >
             {subtext}
           </p>
@@ -145,10 +186,7 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
 
         {/* Context meta line — @reusable: scout-intelligence-card__context */}
         {context && (
-          <p
-            className="text-[11px] font-medium mb-3"
-            style={{ color: "rgba(250,250,250,0.4)" }}
-          >
+          <p className="text-[11px] font-medium mb-3" style={{ color: "var(--text-muted)" }}>
             {context}
           </p>
         )}
@@ -156,12 +194,12 @@ export const IntelligenceLayer: React.FC<IntelligenceLayerProps> = ({
         {/* Footer badge — @reusable: scout-trust-footer */}
         <div
           className="flex items-center gap-1.5 mt-4 pt-3"
-          style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          style={{ borderTop: "1px solid var(--border-subtle)" }}
         >
-          <Shield size={11} style={{ color: "rgba(250,250,250,0.35)", flexShrink: 0 }} />
+          <Shield size={11} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
           <span
             className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-            style={{ color: "rgba(250,250,250,0.35)" }}
+            style={{ color: "var(--text-muted)" }}
           >
             Verified &amp; Community-Powered
           </span>

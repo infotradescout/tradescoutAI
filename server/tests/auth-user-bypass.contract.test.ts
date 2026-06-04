@@ -9,7 +9,7 @@ vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });
 describeWithDb("auth user bypass metadata", () => {
   it("returns privileged bypass metadata for staff/admin tier sessions", async () => {
     const { agent } = await createAuthedAgent({
-      role: "super_admin",
+      role: "ops_admin",
       addressVerified: false,
       onboardingCompleted: true,
     });

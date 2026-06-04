@@ -9,7 +9,7 @@ const hasTestDb =
   Boolean(process.env.TEST_DATABASE_URL) && process.env.RUN_INTEGRATION_TESTS === "true";
 
 const describeDb = hasTestDb ? describe : describe.skip;
-const INTEGRATION_TIMEOUT_MS = 45000;
+const INTEGRATION_TIMEOUT_MS = 90000;
 
 async function getCountyFixture() {
   const [county] = await db

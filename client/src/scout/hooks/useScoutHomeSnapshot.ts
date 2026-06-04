@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import type { ScoutLocation } from "./useScoutLocation";
 
 export interface LocalSnapshot {
@@ -157,7 +158,7 @@ export function useScoutHomeSnapshot(location: ScoutLocation) {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : "Failed to load local data");
+          setError(formatUserFacingErrorMessage(err, "Failed to load local data"));
           // Still show something — use defaults with the location name
           setData({
             snapshot: {

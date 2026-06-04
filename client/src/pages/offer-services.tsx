@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -281,7 +282,7 @@ export default function OfferServicesPage() {
     onError: (error: any) => {
       toast({
         title: "Business setup not updated",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -418,7 +419,7 @@ export default function OfferServicesPage() {
     onError: (error: any) => {
       toast({
         title: "Offer not saved",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -442,7 +443,7 @@ export default function OfferServicesPage() {
     onError: (error: any) => {
       toast({
         title: "Offer not updated",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
@@ -487,7 +488,7 @@ export default function OfferServicesPage() {
     onError: (error: any) => {
       toast({
         title: "Purchase not updated",
-        description: error?.message || "Please try again.",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
     },
