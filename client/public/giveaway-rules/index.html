@@ -12,164 +12,268 @@
     <style>
       body {
         margin: 0;
-        background: #111827;
+        background: #05070a;
         color: #f9fafb;
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         line-height: 1.6;
       }
       main {
-        max-width: 880px;
+        max-width: 1040px;
         margin: 0 auto;
-        padding: 48px 20px;
+        padding: 32px 20px;
       }
-      article {
-        background: #172033;
-        border: 1px solid rgba(255, 255, 255, 0.14);
-        border-radius: 10px;
-        padding: 32px;
+      header {
+        border-bottom: 1px solid #1e293b;
+        padding-bottom: 24px;
       }
       h1,
       h2 {
         line-height: 1.2;
       }
       h1 {
-        font-size: 2rem;
+        color: #ffffff;
+        font-size: clamp(2rem, 4vw, 2.75rem);
         margin: 0 0 8px;
       }
       h2 {
+        color: #ffffff;
         font-size: 1.35rem;
-        margin-top: 32px;
+        margin: 0;
+      }
+      p {
+        color: #e2e8f0;
       }
       a {
-        color: #f59e0b;
+        color: #fdba74;
+        font-weight: 700;
       }
       .muted {
         color: #cbd5e1;
       }
+      .eyebrow {
+        color: #fdba74;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        margin: 0 0 12px;
+        text-transform: uppercase;
+      }
+      .summary {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin: 24px 0 32px;
+      }
+      .summary div {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .summary span {
+        color: #94a3b8;
+        display: block;
+        font-size: 0.75rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+      .summary strong {
+        color: #ffffff;
+        display: block;
+        margin-top: 4px;
+      }
+      article {
+        background: #020617;
+        border: 1px solid #334155;
+        border-radius: 10px;
+      }
+      section {
+        border-bottom: 1px solid #1e293b;
+        padding: 28px 32px;
+      }
+      section:last-child {
+        border-bottom: 0;
+      }
+      section p {
+        font-size: 0.96rem;
+        margin: 14px 0 0;
+      }
+      section strong {
+        color: #ffffff;
+      }
       .notice {
-        border-top: 1px solid rgba(255, 255, 255, 0.14);
-        margin-top: 32px;
-        padding-top: 20px;
+        background: rgba(251, 146, 60, 0.1);
+        border: 1px solid rgba(251, 146, 60, 0.45);
+        border-radius: 8px;
+        color: #ffedd5;
+        margin-top: 24px;
+        padding: 16px;
         text-align: center;
         font-weight: 700;
+      }
+      @media (max-width: 760px) {
+        .summary {
+          grid-template-columns: 1fr;
+        }
+        section {
+          padding: 24px 20px;
+        }
       }
     </style>
   </head>
   <body>
     <main>
-      <article>
-        <h1>TradeScout Direct Connect Giveaway Official Rules</h1>
+      <header>
+        <p class="eyebrow">Official Rules</p>
+        <h1>TradeScout Direct Connect Giveaway</h1>
         <p class="muted">No purchase necessary. Void where prohibited. Last updated June 6, 2026.</p>
+      </header>
 
-        <h2>1. Promotion Period</h2>
-        <p>
-          The TradeScout Direct Connect Giveaway begins when announced by TradeScout and ends at
-          11:59 p.m. Central Time on July 3, 2026. Entries submitted after the promotion period are
-          not eligible.
-        </p>
+      <div class="summary">
+        <div>
+          <span>Eligibility</span>
+          <strong>Legal FL residents 18+</strong>
+        </div>
+        <div>
+          <span>Ends</span>
+          <strong>July 3, 2026 at 11:59 PM CT</strong>
+        </div>
+        <div>
+          <span>Entry Limit</span>
+          <strong>One entry per person per day</strong>
+        </div>
+      </div>
 
-        <h2>2. Eligibility</h2>
-        <p>
-          The giveaway is open only to legal residents of Florida who are 18 years of age or older
-          at the time of entry. Employees, contractors, officers, directors, and agents of
-          TradeScout, and members of their immediate households, are not eligible.
-        </p>
+      <article>
+        <section>
+          <h2>1. Promotion Period</h2>
+          <p>
+            The TradeScout Direct Connect Giveaway begins when announced by TradeScout and ends at
+            11:59 p.m. Central Time on July 3, 2026. Entries submitted after the promotion period are
+            not eligible.
+          </p>
+        </section>
 
-        <h2>3. How to Enter</h2>
-        <p>
-          There are two (2) ways to enter the Sweepstakes. Both methods carry the exact same odds of
-          winning.
-        </p>
-        <p>
-          <strong>Method A (Platform Entry):</strong> Navigate to the TradeScout website at
-          <a href="https://www.thetradescout.com">https://www.thetradescout.com</a> and
-          successfully submit a free, bona fide Direct Connect request during the Sweepstakes
-          Period. A "bona fide request" is defined as a genuine request for services containing
-          accurate and valid contact information.
-        </p>
-        <p>
-          <strong>Method B (Alternative Method of Entry - AMOE):</strong> To enter without
-          submitting a request, hand-print your full name, complete physical mailing address,
-          telephone number, email address, and date of birth on a standard 3" x 5" postcard and mail
-          it with proper postage to: TradeScout Direct Connect Giveaway, Attn: Sweepstakes Entry,
-          3715 Theresa Street, Pensacola, FL 32505. Mail-in entries must be postmarked by the
-          Sweepstakes End Date and received within five (5) business days after the Sweepstakes End
-          Date.
-        </p>
-        <p>
-          <strong>Entry Limit:</strong> Maximum of one (1) entry per person, per day, regardless of
-          the method of entry. For the purposes of this Sweepstakes, a "day" is defined as a 24-hour
-          period beginning at 12:00 AM CT and ending at 11:59 PM CT. Mass-automated entries,
-          scripted entries, or requests deemed by the Sponsors (in their sole discretion) to be
-          fraudulent, incomplete, or submitted in bad faith will be disqualified.
-        </p>
+        <section>
+          <h2>2. Eligibility</h2>
+          <p>
+            The giveaway is open only to legal residents of Florida who are 18 years of age or older
+            at the time of entry. Employees, contractors, officers, directors, and agents of
+            TradeScout, and members of their immediate households, are not eligible.
+          </p>
+        </section>
 
-        <h2>4. Prize</h2>
-        <p>
-          The prize, approximate retail value, and any prize-specific limitations will be stated in
-          the applicable TradeScout giveaway announcement. Prize substitution, transfer, or cash
-          redemption is not permitted except at TradeScout's discretion. Taxes and any expenses not
-          specifically stated as included are the winner's responsibility.
-        </p>
+        <section>
+          <h2>3. How to Enter</h2>
+          <p>
+            There are two (2) ways to enter the Sweepstakes. Both methods carry the exact same odds of
+            winning.
+          </p>
+          <p>
+            <strong>Method A (Platform Entry):</strong> Navigate to the TradeScout website at
+            <a href="https://www.thetradescout.com">https://www.thetradescout.com</a> and
+            successfully submit a free, bona fide Direct Connect request during the Sweepstakes
+            Period. A "bona fide request" is defined as a genuine request for services containing
+            accurate and valid contact information.
+          </p>
+          <p>
+            <strong>Method B (Alternative Method of Entry - AMOE):</strong> To enter without
+            submitting a request, hand-print your full name, complete physical mailing address,
+            telephone number, email address, and date of birth on a standard 3" x 5" postcard and mail
+            it with proper postage to: TradeScout Direct Connect Giveaway, Attn: Sweepstakes Entry,
+            3715 Theresa Street, Pensacola, FL 32505. Mail-in entries must be postmarked by the
+            Sweepstakes End Date and received within five (5) business days after the Sweepstakes End
+            Date.
+          </p>
+          <p>
+            <strong>Entry Limit:</strong> Maximum of one (1) entry per person, per day, regardless of
+            the method of entry. For the purposes of this Sweepstakes, a "day" is defined as a 24-hour
+            period beginning at 12:00 AM CT and ending at 11:59 PM CT. Mass-automated entries,
+            scripted entries, or requests deemed by the Sponsors (in their sole discretion) to be
+            fraudulent, incomplete, or submitted in bad faith will be disqualified.
+          </p>
+        </section>
 
-        <h2>5. Winner Selection and Notification</h2>
-        <p>
-          After the promotion period ends, TradeScout will select the potential winner from among
-          eligible entries by random drawing or another neutral selection method described in the
-          applicable announcement. The potential winner will be notified using the contact
-          information provided at entry.
-        </p>
-        <p>
-          A potential winner may be required to confirm eligibility, provide a mailing address, and
-          complete any required tax or eligibility documentation. If a potential winner cannot be
-          contacted, is ineligible, does not respond in a reasonable time, or declines the prize,
-          TradeScout may select an alternate winner.
-        </p>
+        <section>
+          <h2>4. Prize</h2>
+          <p>
+            The prize, approximate retail value, and any prize-specific limitations will be stated in
+            the applicable TradeScout giveaway announcement. Prize substitution, transfer, or cash
+            redemption is not permitted except at TradeScout's discretion. Taxes and any expenses not
+            specifically stated as included are the winner's responsibility.
+          </p>
+        </section>
 
-        <h2>6. Publicity and Privacy</h2>
-        <p>
-          By entering, entrants consent to TradeScout's use of entry information to administer the
-          giveaway, verify eligibility, contact entrants, and award the prize. Personal information
-          is handled according to the TradeScout Privacy Policy at
-          <a href="https://www.thetradescout.com/privacy">https://www.thetradescout.com/privacy</a>.
-        </p>
-        <p>
-          Except where prohibited by law, accepting a prize may allow TradeScout to use the winner's
-          name, city, state, likeness, and prize information for promotional purposes without
-          additional compensation.
-        </p>
+        <section>
+          <h2>5. Winner Selection and Notification</h2>
+          <p>
+            After the promotion period ends, TradeScout will select the potential winner from among
+            eligible entries by random drawing or another neutral selection method described in the
+            applicable announcement. The potential winner will be notified using the contact
+            information provided at entry.
+          </p>
+          <p>
+            A potential winner may be required to confirm eligibility, provide a mailing address, and
+            complete any required tax or eligibility documentation. If a potential winner cannot be
+            contacted, is ineligible, does not respond in a reasonable time, or declines the prize,
+            TradeScout may select an alternate winner.
+          </p>
+        </section>
 
-        <h2>7. General Conditions</h2>
-        <p>
-          TradeScout may disqualify any entrant who tampers with the entry process, violates these
-          Official Rules, acts fraudulently or disruptively, or attempts to undermine the lawful
-          operation of the giveaway. TradeScout may cancel, suspend, or modify the giveaway if
-          fraud, technical failure, legal restriction, or any other factor impairs the integrity or
-          proper administration of the giveaway.
-        </p>
+        <section>
+          <h2>6. Publicity and Privacy</h2>
+          <p>
+            By entering, entrants consent to TradeScout's use of entry information to administer the
+            giveaway, verify eligibility, contact entrants, and award the prize. Personal information
+            is handled according to the TradeScout Privacy Policy at
+            <a href="https://www.thetradescout.com/privacy">https://www.thetradescout.com/privacy</a>.
+          </p>
+          <p>
+            Except where prohibited by law, accepting a prize may allow TradeScout to use the winner's
+            name, city, state, likeness, and prize information for promotional purposes without
+            additional compensation.
+          </p>
+        </section>
 
-        <h2>8. Release and Limitation of Liability</h2>
-        <p>
-          By entering, entrants release TradeScout and its affiliates, officers, directors,
-          employees, agents, and partners from claims arising from participation in the giveaway or
-          acceptance, use, or misuse of any prize, except where prohibited by law.
-        </p>
+        <section>
+          <h2>7. General Conditions</h2>
+          <p>
+            TradeScout may disqualify any entrant who tampers with the entry process, violates these
+            Official Rules, acts fraudulently or disruptively, or attempts to undermine the lawful
+            operation of the giveaway. TradeScout may cancel, suspend, or modify the giveaway if
+            fraud, technical failure, legal restriction, or any other factor impairs the integrity or
+            proper administration of the giveaway.
+          </p>
+        </section>
 
-        <h2>9. Sponsor</h2>
-        <p>Sponsor: TradeScout. Questions about the giveaway may be sent to support@tradescout.com.</p>
+        <section>
+          <h2>8. Release and Limitation of Liability</h2>
+          <p>
+            By entering, entrants release TradeScout and its affiliates, officers, directors,
+            employees, agents, and partners from claims arising from participation in the giveaway or
+            acceptance, use, or misuse of any prize, except where prohibited by law.
+          </p>
+        </section>
 
-        <h2>10. Master Rules URL</h2>
-        <p>
-          These Official Rules are hosted at
-          <a href="https://www.thetradescout.com/giveaway-rules"
-            >https://www.thetradescout.com/giveaway-rules</a
-          >. Giveaway advertisements, social media captions, email footers, and Direct Connect
-          submission disclosures should link to this URL.
-        </p>
+        <section>
+          <h2>9. Sponsor</h2>
+          <p>Sponsor: TradeScout. Questions about the giveaway may be sent to support@tradescout.com.</p>
+        </section>
 
-        <p class="notice">NO PURCHASE NECESSARY. Open to legal FL residents 18+. Ends 7/3/26.</p>
+        <section>
+          <h2>10. Master Rules URL</h2>
+          <p>
+            These Official Rules are hosted at
+            <a href="https://www.thetradescout.com/giveaway-rules"
+              >https://www.thetradescout.com/giveaway-rules</a
+            >. Giveaway advertisements, social media captions, email footers, and Direct Connect
+            submission disclosures should link to this URL.
+          </p>
+        </section>
       </article>
+
+      <p class="notice">NO PURCHASE NECESSARY. Open to legal FL residents 18+. Ends 7/3/26.</p>
     </main>
   </body>
 </html>
