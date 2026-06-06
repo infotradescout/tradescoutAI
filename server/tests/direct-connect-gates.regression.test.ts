@@ -313,6 +313,31 @@ describe("direct-connect gate regressions", () => {
     );
   });
 
+  it("rate-limits direct-connect write paths with the shared Postgres store", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+
+    expect(routeFile).toContain("prefix: `rl:direct_connect:${prefix}`");
+    expect(routeFile).toContain("DIRECT_CONNECT_CREATE_LIMIT_15M");
+    expect(routeFile).toContain("DIRECT_CONNECT_WORKFLOW_LIMIT_1M");
+    expect(routeFile).toContain("DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M");
+    expect(routeFile).toContain('"DIRECT_CONNECT_RATE_LIMITED"');
+    expect(routeFile).toContain(
+      '"/api/direct-connect/requests",\n    isAuthenticated,\n    directConnectCreateLimiter'
+    );
+    expect(routeFile).toContain(
+      '"/api/direct-connect/requests/:id/route",\n    isAuthenticated,\n    directConnectWorkflowLimiter'
+    );
+    expect(routeFile).toContain(
+      '"/api/direct-connect/requests/:id/contact-gate",\n    isAuthenticated,\n    directConnectWorkflowLimiter'
+    );
+    expect(routeFile).toContain(
+      '"/api/direct-connect/assignments/:id/respond",\n    isAuthenticated,\n    directConnectProviderResponseLimiter'
+    );
+    expect(routeFile).toContain(
+      '"/api/direct-connect/requests/:id/express-interest",\n    isAuthenticated,\n    directConnectProviderResponseLimiter'
+    );
+  });
+
   it("allows universal provider assignments to view direct-connect attachments", () => {
     const routeFile = readRepoFile("server/routes/direct-connect.ts");
 

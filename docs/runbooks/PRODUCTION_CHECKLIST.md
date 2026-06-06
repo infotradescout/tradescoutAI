@@ -35,9 +35,12 @@ Ensure the following environment variables are set in the production environment
 | `BING_INDEXNOW_KEY` / `INDEXNOW_KEY` | Recommended | Enables `/indexnow-key.txt` ownership proof for Bing/IndexNow URL submission |
 | `GEMINI_API_KEY` | No | Gemini fallback and legacy enhanced Scout routes |
 | `GOOGLE_PROJECT_ID` / `GOOGLE_VERTEX_LOCATION` | No | Vertex Gemini fallback provider |
+| `DIRECT_CONNECT_CREATE_LIMIT_15M` | No | Per-user/IP Direct Connect request creation cap per 15 minutes; default `12` |
+| `DIRECT_CONNECT_WORKFLOW_LIMIT_1M` | No | Per-user/IP Direct Connect route/share/contact-gate action cap per minute; default `90` |
+| `DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M` | No | Per-user/IP provider response/express-interest cap per 10 minutes; default `60` |
 
 ## 2. Security
-- [x] **Rate Limiting**: Configured for sensitive endpoints (login, password reset, AI).
+- [x] **Rate Limiting**: Configured for sensitive endpoints (login, password reset, AI) and Direct Connect write paths.
 - [x] **Headers**: `helmet` is used for security headers.
 - [x] **CORS**: Configured with an allowlist.
 - [x] **CSP**: Content Security Policy is enabled and configured through `helmet` directives.

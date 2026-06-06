@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 import { isAuthenticated, isStaff } from "../auth";
-import { db } from "../db";
+import { db, pool } from "../db";
 import { randomBytes } from "crypto";
 import {
   type WorkRequest,
@@ -65,6 +66,7 @@ import {
   isDirectConnectUnverifiedBypassEnabled,
   resolvePrivilegedVerificationBypass,
 } from "../utils/authorityPolicy";
+import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -1717,6 +1719,66 @@ export function registerDirectConnectRoutes(app: Express) {
   void ensureDirectConnectDispatchLedgerTables().catch((error) => {
     console.warn("[direct-connect] Failed to ensure dispatch ledger tables", error);
   });
+  const isProductionEnv = process.env.NODE_ENV === "production";
+  const noopRateLimiter: any = (_req: any, _res: any, next: any) => next();
+  const directConnectRateLimitKey = (req: AuthedRequest) => {
+    const userId = req?.user?.id || req?.user?.claims?.sub;
+    if (userId) return `u:${userId}`;
+    const anonymousSessionId = resolveAnonymousSessionId(req);
+    if (anonymousSessionId) return `anon:${anonymousSessionId}`;
+    const email =
+      typeof req?.body?.email === "string" ? String(req.body.email).trim().toLowerCase() : "";
+    if (email) return `ip:${req.ip}|e:${email}`;
+    return req.ip || "unknown";
+  };
+  const directConnectLimiterStore = (prefix: string) =>
+    createPostgresRateLimitStore({
+      pool,
+      prefix: `rl:direct_connect:${prefix}`,
+      cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 10 * 60 * 1000),
+    });
+  const directConnectCreateLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: Number(process.env.DIRECT_CONNECT_CREATE_LIMIT_15M || 12),
+        message: {
+          message: "Too many Direct Connect requests. Please slow down and try again shortly.",
+          code: "DIRECT_CONNECT_RATE_LIMITED",
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: directConnectRateLimitKey,
+        store: directConnectLimiterStore("create"),
+      })
+    : noopRateLimiter;
+  const directConnectWorkflowLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 60 * 1000,
+        max: Number(process.env.DIRECT_CONNECT_WORKFLOW_LIMIT_1M || 90),
+        message: {
+          message: "Too many Direct Connect actions. Please slow down and try again shortly.",
+          code: "DIRECT_CONNECT_RATE_LIMITED",
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: directConnectRateLimitKey,
+        store: directConnectLimiterStore("workflow"),
+      })
+    : noopRateLimiter;
+  const directConnectProviderResponseLimiter = isProductionEnv
+    ? rateLimit({
+        windowMs: 10 * 60 * 1000,
+        max: Number(process.env.DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M || 60),
+        message: {
+          message: "Too many Direct Connect responses. Please slow down and try again shortly.",
+          code: "DIRECT_CONNECT_RATE_LIMITED",
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: directConnectRateLimitKey,
+        store: directConnectLimiterStore("provider_response"),
+      })
+    : noopRateLimiter;
   const makeShareToken = () => randomBytes(16).toString("hex");
   const ACTIVE_BOARD_STATUSES = new Set(["open", "routed", "in_progress"]);
   const ACTIVE_SHARE_STATUSES = new Set(["open", "routed", "in_progress"]);
@@ -2485,6 +2547,7 @@ export function registerDirectConnectRoutes(app: Express) {
   app.post(
     "/api/direct-connect/requests/:id/route",
     isAuthenticated,
+    directConnectWorkflowLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
         const userId = req.user?.id || req.user?.claims?.sub;
@@ -4701,6 +4764,7 @@ export function registerDirectConnectRoutes(app: Express) {
   app.post(
     "/api/direct-connect/requests/:id/share",
     isAuthenticated,
+    directConnectWorkflowLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
         const userId = req.user?.id || req.user?.claims?.sub;
@@ -4906,6 +4970,7 @@ export function registerDirectConnectRoutes(app: Express) {
   app.post(
     "/api/direct-connect/requests/:id/contact-gate",
     isAuthenticated,
+    directConnectWorkflowLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
         const requestId = String(req.params.id || "").trim();
@@ -5548,6 +5613,7 @@ export function registerDirectConnectRoutes(app: Express) {
   app.post(
     "/api/direct-connect/requests",
     isAuthenticated,
+    directConnectCreateLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
@@ -8215,6 +8281,7 @@ export function registerDirectConnectRoutes(app: Express) {
   app.post(
     "/api/direct-connect/contractor/requests/:id/respond",
     isAuthenticated,
+    directConnectProviderResponseLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
         const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
@@ -11426,6 +11493,7 @@ export function registerDirectConnectRoutes(app: Express) {
   app.post(
     "/api/direct-connect/assignments/:id/respond",
     isAuthenticated,
+    directConnectProviderResponseLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
         // Contract anchor: requester notifications on response outcomes.
@@ -11788,6 +11856,7 @@ export function registerDirectConnectRoutes(app: Express) {
   app.post(
     "/api/direct-connect/requests/:id/express-interest",
     isAuthenticated,
+    directConnectProviderResponseLimiter,
     async (req: AuthedRequest, res: Response) => {
       try {
         const userId = req.user?.id || req.user?.claims?.sub;
