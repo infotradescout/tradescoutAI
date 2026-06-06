@@ -320,6 +320,11 @@ describe("direct-connect gate regressions", () => {
     expect(routeFile).toContain("DIRECT_CONNECT_CREATE_LIMIT_15M");
     expect(routeFile).toContain("DIRECT_CONNECT_WORKFLOW_LIMIT_1M");
     expect(routeFile).toContain("DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M");
+    expect(routeFile).toContain('readPositiveIntegerEnv("DIRECT_CONNECT_CREATE_LIMIT_15M", 12)');
+    expect(routeFile).toContain('readPositiveIntegerEnv("DIRECT_CONNECT_WORKFLOW_LIMIT_1M", 90)');
+    expect(routeFile).toContain(
+      'readPositiveIntegerEnv("DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M", 60)'
+    );
     expect(routeFile).toContain('"DIRECT_CONNECT_RATE_LIMITED"');
     expect(routeFile).toContain(
       '"/api/direct-connect/requests",\n    isAuthenticated,\n    directConnectCreateLimiter'

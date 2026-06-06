@@ -67,6 +67,7 @@ import {
   resolvePrivilegedVerificationBypass,
 } from "../utils/authorityPolicy";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -1740,7 +1741,7 @@ export function registerDirectConnectRoutes(app: Express) {
   const directConnectCreateLimiter = isProductionEnv
     ? rateLimit({
         windowMs: 15 * 60 * 1000,
-        max: Number(process.env.DIRECT_CONNECT_CREATE_LIMIT_15M || 12),
+        max: readPositiveIntegerEnv("DIRECT_CONNECT_CREATE_LIMIT_15M", 12),
         message: {
           message: "Too many Direct Connect requests. Please slow down and try again shortly.",
           code: "DIRECT_CONNECT_RATE_LIMITED",
@@ -1754,7 +1755,7 @@ export function registerDirectConnectRoutes(app: Express) {
   const directConnectWorkflowLimiter = isProductionEnv
     ? rateLimit({
         windowMs: 60 * 1000,
-        max: Number(process.env.DIRECT_CONNECT_WORKFLOW_LIMIT_1M || 90),
+        max: readPositiveIntegerEnv("DIRECT_CONNECT_WORKFLOW_LIMIT_1M", 90),
         message: {
           message: "Too many Direct Connect actions. Please slow down and try again shortly.",
           code: "DIRECT_CONNECT_RATE_LIMITED",
@@ -1768,7 +1769,7 @@ export function registerDirectConnectRoutes(app: Express) {
   const directConnectProviderResponseLimiter = isProductionEnv
     ? rateLimit({
         windowMs: 10 * 60 * 1000,
-        max: Number(process.env.DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M || 60),
+        max: readPositiveIntegerEnv("DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M", 60),
         message: {
           message: "Too many Direct Connect responses. Please slow down and try again shortly.",
           code: "DIRECT_CONNECT_RATE_LIMITED",
