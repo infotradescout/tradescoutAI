@@ -3,6 +3,8 @@ import { FileText } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default memo(function Terms() {
+  const lastUpdated = "June 6, 2026";
+
   return (
     <div className="text-white font-body">
       <SEOHelmet
@@ -18,7 +20,7 @@ export default memo(function Terms() {
             <span className="text-sm font-medium text-ts-orange">Legal</span>
           </div>
           <h1 className="font-display text-3xl font-extrabold text-white mb-2">Terms of Service</h1>
-          <p className="text-sm text-white/50">Last updated: {new Date().toLocaleDateString()}</p>
+          <p className="text-sm text-white/50">Last updated: {lastUpdated}</p>
         </div>
 
         {/* Content */}
@@ -66,11 +68,38 @@ export default memo(function Terms() {
           </section>
 
           <section>
+            <h2 className="text-base font-semibold text-ts-orange mb-2">
+              Promotions, Sweepstakes, and Giveaways
+            </h2>
+            <div className="space-y-3 text-sm text-white/70 leading-relaxed">
+              <p>
+                TradeScout may offer promotions, sweepstakes, or giveaways from time to time. Each
+                promotion is governed by its official rules, and the official rules control if they
+                conflict with these Terms.
+              </p>
+              <p>
+                For the TradeScout Direct Connect Giveaway, the master rules are available at{" "}
+                <a href="/giveaway-rules" className="text-ts-orange hover:underline">
+                  /giveaway-rules
+                </a>
+                . Direct Connect requests remain subject to the normal TradeScout contact, trust,
+                and routing gates. Giveaway participation does not create a right to contact any
+                provider, bypass platform rules, or receive preferential routing.
+              </p>
+              <p>
+                TradeScout may disqualify promotion entries that are fraudulent, automated,
+                incomplete, duplicative beyond the stated entry limit, submitted in bad faith, or
+                otherwise ineligible under the applicable official rules.
+              </p>
+            </div>
+          </section>
+
+          <section>
             <h2 className="text-base font-semibold text-ts-orange mb-2">Contact</h2>
             <p className="text-sm text-white/70">
               Questions about these Terms of Service? Contact us at{" "}
-              <a href="mailto:legal@tradescout.com" className="text-ts-orange hover:underline">
-                legal@tradescout.com
+              <a href="mailto:contact@thetradescout.com" className="text-ts-orange hover:underline">
+                contact@thetradescout.com
               </a>
             </p>
           </section>

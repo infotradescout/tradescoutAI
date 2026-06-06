@@ -3,6 +3,8 @@ import { Shield, Lock } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 
 export default memo(function Privacy() {
+  const lastUpdated = "June 6, 2026";
+
   const sections = [
     {
       title: "1. Information We Collect",
@@ -19,6 +21,16 @@ export default memo(function Privacy() {
             <li>Business information for contractor accounts</li>
             <li>Payment information for premium services</li>
           </ul>
+          <h3 className="text-sm font-semibold text-white mb-1.5">
+            Direct Connect Giveaway Information
+          </h3>
+          <p className="text-sm text-white/70 mb-4">
+            If you enter a TradeScout giveaway through a Direct Connect request or an alternative
+            mail-in entry, we may collect and process the information needed to administer the
+            promotion. This may include your name, email address, phone number, mailing address,
+            date of birth, state of residence, entry method, entry date, request identifier,
+            eligibility status, and fraud-prevention review notes.
+          </p>
           <h3 className="text-sm font-semibold text-white mb-1.5">Social Media Login</h3>
           <p className="text-sm text-white/70 mb-4">
             If you sign up using Facebook or Google, we receive your public profile information
@@ -42,6 +54,11 @@ export default memo(function Privacy() {
           <li>Match homeowners with qualified contractors in their area</li>
           <li>Process transaction payments and maintain billing records</li>
           <li>Verify identity and prevent fraud</li>
+          <li>
+            Administer TradeScout promotions, sweepstakes, and giveaways, including eligibility
+            screening, duplicate-entry controls, winner selection, winner notification, prize
+            fulfillment, tax or eligibility documentation, and recordkeeping
+          </li>
           <li>Send important service updates and notifications</li>
           <li>Improve our platform through analytics and user feedback</li>
           <li>
@@ -86,6 +103,12 @@ export default memo(function Privacy() {
               court order, or to protect our rights and users' safety
             </li>
             <li>
+              <strong className="text-white">Promotion Administration:</strong> When needed to
+              administer a giveaway or prize, such as verifying eligibility, contacting a potential
+              winner, fulfilling a prize, preparing required tax documentation, or responding to
+              regulator, auditor, or legal requests
+            </li>
+            <li>
               <strong className="text-white">Business Transfer:</strong> In the event of a merger or
               acquisition, with the same privacy protections
             </li>
@@ -116,6 +139,9 @@ export default memo(function Privacy() {
           <li>Request a copy of your data</li>
           <li>Control cookie preferences</li>
           <li>Report privacy concerns or unauthorized contact</li>
+          <li>
+            Ask questions about giveaway entry records or promotion-related privacy processing
+          </li>
         </ul>
       ),
     },
@@ -142,11 +168,18 @@ export default memo(function Privacy() {
     {
       title: "8. Data Retention",
       content: (
-        <p className="text-sm text-white/70 leading-relaxed">
-          We retain your information as long as your account is active or as needed to provide
-          services. After account deletion, we may retain certain information for legal compliance
-          and fraud prevention.
-        </p>
+        <div className="space-y-3 text-sm text-white/70 leading-relaxed">
+          <p>
+            We retain your information as long as your account is active or as needed to provide
+            services. After account deletion, we may retain certain information for legal compliance
+            and fraud prevention.
+          </p>
+          <p>
+            Giveaway and sweepstakes records may be retained after the promotion ends when needed to
+            document eligibility, duplicate-entry review, winner selection, prize fulfillment,
+            tax/legal compliance, fraud prevention, dispute resolution, and audit history.
+          </p>
+        </div>
       ),
     },
     {
@@ -185,14 +218,14 @@ export default memo(function Privacy() {
         <div className="text-sm text-white/70 space-y-1.5">
           <p>
             <strong className="text-white">Privacy Questions:</strong>{" "}
-            <a href="mailto:privacy@tradescout.com" className="text-ts-orange hover:underline">
-              privacy@tradescout.com
+            <a href="mailto:contact@thetradescout.com" className="text-ts-orange hover:underline">
+              contact@thetradescout.com
             </a>
           </p>
           <p>
             <strong className="text-white">General Support:</strong>{" "}
-            <a href="mailto:support@tradescout.com" className="text-ts-orange hover:underline">
-              support@tradescout.com
+            <a href="mailto:contact@thetradescout.com" className="text-ts-orange hover:underline">
+              contact@thetradescout.com
             </a>
           </p>
         </div>
@@ -215,7 +248,7 @@ export default memo(function Privacy() {
             <span className="text-sm font-medium text-ts-orange">Legal</span>
           </div>
           <h1 className="font-display text-3xl font-extrabold text-white mb-2">Privacy Policy</h1>
-          <p className="text-sm text-white/50">Last updated: {new Date().toLocaleDateString()}</p>
+          <p className="text-sm text-white/50">Last updated: {lastUpdated}</p>
         </div>
 
         {/* Data Protection Guarantee */}
@@ -266,8 +299,8 @@ export default memo(function Privacy() {
                 Note: TradeScout does not sell personal information.
               </strong>{" "}
               Contact us at{" "}
-              <a href="mailto:privacy@tradescout.com" className="text-ts-orange hover:underline">
-                privacy@tradescout.com
+              <a href="mailto:contact@thetradescout.com" className="text-ts-orange hover:underline">
+                contact@thetradescout.com
               </a>{" "}
               to exercise these rights.
             </p>

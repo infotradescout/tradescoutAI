@@ -320,7 +320,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
 
                   <div className="flex items-center gap-3">
                     <Mail className="h-4 w-4 text-ts-orange" />
-                    <span className="text-white">consultations@tradescout.com</span>
+                    <span className="text-white">contact@thetradescout.com</span>
                   </div>
 
                   <div className="flex items-center gap-3">

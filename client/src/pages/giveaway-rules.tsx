@@ -135,7 +135,7 @@ const sections: RuleSection[] = [
     title: "9. Sponsor",
     body: (
       <p>
-        Sponsor: TradeScout. Questions about the giveaway may be sent to support@tradescout.com.
+        Sponsor: TradeScout. Questions about the giveaway may be sent to contact@thetradescout.com.
       </p>
     ),
   },

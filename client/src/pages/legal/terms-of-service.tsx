@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
 
 export default function TermsOfService() {
-  const lastUpdated = "August 11, 2025";
+  const lastUpdated = "June 6, 2026";
 
   return (
     <div className="bg-[var(--surface-frame)] py-8">
@@ -176,7 +176,35 @@ export default function TermsOfService() {
             <Separator className="my-6" />
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">5. Dispute Resolution</h2>
+              <h2 className="text-2xl font-semibold mb-4">
+                5. Promotions, Sweepstakes, and Giveaways
+              </h2>
+
+              <p className="mb-4">
+                TradeScout may offer promotions, sweepstakes, or giveaways from time to time. Each
+                promotion is governed by its official rules, and the official rules control if they
+                conflict with these Terms.
+              </p>
+              <p className="mb-4">
+                For the TradeScout Direct Connect Giveaway, the master rules are available at{" "}
+                <a href="/giveaway-rules" className="text-blue-600 underline">
+                  /giveaway-rules
+                </a>
+                . Direct Connect requests remain subject to the normal TradeScout contact, trust,
+                and routing gates. Giveaway participation does not create a right to contact any
+                provider, bypass platform rules, or receive preferential routing.
+              </p>
+              <p className="mb-6">
+                TradeScout may disqualify promotion entries that are fraudulent, automated,
+                incomplete, duplicative beyond the stated entry limit, submitted in bad faith, or
+                otherwise ineligible under the applicable official rules.
+              </p>
+            </section>
+
+            <Separator className="my-6" />
+
+            <section className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">6. Dispute Resolution</h2>
 
               <h3 className="text-xl font-medium mb-3">Internal Dispute Process</h3>
               <ol className="list-decimal pl-6 mb-6">
@@ -190,11 +218,12 @@ export default function TermsOfService() {
               <h3 className="text-xl font-medium mb-3">Legal Disputes</h3>
               <div className="bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] p-6 rounded-lg mb-6">
                 <p className="mb-4">
-                  <strong>Governing Law:</strong> These terms are governed by the laws of [Your
-                  State/Country]
+                  <strong>Governing Law:</strong> These terms are governed by the laws of Florida,
+                  except where another jurisdiction's law is required by applicable consumer law.
                 </p>
                 <p className="mb-4">
-                  <strong>Jurisdiction:</strong> Disputes resolved in courts of [Your Jurisdiction]
+                  <strong>Jurisdiction:</strong> Disputes are resolved in courts with jurisdiction
+                  over Pensacola, Florida, except where applicable law requires otherwise.
                 </p>
                 <p className="mb-4">
                   <strong>Arbitration:</strong> Most disputes subject to binding arbitration
@@ -209,7 +238,7 @@ export default function TermsOfService() {
             <Separator className="my-6" />
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">6. Intellectual Property</h2>
+              <h2 className="text-2xl font-semibold mb-4">7. Intellectual Property</h2>
 
               <h3 className="text-xl font-medium mb-3">Platform Content</h3>
               <ul className="list-disc pl-6 mb-6">
@@ -230,7 +259,7 @@ export default function TermsOfService() {
             <Separator className="my-6" />
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">7. Limitation of Liability</h2>
+              <h2 className="text-2xl font-semibold mb-4">8. Limitation of Liability</h2>
 
               <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-lg mb-6">
                 <h3 className="text-xl font-medium mb-3">Platform Disclaimers</h3>
@@ -255,7 +284,7 @@ export default function TermsOfService() {
             <Separator className="my-6" />
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">8. Account Termination</h2>
+              <h2 className="text-2xl font-semibold mb-4">9. Account Termination</h2>
 
               <h3 className="text-xl font-medium mb-3">Termination by You</h3>
               <ul className="list-disc pl-6 mb-6">
@@ -276,7 +305,7 @@ export default function TermsOfService() {
             <Separator className="my-6" />
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">9. Changes to Terms</h2>
+              <h2 className="text-2xl font-semibold mb-4">10. Changes to Terms</h2>
               <p className="mb-6">
                 We may modify these terms at any time. Material changes will be communicated via
                 email or platform notice. Continued use constitutes acceptance of updated terms.
@@ -286,20 +315,18 @@ export default function TermsOfService() {
             <Separator className="my-6" />
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">10. Contact Information</h2>
+              <h2 className="text-2xl font-semibold mb-4">11. Contact Information</h2>
               <div className="bg-[var(--surface-frame)] dark:bg-[var(--surface-frame-alt)] p-6 rounded-lg">
                 <p className="mb-2">
                   <strong>Legal Department:</strong>
                 </p>
-                <p className="mb-2">Email: legal@tradescout.com</p>
-                <p className="mb-2">Address: [Your Business Address]</p>
-                <p className="mb-4">Phone: [Your Phone Number]</p>
+                <p className="mb-2">Email: contact@thetradescout.com</p>
+                <p className="mb-4">Address: 3715 Theresa Street, Pensacola, FL 32505</p>
 
                 <p className="mb-2">
                   <strong>For Platform Issues:</strong>
                 </p>
-                <p className="mb-2">Support: support@tradescout.com</p>
-                <p>Emergency: [Your Emergency Contact]</p>
+                <p className="mb-2">Support: contact@thetradescout.com</p>
               </div>
             </section>
 

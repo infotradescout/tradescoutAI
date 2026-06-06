@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
 export default function PrivacyPolicy() {
-  const lastUpdated = "August 11, 2025";
+  const lastUpdated = "June 6, 2026";
 
   return (
     <div className="bg-[var(--surface-frame)] py-8">
@@ -26,6 +26,9 @@ export default function PrivacyPolicy() {
                 <li>Make purchases or engage in transactions</li>
                 <li>Contact us for support or other inquiries</li>
                 <li>Participate in surveys, contests, or promotional activities</li>
+                <li>
+                  Enter a TradeScout giveaway through Direct Connect or an alternate mail-in entry
+                </li>
               </ul>
 
               <p className="mb-4">This information may include:</p>
@@ -35,6 +38,10 @@ export default function PrivacyPolicy() {
                 <li>Payment information (processed securely by third-party providers)</li>
                 <li>Government-issued ID for verification (when required by law)</li>
                 <li>Business information for business/provider accounts</li>
+                <li>
+                  Giveaway administration data, including entry method, entry date, eligibility
+                  status, duplicate-entry review data, and prize fulfillment information
+                </li>
                 <li>Profile photos and other content you submit</li>
               </ul>
 
@@ -60,6 +67,11 @@ export default function PrivacyPolicy() {
                 <li>Send you technical notices, updates, security alerts</li>
                 <li>Respond to your comments, questions, and customer service requests</li>
                 <li>Communicate about products, services, and promotional offers</li>
+                <li>
+                  Administer promotions, sweepstakes, and giveaways, including eligibility
+                  screening, duplicate-entry controls, winner selection, winner notification, prize
+                  fulfillment, and legal recordkeeping
+                </li>
                 <li>Monitor and analyze usage patterns to improve user experience</li>
               </ul>
             </section>
@@ -84,6 +96,11 @@ export default function PrivacyPolicy() {
                 <li>
                   <strong>Legal Requirements:</strong> When required by law or to respond to legal
                   process
+                </li>
+                <li>
+                  <strong>Promotion Administration:</strong> When needed to verify eligibility,
+                  contact a potential winner, fulfill a prize, prepare required tax documentation,
+                  or respond to regulator, auditor, or legal requests
                 </li>
                 <li>
                   <strong>Business Transfers:</strong> In connection with any merger, sale, or
@@ -145,7 +162,7 @@ export default function PrivacyPolicy() {
               </ul>
 
               <p className="mb-6">
-                <strong>To Exercise Your Rights:</strong> Contact us at privacy@tradescout.com or
+                <strong>To Exercise Your Rights:</strong> Contact us at contact@thetradescout.com or
                 use our
                 <a href="/privacy-request" className="text-blue-600 underline ml-1">
                   Privacy Request Form
@@ -198,6 +215,11 @@ export default function PrivacyPolicy() {
                 legal obligations, resolve disputes, and enforce agreements. Specific retention
                 periods vary by data type and legal requirements.
               </p>
+              <p className="mb-6">
+                Giveaway and sweepstakes records may be retained after a promotion ends when needed
+                to document eligibility, winner selection, prize fulfillment, tax/legal compliance,
+                fraud prevention, dispute resolution, and audit history.
+              </p>
             </section>
 
             <Separator className="my-6" />
@@ -230,9 +252,8 @@ export default function PrivacyPolicy() {
                 <p className="mb-2">
                   <strong>Data Protection Officer:</strong>
                 </p>
-                <p className="mb-2">Email: privacy@tradescout.com</p>
-                <p className="mb-2">Address: [Your Business Address]</p>
-                <p className="mb-4">Phone: [Your Phone Number]</p>
+                <p className="mb-2">Email: contact@thetradescout.com</p>
+                <p className="mb-2">Address: 3715 Theresa Street, Pensacola, FL 32505</p>
 
                 <p className="mb-2">
                   <strong>For Privacy Requests:</strong>
@@ -243,7 +264,7 @@ export default function PrivacyPolicy() {
                     Privacy Request Form
                   </a>
                 </p>
-                <p>Or email: privacy-requests@tradescout.com</p>
+                <p>Or email: contact@thetradescout.com</p>
               </div>
             </section>
 

@@ -385,13 +385,10 @@ export default function CookiePolicy() {
                         If you have questions about our use of cookies, please contact us:
                       </p>
                       <p className="mb-2">
-                        <strong>Email:</strong> privacy@tradescout.com
+                        <strong>Email:</strong> contact@thetradescout.com
                       </p>
                       <p className="mb-2">
-                        <strong>Address:</strong> [Your Business Address]
-                      </p>
-                      <p>
-                        <strong>Phone:</strong> [Your Phone Number]
+                        <strong>Address:</strong> 3715 Theresa Street, Pensacola, FL 32505
                       </p>
                     </div>
                   </section>

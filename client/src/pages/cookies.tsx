@@ -16,8 +16,9 @@ export default function Cookies() {
             <section>
               <h2 className="text-lg font-semibold mb-3 text-ts-orange">What Are Cookies</h2>
               <p className="text-white/70">
-                Cookies are small text files that are stored on your computer or mobile device when you visit a website. 
-                They help us provide you with a better experience by remembering your preferences and improving site functionality.
+                Cookies are small text files that are stored on your computer or mobile device when
+                you visit a website. They help us provide you with a better experience by
+                remembering your preferences and improving site functionality.
               </p>
             </section>
 
@@ -26,17 +27,25 @@ export default function Cookies() {
               <div className="space-y-4">
                 <div>
                   <h3 className="font-medium text-white mb-2">Essential Cookies</h3>
-                  <p className="text-white/70">Required for basic site functionality, user authentication, and security.</p>
+                  <p className="text-white/70">
+                    Required for basic site functionality, user authentication, and security.
+                  </p>
                 </div>
-                
+
                 <div>
                   <h3 className="font-medium text-white mb-2">Analytics Cookies</h3>
-                  <p className="text-white/70">Help us understand how visitors interact with our website to improve user experience.</p>
+                  <p className="text-white/70">
+                    Help us understand how visitors interact with our website to improve user
+                    experience.
+                  </p>
                 </div>
-                
+
                 <div>
                   <h3 className="font-medium text-white mb-2">Functional Cookies</h3>
-                  <p className="text-white/70">Remember your preferences and settings to provide enhanced, personalized features.</p>
+                  <p className="text-white/70">
+                    Remember your preferences and settings to provide enhanced, personalized
+                    features.
+                  </p>
                 </div>
               </div>
             </section>
@@ -44,11 +53,14 @@ export default function Cookies() {
             <section>
               <h2 className="text-lg font-semibold mb-3 text-ts-orange">Managing Cookies</h2>
               <p className="text-white/70 mb-3">
-                You can control and manage cookies through your browser settings. However, please note that 
-                disabling cookies may affect website functionality and your user experience.
+                You can control and manage cookies through your browser settings. However, please
+                note that disabling cookies may affect website functionality and your user
+                experience.
               </p>
               <ul className="list-disc list-inside text-white/70 space-y-1">
-                <li>Chrome: Settings → Advanced → Privacy and Security → Site Settings → Cookies</li>
+                <li>
+                  Chrome: Settings → Advanced → Privacy and Security → Site Settings → Cookies
+                </li>
                 <li>Firefox: Options → Privacy & Security → Cookies and Site Data</li>
                 <li>Safari: Preferences → Privacy → Cookies and Website Data</li>
                 <li>Edge: Settings → Site Permissions → Cookies and Site Data</li>
@@ -58,15 +70,17 @@ export default function Cookies() {
             <section>
               <h2 className="text-lg font-semibold mb-3 text-ts-orange">Cookie Consent</h2>
               <p className="text-white/70">
-                By continuing to use TradeScout, you consent to our use of cookies as described in this policy. 
-                For essential cookies required for basic functionality, no consent is required.
+                By continuing to use TradeScout, you consent to our use of cookies as described in
+                this policy. For essential cookies required for basic functionality, no consent is
+                required.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-semibold mb-3 text-ts-orange">Contact Us</h2>
               <p className="text-white/70">
-                If you have questions about our use of cookies, please contact us at privacy@tradescout.com
+                If you have questions about our use of cookies, please contact us at
+                contact@thetradescout.com
               </p>
             </section>
           </CardContent>
