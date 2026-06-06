@@ -1,5 +1,5 @@
 ﻿import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { WorkRequest } from "@shared/schema";
 import {
@@ -2241,6 +2241,7 @@ function DirectConnectRequestComposer({
                 Edit request
               </Button>
             </div>
+            <DirectConnectGiveawayDisclosure />
           </div>
         )}
         <div className="space-y-2">
@@ -2488,11 +2489,12 @@ function DirectConnectRequestComposer({
             </div>
           )}
         </div>
-        <div className="flex justify-end">
+        <div className="space-y-2">
+          <DirectConnectGiveawayDisclosure />
           <Button
             onClick={openRequestReadyState}
             disabled={createMutation.isPending || !reviewCardReady}
-            className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+            className="ml-auto flex bg-ts-orange text-text-black hover:bg-ts-orange/90"
           >
             {createMutation.isPending
               ? "Sending..."
@@ -2677,6 +2679,8 @@ function DirectConnectRequestComposer({
                 </p>
               </div>
 
+              <DirectConnectGiveawayDisclosure />
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Button
                   type="button"
@@ -2712,6 +2716,23 @@ function DirectConnectRequestComposer({
         </Sheet>
       </CardContent>
     </Card>
+  );
+}
+
+function DirectConnectGiveawayDisclosure() {
+  return (
+    <p className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2 text-[11px] leading-relaxed text-[color:var(--text-secondary)]">
+      By submitting this request, you acknowledge and agree to the TradeScout Direct Connect
+      Giveaway{" "}
+      <Link href="/giveaway-rules" className="text-[color:var(--theme-accent-primary)] underline">
+        Official Rules
+      </Link>{" "}
+      and our{" "}
+      <Link href="/privacy" className="text-[color:var(--theme-accent-primary)] underline">
+        Privacy Policy
+      </Link>
+      .
+    </p>
   );
 }
 

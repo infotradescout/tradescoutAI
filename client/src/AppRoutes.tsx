@@ -431,6 +431,7 @@ const PensacolaClusterPage = React.lazy(() => import("./pages/pensacola-cluster"
 const TangipahoaPage = React.lazy(() => import("./pages/tangipahoa"));
 const TrustModel = React.lazy(() => import("./pages/trust-model"));
 const DirectConnectInfo = React.lazy(() => import("./pages/direct-connect-info"));
+const GiveawayRules = React.lazy(() => import("./pages/giveaway-rules"));
 const CompareHub = React.lazy(() => import("./pages/compare"));
 const CompareAngi = React.lazy(() => import("./pages/compare-angi"));
 const CompareHomeServices = React.lazy(() => import("./pages/compare-home-services"));
@@ -1900,6 +1901,9 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/direct-connect-info">
                 <LazyPage Component={DirectConnectInfo} />
               </Route>
+              <Route path="/giveaway-rules">
+                <LazyPage Component={GiveawayRules} />
+              </Route>
               <Route path="/compare">
                 <LazyPage Component={CompareHub} />
               </Route>
@@ -2017,6 +2021,9 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/legal/privacy-policy">
                 <RedirectTo to="/privacy" />
+              </Route>
+              <Route path="/legal/giveaway-rules">
+                <RedirectTo to="/giveaway-rules" />
               </Route>
               <Route path="/legal/cookie-policy">
                 <RedirectTo to="/privacy" />
