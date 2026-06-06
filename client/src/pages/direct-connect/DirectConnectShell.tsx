@@ -149,6 +149,12 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
   engagements: "Requests",
 };
 
+const REQUEST_PREP_STEPS = [
+  { label: "Describe", detail: "Scope and location" },
+  { label: "Review", detail: "Check before routing" },
+  { label: "Submit", detail: "Choose who receives it" },
+];
+
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
 const DIRECT_CONNECT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 const GENERATED_HOME_LABEL_PATTERN = /^(slice\d+\s+\d+|\d{8,}|[a-f0-9]{12,})$/i;
@@ -2005,9 +2011,43 @@ function DirectConnectRequestComposer({
   };
 
   return (
-    <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-      <CardHeader className="hidden pb-2 md:block">
-        <CardTitle className="text-base">Prepare a request</CardTitle>
+    <Card className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_18px_54px_rgba(0,0,0,0.22)]">
+      <CardHeader className="border-b border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 pb-4">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--theme-accent-primary)]/10">
+              <ClipboardPlus className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
+            </div>
+            <div>
+              <CardTitle className="text-base text-[color:var(--text-primary)]">
+                Prepare a request
+              </CardTitle>
+              <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+                Contact stays gated while TradeScout gathers the right request details.
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-1.5 md:w-[360px]">
+            {REQUEST_PREP_STEPS.map((step, index) => (
+              <div
+                key={step.label}
+                className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--theme-accent-primary)]/14 text-[10px] font-semibold text-[color:var(--theme-accent-primary)]">
+                    {index + 1}
+                  </span>
+                  <span className="text-xs font-semibold text-[color:var(--text-primary)]">
+                    {step.label}
+                  </span>
+                </div>
+                <p className="mt-1 hidden text-[10px] leading-4 text-[color:var(--text-secondary)] sm:block">
+                  {step.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {prefillTargetUserId && (
@@ -2150,40 +2190,58 @@ function DirectConnectRequestComposer({
           </>
         )}
         {reviewCardReady && (
-          <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
-              Request details review
-            </p>
-            <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
-              {reviewTitle}
-            </h3>
-            <p className="mt-1 text-xs text-[color:var(--text-secondary)]">{reviewSummary}</p>
-            <div className="mt-2 grid gap-1 text-xs text-[color:var(--text-secondary)]">
-              <p>
-                <span className="text-[color:var(--text-primary)]">Location:</span> {reviewLocation}
-              </p>
-              <p>
-                <span className="text-[color:var(--text-primary)]">Timing:</span> {reviewTiming}
-              </p>
+          <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
+                  Request details review
+                </p>
+                <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
+                  {reviewTitle}
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+                  {reviewSummary}
+                </p>
+              </div>
+              <div className="grid shrink-0 grid-cols-2 gap-2 text-xs md:w-[260px]">
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                    Location
+                  </p>
+                  <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
+                    {reviewLocation}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                    Timing
+                  </p>
+                  <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
+                    {reviewTiming}
+                  </p>
+                </div>
+              </div>
             </div>
             <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
               Review request details first. No one is contacted until you submit.
             </p>
-            <div className="mt-2 inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-              {completeness.message}
-            </div>
-            <div className="mt-2 inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-              {routingReadiness === "route_ready"
-                ? "Ready to submit"
-                : routingReadiness === "needs_location"
-                  ? "Add location to submit"
-                  : routingReadiness === "needs_category"
-                    ? "Add request type to submit"
-                    : routingReadiness === "needs_scope"
-                      ? "Add request details to submit"
-                      : routingReadiness === "manual_review"
-                        ? "Needs review"
-                        : "Not ready to submit"}
+            <div className="mt-2 flex flex-wrap gap-2">
+              <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
+                {completeness.message}
+              </div>
+              <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
+                {routingReadiness === "route_ready"
+                  ? "Ready to submit"
+                  : routingReadiness === "needs_location"
+                    ? "Add location to submit"
+                    : routingReadiness === "needs_category"
+                      ? "Add request type to submit"
+                      : routingReadiness === "needs_scope"
+                        ? "Add request details to submit"
+                        : routingReadiness === "manual_review"
+                          ? "Needs review"
+                          : "Not ready to submit"}
+              </div>
             </div>
             {completeness.missing.length > 0 && (
               <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
@@ -2193,42 +2251,42 @@ function DirectConnectRequestComposer({
           </div>
         )}
         {showRequestReady && (
-          <div className="space-y-2 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3">
-            <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
-              Ready to submit
-            </h3>
-            <p className="text-xs text-[color:var(--text-secondary)]">
-              Your request details are ready. Submit when ready, before anyone is contacted.
-            </p>
-            <div className="grid gap-1 text-xs text-[color:var(--text-secondary)]">
-              <p>
-                <span className="text-[color:var(--text-primary)]">Request type:</span>{" "}
-                {activeRequestMeta.label}
-              </p>
-              <p>
-                <span className="text-[color:var(--text-primary)]">Location / county:</span>{" "}
-                {reviewLocation}
-              </p>
-              <p>
-                <span className="text-[color:var(--text-primary)]">Urgency:</span> {reviewTiming}
-              </p>
-              <p>
-                <span className="text-[color:var(--text-primary)]">Summary:</span> {reviewSummary}
-              </p>
-              <p>
-                <span className="text-[color:var(--text-primary)]">Who may see it:</span> local
-                businesses in your area
-              </p>
-              <p>
-                <span className="text-[color:var(--text-primary)]">What is not shared yet:</span>{" "}
-                direct contact details until you approve
-              </p>
-              <p>
-                <span className="text-[color:var(--text-primary)]">Submission readiness:</span>{" "}
-                {canonicalRequest.routingReadiness}
-              </p>
+          <div className="space-y-3 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3 shadow-[0_14px_42px_rgba(0,0,0,0.2)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
+                  Ready to submit
+                </h3>
+                <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                  Your request details are ready. Submit when ready, before anyone is contacted.
+                </p>
+              </div>
+              <Badge className="bg-[color:var(--theme-accent-primary)] text-text-black">
+                Gated
+              </Badge>
             </div>
-            <div className="flex gap-2">
+            <div className="grid gap-2 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
+              {[
+                ["Request type", activeRequestMeta.label],
+                ["Location / county", reviewLocation],
+                ["Urgency", reviewTiming],
+                ["Summary", reviewSummary],
+                ["Who may see it", "Local businesses in your area"],
+                ["What is not shared yet", "Direct contact details until you approve"],
+                ["Submission readiness", canonicalRequest.routingReadiness],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2"
+                >
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                    {label}
+                  </p>
+                  <p className="mt-1 text-[color:var(--text-primary)]">{value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 onClick={handleOpenDispatchSheet}
@@ -2489,19 +2547,24 @@ function DirectConnectRequestComposer({
             </div>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
           <DirectConnectGiveawayDisclosure />
-          <Button
-            onClick={openRequestReadyState}
-            disabled={createMutation.isPending || !reviewCardReady}
-            className="ml-auto flex bg-ts-orange text-text-black hover:bg-ts-orange/90"
-          >
-            {createMutation.isPending
-              ? "Sending..."
-              : isAuthenticated
-                ? "Review request details"
-                : "Sign in to send"}
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-[color:var(--text-secondary)]">
+              You will review the request before TradeScout routes it.
+            </p>
+            <Button
+              onClick={openRequestReadyState}
+              disabled={createMutation.isPending || !reviewCardReady}
+              className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+            >
+              {createMutation.isPending
+                ? "Sending..."
+                : isAuthenticated
+                  ? "Review request details"
+                  : "Sign in to send"}
+            </Button>
+          </div>
         </div>
         {!reviewCardReady && (
           <p className="text-xs text-[color:var(--text-secondary)]">
