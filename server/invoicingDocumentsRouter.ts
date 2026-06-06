@@ -4311,7 +4311,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       const title = `TradeScout document share`;
       const description = `Shared TradeScout document preview. Open to view the full document.`;
       const shareUrl = `${origin}/d/${encodeURIComponent(String(shareToken || ""))}`;
-      const imageUrl = `${origin}/tradescout-social-preview.png?v=10`;
+      const imageUrl = `${origin}/tradescout-social-preview.png?v=11`;
 
       const escapeHtml = (value: string) =>
         value

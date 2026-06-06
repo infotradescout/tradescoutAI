@@ -69,7 +69,7 @@ function buildMeta(args: {
   keywords: string[];
 }) {
   const canonical = `${args.origin}${args.canonicalPath}`;
-  const imageUrl = `${args.origin}/tradescout-social-preview.png?v=10`;
+  const imageUrl = `${args.origin}/tradescout-social-preview.png?v=11`;
   return {
     title: formatTradeScoutTitle(args.title).slice(0, 120),
     description: args.description.replace(/\s+/g, " ").trim().slice(0, 300),

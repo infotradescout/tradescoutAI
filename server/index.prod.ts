@@ -782,7 +782,7 @@ app.use(landingContractHeaders);
 
             // Legacy social preview image path compatibility.
             app.get("/tradescout-logo.jpg", (_req, res) => {
-              res.redirect(301, "/tradescout-social-preview.png?v=10");
+              res.redirect(301, "/tradescout-social-preview.png?v=11");
             });
 
             app.get(Array.from(identityAssets), (req, res, next) => {

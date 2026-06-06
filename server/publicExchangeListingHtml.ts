@@ -384,7 +384,7 @@ export async function buildPublicExchangeListingHtml(
     Math.min(Number(listing.primaryImageIndex ?? 0), images.length - 1)
   );
   const primaryImage = images[primaryImageIndex] || images[0] || null;
-  const imageUrl = primaryImage || `${origin}/tradescout-social-preview.png?v=10`;
+  const imageUrl = primaryImage || `${origin}/tradescout-social-preview.png?v=11`;
 
   // ── Build JSON-LD ──────────────────────────────────────────────────────────
 

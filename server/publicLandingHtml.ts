@@ -70,7 +70,7 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
     title,
     description,
     canonical,
-    imageUrl: `${opts.origin}/tradescout-social-preview.png?v=10`,
+    imageUrl: `${opts.origin}/tradescout-social-preview.png?v=11`,
     keywords: [
       "TradeScout",
       "local business directory",
