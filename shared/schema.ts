@@ -3744,6 +3744,41 @@ export const workRequests = pgTable("work_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const directConnectGiveawayEntries = pgTable(
+  "direct_connect_giveaway_entries",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    workRequestId: varchar("work_request_id")
+      .notNull()
+      .references(() => workRequests.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    promotionKey: varchar("promotion_key").notNull().default("direct_connect_giveaway_2026_06"),
+    entryMethod: varchar("entry_method", {
+      enum: ["direct_connect", "alternate_email"],
+    })
+      .notNull()
+      .default("direct_connect"),
+    residencyStateCode: varchar("residency_state_code", { length: 2 }),
+    isEligible: boolean("is_eligible").notNull().default(false),
+    eligibilityReason: varchar("eligibility_reason").notNull(),
+    eligibilitySnapshot: jsonb("eligibility_snapshot").$type<Record<string, any>>(),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("dc_giveaway_entries_work_request_unique").on(table.workRequestId),
+    index("dc_giveaway_entries_promotion_eligible_idx").on(
+      table.promotionKey,
+      table.isEligible
+    ),
+    index("dc_giveaway_entries_user_idx").on(table.userId),
+  ]
+);
+
 // Event log for each work request (append-only history)
 export const workRequestEvents = pgTable("work_request_events", {
   id: varchar("id")

@@ -701,6 +701,13 @@
       "when": 1778667300000,
       "tag": "0096_marketplace_value_bundle_shipping",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1780767540000,
+      "tag": "0097_direct_connect_giveaway_entries",
+      "breakpoints": true
     }
   ]
 }

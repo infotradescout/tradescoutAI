@@ -36,4 +36,13 @@ describe("runtime recovery contracts", () => {
     expect(source).toContain('res.setHeader("CDN-Cache-Control", "no-store")');
     expect(source).toContain('res.setHeader("Surrogate-Control", "no-store")');
   });
+
+  it("keeps giveaway rules available as a static fallback for legal links", () => {
+    const source = read("client/public/giveaway-rules/index.html");
+
+    expect(source).toContain("TradeScout Direct Connect Giveaway Official Rules");
+    expect(source).toContain("https://www.thetradescout.com/giveaway-rules");
+    expect(source).toContain("Alternative Method of Entry - AMOE");
+    expect(source).toContain("Maximum of one (1) entry per person, per day");
+  });
 });

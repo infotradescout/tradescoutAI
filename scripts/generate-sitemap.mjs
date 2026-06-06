@@ -76,6 +76,7 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/tangipahoa', priority: 0.9, changefreq: 'weekly' },
   { path: '/trust-model', priority: 0.9, changefreq: 'weekly' },
   { path: '/direct-connect-info', priority: 0.9, changefreq: 'weekly' },
+  { path: '/giveaway-rules', priority: 0.5, changefreq: 'monthly' },
   { path: '/compare', priority: 0.8, changefreq: 'weekly' },
   { path: '/compare/angi', priority: 0.8, changefreq: 'monthly' },
   { path: '/compare/home-services', priority: 0.8, changefreq: 'monthly' },

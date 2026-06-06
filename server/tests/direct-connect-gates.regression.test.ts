@@ -297,6 +297,22 @@ describe("direct-connect gate regressions", () => {
     );
   });
 
+  it("records giveaway eligibility without blocking Direct Connect request creation", () => {
+    const routeFile = readRepoFile("server/routes/direct-connect.ts");
+    const schemaFile = readRepoFile("shared/schema.ts");
+    const migrationFile = readRepoFile("migrations/0097_direct_connect_giveaway_entries.sql");
+
+    expect(schemaFile).toContain("export const directConnectGiveawayEntries = pgTable");
+    expect(schemaFile).toContain('boolean("is_eligible").notNull().default(false)');
+    expect(migrationFile).toContain("is_eligible boolean NOT NULL DEFAULT false");
+    expect(routeFile).toContain("DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE = \"FL\"");
+    expect(routeFile).toContain("residencyStateCode === DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE");
+    expect(routeFile).toContain(".insert(directConnectGiveawayEntries)");
+    expect(routeFile).toContain(
+      "[direct-connect] Failed to record giveaway eligibility entry; continuing with request"
+    );
+  });
+
   it("allows universal provider assignments to view direct-connect attachments", () => {
     const routeFile = readRepoFile("server/routes/direct-connect.ts");
 

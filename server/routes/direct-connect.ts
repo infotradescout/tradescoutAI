@@ -4,6 +4,7 @@ import { db } from "../db";
 import { randomBytes } from "crypto";
 import {
   type WorkRequest,
+  directConnectGiveawayEntries,
   workRequests,
   workRequestEvents,
   workRequestAssignments,
@@ -68,6 +69,44 @@ import {
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
 };
+
+const DIRECT_CONNECT_GIVEAWAY_PROMOTION_KEY = "direct_connect_giveaway_2026_06";
+const DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE = "FL";
+
+function normalizeStateCode(value: unknown): string | null {
+  const state = String(value || "")
+    .trim()
+    .toUpperCase();
+  return /^[A-Z]{2}$/.test(state) ? state : null;
+}
+
+function resolveDirectConnectGiveawayEligibility(params: {
+  stateCode?: string | null;
+  viewer?: Record<string, any> | null;
+}) {
+  const profileState =
+    normalizeStateCode(params.viewer?.stateCode) || normalizeStateCode(params.viewer?.state_code);
+  const requestState = normalizeStateCode(params.stateCode);
+  const residencyStateCode = profileState || requestState;
+  const isEligible = residencyStateCode === DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE;
+
+  return {
+    residencyStateCode,
+    isEligible,
+    eligibilityReason: isEligible
+      ? "fl_resident_18_plus_required"
+      : residencyStateCode
+        ? "not_florida_resident"
+        : "missing_residency_state",
+    eligibilitySnapshot: {
+      promotionKey: DIRECT_CONNECT_GIVEAWAY_PROMOTION_KEY,
+      eligibleState: DIRECT_CONNECT_GIVEAWAY_ELIGIBLE_STATE,
+      profileState,
+      requestState,
+      evaluatedAt: new Date().toISOString(),
+    },
+  };
+}
 
 function readCookieValue(req: Request, name: string): string {
   const raw = String((req.headers as any)?.cookie || "");
@@ -5774,6 +5813,50 @@ export function registerDirectConnectRoutes(app: Express) {
             });
           } catch (e) {
             console.warn("[direct-connect] Failed to record work request created event", e);
+          }
+        }
+
+        if (created?.id) {
+          try {
+            const giveawayEligibility = resolveDirectConnectGiveawayEligibility({
+              stateCode,
+              viewer: viewer as any,
+            });
+            await db
+              .insert(directConnectGiveawayEntries)
+              .values({
+                workRequestId: String(created.id),
+                userId: String(ownerUserId),
+                promotionKey: DIRECT_CONNECT_GIVEAWAY_PROMOTION_KEY,
+                entryMethod: "direct_connect",
+                residencyStateCode: giveawayEligibility.residencyStateCode,
+                isEligible: giveawayEligibility.isEligible,
+                eligibilityReason: giveawayEligibility.eligibilityReason,
+                eligibilitySnapshot: {
+                  ...giveawayEligibility.eligibilitySnapshot,
+                  countyFips: countyFips || null,
+                  source: "direct_connect_request_create",
+                },
+              })
+              .onConflictDoUpdate({
+                target: directConnectGiveawayEntries.workRequestId,
+                set: {
+                  residencyStateCode: giveawayEligibility.residencyStateCode,
+                  isEligible: giveawayEligibility.isEligible,
+                  eligibilityReason: giveawayEligibility.eligibilityReason,
+                  eligibilitySnapshot: {
+                    ...giveawayEligibility.eligibilitySnapshot,
+                    countyFips: countyFips || null,
+                    source: "direct_connect_request_create_conflict_update",
+                  },
+                  updatedAt: new Date(),
+                },
+              });
+          } catch (e) {
+            console.warn(
+              "[direct-connect] Failed to record giveaway eligibility entry; continuing with request",
+              e
+            );
           }
         }
 
