@@ -574,3 +574,28 @@ Rationale:
   - Frames HomeID as optional context, not a requirement for Direct Connect or Scout usage.
   - Preserves TradeScout-only scope, no-pay-to-play/no-lead-selling constraints, and sitemap exclusion boundaries.
   - Decision: PASS as Scout local command/search/activity surface v1 with check/test/build validation passing.
+
+## Locked Public Landing Launch Baseline
+- Date: 2026-06-07
+- Status: LAUNCH READY
+- Scope: Production public landing baseline only; no runtime behavior change in this note.
+- Live build header:
+  - `x-tradescout-build: 2747970da7f518a1c5593f8d1dd4418a1d8605a6`
+- Header smoke:
+  - `/` -> `200 OK`
+  - `/landing` -> `301` to `/landing/`
+  - `/lp` -> `200 OK`
+- Live rendered content checks passed for `/`, `/landing`, and `/lp`:
+  - Required content present: `Connection Without Compromise`
+  - Required content present: `Start a Request`
+  - Forbidden/old content absent: `Ask Scout`
+  - Forbidden/old content absent: `Scout routes`
+  - Forbidden/old content absent: `Direct Connect`
+  - Forbidden/old content absent: `Find Any Local Business Near You`
+  - Forbidden/old content absent: `Scout interprets`
+  - Forbidden/old content absent: `Get started with Scout`
+- Repo state at baseline:
+  - Clean
+  - Synced with `origin/main`
+- Next KPI gate:
+  - Landing-to-request-start conversion.
