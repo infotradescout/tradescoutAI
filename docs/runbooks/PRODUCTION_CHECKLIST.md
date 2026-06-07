@@ -213,3 +213,49 @@ Expected:
 - `x-tradescout-build` matches latest deployed commit
 - provider-auth `GET /api/direct-connect/contractor/requests` returns `200`, not `500`
 - response remains a JSON array shape
+
+## Direct Connect Launch Traffic Smoke
+
+Use this only with approved production smoke accounts. Do not run it with real requester/provider accounts.
+
+Required local-only env:
+
+```bash
+RUN_DIRECT_CONNECT_PRODUCTION_SMOKE=1
+TRADESCOUT_REQUESTER_COOKIE="<full requester Cookie header>"
+TRADESCOUT_PROVIDER_COOKIE="<full provider Cookie header>"
+```
+
+Optional env:
+
+```bash
+TRADESCOUT_PRODUCTION_ORIGIN="https://www.thetradescout.com"
+TRADESCOUT_SMOKE_COUNTY_FIPS="12033"
+TRADESCOUT_SMOKE_STATE_CODE="FL"
+```
+
+Required for `LAUNCH_READY` evidence:
+
+```bash
+TRADESCOUT_PRODUCTION_DATABASE_URL="<production database url for rate_limit_buckets evidence>"
+RUN_DIRECT_CONNECT_RATE_LIMIT_429=1
+DIRECT_CONNECT_SMOKE_429_MAX_ATTEMPTS=100
+```
+
+Run:
+
+```bash
+npm run smoke:direct-connect-production
+```
+
+Expected artifact:
+
+```txt
+artifacts/direct-connect-production-smoke-latest.json
+```
+
+Launch gate:
+
+- `LAUNCH_READY` only when authenticated requester/provider smoke, rate-limit bucket evidence, and isolated 429 proof pass.
+- `BLOCKED` when requester/provider cookies, approved production database evidence, or isolated 429 proof are unavailable.
+- `FAIL` when an authenticated workflow or limiter behavior regresses.
