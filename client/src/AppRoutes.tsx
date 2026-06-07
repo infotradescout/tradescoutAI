@@ -173,7 +173,9 @@ const ProgressiveFeatureGate = memo(function ProgressiveFeatureGate({
   return <RedirectTo to={`/scout?unlock=${encodeURIComponent(featureId)}`} />;
 });
 
-// Root landing router: send non-authenticated users to create account, authenticated users to appropriate dashboard
+const PublicLandingPage = React.lazy(() => import("./pages/TradeScoutLandingPage"));
+
+// Root landing router: show public users the landing surface, authenticated users their appropriate dashboard
 const RootLanding = memo(function RootLanding() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const [location, navigate] = useLocation();
@@ -182,7 +184,6 @@ const RootLanding = memo(function RootLanding() {
     const raw = String(location || "");
     const restIdx = raw.search(/[?#]/);
     const pathOnly = (restIdx >= 0 ? raw.slice(0, restIdx) : raw).replace(/\/+$/, "") || "/";
-    const rest = restIdx >= 0 ? raw.slice(restIdx) : "";
 
     // Avoid redirect loops if we're already off root.
     if (pathOnly !== "/") return;
@@ -190,19 +191,18 @@ const RootLanding = memo(function RootLanding() {
     // Wait for auth to load before redirecting
     if (isLoading) return;
 
-    if (!isAuthenticated) {
-      // Back-compat: older Scout links were encoded as '/?prompt=...'
-      if (isLegacyRootScoutQuery(rest)) {
-        navigate(`/scout${rest}`);
-        return;
-      }
-
-      // Public users land on the marketing surface; auth starts from CTA buttons.
-      navigate(`/landing${rest}`);
-    } else {
+    if (isAuthenticated) {
       navigate(getPostLandingRoute(user));
     }
   }, [user, isAuthenticated, isLoading, location, navigate]);
+
+  const raw = String(location || "");
+  const restIdx = raw.search(/[?#]/);
+  const rest = restIdx >= 0 ? raw.slice(restIdx) : "";
+
+  if (isLoading) return <PageLoader />;
+  if (!isAuthenticated && isLegacyRootScoutQuery(rest)) return <RedirectTo to={`/scout${rest}`} />;
+  if (!isAuthenticated) return <LazyPage Component={PublicLandingPage} />;
 
   return null;
 });
@@ -257,7 +257,7 @@ const CheckEmail = React.lazy(() => import("./pages/check-email"));
 const Install = React.lazy(() => import("./pages/install"));
 const CreateAccount = React.lazy(() => import("./pages/create-account"));
 const HardrockLanding = React.lazy(() => import("./pages/hardrock"));
-const Landing = React.lazy(() => import("./pages/landing"));
+const Landing = PublicLandingPage;
 const PreScoutSetup = React.lazy(() => import("./pages/pre-scout-setup"));
 const OnboardingIntent = React.lazy(() => import("./pages/onboarding-intent"));
 const OnboardingProfile = React.lazy(() => import("./pages/onboarding-profile"));

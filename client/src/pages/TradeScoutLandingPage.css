@@ -1,0 +1,334 @@
+:root {
+  --ts-bg: #050505;
+  --ts-panel: rgba(18, 18, 18, 0.92);
+  --ts-panel-soft: rgba(255, 255, 255, 0.045);
+  --ts-border: rgba(255, 255, 255, 0.1);
+  --ts-border-strong: rgba(247, 126, 28, 0.55);
+  --ts-text: #ffffff;
+  --ts-muted: rgba(255, 255, 255, 0.72);
+  --ts-faint: rgba(255, 255, 255, 0.52);
+  --ts-orange: #f47a1f;
+  --ts-orange-strong: #ff7a18;
+  --ts-orange-soft: rgba(244, 122, 31, 0.12);
+  --ts-max-width: 1160px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.ts-landing-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(244, 122, 31, 0.08), transparent 26rem), var(--ts-bg);
+  color: var(--ts-text);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  padding: 24px;
+}
+
+.ts-header {
+  width: min(100%, var(--ts-max-width));
+  margin: 0 auto;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.ts-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ts-text);
+  text-decoration: none;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.ts-logo-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: var(--ts-orange);
+  color: #111111;
+  font-size: 13px;
+  font-weight: 900;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.ts-logo-text {
+  font-size: 18px;
+}
+
+.ts-auth-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--ts-muted);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ts-auth-nav a {
+  color: var(--ts-muted);
+  text-decoration: none;
+}
+
+.ts-auth-nav a:hover {
+  color: var(--ts-text);
+}
+
+.ts-nav-separator {
+  color: var(--ts-faint);
+}
+
+.ts-hero {
+  width: min(100%, var(--ts-max-width));
+  margin: 72px auto 0;
+  min-height: 460px;
+  display: grid;
+  align-items: center;
+  border: 1px solid var(--ts-border-strong);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(244, 122, 31, 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025)),
+    var(--ts-panel);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: clamp(32px, 6vw, 76px);
+}
+
+.ts-hero-copy {
+  max-width: 820px;
+}
+
+.ts-kicker,
+.ts-section-kicker {
+  margin: 0 0 16px;
+  color: var(--ts-orange);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ts-hero h1 {
+  margin: 0;
+  max-width: 980px;
+  font-size: clamp(52px, 8.4vw, 104px);
+  line-height: 0.92;
+  letter-spacing: 0;
+  font-weight: 950;
+}
+
+.ts-hero-subheadline {
+  max-width: 780px;
+  margin: 28px 0 0;
+  color: var(--ts-muted);
+  font-size: clamp(18px, 2.1vw, 24px);
+  line-height: 1.45;
+  font-weight: 560;
+}
+
+.ts-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 38px;
+}
+
+.ts-button {
+  min-height: 54px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 0 24px;
+  font-size: 15px;
+  font-weight: 900;
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.ts-button:hover {
+  transform: translateY(-1px);
+}
+
+.ts-button-primary {
+  background: var(--ts-orange-strong);
+  color: #111111;
+  border: 1px solid var(--ts-orange-strong);
+  box-shadow: 0 16px 40px rgba(244, 122, 31, 0.22);
+}
+
+.ts-button-secondary {
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--ts-text);
+  border: 1px solid var(--ts-border);
+}
+
+.ts-button-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.28);
+}
+
+.ts-sequence {
+  width: min(100%, var(--ts-max-width));
+  margin: 32px auto 0;
+  padding: clamp(28px, 5vw, 48px) 0 0;
+}
+
+.ts-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.ts-section-heading h2,
+.ts-record-layer h2 {
+  margin: 0;
+  color: var(--ts-text);
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.ts-step-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.ts-step-card {
+  min-height: 232px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  border: 1px solid var(--ts-border);
+  border-radius: 8px;
+  background: var(--ts-panel-soft);
+  padding: 26px;
+}
+
+.ts-step-number {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--ts-orange-soft);
+  color: var(--ts-orange);
+  border: 1px solid rgba(244, 122, 31, 0.34);
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.ts-step-card h3 {
+  margin: 28px 0 0;
+  font-size: 23px;
+  line-height: 1.1;
+  letter-spacing: 0;
+}
+
+.ts-step-card p {
+  margin: 14px 0 0;
+  color: var(--ts-muted);
+  font-size: 16px;
+  line-height: 1.55;
+  font-weight: 560;
+}
+
+.ts-record-layer {
+  width: min(100%, var(--ts-max-width));
+  margin: 28px auto 80px;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 32px;
+  align-items: center;
+  border: 1px solid rgba(244, 122, 31, 0.34);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(244, 122, 31, 0.12), transparent 48%),
+    rgba(255, 255, 255, 0.035);
+  padding: clamp(26px, 4vw, 42px);
+}
+
+.ts-record-layer p {
+  margin: 0;
+  color: var(--ts-muted);
+  font-size: 18px;
+  line-height: 1.55;
+  font-weight: 560;
+}
+
+@media (max-width: 820px) {
+  .ts-landing-shell {
+    padding: 18px;
+  }
+
+  .ts-header {
+    min-height: auto;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ts-auth-nav {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .ts-nav-separator {
+    display: none;
+  }
+
+  .ts-hero {
+    margin-top: 36px;
+    min-height: auto;
+  }
+
+  .ts-hero h1 {
+    font-size: clamp(48px, 15vw, 74px);
+  }
+
+  .ts-hero-actions {
+    flex-direction: column;
+  }
+
+  .ts-button {
+    width: 100%;
+  }
+
+  .ts-section-heading {
+    display: block;
+  }
+
+  .ts-step-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ts-step-card {
+    min-height: auto;
+  }
+
+  .ts-record-layer {
+    grid-template-columns: 1fr;
+    margin-bottom: 48px;
+  }
+}
