@@ -58,13 +58,11 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
     .toLowerCase();
   const displayVariant = normalizedVariant ? titleCaseSlug(normalizedVariant) : "";
   const title = formatTradeScoutTitle(
-    displayVariant
-      ? `${displayVariant} | TradeScout`
-      : "TradeScout | Find Any Local Business Near You"
+    displayVariant ? `${displayVariant} | TradeScout` : "TradeScout | Connection Without Compromise"
   );
   const description = displayVariant
-    ? `TradeScout for ${displayVariant}. Scout coordinates discovery, trust, intent, decision, and contact so local work moves forward without lead spam, pay-to-play ranking, or platform confusion.`
-    : "Find trusted local businesses near you. Scout coordinates discovery, trust, and contact without lead spam, pay-to-play ranking, or platform confusion.";
+    ? `TradeScout for ${displayVariant}. Start a local work request before anyone gets your phone number. Contact happens only when you decide.`
+    : "Start a local work request before anyone gets your phone number. TradeScout organizes the job, location, and context first. Contact happens only when you decide.";
 
   return {
     title,
@@ -73,14 +71,11 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
     imageUrl: `${opts.origin}/tradescout-social-preview.png?v=11`,
     keywords: [
       "TradeScout",
-      "local business directory",
-      "find local businesses",
-      "trusted local businesses",
-      "restaurants near me",
-      "retail near me",
+      "Connection Without Compromise",
+      "local work request",
+      "trusted local providers",
       "home services",
-      "direct connect",
-      "community interaction",
+      "provider request",
       displayVariant,
     ]
       .map((value) => String(value || "").trim())
@@ -96,15 +91,15 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
   const summary = `
 <main data-seo-landing="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
-    <h1>Find Any Local Business Near You</h1>
+    <h1>Connection Without Compromise</h1>
     <p>${escapeHtml(meta.description)}</p>
-    <p>TradeScout is a trusted local business directory, not a lead funnel. Scout runs the local operating flow from discovery to governed action for all types of businesses.</p>
+    <p>TradeScout is not a lead funnel. Your request starts with the work, location, and context before any contact details are shared.</p>
     <h2>How TradeScout works</h2>
     <ol>
-      <li>Ask Scout what you need.</li>
-      <li>Scout interprets the request using trust, trade fit, and location context.</li>
-      <li>Scout routes the right next step.</li>
-      <li>Contact opens only when fit and intent are clear.</li>
+      <li>Describe the work.</li>
+      <li>TradeScout organizes the job, location, and context.</li>
+      <li>Review the path forward.</li>
+      <li>Contact opens only when you decide.</li>
     </ol>
     <h2>What makes it different</h2>
     <ul>
@@ -113,7 +108,7 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
       <li>Trust signals stay visible.</li>
       <li>Contact stays governed instead of chaotic.</li>
     </ul>
-    <p><a href="/pre-scout-setup?mode=create">Get started with Scout</a></p>
+    <p><a href="/direct-connect">Start a Request</a></p>
   </article>
 </main>`;
 
@@ -192,11 +187,6 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     name: "TradeScout",
     description: meta.description,
     url: meta.canonical,
-    potentialAction: {
-      "@type": "SearchAction",
-      target: `${opts.origin}/scout?q={search_term_string}`,
-      "query-input": "required name=search_term_string",
-    },
   });
   html = injectJsonLd(html, {
     "@context": "https://schema.org",
@@ -205,7 +195,7 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     url: opts.origin,
     logo: `${opts.origin}/tradescout-logo.jpg`,
     description:
-      "The trusted local business directory. Find any local business near you, from restaurants and retail to home services.",
+      "Connection Without Compromise. Start a local work request before contact details are shared.",
     sameAs: ["https://www.thetradescout.com"],
   });
   return html;

@@ -20,4 +20,17 @@ describe("landing SEO contracts", () => {
     expect(source).toContain("canonical={canonicalLandingUrl}");
     expect(source).toContain("noIndex={!shouldIndexLandingPage}");
   });
+
+  it("keeps the server-rendered public landing fallback aligned with locked copy", () => {
+    const source = read("server/publicLandingHtml.ts");
+
+    expect(source).toContain("Connection Without Compromise");
+    expect(source).toContain("Start a Request");
+    expect(source).not.toContain("Find Any Local Business Near You");
+    expect(source).not.toContain("Ask Scout");
+    expect(source).not.toContain("Scout interprets");
+    expect(source).not.toContain("Scout routes");
+    expect(source).not.toContain("Get started with Scout");
+    expect(source).not.toContain("Direct Connect");
+  });
 });

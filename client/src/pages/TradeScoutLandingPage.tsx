@@ -63,7 +63,7 @@ export default function TradeScoutLandingPage() {
             <div className="ts-step-number" aria-hidden="true">
               2
             </div>
-            <h3>Route by local fit</h3>
+            <h3>Organize by local fit</h3>
             <p>
               Your request is matched to relevant local providers without selling your info as a
               lead.
