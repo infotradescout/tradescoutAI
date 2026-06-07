@@ -589,10 +589,12 @@ const LazyPage = memo(function LazyPage({
 export const AppRoutes = memo(function AppRoutes({
   isLiteScoutRoute,
   isLandingRoute,
+  isPublicRootLanding,
   isShareRoute,
 }: {
   isLiteScoutRoute: boolean;
   isLandingRoute: boolean;
+  isPublicRootLanding: boolean;
   isShareRoute: boolean;
 }) {
   return (
@@ -617,8 +619,13 @@ export const AppRoutes = memo(function AppRoutes({
             <LazyPage Component={NotFound} />
           </Route>
         </Switch>
-      ) : isLandingRoute ? (
+      ) : isLandingRoute || isPublicRootLanding ? (
         <Switch>
+          <Route path="/">
+            <LandingAccessGate>
+              <LazyPage Component={Landing} />
+            </LandingAccessGate>
+          </Route>
           <Route path="/landing">
             <LandingAccessGate>
               <LazyPage Component={Landing} />

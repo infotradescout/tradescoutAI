@@ -97,6 +97,7 @@ const AppLayout = memo(function AppLayout() {
     pathOnly.startsWith("/collections/");
 
   const { user, isAuthenticated, isLoading } = useAuth();
+  const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;
 
   const [showBetaNotice, setShowBetaNotice] = useState(false);
 
@@ -298,6 +299,7 @@ const AppLayout = memo(function AppLayout() {
             <AppRoutes
               isLiteScoutRoute={isLiteScoutRoute}
               isLandingRoute={isLandingRoute}
+              isPublicRootLanding={isPublicRootLanding}
               isShareRoute={isShareRoute}
             />
           </ErrorBoundary>
