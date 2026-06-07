@@ -22,7 +22,12 @@ function upsertTag(html: string, regex: RegExp, tag: string) {
 }
 
 function injectSummary(html: string, summaryHtml: string) {
-  return html.replace(/<div id="root"><\/div>/i, `<div id="root">${summaryHtml}</div>`);
+  const withRootSummary = html.replace(
+    /<div\b([^>]*\bid=["']root["'][^>]*)>\s*<\/div>/i,
+    `<div$1>${summaryHtml}</div>`
+  );
+  if (withRootSummary !== html) return withRootSummary;
+  return html.replace(/<\/body>/i, `${summaryHtml}\n</body>`);
 }
 
 function injectJsonLd(html: string, jsonLd: object) {
