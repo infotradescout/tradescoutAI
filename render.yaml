@@ -30,6 +30,12 @@ services:
         value: "250"
       - key: SCOUT_RECOMMENDATIONS_ENABLED
         value: "true"
+      - key: DIRECT_CONNECT_CREATE_LIMIT_15M
+        value: "12"
+      - key: DIRECT_CONNECT_WORKFLOW_LIMIT_1M
+        value: "90"
+      - key: DIRECT_CONNECT_PROVIDER_RESPONSE_LIMIT_10M
+        value: "60"
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
