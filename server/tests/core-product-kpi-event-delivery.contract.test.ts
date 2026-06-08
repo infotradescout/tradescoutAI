@@ -208,4 +208,30 @@ describe("core product KPI analytics delivery", () => {
       "direct_connect_request_submitted_after_home_record_skip"
     );
   });
+
+  it("persists landing-attributed Direct Connect request-start KPI events", async () => {
+    const app = makeApp();
+    const event = {
+      type: "direct_connect_request_started",
+      surface: "direct_connect",
+      userState: "anonymous",
+      viewport: "desktop",
+      source: "landing_primary_cta",
+      ts: new Date().toISOString(),
+    };
+
+    const response = await request(app).post("/api/analytics/shell").send(event);
+    expect(response.status).toBe(204);
+
+    await flushAsyncWork();
+
+    expect(logEventMock).toHaveBeenCalledTimes(1);
+    expect(logEventMock.mock.calls[0][0]).toBe("direct_connect_request_started");
+    expect(logEventMock.mock.calls[0][1]).toMatchObject({
+      type: "direct_connect_request_started",
+      surface: "direct_connect",
+      userState: "anonymous",
+      source: "landing_primary_cta",
+    });
+  });
 });

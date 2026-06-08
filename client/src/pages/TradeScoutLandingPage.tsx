@@ -1,7 +1,35 @@
-import React from "react";
+import React, { useEffect } from "react";
+import {
+  bootstrapDemandAttribution,
+  trackDemandEvent,
+  withDemandQueryParams,
+} from "@/lib/demandEngine";
 import "./TradeScoutLandingPage.css";
 
+const LANDING_CONVERSION_VARIANT = "locked_public_landing";
+const LANDING_PRIMARY_REQUEST_SOURCE = "landing_primary_cta";
+const LANDING_PRIMARY_REQUEST_HREF = `/direct-connect?source=${LANDING_PRIMARY_REQUEST_SOURCE}`;
+
 export default function TradeScoutLandingPage() {
+  useEffect(() => {
+    bootstrapDemandAttribution();
+    void trackDemandEvent("landing_view", {
+      variant: LANDING_CONVERSION_VARIANT,
+      surface: "public_landing",
+    });
+  }, []);
+
+  const primaryRequestHref = withDemandQueryParams(LANDING_PRIMARY_REQUEST_HREF);
+  const trackPrimaryRequestClick = () => {
+    void trackDemandEvent("cta_click", {
+      variant: LANDING_CONVERSION_VARIANT,
+      surface: "public_landing",
+      cta: "start_request",
+      source: LANDING_PRIMARY_REQUEST_SOURCE,
+      target: "/direct-connect",
+    });
+  };
+
   return (
     <main className="ts-landing-shell">
       <header className="ts-header" aria-label="TradeScout primary header">
@@ -33,7 +61,11 @@ export default function TradeScoutLandingPage() {
           </p>
 
           <div className="ts-hero-actions" aria-label="Primary actions">
-            <a className="ts-button ts-button-primary" href="/direct-connect">
+            <a
+              className="ts-button ts-button-primary"
+              href={primaryRequestHref}
+              onClick={trackPrimaryRequestClick}
+            >
               Start a Request
             </a>
 
