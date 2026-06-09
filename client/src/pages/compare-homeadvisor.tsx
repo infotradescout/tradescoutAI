@@ -204,16 +204,16 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
             <Reveal>
               <div className="bg-tsCard border border-white/10 rounded-xl overflow-hidden shadow-[0_18px_52px_rgba(0,0,0,0.36)]">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full table-fixed text-xs sm:text-sm">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="text-left p-4 font-semibold text-white/60 text-xs">
+                        <th className="p-3 text-left text-xs font-semibold text-white/60 sm:p-4">
                           Feature
                         </th>
-                        <th className="text-center p-4 font-semibold text-red-400 text-xs">
+                        <th className="p-3 text-center text-xs font-semibold text-red-400 sm:p-4">
                           HomeAdvisor
                         </th>
-                        <th className="text-center p-4 font-semibold text-ts-orange text-xs">
+                        <th className="p-3 text-center text-xs font-semibold text-ts-orange sm:p-4">
                           TradeScout
                         </th>
                       </tr>
@@ -221,18 +221,20 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
                     <tbody className="divide-y divide-white/5">
                       {tableRows.map((row, i) => (
                         <tr key={i} className={i % 2 === 0 ? "bg-white/[0.02]" : ""}>
-                          <td className="p-4 text-xs font-medium text-white">{row.feature}</td>
-                          <td className="p-4 text-center">
+                          <td className="break-words p-3 text-xs font-medium text-white sm:p-4">
+                            {row.feature}
+                          </td>
+                          <td className="p-3 text-center sm:p-4">
                             <div className="flex flex-col items-center gap-1">
                               {row.haNeg && <X className="w-4 h-4 text-red-400" />}
                               {row.haWarn && <AlertTriangle className="w-4 h-4 text-yellow-400" />}
-                              <span className="text-xs text-white/50">{row.ha}</span>
+                              <span className="break-words text-xs text-white/50">{row.ha}</span>
                             </div>
                           </td>
-                          <td className="p-4 text-center">
+                          <td className="p-3 text-center sm:p-4">
                             <div className="flex flex-col items-center gap-1">
                               {row.tsPos && <Check className="w-4 h-4 text-ts-orange" />}
-                              <span className="text-xs text-white/70">{row.ts}</span>
+                              <span className="break-words text-xs text-white/70">{row.ts}</span>
                             </div>
                           </td>
                         </tr>
@@ -304,13 +306,13 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">
-                  <a className="inline-flex items-center gap-2 bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-5 h-10 rounded-lg shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] text-sm">
+                  <a className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-ts-orange px-5 text-sm font-bold text-white shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] hover:bg-ts-orange-dark sm:w-auto">
                     Talk to Scout
                     <ArrowRight className="w-4 h-4" />
                   </a>
                 </Link>
                 <Link href="/direct-connect">
-                  <a className="inline-flex items-center gap-2 border border-white/20 text-white hover:bg-white/10 font-semibold px-5 h-10 rounded-lg transition-all text-sm">
+                  <a className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-white/20 px-5 text-sm font-semibold text-white transition-all hover:bg-white/10 sm:w-auto">
                     Find Local Help
                   </a>
                 </Link>

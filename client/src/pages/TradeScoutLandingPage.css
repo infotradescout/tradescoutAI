@@ -30,6 +30,7 @@
     "Segoe UI",
     sans-serif;
   padding: 24px;
+  overflow-x: clip;
 }
 
 .ts-header {
@@ -110,6 +111,7 @@
 }
 
 .ts-hero-copy {
+  min-width: 0;
   max-width: 820px;
 }
 
@@ -130,6 +132,8 @@
   line-height: 0.92;
   letter-spacing: 0;
   font-weight: 950;
+  overflow-wrap: normal;
+  text-wrap: balance;
 }
 
 .ts-hero-subheadline {
@@ -158,6 +162,7 @@
   font-size: 15px;
   font-weight: 900;
   text-decoration: none;
+  text-align: center;
   transition:
     transform 160ms ease,
     border-color 160ms ease,
@@ -278,20 +283,34 @@
 
 @media (max-width: 820px) {
   .ts-landing-shell {
-    padding: 18px;
+    padding: 18px 16px 48px;
   }
 
   .ts-header {
     min-height: auto;
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+    gap: 18px;
   }
 
   .ts-auth-nav {
     width: 100%;
-    justify-content: space-between;
+    align-items: stretch;
+    justify-content: flex-start;
     gap: 8px;
     font-size: 13px;
+  }
+
+  .ts-auth-nav a {
+    min-height: 44px;
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ts-border);
+    border-radius: 8px;
+    padding: 0 10px;
+    text-align: center;
   }
 
   .ts-nav-separator {
@@ -299,12 +318,24 @@
   }
 
   .ts-hero {
-    margin-top: 36px;
+    margin-top: 28px;
     min-height: auto;
+    padding: 24px;
+  }
+
+  .ts-hero-copy,
+  .ts-kicker,
+  .ts-hero h1,
+  .ts-hero-subheadline,
+  .ts-hero-actions {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .ts-hero h1 {
-    font-size: clamp(48px, 15vw, 74px);
+    font-size: clamp(38px, 12vw, 52px);
+    line-height: 0.98;
   }
 
   .ts-hero-actions {
@@ -313,6 +344,8 @@
 
   .ts-button {
     width: 100%;
+    min-width: 0;
+    padding: 0 16px;
   }
 
   .ts-section-heading {
@@ -330,5 +363,39 @@
   .ts-record-layer {
     grid-template-columns: 1fr;
     margin-bottom: 48px;
+  }
+}
+
+@media (max-width: 420px) {
+  .ts-logo-text {
+    font-size: 16px;
+  }
+
+  .ts-logo-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ts-hero {
+    padding: 22px 18px;
+  }
+
+  .ts-kicker,
+  .ts-section-kicker {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .ts-hero-subheadline {
+    margin-top: 20px;
+    font-size: 17px;
+  }
+
+  .ts-hero-actions {
+    margin-top: 28px;
+  }
+
+  .ts-step-card {
+    padding: 20px;
   }
 }
