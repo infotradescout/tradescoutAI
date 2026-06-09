@@ -96,6 +96,10 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
   const summary = `
 <main data-seo-landing="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.5;">
   <article>
+    <p style="margin:0 0 1rem;display:flex;align-items:center;gap:.6rem;font-weight:800;">
+      <img src="/tradescout-logo-circle.png?v=10" alt="TradeScout logo" width="40" height="40" style="display:block;border-radius:8px;" />
+      <span>TradeScout</span>
+    </p>
     <h1>Connection Without Compromise</h1>
     <p>${escapeHtml(meta.description)}</p>
     <p>TradeScout is not a lead funnel. Your request starts with the work, location, and context before any contact details are shared.</p>

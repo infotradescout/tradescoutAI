@@ -34,9 +34,13 @@ export default function TradeScoutLandingPage() {
     <main className="ts-landing-shell">
       <header className="ts-header" aria-label="TradeScout primary header">
         <a className="ts-logo" href="/" aria-label="TradeScout home">
-          <span className="ts-logo-mark" aria-hidden="true">
-            TS
-          </span>
+          <img
+            className="ts-logo-mark"
+            src="/tradescout-logo-circle.png?v=10"
+            alt=""
+            aria-hidden="true"
+            decoding="async"
+          />
           <span className="ts-logo-text">TradeScout</span>
         </a>
 
