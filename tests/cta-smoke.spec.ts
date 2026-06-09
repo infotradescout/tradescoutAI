@@ -81,6 +81,37 @@ test("Public landing CTA says Start a Request and opens the request composer", a
   await expect(page.getByRole("button", { name: "Skip for now" })).toBeVisible();
 });
 
+test("Public landing mobile first viewport fits without horizontal clipping", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page.context().clearCookies();
+  await page.goto("/");
+
+  await expect(page.getByRole("link", { name: "TradeScout home" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Connection Without Compromise" })).toBeVisible();
+
+  const primaryCta = page.getByRole("link", { name: "Start a Request" }).first();
+  await expect(primaryCta).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const cta = document.querySelector<HTMLAnchorElement>(".ts-button-primary");
+    const heroTitle = document.querySelector<HTMLElement>("#ts-hero-title");
+    const body = document.body;
+    const doc = document.documentElement;
+    const ctaRect = cta?.getBoundingClientRect();
+    const titleRect = heroTitle?.getBoundingClientRect();
+    return {
+      viewportWidth: window.innerWidth,
+      scrollWidth: Math.max(body.scrollWidth, doc.scrollWidth),
+      ctaRight: ctaRect?.right ?? 0,
+      titleRight: titleRect?.right ?? 0,
+    };
+  });
+
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.ctaRight).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.titleRight).toBeLessThanOrEqual(layout.viewportWidth);
+});
+
 test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs render", async ({
   page,
 }) => {
