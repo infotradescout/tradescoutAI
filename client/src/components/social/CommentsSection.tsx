@@ -269,7 +269,7 @@ function Comment({ comment, postId, level = 0 }: CommentProps) {
                   {targetUserId && (
                     <DropdownMenuItem onClick={handleOpenDirectConnect}>
                       <Briefcase className="h-3 w-3 mr-2" />
-                      Start Direct Connect request
+                      Start a Request
                     </DropdownMenuItem>
                   )}
                   {targetUserId && (

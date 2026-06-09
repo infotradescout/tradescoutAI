@@ -168,7 +168,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
             </Button>
           )}
 
-          {/* Show "Ask Scout first" for DEFER or BLOCK */}
+          {/* Show a request-detail path for DEFER or BLOCK */}
           {(scoutAction === "DEFER" || scoutAction === "BLOCK") && (
             <Button
               onClick={() => {
@@ -186,7 +186,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
               variant="outline"
               className="border-white/10 text-white/70 hover:bg-white/5"
             >
-              Ask Scout first
+              Add details first
             </Button>
           )}
 

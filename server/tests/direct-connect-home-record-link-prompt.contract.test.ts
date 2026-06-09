@@ -12,8 +12,12 @@ describe("direct connect home record link prompt conversion contract", () => {
   it("renders home-record prompt language and keeps skip path non-blocking", () => {
     const source = fs.readFileSync(shellPath, "utf8");
     expect(source).toContain("Home record (optional)");
-    expect(source).toContain("Optional: save this with a home record.");
-    expect(source).toContain("Keep property details ready for future requests.");
+    expect(source).toContain(
+      "Direct Connect starts the job. HomeID remembers useful property history."
+    );
+    expect(source).toContain(
+      "Helpful, never required: save request details now or skip and submit."
+    );
     expect(source).toContain("Show options");
     expect(source).toContain("Use saved home details");
     expect(source).toContain("Create a home record");

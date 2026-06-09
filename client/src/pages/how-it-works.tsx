@@ -74,7 +74,7 @@ const HowItWorksPage = memo(function HowItWorksPage() {
     {
       icon: MessageSquare,
       title: "Open Scout",
-      desc: "Tell Scout what you need help with.",
+      desc: "Describe what you need help with.",
     },
     {
       icon: Search,

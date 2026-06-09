@@ -7,6 +7,11 @@ const read = (relativePath: string) => {
   return fs.readFileSync(fullPath, "utf-8");
 };
 
+const directConnectNotificationBlocks = (source: string) =>
+  Array.from(source.matchAll(/notificationService\.createNotification\(\{[\s\S]*?\n\s*\}\);/g)).map(
+    (match) => match[0]
+  );
+
 describe("direct connect notification/email delivery safety contracts", () => {
   it("keeps submitted/routed provider notifications scoped to platform inbox and safe copy", () => {
     const source = read("server/routes/direct-connect.ts");
@@ -88,5 +93,20 @@ describe("direct connect notification/email delivery safety contracts", () => {
     expect(source).toContain("featuredPlacement?: boolean;");
     expect(source).toContain('subscriptionLevel?: "free" | "pro" | "enterprise" | "none";');
     expect(source).toContain('return { status: "eligible", eligible: true };');
+  });
+
+  it("keeps Direct Connect notification payloads free of premature contact leakage", () => {
+    const source = read("server/routes/direct-connect.ts");
+    const blocks = directConnectNotificationBlocks(source).filter((block) =>
+      /Direct Connect|dc_provider|new_project_request|provider/.test(block)
+    );
+
+    expect(blocks.length).toBeGreaterThan(0);
+    for (const block of blocks) {
+      expect(block).not.toMatch(
+        /phone|email|address|contactInfo|homeownerContact|providerPhone|providerEmail/i
+      );
+      expect(block).not.toMatch(/\$\{[^}]*\.(phone|email|address|contactInfo)[^}]*\}/i);
+    }
   });
 });

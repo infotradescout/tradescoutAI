@@ -230,7 +230,7 @@ export default function ContractorProfile() {
                     <span>Contact is protected to prevent spam.</span>
                   </div>
                   <p className="mt-1 text-white/60">
-                    Start Direct Connect to route requests through TradeScout's trust policy.
+                    Start a request to route work through TradeScout's trust policy.
                   </p>
                 </div>
 
@@ -240,7 +240,7 @@ export default function ContractorProfile() {
                     onClick={() => setLocation(directConnectHref)}
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    Start Direct Connect
+                    Start a Request
                   </Button>
                 ) : (
                   <>

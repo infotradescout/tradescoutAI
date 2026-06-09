@@ -23,7 +23,8 @@ describe("assetid phase 1f homeid -> direct connect draft contracts", () => {
 
   it("keeps draft creation non-dispatch by contract copy", () => {
     const source = read("client/src/pages/homes.tsx");
-    expect(source).toContain("No provider dispatch, routing, or");
+    expect(source).toContain("HomeID context can help prepare it");
+    expect(source).toContain("no provider dispatch, routing, or");
     expect(source).toContain("payment happens here.");
   });
 });

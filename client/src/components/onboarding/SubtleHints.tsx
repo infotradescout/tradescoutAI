@@ -76,10 +76,10 @@ export function SubtleHints() {
         },
         {
           id: "scout-estimates",
-          title: "Ask Scout for Estimates",
+          title: "Start an Estimate Request",
           description: "Get a ballpark cost before starting a request",
           icon: <Calculator className="w-5 h-5 text-green-500" />,
-          action: "Ask Scout",
+          action: "Start request",
           actionUrl: "/scout?intent=estimate",
           delay: 14,
         },

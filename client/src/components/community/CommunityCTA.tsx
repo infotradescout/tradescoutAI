@@ -47,13 +47,13 @@ async function checkCTAAuthority(
     return await res.json();
   } catch (error) {
     console.error("[CTA Authority Check] Failed:", error);
-    // Fail safe: require Scout path on authority check failures
+    // Fail safe: require more context on authority check failures.
     return {
       allowed: false,
       action: "DEFER",
       ctaMode: "ask_scout",
-      explanation: "We could not check this action right now. Ask Scout first.",
-      label: "Ask Scout first",
+      explanation: "We could not check this action right now. Add request details first.",
+      label: "Add details first",
     };
   }
 }
@@ -209,14 +209,14 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     canDirectConnect && !disableDirectConnect && directConnectMode !== "hide";
   const directConnectLabel =
     directConnectMode === "ask_scout"
-      ? directConnectAuthority?.label || "Ask Scout"
+      ? directConnectAuthority?.label || "Add details first"
       : "Direct Connect";
 
   // Determine what to show for Message CTA
   const messageMode = messageAuthority?.ctaMode || "show";
   const showMessage = canMessage && ownerUserId && messageMode !== "hide";
   const messageLabel =
-    messageMode === "ask_scout" ? messageAuthority?.label || "Ask Scout" : "Message";
+    messageMode === "ask_scout" ? messageAuthority?.label || "Add details first" : "Message";
 
   // Get authority for pending action
   const currentAuthority =
@@ -300,7 +300,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
           }}
           className="flex-1 min-w-0 px-2 py-1 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-100 text-left truncate"
         >
-          Ask Scout
+          Add details
         </button>
         {showDirectConnect && (
           <button
@@ -354,7 +354,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         className="flex items-center justify-center gap-1.5 py-2 bg-tsBg hover:bg-tsBg/80 text-white"
       >
         <MessagesSquare className="w-4 h-4" />
-        <span>Ask Scout</span>
+        <span>Add details</span>
       </button>
       {showDirectConnect && (
         <button

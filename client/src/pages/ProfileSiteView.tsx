@@ -588,7 +588,7 @@ export default function ProfileSiteView() {
                       <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2">
                         <MessageCircle className="h-4 w-4" />
                         <span>
-                          {isSuperAdminViewer ? "Open Direct Connect" : "Start Direct Connect"}
+                          {isSuperAdminViewer ? "Open Direct Connect" : "Start a Request"}
                         </span>
                       </Button>
                     </Link>

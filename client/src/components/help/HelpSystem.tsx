@@ -96,7 +96,7 @@ const helpTopics: HelpTopic[] = [
       overview:
         "Scout combines your project details with local pricing context to help you quote with confidence and route you into the right quoting tools.",
       steps: [
-        "Tell Scout what you're planning (project type and scope)",
+        "Describe what you're planning (project type and scope)",
         "Answer Scout's quick questions about size, materials, and timing so it can set things up correctly",
         "Review the suggested ranges and trade-offs",
         "Use Scout's guidance to send a professional quote to the customer",

@@ -14,7 +14,7 @@ import { Zap, Target, Shield, Users, ArrowRight } from "lucide-react";
  * - How Direct Connect routing works
  * - Trust-verified matching (only verified contractors)
  * - Small routing set (1-3 qualified matches, not broadcast)
- * - Context-aware requests (Scout includes job details)
+ * - Context-aware requests (job details stay with the request)
  * - Why contact stays gated until a match accepts
  *
  * Written as system explanation (not marketing fluff).
@@ -26,7 +26,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
     {
       question: "What is Direct Connect?",
       answer:
-        "Direct Connect is the part of TradeScout that helps you ask for help and hear back from a small set of local pros who fit the job.",
+        "Direct Connect is the part of TradeScout that helps you request help and hear back from a small set of local pros who fit the job.",
     },
     {
       question: "How is this different from Angi or HomeAdvisor?",
@@ -44,9 +44,9 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
         "TradeScout never charges to connect, send your request, or unlock contact. If someone asks for money in TradeScout's name for that, treat it as suspicious.",
     },
     {
-      question: "What information does Scout send to contractors?",
+      question: "What information does the request send to contractors?",
       answer:
-        "Scout shares the details you give it, like the type of job, your area, timing, budget if you include one, and how you want to be contacted.",
+        "The request shares the details you give it, like the type of job, your area, timing, budget if you include one, and how you want to be contacted.",
     },
     {
       question: "What if no contractors respond?",
@@ -58,8 +58,8 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
   return (
     <>
       <SEOHelmet
-        title="Direct Connect | Request Trusted Local Help Through Scout | TradeScout"
-        description="TradeScout Direct Connect helps you ask for local help, hear back from a small set of good-fit pros, and avoid spammy lead-generation platforms."
+        title="Direct Connect | Request Trusted Local Help | TradeScout"
+        description="TradeScout Direct Connect helps you request local help, hear back from a small set of good-fit pros, and avoid spammy lead-generation platforms."
         keywords="direct connect, local help, find local pros, contractor help, request help, avoid lead generation spam"
         canonical="https://www.thetradescout.com/direct-connect-info"
         structuredData={createFAQStructuredData(faqs)}
@@ -71,7 +71,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           <header className="mb-12">
             <h1 className="text-4xl font-bold mb-4">Direct Connect</h1>
             <p className="text-xl text-white/70">
-              Tell Scout what you need and hear back from a small set of local pros who fit the job.
+              Describe what you need and hear back from a small set of local pros who fit the job.
             </p>
           </header>
 
@@ -90,7 +90,7 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                     1
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2">Tell Scout what you need</h3>
+                    <h3 className="text-xl font-semibold mb-2">Describe what you need</h3>
                     <p className="text-white/70">
                       "I need a licensed roofer in Austin. Emergency leak repair. Budget ~$2,000."
                     </p>
@@ -109,8 +109,10 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
                     2
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold mb-2">Scout looks for a good fit</h3>
-                    <p className="text-white/70 mb-2">Scout looks at things like:</p>
+                    <h3 className="text-xl font-semibold mb-2">TradeScout looks for a good fit</h3>
+                    <p className="text-white/70 mb-2">
+                      The request is checked against things like:
+                    </p>
                     <ul className="list-disc list-inside space-y-1 text-white/70 ml-4">
                       <li>
                         <strong>Trust</strong>: verified, licensed, and insured when required
@@ -309,12 +311,12 @@ const DirectConnectInfoPage = memo(function DirectConnectInfoPage() {
           <section className="bg-tsCard p-8 rounded-lg border border-white/10 text-center">
             <h2 className="text-2xl font-semibold mb-4">Try Direct Connect</h2>
             <p className="text-white/70 mb-6">
-              Tell Scout what you need and see how Direct Connect works.
+              Start with request details and see how protected contact works.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
               <Link href="/scout">
                 <a className="bg-ts-orange text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition">
-                  Talk to Scout
+                  Start with Guidance
                 </a>
               </Link>
               <Link href="/direct-connect">

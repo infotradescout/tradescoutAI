@@ -420,7 +420,7 @@ const Documentation = memo(function Documentation() {
                 goal and blocker.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button variant="outline">Ask Scout</Button>
+                <Button variant="outline">Add request details</Button>
                 <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                   Open Support Ticket
                 </Button>

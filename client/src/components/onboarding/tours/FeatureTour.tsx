@@ -42,7 +42,7 @@ const getFeatureSteps = (feature: string): TourStep[] => {
         {
           id: "scout-estimates-intro",
           target: "[data-nav-item='scout']",
-          title: "Ask Scout for Estimates",
+          title: "Start an Estimate Request",
           description:
             "Use Scout to get ballpark pricing for your project in seconds, based on local context and your project details.",
           position: "bottom",

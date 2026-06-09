@@ -862,7 +862,7 @@ export default function HomeScoutListingPage() {
                       )}`}
                     >
                       <Button size="sm" variant="outline">
-                        Ask Scout for inspectors
+                        Start Inspector Request
                       </Button>
                     </Link>
                   </div>
@@ -897,7 +897,7 @@ export default function HomeScoutListingPage() {
                               size="sm"
                               className="bg-ts-orange hover:bg-ts-orange-dark text-black font-semibold"
                             >
-                              Ask Scout
+                              Review Next Step
                             </Button>
                           </Link>
                         </div>

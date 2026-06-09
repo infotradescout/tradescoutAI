@@ -344,7 +344,7 @@ export default function Chat() {
                         <Link href="/scout">
                           <Button size="sm" variant="outline">
                             <MessageCircle className="h-3.5 w-3.5 mr-1" />
-                            Ask Scout
+                            Add details
                           </Button>
                         </Link>
                       </div>

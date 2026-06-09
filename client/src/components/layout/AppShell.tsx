@@ -80,7 +80,7 @@ function resolveSurfaceOrientation(pathname: string): SurfaceOrientation | null 
   if (pathname.startsWith("/scout") || pathname === "/") {
     return {
       title: "Scout",
-      summary: "Tell Scout what you need and get the right next step.",
+      summary: "Describe what you need and get the right next step.",
       actionLabel: "Go to Direct Connect",
       actionHref: "/direct-connect",
     };
@@ -667,7 +667,7 @@ export function AppShell({ children, footer }: AppShellProps) {
         Get help with your <span className="text-accent">next project</span>
       </h1>
       <p className="mt-1 text-xs text-secondary">
-        Tell Scout what you need and jump to the right page.
+        Describe what you need and jump to the right page.
       </p>
       {!isLoggedIn && (
         <div className="mt-2 space-y-1.5">

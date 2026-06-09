@@ -87,7 +87,7 @@ function buildCountyFAQs(
           ? `Use Direct Connect to search ${affiliateCount} verified contractors serving ${marketName}. Start broad, then narrow by city or neighborhood.`
           : coverageStatus === "partial"
             ? `Use Direct Connect to search ${affiliateCount} verified contractors currently serving ${marketName}. Coverage is growing across nearby neighborhoods.`
-            : `${marketName} is still building out. Tell Scout where you need help so we can prioritize local coverage.`,
+            : `${marketName} is still building out. Describe where you need help so we can prioritize local coverage.`,
     },
     {
       question: `How strong is TradeScout coverage near ${marketName}?`,
@@ -360,7 +360,7 @@ const CountyPage = memo(function CountyPage() {
                   <div>
                     <h3 className="font-semibold text-white mb-1">Not Yet Covered</h3>
                     <p className="text-white/70 mb-3">
-                      {marketName} is still early for us. Tell Scout which city or neighborhood you
+                      {marketName} is still early for us. Describe which city or neighborhood you
                       need help in so we can prioritize real local demand.
                     </p>
                     <Link

@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { ArrowRight, MessageCircle, Sparkles, Activity } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { getUserLocationLabel, getUserAudienceLabel } from '@/lib/copyHelpers';
-import { formatCityOnly } from '@/utils/locationDisplay';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { useState } from "react";
+import { ArrowRight, MessageCircle, Sparkles, Activity } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { getUserLocationLabel, getUserAudienceLabel } from "@/lib/copyHelpers";
+import { formatCityOnly } from "@/utils/locationDisplay";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface ScoutResponse {
   message: string;
@@ -12,38 +12,39 @@ interface ScoutResponse {
 }
 
 const suggestionPrompts = [
-  'Trusted plumber — kitchen leak.',
-  'Paint 12×12 room cost?',
-  'Roof repair near me.',
-  'Deck permits in Texas.',
-  'Best HVAC work van.',
-  'Small backyard ideas.',
+  "Trusted plumber — kitchen leak.",
+  "Paint 12×12 room cost?",
+  "Roof repair near me.",
+  "Deck permits in Texas.",
+  "Best HVAC work van.",
+  "Small backyard ideas.",
 ];
 
 export default function CommunityOsLanding() {
   const { isAuthenticated, user } = useAuth();
-  const [question, setQuestion] = useState('');
-  const [response, setResponse] = useState('');
+  const [question, setQuestion] = useState("");
+  const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   const locationLabel = getUserLocationLabel(user as any);
   const audienceLabel = getUserAudienceLabel(user as any);
-  const headlineCommunity = isAuthenticated && locationLabel
-	? (formatCityOnly({ label: locationLabel }) || 'YOUR COMMUNITY')
-    : 'YOUR COMMUNITY';
+  const headlineCommunity =
+    isAuthenticated && locationLabel
+      ? formatCityOnly({ label: locationLabel }) || "YOUR COMMUNITY"
+      : "YOUR COMMUNITY";
 
   const handleSubmit = async () => {
     if (!question.trim()) return;
     setIsLoading(true);
-    setError('');
-    setResponse('');
+    setError("");
+    setResponse("");
 
     try {
-      const res = await fetch('/api/scout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const res = await fetch("/api/scout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           message: question,
           history: [],
@@ -51,14 +52,14 @@ export default function CommunityOsLanding() {
       });
 
       if (!res.ok) {
-        throw new Error('Scout request failed');
+        throw new Error("Scout request failed");
       }
 
       const data: ScoutResponse = await res.json();
-      setResponse(data.message || '');
+      setResponse(data.message || "");
     } catch (err) {
       console.error(err);
-      setError('Sorry, something went wrong. Please try again.');
+      setError("Sorry, something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +95,8 @@ export default function CommunityOsLanding() {
               <span className="text-ts-orange">{headlineCommunity}</span>
             </h1>
             <p className="text-base sm:text-lg text-white/60 max-w-3xl">
-              Interact with neighbors, find verified local talent, and access real-time area intelligence.
+              Interact with neighbors, find verified local talent, and access real-time area
+              intelligence.
             </p>
           </div>
 
@@ -102,7 +104,9 @@ export default function CommunityOsLanding() {
             <Card className="bg-tsCard/95 border border-white/10 rounded-2xl shadow-xl shadow-black/30">
               <div className="p-4 sm:p-6 flex flex-col gap-4">
                 <div className="flex flex-col gap-3">
-                  <label className="text-xs uppercase tracking-[0.18em] text-white/60">Ask Scout</label>
+                  <label className="text-xs uppercase tracking-[0.18em] text-white/60">
+                    Describe a need
+                  </label>
                   <textarea
                     className="w-full rounded-xl border border-white/10 px-4 py-3 text-base text-white placeholder:text-white/55 focus:outline-none focus:ring-2 focus:ring-ts-orange/70/80 min-h-[96px]"
                     style={{ backgroundColor: "var(--surface-card)" }}
@@ -118,7 +122,7 @@ export default function CommunityOsLanding() {
                       disabled={!question.trim() || isLoading}
                       className="w-full sm:w-auto px-5 h-12 rounded-xl bg-gradient-to-r from-ts-orange to-orange-600 text-white font-semibold shadow-lg shadow-orange-600/30"
                     >
-                      {isLoading ? 'Searching...' : 'Start Search'}
+                      {isLoading ? "Searching..." : "Start Search"}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                     <div className="flex items-center gap-3 text-xs text-white/60">
@@ -147,7 +151,9 @@ export default function CommunityOsLanding() {
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-sm font-semibold text-white">Quick Start</div>
                   {!isAuthenticated && (
-                    <a href="/signup" className="text-xs text-ts-orange hover:underline">Join</a>
+                    <a href="/signup" className="text-xs text-ts-orange hover:underline">
+                      Join
+                    </a>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">

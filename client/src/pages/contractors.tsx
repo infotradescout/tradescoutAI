@@ -43,12 +43,12 @@ export default function ForContractors() {
           </h1>
           <p className="text-xl text-white/70 max-w-3xl mx-auto mb-4">
             This is the Contractors tab under Direct Connect: grow your business by responding to
-            homeowner Direct Connect requests and staying visible in your local coordination board.
+            requester Direct Connect jobs and staying visible in your local coordination board.
           </p>
           <div className="inline-flex items-center px-4 py-2 bg-tsCard rounded-full border border-white/10">
             <Users className="h-5 w-5 text-ts-orange mr-2" />
             <span className="text-white/70">
-              Homeowners start Direct Connect requests · you respond here as a verified local pro
+              Requesters start Direct Connect requests · you respond here as a verified local pro
             </span>
           </div>
           <div className="mt-2">
@@ -137,9 +137,9 @@ export default function ForContractors() {
           <Card className="bg-tsCard border-white/10 hover:border-ts-orange/30 transition-colors">
             <CardContent className="p-6 text-center">
               <DollarSign className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-ts-orange mb-2">Find Homeowners</h3>
+              <h3 className="text-lg font-semibold text-ts-orange mb-2">Find Requesters</h3>
               <p className="text-white/70 text-sm mb-4">
-                Connect with homeowners actively seeking contractors in your area.
+                Connect with requesters actively seeking contractors in your area.
               </p>
               <Link href="/contractors/board">
                 <Button

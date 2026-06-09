@@ -951,7 +951,7 @@ export default function MapsPage() {
                         href={buildScoutMapHref(selectedPoint, trade)}
                         className="inline-flex items-center rounded-md border border-sky-400/30 bg-sky-500/15 px-3 py-2 text-sm font-semibold text-sky-100"
                       >
-                        Ask Scout for next step
+                        Review next step
                       </Link>
                       {selectedPoint.href ? (
                         <a

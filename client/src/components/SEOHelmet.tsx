@@ -249,7 +249,7 @@ export const createOrganizationStructuredData = () => ({
     {
       "@type": "InteractAction",
       target: `${getCanonicalOrigin()}/scout`,
-      description: "Ask Scout for help",
+      description: "Start a protected request",
     },
   ],
   sameAs: [

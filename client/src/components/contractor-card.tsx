@@ -241,7 +241,7 @@ export default function ContractorCard({
             >
               <Button className="w-full ts-accent-btn transition-all duration-300">
                 <MessageSquare className="h-4 w-4 mr-1" />
-                {requestOnly ? "Request Quote" : "Start Direct Connect"}
+                {requestOnly ? "Request Quote" : "Start a Request"}
               </Button>
             </Link>
 

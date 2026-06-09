@@ -27,5 +27,5 @@ export function trustScoreDescription(): string {
 }
 
 export function matchFlowCopy(): string {
-  return "Tell Scout what you need, wait for a pro to accept, then keep the conversation moving in one place.";
+  return "Describe what you need, wait for a pro to accept, then keep the conversation moving in one place.";
 }

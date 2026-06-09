@@ -72,7 +72,7 @@ const getNewUserSteps = (userRole: string): TourStep[] => {
       {
         id: "get-quotes",
         target: "[data-nav-item='scout']",
-        title: "Ask Scout for Estimates",
+        title: "Start an Estimate Request",
         description: "Use Scout to get a quick ballpark before you start a gated request.",
         position: "bottom",
       },

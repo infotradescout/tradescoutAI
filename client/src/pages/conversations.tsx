@@ -163,7 +163,6 @@ export default function Conversations() {
         }
         subtitle="Connect with other TradeScout members about marketplace items"
       >
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(var(--app-height)-200px)]">
           {/* Conversations List */}
           <div className="lg:col-span-1">
@@ -198,7 +197,7 @@ export default function Conversations() {
                       <MessageCircle className="h-12 w-12 mx-auto mb-4 text-white/60" />
                       <h3 className="font-medium text-ts-orange mb-2">No conversations yet</h3>
                       <p className="text-sm text-white/60 dark:text-white/60 mb-4">
-                        Start through Scout or Direct Connect to keep contact intent-based.
+                        Start through a request to keep contact intent-based.
                       </p>
                       <div className="flex flex-wrap justify-center gap-2">
                         <Link href="/direct-connect">
@@ -210,7 +209,7 @@ export default function Conversations() {
                         <Link href="/scout">
                           <Button size="sm" variant="outline">
                             <MessageCircle className="h-4 w-4 mr-2" />
-                            Ask Scout
+                            Add details
                           </Button>
                         </Link>
                         <Link href="/exchange">

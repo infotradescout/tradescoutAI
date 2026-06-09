@@ -37,7 +37,9 @@ export default function RoleHubPage() {
             {label}
           </span>
         }
-        subtitle={<span className="text-xs uppercase tracking-[0.18em] text-ts-orange">Role hub</span>}
+        subtitle={
+          <span className="text-xs uppercase tracking-[0.18em] text-ts-orange">Role hub</span>
+        }
       >
         <div className="grid gap-4 md:grid-cols-3">
           <div className="md:col-span-2 space-y-4">
@@ -92,7 +94,7 @@ export default function RoleHubPage() {
                   href="/"
                   className="block w-full text-center px-3 py-2 rounded-xl bg-ts-orange text-black font-medium hover:bg-ts-orange/20 transition"
                 >
-                  Ask Scout about this role
+                  Review this role
                 </Link>
                 <Link
                   href="/profile"

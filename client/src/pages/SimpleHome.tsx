@@ -503,7 +503,7 @@ const SimpleHome = memo(function SimpleHome() {
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full justify-start"
                       >
                         <DollarSign className="h-4 w-4 mr-2" />
-                        Ask Scout for Estimate
+                        Start an Estimate Request
                       </Button>
                     </Link>
                     <Link href="/contractors">

@@ -435,7 +435,7 @@ export default function BusinessProfileView() {
                 setLocation(`/direct-connect?${params.toString()}`);
               }}
             >
-              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Start Direct Connect"}
+              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Start a Request"}
             </Button>
           </CardContent>
         </Card>
@@ -713,7 +713,7 @@ export default function BusinessProfileView() {
                     onClick={handleDirectConnect}
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    {profile.ctaConfig?.primary?.label || "Start Direct Connect"}
+                    {profile.ctaConfig?.primary?.label || "Start a Request"}
                     <ArrowRight className="h-4 w-4 ml-auto" />
                   </Button>
 
@@ -1072,7 +1072,7 @@ export default function BusinessProfileView() {
               <div className="flex flex-col items-center gap-2">
                 <Button size="lg" data-testid="bp-contact-cta" onClick={handleDirectConnect}>
                   <MessageSquare className="h-5 w-5 mr-2" />
-                  {profile.ctaConfig?.primary?.label || "Start Direct Connect"}
+                  {profile.ctaConfig?.primary?.label || "Start a Request"}
                 </Button>
 
                 {/* Directory-only: verified users can call after Decision Card confirmation */}
@@ -1135,7 +1135,7 @@ export default function BusinessProfileView() {
               "If the number is wrong, report it and use Direct Connect instead.",
             ]}
             guidance={`Your account is verified. ${matchFlowCopy()}`}
-            explanation="Tell Scout what you need → confirm the fit → reach out"
+            explanation="Describe what you need → confirm the fit → reach out"
             onAskScout={() => {
               const params = new URLSearchParams({
                 intent: "hire",

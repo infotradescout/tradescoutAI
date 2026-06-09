@@ -464,7 +464,7 @@ function HowItWorksSection() {
             How TradeScout Works
           </h2>
           <p className="text-base text-white/70 max-w-2xl mx-auto">
-            Tell Scout what you need and get a clear next step without digging through directories.
+            Describe what you need and get a clear next step without digging through directories.
           </p>
         </Reveal>
 
@@ -604,7 +604,7 @@ function DirectConnectSection({ variant }: { variant: ReturnType<typeof useLandi
             <div>
               <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2.5 py-1 mb-2">
                 <Handshake className="w-4 h-4 text-ts-orange" />
-                <span className="text-sm font-medium text-ts-orange">Direct Connection</span>
+                <span className="text-sm font-medium text-ts-orange">Protected Request Flow</span>
               </div>
               <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-white mb-3">
                 Less noise.
@@ -684,7 +684,7 @@ function AudienceSection({ variant }: { variant: ReturnType<typeof useLandingVar
 // ---- Pricing Section ----
 function PricingSection() {
   const quickStart = [
-    "Tell Scout your exact project and timeline",
+    "Describe your exact project and timeline",
     "Review 1-3 trust-ranked matches before contact opens",
     "Approve contact only when the fit looks right",
   ];

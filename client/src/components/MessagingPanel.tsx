@@ -145,7 +145,7 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
                 <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No conversations yet</p>
                 <p className="text-xs text-white/60">
-                  Start through Scout or Direct Connect to keep contact intent-based.
+                  Start through a request to keep contact intent-based.
                 </p>
                 <div className="flex flex-wrap justify-center gap-2 pt-1">
                   <Link href="/direct-connect">
@@ -153,7 +153,7 @@ export function MessagingPanel({ userId, conversationId, onClose }: MessagingPan
                   </Link>
                   <Link href="/scout">
                     <Button size="sm" variant="outline">
-                      Ask Scout
+                      Add details
                     </Button>
                   </Link>
                 </div>

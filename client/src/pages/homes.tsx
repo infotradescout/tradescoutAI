@@ -647,8 +647,8 @@ export default function HomesVault() {
       toast({
         title: "Direct Connect draft created",
         description: requestId
-          ? `Draft request ${requestId} is saved with HomeID references.`
-          : "Draft request is saved with HomeID references.",
+          ? `Draft request ${requestId} is ready. HomeID context stays attached until you submit.`
+          : "Draft request is ready. HomeID context stays attached until you submit.",
       });
       const packet = requestPackets.find((item) => item.id === handoffPreviewPacketId);
       if (requestId && handoffPreview && packet) {
@@ -728,8 +728,8 @@ export default function HomesVault() {
       toast({
         title: "Direct Connect request submitted",
         description: requestId
-          ? `Request ${requestId} submitted from HomeID draft.`
-          : "Request submitted from HomeID draft.",
+          ? `Request ${requestId} is live. HomeID will remember the selected property context.`
+          : "Request is live. HomeID will remember the selected property context.",
       });
       if (directConnectDraft?.homeId) {
         trackHomeIdDirectConnectRequestSubmitted({
@@ -1088,8 +1088,8 @@ export default function HomesVault() {
           <Card className="border-white/10">
             <CardContent className="pt-4">
               <p className="text-sm text-muted-foreground">
-                HomeID is your home history in one place. Add details over time, review what needs
-                attention, and prepare request details before submitting to Direct Connect.
+                HomeID remembers useful property history. Direct Connect starts the job when you are
+                ready to turn those details into a request.
               </p>
             </CardContent>
           </Card>
@@ -1558,8 +1558,8 @@ export default function HomesVault() {
                             )}
                           </div>
                           <div className="rounded border p-3 text-muted-foreground">
-                            This creates a draft request only. No provider dispatch, routing, or
-                            payment happens here.
+                            This creates a draft request only. HomeID context can help prepare it,
+                            but no provider dispatch, routing, or payment happens here.
                           </div>
                           <Button
                             onClick={() => createDirectConnectDraftMutation.mutate()}
@@ -1578,8 +1578,8 @@ export default function HomesVault() {
                             Direct Connect draft review and submit
                           </CardTitle>
                           <CardDescription className="text-xs">
-                            Confirm this draft before submission. No routing, dispatch, payment, or
-                            notifications are triggered here.
+                            Confirm this draft before submission. Direct Connect starts the job only
+                            when you submit; HomeID remains the property memory.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-xs">
@@ -1621,7 +1621,8 @@ export default function HomesVault() {
                         <CardHeader>
                           <CardTitle className="text-base">Completed work</CardTitle>
                           <CardDescription className="text-xs">
-                            Add completed work notes, inspections, maintenance, or upgrades.
+                            Add completed work notes, inspections, maintenance, or upgrades so
+                            future requests start with better property history.
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">

@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ToastAction } from "@/components/ui/toast";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { WhyThisJobModal } from "./WhyThisJobModal";
@@ -205,6 +206,15 @@ function toCleanHomeLabel(home: any): string {
   const state = String(home?.state || "").trim();
   if (city && state) return `${city}, ${state}`;
   return nickname ? "My home" : "Saved home";
+}
+
+function getPostSubmitHomeIdMemoryCopy(hasHomes: boolean) {
+  return {
+    description: hasHomes
+      ? "Save this request to your HomeID so future work is easier. You can attach it to a saved home or update property history when you are ready."
+      : "Save this request to your HomeID so future work is easier. You can create a home record from the request when you are ready.",
+    actionLabel: hasHomes ? "Attach/update HomeID" : "Create from request",
+  };
 }
 
 const SECTION_META: Record<
@@ -1729,7 +1739,7 @@ function DirectConnectRequestComposer({
 
       return apiRequest("POST", "/api/direct-connect/requests", payload);
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       const attachmentCount = attachmentsRef.current.length;
       const selectedCount = Array.isArray(variables?.targetProviderIds)
         ? variables.targetProviderIds.length
@@ -1778,9 +1788,30 @@ function DirectConnectRequestComposer({
         deviceType: getDeviceType(),
         ts: new Date().toISOString(),
       });
+      const submittedRequestId = String((data as any)?.id || "");
+      const homeIdMemoryCopy = getPostSubmitHomeIdMemoryCopy(hasExistingHomes);
       toast({
         title: "Request sent",
-        description: "Your request is live.",
+        description: (
+          <div className="space-y-1">
+            <p>Your request is live.</p>
+            <p>{homeIdMemoryCopy.description}</p>
+          </div>
+        ),
+        action: (
+          <ToastAction
+            altText={homeIdMemoryCopy.actionLabel}
+            onClick={() => {
+              const params = new URLSearchParams({
+                source: "direct_connect_submitted",
+              });
+              if (submittedRequestId) params.set("requestId", submittedRequestId);
+              navigate(`/homes?${params.toString()}`);
+            }}
+          >
+            {homeIdMemoryCopy.actionLabel}
+          </ToastAction>
+        ),
       });
       setTitle("");
       setDescription("");
@@ -2358,10 +2389,10 @@ function DirectConnectRequestComposer({
                 Home record (optional)
               </p>
               <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                Optional: save this with a home record.
+                Direct Connect starts the job. HomeID remembers useful property history.
               </p>
               <p className="text-[11px] text-[color:var(--text-secondary)]">
-                Keep property details ready for future requests.
+                Helpful, never required: save request details now or skip and submit.
               </p>
             </div>
             <Button

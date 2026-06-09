@@ -25,7 +25,7 @@ const getCTAConfig = (location: string) => {
   if (location.includes("/scout") && location.includes("intent=estimate")) {
     return {
       type: "scout-estimate",
-      text: "Ask Scout for Estimates",
+      text: "Start an Estimate Request",
       icon: Calculator,
       color: "bg-ts-orange hover:bg-ts-orange-dark shadow-lg shadow-ts-orange/25",
     };

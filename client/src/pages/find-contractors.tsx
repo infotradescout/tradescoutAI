@@ -451,8 +451,8 @@ const FindContractors = memo(function FindContractors({
           className="text-white max-w-3xl mx-auto"
           style={{ color: "var(--theme-text-secondary)" }}
         >
-          Ask Scout to draft bids, verify licenses, or queue tasks on your board. Or jump in with
-          search, quick actions, and the featured list - no waiting on chat.
+          Start a request to draft bids, verify licenses, or queue tasks on your board. Or jump in
+          with search, quick actions, and the featured list - no waiting on chat.
         </p>
       </section>
     </div>

@@ -66,7 +66,7 @@ const HOMEOWNER_TIPS: HomeownerTip[] = [
     urgency: "medium",
     icon: CloudRain,
     gradient: "from-green-500/10 to-green-600/10",
-    actionText: "Ask Scout for Estimate",
+    actionText: "Start an Estimate Request",
     actionUrl: "/scout?intent=estimate",
   },
   {

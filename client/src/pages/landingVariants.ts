@@ -43,7 +43,7 @@ const DEFAULT_VARIANT: LandingVariant = {
   headlineNoBreakAfterIndices: [2],
   headlineLines: ["Trusted Local Help", "Routed by Scout"],
   subhead:
-    "Tell Scout what you need, review clearer local options, and open contact only when the fit looks right.",
+    "Describe what you need, review clearer local options, and open contact only when the fit looks right.",
   primaryCta: { label: "Open Scout", href: "/scout" },
   secondaryCta: { label: "Create Account", href: "/pre-scout-setup?mode=create" },
   navLinks: [

@@ -213,7 +213,7 @@ export default function CarSalesCustomers() {
                         }}
                       >
                         <Phone className="h-4 w-4 mr-2" />
-                        Start Direct Connect
+                        Start a Request
                       </Button>
                       <Button
                         size="sm"
@@ -286,7 +286,7 @@ export default function CarSalesCustomers() {
                         }}
                       >
                         <Phone className="h-4 w-4 mr-2" />
-                        Start Direct Connect
+                        Start a Request
                       </Button>
                       <Button size="sm" variant="outline" data-testid="button-qualify-prospect">
                         Qualify Lead

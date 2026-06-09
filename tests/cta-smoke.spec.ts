@@ -62,6 +62,25 @@ async function prepareDirectConnectEntry(page: Page) {
   return countyFips;
 }
 
+test("Public landing CTA says Start a Request and opens the request composer", async ({ page }) => {
+  await page.context().clearCookies();
+  await page.goto("/");
+
+  const primaryCta = page.getByRole("link", { name: "Start a Request" }).first();
+  await expect(primaryCta).toBeVisible();
+
+  const href = await primaryCta.getAttribute("href");
+  expect(href || "").toContain("/direct-connect");
+
+  await primaryCta.click();
+  await page.waitForURL("**/direct-connect**");
+  expect(new URL(page.url()).pathname).toBe("/direct-connect");
+
+  await expect(page.getByText(/Post a request|New request/i).first()).toBeVisible();
+  await expect(page.getByText("Home record (optional)", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Skip for now" })).toBeVisible();
+});
+
 test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs render", async ({
   page,
 }) => {
@@ -82,7 +101,7 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
     const firstPostCard = page.locator('[data-testid^="card-post-"]').first();
     if (await firstPostCard.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await expect(
-        firstPostCard.getByRole("button", { name: /Ask Scout|Direct Connect|Message|Need Help/i })
+        firstPostCard.getByRole("button", { name: /Add details|Direct Connect|Message|Need Help/i })
       ).toBeVisible();
     } else {
       await expect(

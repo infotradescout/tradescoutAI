@@ -66,7 +66,7 @@ const trendBars = ["h-[36%]", "h-[48%]", "h-[42%]", "h-[58%]", "h-[67%]", "h-[76
 
 const missionSteps = [
   {
-    title: "Tell Scout what you need",
+    title: "Describe what you need",
     description:
       "Start with a local question: what is nearby, changing, useful, available, or worth checking.",
   },

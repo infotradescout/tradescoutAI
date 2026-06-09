@@ -413,7 +413,7 @@ export function InteractiveCountyMap({
                                             }}
                                           >
                                             <MessageSquare className="w-4 h-4 mr-1" />
-                                            Start Direct Connect
+                                            Start a Request
                                           </Button>
                                         </div>
                                       </CardContent>

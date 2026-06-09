@@ -33,7 +33,7 @@ describe("direct connect submission funnel contract harness", () => {
 
   it("emits request-submitted event from successful submit path", () => {
     expect(shellSource).toContain('type: "direct_connect_request_submitted"');
-    expect(shellSource).toContain("onSuccess: (_, variables) => {");
+    expect(shellSource).toContain("onSuccess: (data, variables) => {");
   });
 
   it("emits contractor-visibility event when assignments/routing are created", () => {
@@ -61,5 +61,20 @@ describe("direct connect submission funnel contract harness", () => {
     expect(shellSource).toContain(
       'contactGateState: showDispatchSheet ? "request_shared" : "review_required"'
     );
+  });
+
+  it("preserves anonymous/auth draft through sign-in return without making HomeID blocking", () => {
+    expect(shellSource).toContain(
+      'const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1"'
+    );
+    expect(shellSource).toContain("window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY");
+    expect(shellSource).toContain("window.localStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY");
+    expect(shellSource).toContain("hydrateDirectConnectDraft");
+    expect(shellSource).toContain("navigate(`/pre-scout-setup?mode=signin&next=${next}`)");
+    expect(shellSource).toContain("Your request draft is ready. Sign in to review and send it.");
+    expect(shellSource).toContain(
+      "Direct Connect starts the job. HomeID remembers useful property history."
+    );
+    expect(shellSource).toContain("Skip for now");
   });
 });

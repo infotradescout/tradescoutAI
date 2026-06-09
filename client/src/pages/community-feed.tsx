@@ -1168,7 +1168,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 )
                               }
                             >
-                              Start Direct Connect
+                              Start a Request
                             </DropdownMenuItem>
                           )}
                           {!isSystemPost && post.author?.id && (
@@ -1804,7 +1804,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   handleOpenDirectConnectForActiveUser(neighbor.id, name)
                                 }
                               >
-                                Start Direct Connect request
+                                Start a Request
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleCreateConnectionRequest(neighbor)}

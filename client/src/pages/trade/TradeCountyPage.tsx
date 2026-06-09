@@ -263,7 +263,7 @@ const TradeCountyPage = memo(function TradeCountyPage() {
                   </Link>
                   <Link href={scoutEstimateHref}>
                     <a className="inline-flex items-center rounded-md bg-ts-orange px-4 py-2 text-sm font-medium text-white hover:bg-ts-orange-dark">
-                      Ask Scout for help
+                      Start a Request
                     </a>
                   </Link>
                 </div>

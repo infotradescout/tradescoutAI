@@ -155,7 +155,7 @@ export default function ProfileCompletionBanner() {
     skipped_intent: {
       icon: Sparkles,
       iconColor: "text-ts-orange",
-      title: "Tell Scout what you're here for",
+      title: "Describe what you're here for",
       description: "You skipped this earlier. It only takes 30 seconds and unlocks better matches.",
       cta: "Finish setup",
       onClick: () => {
