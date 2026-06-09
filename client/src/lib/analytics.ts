@@ -195,6 +195,7 @@ export type ShellEvent =
       dispatchMode: string;
       dispatchCount?: number | null;
       directTargets: number;
+      source?: string | null;
       deviceType: DeviceType;
       ts: string;
     }

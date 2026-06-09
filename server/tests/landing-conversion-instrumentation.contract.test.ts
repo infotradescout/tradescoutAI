@@ -36,4 +36,21 @@ describe("locked landing conversion instrumentation contract", () => {
     expect(directConnectSource).toContain('source: prefillSource || "direct_connect_start"');
     expect(analyticsRoutesSource).toContain('"direct_connect_request_started"');
   });
+
+  it("attributes request submissions back to the locked landing CTA when source is present", () => {
+    expect(directConnectSource).toContain('"direct_connect_request_submitted"');
+    expect(directConnectSource).toContain("source: prefillSource || null");
+    expect(analyticsRoutesSource).toContain('"direct_connect_request_submitted"');
+  });
+
+  it("keeps forbidden old landing copy out of the locked public landing", () => {
+    expect(landingSource).toContain("Connection Without Compromise");
+    expect(landingSource).toContain("Start a Request");
+    expect(landingSource).not.toContain("Ask Scout");
+    expect(landingSource).not.toContain("Scout routes");
+    expect(landingSource).not.toContain("Direct Connect");
+    expect(landingSource).not.toContain("Find Any Local Business Near You");
+    expect(landingSource).not.toContain("Scout interprets");
+    expect(landingSource).not.toContain("Get started with Scout");
+  });
 });

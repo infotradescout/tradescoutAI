@@ -1774,6 +1774,7 @@ function DirectConnectRequestComposer({
         dispatchMode: variables?.dispatchMode || "auto_route",
         dispatchCount: variables?.dispatchCount || null,
         directTargets: selectedCount,
+        source: prefillSource || null,
         deviceType: getDeviceType(),
         ts: new Date().toISOString(),
       });
