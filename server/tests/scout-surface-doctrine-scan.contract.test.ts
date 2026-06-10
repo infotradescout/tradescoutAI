@@ -3,18 +3,32 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
-const SCAN_ROOTS = ["client/src", "server"];
-const BANNED_PHRASES = [
-  "Ask Scout",
-  "Talk to Scout",
-  "Continue in Scout",
-  "Scout can help",
-  "chatbot",
-  "chat bot",
-  "AI helper",
-  "help desk",
-  "support desk",
-  "built-in helper",
+const SCAN_ROOTS = [
+  "client/src",
+  "server/routes",
+  "server/services",
+  "server/scout",
+  "data/TradeScout Brain",
+];
+
+const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
+  { label: "Ask Scout", regex: /\bask scout\b/i },
+  { label: "Ask the Scout", regex: /\bask the scout\b/i },
+  { label: "Talk to Scout", regex: /\btalk to scout\b/i },
+  { label: "Continue in Scout", regex: /\bcontinue in scout\b/i },
+  { label: "Scout can help", regex: /\bscout can help\b/i },
+  { label: "chatbot", regex: /\bchatbot\b/i },
+  { label: "chat bot", regex: /\bchat bot\b/i },
+  { label: "AI helper", regex: /\bai helper\b/i },
+  { label: "help desk", regex: /\bhelp desk\b/i },
+  { label: "support desk", regex: /\bsupport desk\b/i },
+  { label: "built-in helper", regex: /\bbuilt-in helper\b/i },
+  { label: "Scout Assistant", regex: /\bscout assistant\b/i },
+  { label: "Virtual Assistant", regex: /\bvirtual assistant\b/i },
+  { label: "AI Assistant", regex: /\bai assistant\b/i },
+  { label: "Conversation Assistant", regex: /\bconversation assistant\b/i },
+  { label: "AI-assistant", regex: /\bai-assistant\b/i },
+  { label: "virtual-assistant", regex: /\bvirtual-assistant\b/i },
 ];
 
 function shouldScan(relativePath: string): boolean {
@@ -23,6 +37,8 @@ function shouldScan(relativePath: string): boolean {
   if (normalized.includes("/node_modules/")) return false;
   if (normalized.includes("/dist/")) return false;
   if (normalized.includes("/build/")) return false;
+  if (normalized.includes("/docs/audits/")) return false;
+  if (normalized.includes("/docs/history/")) return false;
   if (normalized.includes(".test.")) return false;
   if (normalized.includes(".contract.")) return false;
   return true;
@@ -61,9 +77,9 @@ describe("Scout surface doctrine scan", () => {
 
     for (const file of files) {
       const source = fs.readFileSync(path.resolve(ROOT, file), "utf8");
-      for (const phrase of BANNED_PHRASES) {
-        if (source.includes(phrase)) {
-          violations.push({ file, phrase });
+      for (const banned of BANNED_PATTERNS) {
+        if (banned.regex.test(source)) {
+          violations.push({ file, phrase: banned.label });
         }
       }
     }

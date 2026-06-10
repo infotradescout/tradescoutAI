@@ -55,7 +55,7 @@ type ScoutThreadProps = {
 
 /* ----------------------------------------------------------
    @reusable: AssistantStreamedText
-   Use: Animated character-by-character text reveal for any assistant response.
+  Use: Animated character-by-character text reveal for any Scout response.
    Respects prefers-reduced-motion. Pass shouldAnimate=false for instant display.
    ---------------------------------------------------------- */
 function AssistantStreamedText({
@@ -424,7 +424,7 @@ function buildEvidenceChips(msg: ScoutMessage): string[] {
 
 /* ----------------------------------------------------------
    @reusable: EvidenceStrip
-   Use: Collapsible "Why this answer" strip below any Scout assistant message.
+  Use: Collapsible "Why this answer" strip below any Scout message.
    Shows provenance chips and source titles when expanded.
    ---------------------------------------------------------- */
 function EvidenceStrip({ msg, enabled }: { msg: ScoutMessage; enabled: boolean }) {
@@ -681,7 +681,7 @@ function ClusterCard({
 /* ----------------------------------------------------------
    @reusable: MessageExtras
    Use: Renders action chips, cluster cards, override options, suggestions,
-   and onboarding prompts below any Scout assistant message.
+  and onboarding prompts below any Scout message.
    ---------------------------------------------------------- */
 function MessageExtras({
   msg,

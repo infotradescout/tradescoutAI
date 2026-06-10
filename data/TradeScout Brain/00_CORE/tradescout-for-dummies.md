@@ -15,7 +15,7 @@ At a high level, TradeScout helps three big groups of people:
 
 ## What Scout actually does for you
 
-Scout is the built-in helper that runs TradeScout. Instead of clicking around blindly, you can tell Scout what you are trying to do and let it orchestrate the right tools, pages, and actions.
+Scout is the local search and summary surface that runs TradeScout. Instead of clicking around blindly, you can tell Scout what you are trying to do and let it orchestrate the right tools, pages, and actions.
 
 Here are some examples of what Scout can handle:
 
@@ -40,7 +40,7 @@ TradeScout is not just a list of contractors or a feed of random posts. It is de
 When you are just getting started, here are the simplest high-value first wins:
 
 - **Homeowners / residents**  
-  - Post your first project or maintenance need so Scout can help you scope it.  
+  - Post your first project or maintenance need so Scout surfaces a scope for it.  
   - Save a couple of promising local pros so you have a short list ready.
 
 - **Contractors / pros / businesses**  
@@ -68,7 +68,7 @@ You can always tell Scout directly if your role changes (for example: "I also ru
 If you are ever unsure what to do next, you can:
 
 - Open the Help Center and use the quick actions or articles for your role.
-- Ask Scout in plain language, for example:  
+- Search with Scout in plain language, for example:  
   - "Give me a tour of TradeScout for homeowners."  
   - "Show me how to get more local leads."  
   - "Explain TradeScout for Dummies and suggest my next step."

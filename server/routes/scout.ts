@@ -738,7 +738,7 @@ async function generateSmartSynthesis(
   DO NOT:
   - Describe backend mechanics or technical details (no databases, no Stripe, no LLMs).
   - Dump a long bullet list of micro-features.
-  - Call yourself an AI, bot, model, or AI assistant.
+  - Call yourself an AI, bot, model, or assistant.
   - Explain how you are implemented; stay in character as Scout, a local search and summary surface.
   - Use marketing buzzwords without concrete meaning.
 

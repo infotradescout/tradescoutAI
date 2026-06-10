@@ -39,7 +39,8 @@ export interface EnrichedPrompt {
  * Detect if a query is about building codes, permits, or inspections.
  */
 export function isCodeRelatedQuery(query: string): boolean {
-  const codeKeywords = /\b(code|permit|permitting|inspection|inspector|zoning|setback|occupancy|egress|fire\s*safety|smoke\s*alarm|carbon\s*monoxide|electrical|panel|breaker|gfci|afci|receptacle|outlet|subpanel|service\s*entrance|plumbing|drain|sewer|cleanout|trap|vent|slope|foundation|slab|footing|framing|joist|beam|header|stair|handrail|guardrail|deck)\b/i;
+  const codeKeywords =
+    /\b(code|permit|permitting|inspection|inspector|zoning|setback|occupancy|egress|fire\s*safety|smoke\s*alarm|carbon\s*monoxide|electrical|panel|breaker|gfci|afci|receptacle|outlet|subpanel|service\s*entrance|plumbing|drain|sewer|cleanout|trap|vent|slope|foundation|slab|footing|framing|joist|beam|header|stair|handrail|guardrail|deck)\b/i;
   return codeKeywords.test(query);
 }
 
@@ -47,7 +48,8 @@ export function isCodeRelatedQuery(query: string): boolean {
  * Detect if a query is about pricing or cost estimation.
  */
 export function isPricingRelatedQuery(query: string): boolean {
-  const pricingKeywords = /\b(price|cost|expense|budget|rate|quote|estimate|material|labor|hourly|per\s*square|per\s*foot|how\s*much|affordable|expensive|cheap)\b/i;
+  const pricingKeywords =
+    /\b(price|cost|expense|budget|rate|quote|estimate|material|labor|hourly|per\s*square|per\s*foot|how\s*much|affordable|expensive|cheap)\b/i;
   return pricingKeywords.test(query);
 }
 
@@ -86,9 +88,7 @@ export function extractRelevantKnowledge(
     const buildingCodeFiles = getBuildingCodeFiles();
     if (buildingCodeFiles.length > 0) {
       // Files exist but are not yet parsed/indexed
-      notIndexed.push(
-        getNotIndexedResponse("building codes", trade ? `for ${trade}` : undefined)
-      );
+      notIndexed.push(getNotIndexedResponse("building codes", trade ? `for ${trade}` : undefined));
     } else {
       notIndexed.push("Building code files have not been added to the knowledge base yet.");
     }
@@ -173,7 +173,7 @@ export function buildEnrichedPrompt(
   }
 
   // Build system prompt
-  const systemPrompt = `You are Scout, the TradeScout operating system assistant.
+  const systemPrompt = `You are Scout, the TradeScout local search and summary surface.
 
 Your role:
 - Answer questions about local trades, contractors, projects, and community tools

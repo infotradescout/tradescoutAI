@@ -724,7 +724,7 @@ export function registerBusinessProfileRoutes(app: Express) {
       let charLimit: number;
 
       if (field === "headline") {
-        systemPrompt = `You are Scout, TradeScout's AI assistant. Your job is to improve business headlines.
+        systemPrompt = `You are Scout, TradeScout's local search and summary surface. Your job is to improve business headlines.
 
 Generate exactly 2 headline variants for a business:
 
@@ -752,7 +752,7 @@ User type: ${userType}${currentHeadlineContext}
 Generate 2 headline variants (60–80 chars each).`;
         charLimit = 80;
       } else if (field === "services") {
-        systemPrompt = `You are Scout, TradeScout's AI assistant. Your job is to improve business service listings.
+        systemPrompt = `You are Scout, TradeScout's local search and summary surface. Your job is to improve business service listings.
 
 Generate exactly 2 service-list variants for a business:
 
@@ -781,7 +781,7 @@ Generate 2 service-list variants (3–5 services each, 40–80 chars per service
         charLimit = 500; // Higher limit for multi-line services
       } else {
         // description (v1.0)
-        systemPrompt = `You are Scout, TradeScout's AI assistant for business profile optimization. Your job is to improve business descriptions for both SEO clarity and user confidence—never hype, never spam, always authentic.
+        systemPrompt = `You are Scout, TradeScout's local search and summary surface for business profile optimization. Your job is to improve business descriptions for both SEO clarity and user confidence-never hype, never spam, always authentic.
 
 Generate exactly 2 description variants for a business:
 

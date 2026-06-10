@@ -143,7 +143,7 @@ export function buildContextLine(msg: ScoutMessage, locationLabel?: string): str
    MorphicRenderer component
    ---------------------------------------------------------- */
 interface MorphicRendererProps {
-  /** The Scout assistant message to render */
+  /** The Scout message to render */
   msg: ScoutMessage;
   /** Called when the user taps a tool tray action */
   onAction?: (action: ScoutAction) => void;
