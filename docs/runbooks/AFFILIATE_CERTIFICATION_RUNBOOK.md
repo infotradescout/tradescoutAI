@@ -121,3 +121,23 @@ WHERE r.id = x.id
 - Product authority: Thomas
 - Execution owner: platform engineering
 - Escalation: if attribution integrity is uncertain, halt payouts until verified.
+
+## P6 Universal Attribution Click Session Smoke
+Goal: prove `/ref/<tag>?to=<safe-internal-path>` validates and then attaches attribution to session/cookie before redirect.
+
+Run command:
+```bash
+RUN_UNIVERSAL_ATTRIBUTION_REF_SMOKE=1 \
+TRADESCOUT_PRODUCTION_ORIGIN=https://www.thetradescout.com \
+TRADESCOUT_REF_TAG=<valid_affiliate_tag> \
+TRADESCOUT_REF_TARGET=/scout \
+npm run smoke:universal-attribution-ref
+```
+
+Artifact:
+- `artifacts/universal-attribution-ref-smoke-latest.json`
+
+Status interpretation:
+- `fail-closed production pass`: unsafe target rejection works, valid-ref probe not complete.
+- `valid-ref blocked`: preconditions missing or valid-ref probe cannot complete.
+- `valid-ref complete`: unsafe target rejected and valid tag+target sets attribution cookie then redirects to validated internal target.

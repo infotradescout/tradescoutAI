@@ -131,6 +131,7 @@ import {
   addPropertyLifecycleEvent,
   requirePropertyProgramAccess,
 } from "./services/propertyLifecycleService";
+import { handleUniversalAttributionClick } from "./utils/universalAttributionRef";
 import {
   users,
   userRoleEnum,
@@ -3626,6 +3627,36 @@ export async function registerRoutes(app: any) {
       console.error("Error creating affiliate share link:", error);
       res.status(500).json({ message: "Failed to create share link" });
     }
+  });
+
+  // Universal attribution click bridge:
+  // /ref/<tag>?to=<safe-internal-path>
+  // Validates tag + destination before attaching attribution.
+  app.get("/ref/:tag", async (req: any, res: any) => {
+    await handleUniversalAttributionClick({
+      req,
+      res,
+      rawTag: req.params?.tag,
+      rawTarget: req.query?.to,
+      tagExists: async (tag) => {
+        const [account] = await db
+          .select({ id: affiliateAccounts.id })
+          .from(affiliateAccounts)
+          .where(eq(affiliateAccounts.referralCode, tag))
+          .limit(1);
+        return Boolean(account?.id);
+      },
+      getExistingAttribution: (request) => getCookieValue(request as any, "ts_ref"),
+      setAttributionCookie: (response, tag) => setReferralCookie(response as any, tag),
+      onAttributionAccepted: async ({ tag, target }) => {
+        await recordReferralClick({
+          referralCode: tag,
+          destination: target,
+          source: "universal_ref",
+          conversionType: "click",
+        }).catch(() => {});
+      },
+    });
   });
 
   // Public redirect for a share link slug
