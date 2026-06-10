@@ -97,6 +97,7 @@
     "guard:architecture-hygiene": "node scripts/guard-architecture-hygiene.mjs",
     "guard:law-drift": "node scripts/guard-law-drift.mjs",
     "guard:prod-bypass": "node scripts/guard-prod-bypass.mjs",
+    "guard:precommit-spaced-paths": "node scripts/guard-precommit-spaced-paths.mjs",
     "verifier:write-backlog": "node tools/verifier-write-backlog.mjs",
     "loop:empirical": "node tools/loop-empirical.mjs",
     "validate:scout-deals": "node scripts/validate-deal-guardrail.mjs",

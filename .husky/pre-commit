@@ -1,25 +1,32 @@
 # NOTE (Windows/Node 24): Node subprocess spawning `git` can fail with EPERM in this repo.
 # Keep the pre-commit hook pure shell to avoid Node spawning `git`.
 
-STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACMR)"
+STAGED_ZLIST="$(mktemp)"
+ESLINT_ZLIST="$(mktemp)"
+FORMAT_ZLIST="$(mktemp)"
 
-if [ -z "$STAGED_FILES" ]; then
+cleanup() {
+  rm -f "$STAGED_ZLIST" "$ESLINT_ZLIST" "$FORMAT_ZLIST"
+}
+
+trap cleanup EXIT INT TERM
+
+git diff --cached --name-only -z --diff-filter=ACMR > "$STAGED_ZLIST"
+
+if [ ! -s "$STAGED_ZLIST" ]; then
   exit 0
 fi
 
 node scripts/guard-scout-response-contract.mjs || exit 1
 
-ESLINT_FILES="$(printf "%s\n" "$STAGED_FILES" | grep -E '\.(ts|tsx)$' || true)"
-FORMAT_FILES="$(printf "%s\n" "$STAGED_FILES" | grep -E '\.(ts|tsx|json|md)$' || true)"
+tr '\0' '\n' < "$STAGED_ZLIST" | grep -E '\.(ts|tsx)$' | tr '\n' '\0' > "$ESLINT_ZLIST" || true
+tr '\0' '\n' < "$STAGED_ZLIST" | grep -E '\.(ts|tsx|json|md)$' | tr '\n' '\0' > "$FORMAT_ZLIST" || true
 
-if [ -n "$ESLINT_FILES" ]; then
-  # shellcheck disable=SC2086
-  npx eslint --fix $ESLINT_FILES
+if [ -s "$ESLINT_ZLIST" ]; then
+  xargs -0 npx eslint --fix -- < "$ESLINT_ZLIST"
 fi
 
-if [ -n "$FORMAT_FILES" ]; then
-  # shellcheck disable=SC2086
-  prettier --write $FORMAT_FILES
-  # shellcheck disable=SC2086
-  git add $FORMAT_FILES
+if [ -s "$FORMAT_ZLIST" ]; then
+  xargs -0 npx prettier --write -- < "$FORMAT_ZLIST"
+  xargs -0 git add -- < "$FORMAT_ZLIST"
 fi
