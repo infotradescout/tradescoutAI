@@ -339,7 +339,7 @@ const About = memo(function About() {
                     and training they need to succeed.
                   </p>
                   <a
-                    href="/scout"
+                    href="/foundation"
                     className="inline-flex items-center justify-center bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-5 h-10 rounded-lg shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] text-sm"
                   >
                     Learn About Our Partnership

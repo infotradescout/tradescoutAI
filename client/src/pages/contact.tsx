@@ -8,7 +8,7 @@ export default function ContactGatePage() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    setLocation("/scout?intent=support&source=contact-page");
+    setLocation("/direct-connect?intent=support&source=contact-page");
   }, [setLocation]);
 
   return (
@@ -20,24 +20,20 @@ export default function ContactGatePage() {
             Contact Requires Intent Confirmation
           </CardTitle>
           <CardDescription className="text-muted-foreground">
-            Start in Scout or Direct Connect so your request stays organized and you do not get hit
-            with random outreach.
+            Start in Direct Connect so your request stays organized and you do not get hit with
+            random outreach.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <Button
             className="w-full bg-ts-orange-dark hover:bg-ts-orange-dark"
-            onClick={() => setLocation("/scout?intent=support&source=contact-cta")}
-          >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Continue in Scout
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
             onClick={() => setLocation("/direct-connect?intent=support&source=contact-cta")}
           >
-            Open Direct Connect
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Continue in Direct Connect
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => setLocation("/help")}>
+            Open Help Center
           </Button>
         </CardContent>
       </Card>

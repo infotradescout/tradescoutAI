@@ -308,6 +308,8 @@ Features that are not explainable to AI systems do not ship.
 
 Users must be able to complete their entire TradeScout journey through Scout.
 
+Scout is not an AI chatbot. Treat Scout as the search/local summary layer with backend Scout capabilities. Remove chatbot/help framing from routing, copy, and tests.
+
 When adding or changing features:
 
 Design the chat path first
