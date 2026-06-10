@@ -105,7 +105,7 @@ const capabilityPanels = [
     title: "Price watch",
     icon: TrendingUp,
     kicker: "What costs may be doing",
-    body: "Scout can help you understand whether a local material, service, or project cost looks steady, rising, or worth checking before you buy.",
+    body: "Scout surfaces whether a local material, service, or project cost looks steady, rising, or worth checking before you buy.",
     evidence: "recent prices\navailability\nlocal demand",
   },
   {

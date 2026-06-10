@@ -246,7 +246,7 @@ export default function Help() {
                     navigate("/help/how-tradescout-works#connection-without-compromise")
                   }
                 >
-                  What Scout can help with
+                  What Scout surfaces
                 </Button>
                 <Button
                   variant="outline"

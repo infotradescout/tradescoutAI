@@ -112,7 +112,7 @@ export function runScoutDecisionPipeline(request: NormalizedScoutRequest): Scout
   }
 
   if (
-    /(contact support|support ticket|help desk|technical support|request support|customer support)/i.test(
+    /(contact support|support ticket|technical support|request support|customer support)/i.test(
       lower
     )
   ) {

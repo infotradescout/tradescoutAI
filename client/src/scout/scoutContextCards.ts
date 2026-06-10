@@ -188,7 +188,7 @@ export function buildScoutContextCards(
         kind: "project",
         label: "Start a material run",
         description:
-          "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+          "Send a material list or supplier link and Scout will turn it into a Supply Run draft.",
         action: { type: "NAVIGATE", label: "Open Supply Run", to: "/utilities/supply-run" },
         prompt: `Help me turn this into a Supply Run: ${rawQuery || "materials or supplier link"}.`,
       }

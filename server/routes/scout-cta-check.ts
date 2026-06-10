@@ -100,7 +100,7 @@ export async function checkCTAAuthority(
       explanation: authorityProof.hasProof
         ? "Scout suggests gathering more context"
         : "Insufficient authority to proceed",
-      label: "Ask Scout first",
+      label: "Review local summary first",
     };
   } else if (action === "BLOCK") {
     result = {
@@ -152,8 +152,8 @@ export function setupScoutCTACheckRoutes(app: Express) {
         allowed: false,
         action: "DEFER",
         ctaMode: "ask_scout",
-        explanation: "Authority check unavailable. Use Ask Scout to continue safely.",
-        label: "Ask Scout first",
+        explanation: "Authority check unavailable. Review local summary before action.",
+        label: "Review local summary first",
       });
     }
   });

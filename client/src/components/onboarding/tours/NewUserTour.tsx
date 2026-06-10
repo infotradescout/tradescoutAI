@@ -9,7 +9,7 @@ const getNewUserSteps = (userRole: string): TourStep[] => {
       target: "[data-testid='navigation-header']",
       title: `Welcome to TradeScout!`,
       description:
-        "You're in. Let's take a quick tour so Scout and TradeScout can help you move real projects forward.",
+        "You're in. Let's take a quick tour so Scout surfaces local context and TradeScout routes your next real project step.",
       position: "bottom",
     },
     {

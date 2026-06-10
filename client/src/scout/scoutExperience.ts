@@ -102,7 +102,7 @@ export const SCOUT_CAPABILITY_COPY: ScoutCapabilityCopy[] = [
     title: "Materials",
     detail: "Supply Run, supplier links, local products, and Exchange items",
     prompt:
-      "Help with materials. I can send a material list or supplier link and Scout can help turn it into a Supply Run.",
+      "Help with materials. I can send a material list or supplier link and Scout will turn it into a Supply Run draft.",
   },
   {
     id: "prices",
@@ -702,7 +702,7 @@ export function buildScoutExperienceClusters(args: {
       id: `materials-local-${Date.now()}`,
       title: "Materials and local options",
       kind: "marketplace",
-      body: "Scout can help organize products, supplier links, nearby supplier options, and Exchange materials before you order or share anything.",
+      body: "Scout surfaces products, supplier links, nearby supplier options, and Exchange materials before you order or share anything.",
       items: [
         ...supplierSnapshotItems(supplierProduct),
         {
@@ -713,7 +713,7 @@ export function buildScoutExperienceClusters(args: {
         {
           id: "supplier-link",
           label: "Material list or supplier link",
-          description: "Send it here and Scout can help turn it into a Supply Run",
+          description: "Send it here and Scout will turn it into a Supply Run draft",
         },
         {
           id: "approval",

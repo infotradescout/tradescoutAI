@@ -69,7 +69,7 @@ function tuneScoutVoice(input: string): string {
       /\bTell me what kind of help you need, where you are, and how soon you need it\./gi,
       "Tell me what happened, where it is, and how soon you need it.",
     ],
-    [/\bScout can help you\b/gi, "I can help"],
+    [/\bScout surfaces\b/gi, "I surface"],
     [/\bScout can\b/gi, "I can"],
     [/\bTradeScout can still move this forward\b/gi, "We can keep this moving"],
     [/\broute the strongest next step\b/gi, "open the best next step"],

@@ -755,7 +755,7 @@ export class NotificationService {
       homeowner: {
         title: "Welcome to TradeScout! 🏠",
         message:
-          "Ready to find reliable contractors for your home? Start by opening a Direct Connect request and exploring contractors in your area. Scout can help you get quotes and coordinate the work.",
+          "Ready to find reliable contractors for your home? Start by opening a Direct Connect request and exploring contractors in your area. Scout surfaces local options, and TradeScout routes your next step for quotes and coordination.",
         actionUrl: "/contractors/board",
       },
       contractor_user: {

@@ -36,7 +36,7 @@ export function buildScoutLiveReadinessResponse(
 ): ScoutResponseContract & { actions: ScoutActionContract[]; metadata: Record<string, unknown> } {
   return {
     message: STATE_MESSAGES[readiness.state],
-    suggestedActions: [readiness.action.label, "Ask Scout why", "Open Direct Connect"],
+    suggestedActions: [readiness.action.label, "Review local summary why", "Open Direct Connect"],
     actions: [
       {
         type: "NAVIGATE",

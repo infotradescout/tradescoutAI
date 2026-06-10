@@ -562,7 +562,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
           {
             id: "client-project-context",
             label: "This looks like client work",
-            description: "Scout can help organize the job before you share anything",
+            description: "Scout surfaces the job structure before you share anything",
           },
           {
             id: "client-project-approval",
@@ -586,12 +586,12 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
         kind: "marketplace",
         confidence: 0.88,
         reason: "Use this when you need a material list, supplier link, bid, or invoice draft.",
-        body: "Send a material list or supplier link and Scout can help turn it into a Supply Run. Quote and invoice drafts still need your approval.",
+        body: "Send a material list or supplier link and Scout will turn it into a Supply Run for review. Quote and invoice drafts still need your approval.",
         items: [
           {
             id: "project-material-list",
             label: "Material list or supplier link",
-            description: "Scout can help organize it into a Supply Run",
+            description: "Scout surfaces it as a Supply Run draft",
           },
           {
             id: "project-quote-approval",
@@ -691,7 +691,7 @@ function buildProjectOptionIntents(rawMessage: string, normalized: string): Sort
       ? "Use this when timing, safety, or availability matters more than planning."
       : "Use this if you want a pro to build, inspect, or price the work.",
     body: prioritizeLocalHelp
-      ? "Scout can help draft an urgent local request and keep contact gated for your review."
+      ? "Scout surfaces an urgent local request draft and keeps contact gated for your review."
       : "Scout can prepare a local-help path and keep contact gated for your review before contact opens.",
     items: helpItems,
     angleItems: buildAngleItems(rawMessage, "project-find-help"),
@@ -742,7 +742,7 @@ function buildVehicleOptionIntents(rawMessage: string, normalized: string): Sort
       {
         id: "vehicle-review",
         label: "Review before contact",
-        description: "Scout can help prepare details, but you choose before anything is shared",
+        description: "Scout surfaces details, but you choose before anything is shared",
       },
     ],
     angleItems: buildAngleItems(rawMessage, "vehicle-help"),
@@ -813,7 +813,7 @@ function buildPriceReviewOptionIntents(
       kind: "projects",
       confidence: 0.89,
       reason: "Use this when the user is comparing cost, a quote, estimate, or bid.",
-      body: "Scout can help compare the scope, materials, timing, and red flags before you contact anyone.",
+      body: "Scout surfaces scope, materials, timing, and red flags before you contact anyone.",
       items: [
         ...reality.items,
         {
@@ -858,7 +858,7 @@ function buildRulesOptionIntents(rawMessage: string, normalized: string): Sorted
       kind: "rules",
       confidence: 0.9,
       reason: "Use this for permit, inspection, code, rule, or local requirement questions.",
-      body: "Scout can explain what to check and keep local requirements separate from general advice.",
+      body: "Scout surfaces what to check and keeps local requirements separate from general advice.",
       items: [
         ...facts.factItems,
         {
@@ -902,7 +902,7 @@ function buildMaterialOptionIntents(
       kind: "marketplace",
       confidence: 0.86,
       reason: "Use this to find supplier options before anything is contacted or ordered.",
-      body: "Scout can help identify local supplier options and what to verify. Supplier stock and prices need confirmation from the supplier.",
+      body: "Scout surfaces local supplier options and what to verify. Supplier stock and prices need confirmation from the supplier.",
       items: [
         {
           id: "supplier-options",
@@ -940,7 +940,7 @@ function buildMaterialOptionIntents(
       kind: "marketplace",
       confidence: 0.84,
       reason: "Use this to compare product types, specs, and quantities before buying.",
-      body: `Scout can help compare ${products}. Prices and availability should be verified with the supplier before you commit.`,
+      body: `Scout surfaces a comparison for ${products}. Prices and availability should be verified with the supplier before you commit.`,
       items: [
         {
           id: "product-categories",
@@ -997,7 +997,7 @@ function buildMaterialOptionIntents(
       kind: "projects",
       confidence: 0.8,
       reason: "Use this when you have a list, link, cart, or rough materials to organize.",
-      body: "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+      body: "Send a material list or supplier link and Scout will turn it into a Supply Run draft.",
       items: [
         {
           id: "supply-run-input",
@@ -1059,7 +1059,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
         "fence",
         "deck",
       ],
-      body: "Scout can help you narrow the job, compare options, and decide what to check before contacting anyone.",
+      body: "Scout surfaces the job framing, comparison options, and what to check before contacting anyone.",
       actions: [
         requestAction(rawMessage),
         { type: "NAVIGATE", label: "Browse local help", to: "/direct-connect/pros" },
@@ -1122,7 +1122,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
         "support",
         "notes",
       ],
-      body: "Scout can help you find the right place to go next.",
+      body: "Scout surfaces the right place to go next.",
       actions: [
         { type: "NAVIGATE", label: "Review invoices", to: "/finances" },
         { type: "NAVIGATE", label: "Open messages", to: "/messages" },

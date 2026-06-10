@@ -183,7 +183,7 @@ export const ACTION_VERIFICATION_REQUIREMENTS = {
   SCOUT_INTERACTION: {
     action: "SCOUT_INTERACTION",
     name: "Chat with Scout",
-    description: "Ask Scout for recommendations, info, help",
+    description: "Search with Scout for recommendations and local context",
     requires: [], // NONE required
     risk: "low",
     jurisdiction: "none",

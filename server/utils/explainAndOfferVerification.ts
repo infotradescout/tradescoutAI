@@ -94,7 +94,7 @@ const ALTERNATE_PATHS: Record<
 > = {
   MESSAGE_USER: {
     label: "Use Scout-mediated contact",
-    why: "Ask Scout to help you connect without direct messaging",
+    why: "Use Scout search to connect without direct messaging",
     path: "/scout",
   },
   REQUEST_CONTRACTOR_QUOTE: {

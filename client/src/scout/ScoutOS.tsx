@@ -3141,8 +3141,8 @@ export default function ScoutOS() {
             kind: "site",
             body:
               sortedIntents.length === 1
-                ? "Scout can help you narrow this down and choose a safe next step."
-                : "Scout can help you compare the possible paths and choose what to do next.",
+                ? "Scout surfaces the narrowest safe next step for this."
+                : "Scout surfaces the possible paths so you can choose what to do next.",
             items: sortedIntents.map((intent) => ({
               id: intent.id,
               label: intent.label,
@@ -3390,7 +3390,7 @@ export default function ScoutOS() {
           normalizeForRepetitionCheck(previousAssistant || "") ===
             normalizeForRepetitionCheck(resolvedContent);
         const genericRoutingFallback =
-          /having trouble generating a full answer|seeing heavy demand right now|route you to the right next step|which option should i run first|tradescout can still route the strongest next step|tradescout can help move local work forward|what should i help you with next/i.test(
+          /having trouble generating a full answer|seeing heavy demand right now|route you to the right next step|which option should i run first|tradescout can still route the strongest next step|scout surfaces local context|what should i help you with next/i.test(
             resolvedContent
           );
 
@@ -4910,7 +4910,7 @@ export default function ScoutOS() {
         panel: "market" as const,
         type: "prices" as const,
         prompt:
-          "Send a material list or supplier link and Scout can help turn it into a Supply Run.",
+          "Send a material list or supplier link and Scout will turn it into a Supply Run draft.",
       },
       {
         id: "open-messages",

@@ -193,7 +193,7 @@ export const createWebsiteStructuredData = () => ({
   "@type": "WebSite",
   name: "TradeScout",
   description:
-    "Scout, the built-in helper that runs TradeScout, connects people with verified local businesses, Exchange items, community context, and guided local action.",
+    "Scout, TradeScout's local search and summary surface, connects people with verified local businesses, Exchange items, community context, and guided local action.",
   url: getCanonicalOrigin(),
   potentialAction: {
     "@type": "SearchAction",

@@ -201,7 +201,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
     <Page className="max-w-6xl pb-20 lg:pb-0">
       <Section
         title="My TradeScout"
-        subtitle="A simple, honest view of where you are right now and the next few things TradeScout can help you do."
+        subtitle="A simple, honest view of where you are right now and the next few things TradeScout can route you to do."
       >
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)]">
           {/* Left: context + threads + recommended actions */}

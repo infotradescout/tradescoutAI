@@ -166,7 +166,7 @@ export function maybeHandleHomeProjectRouting(args: {
     return {
       intent: `client_project_${tradeTopic}`,
       message:
-        "Got it. If this is for a client, start with the job scope and material/quote prep. Scout can help draft the pieces, but you approve anything before it is sent.",
+        "Got it. If this is for a client, start with the job scope and material/quote prep. Scout surfaces the draft pieces, and you approve anything before it is sent.",
       suggestedActions: ["Scope the client job", "Start materials or quote prep"],
       actions: [
         {

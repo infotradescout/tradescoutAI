@@ -85,7 +85,7 @@ const ScheduleConsultation = memo(function ScheduleConsultation() {
             Schedule Consultation
           </span>
         }
-        subtitle="Book a personalized consultation with our team to discuss your business goals and how TradeScout can help you succeed"
+        subtitle="Book a personalized consultation with our team to discuss your business goals and how TradeScout can route your next growth step"
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Consultation Form */}
