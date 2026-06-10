@@ -1,6 +1,6 @@
 # TradeScout Product And Copy Law
 
-Last Updated: 2026-04-09
+Last Updated: 2026-06-09
 Owner: Product / Founder direction
 Status: Locked unless explicitly changed by owner
 
@@ -22,6 +22,7 @@ If a proposed copy or UX change conflicts with this file, the change should be r
 - Do not remove, soften, paraphrase, or replace `Connection Without Compromise` unless the owner explicitly asks for it.
 - `Scout` is a core product concept, not decorative marketing copy.
 - `CVS` is allowed user-facing because it is the real system in use.
+- Preserve the named principles `Decision Before Contact`, `Awareness ≠ Authority`, and `Claims First` in doctrine and high-authority product copy.
 
 ## 2. Locked Platform Law
 - Visibility does not equal access.
@@ -52,17 +53,21 @@ If a proposed copy or UX change conflicts with this file, the change should be r
   - `docs/audits/DRIFT_GUARDS.md`
 
 ## 3. Core Product Promise
-TradeScout helps people find trusted local help and move to action without pay-to-play ranking, lead spam, or uncontrolled access.
+TradeScout is local opportunity infrastructure for people, businesses, providers, hosts, buyers, sellers, and communities.
+
+TradeScout helps people discover local opportunity, evaluate verified intent, and move to connection without pay-to-play ranking, lead spam, or uncontrolled access.
 
 Everything public-facing should strengthen this promise.
 
 If a page, CTA, or feature explanation does not support this promise, it should be demoted, merged, reframed, or removed from top-level emphasis.
 
 ## 4. What TradeScout Is
+- Local opportunity infrastructure.
 - A trust-driven local operating system.
 - A gated connection system.
 - A product where Scout helps users move from discovery to action.
 - A place where trust and fit matter more than who pays.
+- A local exchange where people, businesses, providers, hosts, buyers, sellers, and communities can act without surrendering consent or context.
 
 ## 5. What TradeScout Is Not
 - Not a lead marketplace.
@@ -71,8 +76,17 @@ If a page, CTA, or feature explanation does not support this promise, it should 
 - Not a vague “AI for local services” product.
 - Not an ops dashboard pretending to be a consumer product.
 - Not a pile of disconnected surfaces with equal importance.
+- Not a contractor-only or homeowner-only product outside campaigns and surfaces explicitly scoped to those audiences.
+- Not a platform that monetizes access before value is created.
 
 ## 6. Public Language Rules
+
+### Positioning line
+Preferred category line:
+
+They control access. We open opportunity.
+
+Use this line when contrasting TradeScout with platforms that sell attention, rank, or access before trust and value are established.
 
 ### Use language that explains outcomes
 Prefer words that tell the user:
@@ -98,6 +112,9 @@ Examples of bad public copy:
 ### Allowed user-facing product terms
 - TradeScout
 - Connection Without Compromise
+- Decision Before Contact
+- Awareness ≠ Authority
+- Claims First
 - Scout
 - Direct Connect
 - CVS
@@ -105,6 +122,14 @@ Examples of bad public copy:
 - request
 - accept / accepted
 - contact opens after acceptance
+- opportunity
+- connection
+- verified intent
+- local exchange
+- people
+- businesses
+- providers
+- communities
 - local pros
 - nearby
 - city
@@ -117,6 +142,8 @@ Examples of bad public copy:
 - Use `contact opens after acceptance`, not softened variants like `contact opens after there is a real fit`.
 - Use `CVS` when referencing the actual trust system.
 - Do not include cross-product brand references in production TradeScout copy unless explicitly approved and documented.
+- Avoid contractor-only language except in contractor-specific campaigns, trade-specific SEO, and legacy compatibility contexts.
+- Avoid homeowner-only language except in homeowner-specific campaigns, HomeID/HomeScout contexts, and legacy compatibility contexts.
 
 ## 7. Geography Rules
 - Counties remain canonical for storage, routing, and operations.

@@ -2,6 +2,8 @@
 
 This document outlines the final steps and verification required to ensure the application is production-ready.
 
+For launch-week traffic control, use `docs/runbooks/LAUNCH_WEEK_COMMAND_CENTER.md` as the active operational checklist. The command center does not replace this checklist; it turns the release evidence below into go/no-go decisions for signup, Scout, Direct Connect, support, and rollback ownership.
+
 ## 1. Environment Variables
 Ensure the following environment variables are set in the production environment:
 
@@ -217,6 +219,8 @@ Expected:
 ## Direct Connect Launch Traffic Smoke
 
 Use this only with approved production smoke accounts. Do not run it with real requester/provider accounts.
+
+This is a hard launch-week gate for hundreds-of-users traffic. The app may have route/build/session evidence and still remain launch-blocked until the authenticated requester/provider smoke, rate-limit bucket evidence, and isolated 429 proof are archived.
 
 Required local-only env:
 

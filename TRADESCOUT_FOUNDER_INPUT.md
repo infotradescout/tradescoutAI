@@ -15,7 +15,10 @@ I can turn this into doctrine, product docs, GTM plans, monetization logic, impl
 
 ## 1) One-sentence definition
 
-TradeScout is: the local operating system for community interaction.
+TradeScout is: local opportunity infrastructure for people, businesses, providers, hosts, buyers, sellers, and communities.
+
+Preferred category line:
+They control access. We open opportunity.
 
 ## 2) What TradeScout is not
 
@@ -47,6 +50,9 @@ List the rules that should never be violated.
 ## 5) Who it serves
 
 Primary users:
+- people discovering, evaluating, creating, buying, selling, hosting, or acting on local opportunity
+- businesses and providers that need trusted local connection without paying for access before value is created
+- communities that need safer local exchange, verified intent, and consent-preserving action paths
 - local real estate operators (investors, agents, wholesalers, acquisition teams)
 - trusted local service participants who need governed introductions (contractors, lenders, title/closing, specialists)
 
@@ -222,4 +228,15 @@ Things I should stop assuming:
 Preferred language / phrasing:
 - "visibility is not access"
 - "connection without compromise"
+- "decision before contact"
+- "awareness is not authority"
+- "claims first"
+- "verified intent"
+- "local exchange"
+- "they control access. We open opportunity."
 - "county-first, trust-governed action"
+
+Messaging guardrails:
+- Avoid contractor-only language except in contractor-specific campaigns.
+- Avoid homeowner-only language except in homeowner-specific campaigns.
+- Prefer broader terms: people, businesses, providers, communities, opportunity, connection, verified intent, and local exchange.

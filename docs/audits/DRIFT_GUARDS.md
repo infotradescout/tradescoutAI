@@ -45,6 +45,9 @@ Add checks to CI:
    - Enforced by: `npm run guard:prod-bypass` in release gates.
 3. Contact gate vocabulary check:
    - Reject new authority gate values outside allowlist (`decision_card`, `scout_recommendation`) without migration + contract update.
+4. Positioning scope check:
+   - Flag new general-purpose public copy that frames TradeScout as contractor-only or homeowner-only unless the surface is explicitly a contractor campaign, homeowner campaign, trade-specific SEO page, HomeID/HomeScout context, or legacy compatibility surface.
+   - Preferred broad framing: local opportunity infrastructure, verified intent, connection, local exchange, people, businesses, providers, and communities.
 
 ## 4) Runtime Telemetry Guards
 

@@ -1,6 +1,6 @@
 # TradeScout Doctrine (Locked)
 
-Last Updated: 2026-04-09
+Last Updated: 2026-06-09
 Owner: OpenClaw Authority Layer
 Status: Locked - Directional Changes Only
 
@@ -25,6 +25,24 @@ If a proposal conflicts with this file, the proposal is rejected.
 - Trust/CVS governs exposure.
 - AI + SEO ingestion precedes feature expansion.
 - Never remove features; fix and harden.
+
+## Positioning Doctrine
+TradeScout is local opportunity infrastructure for people, businesses, providers, hosts, buyers, sellers, and communities.
+
+Preferred category line:
+
+They control access. We open opportunity.
+
+Core public framing:
+- TradeScout opens local exchange through verified intent, trusted context, and gated connection.
+- TradeScout is for people and communities creating, discovering, evaluating, and acting on local opportunity.
+- TradeScout stands against platforms that monetize access before value is created.
+
+Messaging rules:
+- Avoid contractor-only language except in contractor-specific campaigns, trade-specific SEO, and legacy compatibility contexts.
+- Avoid homeowner-only language except in homeowner-specific campaigns, HomeID/HomeScout contexts, and legacy compatibility contexts.
+- Prefer broader terms such as people, businesses, providers, communities, opportunity, connection, verified intent, and local exchange.
+- Preserve these named principles in doctrine and core copy: `Connection Without Compromise`, `Decision Before Contact`, `Awareness ≠ Authority`, and `Claims First`.
 
 ## Law Validity Rule
 - Doctrine claims are authoritative only when mapped to runtime enforcement or tracked as temporary exceptions.
