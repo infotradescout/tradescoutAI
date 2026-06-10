@@ -3,6 +3,7 @@ import {
   buildWorkRequestPreviewTitle,
   buildWorkRequestScopeSummary,
   redactContactDetails,
+  serializeDirectConnectCardContactGatePayload,
 } from "../utils/workRequestShare";
 
 describe("work request share redaction", () => {
@@ -28,5 +29,65 @@ describe("work request share redaction", () => {
     const previewTitle = buildWorkRequestPreviewTitle(title, "Shared request");
     expect(previewTitle).toContain("Roof leak");
     expect(previewTitle).not.toContain("225-555-1212");
+  });
+
+  it("omits released contact from serialized card payloads before release", () => {
+    const rawContact = {
+      name: "Jane Provider",
+      phone: "555-123-9876",
+      email: "provider@example.test",
+      address: "123 Provider Lane",
+    };
+
+    for (const contactGateState of [
+      "locked",
+      "contractor_requested",
+      "user_approved",
+      "provider_requested_contact",
+      "requester_approved",
+      "contact_hidden",
+      "mystery_state",
+      "denied",
+      "closed",
+    ]) {
+      const payload = serializeDirectConnectCardContactGatePayload({
+        contactGateState,
+        releasedContact: rawContact,
+      });
+      const serialized = JSON.stringify(payload);
+
+      expect(payload).not.toHaveProperty("releasedContact");
+      expect(serialized).not.toContain("555-123-9876");
+      expect(serialized).not.toContain("provider@example.test");
+      expect(serialized).not.toContain("123 Provider Lane");
+    }
+  });
+
+  it("serializes released contact only from released server states", () => {
+    const rawContact = {
+      name: "Jane Provider",
+      phone: "555-123-9876",
+      email: "provider@example.test",
+      address: "123 Provider Lane",
+    };
+
+    expect(
+      serializeDirectConnectCardContactGatePayload({
+        contactGateState: "released",
+        releasedContact: rawContact,
+      })
+    ).toEqual({
+      contactGateState: "released",
+      releasedContact: rawContact,
+    });
+    expect(
+      serializeDirectConnectCardContactGatePayload({
+        contactGateState: "contact_released",
+        releasedContact: rawContact,
+      })
+    ).toEqual({
+      contactGateState: "contact_released",
+      releasedContact: rawContact,
+    });
   });
 });

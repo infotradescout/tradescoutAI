@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DecisionContactGatePanel,
   type DecisionContactGateAction,
+  type ReleasedContactPayload,
 } from "@/components/ui/DecisionContactGatePanel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +62,7 @@ import {
   getDirectConnectContactGateNextAction,
   getDirectConnectContactGateNextActor,
   getDirectConnectContactGateSummary,
+  getDirectConnectReleasedContactForPanel,
   getDisplayLatestStatus,
   getDisplayRequestDescription,
   getDisplayRequestTitle,
@@ -765,6 +767,7 @@ type DirectConnectRequest = {
   dcLastEventAt?: string | null;
   dcMiniLandingUrl?: string | null;
   contactGateState?: string | null;
+  releasedContact?: ReleasedContactPayload | null;
   responseCount?: number | null;
   contactRequestCount?: number | null;
   lifecycleStatus?: string | null;
@@ -3944,6 +3947,7 @@ function MyDirectConnectRequests() {
                 nextActor={getDirectConnectContactGateNextActor(contactPanelState)}
                 nextRequiredAction={getDirectConnectContactGateNextAction(contactPanelState)}
                 safeSummary={getDirectConnectContactGateSummary(r)}
+                releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}
                 actions={contactPanelActions}
                 className="shadow-none"
               />

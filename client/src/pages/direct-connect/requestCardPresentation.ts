@@ -1,6 +1,7 @@
 import type {
   DecisionContactGateNextActor,
   DecisionContactGateState,
+  ReleasedContactPayload,
 } from "@/components/ui/DecisionContactGatePanel";
 
 type DirectConnectRequestCardLike = {
@@ -9,6 +10,7 @@ type DirectConnectRequestCardLike = {
   latestStatus?: string | null;
   status?: string | null;
   contactGateState?: string | null;
+  releasedContact?: ReleasedContactPayload | null;
   dcConversationThreadId?: string | null;
   isHomeIdPreviewDraft?: boolean | null;
 };
@@ -133,6 +135,23 @@ export function normalizeDirectConnectContactState(
 
 export function getDirectConnectContactGateSummary(_request: DirectConnectRequestCardLike): string {
   return "Contact stays gated for this request until the approved release step.";
+}
+
+export function getDirectConnectReleasedContactForPanel(
+  request: DirectConnectRequestCardLike,
+  contactState: DirectConnectContactPanelState
+): ReleasedContactPayload | undefined {
+  if (contactState !== "contact_released") return undefined;
+  const releasedContact = request.releasedContact;
+  if (!releasedContact || typeof releasedContact !== "object") return undefined;
+  const sanitized = {
+    name: String(releasedContact.name || "").trim() || undefined,
+    phone: String(releasedContact.phone || "").trim() || undefined,
+    email: String(releasedContact.email || "").trim() || undefined,
+    address: String(releasedContact.address || "").trim() || undefined,
+    notes: String(releasedContact.notes || "").trim() || undefined,
+  };
+  return Object.values(sanitized).some(Boolean) ? sanitized : undefined;
 }
 
 export function getDirectConnectContactGateNextAction(

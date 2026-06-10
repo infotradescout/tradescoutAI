@@ -16,7 +16,9 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
     expect(source).toContain("contactState={contactPanelState}");
     expect(source).toContain('viewerRole="requester"');
     expect(source).toContain("safeSummary={getDirectConnectContactGateSummary(r)}");
-    expect(source).not.toContain("releasedContact={");
+    expect(source).toContain(
+      "releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}"
+    );
   });
 
   it("keeps the presentation mapping on exact P2 state names", () => {
@@ -36,5 +38,6 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
     expect(source).toContain('normalized === "contractor_requested"');
     expect(source).toContain('normalized === "user_approved"');
     expect(source).toContain('normalized === "released"');
+    expect(source).toContain('contactState !== "contact_released"');
   });
 });

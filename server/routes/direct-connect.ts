@@ -58,6 +58,7 @@ import {
   buildWorkRequestPreviewTitle,
   buildWorkRequestScopeSummary,
   formatBudgetRange,
+  serializeDirectConnectCardContactGatePayload,
 } from "../utils/workRequestShare";
 import type { PrivilegedBypassReason } from "../utils/authorityPolicy";
 import {
@@ -3898,6 +3899,11 @@ export function registerDirectConnectRoutes(app: Express) {
           const invoiceMeta = invoiceSummaryByRequestId.get(String(r.id)) || null;
           const receiptMeta = receiptSummaryByRequestId.get(String(r.id)) || null;
           const workspaceMeta = workspaceByRequestId.get(String(r.id)) || null;
+          const contactGatePayload = serializeDirectConnectCardContactGatePayload({
+            contactGateState: dispatchMeta?.contact_gate_state ?? "locked",
+            releasedContact:
+              (dispatchMeta as any)?.releasedContact ?? (dispatchMeta as any)?.released_contact,
+          });
           return {
             ...r,
             attachmentCount: getAttachmentCount(r),
@@ -3915,7 +3921,10 @@ export function registerDirectConnectRoutes(app: Express) {
             urgency: dispatchMeta?.urgency ?? null,
             completenessState: dispatchMeta?.completeness_state ?? null,
             routingReadinessState: dispatchMeta?.routing_readiness_state ?? null,
-            contactGateState: dispatchMeta?.contact_gate_state ?? "locked",
+            contactGateState: contactGatePayload.contactGateState,
+            ...(contactGatePayload.releasedContact
+              ? { releasedContact: contactGatePayload.releasedContact }
+              : {}),
             responseCount: responseCountByRequestId.get(String(r.id)) ?? 0,
             contactRequestCount: contactRequestCountByRequestId.get(String(r.id)) ?? 0,
             lifecycleStatus: lifecycleMeta?.lifecycleStatus ?? null,
@@ -4407,6 +4416,11 @@ export function registerDirectConnectRoutes(app: Express) {
             ? String(invoiceSummary.latest_invoice_status)
             : null,
         });
+        const contactGatePayload = serializeDirectConnectCardContactGatePayload({
+          contactGateState: dispatch?.contact_gate_state ?? "locked",
+          releasedContact:
+            (dispatch as any)?.releasedContact ?? (dispatch as any)?.released_contact,
+        });
 
         return res.status(200).json({
           requestId,
@@ -4425,7 +4439,10 @@ export function registerDirectConnectRoutes(app: Express) {
           answers: dispatch?.answers_json ?? {},
           completenessState: dispatch?.completeness_state ?? null,
           routingReadinessState: dispatch?.routing_readiness_state ?? null,
-          contactGateState: dispatch?.contact_gate_state ?? "locked",
+          contactGateState: contactGatePayload.contactGateState,
+          ...(contactGatePayload.releasedContact
+            ? { releasedContact: contactGatePayload.releasedContact }
+            : {}),
           lifecycleStatus: lifecycleStatus?.lifecycleStatus ?? null,
           latestStatus: lifecycleStatus?.latestStatus ?? "Waiting for local businesses",
           latestStatusAt: lifecycleStatus?.latestStatusAt ?? null,

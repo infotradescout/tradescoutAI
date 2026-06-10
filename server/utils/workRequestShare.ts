@@ -5,6 +5,60 @@ export function redactContactDetails(input: string): string {
     .replace(/\+?\d[\d\s().-]{7,}\d/g, "[hidden]");
 }
 
+export type DirectConnectReleasedContactPayload = {
+  name?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  notes?: string | null;
+};
+
+function cleanReleasedContactField(value: unknown): string | undefined {
+  const cleaned = String(value || "").trim();
+  return cleaned || undefined;
+}
+
+export function normalizeDirectConnectReleasedContact(
+  releasedContact?: DirectConnectReleasedContactPayload | null
+): DirectConnectReleasedContactPayload | null {
+  if (!releasedContact || typeof releasedContact !== "object") return null;
+  const normalized = {
+    name: cleanReleasedContactField(releasedContact.name),
+    phone: cleanReleasedContactField(releasedContact.phone),
+    email: cleanReleasedContactField(releasedContact.email),
+    address: cleanReleasedContactField(releasedContact.address),
+    notes: cleanReleasedContactField(releasedContact.notes),
+  };
+  const hasReleasedContact = Object.values(normalized).some(Boolean);
+  return hasReleasedContact ? normalized : null;
+}
+
+export function serializeDirectConnectCardContactGatePayload(args: {
+  contactGateState?: unknown;
+  releasedContact?: DirectConnectReleasedContactPayload | null;
+}): {
+  contactGateState: string;
+  releasedContact?: DirectConnectReleasedContactPayload;
+} {
+  const contactGateState =
+    String(args.contactGateState || "")
+      .trim()
+      .toLowerCase() || "locked";
+  const payload: {
+    contactGateState: string;
+    releasedContact?: DirectConnectReleasedContactPayload;
+  } = { contactGateState };
+
+  if (contactGateState === "released" || contactGateState === "contact_released") {
+    const releasedContact = normalizeDirectConnectReleasedContact(args.releasedContact);
+    if (releasedContact) {
+      payload.releasedContact = releasedContact;
+    }
+  }
+
+  return payload;
+}
+
 export function buildWorkRequestScopeSummary(input: string, maxLength = 220): string {
   const redacted = redactContactDetails(input).replace(/\s+/g, " ").trim();
   if (!redacted) return "";

@@ -2,6 +2,7 @@ import {
   getDirectConnectContactGateNextAction,
   getDirectConnectContactGateNextActor,
   getDirectConnectContactGateSummary,
+  getDirectConnectReleasedContactForPanel,
   getDisplayLatestStatus,
   getDisplayRequestDescription,
   getDisplayRequestTitle,
@@ -117,5 +118,47 @@ describe("requestCardPresentation", () => {
       "Review the request state before taking contact action."
     );
     expect(getDirectConnectContactGateNextActor("mystery_state")).toBe("none");
+  });
+
+  it("only hands released contact to the panel for the exact contact_released state", () => {
+    const request = {
+      contactGateState: "contractor_requested",
+      releasedContact: {
+        name: "Jane Provider",
+        phone: "555-123-9876",
+        email: "provider@example.test",
+        address: "123 Provider Lane",
+      },
+    };
+
+    expect(getDirectConnectReleasedContactForPanel(request, "provider_requested_contact")).toBe(
+      undefined
+    );
+    expect(getDirectConnectReleasedContactForPanel(request, "requester_approved")).toBe(undefined);
+    expect(getDirectConnectReleasedContactForPanel(request, "contact_hidden")).toBe(undefined);
+    expect(getDirectConnectReleasedContactForPanel(request, "mystery_state")).toBe(undefined);
+    expect(getDirectConnectReleasedContactForPanel(request, "contact_released")).toEqual({
+      name: "Jane Provider",
+      phone: "555-123-9876",
+      email: "provider@example.test",
+      address: "123 Provider Lane",
+      notes: undefined,
+    });
+  });
+
+  it("does not treat a truthy contact payload as release authority", () => {
+    const request = {
+      contactGateState: "released",
+      releasedContact: {
+        phone: "555-123-9876",
+        email: "provider@example.test",
+      },
+    };
+
+    expect(getDirectConnectReleasedContactForPanel(request, "released")).toBe(undefined);
+    expect(getDirectConnectReleasedContactForPanel(request, "contact_released")).toMatchObject({
+      phone: "555-123-9876",
+      email: "provider@example.test",
+    });
   });
 });
