@@ -1,8 +1,12 @@
 import {
+  getDirectConnectContactGateNextAction,
+  getDirectConnectContactGateNextActor,
+  getDirectConnectContactGateSummary,
   getDisplayLatestStatus,
   getDisplayRequestDescription,
   getDisplayRequestTitle,
   looksLikeHiddenOrTestRequest,
+  normalizeDirectConnectContactState,
 } from "./requestCardPresentation";
 
 describe("requestCardPresentation", () => {
@@ -73,5 +77,45 @@ describe("requestCardPresentation", () => {
         contactGateState: "contractor_requested",
       })
     ).toBe("Review contact request");
+  });
+
+  it("maps legacy Direct Connect contact states to exact P2 primitive state names", () => {
+    expect(normalizeDirectConnectContactState()).toBe("contact_hidden");
+    expect(normalizeDirectConnectContactState("locked")).toBe("contact_hidden");
+    expect(normalizeDirectConnectContactState("review_required")).toBe("contact_hidden");
+    expect(normalizeDirectConnectContactState("request_shared")).toBe("contact_hidden");
+    expect(normalizeDirectConnectContactState("contractor_requested")).toBe(
+      "provider_requested_contact"
+    );
+    expect(normalizeDirectConnectContactState("user_approved")).toBe("requester_approved");
+    expect(normalizeDirectConnectContactState("released")).toBe("contact_released");
+    expect(normalizeDirectConnectContactState("denied")).toBe("denied");
+    expect(normalizeDirectConnectContactState("closed")).toBe("closed");
+  });
+
+  it("passes unknown contact states through for fail-closed panel rendering", () => {
+    expect(normalizeDirectConnectContactState("mystery_state")).toBe("mystery_state");
+  });
+
+  it("provides safe contact gate panel copy without raw request contact data", () => {
+    const request = {
+      title: "Roof leak",
+      description: "Call 555-123-9876 or email owner@example.test",
+      contactGateState: "contractor_requested",
+    };
+
+    expect(getDirectConnectContactGateSummary(request)).toBe(
+      "Contact stays gated for this request until the approved release step."
+    );
+    expect(getDirectConnectContactGateSummary(request)).not.toContain("555-123-9876");
+    expect(getDirectConnectContactGateSummary(request)).not.toContain("owner@example.test");
+    expect(getDirectConnectContactGateNextAction("provider_requested_contact")).toBe(
+      "Review the provider contact request and approve or decline."
+    );
+    expect(getDirectConnectContactGateNextActor("provider_requested_contact")).toBe("requester");
+    expect(getDirectConnectContactGateNextAction("mystery_state")).toBe(
+      "Review the request state before taking contact action."
+    );
+    expect(getDirectConnectContactGateNextActor("mystery_state")).toBe("none");
   });
 });

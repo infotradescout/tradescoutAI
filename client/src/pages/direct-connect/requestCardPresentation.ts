@@ -1,3 +1,8 @@
+import type {
+  DecisionContactGateNextActor,
+  DecisionContactGateState,
+} from "@/components/ui/DecisionContactGatePanel";
+
 type DirectConnectRequestCardLike = {
   title?: string | null;
   description?: string | null;
@@ -7,6 +12,8 @@ type DirectConnectRequestCardLike = {
   dcConversationThreadId?: string | null;
   isHomeIdPreviewDraft?: boolean | null;
 };
+
+export type DirectConnectContactPanelState = DecisionContactGateState | (string & {});
 
 type RequestWorkflowStage =
   | "draft_ready"
@@ -100,4 +107,63 @@ export function getDisplayLatestStatus(request: DirectConnectRequestCardLike): s
   if (!raw) return null;
   const cleaned = raw.replace(/local businesses/gi, "pros");
   return toTitleCase(humanizeEnumLikeText(cleaned));
+}
+
+export function normalizeDirectConnectContactState(
+  contactGateState?: string | null
+): DirectConnectContactPanelState {
+  const normalized = String(contactGateState || "")
+    .trim()
+    .toLowerCase();
+
+  if (!normalized || normalized === "locked" || normalized === "review_required") {
+    return "contact_hidden";
+  }
+  if (normalized === "request_shared") return "contact_hidden";
+  if (normalized === "contractor_requested") return "provider_requested_contact";
+  if (normalized === "provider_requested_contact") return "provider_requested_contact";
+  if (normalized === "user_approved") return "requester_approved";
+  if (normalized === "requester_approved") return "requester_approved";
+  if (normalized === "released") return "contact_released";
+  if (normalized === "contact_released") return "contact_released";
+  if (normalized === "denied") return "denied";
+  if (normalized === "closed") return "closed";
+  return normalized as string & {};
+}
+
+export function getDirectConnectContactGateSummary(_request: DirectConnectRequestCardLike): string {
+  return "Contact stays gated for this request until the approved release step.";
+}
+
+export function getDirectConnectContactGateNextAction(
+  contactState: DirectConnectContactPanelState
+): string {
+  if (contactState === "provider_requested_contact") {
+    return "Review the provider contact request and approve or decline.";
+  }
+  if (contactState === "requester_approved") {
+    return "Release contact only through the approved TradeScout path.";
+  }
+  if (contactState === "contact_released") {
+    return "Use the released contact path for coordination.";
+  }
+  if (contactState === "denied") {
+    return "Contact was declined. Private contact remains hidden.";
+  }
+  if (contactState === "closed") {
+    return "This contact workflow is closed.";
+  }
+  if (contactState === "contact_hidden") {
+    return "Wait for a valid provider contact request or continue routing.";
+  }
+  return "Review the request state before taking contact action.";
+}
+
+export function getDirectConnectContactGateNextActor(
+  contactState: DirectConnectContactPanelState
+): DecisionContactGateNextActor {
+  if (contactState === "provider_requested_contact") return "requester";
+  if (contactState === "requester_approved") return "platform";
+  if (contactState === "contact_hidden") return "provider";
+  return "none";
 }

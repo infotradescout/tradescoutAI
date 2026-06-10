@@ -19,6 +19,10 @@ import { interpretWorkRequestStateForScout } from "@/utils/interpretWorkRequestS
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  DecisionContactGatePanel,
+  type DecisionContactGateAction,
+} from "@/components/ui/DecisionContactGatePanel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ToastAction } from "@/components/ui/toast";
@@ -54,10 +58,14 @@ import {
   getDirectConnectNextStepCopy,
 } from "./directConnectReadiness";
 import {
+  getDirectConnectContactGateNextAction,
+  getDirectConnectContactGateNextActor,
+  getDirectConnectContactGateSummary,
   getDisplayLatestStatus,
   getDisplayRequestDescription,
   getDisplayRequestTitle,
   looksLikeHiddenOrTestRequest,
+  normalizeDirectConnectContactState,
 } from "./requestCardPresentation";
 import {
   SEOHelmet,
@@ -3794,6 +3802,12 @@ function MyDirectConnectRequests() {
         const canApproveContact = contactGateState === "contractor_requested";
         const canDenyContact = contactGateState === "contractor_requested";
         const canReleaseContact = contactGateState === "user_approved";
+        const contactPanelState = normalizeDirectConnectContactState(r.contactGateState);
+        const contactPanelActions: DecisionContactGateAction[] = [
+          canApproveContact ? { label: "Approve contact" } : null,
+          canDenyContact ? { label: "Decline contact" } : null,
+          canReleaseContact ? { label: "Release contact" } : null,
+        ].filter((action): action is DecisionContactGateAction => Boolean(action));
 
         const handleOpenRequest = async () => {
           void trackShellEvent({
@@ -3923,6 +3937,16 @@ function MyDirectConnectRequests() {
                 )}
                 <RequestLifecycleRail stage={stage} />
               </div>
+
+              <DecisionContactGatePanel
+                contactState={contactPanelState}
+                viewerRole="requester"
+                nextActor={getDirectConnectContactGateNextActor(contactPanelState)}
+                nextRequiredAction={getDirectConnectContactGateNextAction(contactPanelState)}
+                safeSummary={getDirectConnectContactGateSummary(r)}
+                actions={contactPanelActions}
+                className="shadow-none"
+              />
 
               <RequestAttachmentStrip requestId={r.id} attachmentCount={r.attachmentCount} />
 
