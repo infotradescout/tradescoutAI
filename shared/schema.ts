@@ -1293,6 +1293,34 @@ export const affiliateTrafficEvents = pgTable(
   ]
 );
 
+export const affiliateAttributionConversions = pgTable(
+  "affiliate_attribution_conversions",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    conversionEventId: varchar("conversion_event_id").notNull().unique(),
+    affiliateTag: varchar("affiliate_tag").notNull(),
+    source: varchar("source").notNull(),
+    attributionProofType: varchar("attribution_proof_type").notNull(),
+    attributionProof: text("attribution_proof").notNull(),
+    conversionType: varchar("conversion_type").notNull(),
+    targetPath: varchar("target_path"),
+    targetId: varchar("target_id"),
+    occurredAt: timestamp("occurred_at").notNull().defaultNow(),
+    status: varchar("status").notNull().default("recorded"),
+    payoutEligible: boolean("payout_eligible").notNull().default(false),
+    payoutCalculated: boolean("payout_calculated").notNull().default(false),
+    paymentTriggered: boolean("payment_triggered").notNull().default(false),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_affiliate_attr_conv_tag").on(table.affiliateTag),
+    index("idx_affiliate_attr_conv_type").on(table.conversionType),
+    index("idx_affiliate_attr_conv_occurred").on(table.occurredAt),
+  ]
+);
+
 // Core affiliate referrals table used by the MVP affiliate system
 export const affiliateReferrals = pgTable(
   "affiliate_referrals",

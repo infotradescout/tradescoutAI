@@ -141,3 +141,24 @@ Status interpretation:
 - `fail-closed production pass`: unsafe target rejection works, valid-ref probe not complete.
 - `valid-ref blocked`: preconditions missing or valid-ref probe cannot complete.
 - `valid-ref complete`: unsafe target rejected and valid tag+target sets attribution cookie then redirects to validated internal target.
+
+## P7 Attribution Conversion Event Ledger
+Goal: record qualified downstream conversion events only when valid attribution proof already exists.
+
+Qualified conversion types:
+- `signup_completed`
+- `claim_started`
+- `request_created`
+- `profile_contact_clicked`
+- `booking_request_started`
+
+Operational boundaries:
+- Click attribution: handled by `/ref/:tag` and click/session proof.
+- Conversion attribution: handled by conversion ledger event recording.
+- Payout/payment: explicitly out of scope for P7 (must remain false and untriggered).
+
+Fail-closed requirements:
+- No attribution session/cookie proof: reject conversion recording.
+- Missing or default-looking affiliate tag (`userNNNN`): reject conversion recording.
+- Unsupported conversion type: reject conversion recording.
+- Any request asking payout/payment flags as true: reject conversion recording.

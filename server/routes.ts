@@ -131,6 +131,7 @@ import {
   addPropertyLifecycleEvent,
   requirePropertyProgramAccess,
 } from "./services/propertyLifecycleService";
+import { recordAttributionConversionEvent } from "./utils/attributionConversionLedger";
 import { handleUniversalAttributionClick } from "./utils/universalAttributionRef";
 import {
   users,
@@ -138,6 +139,7 @@ import {
   businesses,
   affiliateAccounts,
   affiliateReferrals,
+  affiliateAttributionConversions,
   affiliateShareLinks,
   affiliateTrafficEvents,
   generatedStories,
@@ -3657,6 +3659,58 @@ export async function registerRoutes(app: any) {
         }).catch(() => {});
       },
     });
+  });
+
+  app.post("/api/affiliate/attribution/conversions", async (req: any, res: any) => {
+    try {
+      const sessionAttribution = req.session?.referralAttribution || null;
+      const cookieTag = getCookieValue(req as any, "ts_ref");
+
+      const result = await recordAttributionConversionEvent({
+        input: {
+          sessionAttribution,
+          cookieAttributionTag: cookieTag,
+          conversionType: String(req.body?.conversionType || ""),
+          source: String(req.body?.source || sessionAttribution?.source || ""),
+          targetPath: String(req.body?.targetPath || ""),
+          targetId: String(req.body?.targetId || ""),
+          payoutEligible: req.body?.payoutEligible === true,
+          payoutCalculated: req.body?.payoutCalculated === true,
+          paymentTriggered: req.body?.paymentTriggered === true,
+        },
+        persist: async (event) => {
+          await db.insert(affiliateAttributionConversions).values({
+            conversionEventId: event.conversionEventId,
+            affiliateTag: event.affiliateTag,
+            source: event.source,
+            attributionProofType: event.attributionProofType,
+            attributionProof: event.attributionProof,
+            conversionType: event.conversionType,
+            targetPath: event.targetPath,
+            targetId: event.targetId,
+            occurredAt: new Date(event.occurredAt),
+            status: event.status,
+            payoutEligible: false,
+            payoutCalculated: false,
+            paymentTriggered: false,
+          } as any);
+        },
+      });
+
+      if (!result.ok) {
+        return res.status(400).json({
+          code: result.code,
+          message: result.message,
+        });
+      }
+
+      return res.status(201).json({
+        event: result.event,
+      });
+    } catch (error) {
+      console.error("Error recording attribution conversion event:", error);
+      return res.status(500).json({ message: "Failed to record attribution conversion event" });
+    }
   });
 
   // Public redirect for a share link slug
