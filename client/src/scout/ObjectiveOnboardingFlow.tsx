@@ -350,7 +350,7 @@ export function ObjectiveOnboardingFlow({
           Getting started
         </h3>
         <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-          No suggestions available yet. Ask Scout for a local objective to begin.
+          No suggestions available yet. Use Scout search to start a local objective.
         </p>
       </section>
     );

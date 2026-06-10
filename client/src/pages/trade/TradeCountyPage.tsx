@@ -241,8 +241,8 @@ const TradeCountyPage = memo(function TradeCountyPage() {
                   No {trade.name.toLowerCase()} listings matched this exact filter yet.
                 </p>
                 <p className="text-sm text-white/60">
-                  Keep moving: expand to state markets, reset the city filter, or ask Scout to route
-                  this request.
+                  Keep moving: expand to state markets, reset the city filter, or use Scout search
+                  to route this request.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {city.trim() ? (

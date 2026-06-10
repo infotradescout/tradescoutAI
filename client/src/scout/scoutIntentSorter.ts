@@ -1100,7 +1100,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
     },
     {
       id: "site-search",
-      label: "Ask Scout",
+      label: "Search with Scout",
       kind: "site",
       reason:
         "Looks like you may be trying to find a page, tool, setting, or saved area in TradeScout.",
@@ -1126,7 +1126,7 @@ function matcherConfigs(rawMessage: string): MatcherConfig[] {
       actions: [
         { type: "NAVIGATE", label: "Review invoices", to: "/finances" },
         { type: "NAVIGATE", label: "Open messages", to: "/messages" },
-        askScoutAction("Ask Scout", `Help me find the right next step for: ${need}`),
+        askScoutAction("Search with Scout", `Help me find the right next step for: ${need}`),
       ],
     },
     {

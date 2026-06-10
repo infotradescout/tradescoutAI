@@ -140,7 +140,7 @@ export default function ScoutLandingLite() {
               Scout is your community OS
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight">
-              Ask Scout. Ship work. <span className="ts-accent-text">Locally.</span>
+              Search Scout. Ship work. <span className="ts-accent-text">Locally.</span>
             </h1>
             <p
               className="max-w-2xl text-sm sm:text-base"
@@ -205,7 +205,7 @@ export default function ScoutLandingLite() {
                   className="inline-flex items-center justify-center rounded-xl ts-accent-btn px-3 py-2 text-sm font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Send className="w-4 h-4 mr-1" />
-                  {isLoading ? "Sending" : "Ask Scout"}
+                  {isLoading ? "Sending" : "Search with Scout"}
                 </button>
               </div>
             </div>

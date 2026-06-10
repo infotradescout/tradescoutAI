@@ -635,8 +635,8 @@ export default function ContractorPromos() {
             <h1 className="text-3xl font-bold text-white">My Promotional Campaigns</h1>
             <p className="text-white/60 mt-2">
               Create and manage your promotional offers with shareable links for local marketing.
-              You can also ask Scout to "Draft a promotion for my services" and well prefill this
-              form for you.
+              You can also use Scout search to "Draft a promotion for my services" and well prefill
+              this form for you.
             </p>
           </div>
 

@@ -387,7 +387,7 @@ export function AuthorityOperations() {
                       </TableCell>
                     </TableRow>
                     <TableRow className="border-white/10">
-                      <TableCell className="text-white">Ask Scout first</TableCell>
+                      <TableCell className="text-white">Review local summary first</TableCell>
                       <TableCell className="text-right text-white">
                         {metrics?.choiceSplit.ask_scout ?? 0}
                       </TableCell>

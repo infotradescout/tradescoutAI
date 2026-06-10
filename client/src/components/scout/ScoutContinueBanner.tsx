@@ -29,8 +29,8 @@ export function ScoutContinueBanner({ className }: { className?: string }) {
     <button
       type="button"
       onClick={onContinue}
-      aria-label="Continue in Scout"
-      title="Continue in Scout"
+      aria-label="Continue local summary"
+      title="Continue local summary"
       className={[
         "fixed z-40 h-3.5 w-3.5 rounded-full",
         "right-3 md:right-6",
@@ -40,7 +40,7 @@ export function ScoutContinueBanner({ className }: { className?: string }) {
         className || "",
       ].join(" ")}
     >
-      <span className="sr-only">Continue in Scout</span>
+      <span className="sr-only">Continue local summary</span>
     </button>
   );
 }

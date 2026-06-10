@@ -1963,7 +1963,7 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={About} />
               </Route>
               <Route path="/contact">
-                <RedirectTo to="/scout?intent=support&source=contact-route" />
+                <RedirectTo to="/direct-connect?intent=support&source=contact-route" />
               </Route>
 
               {/* Story Generator */}

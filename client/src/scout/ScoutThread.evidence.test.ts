@@ -95,7 +95,7 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Next steps");
     expect(html).toContain("scout-cluster-card");
     expect(html).toContain("Review and send");
-    expect(html).toContain("Ask Scout");
+    expect(html).toContain("Search with Scout");
   });
 
   it("adds casual default actions for local help result cards", () => {
@@ -119,7 +119,7 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Local help");
     expect(html).toContain("Create request");
     expect(html).toContain("Browse local help");
-    expect(html).toContain("Ask Scout");
+    expect(html).toContain("Search with Scout");
   });
 
   it("summarizes long assistant answers when result cards carry the real next steps", () => {

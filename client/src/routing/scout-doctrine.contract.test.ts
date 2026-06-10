@@ -24,9 +24,12 @@ describe("Scout routing/copy doctrine", () => {
 
   it("does not route contact support flow to scout intent", () => {
     const contact = read("client/src/pages/contact.tsx");
+    const routes = read("client/src/AppRoutes.tsx");
 
     expect(contact).toContain("/direct-connect?intent=support&source=contact-page");
     expect(contact).not.toContain("/scout?intent=support");
+    expect(routes).toContain('RedirectTo to="/direct-connect?intent=support&source=contact-route"');
+    expect(routes).not.toContain('RedirectTo to="/scout?intent=support&source=contact-route"');
   });
 
   it("removes chatbot/help framing labels from compare scout CTAs", () => {
@@ -41,6 +44,32 @@ describe("Scout routing/copy doctrine", () => {
       const source = read(file);
       expect(source).toContain("Search with Scout");
       expect(source).not.toContain("Talk to Scout");
+    }
+  });
+
+  it("keeps banned chatbot/help Scout labels out of key runtime surfaces", () => {
+    const files = [
+      "client/src/scout/ScoutOS.tsx",
+      "client/src/scout/ScoutThread.tsx",
+      "client/src/scout/scoutIntentSorter.ts",
+      "client/src/components/scout/ScoutContinueBanner.tsx",
+      "client/src/pages/contact.tsx",
+    ];
+
+    const banned = [
+      "Talk to Scout",
+      "Ask Scout",
+      "Continue in Scout",
+      "AI chatbot",
+      "help bot",
+      "support bot",
+    ];
+
+    for (const file of files) {
+      const source = read(file);
+      for (const phrase of banned) {
+        expect(source).not.toContain(phrase);
+      }
     }
   });
 });

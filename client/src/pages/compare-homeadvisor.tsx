@@ -53,7 +53,7 @@ const CompareHomeAdvisorPage = memo(function CompareHomeAdvisorPage() {
     {
       question: "What is different about Scout?",
       answer:
-        "Scout is TradeScout's AI helper that controls the platform. You ask Scout questions, request matches, and manage projects from one conversation. Scout prioritizes outcomes over impressions. HomeAdvisor requires navigating forms and browsing listings.",
+        "Scout is TradeScout's local search and summary layer. It finds local context, compares options, and routes you to the right workflow. HomeAdvisor requires navigating forms and browsing listings.",
     },
     {
       question: "Is TradeScout really $0 to use?",

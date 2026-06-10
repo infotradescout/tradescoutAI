@@ -53,7 +53,7 @@ const contractorBoardSteps: TourStep[] = [
     target: "[data-nav-item='scout']",
     title: "Scout Estimates",
     description:
-      "Customers can ask Scout for ballpark estimates before starting a gated request. Clear estimates create better-fit demand for your business.",
+      "Customers can use Scout search for ballpark estimates before starting a gated request. Clear estimates create better-fit demand for your business.",
     position: "bottom",
     condition: () => !!document.querySelector("[data-nav-item='scout']"),
   },

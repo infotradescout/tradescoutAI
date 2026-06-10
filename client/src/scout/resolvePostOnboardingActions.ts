@@ -74,7 +74,7 @@ export function resolvePostOnboardingActions(
     });
   }
 
-  // Always include explore and ask scout (regardless of claims)
+  // Always include explore and Scout search (regardless of claims)
   if (!actions.some((a) => a.id === "explore")) {
     actions.push({
       id: "explore",
@@ -85,7 +85,7 @@ export function resolvePostOnboardingActions(
 
   actions.push({
     id: "ask_scout",
-    label: "Ask Scout a question",
+    label: "Search with Scout",
     destination: "/scout",
   });
 

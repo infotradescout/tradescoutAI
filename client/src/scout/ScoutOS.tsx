@@ -3497,7 +3497,7 @@ export default function ScoutOS() {
                     ? res.metadata.resolvedContext.confidence
                     : "medium",
                 includeNextStep: true,
-                nextStepLabel: msg.navTarget ? "Open next step" : "Continue in Scout",
+                nextStepLabel: msg.navTarget ? "Open next step" : "Continue local summary",
                 nextStepRoute: msg.navTarget || "/scout",
               }),
             });
@@ -3529,7 +3529,7 @@ export default function ScoutOS() {
         }
 
         // Persist a lightweight "resume" snapshot so other surfaces can offer a
-        // single-click "continue in Scout" affordance without the user having to
+        // single-click local-summary resume affordance without the user having to
         // hunt for the last thread.
         if (user) {
           const nav = dedupedServerActions.length
@@ -4739,7 +4739,7 @@ export default function ScoutOS() {
     },
     {
       id: "people",
-      label: "Ask Scout",
+      label: "Search with Scout",
       icon: Users2,
       prompt: "I have a question. Help me figure out what to do first.",
     },
@@ -4885,7 +4885,7 @@ export default function ScoutOS() {
       },
       {
         id: "search-site",
-        label: "Ask Scout",
+        label: "Search with Scout",
         detail: "Questions, next steps, and what to check first",
         icon: Search,
         panel: "nearby" as const,
@@ -5258,7 +5258,7 @@ export default function ScoutOS() {
                                       color: "var(--text-primary)",
                                     }}
                                   >
-                                    Ask Scout
+                                    Search with Scout
                                   </button>
                                 </span>
                               </span>

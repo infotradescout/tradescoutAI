@@ -155,8 +155,8 @@ const TradeCityPage = memo(function TradeCityPage() {
               <CardContent className="p-6 space-y-4">
                 <p className="text-white/80">No county coverage matched this city page yet.</p>
                 <p className="text-sm text-white/60">
-                  Keep moving: open the state market, browse county directory, or ask Scout to route
-                  your request.
+                  Keep moving: open the state market, browse county directory, or use Scout search
+                  to route your request.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Link href={stateRoute}>

@@ -66,7 +66,7 @@ const CompareHubPage = memo(function CompareHubPage() {
     <>
       <SEOHelmet
         title="What Users Can Do on TradeScout | TradeScout vs. Zillow, Nextdoor, Yelp and More"
-        description="See how TradeScout helps people ask Scout for help, find trusted local pros and businesses, browse homes, stay connected to community activity, buy and sell locally, and move from discovery to action."
+        description="See how TradeScout uses Scout local search and summaries to compare options, find trusted local pros and businesses, browse homes, stay connected to community activity, buy and sell locally, and move from discovery to action."
         keywords="what can users do on tradescout, tradescout features, tradescout vs zillow, tradescout vs nextdoor, tradescout vs yelp, local help platform, local operating system"
         canonical="https://www.thetradescout.com/compare"
         structuredData={createFAQStructuredData(faqs)}

@@ -334,12 +334,12 @@ const HowItWorksPage = memo(function HowItWorksPage() {
                 Ready to Get Started?
               </h2>
               <p className="text-white/70 text-sm mb-4">
-                Open Scout a question or start finding local help.
+                Search with Scout or start finding local help.
               </p>
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">
                   <a className="inline-flex items-center gap-2 bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-5 h-10 rounded-lg shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] text-sm">
-                    Talk to Scout
+                    Search with Scout
                     <ArrowRight className="w-4 h-4" />
                   </a>
                 </Link>

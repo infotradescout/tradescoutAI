@@ -270,7 +270,7 @@ function clusterKindMeta(kind: ScoutCluster["kind"]) {
     case "rules":
       return { label: "What to check", icon: BadgeCheck };
     case "site":
-      return { label: "Ask Scout", icon: Search };
+      return { label: "Search with Scout", icon: Search };
     case "account":
       return { label: "Account", icon: BadgeCheck, emoji: "👤" };
     default:
@@ -305,7 +305,11 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
 
   if (cluster.kind === "site") {
     return [
-      { type: "ASK_SCOUT", label: "Ask Scout", prompt: `Help me with ${cluster.title || "this"}.` },
+      {
+        type: "ASK_SCOUT",
+        label: "Search with Scout",
+        prompt: `Help me with ${cluster.title || "this"}.`,
+      },
     ];
   }
 
@@ -331,7 +335,7 @@ function buildAskScoutAction(cluster: ScoutCluster): ScoutAction {
   const bodyHint = cluster.body ? ` Context: ${cluster.body.slice(0, 180)}` : "";
   return {
     type: "ASK_SCOUT",
-    label: "Ask Scout",
+    label: "Search with Scout",
     prompt: `Tell me more about ${title} and what I can safely do next.${bodyHint}`,
   };
 }
