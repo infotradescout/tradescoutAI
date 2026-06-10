@@ -19,6 +19,11 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
     expect(source).toContain(
       "releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}"
     );
+    expect(source).not.toContain("r.releasedContact?.phone");
+    expect(source).not.toContain("r.releasedContact?.email");
+    expect(source).not.toContain("r.releasedContact?.address");
+    expect(source).not.toContain("r.releasedContact?.name");
+    expect(source).not.toContain("r.releasedContact?.notes");
   });
 
   it("keeps the presentation mapping on exact P2 state names", () => {
@@ -39,5 +44,20 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
     expect(source).toContain('normalized === "user_approved"');
     expect(source).toContain('normalized === "released"');
     expect(source).toContain('contactState !== "contact_released"');
+    expect(source).toContain('return "Review the request state before taking contact action."');
+  });
+
+  it("keeps requester list/detail card contact rendering routed through DecisionContactGatePanel", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+
+    expect(source).toContain("<DecisionContactGatePanel");
+    expect(source).toContain("safeSummary={getDirectConnectContactGateSummary(r)}");
+    expect(source).toContain(
+      "releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}"
+    );
+    expect(source).not.toContain("Released contact");
+    expect(source).not.toContain("Phone: {r.releasedContact");
+    expect(source).not.toContain("Email: {r.releasedContact");
+    expect(source).not.toContain("Address: {r.releasedContact");
   });
 });

@@ -20,6 +20,11 @@ describe("direct connect doctrine regression matrix", () => {
     expect(routes).toContain(
       'canReleaseContact: String(dispatch?.contact_gate_state || "locked") === "user_approved"'
     );
+    const shareUtils = read("server/utils/workRequestShare.ts");
+    expect(shareUtils).toContain("serializeDirectConnectCardContactGatePayload");
+    expect(shareUtils).toContain(
+      'contactGateState === "released" || contactGateState === "contact_released"'
+    );
   });
 
   it("locks Home Record optionality across create/review/submit/routing path", () => {
@@ -59,6 +64,11 @@ describe("direct connect doctrine regression matrix", () => {
     );
     expect(presentationTest).toContain("hides internal HomeID preview copy on request cards");
     expect(presentationTest).toContain("uses non-contradictory status copy");
+    expect(presentationTest).toContain(
+      "covers the contact-gate regression matrix for fail-closed contact exposure"
+    );
+    expect(presentationTest).toContain("missing state");
+    expect(presentationTest).toContain("unknown state");
   });
 
   it("locks funnel instrumentation coverage in KPI allowlist", () => {

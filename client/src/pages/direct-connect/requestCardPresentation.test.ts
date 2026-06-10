@@ -11,6 +11,13 @@ import {
 } from "./requestCardPresentation";
 
 describe("requestCardPresentation", () => {
+  const rawReleasedContact = {
+    name: "Jane Provider",
+    phone: "555-123-9876",
+    email: "provider@example.test",
+    address: "123 Provider Lane",
+  };
+
   it("formats raw enum title copy to user-facing title", () => {
     expect(getDisplayRequestTitle({ title: "inspection request for single_family" })).toBe(
       "Home inspection request"
@@ -123,12 +130,7 @@ describe("requestCardPresentation", () => {
   it("only hands released contact to the panel for the exact contact_released state", () => {
     const request = {
       contactGateState: "contractor_requested",
-      releasedContact: {
-        name: "Jane Provider",
-        phone: "555-123-9876",
-        email: "provider@example.test",
-        address: "123 Provider Lane",
-      },
+      releasedContact: rawReleasedContact,
     };
 
     expect(getDirectConnectReleasedContactForPanel(request, "provider_requested_contact")).toBe(
@@ -160,5 +162,67 @@ describe("requestCardPresentation", () => {
       phone: "555-123-9876",
       email: "provider@example.test",
     });
+  });
+
+  it("covers the contact-gate regression matrix for fail-closed contact exposure", () => {
+    const matrix: Array<{
+      label: string;
+      inputState?: string;
+      expectedNormalized: string;
+      shouldExposeReleasedContact: boolean;
+    }> = [
+      {
+        label: "missing state",
+        inputState: undefined,
+        expectedNormalized: "contact_hidden",
+        shouldExposeReleasedContact: false,
+      },
+      {
+        label: "contact_hidden",
+        inputState: "contact_hidden",
+        expectedNormalized: "contact_hidden",
+        shouldExposeReleasedContact: false,
+      },
+      {
+        label: "provider_requested_contact",
+        inputState: "provider_requested_contact",
+        expectedNormalized: "provider_requested_contact",
+        shouldExposeReleasedContact: false,
+      },
+      {
+        label: "requester_approved",
+        inputState: "requester_approved",
+        expectedNormalized: "requester_approved",
+        shouldExposeReleasedContact: false,
+      },
+      {
+        label: "contact_released",
+        inputState: "contact_released",
+        expectedNormalized: "contact_released",
+        shouldExposeReleasedContact: true,
+      },
+      {
+        label: "unknown state",
+        inputState: "unknown_contact_state",
+        expectedNormalized: "unknown_contact_state",
+        shouldExposeReleasedContact: false,
+      },
+    ];
+
+    for (const row of matrix) {
+      const normalized = normalizeDirectConnectContactState(row.inputState);
+      expect(normalized, row.label).toBe(row.expectedNormalized);
+
+      const payload = getDirectConnectReleasedContactForPanel(
+        { contactGateState: row.inputState, releasedContact: rawReleasedContact },
+        normalized
+      );
+
+      if (row.shouldExposeReleasedContact) {
+        expect(payload, row.label).toMatchObject(rawReleasedContact);
+      } else {
+        expect(payload, row.label).toBeUndefined();
+      }
+    }
   });
 });

@@ -39,6 +39,30 @@ describe("direct connect requester status contracts", () => {
     expect(detailBlock).not.toContain("phoneNumber");
   });
 
+  it("serializes contact gate payload through the server serializer for requester list and detail", () => {
+    const source = read("server/routes/direct-connect.ts");
+
+    expect(source).toContain("serializeDirectConnectCardContactGatePayload({");
+    expect(source).toContain("contactGateState: contactGatePayload.contactGateState");
+    expect(source).toContain("...(contactGatePayload.releasedContact");
+    expect(source).not.toContain("releasedContact: dispatch?.released_contact");
+  });
+
+  it("keeps the share payload redacted and contact-locked", () => {
+    const source = read("server/routes/direct-connect.ts");
+    const shareStart = source.indexOf('"/api/direct-connect/share/:token"');
+    const shareEnd = source.indexOf('"/api/direct-connect/requests/:id/contact-gate"');
+    const shareBlock =
+      shareStart >= 0 && shareEnd > shareStart ? source.slice(shareStart, shareEnd) : source;
+
+    expect(shareBlock).toContain("buildWorkRequestScopeSummary");
+    expect(shareBlock).toContain("buildWorkRequestPreviewTitle");
+    expect(shareBlock).toContain("contactLocked: true");
+    expect(shareBlock).toContain("requiresJoinAndVerification: true");
+    expect(shareBlock).not.toContain("releasedContact");
+    expect(shareBlock).not.toContain("homeownerContact");
+  });
+
   it("keeps contact release behind requester approval transitions", () => {
     const source = read("server/routes/direct-connect.ts");
     expect(source).toContain("contractor_requested->user_approved");

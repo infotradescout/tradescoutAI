@@ -47,3 +47,22 @@ Also verifies the focused harness stack remains present (Slices 76-83 test surfa
 - Option A: rotate session and resume live KPI pull with `npm run smoke:staff-kpi`.
 - Option B: produce Direct Connect Production Launch Gate v1 summary.
 
+## P6 Extension - Contact Gate Production Smoke + Regression Matrix (2026-06-10)
+
+Expanded regression coverage now includes an explicit contact-gate state matrix and production smoke probes for:
+- `contact_hidden`
+- `provider_requested_contact`
+- `requester_approved`
+- `contact_released`
+- unknown state fail-closed behavior
+- missing state fail-closed behavior
+- truthy `releasedContact` payload ignored unless normalized state is exactly `contact_released`
+
+Added smoke/runbook artifact:
+- `docs/runbooks/DIRECT_CONNECT_CONTACT_GATE_SMOKE.md`
+
+Validation target for this extension:
+- Server payloads: no pre-release contact serialization.
+- Requester card surfaces: no raw contact before release.
+- Share surface: contact remains locked and redacted.
+

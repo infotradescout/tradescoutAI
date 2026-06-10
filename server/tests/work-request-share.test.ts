@@ -7,6 +7,13 @@ import {
 } from "../utils/workRequestShare";
 
 describe("work request share redaction", () => {
+  const rawContact = {
+    name: "Jane Provider",
+    phone: "555-123-9876",
+    email: "provider@example.test",
+    address: "123 Provider Lane",
+  };
+
   it("redacts email and phone from free text", () => {
     const input = "Call me at (555) 123-9876 or email me at owner@example.com";
     const redacted = redactContactDetails(input);
@@ -32,14 +39,9 @@ describe("work request share redaction", () => {
   });
 
   it("omits released contact from serialized card payloads before release", () => {
-    const rawContact = {
-      name: "Jane Provider",
-      phone: "555-123-9876",
-      email: "provider@example.test",
-      address: "123 Provider Lane",
-    };
-
     for (const contactGateState of [
+      undefined,
+      "",
       "locked",
       "contractor_requested",
       "user_approved",
@@ -63,14 +65,29 @@ describe("work request share redaction", () => {
     }
   });
 
-  it("serializes released contact only from released server states", () => {
-    const rawContact = {
-      name: "Jane Provider",
+  it("keeps truthy releasedContact payload fail-closed unless state is released/contact_released", () => {
+    const truthyPayload = {
       phone: "555-123-9876",
       email: "provider@example.test",
       address: "123 Provider Lane",
     };
 
+    for (const contactGateState of [
+      "contact_hidden",
+      "provider_requested_contact",
+      "requester_approved",
+      "unknown_contact_state",
+      undefined,
+    ]) {
+      const payload = serializeDirectConnectCardContactGatePayload({
+        contactGateState,
+        releasedContact: truthyPayload,
+      });
+      expect(payload.releasedContact).toBeUndefined();
+    }
+  });
+
+  it("serializes released contact only from released server states", () => {
     expect(
       serializeDirectConnectCardContactGatePayload({
         contactGateState: "released",
