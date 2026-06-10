@@ -7,7 +7,7 @@
  * Priority order:
  *  1. Explicit ?next= deep-link preserved across the funnel  (highest)
  *  2. Business / service-provider users → /offer-services (profile + verification)
- *  3. All other users → /scout                              (default)
+ *  3. All other users → /direct-connect                     (default)
  *
  * "Business user" is detected from the presenceType captured in pre-scout-setup
  * (stored in preferences.provisional.profileDraft.presenceType) OR from the
@@ -76,7 +76,7 @@ export const DIRECT_CONNECT_HOME = "/direct-connect";
 
 /** Default landing surface for regular (non-business) users. */
 export const SCOUT_HOME = "/scout";
-export const DEFAULT_LANDING = SCOUT_HOME;
+export const DEFAULT_LANDING = DIRECT_CONNECT_HOME;
 
 /** Default landing surface for business / service-provider users. */
 export const BUSINESS_LANDING = "/offer-services?onboarding=business";
@@ -240,7 +240,7 @@ export function getPostLandingRoute(user: unknown): string {
     const businessRoute = getBusinessOnboardingRoute(record as Record<string, any>);
     if (businessRoute) return businessRoute;
   }
-  return SCOUT_HOME;
+  return resolveDirectConnectLandingRoute({ entry: "auth" });
 }
 
 export function isOnboardingExemptPath(path: string): boolean {
@@ -440,8 +440,8 @@ export function resolvePostOnboardingRoute(options: {
     return businessRoute || BUSINESS_LANDING;
   }
 
-  // 4. Default: Scout local snapshot
-  return SCOUT_HOME;
+  // 4. Default: Direct Connect request flow
+  return resolveDirectConnectLandingRoute({ entry });
 }
 
 export function resolveDirectConnectLandingRoute(

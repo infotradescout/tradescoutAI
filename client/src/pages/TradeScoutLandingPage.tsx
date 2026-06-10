@@ -73,7 +73,7 @@ export default function TradeScoutLandingPage() {
               Start a Request
             </a>
 
-            <a className="ts-button ts-button-secondary" href="/scout?unlock=exchange">
+            <a className="ts-button ts-button-secondary" href="/community">
               Browse Local Activity
             </a>
           </div>
