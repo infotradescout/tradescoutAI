@@ -162,3 +162,29 @@ Fail-closed requirements:
 - Missing or default-looking affiliate tag (`userNNNN`): reject conversion recording.
 - Unsupported conversion type: reject conversion recording.
 - Any request asking payout/payment flags as true: reject conversion recording.
+
+## P8 Attribution Production Smoke Closeout (2026-06-10)
+Closeout run intent: validate production valid-ref smoke using approved non-default tag path, without mutating payout/payment behavior.
+
+Executed command:
+- `npm run smoke:universal-attribution-ref`
+
+Artifact observed:
+- `artifacts/universal-attribution-ref-smoke-latest.json`
+
+Closeout status:
+- `valid-ref blocked`
+
+Exact blocker:
+- `TRADESCOUT_REF_TAG` missing in runtime environment.
+- Required to complete `valid-ref complete`: set `TRADESCOUT_REF_TAG` to an approved non-default affiliate tag and rerun smoke.
+
+Evidence snapshot:
+- `generatedAt`: `2026-06-10T16:13:40.876Z`
+- `origin`: `https://www.thetradescout.com`
+- `checks[0].label`: `missing_ref_tag`
+
+Safety assertions for this closeout run:
+- No affiliate tag was created.
+- No affiliate tag was renamed.
+- No payout/payment logic or execution path was touched.
