@@ -125,9 +125,9 @@ export default function ContractorApply() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <GuestGate
-          action="apply to the contractor board"
-          title="Create Contractor Account to Apply"
-          description="Join TradeScout's verified contractor network and start receiving quality leads."
+          action="apply for business access"
+          title="Create Business Account to Apply"
+          description="Join TradeScout as a verified business or service provider and complete your TradeScout profile."
         >
           <Card className="bg-tsCard border-white/10">
             <CardContent className="p-12 text-center">
@@ -136,7 +136,8 @@ export default function ContractorApply() {
               </div>
               <h2 className="text-3xl font-bold text-white mb-4">Apply to Join TradeScout</h2>
               <p className="text-white/70 mb-8 max-w-2xl mx-auto">
-                Join thousands of verified contractors growing their business with TradeScout.
+                Build a verified business profile, stay visible in your county, and prepare for
+                Direct Connect requests from your community.
               </p>
             </CardContent>
           </Card>
@@ -148,14 +149,17 @@ export default function ContractorApply() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <SEOHelmet
-        title="Contractor Application | Join TradeScout's Verified Network"
-        description="Apply to join TradeScout as a contractor. Submit your business details, licensing, and insurance information to get reviewed."
+        title="Business & Provider Application | Join TradeScout"
+        description="Apply to join TradeScout as a business or service provider. Submit your business details, licensing, and insurance information for review."
         canonical="https://www.thetradescout.com/businesses/apply"
       />
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-white mb-4">Join TradeScout's Contractor Network</h1>
+        <h1 className="text-4xl font-bold text-white mb-4">
+          Join TradeScout as a Business or Provider
+        </h1>
         <p className="text-xl text-white/70 mb-6">
-          Connect with qualified homeowners and grow your business
+          Build your business profile, complete verification, and stay ready for Direct Connect
+          requests from your community.
         </p>
         <div className="mb-4">
           <button
@@ -182,15 +186,15 @@ export default function ContractorApply() {
         <div className="flex flex-wrap justify-center gap-4 md:gap-6 mb-8">
           <div className="flex items-center gap-2 text-white/70">
             <Users className="h-5 w-5 text-ts-orange" />
-            <span className="text-sm md:text-base">10,000+ Active Homeowners</span>
+            <span className="text-sm md:text-base">Local businesses and neighbors</span>
           </div>
           <div className="flex items-center gap-2 text-white/70">
             <Star className="h-5 w-5 text-ts-orange" />
-            <span className="text-sm md:text-base">Premium Lead Quality</span>
+            <span className="text-sm md:text-base">Direct Connect request flow</span>
           </div>
           <div className="flex items-center gap-2 text-white/70">
             <Shield className="h-5 w-5 text-ts-orange" />
-            <span className="text-sm md:text-base">Verified Professional Network</span>
+            <span className="text-sm md:text-base">Verified business network</span>
           </div>
         </div>
       </div>
@@ -202,7 +206,7 @@ export default function ContractorApply() {
             <CardHeader>
               <CardTitle className="text-white text-xl flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                Contractor Application
+                Business / Provider Application
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -581,8 +585,10 @@ export default function ContractorApply() {
                   <Users className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-white font-semibold">Quality Leads</h4>
-                  <p className="text-white/70 text-sm">Pre-qualified homeowners ready to hire</p>
+                  <h4 className="text-white font-semibold">Qualified Requests</h4>
+                  <p className="text-white/70 text-sm">
+                    Clear local work requests with context kept intact
+                  </p>
                 </div>
               </div>
 
@@ -603,8 +609,10 @@ export default function ContractorApply() {
                   <Shield className="h-4 w-4 text-white" />
                 </div>
                 <div>
-                  <h4 className="text-white font-semibold">Professional Network</h4>
-                  <p className="text-white/70 text-sm">Join verified, licensed contractors</p>
+                  <h4 className="text-white font-semibold">Business Network</h4>
+                  <p className="text-white/70 text-sm">
+                    Join verified local businesses, providers, and contractor specialties
+                  </p>
                 </div>
               </div>
 
