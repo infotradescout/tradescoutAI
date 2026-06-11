@@ -25,8 +25,10 @@ describe("TradeScout public copy doctrine contracts", () => {
     expect(landing).toContain("Connection Without Compromise");
     expect(landing).toContain("Start a Request");
     expect(landing).toContain("Claim Provider Profile");
+    expect(landing).toContain("Direct Connect");
 
     const normalized = corpus.toLowerCase();
+    expect(normalized).toContain("direct connect");
     expect(normalized).toContain("request");
     expect(normalized).toContain("community");
     expect(normalized.includes("profile") || normalized.includes("claim")).toBe(true);
@@ -75,13 +77,14 @@ describe("TradeScout public copy doctrine contracts", () => {
     expect(normalized).not.toContain("virtual assistant");
   });
 
-  it("keeps internal jargon out of canonical public landing copy", () => {
+  it("allows Direct Connect as product copy while blocking internal architecture framing", () => {
     const normalizedLanding = read(CANONICAL_PUBLIC_LANDING).toLowerCase();
 
-    expect(normalizedLanding).not.toContain("direct connect");
     expect(normalizedLanding).not.toContain("routing algorithm");
     expect(normalizedLanding).not.toContain("authority layer");
     expect(normalizedLanding).not.toContain("handoff doctrine");
+    expect(normalizedLanding).not.toContain("backend routing system");
+    expect(normalizedLanding).not.toContain("internal operating system architecture");
     expect(normalizedLanding).not.toContain("operating system architecture");
   });
 });

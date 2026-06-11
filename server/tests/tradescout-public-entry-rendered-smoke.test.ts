@@ -50,17 +50,22 @@ describe("TradeScout public entry rendered smoke", () => {
       });
 
       expect(html).toContain("Connection Without Compromise");
+      expect(html).toContain("Direct Connect");
       expect(html).toContain(">Start a Request</a>");
       expect(html).toContain(">Claim Provider Profile</a>");
       expect(html).toContain('href="/direct-connect?source=landing_primary_cta"');
       expect(html).toContain('href="/register?role=provider"');
       expect(html).not.toContain("Ask Scout");
       expect(html).not.toContain("Scout chatbot");
-      expect(html).not.toContain("Direct Connect");
       expect(html).not.toContain("lead marketplace");
       expect(html).not.toContain("lead-selling");
       expect(html).not.toContain("tool catalog");
       expect(html).not.toContain("standalone tools");
+      expect(html).not.toContain("routing algorithm");
+      expect(html).not.toContain("authority layer");
+      expect(html).not.toContain("handoff doctrine");
+      expect(html).not.toContain("backend routing system");
+      expect(html).not.toContain("operating system architecture");
     }
   });
 

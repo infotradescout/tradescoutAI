@@ -60,8 +60,9 @@ export default function TradeScoutLandingPage() {
           <h1 id="ts-hero-title">Connection Without Compromise</h1>
 
           <p className="ts-hero-subheadline">
-            Start a local work request before anyone gets your phone number. TradeScout organizes
-            the job, location, and context first — then contact happens only when you decide.
+            Start a local work request in Direct Connect before anyone gets your phone number.
+            TradeScout organizes the job, location, and context first — then contact happens only
+            when you decide.
           </p>
 
           <div className="ts-hero-actions" aria-label="Primary actions">

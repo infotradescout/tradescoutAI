@@ -5,6 +5,7 @@ export type NavSection = {
 
 // Primary app sections Scout should understand and link to
 export const NAV_SECTIONS: NavSection[] = [
+  { label: "Direct Connect", href: "/direct-connect" },
   { label: "Find Local Businesses", href: "/find-local-businesses" },
   { label: "For Businesses", href: "/for-businesses" },
   { label: "Community", href: "/community" },

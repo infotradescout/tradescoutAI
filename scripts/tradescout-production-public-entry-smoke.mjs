@@ -38,11 +38,15 @@ const requiredCopy = [
 const forbiddenCopy = [
   "Ask Scout",
   "Scout chatbot",
-  "Direct Connect",
   "lead marketplace",
   "lead-selling",
   "tool catalog",
   "standalone tools",
+  "routing algorithm",
+  "authority layer",
+  "handoff doctrine",
+  "backend routing system",
+  "operating system architecture",
 ];
 
 const publicEntryPaths = ["/", "/landing", "/lp"];

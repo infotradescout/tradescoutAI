@@ -28,13 +28,18 @@ describe("landing SEO contracts", () => {
     expect(source).toContain("Connection Without Compromise");
     expect(source).toContain("Start a Request");
     expect(source).toContain("Claim Provider Profile");
+    expect(source).toContain("Direct Connect");
     expect(source).toContain("/tradescout-logo-circle.png");
     expect(source).not.toContain("Find Any Local Business Near You");
     expect(source).not.toContain("Ask Scout");
     expect(source).not.toContain("Scout interprets");
     expect(source).not.toContain("Scout routes");
     expect(source).not.toContain("Get started with Scout");
-    expect(source).not.toContain("Direct Connect");
+    expect(source).not.toContain("routing algorithm");
+    expect(source).not.toContain("authority layer");
+    expect(source).not.toContain("handoff doctrine");
+    expect(source).not.toContain("backend routing system");
+    expect(source).not.toContain("operating system architecture");
   });
 
   it("renders locked landing copy into the server HTML body", async () => {
@@ -59,9 +64,14 @@ describe("landing SEO contracts", () => {
     expect(html).toContain(">Claim Provider Profile</a>");
     expect(html).toContain('href="/direct-connect?source=landing_primary_cta"');
     expect(html).toContain('href="/register?role=provider"');
+    expect(html).toContain("Direct Connect");
     expect(html).not.toContain("Find Any Local Business Near You");
     expect(html).not.toContain("Ask Scout");
     expect(html).not.toContain("Scout routes");
-    expect(html).not.toContain("Direct Connect");
+    expect(html).not.toContain("routing algorithm");
+    expect(html).not.toContain("authority layer");
+    expect(html).not.toContain("handoff doctrine");
+    expect(html).not.toContain("backend routing system");
+    expect(html).not.toContain("operating system architecture");
   });
 });

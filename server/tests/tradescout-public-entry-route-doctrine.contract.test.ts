@@ -41,6 +41,7 @@ describe("TradeScout public entry route doctrine contracts", () => {
     expect(landing).toContain("Connection Without Compromise");
     expect(landing).toContain("Start a Request");
     expect(landing).toContain("Claim Provider Profile");
+    expect(landing).toContain("Direct Connect");
   });
 
   it("keeps CTA routing stable for request, claim, and community exploration", () => {
@@ -63,7 +64,11 @@ describe("TradeScout public entry route doctrine contracts", () => {
     expect(publicEntryCorpus).not.toContain("tool catalog");
     expect(publicEntryCorpus).not.toContain("standalone tools");
 
-    // Keep internal jargon out of canonical customer-facing landing copy.
-    expect(normalizedLanding).not.toContain("direct connect");
+    // Direct Connect is the product surface; internal architecture framing stays out.
+    expect(normalizedLanding).not.toContain("routing algorithm");
+    expect(normalizedLanding).not.toContain("authority layer");
+    expect(normalizedLanding).not.toContain("handoff doctrine");
+    expect(normalizedLanding).not.toContain("backend routing system");
+    expect(normalizedLanding).not.toContain("operating system architecture");
   });
 });

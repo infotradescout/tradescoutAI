@@ -30,11 +30,15 @@ describe("TradeScout production public-entry freshness smoke contract", () => {
 
     expect(source).toContain("Ask Scout");
     expect(source).toContain("Scout chatbot");
-    expect(source).toContain("Direct Connect");
     expect(source).toContain("lead marketplace");
     expect(source).toContain("lead-selling");
     expect(source).toContain("tool catalog");
     expect(source).toContain("standalone tools");
+    expect(source).toContain("routing algorithm");
+    expect(source).toContain("authority layer");
+    expect(source).toContain("handoff doctrine");
+    expect(source).toContain("backend routing system");
+    expect(source).toContain("operating system architecture");
   });
 
   it("keeps the smoke read-only and tied to production build identity", () => {

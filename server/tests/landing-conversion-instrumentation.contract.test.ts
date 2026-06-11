@@ -46,11 +46,16 @@ describe("locked landing conversion instrumentation contract", () => {
   it("keeps forbidden old landing copy out of the locked public landing", () => {
     expect(landingSource).toContain("Connection Without Compromise");
     expect(landingSource).toContain("Start a Request");
+    expect(landingSource).toContain("Direct Connect");
     expect(landingSource).not.toContain("Ask Scout");
     expect(landingSource).not.toContain("Scout routes");
-    expect(landingSource).not.toContain("Direct Connect");
     expect(landingSource).not.toContain("Find Any Local Business Near You");
     expect(landingSource).not.toContain("Scout interprets");
     expect(landingSource).not.toContain("Get started with Scout");
+    expect(landingSource).not.toContain("routing algorithm");
+    expect(landingSource).not.toContain("authority layer");
+    expect(landingSource).not.toContain("handoff doctrine");
+    expect(landingSource).not.toContain("backend routing system");
+    expect(landingSource).not.toContain("operating system architecture");
   });
 });

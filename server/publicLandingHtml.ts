@@ -102,6 +102,7 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     </p>
     <h1>Connection Without Compromise</h1>
     <p>${escapeHtml(meta.description)}</p>
+    <p>Direct Connect is the TradeScout request surface for starting local work with context intact.</p>
     <p>TradeScout is not a lead funnel. Your request starts with the work, location, and context before any contact details are shared.</p>
     <h2>How TradeScout works</h2>
     <ol>
