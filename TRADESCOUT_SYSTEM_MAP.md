@@ -1,451 +1,381 @@
 # TRADESCOUT_SYSTEM_MAP
 
-Status: Canonical architecture map for platform onboarding and AI-agent context.
-Scope: System relationships, boundaries, and user-facing meaning.
+Status: Canonical TradeScout OS architecture map for contributors and AI agents.
+Scope: System doctrine, shared context, tool ownership, and handoff behavior.
 
-## Platform Doctrine Snapshot
+## TradeScout OS Principle
 
-TradeScout is a system for businesses and their community.
+TradeScout is an operating system of connected tools.
 
-Core journey:
+TradeScout OS = one operating system, many connected tools, shared context, clear handoffs.
 
-Community -> Scout -> Decision Card -> Direct Connect -> Execution -> HomeID
+TradeScout is not:
+- A contractor directory
+- A lead marketplace
+- A chatbot
+- A generic community app
 
-Supporting systems that govern or constrain the journey:
+TradeScout is:
+- An operating system for local business, property, service, trust, and community workflows.
 
-- Trust/CVS
-- Claims System
-- County Intelligence Layer
-- Finance Workflow
-- Provider Profiles
+Architecture rule:
+- Do not collapse tools into generic actions.
+- Do not delete tools to force simplification.
+- Do not present tools as disconnected apps.
 
-## Operating Model
+## Shared Context Layer
 
-1. Community creates awareness and local signal.
-2. Scout turns awareness into understanding, context, and routing.
-3. Decision Cards convert understanding into clear next-step action.
-4. Direct Connect executes intent through structured request and response flow.
-5. Execution outcomes are completed and recorded.
-6. HomeID stores durable memory from ownership and project history.
+All tools must read/write through shared context instead of creating isolated per-tool truth.
 
-Protection and governance across all stages:
+Shared context domains:
+- Identity state: user identity, role capabilities, session context.
+- Trust state: verification, confidence, trust/CVS constraints.
+- Location state: county and local routing context.
+- Property/home memory state: HomeID timelines, component and service history.
+- Business profile state: provider identity, credentials, service-area context.
+- Request state: structured intent, lifecycle stage, assignment/routing readiness.
+- Finance state: funding eligibility, approval status, payment progression.
 
-- Trust/CVS enforces verification and confidence boundaries.
-- Claims governs ownership and authority assignment.
-- County Intelligence provides local operational context.
-- Finance Workflow governs funding, approvals, and money movement.
-- Provider Profiles establish business identity and reputation context.
+OS continuity requirement:
+- A user moving between tools keeps identity, trust, location, memory, request, and finance context intact.
 
-## System Ownership Matrix
+## Tool Handoff Rules
 
-Use this matrix to determine which system owns a responsibility before implementation.
+Canonical handoff chain:
+- Community -> Scout
+- Scout -> Decision Cards
+- Decision Cards -> Direct Connect
+- Direct Connect -> HomeID
 
-| System | Owns |
-| --- | --- |
-| Community | Awareness |
-| Scout | Understanding |
-| Decision Cards | Recommendation |
-| Direct Connect | Action |
-| HomeID | Memory |
-| Trust/CVS | Verification |
-| Claims | Authority |
-| Finance | Funding |
-| County Intelligence | Geographic Context |
-| Provider Profiles | Business Identity |
+Cross-cutting rules:
+- Trust/CVS verifies and constrains action across all tools.
+- Claims assigns and validates authority across all tools.
+- Finance attaches to eligible requests/projects and governs funding/approval paths.
 
----
+Handoff quality standard:
+- Every handoff must preserve shared context.
+- Every handoff must declare next-step clarity for the user.
+- No handoff may bypass authority/trust constraints.
 
-## 1) Community (Awareness)
+## Primary Tools
 
-Purpose:
-- Discovery
-- Local activity visibility
-- Neighborhood signals
-- Business/community interaction
+These are user-facing workflow tools in the OS chain.
 
-Inputs:
-- Community posts and updates
-- Events and discussions
-- Local engagement activity
-- Business and member participation
-
-Outputs:
-- Awareness signals
-- Discovery context
-- Engagement indicators that can be interpreted by Scout
-
-Dependencies:
-- County Intelligence Layer for location context
-- Business Community Layer for participant ecosystem
-- Trust/CVS for safe participation boundaries
-
-User-facing role:
-- The public awareness surface where people see what is happening locally.
-
-Mental model:
-- Community = Awareness
-
----
-
-## 2) Scout (Understanding)
+### 1) Community
 
 Purpose:
-- Search
-- Local summaries
-- Discovery interpretation
-- Comparison
-- Context and routing
+- Awareness and local discovery.
+
+User job:
+- Find local signals, activity, and business/community updates.
 
 Inputs:
-- Community signals
-- Local intelligence and county context
-- Business and home summaries
-- User prompts and lookup intent
+- Local posts, updates, events, discussions, and participation.
 
 Outputs:
-- Structured understanding
-- Comparative context
-- Recommendation surfaces
-- Next-step routing options (including Decision Card paths)
+- Awareness signals and discovery context.
 
 Dependencies:
-- County Intelligence Layer for local facts
-- Trust/CVS for confidence and authority boundaries
-- Provider Profiles and business data for summaries
-- Request and Decision Card systems for action handoff
+- County Intelligence for local context.
+- Trust/CVS for participation safety boundaries.
 
-User-facing role:
-- The understanding surface that explains local context and suggests what to do next.
+Handoff behavior:
+- Community surfaces route users to Scout for understanding and decision readiness.
 
-Mental model:
-- Scout = Understanding
-
-Not:
-- Chatbot
-- Assistant
-- Support desk
-
----
-
-## 3) Direct Connect (Action)
+### 2) Scout
 
 Purpose:
-- Intent execution
-- Request and matching workflow
-- Project lifecycle progression
+- Understanding through search, local summaries, comparison, and contextual lookup.
+
+User job:
+- Understand what is happening locally and what next action makes sense.
 
 Inputs:
-- Structured request intent
-- Decision Card handoff
-- User/project constraints
-- Provider response signals
+- Community signals, county/local intelligence, profile and request context.
 
 Outputs:
-- Created and routed requests
-- Matching and coordination state
-- Contact exchange and execution workflow
-- Project lifecycle status
+- Interpreted context, recommendations, and next-step routing candidates.
 
 Dependencies:
-- Request System for structured intent object
-- Decision Card System for guided handoff
-- Trust/CVS for gating and verification constraints
-- Claims System for authority and ownership checks
-- Finance Workflow when funding/approval is required
+- County Intelligence for local facts.
+- Provider Profiles for business context.
+- Trust/CVS for confidence boundaries.
 
-User-facing role:
-- The action surface where users start and manage real project requests.
+Handoff behavior:
+- Scout hands off to Decision Cards for explicit next-step guidance.
 
-Mental model:
-- Direct Connect = Action
-
----
-
-## 4) HomeID (Memory Layer)
+### 3) Decision Card System
 
 Purpose:
-- Property memory
-- Ownership memory
-- Asset and project memory
+- Bridge understanding into guided action.
+
+User job:
+- Choose the next best step with clear recommendation and constraints.
 
 Inputs:
-- Property profile data
-- Service and maintenance events
-- Improvement history
-- Completed execution outcomes from Direct Connect
+- Scout outputs, trust constraints, request readiness, finance/approval context.
 
 Outputs:
-- Durable home and asset timeline
-- Context for future recommendations
-- Historical truth for follow-on decisions
+- Recommended next action and routing decision.
 
 Dependencies:
-- Direct Connect and Execution outcomes as memory sources
-- Claims System for ownership validity
-- Trust/CVS where verification impacts record confidence
+- Scout for interpreted context.
+- Request System for action payload readiness.
+- Trust/CVS and Finance for gated paths.
 
-User-facing role:
-- The persistent memory layer for home and property lifecycle history.
+Handoff behavior:
+- Decision Cards route actionable cases into Direct Connect.
 
-Mental model:
-- HomeID = Memory
-
----
-
-## 5) Trust/CVS (Verification)
+### 4) Direct Connect
 
 Purpose:
-- Authority
-- Verification
-- Confidence and trust enforcement
+- Action workflow: create requests, route responses, and execute projects.
+
+User job:
+- Start and manage real-world service/project action.
 
 Inputs:
-- Verification evidence
-- Credential signals
-- Behavior and quality indicators
-- Business and participant trust data
+- Structured request intent, Decision Card routing, trust/authority constraints.
 
 Outputs:
-- Trust signals and confidence boundaries
-- Verification states used by other systems
-- Exposure and routing constraints
+- Request lifecycle progression, assignment/routing state, contact exchange, execution status.
 
 Dependencies:
-- Provider Profiles and Claims for identity and ownership grounding
-- Direct Connect and Community for behavior/outcome inputs
+- Request System for canonical intent.
+- Trust/CVS and Claims for gating/authority.
+- Finance Workflow for eligible funded paths.
 
-User-facing role:
-- The confidence layer that determines what actions and visibility are allowed.
+Handoff behavior:
+- Completed outcomes are projected into HomeID memory.
 
-Mental model:
-- Trust/CVS = Verification
-
----
-
-## 6) Finance Workflow
+### 5) HomeID
 
 Purpose:
-- Money movement
-- Funding and approval chains
-- Payment workflow governance
+- Durable property, ownership, and project memory.
+
+User job:
+- Preserve and reuse home/asset history for future decisions.
 
 Inputs:
-- Financing requests
-- Project cost and approval requirements
-- Lender/approver responses
-- Payment authorization events
+- Execution outcomes, maintenance/service records, ownership context.
 
 Outputs:
-- Funding decisions
-- Approval state transitions
-- Payment authorization and financial routing artifacts
+- Property timeline, component history, historical memory for future recommendations.
 
 Dependencies:
-- Direct Connect for project intent and execution stage
-- Decision Cards for approval prompts and next-step actions
-- Trust/CVS for confidence-sensitive approvals
+- Direct Connect execution outcomes.
+- Claims for ownership validity.
+- Trust/CVS where memory confidence affects downstream decisions.
 
-User-facing role:
-- The funding and approval layer that enables financially governed execution.
+Handoff behavior:
+- HomeID memory feeds future Scout context and Decision Card readiness.
 
-Mental model:
-- Finance = Funding and Approval
+## Supporting Services
 
----
+These services are not optional add-ons; they are OS-level control planes supporting primary tools.
 
-## 7) Provider Profiles
+### 6) Trust/CVS
 
 Purpose:
-- Business identity
-- Reputation and verification context
-- Authority display surface
+- Verification and confidence enforcement.
+
+User job:
+- Ensure participants and actions are trustworthy and policy-compliant.
 
 Inputs:
-- Claimed business data
-- Credentials and verification artifacts
-- Reviews, portfolio, and service area data
+- Verification evidence, credentials, behavior and quality signals.
 
 Outputs:
-- Public and operational business identity
-- Reputation and authority signals consumed by routing/matching
+- Trust/verification states and exposure/action constraints.
 
 Dependencies:
-- Claims System for ownership validity
-- Trust/CVS for verification and confidence scoring
-- County Intelligence for service-area context
+- Provider Profiles, Claims, Community, and Direct Connect signals.
 
-User-facing role:
-- The business identity layer users evaluate before action decisions.
+Handoff behavior:
+- Applies verification gates and confidence boundaries across all tool transitions.
 
-Mental model:
-- Provider Profile = Business Identity
-
----
-
-## 8) Claims System
+### 7) Claims System
 
 Purpose:
-- Ownership assignment
-- Control and authority establishment
+- Ownership and authority assignment.
+
+User job:
+- Establish who controls business/property/assets and can take privileged actions.
 
 Inputs:
-- Claim requests (business, property, asset)
-- Ownership proof and verification artifacts
-- Transfer intents
+- Claim requests, proof artifacts, transfer intents.
 
 Outputs:
-- Authority assignments
-- Ownership transfer records
-- Control state used by downstream systems
+- Authority assignments and ownership transfer state.
 
 Dependencies:
-- Trust/CVS for verification rigor
-- Provider Profiles and HomeID for claimed entity binding
+- Trust/CVS verification rigor.
+- Provider Profiles and HomeID binding context.
 
-User-facing role:
-- The authority assignment layer that decides who controls what.
+Handoff behavior:
+- Injects authority truth into all tools before sensitive actions are allowed.
 
-Mental model:
-- Claims = Authority Assignment
-
----
-
-## 9) County Intelligence Layer
+### 8) Provider Profiles
 
 Purpose:
-- Living geographic containers
-- Local intelligence and routing context
+- Business identity, reputation, and credential context.
+
+User job:
+- Evaluate provider identity and trust signals before action.
 
 Inputs:
-- Regional operational data
-- Jurisdictional context
-- Local trend and assignment signals
+- Claimed profile data, credentials, portfolio, service areas, reviews.
 
 Outputs:
-- County-scoped context for discovery, routing, and summaries
-- Regional relevance inputs to Scout and Direct Connect
+- Operational business identity and reputation signals.
 
 Dependencies:
-- Core data pipelines and local context sources
-- Community and business activity signals
+- Claims for ownership validity.
+- Trust/CVS for verification status.
+- County Intelligence for regional relevance.
 
-User-facing role:
-- The invisible geographic intelligence layer that keeps decisions locally grounded.
+Handoff behavior:
+- Supplies business identity context to Scout, Decision Cards, and Direct Connect.
 
-Mental model:
-- County Layer = Geographic Intelligence
-
----
-
-## 10) Request System
+### 9) Finance Workflow
 
 Purpose:
-- Structured intent capture
-- Project definition lifecycle
+- Funding, approvals, and payment flow governance.
+
+User job:
+- Progress financially constrained work with clear approval/payment state.
 
 Inputs:
-- User need and intent
-- Draft details and requirements
-- Review and publication decisions
+- Financing requests, project financial requirements, approvals, payment events.
 
 Outputs:
-- Canonical request objects
-- Draft/review/published state transitions
-- Intent artifacts consumed by Direct Connect
+- Funding decisions, approval progression, payment status artifacts.
 
 Dependencies:
-- Scout and Decision Cards for entry/handoff context
-- Trust/CVS and Claims where authority gating is required
+- Direct Connect request/project lifecycle.
+- Decision Cards for approval prompts.
+- Trust/CVS for confidence-sensitive approvals.
 
-User-facing role:
-- The intent formalization layer that turns a need into a structured request.
+Handoff behavior:
+- Attaches to eligible requests/projects and governs finance-dependent transitions.
 
-Mental model:
-- Request = Structured Intent
-
----
-
-## 11) Decision Card System
+### 10) County Intelligence Layer
 
 Purpose:
-- Awareness-to-action bridge
-- Guided next-step decisions
+- Geographic/local context and routing intelligence.
+
+User job:
+- Keep discovery, understanding, and action locally relevant.
 
 Inputs:
-- Scout understanding outputs
-- Request readiness and trust context
-- Approval or routing constraints
+- Regional operational data, jurisdiction context, local trend signals.
 
 Outputs:
-- Recommended actions
-- Next-step prompts
-- Routing decisions into Direct Connect or related flows
+- County-scoped relevance and routing context.
 
 Dependencies:
-- Scout for interpreted context
-- Request System for action payload readiness
-- Trust/CVS and Finance for gated/approval-sensitive actions
+- Community and business activity signals.
 
-User-facing role:
-- The guided-action layer that reduces ambiguity between understanding and execution.
+Handoff behavior:
+- Supplies local context to Community, Scout, Decision Cards, and Direct Connect.
 
-Mental model:
-- Decision Card = Guided Action
-
----
-
-## 12) Business Community Layer
+### 11) Request System
 
 Purpose:
-- Business + community ecosystem coherence
+- Structured intent lifecycle (draft -> review -> published action object).
+
+User job:
+- Convert need into an actionable, canonical request.
 
 Inputs:
-- Businesses, organizations, providers, and members
-- Community interactions and local network activity
+- User need, project definition details, review decisions.
 
 Outputs:
-- Local economic and social graph context
-- Participation substrate for Community, Scout, and Direct Connect
+- Canonical request objects and lifecycle state transitions.
 
 Dependencies:
-- Community for engagement surfaces
-- Provider Profiles for business identity
-- County Intelligence for regional grounding
+- Scout and Decision Cards for upstream context.
+- Trust/CVS and Claims where gated authority is required.
 
-User-facing role:
-- The ecosystem layer connecting businesses and community participants.
+Handoff behavior:
+- Provides validated intent payloads to Direct Connect.
 
-Mental model:
-- TradeScout is businesses and their community (not only contractors and homeowners)
+### 12) Business Community Layer
 
----
+Purpose:
+- Unified business/community network substrate.
 
-## Relationship Summary
+User job:
+- Participate in a local ecosystem where businesses and community members interact.
 
-Primary flow:
+Inputs:
+- Businesses, organizations, providers, community members, local interactions.
 
-Community -> Scout -> Decision Card -> Direct Connect -> Execution -> HomeID
+Outputs:
+- Shared ecosystem context for awareness, understanding, and action tools.
 
-Governance and support overlays:
+Dependencies:
+- Community, Provider Profiles, County Intelligence.
 
-- Trust/CVS: verification and confidence constraints across all stages
-- Claims System: ownership and control validity
-- County Intelligence Layer: local relevance and geographic routing context
-- Finance Workflow: funding, approval, and payment governance
-- Provider Profiles: business identity and authority/reputation context
+Handoff behavior:
+- Stabilizes cross-tool network context used by Community and Scout.
 
-## Onboarding Guidance
+## User-Facing Navigation
 
-When building a new feature:
+Navigation goal:
+- One OS home with clear entry points, not fragmented app islands.
 
-1. Identify which of the 12 systems is primary.
-2. Confirm whether the feature is awareness, understanding, action, memory, or governance.
-3. Ensure handoffs follow the operating model and do not bypass Decision Card and Direct Connect when action is required.
-4. Verify Trust/CVS, Claims, and County constraints before enabling user-visible action.
-5. Record resulting execution outcomes into HomeID when the feature affects property/project memory.
+Required user-facing navigation model:
+- Community: awareness entry.
+- Scout: understanding and contextual lookup.
+- Decision Cards: explicit next-step guidance.
+- Direct Connect: action/request execution.
+- HomeID: memory and historical continuity.
 
-## Contributor Rule
+Navigation continuity rules:
+- Shared language across tools.
+- Shared identity/trust/memory context indicators.
+- Clear handoff prompts between tools.
+- No dead-end transitions that force user re-orientation.
 
-Before adding a feature, determine which system owns the responsibility.
+## Internal System Ownership Matrix
 
-This document is intended to prevent doctrine drift and keep implementation aligned with TradeScout system law.
+Use this matrix before adding or changing features.
+
+| System | Ownership | Responsibility Lens |
+| --- | --- | --- |
+| Community | Awareness | Local signal discovery and engagement context |
+| Scout | Understanding | Interpretation, search, summary, comparison, routing context |
+| Decision Cards | Recommendation | Next-step recommendation and action framing |
+| Direct Connect | Action | Request execution and project action lifecycle |
+| HomeID | Memory | Durable property/asset/project memory |
+| Trust/CVS | Verification | Confidence and exposure/action constraints |
+| Claims | Authority | Ownership and control assignment |
+| Finance | Funding | Approval and payment/funding progression |
+| County Intelligence | Geographic Context | Local relevance and jurisdiction-aware routing context |
+| Provider Profiles | Business Identity | Verified business identity and reputation context |
+| Request System | Structured Intent | Canonical intent lifecycle and readiness payload |
+| Business Community Layer | Ecosystem Substrate | Shared business/community graph context |
+
+Contributor rule:
+- Before adding a feature, determine which system owns the responsibility.
+
+## Product Principle
+
+The tools are separate but must not feel fragmented.
+
+Target experience:
+- One OS.
+- Many tools.
+- Shared context.
+- Clear handoffs.
+
+## Implementation Guardrails
+
+This document is architecture doctrine for contributors and AI agents.
+
+Validation scope for updates to this file:
+- Documentation only.
+- No runtime changes.
+- No routing changes.
+- No doctrine deletion.
