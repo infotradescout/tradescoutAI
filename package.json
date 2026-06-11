@@ -18,6 +18,7 @@
     "smoke:staff-kpi": "npx tsx scripts/tradescout-staff-kpi-smoke.ts",
     "smoke:universal-attribution-ref": "node scripts/universal-attribution-ref-smoke.mjs",
     "smoke:direct-connect-production": "node scripts/direct-connect-production-smoke.mjs",
+    "smoke:production-public-entry": "node scripts/tradescout-production-public-entry-smoke.mjs",
     "report:test-skip-delta": "node scripts/report-test-skip-delta.mjs",
     "enforce:scout-behaviors": "node scripts/enforce-scout-behavior-registry.mjs",
     "start": "cross-env NODE_ENV=production node dist/index.js",
