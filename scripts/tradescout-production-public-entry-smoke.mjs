@@ -31,8 +31,14 @@ const expectedCommit =
 
 const requiredCopy = [
   "Connection Without Compromise",
+  "Direct Connect",
   "Start a Request",
   "Claim Provider Profile",
+];
+
+const requiredHtmlFragments = [
+  'href="/direct-connect?source=landing_primary_cta"',
+  'href="/register?role=provider"',
 ];
 
 const forbiddenCopy = [
@@ -109,6 +115,7 @@ function recordResult(result) {
 function evaluatePublicEntryResponse(origin, routePath, response, body) {
   const buildHeader = response.headers.get("x-tradescout-build") || "";
   const missingCopy = requiredCopy.filter((phrase) => !body.includes(phrase));
+  const missingHtmlFragments = requiredHtmlFragments.filter((fragment) => !body.includes(fragment));
   const presentForbiddenCopy = forbiddenCopy.filter((phrase) => body.includes(phrase));
   const markerOk = commitsMatch(buildHeader, expectedCommit);
   const lpCanonicalOk =
@@ -120,6 +127,7 @@ function evaluatePublicEntryResponse(origin, routePath, response, body) {
   const ok =
     response.ok &&
     missingCopy.length === 0 &&
+    missingHtmlFragments.length === 0 &&
     presentForbiddenCopy.length === 0 &&
     markerOk &&
     lpCanonicalOk;
@@ -134,6 +142,7 @@ function evaluatePublicEntryResponse(origin, routePath, response, body) {
     buildHeader,
     expectedCommit,
     missingCopy,
+    missingHtmlFragments,
     presentForbiddenCopy,
     lpCanonicalOk,
     bodyPreview: safeBodyPreview(body),

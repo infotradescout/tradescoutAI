@@ -22,11 +22,15 @@ describe("TradeScout production public-entry freshness smoke contract", () => {
 
   it("checks live public entry routes for current rendered public-entry behavior", () => {
     const source = script();
+    const forbiddenBlock = source.match(/const forbiddenCopy = \[(.*?)\];/s)?.[1] || "";
 
     expect(source).toContain('const publicEntryPaths = ["/", "/landing", "/lp"]');
     expect(source).toContain("Connection Without Compromise");
+    expect(source).toContain("Direct Connect");
     expect(source).toContain("Start a Request");
     expect(source).toContain("Claim Provider Profile");
+    expect(source).toContain('href="/direct-connect?source=landing_primary_cta"');
+    expect(source).toContain('href="/register?role=provider"');
 
     expect(source).toContain("Ask Scout");
     expect(source).toContain("Scout chatbot");
@@ -39,6 +43,7 @@ describe("TradeScout production public-entry freshness smoke contract", () => {
     expect(source).toContain("handoff doctrine");
     expect(source).toContain("backend routing system");
     expect(source).toContain("operating system architecture");
+    expect(forbiddenBlock).not.toContain("Direct Connect");
   });
 
   it("keeps the smoke read-only and tied to production build identity", () => {
