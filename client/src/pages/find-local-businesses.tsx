@@ -10,9 +10,9 @@ import { HOMEOWNER_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
 
 const faqItems = [
   {
-    question: "How do I find trustworthy local contractors near me?",
+    question: "How do I find trustworthy local businesses or contractors near me?",
     answer:
-      "Use TradeScout Direct Connect to post what you need, filter by your local county context, and review matched businesses before contact.",
+      "Use TradeScout Direct Connect to post what you need, filter by your local county context, and review trusted local businesses and contractors before contact.",
   },
   {
     question: "Can I search by trade and county?",
@@ -42,9 +42,9 @@ export default function FindLocalBusinessesPage() {
     "@graph": [
       {
         "@type": "WebPage",
-        name: "Find Local Businesses and Contractors",
+        name: "Find Local Businesses, Services, and Contractors",
         description:
-          "Find local businesses and contractors on TradeScout. Compare options by county and trade, then connect through intent-gated contact.",
+          "Find local businesses, services, and contractors on TradeScout. Compare options by county and trade, then connect through intent-gated contact.",
         url: "https://www.thetradescout.com/find-local-businesses",
       },
       createBreadcrumbStructuredData([
@@ -58,9 +58,9 @@ export default function FindLocalBusinessesPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
       <SEOHelmet
-        title="Find Local Businesses and Contractors | TradeScout"
-        description="Find local contractors and businesses by trade and county. Compare trustworthy options and connect through TradeScout Direct Connect."
-        keywords="find local contractors, local businesses near me, county contractors, home service businesses, trusted contractor search, direct connect"
+        title="Find Local Businesses, Services, and Contractors | TradeScout"
+        description="Find local businesses, services, and contractors by trade and county. Compare trustworthy options and connect through TradeScout Direct Connect."
+        keywords="find local businesses, contractor search, local businesses near me, county contractors, local services, trusted local businesses and contractors, direct connect"
         canonical="https://www.thetradescout.com/find-local-businesses"
         structuredData={structuredData}
       />
@@ -70,8 +70,8 @@ export default function FindLocalBusinessesPage() {
           Find local businesses without the noise
         </h1>
         <p className="text-white/70 max-w-3xl">
-          TradeScout helps you find businesses and contractors who serve your local area. Start with
-          trade and county context, then connect through a trust-first flow.
+          TradeScout helps you find local businesses, services, and professionals who serve your
+          area. Start with trade and county context, then connect through a trust-first flow.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href={tangipahoaHref}>
@@ -81,7 +81,7 @@ export default function FindLocalBusinessesPage() {
           </Link>
           <Link href="/trade">
             <Button variant="outline" className="border-white/20 text-white">
-              Browse trades
+              Browse contractor-heavy trades
             </Button>
           </Link>
         </div>
@@ -152,8 +152,9 @@ export default function FindLocalBusinessesPage() {
       <section className="space-y-3">
         <h2 className="text-2xl font-semibold text-white">Popular searches right now</h2>
         <p className="text-sm text-white/70 max-w-3xl">
-          These are real searches people are using. Pick one to jump into a local path, then create
-          an account to save your shortlist and track replies.
+          These are real searches people are using, including contractor search and broader local
+          business discovery. Pick one to jump into a local path, then create an account to save
+          your shortlist and track replies.
         </p>
         <div className="flex flex-wrap gap-2">
           {topQueries.map((item) => (
@@ -178,16 +179,24 @@ export default function FindLocalBusinessesPage() {
         </p>
         <div className="flex flex-wrap gap-2">
           <Link href={`/direct-connect?county=12033&source=pensacola-launch&intent=local_search`}>
-            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">Start a Pensacola request</Button>
+            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
+              Start a Pensacola request
+            </Button>
           </Link>
           <Link href="/pensacola">
-            <Button variant="outline" className="border-white/20 text-white">Pensacola hub</Button>
+            <Button variant="outline" className="border-white/20 text-white">
+              Pensacola hub
+            </Button>
           </Link>
           <Link href="/pensacola/hvac-repair">
-            <Button variant="outline" className="border-white/20 text-white">HVAC repair</Button>
+            <Button variant="outline" className="border-white/20 text-white">
+              HVAC repair
+            </Button>
           </Link>
           <Link href="/pensacola/plumbing">
-            <Button variant="outline" className="border-white/20 text-white">Plumbing</Button>
+            <Button variant="outline" className="border-white/20 text-white">
+              Plumbing
+            </Button>
           </Link>
         </div>
       </section>
