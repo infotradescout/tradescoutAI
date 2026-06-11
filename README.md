@@ -2,6 +2,14 @@
 
 Start here: [README_START_HERE.md](README_START_HERE.md) | [PRODUCTION.md](PRODUCTION.md)
 
+## Architecture Overview
+
+Before making changes to platform architecture, routing, onboarding, HomeID, Scout, Direct Connect, Community, Trust/CVS, Finance, or Claims systems, read:
+
+[TRADESCOUT_SYSTEM_MAP.md](TRADESCOUT_SYSTEM_MAP.md)
+
+This document is the canonical platform architecture and doctrine reference.
+
 ## Local Development
 
 **Prerequisites:** Node.js + a Postgres database
