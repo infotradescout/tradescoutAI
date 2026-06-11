@@ -977,20 +977,11 @@ app.use(landingContractHeaders);
                 res.sendFile(filePath);
               });
 
-              // 2) Serve other static files (index.html, icons, etc.)
-              app.use(
-                express.static(publicDistPath, {
-                  index: false,
-                  setHeaders: (res, filePath) => {
-                    if (filePath.endsWith(".html")) {
-                      res.setHeader("Cache-Control", "no-store");
-                    }
-                  },
-                })
-              );
-
+              // Public entry HTML must run before express.static. The built app also contains
+              // /landing assets, and static directory handling can otherwise serve the SPA shell
+              // before the server-rendered CTA fallback is injected.
               app.get(
-                ["/", "/landing", "/landing/:variant", "/lp", "/lp/:variant"],
+                ["/", "/landing", "/landing/", "/landing/:variant", "/lp", "/lp/", "/lp/:variant"],
                 async (req, res) => {
                   try {
                     const indexPath = path.join(publicDistPath, "index.html");
@@ -1017,6 +1008,18 @@ app.use(landingContractHeaders);
                     res.status(500).send("Failed to render landing page");
                   }
                 }
+              );
+
+              // 2) Serve other static files (index.html, icons, etc.)
+              app.use(
+                express.static(publicDistPath, {
+                  index: false,
+                  setHeaders: (res, filePath) => {
+                    if (filePath.endsWith(".html")) {
+                      res.setHeader("Cache-Control", "no-store");
+                    }
+                  },
+                })
               );
 
               // Public profile pages: server-rendered HTML for crawlability

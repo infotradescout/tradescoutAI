@@ -1,10 +1,16 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
+import fs from "node:fs";
+import path from "node:path";
 import { buildPublicLandingHtml } from "../publicLandingHtml";
 import TradeScoutLandingPage from "../../client/src/pages/TradeScoutLandingPage";
 
 let getPostLandingRoute: typeof import("../../client/src/AppRoutes").getPostLandingRoute;
+
+function read(relPath: string): string {
+  return fs.readFileSync(path.resolve(process.cwd(), relPath), "utf8");
+}
 
 beforeAll(async () => {
   vi.stubGlobal("window", {
@@ -45,6 +51,9 @@ describe("TradeScout public entry rendered smoke", () => {
 
       expect(html).toContain("Connection Without Compromise");
       expect(html).toContain(">Start a Request</a>");
+      expect(html).toContain(">Claim Provider Profile</a>");
+      expect(html).toContain('href="/direct-connect?source=landing_primary_cta"');
+      expect(html).toContain('href="/register?role=provider"');
       expect(html).not.toContain("Ask Scout");
       expect(html).not.toContain("Scout chatbot");
       expect(html).not.toContain("Direct Connect");
@@ -74,6 +83,18 @@ describe("TradeScout public entry rendered smoke", () => {
     expect(lpVariantHtml).toContain(
       '<link rel="canonical" href="https://www.thetradescout.com/landing/local-operating-system" />'
     );
+  });
+
+  it("registers public entry server HTML before static shell serving", () => {
+    for (const relPath of ["server/index.ts", "server/index.prod.ts"]) {
+      const source = read(relPath);
+      const routeIndex = source.indexOf('"/landing/"');
+      const staticIndex = source.indexOf("express.static(publicDistPath");
+
+      expect(routeIndex).toBeGreaterThan(-1);
+      expect(staticIndex).toBeGreaterThan(-1);
+      expect(routeIndex).toBeLessThan(staticIndex);
+    }
   });
 
   it("renders canonical public landing CTAs with stable targets", () => {

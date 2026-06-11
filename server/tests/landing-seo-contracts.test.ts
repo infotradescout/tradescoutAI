@@ -27,6 +27,7 @@ describe("landing SEO contracts", () => {
 
     expect(source).toContain("Connection Without Compromise");
     expect(source).toContain("Start a Request");
+    expect(source).toContain("Claim Provider Profile");
     expect(source).toContain("/tradescout-logo-circle.png");
     expect(source).not.toContain("Find Any Local Business Near You");
     expect(source).not.toContain("Ask Scout");
@@ -55,6 +56,9 @@ describe("landing SEO contracts", () => {
     expect(html).toContain("<h1>Connection Without Compromise</h1>");
     expect(html).toContain('alt="TradeScout logo"');
     expect(html).toContain(">Start a Request</a>");
+    expect(html).toContain(">Claim Provider Profile</a>");
+    expect(html).toContain('href="/direct-connect?source=landing_primary_cta"');
+    expect(html).toContain('href="/register?role=provider"');
     expect(html).not.toContain("Find Any Local Business Near You");
     expect(html).not.toContain("Ask Scout");
     expect(html).not.toContain("Scout routes");

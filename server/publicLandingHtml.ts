@@ -117,7 +117,10 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
       <li>Trust signals stay visible.</li>
       <li>Contact stays governed instead of chaotic.</li>
     </ul>
-    <p><a href="/direct-connect">Start a Request</a></p>
+    <nav aria-label="Public entry actions">
+      <a href="/direct-connect?source=landing_primary_cta">Start a Request</a>
+      <a href="/register?role=provider">Claim Provider Profile</a>
+    </nav>
   </article>
 </main>`;
 
