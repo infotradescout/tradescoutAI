@@ -235,6 +235,34 @@ describe("core product KPI analytics delivery", () => {
     });
   });
 
+  it("persists Direct Connect request-review-opened KPI events", async () => {
+    const app = makeApp();
+    const event = {
+      type: "direct_connect_request_review_opened",
+      category: "roofing",
+      hasBudget: true,
+      attachmentCount: 2,
+      homeContextIntent: "skip_for_now",
+      deviceType: "desktop",
+      ts: new Date().toISOString(),
+    };
+
+    const response = await request(app).post("/api/analytics/shell").send(event);
+    expect(response.status).toBe(204);
+
+    await flushAsyncWork();
+
+    expect(logEventMock).toHaveBeenCalledTimes(1);
+    expect(logEventMock.mock.calls[0][0]).toBe("direct_connect_request_review_opened");
+    expect(logEventMock.mock.calls[0][1]).toMatchObject({
+      type: "direct_connect_request_review_opened",
+      category: "roofing",
+      hasBudget: true,
+      attachmentCount: 2,
+      homeContextIntent: "skip_for_now",
+    });
+  });
+
   it("persists landing-attributed Direct Connect request-submitted KPI events", async () => {
     const app = makeApp();
     const event = {
