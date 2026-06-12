@@ -12,6 +12,28 @@ Primary action: review request.
 
 Every app screen gets exactly one primary job, one primary action, and only the minimum explanation required to complete it safely.
 
+No hero sections inside transactional app workflows.
+
+Hero sections are allowed for:
+
+- Public landing pages
+- Marketing pages
+- Onboarding intros
+- Empty states
+- Major feature education
+
+Hero sections are not allowed for:
+
+- Request forms
+- Checkout/payment
+- Queue actions
+- Profile editing
+- Owner setup
+- Menu editing
+- Search results
+- Inbox
+- Admin actions
+
 ## Global UI Filter
 
 If a normal user needs visible information to take action, keep it short and close to the action.
@@ -40,7 +62,8 @@ The beta notice must be compact, inline, and non-blocking. It must not float ove
 ## Slice 1 Changes Applied
 
 - Replaced system-thinking form intro copy with action-oriented request copy.
-- Converted the request stepper into a compact mobile progress row.
+- Removed duplicated workflow headers and the form-card hero header.
+- Converted the request stepper into a compact progress line and thin bar.
 - Reduced visible HomeID explanation to a short optional save prompt.
 - Kept HomeID details behind an explicit action.
 - Normalized request fields, spacing, textarea sizing, and photo upload affordance.

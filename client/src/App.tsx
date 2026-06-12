@@ -95,6 +95,8 @@ const AppLayout = memo(function AppLayout() {
     pathOnly === "/tradepartners" ||
     pathOnly.startsWith("/tradepartners/") ||
     pathOnly.startsWith("/collections/");
+  const isDirectConnectSurface =
+    pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
 
   const { user, isAuthenticated, isLoading } = useAuth();
   const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;
@@ -253,7 +255,8 @@ const AppLayout = memo(function AppLayout() {
     !isPortalSurface &&
     !isLandingRoute &&
     !isShareRoute &&
-    !isAuthSurface;
+    !isAuthSurface &&
+    !isDirectConnectSurface;
 
   const appBackgroundClass = "";
   const mainClassName = "flex-1 relative w-full";

@@ -17,7 +17,7 @@ import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { interpretWorkRequestStateForScout } from "@/utils/interpretWorkRequestState";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   DecisionContactGatePanel,
@@ -90,6 +90,7 @@ import {
   UploadCloud,
   FolderKanban,
   Clock3,
+  X,
 } from "lucide-react";
 
 const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"] as const;
@@ -159,12 +160,6 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
   pros: "Directory",
   engagements: "Requests",
 };
-
-const REQUEST_PREP_STEPS = [
-  { label: "Describe", detail: "Scope and location" },
-  { label: "Review", detail: "Check details" },
-  { label: "Submit", detail: "Send request" },
-];
 
 const REQUEST_FIELD_CLASS =
   "min-h-11 rounded-lg border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
@@ -1148,6 +1143,7 @@ function DirectConnectRequestComposer({
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
+  const [showDirectConnectBetaNotice, setShowDirectConnectBetaNotice] = useState(false);
   const directConnectIntent = useMemo(() => getDirectConnectIntent(location), [location]);
   const intentConfig = directConnectIntent
     ? localizeIntentConfig(DIRECT_CONNECT_INTENT_CONFIG[directConnectIntent], t)
@@ -2060,64 +2056,75 @@ function DirectConnectRequestComposer({
     });
   };
 
+  useEffect(() => {
+    const dismissed =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("ts_beta_notice_dismissed_session")
+        : null;
+    if (!dismissed) {
+      setShowDirectConnectBetaNotice(true);
+    }
+  }, []);
+
+  const dismissDirectConnectBetaNotice = () => {
+    sessionStorage.setItem("ts_beta_notice_dismissed_session", "true");
+    setShowDirectConnectBetaNotice(false);
+  };
+
   return (
-    <Card className="overflow-hidden border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_14px_42px_rgba(0,0,0,0.18)]">
-      <CardHeader className="border-b border-[color:var(--border-subtle)]/45 bg-[color:var(--surface-card)] pb-5">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[color:var(--theme-accent-primary)]/25 bg-[color:var(--theme-accent-primary)]/10">
-              <ClipboardPlus className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-            </div>
-            <div>
-              <CardTitle className="text-base text-[color:var(--text-primary)]">
-                Prepare a request
-              </CardTitle>
-              <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                Post your request. We’ll guide the next step.
-              </p>
-            </div>
+    <Card className="overflow-hidden border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
+      <CardContent className="space-y-4 px-4 py-4 sm:px-6">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h1 className="text-xl font-semibold leading-tight text-[color:var(--text-primary)]">
+              Post a request
+            </h1>
+            <span className="shrink-0 text-[11px] font-semibold text-[color:var(--theme-accent-primary)]">
+              Step 1 of 3 · Describe
+            </span>
           </div>
-          <div className="w-full md:w-[360px]">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--theme-accent-primary)]">
-                Step 1 of 3
-              </span>
-              <span className="text-[11px] text-[color:var(--text-secondary)]">Review next</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2" aria-label="Request progress">
-              {REQUEST_PREP_STEPS.map((step, index) => (
+          {showDirectConnectBetaNotice && (
+            <div className="rounded-md border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/55 px-2.5 py-2">
+              <div className="flex items-start gap-2">
                 <div
-                  key={step.label}
-                  className={cn(
-                    "relative min-w-0 border-t pt-2",
-                    index === 0
-                      ? "border-[color:var(--theme-accent-primary)] text-[color:var(--text-primary)]"
-                      : "border-[color:var(--border-subtle)] text-[color:var(--text-secondary)]"
-                  )}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={cn(
-                        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
-                        index === 0
-                          ? "bg-[color:var(--theme-accent-primary)] text-text-black"
-                          : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
-                      )}
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="truncate text-xs font-semibold">{step.label}</span>
-                  </div>
-                  <p className="mt-1 hidden text-[10px] leading-4 text-[color:var(--text-secondary)] sm:block">
-                    {step.detail}
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                  // eslint-disable-next-line no-restricted-syntax -- uses theme CSS variables for dynamic accent glow
+                  style={{
+                    backgroundColor: "var(--theme-accent-primary,#ff6600)",
+                    boxShadow:
+                      "0 0 0 3px color-mix(in oklab, var(--theme-accent-primary,#ff6600) 18%, transparent)",
+                  }}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-[color:var(--text-primary)]">
+                    TradeScout beta
+                  </p>
+                  <p className="text-[11px] leading-4 text-[color:var(--text-secondary)]">
+                    We’re improving requests while beta is active. Report anything that feels off.
                   </p>
                 </div>
-              ))}
+                <button
+                  type="button"
+                  aria-label="Dismiss beta notice"
+                  onClick={dismissDirectConnectBetaNotice}
+                  className="-mr-1 rounded-md p-1 text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-card)] hover:text-[color:var(--text-primary)]"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="space-y-1" aria-label="Request progress">
+            <div className="h-1 rounded-full bg-[color:var(--surface-intermediate)]">
+              <div className="h-full w-1/3 rounded-full bg-[color:var(--theme-accent-primary)]" />
+            </div>
+            <div className="flex items-center justify-between text-[10px] font-medium text-[color:var(--text-secondary)]">
+              <span className="text-[color:var(--text-primary)]">Describe</span>
+              <span>Review</span>
+              <span>Submit</span>
             </div>
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-5 px-4 py-5 sm:px-6">
         {prefillTargetUserId && (
           <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
             <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">From Community</p>
@@ -4981,10 +4988,12 @@ export default function DirectConnectShell() {
       />
       <div className="mx-auto w-full max-w-6xl space-y-2.5 px-2.5 py-3 sm:px-3 sm:py-4 md:space-y-3 md:px-6 md:py-6">
         <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
-          <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
-            <span className="md:hidden">{mobileTitle}</span>
-            <span className="hidden md:inline">Direct Connect</span>
-          </h1>
+          {activeSection !== "post" && (
+            <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
+              <span className="md:hidden">{mobileTitle}</span>
+              <span className="hidden md:inline">Direct Connect</span>
+            </h1>
+          )}
 
           <div className="hidden flex-wrap justify-end gap-2 md:flex">
             <button
@@ -5057,7 +5066,7 @@ export default function DirectConnectShell() {
         >
           <CardContent className="pt-4">
             <p className="text-sm text-[color:var(--text-primary)]">
-              Prepare a request, add details, review request details, and submit when ready.
+              Add request details, review them, and submit when ready.
             </p>
           </CardContent>
         </Card>
