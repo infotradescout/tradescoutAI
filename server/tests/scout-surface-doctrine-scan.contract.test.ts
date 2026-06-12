@@ -11,6 +11,30 @@ const SCAN_ROOTS = [
   "data/TradeScout Brain",
 ];
 
+const EXCLUDED_DIRECTORIES = new Set([
+  ".git",
+  "artifacts",
+  "build",
+  "coverage",
+  "dist",
+  "node_modules",
+]);
+
+const SCANNED_EXTENSIONS = new Set([
+  ".css",
+  ".cjs",
+  ".html",
+  ".js",
+  ".json",
+  ".jsx",
+  ".md",
+  ".mdx",
+  ".mjs",
+  ".ts",
+  ".tsx",
+  ".txt",
+]);
+
 const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "Ask Scout", regex: /\bask scout\b/i },
   { label: "Search with Scout", regex: /\bsearch with scout\b/i },
@@ -38,14 +62,19 @@ const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "virtual-assistant", regex: /\bvirtual-assistant\b/i },
 ];
 
-function shouldScan(relativePath: string): boolean {
+function shouldEnterDirectory(relativePath: string): boolean {
   const normalized = relativePath.replace(/\\/g, "/");
+  const directoryName = path.basename(normalized);
+  if (EXCLUDED_DIRECTORIES.has(directoryName)) return false;
   if (normalized.includes("/exports/workspaces/")) return false;
-  if (normalized.includes("/node_modules/")) return false;
-  if (normalized.includes("/dist/")) return false;
-  if (normalized.includes("/build/")) return false;
   if (normalized.includes("/docs/audits/")) return false;
   if (normalized.includes("/docs/history/")) return false;
+  return true;
+}
+
+function shouldScan(relativePath: string): boolean {
+  const normalized = relativePath.replace(/\\/g, "/");
+  if (!SCANNED_EXTENSIONS.has(path.extname(normalized))) return false;
   if (normalized.includes(".test.")) return false;
   if (normalized.includes(".contract.")) return false;
   return true;
@@ -65,6 +94,7 @@ function collectFiles(startRelativePath: string): string[] {
       const relativePath = path.relative(ROOT, fullPath).replace(/\\/g, "/");
 
       if (entry.isDirectory()) {
+        if (!shouldEnterDirectory(relativePath)) continue;
         stack.push(fullPath);
         continue;
       }
