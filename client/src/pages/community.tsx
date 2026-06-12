@@ -391,7 +391,7 @@ export default function Community() {
           {/* Header */}
           <div className="mb-4">
             <h1 className="text-lg font-semibold text-ts-orange mb-1">Community</h1>
-            <p className="text-sm text-white/70">Ask your neighbors. Share what works.</p>
+            <p className="text-sm text-white/70">Local updates, questions, and projects.</p>
           </div>
 
           {/* Navigation Tabs */}
@@ -406,7 +406,7 @@ export default function Community() {
                 }`}
                 data-testid="tab-for-you"
               >
-                Recommended
+                Local
               </button>
               <button
                 onClick={() => setActiveTab("projects")}
@@ -457,8 +457,10 @@ export default function Community() {
                         aria-hidden="true"
                       />
                       <div>
-                        <p className="font-medium text-sm text-white">Draft imported from Scout</p>
-                        <p className="text-[11px] text-white/70">Review and publish.</p>
+                        <p className="font-medium text-sm text-white">Draft ready</p>
+                        <p className="text-[11px] text-white/70">
+                          Review and publish your community post.
+                        </p>
                       </div>
                     </div>
                   )}

@@ -75,7 +75,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
     });
   }, [action, scoutAction, context.targetRole]);
 
-  // Map Scout action to guidance state
+  // Map the policy action to a user-facing guidance state.
   const guidanceState =
     scoutAction === "COMPLY" ? "safe" : scoutAction === "DEFER" ? "caution" : "blocked";
 
@@ -97,7 +97,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
       case "caution":
         return "Pause advised";
       case "blocked":
-        return "Blocked by policy";
+        return "Action unavailable";
     }
   };
 
@@ -128,11 +128,9 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
         </div>
       )}
 
-      {/* 3. Scout Guidance */}
+      {/* 3. Contact Readiness */}
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-white/70">
-          How Scout governs this decision right now
-        </h3>
+        <h3 className="text-sm font-medium text-white/70">Before contact opens</h3>
         <div className="flex items-start gap-3">
           {getGuidanceIcon()}
           <div className="flex-1 space-y-1">
@@ -216,7 +214,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
             <Button
               onClick={() => {
                 const confirmed = window.confirm(
-                  "Scout policy blocks this action right now. Are you sure you want to proceed?"
+                  "This action is unavailable right now. Are you sure you want to proceed?"
                 );
                 if (confirmed) {
                   recordActivity({

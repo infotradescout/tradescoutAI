@@ -1035,9 +1035,9 @@ const CommunityFeed = memo(function CommunityFeed() {
       ) : tabSortedPosts.length === 0 ? (
         <Card className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 md:p-8 text-center">
-            <h3 className="text-lg md:text-xl font-semibold text-white">Community feed is live</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-white">No posts here yet</h3>
             <p className="mt-2 text-sm text-[color:var(--text-secondary)]">
-              No posts yet for this view. Start with a question, recommendation, or local update.
+              Start with a question, a recommendation, or a local update.
             </p>
           </CardContent>
         </Card>
@@ -1086,7 +1086,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                       <div>
                         <div className="flex items-center gap-2">
                           {isSystemPost ? (
-                            <h3 className="text-white font-semibold text-sm md:text-base">Scout</h3>
+                            <h3 className="text-white font-semibold text-sm md:text-base">
+                              TradeScout
+                            </h3>
                           ) : (
                             <button
                               type="button"
@@ -1693,10 +1695,10 @@ const CommunityFeed = memo(function CommunityFeed() {
                       Community
                     </p>
                     <h1 className="mt-1 text-base md:text-lg font-semibold text-white">
-                      Local decisions, shared context
+                      Local activity
                     </h1>
                     <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)]">
-                      Ask, recommend, and coordinate in one local stream.
+                      Browse updates, ask a question, or start a request.
                     </p>
                     <p className="mt-1 text-[11px] md:text-xs text-white/60">
                       {`${
@@ -1708,7 +1710,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                   </div>
                 </div>
 
-                <div className="mt-3 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
+                <div className="mt-3 -mx-3 hidden px-3 overflow-x-auto overflow-y-hidden md:block">
                   <div className="flex gap-2 min-w-max pb-1 snap-x snap-mandatory scroll-pl-3">
                     <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
                       <p className="text-[10px] uppercase tracking-wide text-white/60">Members</p>
@@ -1758,7 +1760,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                   </div>
                 )}
                 {activeConnections.length > 0 && (
-                  <div className="mt-2 -mx-3 px-3 overflow-x-auto overflow-y-hidden">
+                  <div className="mt-2 -mx-3 hidden px-3 overflow-x-auto overflow-y-hidden md:block">
                     <div className="flex items-center gap-2 min-w-max pb-1">
                       {activeConnections.slice(0, 12).map((neighbor) => {
                         const name =
@@ -1869,7 +1871,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                           value="forYou"
                           className="rounded-md px-3 py-1.5 text-xs font-semibold"
                         >
-                          Recommended
+                          Local
                         </TabsTrigger>
                         <TabsTrigger
                           value="recent"
@@ -1907,7 +1909,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 selectedCategory === "request"
                                   ? "What do you need help with? (e.g., 'Need someone to fix my fence')"
                                   : selectedCategory === "question"
-                                    ? "What do you want to know? Scout or your neighbors can help..."
+                                    ? "What do you want to know? Ask your neighbors..."
                                     : selectedCategory === "forsale"
                                       ? "What are you selling? Include price and condition..."
                                       : selectedCategory === "alert"
@@ -1951,7 +1953,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   key: "question",
                                   label: "Question",
                                   icon: HelpCircle,
-                                  intent: "Get help from Scout or locals",
+                                  intent: "Ask neighbors",
                                 },
                                 {
                                   key: "recommendation",
@@ -2032,7 +2034,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-xs text-white/60 uppercase tracking-wide">
                                   <MessageSquare className="h-3 w-3" />
-                                  <span>Ask your neighbors</span>
+                                  <span>Start a post</span>
                                 </div>
                                 <div className="grid gap-2">
                                   {seededPrompts.map((prompt) => (

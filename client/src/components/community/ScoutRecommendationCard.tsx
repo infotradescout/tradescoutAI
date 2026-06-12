@@ -91,15 +91,13 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
     });
   };
 
-  // Get confidence styling
+  // Get grounded readiness styling without exposing fake precision.
   const getConfidenceBadge = () => {
-    const score = Math.round(recommendation.confidenceScore * 100);
-
     if (recommendation.confidenceTier === "auto_allow") {
       return {
         color: "bg-emerald-100 text-emerald-800 border-emerald-300",
         icon: <CheckCircle2 className="w-4 h-4" />,
-        label: `${score}% match`,
+        label: "Ready to review",
       };
     }
 
@@ -107,7 +105,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
       return {
         color: "bg-blue-100 text-blue-800 border-blue-300",
         icon: <CheckCircle2 className="w-4 h-4" />,
-        label: `${score}% match`,
+        label: "Review first",
       };
     }
 
@@ -115,7 +113,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
       return {
         color: "bg-amber-100 text-amber-800 border-amber-300",
         icon: <AlertCircle className="w-4 h-4" />,
-        label: `${score}% match`,
+        label: "Use care",
       };
     }
 
@@ -123,7 +121,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
     return {
       color: "bg-white/5 text-white/60 border-white/10",
       icon: <XCircle className="w-4 h-4" />,
-      label: "Blocked by policy",
+      label: "Unavailable",
     };
   };
 
@@ -137,10 +135,10 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   return (
     <>
       <div className="bg-white border border-white/10 rounded-lg p-4 space-y-4 shadow-sm hover:shadow-md transition-shadow">
-        {/* Header: governance framing */}
+        {/* Header */}
         <div className="flex items-center gap-2 text-sm text-white/60">
           <TrendingUp className="w-4 h-4" />
-          <span className="font-medium">Scout recommendation</span>
+          <span className="font-medium">Local suggestion</span>
         </div>
 
         {/* Target User */}
@@ -173,39 +171,11 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 
         {/* Reasoning */}
         <div className="space-y-1">
-          <p className="text-sm font-medium text-white/70">Why this contact makes sense:</p>
+          <p className="text-sm font-medium text-white/70">Why this may fit:</p>
           <p className="text-sm text-white/60">{recommendation.reasoning}</p>
           {recommendation.decisionScope && (
             <p className="text-sm text-white/60 italic">{recommendation.decisionScope}</p>
           )}
-        </div>
-
-        {/* Confidence Components (for transparency) */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="flex justify-between">
-            <span className="text-white/60">Skills match:</span>
-            <span className="font-medium text-white/70">
-              {Math.round(recommendation.confidenceComponents.expertise_match * 100)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Location:</span>
-            <span className="font-medium text-white/70">
-              {Math.round(recommendation.confidenceComponents.location_match * 100)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Trust signals:</span>
-            <span className="font-medium text-white/70">
-              {Math.round(recommendation.confidenceComponents.trust_signal * 100)}%
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-white/60">Past success:</span>
-            <span className="font-medium text-white/70">
-              {Math.round(recommendation.confidenceComponents.past_success * 100)}%
-            </span>
-          </div>
         </div>
 
         {/* Risk Flags (if caution level) */}
@@ -228,7 +198,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
               className="flex-1 bg-tsCard hover:bg-white/5 text-white"
               disabled={actionMutation.isPending}
             >
-              Proceed with contact
+              Start contact review
             </Button>
           )}
 
@@ -239,7 +209,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
               className="flex-1 border-white/10 text-white/70 hover:bg-white/5"
               disabled={actionMutation.isPending}
             >
-              Review & confirm
+              Review details
             </Button>
           )}
 
@@ -250,7 +220,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
               className="flex-1 border-amber-600 text-amber-900 hover:bg-amber-50"
               disabled={actionMutation.isPending}
             >
-              Proceed with caution
+              Review carefully
             </Button>
           )}
 
@@ -279,7 +249,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             riskFlags: recommendation.riskFlags,
             sourceScoutRecommendationId: recommendation.recommendationId, // D2: Scout rec ID
             decisionScope: recommendation.decisionScope || "",
-            decisionTitle: "Scout recommendation",
+            decisionTitle: "Local suggestion",
           }}
           onClose={() => setShowContactModal(false)}
         />

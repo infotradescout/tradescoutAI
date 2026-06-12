@@ -113,7 +113,7 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
 
   if (normalized === "recommendations" || normalized === "recommendation") {
     return {
-      label: "Trust Signal",
+      label: "Recommendation",
       icon: <ThumbsUp className="w-3.5 h-3.5" />,
       className: "bg-emerald-500/10 border-emerald-500/40 text-emerald-300",
       accentClassName: "border-l-2 border-emerald-500/60 pl-4",
@@ -446,7 +446,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                           variant="outline"
                           className="text-[10px] px-1.5 py-0.5 border-[color:var(--border-subtle)]"
                         >
-                          {`CVS ${Math.round(cvsScore)}`}
+                          Trust checked
                         </Badge>
                       )}
                     </div>
@@ -525,7 +525,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                           variant="outline"
                           className="text-[10px] px-1.5 py-0.5 border-[color:var(--border-subtle)]"
                         >
-                          {`CVS ${Math.round(cvsScore)}`}
+                          Trust checked
                         </Badge>
                       )}
                     </div>

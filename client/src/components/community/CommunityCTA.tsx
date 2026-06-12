@@ -257,10 +257,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
           riskFraming={currentAuthority.explanation ? [currentAuthority.explanation] : []}
           guidance={
             currentAuthority.action === "COMPLY"
-              ? "This looks like a safe match. You can move forward."
+              ? "This is ready to review. You can move forward."
               : currentAuthority.action === "DEFER"
-                ? "Scout needs a little more context before moving forward."
-                : "Scout is blocking this for now because key details are still missing."
+                ? "Add a little more context before moving forward."
+                : "Key details are still missing before this action can open."
           }
           explanation={currentAuthority.explanation}
           onProceed={handleDecisionProceed}

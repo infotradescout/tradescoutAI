@@ -22,12 +22,7 @@ export interface CommunityComposerInlineProps {
   maxImages?: number;
 }
 
-export type PostType =
-  | "alert"
-  | "project"
-  | "recommendation"
-  | "discussion"
-  | "admin_notice";
+export type PostType = "alert" | "project" | "recommendation" | "discussion" | "admin_notice";
 
 export function CommunityComposerInline({
   isAuthenticated,
@@ -58,9 +53,7 @@ export function CommunityComposerInline({
     }
   };
 
-  const handleImagesSelected = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleImagesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!onImagesChange) {
       event.target.value = "";
       return;
@@ -104,7 +97,7 @@ export function CommunityComposerInline({
               [
                 { k: "alert", label: "Alert" },
                 { k: "project", label: "Project" },
-                { k: "recommendation", label: "Trust Request" },
+                { k: "recommendation", label: "Recommendation" },
                 { k: "discussion", label: "Discussion" },
                 { k: "admin_notice", label: "Admin Notice" },
               ] as Array<{ k: PostType; label: string }>
@@ -141,11 +134,7 @@ export function CommunityComposerInline({
                 key={url + index}
                 className="relative w-20 h-20 rounded-md overflow-hidden border border-white/10"
               >
-                <img
-                  src={url}
-                  alt="Post attachment"
-                  className="w-full h-full object-cover"
-                />
+                <img src={url} alt="Post attachment" className="w-full h-full object-cover" />
                 {onImagesChange && (
                   <button
                     type="button"
@@ -185,12 +174,10 @@ export function CommunityComposerInline({
               Feeling
             </Button>
           </div>
-          <div className={`flex gap-1.5 sm:gap-2 ml-auto ${handedness === "left" ? "order-first" : ""}`}>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onChange("")}
-            >
+          <div
+            className={`flex gap-1.5 sm:gap-2 ml-auto ${handedness === "left" ? "order-first" : ""}`}
+          >
+            <Button variant="outline" size="sm" onClick={() => onChange("")}>
               Clear
             </Button>
             <Button

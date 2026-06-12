@@ -155,7 +155,7 @@ export const CommunitySnapshotRail: React.FC<{
               id: "deals-coming-soon-1",
               type: "starter_invitation",
               title: "No active TradeDeals yet",
-              description: "Your local area has no active verified TradeDeals right now",
+              description: "Your local area has no active TradeDeals right now",
               label: "No Active Deals",
               icon: "sparkles",
               gradient: "from-orange-950 via-slate-900 to-slate-950",
@@ -164,9 +164,9 @@ export const CommunitySnapshotRail: React.FC<{
             {
               id: "deals-coming-soon-2",
               type: "starter_invitation",
-              title: "Invite local suppliers",
-              description: "Use Scout to nominate verified suppliers you want to see nearby",
-              label: "Take Action",
+              title: "Browse local offers",
+              description: "Search local businesses and offers you want to see nearby",
+              label: "Search Local",
               icon: "zap",
               gradient: "from-slate-900 via-slate-900 to-slate-950",
               href: "/trade-deals",
@@ -214,7 +214,7 @@ export const CommunitySnapshotRail: React.FC<{
               type: "starter_invitation",
               title: "New local area - early access",
               description: "You're among the first people here. Help shape this community",
-              label: "Pioneer",
+              label: "Early Local",
               icon: "sparkles",
               gradient: "from-purple-950 via-slate-900 to-slate-950",
             }
@@ -344,7 +344,7 @@ export const CommunitySnapshotRail: React.FC<{
         {/* Minimal footer */}
         {isTradeDeal && card.canDirectConnect && (
           <div className="relative z-10 mt-2">
-            <div className="text-[10px] text-ts-orange font-medium">Quick Connect</div>
+            <div className="text-[10px] text-ts-orange font-medium">Start request</div>
           </div>
         )}
         {showAuthorityLabels && card.authorityLabel && (
@@ -362,7 +362,7 @@ export const CommunitySnapshotRail: React.FC<{
   return (
     <div className={["w-full px-2 pt-2 pb-3", className || ""].join(" ")}>
       <div className="flex items-center justify-between mb-2">
-        <div className="text-base font-bold text-white">Community Snapshot</div>
+        <div className="text-base font-bold text-white">Local activity</div>
         <button
           type="button"
           onClick={() => navigate("/trade-deals")}

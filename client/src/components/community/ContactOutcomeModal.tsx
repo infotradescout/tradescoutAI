@@ -45,7 +45,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
       }
 
       // Always ensure we have a durable decision card backing authority.
-      // Scout recommendation IDs are not yet validated end-to-end, so decision_card is the safe gate.
+      // Recommendation IDs are not yet validated end-to-end, so decision_card is the safe gate.
       let decisionCardId = outcome.sourceDecisionCardId;
       if (!decisionCardId) {
         const res = await fetch("/api/decision-cards", {
@@ -143,14 +143,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
   const hasConfidenceScore = typeof outcome.confidenceScore === "number";
   const policyScore: number = hasConfidenceScore ? outcome.confidenceScore! : 0.7;
 
-  // Determine confidence level styling
-  const getConfidenceColor = () => {
-    if (policyScore >= 0.85) return "text-emerald-600";
-    if (policyScore >= 0.7) return "text-blue-600";
-    if (policyScore >= 0.5) return "text-amber-600";
-    return "text-white/60";
-  };
-
+  // Determine readiness styling without exposing internal scoring.
   const getConfidenceIcon = () => {
     if (policyScore >= 0.7) {
       return <CheckCircle2 className="w-5 h-5 text-emerald-600" />;
@@ -159,10 +152,10 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
   };
 
   const getConfidenceText = () => {
-    if (policyScore >= 0.85) return "High confidence match";
-    if (policyScore >= 0.7) return "Good match";
-    if (policyScore >= 0.5) return "Proceed with caution";
-    return "Consider alternatives";
+    if (policyScore >= 0.85) return "Ready to review";
+    if (policyScore >= 0.7) return "Good context";
+    if (policyScore >= 0.5) return "Review carefully";
+    return "Consider another path";
   };
 
   // Block if confidence too low
@@ -173,15 +166,15 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           <div className="flex items-start gap-3">
             <AlertCircle className="w-6 h-6 text-white/60 flex-shrink-0 mt-0.5" />
             <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-white/70">Contact blocked by policy</h2>
+              <h2 className="text-lg font-semibold text-white/70">Contact unavailable</h2>
               <p className="text-sm text-white/60">
-                Scout policy indicates this contact is not a good match for your decision right now.
+                This contact path is not available for the details provided right now.
               </p>
             </div>
           </div>
 
           <div className="space-y-2 pt-2 border-t border-white/10">
-            <h3 className="text-sm font-medium text-white/70">Why policy blocked this</h3>
+            <h3 className="text-sm font-medium text-white/70">Why this is unavailable</h3>
             <ul className="space-y-1 text-sm text-white/60">
               {outcome.riskFlags.map((flag, i) => (
                 <li key={i}>* {flag}</li>
@@ -209,7 +202,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           </h2>
           <p className="text-sm text-white/60">Decision: {outcome.decisionTitle}</p>
           <p className="text-xs text-white/60">
-            Contact remains intent-based until this authority-confirmed step is completed.
+            Contact stays gated until your first-contact preview is reviewed.
           </p>
         </div>
 
@@ -244,7 +237,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
               Intent: {outcome.suggestedIntent}
             </p>
             <p className="text-xs text-white/60 mt-2">
-              Intent is locked by policy. Your preview is editable.
+              Intent stays tied to this request. Your preview is editable.
             </p>
             <div className="mt-2">
               <Textarea
@@ -259,20 +252,14 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
           </div>
         </div>
 
-        {/* Section 3: Scout Assessment */}
+        {/* Section 3: Contact Readiness */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-white/70">Policy assessment</h3>
+          <h3 className="text-sm font-medium text-white/70">Contact readiness</h3>
           <div className="flex items-start gap-3">
             {getConfidenceIcon()}
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium text-white/70">{getConfidenceText()}</p>
-              {hasConfidenceScore ? (
-                <p className={`text-sm font-mono ${getConfidenceColor()}`}>
-                  Confidence: {(policyScore * 100).toFixed(0)}%
-                </p>
-              ) : (
-                <p className="text-xs text-white/60">Authority verified by Scout policy.</p>
-              )}
+              <p className="text-xs text-white/60">Request context checked.</p>
             </div>
           </div>
 
@@ -300,8 +287,7 @@ export const ContactOutcomeModal: React.FC<ContactOutcomeModalProps> = ({ outcom
             />
             <span className="text-sm text-white/70">
               I understand this contact is for <strong>{outcome.suggestedIntent}</strong> related to{" "}
-              <strong>{outcome.decisionTitle}</strong>, and Scout has verified the authority for
-              this contact.
+              <strong>{outcome.decisionTitle}</strong>, and this contact path has been checked.
             </span>
           </label>
         </div>
