@@ -16,7 +16,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
   it("keeps request creation action-first with HomeID below required request inputs", () => {
     const requestTypeIndex = shellSource.indexOf("What do you need?");
     const photosIndex = shellSource.indexOf("Request photos");
-    const homeRecordIndex = shellSource.indexOf("Home record (optional)");
+    const homeRecordIndex = shellSource.indexOf("Save to HomeID");
 
     expect(requestTypeIndex).toBeGreaterThan(-1);
     expect(photosIndex).toBeGreaterThan(-1);
@@ -29,11 +29,9 @@ describe("HomeID and Direct Connect cohesion contract", () => {
     expect(shellSource).toContain("const [homeContextIntent, setHomeContextIntent] = useState<");
     expect(shellSource).toContain('>("skip_for_now")');
     expect(shellSource).toContain(
-      "Direct Connect starts the job. HomeID remembers useful property history."
+      "Keep this request in your home record for future repairs and updates."
     );
-    expect(shellSource).toContain(
-      "Helpful, never required: save request details now or skip and submit."
-    );
+    expect(shellSource).toContain("Add HomeID details");
     expect(shellSource).toContain("Skip for now");
     expect(shellSource).toContain("handleSkipAndAutoRoute");
     expect(shellSource).toContain("createMutation.mutate({");

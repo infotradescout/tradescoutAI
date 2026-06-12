@@ -64,7 +64,7 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("Saved conversations");
     expect(experienceSource).toContain("Community activity");
     expect(experienceSource).toContain(
-      "I can send a material list or supplier link and Scout can help turn it into a Supply Run."
+      "I can send a material list or supplier link and Scout will turn it into a Supply Run draft."
     );
     expect(experienceSource).toContain("Full Scout view");
     expect(experienceSource).toContain("Materials and local options");

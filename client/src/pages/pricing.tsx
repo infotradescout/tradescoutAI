@@ -86,8 +86,8 @@ const Pricing = memo(function Pricing() {
             className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
           >
             Use everything without a paywall. Search contractors, run community playbooks, manage
-            your Direct Connect requests, and chat with Scout, all included. Payment never affects
-            CVS, ranking, or matching.
+            your Direct Connect requests, and review local next steps, all included. Payment never
+            affects CVS, ranking, or matching.
           </motion.p>
         </div>
 

@@ -31,7 +31,8 @@ describe("direct connect intake contracts", () => {
 
   it("preserves review-before-contact copy in intake flow", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("Review request details first. No one is contacted until you submit.");
+    expect(source).toContain("Check the request before you send it.");
+    expect(source).toContain("Review your request before sending it.");
     expect(source).toContain("Choose who can receive this request");
   });
 
@@ -49,7 +50,7 @@ describe("direct connect intake contracts", () => {
     expect(source).toContain("Ready to submit");
     expect(source).toContain("Submit when ready");
     expect(source).toContain("Edit request");
-    expect(source).toContain("Review request details first. No one is contacted until you submit.");
+    expect(source).toContain("Check the request before you send it.");
   });
 
   it("evaluates request completeness with user-facing quality states", () => {
@@ -74,9 +75,9 @@ describe("direct connect intake contracts", () => {
 
   it("adds optional HomeID asset linking controls without blocking request flow", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("Home record (optional)");
+    expect(source).toContain("Save to HomeID");
     expect(source).toContain(
-      "Direct Connect starts the job. HomeID remembers useful property history."
+      "Keep this request in your home record for future repairs and updates."
     );
     expect(source).not.toContain("How should this request use home details?");
     expect(source).toContain("Use saved home details");

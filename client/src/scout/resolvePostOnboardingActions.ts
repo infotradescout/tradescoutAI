@@ -85,7 +85,7 @@ export function resolvePostOnboardingActions(
 
   actions.push({
     id: "ask_scout",
-    label: "Search with Scout",
+    label: "Search",
     destination: "/scout",
   });
 

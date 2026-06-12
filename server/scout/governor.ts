@@ -228,7 +228,7 @@ export interface Intervention {
   action: ScoutAction;
   role: ScoutRole;
   reasoning: string; // Why Scout chose this action
-  userMessage: string; // What Scout says to user
+  userMessage: string; // User-facing search status or next step
   nextSteps?: Step[]; // If DEFER/REDIRECT, what must happen first
   blockedReason?: string; // If BLOCK, specific reason
   overrideOption?: {

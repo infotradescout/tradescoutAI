@@ -708,6 +708,13 @@
       "when": 1780767540000,
       "tag": "0097_direct_connect_giveaway_entries",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1780767600000,
+      "tag": "0098_affiliate_attribution_conversion_ledger",
+      "breakpoints": true
     }
   ]
 }

@@ -33,6 +33,7 @@ describe("TradeScout production public-entry freshness smoke contract", () => {
     expect(source).toContain('href="/register?role=provider"');
 
     expect(source).toContain("Ask Scout");
+    expect(source).toContain("Search with Scout");
     expect(source).toContain("Scout chatbot");
     expect(source).toContain("lead marketplace");
     expect(source).toContain("lead-selling");

@@ -291,7 +291,7 @@ export const CompareCategoryPage = memo(function CompareCategoryPage({
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">
                   <a className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-ts-orange px-5 text-sm font-bold text-white shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] hover:bg-ts-orange-dark sm:w-auto">
-                    Search with Scout
+                    Search
                     <ArrowRight className="w-4 h-4" />
                   </a>
                 </Link>

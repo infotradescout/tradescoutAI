@@ -299,7 +299,7 @@ const CompareAngiPage = memo(function CompareAngiPage() {
               <div className="flex gap-3 justify-center flex-wrap">
                 <Link href="/scout">
                   <a className="inline-flex items-center gap-2 bg-ts-orange hover:bg-ts-orange-dark text-white font-bold px-5 h-10 rounded-lg shadow-lg shadow-ts-orange/25 transition-all hover:scale-[1.02] text-sm">
-                    Search with Scout
+                    Search
                     <ArrowRight className="w-4 h-4" />
                   </a>
                 </Link>

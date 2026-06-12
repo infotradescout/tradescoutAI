@@ -4739,7 +4739,7 @@ export default function ScoutOS() {
     },
     {
       id: "people",
-      label: "Search with Scout",
+      label: "Search",
       icon: Users2,
       prompt: "I have a question. Help me figure out what to do first.",
     },
@@ -4885,7 +4885,7 @@ export default function ScoutOS() {
       },
       {
         id: "search-site",
-        label: "Search with Scout",
+        label: "Search",
         detail: "Questions, next steps, and what to check first",
         icon: Search,
         panel: "nearby" as const,
@@ -5258,7 +5258,7 @@ export default function ScoutOS() {
                                       color: "var(--text-primary)",
                                     }}
                                   >
-                                    Search with Scout
+                                    Search
                                   </button>
                                 </span>
                               </span>

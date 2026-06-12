@@ -43,6 +43,7 @@ const requiredHtmlFragments = [
 
 const forbiddenCopy = [
   "Ask Scout",
+  "Search with Scout",
   "Scout chatbot",
   "lead marketplace",
   "lead-selling",

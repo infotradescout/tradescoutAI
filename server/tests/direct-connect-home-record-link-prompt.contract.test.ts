@@ -11,14 +11,11 @@ const analyticsPath = path.resolve(process.cwd(), "client/src/lib/coreProductAna
 describe("direct connect home record link prompt conversion contract", () => {
   it("renders home-record prompt language and keeps skip path non-blocking", () => {
     const source = fs.readFileSync(shellPath, "utf8");
-    expect(source).toContain("Home record (optional)");
+    expect(source).toContain("Save to HomeID");
     expect(source).toContain(
-      "Direct Connect starts the job. HomeID remembers useful property history."
+      "Keep this request in your home record for future repairs and updates."
     );
-    expect(source).toContain(
-      "Helpful, never required: save request details now or skip and submit."
-    );
-    expect(source).toContain("Show options");
+    expect(source).toContain("Add HomeID details");
     expect(source).toContain("Use saved home details");
     expect(source).toContain("Create a home record");
     expect(source).toContain("Skip for now");
@@ -75,7 +72,7 @@ describe("direct connect home record link prompt conversion contract", () => {
   it("keeps core request fields before home record controls", () => {
     const source = fs.readFileSync(shellPath, "utf8");
     const requestTypeIndex = source.indexOf("What do you need?");
-    const homeRecordIndex = source.indexOf("Home record (optional)");
+    const homeRecordIndex = source.indexOf("Save to HomeID");
     const requestPhotosIndex = source.indexOf("Request photos");
     expect(requestTypeIndex).toBeGreaterThan(-1);
     expect(requestPhotosIndex).toBeGreaterThan(-1);

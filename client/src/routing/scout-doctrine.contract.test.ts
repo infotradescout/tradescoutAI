@@ -42,7 +42,8 @@ describe("Scout routing/copy doctrine", () => {
 
     for (const file of files) {
       const source = read(file);
-      expect(source).toContain("Search with Scout");
+      expect(source).toContain("Search");
+      expect(source).not.toContain("Search with Scout");
       expect(source).not.toContain("Talk to Scout");
     }
   });
@@ -59,10 +60,17 @@ describe("Scout routing/copy doctrine", () => {
     const banned = [
       "Talk to Scout",
       "Ask Scout",
+      "Search with Scout",
       "Continue in Scout",
       "AI chatbot",
       "help bot",
       "support bot",
+      "Scout says",
+      "Scout thinks",
+      "Scout will contact",
+      "autonomous matching",
+      "auto-contact",
+      "contacted for you",
     ];
 
     for (const file of files) {

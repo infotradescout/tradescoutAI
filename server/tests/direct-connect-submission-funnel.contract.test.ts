@@ -20,9 +20,7 @@ describe("direct connect submission funnel contract harness", () => {
     expect(shellSource).toContain("handleSkipAndAutoRoute");
     expect(shellSource).toContain("createMutation.mutate({");
     expect(shellSource).toContain("autoRoute: true");
-    expect(shellSource).toContain(
-      "Review request details first. No one is contacted until you submit."
-    );
+    expect(shellSource).toContain("Check the request before you send it.");
   });
 
   it("emits review-opened event from the review path", () => {
@@ -73,7 +71,7 @@ describe("direct connect submission funnel contract harness", () => {
     expect(shellSource).toContain("navigate(`/pre-scout-setup?mode=signin&next=${next}`)");
     expect(shellSource).toContain("Your request draft is ready. Sign in to review and send it.");
     expect(shellSource).toContain(
-      "Direct Connect starts the job. HomeID remembers useful property history."
+      "Keep this request in your home record for future repairs and updates."
     );
     expect(shellSource).toContain("Skip for now");
   });

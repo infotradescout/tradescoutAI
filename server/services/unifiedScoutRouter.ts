@@ -153,7 +153,7 @@ export const SCOUT_ACTION_REGISTRY: Record<ScoutActionType, ScoutActionDefinitio
     isSensitive: false,
     allowedRoles: [],
     policyChecks: [],
-    description: "Search with Scout follow-up",
+    description: "Search follow-up",
   },
   FOLLOW_USER: {
     type: "FOLLOW_USER",

@@ -33,7 +33,10 @@ describe("entry surface operating-system contracts", () => {
   it("global beta notice stays transparent without apologizing for roughness", () => {
     const source = read("client/src/App.tsx");
 
-    expect(source).toContain("TradeScout is being hardened in public.");
+    expect(source).toContain("TradeScout beta");
+    expect(source).toContain(
+      "We’re improving requests while beta is active. Report anything that feels off."
+    );
     expect(source).not.toContain("Some features may be rough.");
   });
 });

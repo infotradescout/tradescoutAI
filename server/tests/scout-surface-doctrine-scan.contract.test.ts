@@ -13,6 +13,7 @@ const SCAN_ROOTS = [
 
 const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "Ask Scout", regex: /\bask scout\b/i },
+  { label: "Search with Scout", regex: /\bsearch with scout\b/i },
   { label: "Ask the Scout", regex: /\bask the scout\b/i },
   { label: "Talk to Scout", regex: /\btalk to scout\b/i },
   { label: "Continue in Scout", regex: /\bcontinue in scout\b/i },
@@ -24,6 +25,12 @@ const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "support desk", regex: /\bsupport desk\b/i },
   { label: "built-in helper", regex: /\bbuilt-in helper\b/i },
   { label: "Scout Assistant", regex: /\bscout assistant\b/i },
+  { label: "Scout says", regex: /\bscout says\b/i },
+  { label: "Scout thinks", regex: /\bscout thinks\b/i },
+  { label: "Scout will contact", regex: /\bscout will contact\b/i },
+  { label: "autonomous matching", regex: /\bautonomous matching\b/i },
+  { label: "auto-contact", regex: /\bauto-contact\b/i },
+  { label: "contacted for you", regex: /\bcontacted for you\b/i },
   { label: "Virtual Assistant", regex: /\bvirtual assistant\b/i },
   { label: "AI Assistant", regex: /\bai assistant\b/i },
   { label: "Conversation Assistant", regex: /\bconversation assistant\b/i },
@@ -85,5 +92,17 @@ describe("Scout surface doctrine scan", () => {
     }
 
     expect(violations).toEqual([]);
+  });
+
+  it("preserves Direct Connect review-before-submit copy", () => {
+    const source = fs.readFileSync(
+      path.resolve(ROOT, "client/src/pages/direct-connect/DirectConnectShell.tsx"),
+      "utf8"
+    );
+
+    expect(source).toContain("Your request draft is ready. Sign in to review and send it.");
+    expect(source).toContain("Review your request before sending it.");
+    expect(source).toContain("Finish verification before sending a request.");
+    expect(source).not.toMatch(/\b(auto-contact|contacted for you|Scout will contact)\b/i);
   });
 });

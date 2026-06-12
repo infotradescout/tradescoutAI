@@ -40,7 +40,7 @@ This folder (`data/TradeScout Brain/`) is the **canonical source of truth** for 
 
 1. **Ingest**: `server/services/knowledgeService.ts` scans these directories on startup
 2. **Cache**: Files are cached in `server/cache/` for fast lookup
-3. **Retrieval**: When you search with Scout, it searches these docs
+3. **Retrieval**: When you search, Scout uses these docs
 4. **Synthesis**: Scout combines search results + context to generate responses
 
 ## Important Rules

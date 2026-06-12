@@ -7,9 +7,9 @@ import {
 } from "./postOnboardingRoute";
 
 describe("post-onboarding product routing", () => {
-  it("defaults regular users into Scout as the local snapshot surface", () => {
-    expect(resolvePostOnboardingRoute({})).toBe("/scout");
-    expect(DEFAULT_LANDING).toBe("/scout");
+  it("defaults regular requesters into Direct Connect as the primary action surface", () => {
+    expect(resolvePostOnboardingRoute({})).toBe("/direct-connect?entry=onboarding");
+    expect(DEFAULT_LANDING).toBe("/direct-connect");
   });
 
   it("preserves explicit safe deep links", () => {
