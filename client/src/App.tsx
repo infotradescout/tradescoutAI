@@ -249,7 +249,6 @@ const AppLayout = memo(function AppLayout() {
 
   const shouldShowBetaNotice =
     showBetaNotice &&
-    isAuthenticated &&
     !isLlmRoute &&
     !isPortalSurface &&
     !isLandingRoute &&
@@ -263,33 +262,34 @@ const AppLayout = memo(function AppLayout() {
     <SimpleMobileGestures>
       <div className={`${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
         {shouldShowBetaNotice && (
-          <div className="fixed left-4 bottom-24 z-50 max-w-sm w-[calc(100%-2rem)] rounded-lg border px-4 py-3 bg-[color:var(--surface-card)] border-[color:var(--border-subtle)] shadow-[0_16px_36px_rgba(0,0,0,0.36)]">
-            <div className="flex items-start gap-3">
-              <div
-                className="mt-1 h-2 w-2 rounded-full"
-                // eslint-disable-next-line no-restricted-syntax -- uses theme CSS variables for dynamic accent glow
-                style={{
-                  backgroundColor: "var(--theme-accent-primary,#ff6600)",
-                  boxShadow:
-                    "0 0 0 4px color-mix(in oklab, var(--theme-accent-primary,#ff6600) 24%, transparent)",
-                }}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm text-[color:var(--text-primary)]">
-                  TradeScout is in active beta
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-secondary)]">
-                  TradeScout is being hardened in public. Report friction so Scout, routing, and
-                  local decision flows stay reliable.
-                </p>
+          <div className="mx-auto w-full max-w-6xl px-2.5 pt-2 sm:px-3 md:px-6">
+            <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]/82 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.14)]">
+              <div className="flex items-start gap-2.5">
+                <div
+                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
+                  // eslint-disable-next-line no-restricted-syntax -- uses theme CSS variables for dynamic accent glow
+                  style={{
+                    backgroundColor: "var(--theme-accent-primary,#ff6600)",
+                    boxShadow:
+                      "0 0 0 3px color-mix(in oklab, var(--theme-accent-primary,#ff6600) 18%, transparent)",
+                  }}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-[color:var(--text-primary)]">
+                    TradeScout beta
+                  </p>
+                  <p className="mt-0.5 text-[11px] leading-4 text-[color:var(--text-secondary)]">
+                    We’re improving requests while beta is active. Report anything that feels off.
+                  </p>
+                </div>
+                <button
+                  aria-label="Dismiss beta notice"
+                  onClick={dismissBetaNotice}
+                  className="-mr-1 rounded-md p-1 text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
+                >
+                  <X className="h-4 w-4" />
+                </button>
               </div>
-              <button
-                aria-label="Dismiss beta notice"
-                onClick={dismissBetaNotice}
-                className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] transition"
-              >
-                <X className="h-4 w-4" />
-              </button>
             </div>
           </div>
         )}

@@ -87,7 +87,7 @@ import {
   TrendingUp,
   Bell,
   Paperclip,
-  ImagePlus,
+  UploadCloud,
   FolderKanban,
   Clock3,
 } from "lucide-react";
@@ -162,9 +162,16 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
 
 const REQUEST_PREP_STEPS = [
   { label: "Describe", detail: "Scope and location" },
-  { label: "Review", detail: "Check before routing" },
-  { label: "Submit", detail: "Choose who receives it" },
+  { label: "Review", detail: "Check details" },
+  { label: "Submit", detail: "Send request" },
 ];
+
+const REQUEST_FIELD_CLASS =
+  "min-h-11 rounded-lg border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
+const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[116px] resize-y py-3 leading-6");
+const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-11 w-full px-3");
+const REQUEST_LABEL_CLASS = "text-[13px] font-medium text-[color:var(--text-primary)]";
+const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secondary)]";
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
 const DIRECT_CONNECT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
@@ -2054,11 +2061,11 @@ function DirectConnectRequestComposer({
   };
 
   return (
-    <Card className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_18px_54px_rgba(0,0,0,0.22)]">
-      <CardHeader className="border-b border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 pb-4">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+    <Card className="overflow-hidden border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_14px_42px_rgba(0,0,0,0.18)]">
+      <CardHeader className="border-b border-[color:var(--border-subtle)]/45 bg-[color:var(--surface-card)] pb-5">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--theme-accent-primary)]/10">
+            <div className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[color:var(--theme-accent-primary)]/25 bg-[color:var(--theme-accent-primary)]/10">
               <ClipboardPlus className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
             </div>
             <div>
@@ -2066,35 +2073,53 @@ function DirectConnectRequestComposer({
                 Prepare a request
               </CardTitle>
               <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                Contact stays gated while TradeScout gathers the right request details.
+                Post your request. We’ll guide the next step.
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-1.5 md:w-[360px]">
-            {REQUEST_PREP_STEPS.map((step, index) => (
-              <div
-                key={step.label}
-                className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2"
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[color:var(--theme-accent-primary)]/14 text-[10px] font-semibold text-[color:var(--theme-accent-primary)]">
-                    {index + 1}
-                  </span>
-                  <span className="text-xs font-semibold text-[color:var(--text-primary)]">
-                    {step.label}
-                  </span>
+          <div className="w-full md:w-[360px]">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--theme-accent-primary)]">
+                Step 1 of 3
+              </span>
+              <span className="text-[11px] text-[color:var(--text-secondary)]">Review next</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2" aria-label="Request progress">
+              {REQUEST_PREP_STEPS.map((step, index) => (
+                <div
+                  key={step.label}
+                  className={cn(
+                    "relative min-w-0 border-t pt-2",
+                    index === 0
+                      ? "border-[color:var(--theme-accent-primary)] text-[color:var(--text-primary)]"
+                      : "border-[color:var(--border-subtle)] text-[color:var(--text-secondary)]"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={cn(
+                        "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold",
+                        index === 0
+                          ? "bg-[color:var(--theme-accent-primary)] text-text-black"
+                          : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                      )}
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="truncate text-xs font-semibold">{step.label}</span>
+                  </div>
+                  <p className="mt-1 hidden text-[10px] leading-4 text-[color:var(--text-secondary)] sm:block">
+                    {step.detail}
+                  </p>
                 </div>
-                <p className="mt-1 hidden text-[10px] leading-4 text-[color:var(--text-secondary)] sm:block">
-                  {step.detail}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-5 px-4 py-5 sm:px-6">
         {prefillTargetUserId && (
-          <div className="rounded-xl border border-ts-orange/30 bg-ts-orange/10 px-3 py-2">
+          <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
             <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">From Community</p>
             <p className="mt-1 text-xs text-[color:var(--text-primary)]">
               This request is scoped to <span className="font-semibold">{prefillTargetLabel}</span>.
@@ -2104,9 +2129,9 @@ function DirectConnectRequestComposer({
             </p>
           </div>
         )}
-        <div className="space-y-1.5">
+        <div className="space-y-2.5">
           {intentConfig ? (
-            <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3">
+            <div className="rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 px-3 py-3.5">
               <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
                 {intentConfig.heading}
               </h2>
@@ -2131,14 +2156,14 @@ function DirectConnectRequestComposer({
               </div>
             </div>
           ) : null}
-          <label className="text-xs text-[color:var(--text-secondary)]">What do you need?</label>
+          <label className={REQUEST_LABEL_CLASS}>What do you need?</label>
           <select
             value={requestType}
             onChange={(event) => {
               markRequestStarted("type");
               setRequestType(event.target.value as keyof typeof requestTypeMeta);
             }}
-            className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+            className={REQUEST_SELECT_CLASS}
           >
             {requestTypeOrder.map((key) => (
               <option key={key} value={key}>
@@ -2148,8 +2173,8 @@ function DirectConnectRequestComposer({
           </select>
         </div>
         {intentConfig?.detailQuestions?.map((question) => (
-          <div key={question.key} className="space-y-1.5">
-            <label className="text-xs text-[color:var(--text-secondary)]">
+          <div key={question.key} className="space-y-2.5">
+            <label className={REQUEST_LABEL_CLASS}>
               {question.label}
               {question.required ? " *" : ""}
             </label>
@@ -2163,8 +2188,8 @@ function DirectConnectRequestComposer({
                   setDescription(next);
                 }}
                 placeholder={question.placeholder}
-                rows={3}
-                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                rows={4}
+                className={REQUEST_TEXTAREA_CLASS}
               />
             ) : (
               <Input
@@ -2176,17 +2201,15 @@ function DirectConnectRequestComposer({
                   if (question.key === "what") setTitle(next);
                 }}
                 placeholder={question.placeholder}
-                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                className={REQUEST_FIELD_CLASS}
               />
             )}
           </div>
         ))}
         {!intentConfig && (
           <>
-            <div className="space-y-1.5">
-              <label className="text-xs text-[color:var(--text-secondary)]">
-                What do you need help with? *
-              </label>
+            <div className="space-y-2.5">
+              <label className={REQUEST_LABEL_CLASS}>What do you need help with? *</label>
               <Input
                 value={title}
                 onChange={(event) => {
@@ -2196,13 +2219,11 @@ function DirectConnectRequestComposer({
                   setDetailAnswers((current) => ({ ...current, what: next }));
                 }}
                 placeholder="Short request title"
-                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                className={REQUEST_FIELD_CLASS}
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-[color:var(--text-secondary)]">
-                Describe the job *
-              </label>
+            <div className="space-y-2.5">
+              <label className={REQUEST_LABEL_CLASS}>Describe the job *</label>
               <Textarea
                 value={description}
                 onChange={(event) => {
@@ -2212,14 +2233,12 @@ function DirectConnectRequestComposer({
                   setDetailAnswers((current) => ({ ...current, details: next }));
                 }}
                 placeholder="Tell us what is going on"
-                rows={3}
-                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                rows={4}
+                className={REQUEST_TEXTAREA_CLASS}
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs text-[color:var(--text-secondary)]">
-                Where is the job? *
-              </label>
+            <div className="space-y-2.5">
+              <label className={REQUEST_LABEL_CLASS}>Where is the job? *</label>
               <Input
                 value={detailAnswers.where}
                 onChange={(event) => {
@@ -2227,7 +2246,7 @@ function DirectConnectRequestComposer({
                   setDetailAnswers((current) => ({ ...current, where: event.target.value }));
                 }}
                 placeholder="City, county, ZIP, or service area"
-                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                className={REQUEST_FIELD_CLASS}
               />
             </div>
           </>
@@ -2266,24 +2285,14 @@ function DirectConnectRequestComposer({
               </div>
             </div>
             <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
-              Review request details first. No one is contacted until you submit.
+              Check the request before you send it.
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
                 {completeness.message}
               </div>
               <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                {routingReadiness === "route_ready"
-                  ? "Ready to submit"
-                  : routingReadiness === "needs_location"
-                    ? "Add location to submit"
-                    : routingReadiness === "needs_category"
-                      ? "Add request type to submit"
-                      : routingReadiness === "needs_scope"
-                        ? "Add request details to submit"
-                        : routingReadiness === "manual_review"
-                          ? "Needs review"
-                          : "Not ready to submit"}
+                {requestReadyToShare ? "Ready for review" : "Add details to review"}
               </div>
             </div>
             {completeness.missing.length > 0 && (
@@ -2301,11 +2310,11 @@ function DirectConnectRequestComposer({
                   Ready to submit
                 </h3>
                 <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                  Your request details are ready. Submit when ready, before anyone is contacted.
+                  Your request is ready to review.
                 </p>
               </div>
               <Badge className="bg-[color:var(--theme-accent-primary)] text-text-black">
-                Gated
+                Private
               </Badge>
             </div>
             <div className="grid gap-2 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
@@ -2314,9 +2323,7 @@ function DirectConnectRequestComposer({
                 ["Location / county", reviewLocation],
                 ["Urgency", reviewTiming],
                 ["Summary", reviewSummary],
-                ["Who may see it", "Local businesses in your area"],
-                ["What is not shared yet", "Direct contact details until you approve"],
-                ["Submission readiness", canonicalRequest.routingReadiness],
+                ["Next step", "Choose who receives it"],
               ].map(([label, value]) => (
                 <div
                   key={label}
@@ -2345,19 +2352,30 @@ function DirectConnectRequestComposer({
             <DirectConnectGiveawayDisclosure />
           </div>
         )}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <label className="text-xs text-[color:var(--text-secondary)]">Request photos</label>
-            <span className="text-[11px] text-[color:var(--text-secondary)]">
+            <label className={REQUEST_LABEL_CLASS}>Request photos</label>
+            <span className="rounded-full bg-[color:var(--surface-intermediate)] px-2 py-1 text-[11px] text-[color:var(--text-secondary)]">
               {attachments.length}/6 added
             </span>
           </div>
-          <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 transition-colors hover:border-[color:var(--theme-accent-primary)]/50">
-            <div className="flex items-center gap-2 text-sm text-[color:var(--text-primary)]">
-              <ImagePlus className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-              Add photos to this request
+          <label className="flex cursor-pointer flex-col gap-3 rounded-lg border border-dashed border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)]/45 px-4 py-4 transition-colors hover:border-[color:var(--theme-accent-primary)]/65 hover:bg-[color:var(--surface-intermediate)]/65 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--theme-accent-primary)]">
+                <UploadCloud className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="text-sm font-medium text-[color:var(--text-primary)]">
+                  Add photos to this request
+                </div>
+                <div className={REQUEST_HELPER_CLASS}>
+                  Photos can help clarify scope before contact opens.
+                </div>
+              </div>
             </div>
-            <span className="text-xs text-[color:var(--text-secondary)]">JPG, PNG, WEBP</span>
+            <span className="text-xs font-medium text-[color:var(--text-secondary)]">
+              JPG, PNG, WEBP
+            </span>
             <input
               type="file"
               accept="image/*"
@@ -2393,28 +2411,40 @@ function DirectConnectRequestComposer({
             </div>
           )}
         </div>
-        <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3">
+        <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/65 bg-[color:var(--surface-intermediate)]/35 p-3.5">
           <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-                Home record (optional)
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                Save to HomeID
               </p>
-              <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                Direct Connect starts the job. HomeID remembers useful property history.
-              </p>
-              <p className="text-[11px] text-[color:var(--text-secondary)]">
-                Helpful, never required: save request details now or skip and submit.
+              <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+                Keep this request in your home record for future repairs and updates.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-[color:var(--text-secondary)]"
-              onClick={() => setShowHomeRecordDetails((current) => !current)}
-            >
-              {showHomeRecordDetails ? "Hide options" : "Show options"}
-            </Button>
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 border-[color:var(--border-subtle)]/80 px-2.5 text-xs text-[color:var(--text-primary)]"
+                onClick={() => setShowHomeRecordDetails((current) => !current)}
+              >
+                {showHomeRecordDetails ? "Hide options" : "Add HomeID details"}
+              </Button>
+              {!showHomeRecordDetails && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-[color:var(--text-secondary)]"
+                  onClick={() =>
+                    selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected")
+                  }
+                >
+                  Skip for now
+                </Button>
+              )}
+            </div>
           </div>
           {showHomeRecordDetails && (
             <div className="grid gap-2 md:grid-cols-3">
@@ -2463,11 +2493,9 @@ function DirectConnectRequestComposer({
             </div>
           )}
           {showHomeRecordDetails && homeContextIntent === "link_existing" && (
-            <div className="space-y-2 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">
-              <div className="space-y-1.5">
-                <label className="text-xs text-[color:var(--text-secondary)]">
-                  Use saved home details
-                </label>
+            <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-card)]/70 p-3">
+              <div className="space-y-2.5">
+                <label className={REQUEST_LABEL_CLASS}>Use saved home details</label>
                 <select
                   value={selectedHomeId}
                   onChange={(event) => {
@@ -2487,7 +2515,7 @@ function DirectConnectRequestComposer({
                       });
                     }
                   }}
-                  className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+                  className={REQUEST_SELECT_CLASS}
                 >
                   <option value="">
                     {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
@@ -2499,11 +2527,9 @@ function DirectConnectRequestComposer({
                   ))}
                 </select>
               </div>
-              <div className="grid gap-2 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <label className="text-xs text-[color:var(--text-secondary)]">
-                    System or component
-                  </label>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2.5">
+                  <label className={REQUEST_LABEL_CLASS}>System or component</label>
                   <select
                     value={assetComponentType}
                     onChange={(event) =>
@@ -2521,7 +2547,7 @@ function DirectConnectRequestComposer({
                           | "other"
                       )
                     }
-                    className="h-10 w-full rounded-md border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 text-sm text-[color:var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/40"
+                    className={REQUEST_SELECT_CLASS}
                   >
                     {assetComponentTypeOptions.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -2530,37 +2556,33 @@ function DirectConnectRequestComposer({
                     ))}
                   </select>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs text-[color:var(--text-secondary)]">
-                    Component label
-                  </label>
+                <div className="space-y-2.5">
+                  <label className={REQUEST_LABEL_CLASS}>Component label</label>
                   <Input
                     value={assetLabel}
                     onChange={(event) => setAssetLabel(event.target.value)}
                     placeholder="Upstairs AC, main panel, etc."
-                    className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                    className={REQUEST_FIELD_CLASS}
                   />
                 </div>
               </div>
             </div>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="h-7 px-1 text-xs text-[color:var(--text-secondary)]"
+            className="h-8 px-1 text-xs text-[color:var(--text-secondary)]"
             onClick={() => setShowOptional((current) => !current)}
           >
             {showOptional ? "Hide optional budget" : "Add optional budget"}
           </Button>
           {showOptional && (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-xs text-[color:var(--text-secondary)]">
-                  {activeRequestMeta.budgetLabelMin}
-                </label>
+              <div className="space-y-2.5">
+                <label className={REQUEST_LABEL_CLASS}>{activeRequestMeta.budgetLabelMin}</label>
                 <Input
                   value={budgetMin}
                   onChange={(event) => {
@@ -2569,13 +2591,11 @@ function DirectConnectRequestComposer({
                   }}
                   inputMode="numeric"
                   placeholder={activeRequestMeta.budgetPlaceholderMin}
-                  className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                  className={REQUEST_FIELD_CLASS}
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs text-[color:var(--text-secondary)]">
-                  {activeRequestMeta.budgetLabelMax}
-                </label>
+              <div className="space-y-2.5">
+                <label className={REQUEST_LABEL_CLASS}>{activeRequestMeta.budgetLabelMax}</label>
                 <Input
                   value={budgetMax}
                   onChange={(event) => {
@@ -2584,17 +2604,17 @@ function DirectConnectRequestComposer({
                   }}
                   inputMode="numeric"
                   placeholder={activeRequestMeta.budgetPlaceholderMax}
-                  className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+                  className={REQUEST_FIELD_CLASS}
                 />
               </div>
             </div>
           )}
         </div>
-        <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
+        <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
           <DirectConnectGiveawayDisclosure />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-[color:var(--text-secondary)]">
-              You will review the request before TradeScout routes it.
+              Review your request before sending it.
             </p>
             <Button
               onClick={openRequestReadyState}
@@ -4955,7 +4975,7 @@ export default function DirectConnectShell() {
     <div className="w-full max-w-full overflow-x-hidden">
       <SEOHelmet
         title="Direct Connect | Request Local Help and Manage Replies"
-        description="Use TradeScout Direct Connect to post local requests, review provider replies, and move work forward through gated hyperlocal flows."
+        description="Use TradeScout Direct Connect to post local requests, review replies, and choose the next step."
         canonical="https://www.thetradescout.com/direct-connect"
         structuredData={DIRECT_CONNECT_STRUCTURED_DATA}
       />

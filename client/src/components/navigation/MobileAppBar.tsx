@@ -81,7 +81,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
         borderTop: "1px solid color-mix(in oklab, var(--surface-frame-border) 65%, transparent)",
       }}
     >
-      <div className="ts-bottom-nav-inner h-[56px] w-full px-1">
+      <div className="ts-bottom-nav-inner h-[52px] w-full px-1">
         <div className="flex h-full items-stretch justify-between">
           {primaryItems.map((item) => {
             const active = isItemActive(item);
@@ -90,7 +90,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
               <Link
                 key={item.href}
                 href={item.href}
-                className="ts-bottom-nav-item relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[0.65rem] font-medium leading-none transition-colors"
+                className="ts-bottom-nav-item relative flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[0.62rem] font-medium leading-none transition-colors"
                 style={{
                   color: active ? "var(--text-primary)" : "var(--theme-text-secondary)",
                 }}
@@ -98,7 +98,7 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
                 {/* Icon */}
                 {item.icon && (
                   <span
-                    className="ts-bottom-nav-icon inline-flex h-[22px] w-[22px] items-center justify-center rounded-md transition-colors"
+                    className="ts-bottom-nav-icon inline-flex h-[20px] w-[20px] items-center justify-center rounded-md transition-colors"
                     style={{
                       backgroundColor: active
                         ? "color-mix(in oklab, var(--surface-card) 85%, transparent)"
@@ -134,11 +134,11 @@ const MobileAppBar: React.FC<MobileAppBarProps> = ({ items, primaryLimit = 4 }) 
               <SheetTrigger asChild>
                 <button
                   type="button"
-                  className="ts-bottom-nav-item flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[0.65rem] font-medium leading-none transition-colors"
+                  className="ts-bottom-nav-item flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-[0.62rem] font-medium leading-none transition-colors"
                   style={{ color: "var(--theme-text-secondary)" }}
                   aria-label="Open more navigation options"
                 >
-                  <span className="ts-bottom-nav-icon inline-flex h-[22px] w-[22px] items-center justify-center rounded-md">
+                  <span className="ts-bottom-nav-icon inline-flex h-[20px] w-[20px] items-center justify-center rounded-md">
                     <Menu className="h-4.5 w-4.5" />
                   </span>
                   <span>Menu</span>

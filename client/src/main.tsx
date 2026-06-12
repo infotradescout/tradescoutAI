@@ -2,7 +2,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { trackShellEvent } from "./lib/analytics";
-import { I18nProvider } from "./lib/i18n";
+import { I18nProvider } from "@/lib/i18n";
 
 const BOOT_FALLBACK_ID = "ts-boot-fallback";
 const BOOT_MESSAGE_ID = "ts-boot-fallback-message";
