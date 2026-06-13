@@ -590,11 +590,13 @@ const LazyPage = memo(function LazyPage({
 export const AppRoutes = memo(function AppRoutes({
   isLiteScoutRoute,
   isLandingRoute,
+  isPublicCampaignRoute,
   isPublicRootLanding,
   isShareRoute,
 }: {
   isLiteScoutRoute: boolean;
   isLandingRoute: boolean;
+  isPublicCampaignRoute: boolean;
   isPublicRootLanding: boolean;
   isShareRoute: boolean;
 }) {
@@ -615,6 +617,15 @@ export const AppRoutes = memo(function AppRoutes({
         <Switch>
           <Route path="/r/:shareToken">
             <LazyPage Component={DirectConnectSharePage} />
+          </Route>
+          <Route path=":rest*">
+            <LazyPage Component={NotFound} />
+          </Route>
+        </Switch>
+      ) : isPublicCampaignRoute ? (
+        <Switch>
+          <Route path="/trade-up-for-trade-schools">
+            <LazyPage Component={TradeUpForTradeSchools} />
           </Route>
           <Route path=":rest*">
             <LazyPage Component={NotFound} />

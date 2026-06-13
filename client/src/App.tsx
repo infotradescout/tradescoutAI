@@ -82,6 +82,7 @@ const AppLayout = memo(function AppLayout() {
     pathOnly.startsWith("/landing/") ||
     pathOnly === "/lp" ||
     pathOnly.startsWith("/lp/");
+  const isPublicCampaignRoute = pathOnly === "/trade-up-for-trade-schools";
   const isAuthSurface =
     pathOnly.startsWith("/create-account") ||
     pathOnly.startsWith("/login") ||
@@ -254,6 +255,7 @@ const AppLayout = memo(function AppLayout() {
     !isLlmRoute &&
     !isPortalSurface &&
     !isLandingRoute &&
+    !isPublicCampaignRoute &&
     !isShareRoute &&
     !isAuthSurface &&
     !isDirectConnectSurface;
@@ -302,6 +304,7 @@ const AppLayout = memo(function AppLayout() {
             <AppRoutes
               isLiteScoutRoute={isLiteScoutRoute}
               isLandingRoute={isLandingRoute}
+              isPublicCampaignRoute={isPublicCampaignRoute}
               isPublicRootLanding={isPublicRootLanding}
               isShareRoute={isShareRoute}
             />
@@ -333,13 +336,17 @@ const AppLayout = memo(function AppLayout() {
       )}
 
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
-      {!isLlmRoute && !isLandingRoute && !isShareRoute && !FEATURE_EDUCATION_REPLACEMENT && (
-        <div className="hidden md:block">
-          <Suspense fallback={null}>
-            <SimpleSubtleHints />
-          </Suspense>
-        </div>
-      )}
+      {!isLlmRoute &&
+        !isLandingRoute &&
+        !isPublicCampaignRoute &&
+        !isShareRoute &&
+        !FEATURE_EDUCATION_REPLACEMENT && (
+          <div className="hidden md:block">
+            <Suspense fallback={null}>
+              <SimpleSubtleHints />
+            </Suspense>
+          </div>
+        )}
 
       {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
       {!isLlmRoute && !isLandingRoute && !isShareRoute && (
