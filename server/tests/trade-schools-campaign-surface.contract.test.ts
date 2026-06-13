@@ -35,14 +35,20 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
   });
 
   it("frames the page as a TradeScout-run internal campaign", () => {
+    const normalizedWhitespace = page.replace(/\s+/g, " ");
+
     expect(page).toContain("Trade-Up For Trade Schools");
     expect(page).toContain(
-      "A TradeScout-run campaign using branded items to support future trade school scholarships."
+      "Buy campaign-branded items that help support future trade school scholarships."
     );
-    expect(page).toContain("Campaign item preview");
+    expect(normalizedWhitespace).toContain(
+      "A TradeScout-run campaign built around practical branded items, sponsor support, and a separate direct donation path."
+    );
+    expect(page).toContain("Campaign item list");
     expect(page).toContain("Campaign items dedicated to the initiative");
     expect(page).toContain("Campaign construction pencils");
     expect(page).toContain("Direct donation portal handled separately.");
+    expect(page).toContain("Trade-Up For Trade Schools is a TradeScout-run campaign initiative.");
   });
 
   it("keeps campaign items immediately after the hero", () => {
@@ -54,8 +60,10 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
 
   it("uses construction pencil language and avoids school-pencil framing", () => {
     expect(page.toLowerCase()).toMatch(/carpenter pencil|construction pencil/);
+    expect(page).not.toContain("Carpenter pencil motif");
     expect(page).not.toContain("No. 2 pencil");
     expect(page).not.toContain("yellow school pencil");
+    expect(page).not.toContain("Built for shops, crews, and classrooms");
   });
 
   it("stays informational without checkout, donation-page, or fake status claims", () => {
@@ -65,6 +73,8 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(page).toContain("Ask about sponsoring");
     expect(page).toContain("Get campaign updates");
     expect(normalized).not.toContain("classrooms");
+    expect(normalized).not.toContain("built for shops, crews, and classrooms");
+    expect(normalized).not.toContain("carpenter pencil motif");
     expect(normalized).not.toContain("school partners");
     expect(normalized).not.toContain("partner schools");
     expect(normalized).not.toContain("school endorsement");
@@ -86,7 +96,7 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(page).toContain("SEOHelmet");
     expect(page).toContain("Trade-Up For Trade Schools | TradeScout");
     expect(page).toContain(
-      "A TradeScout-run campaign using branded items to support future trade school scholarships."
+      "Buy campaign-branded items that help support future trade school scholarships."
     );
     expect(page).toContain('canonical="https://www.thetradescout.com/trade-up-for-trade-schools"');
     expect(normalizedWhitespace).toContain(
