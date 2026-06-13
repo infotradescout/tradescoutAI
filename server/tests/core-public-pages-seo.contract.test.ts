@@ -37,6 +37,7 @@ const corePublicPageFiles = [
   "client/src/pages/resource-center.tsx",
   "client/src/pages/membership-portal.tsx",
   "client/src/pages/training-center.tsx",
+  "client/src/pages/trade-up-for-trade-schools.tsx",
   "client/src/pages/affiliate.tsx",
   "client/src/pages/vehicle-marketplace.tsx",
   "client/src/pages/real-estate-marketplace.tsx",
