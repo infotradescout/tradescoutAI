@@ -29,6 +29,8 @@ import {
   AlertTriangle,
   DollarSign,
   Globe,
+  Search,
+  ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1687,20 +1689,27 @@ const CommunityFeed = memo(function CommunityFeed() {
               </DialogContent>
             </Dialog>
 
-            <Card className="mb-3 border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-              <CardContent className="p-3 md:p-4">
+            <Card className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.035))] shadow-[0_18px_44px_rgba(0,0,0,0.24)] md:rounded-xl md:bg-[color:var(--surface-card)] md:shadow-none">
+              <CardContent className="p-4 md:p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-ts-orange">
-                      Community
-                    </p>
-                    <h1 className="mt-1 text-base md:text-lg font-semibold text-white">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center rounded-full border border-ts-orange/25 bg-ts-orange/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ts-orange">
+                        Community
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/70">
+                        <ShieldCheck className="h-3 w-3 text-emerald-300" />
+                        Local hub
+                      </span>
+                    </div>
+                    <h1 className="mt-3 text-2xl font-semibold leading-tight text-white md:mt-1 md:text-lg">
                       Local activity
                     </h1>
-                    <p className="mt-1 text-[11px] md:text-xs text-[color:var(--text-secondary)]">
-                      Browse updates, ask a question, or start a request.
+                    <p className="mt-1.5 max-w-[28rem] text-sm leading-5 text-white/72 md:text-xs md:text-[color:var(--text-secondary)]">
+                      See what neighbors and local businesses are sharing, then start a request when
+                      you need work done.
                     </p>
-                    <p className="mt-1 text-[11px] md:text-xs text-white/60">
+                    <p className="mt-2 hidden text-[11px] text-white/60 md:block md:text-xs">
                       {`${
                         isAuthenticated && connectionActivityData
                           ? `Connections active today: ${connectionActivityData.activeTodayCount}`
@@ -1708,6 +1717,25 @@ const CommunityFeed = memo(function CommunityFeed() {
                       } | Posts today: ${communityStats.postsToday}`}
                     </p>
                   </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-[1fr_auto] gap-2 md:hidden">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/scout")}
+                    className="flex min-h-12 items-center gap-2 rounded-2xl border border-white/10 bg-black/18 px-3 text-left text-sm text-white/72"
+                    aria-label="Search local context"
+                  >
+                    <Search className="h-4 w-4 shrink-0 text-white/55" />
+                    <span className="truncate">Search local context</span>
+                  </button>
+                  <Button
+                    type="button"
+                    onClick={() => navigate("/direct-connect")}
+                    className="min-h-12 rounded-2xl bg-ts-orange px-4 text-sm font-semibold text-white hover:bg-ts-orange-dark"
+                  >
+                    Start request
+                  </Button>
                 </div>
 
                 <div className="mt-3 -mx-3 hidden px-3 overflow-x-auto overflow-y-hidden md:block">
@@ -1830,14 +1858,14 @@ const CommunityFeed = memo(function CommunityFeed() {
                   onValueChange={(value) => handleTabChange(value as FeedTab)}
                   className="w-full"
                 >
-                  <div className="mb-3 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-2.5 md:mb-4 md:p-3">
+                  <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] p-2.5 shadow-[0_10px_28px_rgba(0,0,0,0.16)] md:mb-4 md:rounded-xl md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-card)] md:p-3 md:shadow-none">
                     <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1 rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-1">
+                        <div className="flex min-h-11 items-center gap-1 rounded-2xl border border-white/10 bg-black/20 p-1 md:min-h-0 md:rounded-lg md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-intermediate)]">
                           <button
                             onClick={() => handleScopeToggle("local")}
                             aria-pressed={!isGlobalView}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                            className={`rounded-xl px-3 py-2 text-xs font-medium transition-all md:rounded-md md:py-1.5 ${
                               !isGlobalView
                                 ? "bg-ts-orange text-white"
                                 : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
@@ -1849,7 +1877,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                           <button
                             onClick={() => handleScopeToggle("global")}
                             aria-pressed={isGlobalView}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                            className={`rounded-xl px-3 py-2 text-xs font-medium transition-all md:rounded-md md:py-1.5 ${
                               isGlobalView
                                 ? "bg-ts-orange text-white"
                                 : "text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
@@ -1866,22 +1894,22 @@ const CommunityFeed = memo(function CommunityFeed() {
                         ) : null}
                       </div>
 
-                      <TabsList className="flex items-center gap-1.5 bg-transparent border-0 p-0 overflow-x-auto">
+                      <TabsList className="flex min-h-11 items-center gap-1.5 overflow-x-auto rounded-2xl bg-black/20 p-1 md:min-h-0 md:bg-transparent md:border-0 md:p-0">
                         <TabsTrigger
                           value="forYou"
-                          className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                          className="rounded-xl px-3 py-2 text-xs font-semibold md:rounded-md md:py-1.5"
                         >
                           Local
                         </TabsTrigger>
                         <TabsTrigger
                           value="recent"
-                          className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                          className="rounded-xl px-3 py-2 text-xs font-semibold md:rounded-md md:py-1.5"
                         >
                           Recent
                         </TabsTrigger>
                         <TabsTrigger
                           value="vault"
-                          className="rounded-md px-3 py-1.5 text-xs font-semibold"
+                          className="rounded-xl px-3 py-2 text-xs font-semibold md:rounded-md md:py-1.5"
                         >
                           Saved
                         </TabsTrigger>
@@ -1890,9 +1918,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                   </div>
                   {/* Inline composer (local-only; global view is read-only) */}
                   {!isGlobalView ? (
-                    <Card className="bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)] mb-3 md:mb-5 md:sticky md:top-16">
-                      <CardContent className="p-3 md:p-5">
-                        <div className="flex gap-4">
+                    <Card className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] shadow-[0_12px_32px_rgba(0,0,0,0.18)] md:mb-5 md:sticky md:top-16 md:rounded-xl md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-card)] md:shadow-none">
+                      <CardContent className="p-3.5 md:p-5">
+                        <div className="flex gap-3 md:gap-4">
                           <Avatar className="w-10 h-10 md:w-11 md:h-11">
                             <AvatarImage src={user?.avatar as string | undefined} />
                             <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
@@ -1902,7 +1930,24 @@ const CommunityFeed = memo(function CommunityFeed() {
                               />
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 space-y-2.5">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-white">
+                                  Share locally
+                                </div>
+                                <div className="text-xs text-white/55">
+                                  Post an update, or start a request for work.
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => navigate("/direct-connect")}
+                                className="hidden shrink-0 rounded-full border border-ts-orange/35 bg-ts-orange/10 px-3 py-1.5 text-xs font-semibold text-ts-orange md:inline-flex"
+                              >
+                                Direct Connect
+                              </button>
+                            </div>
                             <Textarea
                               ref={composerRef}
                               placeholder={
@@ -1921,6 +1966,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               value={newPostContent}
                               onChange={(e) => setNewPostContent(e.target.value)}
                               rows={3}
+                              className="min-h-[92px] rounded-2xl border-white/10 bg-black/18 text-sm text-white placeholder:text-white/42 focus-visible:ring-ts-orange/45 md:rounded-md"
                             />
 
                             {/* Hidden file inputs */}
@@ -1941,7 +1987,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             />
 
                             {/* Category selection keeps outcome-first language while preserving routing behavior. */}
-                            <div className="flex flex-wrap gap-1.5">
+                            <div className="-mx-0.5 flex gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
                               {[
                                 {
                                   key: "general",
@@ -1997,7 +2043,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   type="button"
                                   onClick={() => setSelectedCategory(key)}
                                   title={intent}
-                                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium transition-all ${
+                                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-2 text-xs font-medium transition-all md:rounded-md md:px-2.5 md:py-1 ${
                                     selectedCategory === key
                                       ? "bg-ts-orange text-white"
                                       : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
@@ -2083,7 +2129,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               </div>
 
                               <Button
-                                className="bg-ts-orange hover:bg-ts-orange-dark w-full sm:w-auto"
+                                className="min-h-11 rounded-2xl bg-ts-orange hover:bg-ts-orange-dark w-full text-sm font-semibold sm:w-auto md:rounded-md md:min-h-0"
                                 onClick={handleCreatePost}
                                 disabled={!newPostContent.trim() || createPostMutation.isPending}
                                 data-testid="button-submit-post"
