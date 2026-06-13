@@ -240,7 +240,7 @@ describe("generic business profile and tool contracts", () => {
     expect(countyPage).toContain("Find local help near");
     expect(countyPage).toContain("Find Local Help");
     expect(countyPage).toContain("verified local providers");
-    expect(countyPage).toContain("local businesses, and professionals");
+    expect(countyPage).toContain("local businesses, neighbors, and professionals");
     expect(countyPage).not.toContain("Find Contractors");
     expect(countyPage).not.toContain("Find contractors near {marketName}");
     expect(countyPage).not.toContain("Join neighbors, contractors, and professionals");

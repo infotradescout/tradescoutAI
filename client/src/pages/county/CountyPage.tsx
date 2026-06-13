@@ -289,8 +289,8 @@ const CountyPage = memo(function CountyPage() {
           </div>
           <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl">{marketLabel}</h1>
           <p className="mt-3 text-base leading-relaxed text-white/70 md:text-lg">
-            Find local businesses, read community context, and start a protected request when you
-            are ready to act.
+            Find local help near {marketName}, read community context, and start a protected request
+            when you are ready to act.
           </p>
           <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
             <Link href={directConnectHref}>
