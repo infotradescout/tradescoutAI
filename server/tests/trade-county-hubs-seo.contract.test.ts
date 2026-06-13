@@ -49,10 +49,27 @@ describe("trade and county hub SEO contracts", () => {
     expect(countyDirectory).toContain("Browse counties by state");
     expect(countyDirectory).toContain("local market page");
 
-    expect(countyPage).toContain("Find local help near");
+    expect(countyPage).toContain("Direct Connect for");
     expect(countyPage).toContain("Open Direct Connect");
-    expect(countyPage).toContain("Join neighbors, local businesses, and professionals.");
+    expect(countyPage).toContain("local businesses, neighbors, and professionals");
     expect(countyPage).toContain("Community around");
+  });
+
+  it("keeps the county/community mobile path anchored to Direct Connect, local search, and trust gates", () => {
+    expect(countyPage).toContain("County community path");
+    expect(countyPage).toContain("Start request in Direct Connect");
+    expect(countyPage).toContain("source=county-community-path");
+    expect(countyPage).toContain("Search local context");
+    expect(countyPage).toContain("intent=local-search");
+    expect(countyPage).toContain("TradeScout is businesses + communities");
+    expect(countyPage).toContain(
+      "Contact stays inside the request flow until both sides have enough context to decide."
+    );
+    expect(countyPage).not.toContain("anonymous posting");
+    expect(countyPage).not.toContain("anonymous post");
+    expect(countyPage).not.toContain("Talk to Scout");
+    expect(countyPage).not.toContain("Ask Scout");
+    expect(countyPage).not.toContain("chatbot");
   });
 
   it("treats contractor wording as a search/trade subset without turning it into whole-platform identity", () => {

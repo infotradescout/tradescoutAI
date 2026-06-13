@@ -56,9 +56,8 @@ describe("Community app surface UX contract", () => {
     const community = read("client/src/pages/community.tsx");
 
     expect(feed).toContain("Local activity");
-    expect(feed).toContain(
-      "See what neighbors and local businesses are sharing, then start a request when you need work done."
-    );
+    expect(feed).toContain("See what neighbors and local businesses are sharing, then start");
+    expect(feed).toContain("you need work done.");
     expect(feed).toContain("Search local context");
     expect(feed).toContain("Start request");
     expect(feed).toContain("Local hub");

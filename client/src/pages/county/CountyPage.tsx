@@ -10,7 +10,15 @@ import {
 } from "@/components/SEOHelmet";
 import { getStateByCode, getCountiesByState } from "@shared/states-counties";
 import { getTradeBySlug } from "@shared/tradeSeo";
-import { ChevronRight, MapPin, Users, AlertCircle } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronRight,
+  MapPin,
+  Search,
+  ShieldCheck,
+  Users,
+  AlertCircle,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   protectedContactCopy,
@@ -219,6 +227,11 @@ const CountyPage = memo(function CountyPage() {
   const seoTitle = `${county.name}, ${state.code} | TradeScout`;
   const marketName = stripCountySuffix(county.name) || county.name;
   const marketLabel = toLocalMarketLabel(county.name, state.code);
+  const directConnectHref = `/direct-connect?county=${county.fipsCode}&source=county-community-path`;
+  const localSearchHref = `/scout?intent=local-search&county=${encodeURIComponent(
+    county.name
+  )}&countyFips=${encodeURIComponent(county.fipsCode)}&source=county-community-path`;
+  const communityFeedHref = `/community-feed?county=${county.fipsCode}`;
   const featuredTradeSlugs = [
     "plumbing",
     "electrical",
@@ -251,7 +264,7 @@ const CountyPage = memo(function CountyPage() {
         canonical={`https://www.thetradescout.com/county/${state.code.toLowerCase()}/${nameToSlug(county.name)}`}
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-2 text-sm text-white/60 mb-8">
           {breadcrumbs.map((item, idx) => (
@@ -269,12 +282,36 @@ const CountyPage = memo(function CountyPage() {
         </nav>
 
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-white">{marketLabel}</h1>
-          <p className="text-lg text-white/60 flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            Start with the local market, then narrow by city or neighborhood
+        <div className="mb-6 rounded-3xl border border-white/10 bg-white/[0.045] p-5 shadow-[0_18px_48px_rgba(0,0,0,0.22)] md:mb-8 md:rounded-2xl md:p-7">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-ts-orange">
+            <MapPin className="h-3.5 w-3.5" />
+            County community path
+          </div>
+          <h1 className="text-3xl font-bold leading-tight text-white md:text-4xl">{marketLabel}</h1>
+          <p className="mt-3 text-base leading-relaxed text-white/70 md:text-lg">
+            Find local businesses, read community context, and start a protected request when you
+            are ready to act.
           </p>
+          <div className="mt-5 grid gap-2 sm:grid-cols-[1fr_auto]">
+            <Link href={directConnectHref}>
+              <a className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-ts-orange px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_26px_rgba(236,107,32,0.24)] hover:bg-ts-orange-dark md:rounded-xl">
+                Start request in Direct Connect
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </Link>
+            <Link href={localSearchHref}>
+              <a className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10 md:rounded-xl">
+                <Search className="h-4 w-4" />
+                Search local context
+              </a>
+            </Link>
+          </div>
+          <div className="mt-4 flex items-start gap-2 rounded-2xl border border-white/10 bg-black/18 px-3 py-3 text-sm text-white/68 md:rounded-xl">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-ts-orange" />
+            <p>
+              Contact stays inside the request flow until both sides have enough context to decide.
+            </p>
+          </div>
         </div>
 
         {/* Trade landing links (crawl paths) */}
@@ -329,7 +366,7 @@ const CountyPage = memo(function CountyPage() {
                       <strong>{coverage.territoryManagerCount}</strong> territory manager
                       {coverage.territoryManagerCount !== 1 ? "s" : ""} serve {marketName}.
                     </p>
-                    <Link href={`/direct-connect?county=${county.fipsCode}`}>
+                    <Link href={directConnectHref}>
                       <a className="inline-block px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
                         Find Local Help →
                       </a>
@@ -346,7 +383,7 @@ const CountyPage = memo(function CountyPage() {
                       <strong>{coverage.affiliateCount}</strong> verified local providers currently
                       serve {marketName}. Coverage is growing.
                     </p>
-                    <Link href={`/direct-connect?county=${county.fipsCode}`}>
+                    <Link href={directConnectHref}>
                       <a className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
                         Explore Matches →
                       </a>
@@ -363,11 +400,9 @@ const CountyPage = memo(function CountyPage() {
                       {marketName} is still early for us. Describe which city or neighborhood you
                       need help in so we can prioritize real local demand.
                     </p>
-                    <Link
-                      href={`/scout?intent=county-coverage-request&county=${encodeURIComponent(county.name)}&countyFips=${encodeURIComponent(county.fipsCode)}`}
-                    >
+                    <Link href={localSearchHref}>
                       <a className="inline-block px-4 py-2 bg-white/10 text-white rounded hover:bg-white/10">
-                        Request Local Coverage →
+                        Search local context →
                       </a>
                     </Link>
                   </div>
@@ -380,14 +415,15 @@ const CountyPage = memo(function CountyPage() {
         {/* Direct Connect Section */}
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Find local help near {marketName}</h2>
+            <h2 className="text-2xl font-bold mb-4">Direct Connect for {marketName}</h2>
             <p className="text-white/70 mb-6">
-              Search verified local providers by need or trade, then narrow by city or neighborhood.{" "}
+              Start a local request by need or trade, then narrow by city or neighborhood.{" "}
               {protectedContactCopy()}
             </p>
-            <Link href={`/direct-connect?county=${county.fipsCode}`}>
-              <a className="inline-block px-4 py-2 bg-ts-orange text-white rounded hover:bg-ts-orange-dark">
-                Open Direct Connect →
+            <Link href={directConnectHref}>
+              <a className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-ts-orange px-4 py-2 text-sm font-semibold text-white hover:bg-ts-orange-dark">
+                Open Direct Connect
+                <ArrowRight className="h-4 w-4" />
               </a>
             </Link>
           </CardContent>
@@ -401,12 +437,13 @@ const CountyPage = memo(function CountyPage() {
               Community around {marketName}
             </h2>
             <p className="text-white/70 mb-6">
-              Join neighbors, local businesses, and professionals. Share trusted local signals, post
-              projects, and discover what's happening locally.
+              TradeScout is businesses + communities: local businesses, neighbors, and professionals
+              sharing useful context before a contact decision opens.
             </p>
-            <Link href={`/community-feed?county=${county.fipsCode}`}>
-              <a className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                Community Feed →
+            <Link href={communityFeedHref}>
+              <a className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                Open community feed
+                <ArrowRight className="h-4 w-4" />
               </a>
             </Link>
           </CardContent>
