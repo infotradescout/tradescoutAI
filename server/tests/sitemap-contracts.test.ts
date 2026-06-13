@@ -29,6 +29,7 @@ const expectedStaticPublicRoutes = [
   "https://www.thetradescout.com/direct-connect",
   "https://www.thetradescout.com/community",
   "https://www.thetradescout.com/how-it-works",
+  "https://www.thetradescout.com/trade-up-for-trade-schools",
   "https://www.thetradescout.com/trust-model",
   "https://www.thetradescout.com/direct-connect-info",
   "https://www.thetradescout.com/compare",

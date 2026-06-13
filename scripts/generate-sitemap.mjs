@@ -74,6 +74,7 @@ const STATIC_PUBLIC_ROUTES = [
   { path: '/for-businesses', priority: 0.9, changefreq: 'weekly' },
   { path: '/find-local-businesses', priority: 0.9, changefreq: 'weekly' },
   { path: '/tangipahoa', priority: 0.9, changefreq: 'weekly' },
+  { path: '/trade-up-for-trade-schools', priority: 0.7, changefreq: 'monthly' },
   { path: '/trust-model', priority: 0.9, changefreq: 'weekly' },
   { path: '/direct-connect-info', priority: 0.9, changefreq: 'weekly' },
   { path: '/giveaway-rules', priority: 0.5, changefreq: 'monthly' },
