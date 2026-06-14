@@ -45,7 +45,7 @@ Current product-surface doctrine:
 
 ## Truth Lock Gate
 
-Before Gawain scopes any campaign, public page, pricing model, product surface, offer, brand initiative, or user-facing strategic page for Codex, the lane must include an owner-approved Truth Lock. Missing Truth Lock means the lane is structurally invalid and must stop before Codex prompts, Gemini pre-flight review, contract test planning, visual review, or merge approval.
+Before Gawain scopes any campaign, public page, pricing model, product surface, offer, brand initiative, or user-facing strategic page for Codex, the lane must include an owner-approved Truth Lock. In manual workflows, Thomas/operator is the approval authority and Gawain is the technical execution and review side: repo safety, Codex handoffs, validation gates, technical review packets, merge discipline, risk classification, and truth-alignment checks. Gawain is not a replacement for owner approval and does not create a standing 3/3 governance vote requirement. Missing Truth Lock means the lane is structurally invalid and must stop before Codex prompts, Gemini pre-flight review when used, contract test planning, visual review, or merge approval.
 
 Truth Lock required fields:
 
@@ -67,7 +67,8 @@ Governance rules:
 - Passing tests/builds do not prove business alignment.
 - Visual polish cannot override product truth.
 - If a false premise is discovered after merge, emergency truth correction takes priority over feature continuation.
-- Governance-impacting workflow changes require 3/3 approval under the active AI Council / Albion / High Court approval process before merge.
+- If the owner identifies a premise mismatch, the lane fails closed immediately and truth correction takes priority over feature continuation.
+- Manual owner-directed workflows may proceed with explicit owner approval. Formal Albion / AI Council / High Court governance workflows require 3/3 approval only when that mode is explicitly invoked or requested by the owner.
 
 Concise example:
 

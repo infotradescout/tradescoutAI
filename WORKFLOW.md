@@ -16,7 +16,7 @@ Use this rule at the start of production cleanup tasks:
 
 Every cleanup prompt should also name the exact allowed lane and the exact files or doc family expected when possible.
 
-For campaigns, public pages, pricing models, offers, brand initiatives, or strategic user-facing surfaces, a prompt is not valid until it includes an owner-approved Truth Lock. The Truth Lock must state the one-sentence purpose, confirmed facts, explicit negatives, banned assumptions, approved CTAs, forbidden claims/language, data/state boundary, and owner sign-off. Codex, Gemini, visual review, contract planning, and merge approval must stop if the lane relies on an unverified premise.
+For campaigns, public pages, pricing models, offers, brand initiatives, or strategic user-facing surfaces, a prompt is not valid until it includes an owner-approved Truth Lock. In manual owner-directed workflows, Thomas/operator signs off the Truth Lock; Lancelot/Percival approval is required only when Albion / AI Council / High Court governance mode is explicitly invoked. Gawain is the technical execution and review side for repo safety, Codex handoffs, validation gates, merge discipline, risk classification, and truth-alignment checks, not a replacement for owner approval or a standing 3/3 vote requirement. The Truth Lock must state the one-sentence purpose, confirmed facts, explicit negatives, banned assumptions, approved CTAs, forbidden claims/language, data/state boundary, and owner sign-off. Codex, Gemini when used, visual review, contract planning, and merge approval must stop if the lane relies on an unverified premise. If the owner identifies a premise mismatch, the lane fails closed immediately and truth correction takes priority over feature continuation.
 
 ## Safe Edit Rules
 

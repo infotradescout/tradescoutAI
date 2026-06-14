@@ -4,11 +4,15 @@ TradeScout work can run in parallel only when every slice has a clear lane, bran
 
 ## Operating Authority
 
-- Gawain defines doctrine, slice scope, and merge order.
+- Thomas/operator is the approval authority in manual owner-directed workflows.
+- Gawain is the technical execution and review side for manual workflows: repo safety, Codex handoffs, validation gates, technical review packets, merge discipline, risk classification, and truth-alignment checks.
+- Gawain is not a replacement for owner approval and is not a standing 3/3 governance vote requirement in manual owner-directed work.
+- Gawain defines doctrine, slice scope, and merge order within owner-approved manual lanes.
 - Codex implements one assigned lane per session.
-- Gemini reviews and criticizes each PR.
-- Gawain reconciles Gemini criticism and issues corrected prompts.
-- Gemini criticism is not optional. If Gemini identifies a real doctrine, test, scope, or merge risk, Codex must address it or Gawain must explicitly override it.
+- Gemini may be used as optional adversarial review when requested by the owner or useful for risk reduction; it is not mandatory in every manual lane.
+- When Gemini review is requested, Gawain reconciles Gemini criticism and issues corrected prompts.
+- If Gemini identifies a real doctrine, test, scope, or merge risk during a requested review, Codex must address it or Gawain must explicitly classify the override.
+- Formal Albion / AI Council / High Court governance mode applies only when Thomas explicitly invokes it or when the workflow is formally operating under that mode.
 
 ## Core Rules
 
@@ -23,12 +27,12 @@ TradeScout work can run in parallel only when every slice has a clear lane, bran
 - If required work crosses a lane boundary, stop and report instead of expanding scope.
 - Validate before commit with the lane-specific tests and the repo's normal check command.
 - Do not commit if required validation was not run or failed unless the failure is documented as the purpose of the slice.
-- Require Gemini review before merge.
+- Require owner approval before merge. Require Gemini review only when the owner requests it, the lane contract requires it, or Gawain marks it necessary for risk reduction.
 - Gawain controls merge order.
 
 ## Truth Lock Gate
 
-Any lane for a campaign, public page, pricing model, product surface, offer, brand initiative, or user-facing strategic page is structurally invalid until Gawain records an owner-approved Truth Lock. The Truth Lock must exist before Codex implementation prompts, Gemini pre-flight reviews, contract test planning, visual review, or merge approval.
+Any lane for a campaign, public page, pricing model, product surface, offer, brand initiative, or user-facing strategic page is structurally invalid until Gawain records an owner-approved Truth Lock. In manual workflows, the Truth Lock is signed off by Thomas/operator; it does not require Lancelot/Percival approval. The Truth Lock must exist before Codex implementation prompts, Gemini pre-flight reviews when used, contract test planning, visual review, or merge approval.
 
 Truth Lock schema:
 
@@ -58,7 +62,8 @@ Truth Lock rules:
 - Passing tests/builds do not prove business alignment.
 - Visual polish cannot override product truth.
 - If a false premise is discovered after merge, emergency truth correction takes priority over feature continuation.
-- Governance-impacting workflow changes require 3/3 approval under the active AI Council / Albion / High Court approval process before merge.
+- If the owner identifies a premise mismatch, the lane fails closed immediately and truth correction takes priority over feature continuation.
+- Manual owner-directed workflows may proceed with explicit owner approval. Formal Albion / AI Council / High Court governance workflows require 3/3 approval only when that mode is explicitly invoked or requested by the owner.
 
 Concise example:
 
@@ -102,7 +107,7 @@ Safe parallel work usually has:
 - Separate contracts.
 - Separate validation commands.
 - Clear non-goals.
-- Gemini review per PR.
+- Optional Gemini review when requested by the owner, required by the lane contract, or marked necessary by Gawain.
 - Gawain-controlled merge order.
 
 Unsafe parallel work includes:
