@@ -7,7 +7,7 @@ const read = (relativePath: string) =>
 
 const withoutDisclaimer = (page: string) =>
   page.replace(
-    /Trade-Up For Trade Schools is a TradeScout-run campaign initiative\. No school[\s\S]*?Direct donation portal handled separately\./,
+    /Trade-Up For Trade Schools is an independent initiative run by TradeScout\. Direct[\s\S]*?formally stated by TradeScout\./,
     ""
   );
 
@@ -34,58 +34,73 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(appRoutes).toContain(") : isPublicCampaignRoute ? (");
   });
 
-  it("frames the page as a TradeScout-run internal campaign", () => {
+  it("frames the page as the real TradeScout trade-up campaign series", () => {
     const normalizedWhitespace = page.replace(/\s+/g, " ");
 
     expect(page).toContain("Trade-Up For Trade Schools");
-    expect(page).toContain(
-      "Buy campaign-branded items that help support future trade school scholarships."
-    );
     expect(normalizedWhitespace).toContain(
-      "A TradeScout-run campaign built around practical branded items, sponsor support, and a separate direct donation path."
+      "Following the journey from a single carpenter’s pencil to $250,000 in trade school scholarships."
     );
-    expect(page).toContain("Campaign item list");
-    expect(page).toContain("Campaign items dedicated to the initiative");
-    expect(page).toContain("Campaign construction pencils");
-    expect(page).toContain("Direct donation portal handled separately.");
-    expect(page).toContain("Trade-Up For Trade Schools is a TradeScout-run campaign initiative.");
-  });
-
-  it("keeps campaign items immediately after the hero", () => {
-    expect(page.indexOf('id="campaign-items"')).toBeGreaterThan(page.indexOf("<aside"));
-    expect(page.indexOf('id="campaign-items"')).toBeLessThan(
-      page.indexOf("How the campaign works")
+    expect(page).toContain("Offer a Trade");
+    expect(page).toContain("Follow the Trade-Up Series");
+    expect(page).toContain("Connect the Next Trade");
+    expect(page).toContain("How the trade-up works");
+    expect(page).toContain("Current campaign status");
+    expect(page).toContain("TradeScout Carpenter’s Pencil");
+    expect(page).toContain("Direct donation portal is separate.");
+    expect(page).toContain(
+      "Trade-Up For Trade Schools is an independent initiative run by TradeScout."
     );
   });
 
-  it("uses construction pencil language and avoids school-pencil framing", () => {
-    expect(page.toLowerCase()).toMatch(/carpenter pencil|construction pencil/);
-    expect(page).not.toContain("Carpenter pencil motif");
-    expect(page).not.toContain("No. 2 pencil");
-    expect(page).not.toContain("yellow school pencil");
-    expect(page).not.toContain("Built for shops, crews, and classrooms");
+  it("keeps the carpenter-pencil-to-scholarships mechanic explicit", () => {
+    expect(page).toContain("TradeScout Campaign Series");
+    expect(page).toContain("Start with a carpenter pencil");
+    expect(page).toContain("Trade up one step at a time");
+    expect(page).toContain("Build toward $250,000");
+    expect(page).toContain("Current starting item: TradeScout Carpenter’s Pencil");
+    expect(page).toContain("Next accepted trade: not yet published.");
+    expect(page.replace(/\s+/g, " ")).toContain(
+      "Turn one carpenter’s pencil into $250,000 worth of trade school scholarships through a public trade-up campaign."
+    );
+  });
+
+  it("removes the invented product catalog framing", () => {
+    expect(page).not.toContain("Campaign items dedicated to the initiative");
+    expect(page).not.toContain("Campaign item list");
+    expect(page).not.toContain("Campaign construction pencils");
+    expect(page).not.toContain("Jobsite decals");
+    expect(page).not.toContain("Sponsor cards");
+    expect(page).not.toContain("Crew signage");
+    expect(page).not.toContain("Branded apparel");
+    expect(page).not.toContain("Request campaign item list");
+    expect(page).not.toContain("Request item list");
+    expect(page).not.toContain("Ask about sponsoring");
+    expect(page).not.toContain("Get campaign updates");
+    expect(page).not.toContain("shopping cart");
+    expect(page).not.toContain("prices");
   });
 
   it("stays informational without checkout, donation-page, or fake status claims", () => {
     const normalized = withoutDisclaimer(page).toLowerCase();
 
-    expect(page).toContain("Request item list");
-    expect(page).toContain("Ask about sponsoring");
-    expect(page).toContain("Get campaign updates");
     expect(normalized).not.toContain("classrooms");
     expect(normalized).not.toContain("built for shops, crews, and classrooms");
     expect(normalized).not.toContain("carpenter pencil motif");
     expect(normalized).not.toContain("school partners");
     expect(normalized).not.toContain("partner schools");
     expect(normalized).not.toContain("school endorsement");
-    expect(normalized).not.toContain("students pursuing careers");
     expect(normalized).not.toContain("recipients");
-    expect(normalized).not.toContain("donate");
+    expect(normalized).not.toMatch(/\bbuy\b/);
     expect(normalized).not.toContain("buy now");
     expect(normalized).not.toContain("checkout");
     expect(normalized).not.toContain("add to cart");
     expect(normalized).not.toContain("payment processing");
+    expect(normalized).not.toContain("shopping cart");
+    expect(normalized).not.toContain("prices");
+    expect(normalized).not.toContain("tax write-off");
     expect(normalized).not.toContain("501(c)");
+    expect(normalized).not.toContain("tax-deductible");
     expect(normalized).not.toContain("total raised");
     expect(normalized).not.toContain("totals raised");
   });
@@ -96,11 +111,11 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(page).toContain("SEOHelmet");
     expect(page).toContain("Trade-Up For Trade Schools | TradeScout");
     expect(page).toContain(
-      "Buy campaign-branded items that help support future trade school scholarships."
+      "A TradeScout campaign series following the journey from one carpenter’s pencil to $250,000 in trade school scholarships."
     );
     expect(page).toContain('canonical="https://www.thetradescout.com/trade-up-for-trade-schools"');
     expect(normalizedWhitespace).toContain(
-      "Trade-Up For Trade Schools is a TradeScout-run campaign initiative. No school partnership, school endorsement, nonprofit status, tax-deductibility, scholarship recipient, or distribution process is implied unless formally stated by TradeScout. Direct donation portal handled separately."
+      "Trade-Up For Trade Schools is an independent initiative run by TradeScout. Direct donations are separate. No nonprofit, tax-deductible, formal institutional affiliation, school endorsement, scholarship recipient, or distribution process is implied unless formally stated by TradeScout."
     );
   });
 });

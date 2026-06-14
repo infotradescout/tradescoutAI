@@ -1,90 +1,57 @@
 import { memo } from "react";
 import { Link } from "wouter";
-import {
-  ArrowRight,
-  BadgeCheck,
-  ClipboardList,
-  Mail,
-  Megaphone,
-  Ruler,
-  ShieldCheck,
-  Shirt,
-  Wrench,
-} from "lucide-react";
+import { ArrowRight, Mail, PlayCircle, Route, ShieldCheck, Share2, Sparkles } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 
-const campaignItems = [
-  {
-    title: "Campaign construction pencils",
-    description: "Flat carpenter pencils branded for the Trade-Up For Trade Schools campaign.",
-    action: "Request item list",
-    icon: ClipboardList,
-  },
-  {
-    title: "Jobsite decals",
-    description: "Campaign decals for trucks, trailers, toolboxes, shops, and job boards.",
-    action: "Ask about sponsoring",
-    icon: BadgeCheck,
-  },
-  {
-    title: "Sponsor cards",
-    description: "Printed campaign cards for businesses and supporters.",
-    action: "Ask about sponsoring",
-    icon: ClipboardList,
-  },
-  {
-    title: "Crew and shop signage",
-    description: "Simple campaign signage for participating crews, shops, and sponsor locations.",
-    action: "Get campaign updates",
-    icon: Ruler,
-  },
-  {
-    title: "Branded apparel",
-    description: "Campaign apparel options for supporters and participating businesses.",
-    action: "Request item list",
-    icon: Shirt,
-  },
-];
-
-const previewItems = [
-  "Construction pencils",
-  "Jobsite decals",
-  "Sponsor cards",
-  "Crew signage",
-  "Branded apparel",
-];
-
-const howItWorks = [
-  {
-    title: "Request the campaign item list",
-    description: "TradeScout shares the available campaign-branded item options.",
-  },
-  {
-    title: "Choose the items that fit",
-    description:
-      "Supporters and sponsors choose practical branded materials connected to the campaign.",
-  },
-  {
-    title: "Support the scholarship initiative",
-    description:
-      "Campaign item support is dedicated to the Trade-Up For Trade Schools scholarship initiative.",
-  },
-];
-
 const contactHref =
-  "mailto:contact@thetradescout.com?subject=Trade-Up%20For%20Trade%20Schools%20campaign";
+  "mailto:contact@thetradescout.com?subject=Trade-Up%20For%20Trade%20Schools%20trade%20offer";
+
+const steps = [
+  {
+    title: "Start with a carpenter pencil",
+    description:
+      "The campaign begins with one carpenter’s pencil - the first item in the trade-up chain.",
+  },
+  {
+    title: "Trade up one step at a time",
+    description: "Each accepted swap moves the campaign closer to the scholarship goal.",
+  },
+  {
+    title: "Build toward $250,000",
+    description: "The target is $250,000 worth of trade school scholarships.",
+  },
+];
+
+const participation = [
+  {
+    title: "Offer a Trade",
+    description: "Have something worth trading into the chain? Submit the offer for review.",
+    icon: Route,
+  },
+  {
+    title: "Connect the next step",
+    description:
+      "Know a business, maker, supplier, or supporter who could help the campaign trade up? Send the lead.",
+    icon: Sparkles,
+  },
+  {
+    title: "Follow and share",
+    description: "Watch the video series and help the next trade find the right person.",
+    icon: Share2,
+  },
+];
 
 const TradeUpForTradeSchoolsPage = memo(function TradeUpForTradeSchoolsPage() {
   return (
     <>
       <SEOHelmet
         title="Trade-Up For Trade Schools | TradeScout"
-        description="Buy campaign-branded items that help support future trade school scholarships."
+        description="A TradeScout campaign series following the journey from one carpenter’s pencil to $250,000 in trade school scholarships."
         canonical="https://www.thetradescout.com/trade-up-for-trade-schools"
       />
 
-      <main className="min-h-screen overflow-x-hidden bg-zinc-50 text-zinc-950">
-        <header className="border-b border-zinc-200/80 bg-white">
+      <main className="min-h-screen overflow-x-hidden bg-stone-50 text-zinc-950">
+        <header className="border-b border-zinc-200 bg-white">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <Link href="/">
               <a className="inline-flex items-center gap-2 text-sm font-bold text-zinc-950">
@@ -98,207 +65,171 @@ const TradeUpForTradeSchoolsPage = memo(function TradeUpForTradeSchoolsPage() {
               href={contactHref}
               className="inline-flex min-h-10 items-center justify-center rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-50"
             >
-              Sponsor
+              Offer a Trade
             </a>
           </div>
         </header>
 
         <section className="bg-white">
-          <div className="mx-auto grid max-w-6xl items-center gap-7 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8 lg:py-12">
+          <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 sm:px-6 sm:py-12 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-14">
             <div className="min-w-0">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-zinc-700 shadow-sm">
                 <span className="h-1.5 w-1.5 rounded-full bg-ts-orange" />
-                TradeScout Campaign Initiative
+                TradeScout Campaign Series
               </div>
-              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-normal text-zinc-950 sm:text-5xl lg:text-[4rem]">
+              <h1 className="mt-5 max-w-3xl text-4xl font-black leading-tight tracking-normal text-zinc-950 sm:text-5xl lg:text-[3.75rem]">
                 Trade-Up For Trade Schools
               </h1>
-              <p className="mt-4 max-w-2xl text-lg leading-8 text-zinc-700">
-                Buy campaign-branded items that help support future trade school scholarships.
+              <p className="mt-5 max-w-3xl text-xl font-bold leading-8 text-zinc-900">
+                Following the journey from a single carpenter’s pencil to $250,000 in trade school
+                scholarships.
               </p>
-              <p className="mt-3 max-w-2xl text-base leading-7 text-zinc-700">
-                A TradeScout-run campaign built around practical branded items, sponsor support, and
-                a separate direct donation path.
+              <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-700">
+                Follow the series, make a trade, or help connect the next step in the chain.
               </p>
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <a
-                  href="#campaign-items"
+                  href={contactHref}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-zinc-950 px-5 py-3 text-sm font-bold text-white hover:bg-zinc-800"
                 >
-                  Request campaign item list
+                  Offer a Trade
                   <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  href="#current-status"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-5 py-3 text-sm font-bold text-zinc-950 hover:bg-zinc-50"
+                >
+                  Follow the Trade-Up Series
+                  <PlayCircle className="h-4 w-4" />
                 </a>
                 <a
                   href={contactHref}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-5 py-3 text-sm font-bold text-zinc-950 hover:bg-zinc-50"
                 >
-                  Sponsor the campaign
+                  Connect the Next Trade
                   <Mail className="h-4 w-4" />
                 </a>
               </div>
               <p className="mt-3 text-sm font-semibold text-zinc-700">
-                Direct donation portal handled separately.
+                Direct donation portal is separate.
               </p>
             </div>
 
-            <aside className="w-full min-w-0 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-900">
-                  <ClipboardList className="h-6 w-6" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
-                    Campaign catalog
-                  </p>
-                  <h2 className="mt-1 text-2xl font-black leading-tight text-zinc-950">
-                    Campaign item list
-                  </h2>
-                </div>
-              </div>
-              <p className="mt-4 text-sm leading-6 text-zinc-700">
-                Request the current Trade-Up item list for branded campaign materials connected to
-                the scholarship initiative.
+            <aside className="w-full min-w-0 rounded-lg border border-zinc-200 bg-stone-50 p-5 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
+                Starting point
               </p>
-              <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                {previewItems.map((item) => (
-                  <div
-                    key={item}
-                    className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold text-zinc-800"
-                  >
-                    {item}
-                  </div>
-                ))}
+              <div className="mt-4 rounded-md border border-zinc-300 bg-white p-4">
+                <div className="h-3 w-full rounded-sm bg-zinc-900" />
+                <div className="mt-2 h-3 w-4/5 rounded-sm bg-[color:var(--theme-accent-primary,#ff6600)]" />
+                <div className="mt-2 h-3 w-3/5 rounded-sm bg-zinc-300" />
               </div>
-              <a
-                href={contactHref}
-                className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-bold text-zinc-950 hover:bg-zinc-50"
-              >
-                Request item list
-                <ArrowRight className="h-4 w-4" />
-              </a>
+              <h2 className="mt-5 text-2xl font-black leading-tight text-zinc-950">
+                One carpenter’s pencil. One public trade-up chain.
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-zinc-700">
+                The pencil is the first trade, not a product line. Verified updates will be
+                published as the campaign series progresses.
+              </p>
             </aside>
           </div>
         </section>
 
-        <section
-          id="campaign-items"
-          className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
-        >
+        <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
           <div className="mb-6 max-w-3xl">
-            <p className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-500">
-              Campaign Items
-            </p>
-            <h2 className="mt-2 text-3xl font-black leading-tight text-zinc-950">
-              Campaign items dedicated to the initiative
+            <h2 className="text-3xl font-black leading-tight text-zinc-950">
+              How the trade-up works
             </h2>
-            <p className="mt-3 text-base leading-7 text-zinc-700">
-              Supporters, businesses, crews, shops, and sponsors can request Trade-Up For Trade
-              Schools branded items connected to the campaign.
-            </p>
           </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {campaignItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <article
-                  key={item.title}
-                  className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-900">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h3 className="text-lg font-black leading-snug text-zinc-950">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-zinc-700">{item.description}</p>
-                  <a
-                    href={contactHref}
-                    className="mt-4 inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm font-bold text-zinc-950 hover:bg-zinc-50"
-                  >
-                    {item.action}
-                    <ArrowRight className="h-4 w-4" />
-                  </a>
-                </article>
-              );
-            })}
+          <div className="grid gap-4 md:grid-cols-3">
+            {steps.map((step, index) => (
+              <article key={step.title} className="rounded-lg border border-zinc-200 bg-white p-5">
+                <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-zinc-950 text-sm font-bold text-white">
+                  {index + 1}
+                </div>
+                <h3 className="text-lg font-black leading-snug text-zinc-950">{step.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-zinc-700">{step.description}</p>
+              </article>
+            ))}
           </div>
         </section>
 
         <section className="border-y border-zinc-200 bg-white">
           <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-            <div className="mb-6 flex items-center gap-2">
-              <Wrench className="h-5 w-5 text-zinc-500" />
-              <h2 className="text-2xl font-black text-zinc-950">How the campaign works</h2>
+            <div className="mb-6 max-w-3xl">
+              <h2 className="text-3xl font-black leading-tight text-zinc-950">
+                How to participate
+              </h2>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              {howItWorks.map((step, index) => (
-                <article
-                  key={step.title}
-                  className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-zinc-950 text-sm font-bold text-white">
-                    {index + 1}
-                  </div>
-                  <h3 className="text-lg font-black leading-snug text-zinc-950">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-zinc-700">{step.description}</p>
-                </article>
-              ))}
+              {participation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <article key={item.title} className="rounded-lg border border-zinc-200 p-5">
+                    <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-md border border-zinc-200 bg-stone-50 text-zinc-900">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <h3 className="text-lg font-black leading-snug text-zinc-950">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-zinc-700">{item.description}</p>
+                  </article>
+                );
+              })}
             </div>
-            <p className="mt-5 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold text-zinc-800">
-              Direct donation portal handled separately.
-            </p>
-          </div>
-        </section>
-
-        <section className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8 lg:py-10">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-500">
-              Sponsor/support path
-            </p>
-            <h2 className="mt-2 text-3xl font-black leading-tight text-zinc-950">
-              For sponsors and supporters
-            </h2>
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
-            <p className="text-base leading-7 text-zinc-700">
-              Sponsors can support the campaign by backing branded item runs, requesting
-              sponsor-ready item packages, or helping distribute campaign materials.
-            </p>
             <a
               href={contactHref}
-              className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-zinc-950 px-5 py-3 text-sm font-bold text-white hover:bg-zinc-800"
+              className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-zinc-950 px-5 py-3 text-sm font-bold text-white hover:bg-zinc-800"
             >
-              Sponsor the campaign
-              <Megaphone className="h-4 w-4" />
+              Offer a Trade
+              <Mail className="h-4 w-4" />
             </a>
           </div>
         </section>
 
+        <section
+          id="current-status"
+          className="mx-auto grid max-w-6xl gap-5 px-4 py-8 sm:px-6 lg:grid-cols-2 lg:px-8 lg:py-10"
+        >
+          <article className="rounded-lg border border-zinc-200 bg-white p-5">
+            <h2 className="text-2xl font-black leading-tight text-zinc-950">
+              Current campaign status
+            </h2>
+            <p className="mt-3 text-base leading-7 text-zinc-700">
+              Current starting item: TradeScout Carpenter’s Pencil. Verified trade updates will be
+              published as the series progresses.
+            </p>
+            <p className="mt-3 rounded-md border border-zinc-200 bg-stone-50 px-3 py-2 text-sm font-bold text-zinc-800">
+              Next accepted trade: not yet published.
+            </p>
+          </article>
+          <article className="rounded-lg border border-zinc-200 bg-white p-5">
+            <h2 className="text-2xl font-black leading-tight text-zinc-950">The goal</h2>
+            <p className="mt-3 text-base leading-7 text-zinc-700">
+              Turn one carpenter’s pencil into $250,000 worth of trade school scholarships through a
+              public trade-up campaign.
+            </p>
+          </article>
+        </section>
+
         <section className="border-y border-zinc-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8 lg:py-10">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.12em] text-zinc-500">Purpose</p>
-              <h2 className="mt-2 text-3xl font-black leading-tight text-zinc-950">
-                Why Trade-Up exists
-              </h2>
-            </div>
+          <div className="mx-auto grid max-w-6xl gap-5 px-4 py-8 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8 lg:py-10">
+            <h2 className="text-3xl font-black leading-tight text-zinc-950">Direct donations</h2>
             <p className="text-base leading-7 text-zinc-700">
-              TradeScout believes skilled trades deserve stronger local support. Trade-Up For Trade
-              Schools turns practical campaign branding into support for future trade school
-              scholarships.
+              Direct donations will be handled through a separate portal. This page is for the
+              trade-up campaign and participation path.
             </p>
           </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-          <div className="grid gap-4 rounded-lg border border-zinc-200 bg-white p-5 shadow-sm sm:grid-cols-[auto_1fr]">
+          <div className="grid gap-4 rounded-lg border border-zinc-200 bg-white p-5 sm:grid-cols-[auto_1fr]">
             <ShieldCheck className="h-6 w-6 text-zinc-500" />
             <div>
               <h2 className="text-lg font-black text-zinc-950">Campaign boundary</h2>
               <p className="mt-2 text-sm font-bold leading-6 text-zinc-800">
-                Trade-Up For Trade Schools is a TradeScout-run campaign initiative. No school
-                partnership, school endorsement, nonprofit status, tax-deductibility, scholarship
-                recipient, or distribution process is implied unless formally stated by TradeScout.
-                Direct donation portal handled separately.
+                Trade-Up For Trade Schools is an independent initiative run by TradeScout. Direct
+                donations are separate. No nonprofit, tax-deductible, formal institutional
+                affiliation, school endorsement, scholarship recipient, or distribution process is
+                implied unless formally stated by TradeScout.
               </p>
             </div>
           </div>
