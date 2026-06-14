@@ -16,6 +16,8 @@ Use this rule at the start of production cleanup tasks:
 
 Every cleanup prompt should also name the exact allowed lane and the exact files or doc family expected when possible.
 
+For campaigns, public pages, pricing models, offers, brand initiatives, or strategic user-facing surfaces, a prompt is not valid until it includes an owner-approved Truth Lock. The Truth Lock must state the one-sentence purpose, confirmed facts, explicit negatives, banned assumptions, approved CTAs, forbidden claims/language, data/state boundary, and owner sign-off. Codex, Gemini, visual review, contract planning, and merge approval must stop if the lane relies on an unverified premise.
+
 ## Safe Edit Rules
 
 - Prefer docs, contracts, and focused tests before code.
@@ -76,6 +78,7 @@ Stop and report instead of editing when:
 - A schema or migration change is needed but deploy order is not clear.
 - The task implies fabricated providers, fabricated metrics, synthetic traction claims, or placeholder production records.
 - The task asks for product polish or UI changes before an audit identifies exact existing surfaces and failures.
+- The task scopes a campaign, public page, pricing model, offer, brand initiative, or strategic user-facing surface without an owner-approved Truth Lock.
 
 ## Return Format After Each Task
 

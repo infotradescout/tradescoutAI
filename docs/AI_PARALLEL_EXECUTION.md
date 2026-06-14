@@ -15,6 +15,7 @@ TradeScout work can run in parallel only when every slice has a clear lane, bran
 - Run one lane per Codex session.
 - Use one branch per lane.
 - Do not stack unrelated work in a branch.
+- Create and approve a Truth Lock before scoping any campaign, public page, pricing model, product surface, offer, brand initiative, or user-facing strategic page for Codex.
 - Inspect first. Read the relevant code, tests, docs, and current git state before editing.
 - Make the smallest safe slice that satisfies the assigned lane.
 - Add or strengthen contracts/tests before behavior changes when possible.
@@ -24,6 +25,45 @@ TradeScout work can run in parallel only when every slice has a clear lane, bran
 - Do not commit if required validation was not run or failed unless the failure is documented as the purpose of the slice.
 - Require Gemini review before merge.
 - Gawain controls merge order.
+
+## Truth Lock Gate
+
+Any lane for a campaign, public page, pricing model, product surface, offer, brand initiative, or user-facing strategic page is structurally invalid until Gawain records an owner-approved Truth Lock. The Truth Lock must exist before Codex implementation prompts, Gemini pre-flight reviews, contract test planning, visual review, or merge approval.
+
+Truth Lock schema:
+
+1. `Page / Surface Purpose`
+   - One sentence only.
+2. `Confirmed Facts`
+   - Facts sourced only from direct user input, existing repo docs, or explicitly cited sources.
+3. `Explicit Negatives`
+   - Things the page or surface must not imply or claim.
+4. `Unknowns / Banned Assumptions`
+   - Areas where Gawain, Codex, Gemini, or other agents may not fill gaps.
+5. `Approved CTAs`
+   - Exact allowed user actions.
+6. `Forbidden Claims / Language`
+   - Words, claims, mechanics, metrics, or statuses that must not appear.
+7. `Data / State Boundary`
+   - What data may be shown, what must not be invented, and whether live state exists.
+8. `Review Owner Sign-Off`
+   - System owner approval before implementation starts.
+
+Truth Lock rules:
+
+- Any Codex prompt based on unverified assumptions fails closed.
+- Any Gemini review that validates an unverified premise is invalid.
+- Any contract tests enforcing an unverified premise are invalid.
+- Contract tests must enforce the Truth Lock; they do not replace it.
+- Passing tests/builds do not prove business alignment.
+- Visual polish cannot override product truth.
+- If a false premise is discovered after merge, emergency truth correction takes priority over feature continuation.
+- Governance-impacting workflow changes require 3/3 approval under the active AI Council / Albion / High Court approval process before merge.
+
+Concise example:
+
+- Bad premise: `Campaign-branded items are listed for purchase as a catalog.`
+- Correct Truth Lock: `Trade-Up For Trade Schools is a TradeScout-run video/content series starting with one carpenter's pencil and trading up through consecutive swaps toward $250,000 in trade school scholarships.`
 
 ## Truthfulness Rules
 
@@ -76,17 +116,18 @@ Unsafe parallel work includes:
 ## Standard Codex Lane Flow
 
 1. Confirm repo, branch, baseline SHA, and git status.
-2. Confirm the assigned lane and branch name.
-3. Create or switch to the assigned branch.
-4. Inspect relevant files and tests.
-5. Identify the smallest safe slice.
-6. Add or update contracts/tests first when possible.
-7. Make only lane-scoped edits.
-8. Run lane-specific validation.
-9. Run the repo's normal check command.
-10. Commit with the assigned message.
-11. Push the lane branch if requested.
-12. Return the global lane report format.
+2. Confirm whether the lane requires a Truth Lock; stop if it does and one is missing.
+3. Confirm the assigned lane and branch name.
+4. Create or switch to the assigned branch.
+5. Inspect relevant files and tests.
+6. Identify the smallest safe slice.
+7. Add or update contracts/tests first when possible, and align them to the Truth Lock when one exists.
+8. Make only lane-scoped edits.
+9. Run lane-specific validation.
+10. Run the repo's normal check command.
+11. Commit with the assigned message.
+12. Push the lane branch if requested.
+13. Return the global lane report format.
 
 ## Global Return Format
 

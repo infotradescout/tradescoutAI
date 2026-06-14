@@ -43,6 +43,37 @@ Current product-surface doctrine:
 - TradeScout is for businesses and their community. Do not narrow it to only contractors/homeowners unless the slice explicitly targets contractor/homeowner SEO intent.
 - Contractor wording is allowed only as SEO/search/trade subset language or legacy compatibility detail.
 
+## Truth Lock Gate
+
+Before Gawain scopes any campaign, public page, pricing model, product surface, offer, brand initiative, or user-facing strategic page for Codex, the lane must include an owner-approved Truth Lock. Missing Truth Lock means the lane is structurally invalid and must stop before Codex prompts, Gemini pre-flight review, contract test planning, visual review, or merge approval.
+
+Truth Lock required fields:
+
+1. `Page / Surface Purpose` - one sentence only.
+2. `Confirmed Facts` - direct user input, existing repo docs, or explicitly cited sources only.
+3. `Explicit Negatives` - what the surface must not imply or claim.
+4. `Unknowns / Banned Assumptions` - gaps agents may not fill.
+5. `Approved CTAs` - exact allowed user actions.
+6. `Forbidden Claims / Language` - blocked words, claims, mechanics, metrics, or statuses.
+7. `Data / State Boundary` - what may be shown, what must not be invented, and whether live state exists.
+8. `Review Owner Sign-Off` - system owner approval before implementation.
+
+Governance rules:
+
+- Codex prompts based on unverified assumptions fail closed.
+- Gemini reviews validating unverified premises are invalid.
+- Contract tests enforcing unverified premises are invalid.
+- Contract tests must enforce the Truth Lock rather than replace it.
+- Passing tests/builds do not prove business alignment.
+- Visual polish cannot override product truth.
+- If a false premise is discovered after merge, emergency truth correction takes priority over feature continuation.
+- Governance-impacting workflow changes require 3/3 approval under the active AI Council / Albion / High Court approval process before merge.
+
+Concise example:
+
+- Bad premise: `Campaign-branded items are listed for purchase as a catalog.`
+- Correct Truth Lock: `Trade-Up For Trade Schools is a TradeScout-run video/content series starting with one carpenter's pencil and trading up through consecutive swaps toward $250,000 in trade school scholarships.`
+
 ## Branch Naming Convention
 
 Use one branch per lane:
@@ -316,6 +347,7 @@ Every Codex lane must return:
 - Lane chosen
 - Branch
 - Baseline SHA
+- Truth Lock reference or `not required`
 - Files inspected
 - Files changed
 - Tests run
