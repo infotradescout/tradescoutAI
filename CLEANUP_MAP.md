@@ -95,6 +95,31 @@ Blocked:
 - UI edits before the audit.
 - New product surfaces, new actions, new workflow states, or visual redesigns.
 
+### 8. Zachary QA + DRY/SRP Release Gate Foundation
+
+Allowed:
+
+- Create front-end QA, bug reporting, release evidence, and DRY/SRP intake docs/templates.
+- Add docs contract tests that prove the required operating order and release rules exist.
+- Define QA evidence and behavior-parity evidence requirements for future lanes.
+
+Blocked:
+
+- Runtime refactor, feature work, UI changes, fetch cleanup, try/catch cleanup, oversized file decomposition, schema/storage edits, route changes, role changes, events, permissions, auth, Direct Connect, trust/CVS, claims, pricing, payouts, deployment, production config, or generated sitemap edits.
+
+Required order:
+
+1. QA the current user experience.
+2. Fix what is broken or confusing.
+3. Clean up duplicated/oversized code safely.
+4. Re-QA after cleanup.
+5. Only then introduce new features.
+
+Merge rules:
+
+- No user-facing merge without QA evidence.
+- No pure refactor merge without behavior-parity evidence and re-QA.
+
 ## Blocked Areas During Cleanup
 
 Do not touch during cleanup unless explicitly requested and separately validated:
@@ -118,8 +143,11 @@ Do not touch during cleanup unless explicitly requested and separately validated
 5. Map admin/operator surfaces without changing permissions.
 6. Document upload/storage retention and archive candidates without moving files.
 7. Document migration/deploy checklist for future schema work.
-8. Start product polish as `PRODUCT_POLISH_AUDIT.md` only, with no UI edits until the audit is accepted.
+8. Establish the Zachary QA + DRY/SRP release gate before more user-facing work.
+9. Start product polish as `PRODUCT_POLISH_AUDIT.md` only, with no UI edits until the audit is accepted.
 
 ## Completion Rule
 
 A cleanup lane is complete only when its contract passes, `npm run check` passes, `npm run verify` passes, a scoped commit exists, and sitemap drift remains unstaged unless sitemap cleanup was the approved task.
+
+Exception: the Zachary QA + DRY/SRP release gate foundation is docs/contracts only and may skip full `npm run verify` when it is known to enter unrelated DB-backed timeout paths. In that case, completion requires its docs contract, adjacent cleanup/handoff contracts, `npm run check`, a scoped commit, clean working tree, and a documented verify-skip rationale.
