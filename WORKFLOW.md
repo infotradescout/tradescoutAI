@@ -27,6 +27,33 @@ For campaigns, public pages, pricing models, offers, brand initiatives, or strat
 - Do not touch generated sitemap drift unless the task is explicitly sitemap cleanup.
 - Keep commits scoped to the requested lane.
 
+## Zachary QA + DRY/SRP Release Gate Lane
+
+Canonical guide: `docs/ZACHARY_QA_DRY_RELEASE_GATE.md`.
+
+This lane makes front-end QA evidence mandatory before more user-facing work and makes DRY/SRP cleanup a planned follow-up after UX QA and critical/high fixes. It is an operating-policy lane first.
+
+Allowed:
+
+- Docs, templates, release evidence rules, bug reporting rules, DRY/SRP intake rules, and docs contract tests.
+
+Forbidden:
+
+- Runtime refactor, feature work, UI changes, fetch cleanup, try/catch cleanup, oversized file decomposition, schema/storage edits, route changes, role changes, event changes, permission changes, auth changes, Direct Connect changes, trust/CVS changes, claims changes, pricing changes, payout changes, deployment changes, production config changes, or generated sitemap edits.
+
+Required operating order:
+
+1. QA the current user experience.
+2. Fix what is broken or confusing.
+3. Clean up duplicated/oversized code safely.
+4. Re-QA after cleanup.
+5. Only then introduce new features.
+
+Release rules:
+
+- No user-facing merge without QA evidence.
+- No pure refactor merge without behavior-parity evidence and re-QA.
+
 ## Before Editing
 
 1. Inspect `TradeScoutPro_HANDOFF_SPINE.md`.
@@ -51,6 +78,15 @@ For this cleanup-docs lane, the required validation order is:
 2. `node scripts/tradescoutpro-handoff-spine.contract.test.mjs`
 3. `npm run check`
 4. `npm run verify`
+
+For the Zachary QA + DRY/SRP release gate foundation lane, the required validation order is:
+
+1. `node scripts/zachary-qa-dry-release-gate.contract.test.mjs`
+2. `node scripts/tradescoutpro-cleanup-docs.contract.test.mjs`
+3. `node scripts/tradescoutpro-handoff-spine.contract.test.mjs`
+4. `npm run check`
+
+Do not require full `npm run verify` for that docs-only lane when it is known to enter unrelated DB-backed timeout paths. If skipped, document why.
 
 ## Commit Rules
 
@@ -92,5 +128,6 @@ Return:
 - `COMMIT:`
 - `WORKING TREE:`
 - `NOTES:`
+- `FOLLOW-UP LANES:`
 
 Do not claim completion if validation fails.
