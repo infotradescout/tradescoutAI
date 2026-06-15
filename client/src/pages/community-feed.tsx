@@ -1755,7 +1755,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                       </p>
                     </div>
                     <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-white/60">Recs (7d)</p>
+                      <p className="text-[10px] uppercase tracking-wide text-white/60">
+                        Recommendations
+                      </p>
                       <p className="text-sm font-semibold text-white">
                         {communityStats.recommendations7d ?? 0}
                       </p>
@@ -1934,7 +1936,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="text-sm font-semibold text-white">
-                                  Share locally
+                                  Share a local update
                                 </div>
                                 <div className="text-xs text-white/55">
                                   Post an update, or start a request for work.

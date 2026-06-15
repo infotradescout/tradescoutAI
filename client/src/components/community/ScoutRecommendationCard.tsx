@@ -8,6 +8,8 @@ import {
   MapPin,
   Briefcase,
   TrendingUp,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +49,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 }) => {
   const { toast } = useToast();
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showFitDetails, setShowFitDetails] = useState(false);
 
   // Action mutation (accept/dismiss)
   const actionMutation = useMutation({
@@ -134,11 +137,11 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
 
   return (
     <>
-      <div className="bg-white border border-white/10 rounded-lg p-4 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+      <div className="bg-tsCard border border-white/10 rounded-lg p-4 space-y-4 shadow-sm hover:shadow-md transition-shadow">
         {/* Header */}
         <div className="flex items-center gap-2 text-sm text-white/60">
           <TrendingUp className="w-4 h-4" />
-          <span className="font-medium">Local suggestion</span>
+          <span className="font-medium">Recommended pro</span>
         </div>
 
         {/* Target User */}
@@ -169,24 +172,32 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
           </div>
         </div>
 
-        {/* Reasoning */}
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-white/70">Why this may fit:</p>
-          <p className="text-sm text-white/60">{recommendation.reasoning}</p>
-          {recommendation.decisionScope && (
-            <p className="text-sm text-white/60 italic">{recommendation.decisionScope}</p>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setShowFitDetails((current) => !current)}
+          className="inline-flex items-center gap-1 text-sm font-medium text-white/70 hover:text-white"
+          aria-expanded={showFitDetails}
+        >
+          Why this appears
+          {showFitDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
 
-        {/* Risk Flags (if caution level) */}
-        {recommendation.confidenceTier === "caution" && recommendation.riskFlags.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1">
-            <p className="text-sm font-medium text-amber-900">Considerations:</p>
-            <ul className="space-y-0.5 text-sm text-amber-800">
-              {recommendation.riskFlags.map((flag, i) => (
-                <li key={i}>• {flag}</li>
-              ))}
-            </ul>
+        {showFitDetails && (
+          <div className="space-y-3 rounded-lg border border-white/10 bg-tsBg/60 p-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-white/70">Local fit</p>
+              <p className="text-sm text-white/60">{recommendation.reasoning}</p>
+            </div>
+            {recommendation.confidenceTier === "caution" && recommendation.riskFlags.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-white/70">Review notes</p>
+                <ul className="space-y-0.5 text-sm text-white/60">
+                  {recommendation.riskFlags.map((flag, i) => (
+                    <li key={i}>- {flag}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 
@@ -198,7 +209,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
               className="flex-1 bg-tsCard hover:bg-white/5 text-white"
               disabled={actionMutation.isPending}
             >
-              Start contact review
+              Review before contact
             </Button>
           )}
 
