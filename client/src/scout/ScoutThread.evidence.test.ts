@@ -95,7 +95,7 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Next steps");
     expect(html).toContain("scout-cluster-card");
     expect(html).toContain("Review and send");
-    expect(html).toContain("Search");
+    expect(html).toContain("Choose next step");
     expect(html).not.toContain("Search with Scout");
   });
 
@@ -120,7 +120,7 @@ describe("ScoutThread evidence strip", () => {
     expect(html).toContain("Local help");
     expect(html).toContain("Create request");
     expect(html).toContain("Browse local help");
-    expect(html).toContain("Search");
+    expect(html).toContain("Choose next step");
     expect(html).not.toContain("Search with Scout");
   });
 
@@ -159,7 +159,7 @@ describe("ScoutThread evidence strip", () => {
 
     const html = renderThread([userMessage], false, { status: "checking_documents" });
 
-    expect(html).toContain("Details Scout can use");
+    expect(html).toContain("Request context");
     expect(html).toContain("Add location");
     expect(html).toContain("Add timing");
   });

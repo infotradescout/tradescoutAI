@@ -8,33 +8,33 @@ const read = (relativePath: string) => {
 };
 
 describe("Scout entry framing contracts", () => {
-  it("header frames Scout as a plain normal user assistant", () => {
+  it("header frames Scout as a Search + Control surface", () => {
     const source = read("client/src/scout/ScoutHeader.tsx");
 
-    expect(source).toContain("What do you need help with today?");
-    expect(source).toContain(
-      "Scout shows local activity, saved context, and what to review before contacting"
-    );
-    expect(source).toContain("saved context");
-    expect(source).toContain("Find local help");
-    expect(source).toContain("Open Scout");
+    expect(source).toContain("Search local options and choose the next step.");
+    expect(source).toContain("Review local activity, request context, and what to check");
+    expect(source).toContain("request context");
+    expect(source).toContain("Search local businesses");
+    expect(source).toContain("Review next step");
     expect(source).toContain("Check prices");
-    expect(source).toContain("See nearby activity");
+    expect(source).toContain("Local results");
     expect(source).toContain("Start a material run");
     expect(source).toContain("Open messages");
     expect(source).toContain("Send a material list or supplier link to turn it into a Supply Run.");
+    expect(source).not.toContain("What do you need help with today?");
+    expect(source).not.toContain("Open Scout");
   });
 
   it("input row and quick-start surfaces use plain language", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain(
-      "Tell Scout what happened, what you need, or what you’re trying to figure out."
-    );
-    expect(inputSource).toContain("Ask");
+    expect(inputSource).toContain("Search local help, compare options, or review your next step.");
+    expect(inputSource).toContain("Search");
     expect(inputSource).toContain("Compare");
     expect(inputSource).toContain("Choose");
+    expect(inputSource).toContain("Start search");
+    expect(inputSource).not.toContain("Send message");
     expect(inputSource).not.toContain("Your area:");
     expect(inputSource).not.toContain("Use current location");
     expect(promptsSource).toContain("What's happening near me today?");
@@ -366,7 +366,11 @@ describe("Scout entry framing contracts", () => {
       expect(normalUserCopy).not.toMatch(term);
     }
 
-    expect(scoutOsSource).toContain("How Scout helps");
+    expect(scoutOsSource).toContain("Search controls");
+    expect(scoutOsSource).toContain("Results + controls");
+    expect(threadSource).toContain("Local results");
+    expect(threadSource).toContain("Request context");
+    expect(threadSource).not.toContain("Community-Powered");
     expect(threadSource).toContain("Here are the best next steps");
   });
 });

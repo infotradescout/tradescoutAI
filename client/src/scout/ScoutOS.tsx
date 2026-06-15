@@ -3542,7 +3542,7 @@ export default function ScoutOS() {
             : undefined;
           const suggestedTo = (nav?.to as string) || (nav?.path as string) || msg.navTarget || null;
           const suggestedLabel =
-            (nav?.label as string) || (suggestedTo ? "Continue" : "Open Scout");
+            (nav?.label as string) || (suggestedTo ? "Continue" : "Open search");
 
           void persistScoutResume({
             resume: {
@@ -4990,7 +4990,7 @@ export default function ScoutOS() {
                     onClick={() => navigate("/help/scout")}
                   >
                     <BadgeInfo className="h-3.5 w-3.5" />
-                    Scout info
+                    Search guide
                   </Button>
                   <Sheet>
                     <SheetTrigger asChild>
@@ -5406,7 +5406,7 @@ export default function ScoutOS() {
                                 : "transparent",
                           }}
                         >
-                          Simple
+                          Results
                         </button>
                         <button
                           type="button"
@@ -5423,7 +5423,7 @@ export default function ScoutOS() {
                                 : "transparent",
                           }}
                         >
-                          With actions
+                          Results + controls
                         </button>
                       </div>
                     </div>
@@ -6028,7 +6028,7 @@ export default function ScoutOS() {
                     </span>
                   </div>
                   <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-[color:var(--text-primary)]">
-                    Tell me what you need help with, and I'll narrow it down.
+                    Search local options and narrow the next step.
                   </h2>
                   <p className="mt-3 text-sm leading-relaxed text-[color:var(--text-muted)]">
                     You can search by job, problem, or question, like "AC not cooling", "need
@@ -6304,7 +6304,7 @@ export default function ScoutOS() {
                 <div className="scout-v2-rail-card">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
-                      How Scout helps
+                      Search controls
                     </p>
                     <Database className="h-4 w-4 text-ts-orange" />
                   </div>
@@ -6488,7 +6488,7 @@ export default function ScoutOS() {
                   className="scout-v2-rail-card text-left"
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                    Ask before calling
+                    Review before contact
                   </p>
                   <div
                     className="mt-4 rounded-xl border p-4 text-sm leading-6"
@@ -6498,7 +6498,7 @@ export default function ScoutOS() {
                       color: "var(--text-muted)",
                     }}
                   >
-                    <p>Scout lets you search first before you make yourself visible.</p>
+                    <p>Search first before you make yourself visible.</p>
                     <p className="mt-2">1. Find the best matches</p>
                     <p>2. Compare what matters</p>
                     <p>3. Choose a safe next step</p>
@@ -6522,8 +6522,7 @@ export default function ScoutOS() {
           <AlertDialogHeader>
             <AlertDialogTitle>Create this local request?</AlertDialogTitle>
             <AlertDialogDescription>
-              Scout will save this as a request. You can review it before sharing it with local
-              pros.
+              This request stays in review until you choose to share it with local pros.
             </AlertDialogDescription>
           </AlertDialogHeader>
 

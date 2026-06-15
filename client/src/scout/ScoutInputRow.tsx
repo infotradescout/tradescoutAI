@@ -29,9 +29,9 @@ const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
 const AUTO_DEMO_START_DELAY_MS = 600;
 const AUTO_DEMO_TYPE_DELAY_MS = 45;
 const AUTO_DEMO_SEND_DELAY_MS = 400;
-const SCOUT_INPUT_ACTION_HINT = "Ask • Compare • Choose";
+const SCOUT_INPUT_ACTION_HINT = "Search • Compare • Choose";
 const SCOUT_INPUT_ACCESSIBLE_PROMPT =
-  "Tell Scout what happened, what you need, or what you’re trying to figure out.";
+  "Search local help, compare options, or review your next step.";
 
 export function ScoutInputRow({
   isBusy,
@@ -229,7 +229,7 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Tell Scout what happened, what you need, or what you’re trying to figure out."
+          placeholder="Search local help, compare options, or review your next step."
           rows={1}
           className="scout-command-bar__input"
           aria-label={SCOUT_INPUT_ACCESSIBLE_PROMPT}
@@ -251,7 +251,7 @@ export function ScoutInputRow({
           onClick={() => void handleSubmit()}
           disabled={isButtonDisabled}
           className="scout-command-bar__send"
-          aria-label={isSubmitting ? "Sending..." : "Send message"}
+          aria-label={isSubmitting ? "Searching..." : "Start search"}
         >
           <Send size={15} />
         </button>
