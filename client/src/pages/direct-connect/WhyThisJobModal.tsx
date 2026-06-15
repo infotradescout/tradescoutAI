@@ -54,7 +54,7 @@ export function WhyThisJobModal({ open, onOpenChange, snapshot }: WhyThisJobModa
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Why this job?</DialogTitle>
+          <DialogTitle>Why this looks like a fit</DialogTitle>
           <DialogDescription>Here's why this request showed up for you.</DialogDescription>
         </DialogHeader>
 
@@ -79,9 +79,9 @@ export function WhyThisJobModal({ open, onOpenChange, snapshot }: WhyThisJobModa
           {typeof snapshot?.score === "number" && (
             <p className="pt-1 text-xs text-white/60 flex items-center gap-2">
               <Badge variant="outline" className="border-white/10 text-white/70">
-                Match score: {Math.round(snapshot.score)}
+                Local fit signal
               </Badge>
-              <span>Higher scores usually mean a better fit.</span>
+              <span>This signal helps explain why the request appeared in your list.</span>
             </p>
           )}
         </div>

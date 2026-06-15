@@ -53,7 +53,7 @@ export function getDirectConnectNextStepCopy(
     return {
       label: "Request paused",
       summary:
-        "This request is not routing right now. Reopen it when you want Scout to work it again.",
+        "This request is not active right now. Reopen it when you're ready to send it again.",
       actionHint: "Reopen request",
       contactUnlocked: false,
     };
@@ -71,8 +71,7 @@ export function getDirectConnectNextStepCopy(
   if (status === "pending_outcome") {
     return {
       label: "Confirm outcome",
-      summary:
-        "The next valid step is confirming what happened so the coordination trail stays clear.",
+      summary: "The next step is confirming what happened so this request stays accurate.",
       actionHint: "Confirm outcome",
       contactUnlocked: readiness.gates.contactUnlocked,
     };
@@ -81,7 +80,7 @@ export function getDirectConnectNextStepCopy(
   if (status === "open" || status === "draft") {
     return {
       label: "Send this request",
-      summary: "Choose who receives this request or let Scout route it through Direct Connect.",
+      summary: "Choose who receives this request or continue without a selection.",
       actionHint: "Route to more pros",
       contactUnlocked: false,
     };
@@ -91,7 +90,7 @@ export function getDirectConnectNextStepCopy(
     return {
       label: "Continue coordination",
       summary:
-        "An accepted Direct Connect path exists. Continue from the governed conversation trail.",
+        "An accepted Direct Connect path exists. Keep the conversation tied to this request.",
       actionHint: "Open messages",
       contactUnlocked: readiness.gates.contactUnlocked,
     };
@@ -100,8 +99,7 @@ export function getDirectConnectNextStepCopy(
   if (readiness.state === "has_direct_connect_reply_to_review") {
     return {
       label: "Review replies",
-      summary:
-        "Review the response in Direct Connect. Contact stays gated until an accepted path exists.",
+      summary: "Review the response in Direct Connect. Contact opens only after acceptance.",
       actionHint: "Check replies",
       contactUnlocked: false,
     };
@@ -109,8 +107,7 @@ export function getDirectConnectNextStepCopy(
 
   return {
     label: "Waiting for responses",
-    summary:
-      "Scout has routed this request. The next valid step is waiting for eligible responders.",
+    summary: "This request is live and waiting for eligible responders.",
     actionHint: "Check replies",
     contactUnlocked: false,
   };
@@ -147,7 +144,7 @@ export function getDirectConnectInboxNextStepCopy(
   if (assignmentStatus === "accepted" || contactUnlocked) {
     return {
       label: "Coordination active",
-      summary: "This accepted request belongs in the governed conversation trail.",
+      summary: "This accepted request is ready for conversation in Direct Connect.",
       actionHint: "Open conversation",
       contactUnlocked,
     };
@@ -165,7 +162,7 @@ export function getDirectConnectInboxNextStepCopy(
   return {
     label: "Saved request",
     summary:
-      "Review the request details. Contact stays tied to accepted Direct Connect coordination.",
+      "Review the request details. Contact stays tied to accepted Direct Connect conversations.",
     actionHint: contactUnlocked ? "Open conversation" : "Review details",
     contactUnlocked,
   };

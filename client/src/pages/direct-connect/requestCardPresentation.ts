@@ -134,7 +134,7 @@ export function normalizeDirectConnectContactState(
 }
 
 export function getDirectConnectContactGateSummary(_request: DirectConnectRequestCardLike): string {
-  return "Contact stays gated for this request until the approved release step.";
+  return "Private contact stays locked for this request until the approved release step.";
 }
 
 export function getDirectConnectReleasedContactForPanel(
@@ -173,9 +173,9 @@ export function getDirectConnectContactGateNextAction(
     return "This contact workflow is closed.";
   }
   if (contactState === "contact_hidden") {
-    return "Wait for a valid provider contact request or continue routing.";
+    return "Wait for a valid provider contact request or continue review.";
   }
-  return "Review the request state before taking contact action.";
+  return "Review the request status before taking the next step.";
 }
 
 export function getDirectConnectContactGateNextActor(

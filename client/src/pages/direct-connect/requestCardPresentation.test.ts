@@ -113,7 +113,7 @@ describe("requestCardPresentation", () => {
     };
 
     expect(getDirectConnectContactGateSummary(request)).toBe(
-      "Contact stays gated for this request until the approved release step."
+      "Private contact stays locked for this request until the approved release step."
     );
     expect(getDirectConnectContactGateSummary(request)).not.toContain("555-123-9876");
     expect(getDirectConnectContactGateSummary(request)).not.toContain("owner@example.test");
@@ -122,7 +122,7 @@ describe("requestCardPresentation", () => {
     );
     expect(getDirectConnectContactGateNextActor("provider_requested_contact")).toBe("requester");
     expect(getDirectConnectContactGateNextAction("mystery_state")).toBe(
-      "Review the request state before taking contact action."
+      "Review the request status before taking the next step."
     );
     expect(getDirectConnectContactGateNextActor("mystery_state")).toBe("none");
   });

@@ -4689,7 +4689,7 @@ function MyDirectConnectRequests() {
                   onClick={handleSkipAndAutoRoute}
                   disabled={routeMutation.isPending}
                 >
-                  {routeMutation.isPending ? "Sending..." : "Let Scout decide"}
+                  {routeMutation.isPending ? "Sending..." : "Continue without selection"}
                 </Button>
                 <Button
                   type="button"
@@ -5145,22 +5145,10 @@ export default function DirectConnectShell() {
 
         <div className={cn(activeSection === "post" ? "hidden md:block" : "")}>
           <FirstUseGuidanceCard
-            title="Direct Connect prepares your request."
+            title="Start your request."
             description={DIRECT_CONNECT_GUIDANCE_TEXT}
           />
         </div>
-        <Card
-          className={cn(
-            "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
-            activeSection === "post" ? "hidden md:block" : ""
-          )}
-        >
-          <CardContent className="pt-4">
-            <p className="text-sm text-[color:var(--text-primary)]">
-              Add request details, review them, and submit when ready.
-            </p>
-          </CardContent>
-        </Card>
         <Card
           className={cn(
             "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",

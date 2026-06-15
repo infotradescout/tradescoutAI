@@ -63,8 +63,8 @@ describe("DecisionContactGatePanel", () => {
   it("does not render phone, email, address, name, or notes while contact is hidden", () => {
     const html = renderPanel({ contactState: "contact_hidden" });
 
-    expect(html).toContain("Contact hidden");
-    expect(html).toContain("Private requester contact is hidden until contact is released.");
+    expect(html).toContain("Review only");
+    expect(html).toContain("Private requester contact stays hidden until contact opens.");
     expectNoRawContact(html);
   });
 
@@ -75,7 +75,7 @@ describe("DecisionContactGatePanel", () => {
       nextActor: "requester",
     });
 
-    expect(html).toContain("Provider requested contact");
+    expect(html).toContain("Contact request waiting");
     expect(html).toContain("The requester must approve or deny the contact request.");
     expectNoRawContact(html);
   });
@@ -87,8 +87,8 @@ describe("DecisionContactGatePanel", () => {
       nextActor: "staff",
     });
 
-    expect(html).toContain("Requester approved contact");
-    expect(html).toContain("Approval is recorded, but raw contact is still gated until release.");
+    expect(html).toContain("Approval recorded");
+    expect(html).toContain("Approval is recorded, but private contact stays locked until release.");
     expectNoRawContact(html);
   });
 
@@ -99,8 +99,8 @@ describe("DecisionContactGatePanel", () => {
       nextActor: "none",
     });
 
-    expect(html).toContain("Contact released");
-    expect(html).toContain("Released contact");
+    expect(html).toContain("Contact open");
+    expect(html).toContain("Contact details");
     for (const token of rawContactTokens) {
       expect(html).toContain(token);
     }
@@ -110,7 +110,7 @@ describe("DecisionContactGatePanel", () => {
     for (const state of ["denied", "closed"] as const) {
       const html = renderPanel({ contactState: state, viewerRole: "admin", nextActor: "none" });
 
-      expect(html).toContain(state === "denied" ? "Contact denied" : "Closed");
+      expect(html).toContain(state === "denied" ? "Contact declined" : "Closed");
       expectNoRawContact(html);
     }
   });
@@ -123,10 +123,10 @@ describe("DecisionContactGatePanel", () => {
         nextActor: "platform",
       });
 
-      expect(html).toContain("Contact gate");
-      expect(html).toContain("Visible now");
-      expect(html).toContain("Happens next");
-      expect(html).toContain("Must act next");
+      expect(html).toContain("Contact status");
+      expect(html).toContain("Available now");
+      expect(html).toContain("What happens next");
+      expect(html).toContain("Waiting on");
       expect(html).toContain(`Next action for ${state}`);
       expect(html).toContain("TradeScout");
     }
@@ -140,8 +140,8 @@ describe("DecisionContactGatePanel", () => {
     });
 
     expect(html).toContain('data-contact-state="unexpected_contact_state"');
-    expect(html).toContain("Contact gated");
-    expect(html).toContain("Contact state is unavailable. Private contact details stay locked.");
+    expect(html).toContain("Contact unavailable");
+    expect(html).toContain("Contact status is unavailable. Private contact details stay locked.");
     expectNoRawContact(html);
   });
 });
