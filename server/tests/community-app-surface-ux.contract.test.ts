@@ -1,6 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { describe, expect, it } from "vitest";
+import { ScoutRecommendationCard } from "../../client/src/components/community/ScoutRecommendationCard";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -61,8 +65,76 @@ describe("Community app surface UX contract", () => {
     expect(feed).toContain("Search local context");
     expect(feed).toContain("Start request");
     expect(feed).toContain("Local hub");
+    expect(feed).toContain("Share a local update");
     expect(feed).toContain("Start a post");
     expect(community).toContain("Local updates, questions, and projects.");
     expect(community).toContain("Draft ready");
+  });
+
+  it("keeps default recommendation cards out of system-level framing", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const html = renderToStaticMarkup(
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        React.createElement(ScoutRecommendationCard, {
+          recommendation: {
+            recommendationId: "rec_1",
+            targetUserId: "user_1",
+            targetUserName: "Jordan Lee",
+            targetRole: "Electrician",
+            targetLocation: "Fort Worth",
+            suggestedIntent: "hire",
+            reasoning:
+              "Internal AI scoring says confidence tier is high from recommendation vector weights.",
+            confidenceScore: 0.91,
+            confidenceTier: "auto_allow",
+            confidenceComponents: {
+              expertise_match: 0.95,
+              location_match: 0.9,
+              trust_signal: 0.86,
+              past_success: 0.82,
+              availability_match: 0.76,
+            },
+            riskFlags: ["debug risk flag should stay hidden by default"],
+            decisionScope: "system state: mutationAllowed=true",
+            createdAt: new Date("2026-06-15T00:00:00.000Z"),
+          },
+        })
+      )
+    );
+
+    const defaultVisibleForbiddenTerms = [
+      "assistant",
+      "recommendation vector",
+      "AI scoring",
+      "scoring",
+      "confidence",
+      "confidence tier",
+      "risk flag",
+      "mutationAllowed",
+      "raw JSON",
+      "debug",
+      "system state",
+      "recommendation engine",
+    ];
+
+    for (const term of defaultVisibleForbiddenTerms) {
+      expect(
+        html.toLowerCase(),
+        `Default Community recommendation HTML leaked "${term}"`
+      ).not.toContain(term.toLowerCase());
+    }
+
+    expect(html).toContain("Recommended pro");
+    expect(html).toContain("Review before contact");
+    expect(html).toContain("Why this appears");
+    expect(html).toContain("Jordan Lee");
   });
 });
