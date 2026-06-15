@@ -133,6 +133,7 @@ describe("Scout surface doctrine scan", () => {
     expect(source).toContain("Your request draft is ready. Sign in to review and send it.");
     expect(source).toContain("Review your request before sending it.");
     expect(source).toContain("Finish verification before sending a request.");
+    expect(source).toContain("Continue without selection");
     expect(source).not.toMatch(/\b(auto-contact|contacted for you|Scout will contact)\b/i);
   });
 });

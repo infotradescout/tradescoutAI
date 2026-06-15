@@ -331,7 +331,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
   const headerCopy =
     active === "job"
       ? "Post jobs, browse openings, and apply directly."
-      : "Post resumes, browse candidates, and reach out through Scout.";
+      : "Post resumes, browse candidates, and start a reply when you're ready.";
 
   return (
     <div className="space-y-4">
@@ -541,7 +541,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
                 }
               />
               <div className="text-xs text-[color:var(--text-muted)]">
-                Leave out phone numbers and email. People can reply through Scout.
+                Leave out phone numbers and email. Replies stay in TradeScout until contact opens.
               </div>
             </div>
 
@@ -883,7 +883,7 @@ function PostList({
                       Apply
                     </Button>
                   )}
-                  {/* Non-owner resume post: Reply in Scout */}
+                  {/* Non-owner resume post: Start reply */}
                   {!post.isOwner && post.postType === "resume" && !closed && (
                     <Button
                       size="sm"
@@ -892,11 +892,11 @@ function PostList({
                       onClick={() => onAskScout(post)}
                       title={
                         viewerVerified
-                          ? "Reply in Scout"
-                          : "Verify your address before you can reply."
+                          ? "Start reply"
+                          : "Verify your address before you can start a reply."
                       }
                     >
-                      Reply in Scout
+                      Start reply
                     </Button>
                   )}
                   {canClose && post.isOwner && !closed && (
