@@ -698,6 +698,105 @@ function statusTone(status: string) {
   return "bg-white/10 text-white/70 border-white/15";
 }
 
+export function getDirectConnectInboxStatusLabel(status: string | null | undefined): string {
+  const value = String(status || "suggested").toLowerCase();
+  switch (value) {
+    case "suggested":
+      return "New opportunity";
+    case "invited":
+      return "Invited";
+    case "saved":
+      return "Saved opportunity";
+    case "accepted":
+    case "in_progress":
+      return "Connected";
+    case "declined":
+    case "cancelled":
+      return "Dismissed";
+    case "expired":
+      return "Closed";
+    default:
+      return "Review";
+  }
+}
+
+export function formatDirectConnectInboxTime(
+  timestamp: string | null | undefined,
+  now: Date = new Date()
+): string | null {
+  if (!timestamp) return null;
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayDiff = Math.round((startOfToday - startOfDate) / (24 * 60 * 60 * 1000));
+
+  if (dayDiff === 0) return "Updated today";
+  if (dayDiff === 1) return "Updated yesterday";
+
+  return `Updated ${date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  })}`;
+}
+
+export function getDirectConnectInboxMatchStrength(
+  score: number | null | undefined
+): string | null {
+  if (typeof score !== "number" || !Number.isFinite(score)) return null;
+  if (score >= 80) return "Strong local fit";
+  if (score >= 50) return "Worth reviewing";
+  return "Needs review";
+}
+
+export function formatDirectConnectInboxLocalContext(
+  distanceMiles: number | null | undefined
+): string | null {
+  if (typeof distanceMiles !== "number" || !Number.isFinite(distanceMiles)) return null;
+  if (distanceMiles <= 5) return "Nearby local reply";
+  if (distanceMiles <= 25) return "Within your local area";
+  return "Area reply";
+}
+
+export function buildDirectConnectInboxDisplay(params: {
+  status?: string | null;
+  timestamp?: string | null;
+  scoreSnapshot?: {
+    score?: number;
+    reasons?: string[];
+    distanceMiles?: number;
+    tradeMatch?: boolean;
+    recommendationCount?: number;
+    responseRate?: number;
+  } | null;
+  now?: Date;
+}) {
+  const snapshot = params.scoreSnapshot || undefined;
+  const matchStrength = getDirectConnectInboxMatchStrength(snapshot?.score);
+  const localContext = formatDirectConnectInboxLocalContext(snapshot?.distanceMiles);
+  const reasons = Array.isArray(snapshot?.reasons) ? snapshot.reasons.filter(Boolean) : [];
+  const detailRows = [
+    matchStrength,
+    localContext,
+    snapshot?.tradeMatch ? "Trade experience appears relevant" : null,
+    typeof snapshot?.recommendationCount === "number" && snapshot.recommendationCount > 0
+      ? "Has local recommendations"
+      : null,
+    ...reasons.slice(0, 2).map((reason) => `Context: ${reason}`),
+  ].filter((row): row is string => Boolean(row));
+
+  return {
+    statusLabel: getDirectConnectInboxStatusLabel(params.status),
+    timeLabel: formatDirectConnectInboxTime(params.timestamp, params.now),
+    localContext,
+    detailsLabel: "Match details",
+    detailsHeading: "Local context",
+    detailRows,
+  };
+}
+
 type DirectConnectInboxItem = {
   assignment: {
     id: string;
@@ -3110,6 +3209,7 @@ function DirectConnectInbox() {
                 ? items.length
                 : items.filter((i) => normalizeInboxStatus(i.assignment.status) === f).length;
             const active = inboxFilter === f;
+            const filterLabel = f === "all" ? "All" : getDirectConnectInboxStatusLabel(f);
             return (
               <button
                 key={f}
@@ -3124,7 +3224,7 @@ function DirectConnectInbox() {
                     : "var(--surface-intermediate)",
                 }}
               >
-                {f[0].toUpperCase() + f.slice(1)} ({count})
+                {filterLabel} ({count})
               </button>
             );
           })}
@@ -3140,8 +3240,6 @@ function DirectConnectInbox() {
         const status = assignmentStatusRaw;
         const snapshot = assignment.scoreSnapshot || undefined;
         const createdAt = assignment.createdAt || request?.createdAt;
-        const reasons = snapshot?.reasons || [];
-        const primaryReasons = reasons.slice(0, 2);
         const isExpanded = expandedAssignmentId === assignment.id;
         const isMobileActionOpen = mobileActionAssignmentId === assignment.id;
         const isStructuredReplyOpen = structuredReplyOpenId === assignment.id;
@@ -3158,6 +3256,11 @@ function DirectConnectInbox() {
           conversationThreadId: item.conversationThreadId ?? null,
           actionableAssignment,
           isStructuredReplyOpen,
+        });
+        const inboxDisplay = buildDirectConnectInboxDisplay({
+          status,
+          timestamp: createdAt,
+          scoreSnapshot: snapshot,
         });
 
         return (
@@ -3186,7 +3289,7 @@ function DirectConnectInbox() {
                     variant="outline"
                     className={cn("uppercase text-[10px]", statusTone(status))}
                   >
-                    {status.replace("_", " ")}
+                    {inboxDisplay.statusLabel}
                   </Badge>
                   {(() => {
                     const a = assignment as any;
@@ -3214,42 +3317,43 @@ function DirectConnectInbox() {
               </div>
 
               <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
-                <span className="truncate">
+                <span className="min-w-0 truncate">
                   {[
                     request?.status ? `Request ${String(request.status).replace("_", " ")}` : null,
                     request?.tradeId ? `Trade ${request.tradeId}` : null,
                     request?.countyFips
                       ? formatCountyLabel(request.countyFips, request?.stateCode)
                       : null,
+                    inboxDisplay.timeLabel,
                   ]
                     .filter(Boolean)
                     .join(" • ") || "Local match"}
                 </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 px-1.5 text-[11px] md:hidden"
-                  onClick={() =>
-                    setExpandedAssignmentId((current) =>
-                      current === assignment.id ? null : assignment.id
-                    )
-                  }
-                >
-                  {isExpanded ? "Less" : "More"}
-                </Button>
+                {inboxDisplay.detailRows.length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 shrink-0 px-2 text-[11px]"
+                    onClick={() =>
+                      setExpandedAssignmentId((current) =>
+                        current === assignment.id ? null : assignment.id
+                      )
+                    }
+                    aria-expanded={isExpanded}
+                  >
+                    {isExpanded ? "Hide details" : inboxDisplay.detailsLabel}
+                  </Button>
+                )}
               </div>
 
-              {isExpanded && (
-                <div className="space-y-1 text-[11px] text-[color:var(--text-secondary)] md:hidden">
-                  {createdAt && (
-                    <div>Sent {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</div>
-                  )}
-                  {typeof snapshot?.score === "number" && (
-                    <div>Fit score {Math.round(snapshot.score)}</div>
-                  )}
-                  {typeof snapshot?.distanceMiles === "number" && (
-                    <div>{snapshot.distanceMiles.toFixed(1)} mi away</div>
-                  )}
+              {isExpanded && inboxDisplay.detailRows.length > 0 && (
+                <div className="space-y-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-[11px] text-[color:var(--text-secondary)]">
+                  <p className="font-medium uppercase tracking-[0.16em] text-[color:var(--text-primary)]">
+                    {inboxDisplay.detailsHeading}
+                  </p>
+                  {inboxDisplay.detailRows.map((detail) => (
+                    <div key={`${assignment.id}-${detail}`}>{detail}</div>
+                  ))}
                 </div>
               )}
 
@@ -3318,19 +3422,6 @@ function DirectConnectInbox() {
                     placeholder="Scope note (what you can handle and next recommended step)"
                     className="bg-[color:var(--surface-card)]"
                   />
-                </div>
-              )}
-
-              {primaryReasons.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {primaryReasons.map((reason) => (
-                    <span
-                      key={`${assignment.id}-${reason}`}
-                      className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2 py-0.5 text-[10px] text-[color:var(--text-secondary)]"
-                    >
-                      {reason}
-                    </span>
-                  ))}
                 </div>
               )}
 
