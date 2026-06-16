@@ -1694,6 +1694,10 @@ function DirectConnectRequestComposer({
     });
   };
 
+  useEffect(() => {
+    markRequestStarted("type");
+  }, []);
+
   const { data: localDirectoryCandidates = [], isLoading: isDirectoryLoading } = useQuery<
     DirectoryCandidate[]
   >({

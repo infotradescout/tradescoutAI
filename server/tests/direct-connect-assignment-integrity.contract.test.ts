@@ -15,14 +15,12 @@ describe("direct connect assignment integrity contracts", () => {
     expect(source).toContain(
       "const allAssignments = [...contractorAssignments, ...businessAssignments]"
     );
-    expect(source).toContain(
-      'await storage.logEvent("direct_connect_request_visible_to_contractors"'
-    );
+    expect(source).toContain('logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"');
   });
 
   it("emits visible-to-contractors event when assignment rows are created", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain('type: "direct_connect_request_visible_to_contractors"');
+    expect(source).toContain("logDirectConnectVisibilityEvent({");
     expect(source).toContain("visibleContractorCount: allAssignments.length");
   });
 

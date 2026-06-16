@@ -22,8 +22,10 @@ describe("direct connect contractor action surface contracts", () => {
 
   it("emits contractor action started analytics on contractor response", () => {
     const source = read("server/routes/direct-connect.ts");
-    expect(source).toContain('await storage.logEvent("direct_connect_contractor_action_started"');
-    expect(source).toContain('type: "direct_connect_contractor_action_started"');
+    expect(source).toContain(
+      'logDirectConnectFunnelEvent("direct_connect_contractor_action_started"'
+    );
+    expect(source).toContain("recordContractorResponse({");
   });
 
   it("preserves contact gate by requiring response before requesting contact", () => {

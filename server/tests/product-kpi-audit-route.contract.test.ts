@@ -23,6 +23,7 @@ describe("product KPI audit route contract", () => {
     expect(source).toContain('"direct_connect_home_record_skipped"');
     expect(source).toContain('"direct_connect_request_submitted_after_home_record_skip"');
     expect(source).toContain('"direct_connect_request_submitted"');
+    expect(source).toContain('"direct_connect_visible_to_contractors"');
     expect(source).toContain('"direct_connect_request_visible_to_contractors"');
     expect(source).toContain('"direct_connect_contractor_action_started"');
     expect(source).toContain('"scout_homeid_action_card_clicked"');

@@ -275,6 +275,7 @@ export type ShellEvent =
         | "direct_connect_request_submitted_after_home_record_skip"
         | "direct_connect_request_review_opened"
         | "direct_connect_request_submitted"
+        | "direct_connect_visible_to_contractors"
         | "direct_connect_request_visible_to_contractors"
         | "direct_connect_contractor_action_started"
         | "direct_connect_requester_reply_viewed"
@@ -289,6 +290,10 @@ export type ShellEvent =
       packetId?: string;
       componentType?: string;
       replyCount?: number;
+      visibleContractorCount?: number;
+      assignmentId?: string;
+      decision?: string;
+      responderType?: string;
       ts: string;
     }
   | {

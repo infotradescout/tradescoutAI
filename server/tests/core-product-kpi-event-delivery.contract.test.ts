@@ -329,6 +329,103 @@ describe("core product KPI analytics delivery", () => {
     expect(logEventMock.mock.calls[0][1]).not.toHaveProperty("message");
   });
 
+  it("persists canonical Direct Connect visibility and contractor-action KPI events", async () => {
+    const app = makeApp();
+    const ts = new Date().toISOString();
+
+    const visibleEvent = {
+      type: "direct_connect_visible_to_contractors",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "desktop",
+      source: "direct_connect_server",
+      requestId: "request_456",
+      visibleContractorCount: 3,
+      dispatchMode: "county_localized",
+      ts,
+    };
+    const contractorActionEvent = {
+      type: "direct_connect_contractor_action_started",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "desktop",
+      source: "direct_connect_server",
+      requestId: "request_456",
+      assignmentId: "assignment_789",
+      decision: "accepted",
+      responderType: "contractor",
+      ts,
+    };
+
+    expect((await request(app).post("/api/analytics/shell").send(visibleEvent)).status).toBe(204);
+    expect(
+      (await request(app).post("/api/analytics/shell").send(contractorActionEvent)).status
+    ).toBe(204);
+
+    await flushAsyncWork();
+
+    expect(logEventMock).toHaveBeenCalledTimes(2);
+    expect(logEventMock.mock.calls[0][0]).toBe("direct_connect_visible_to_contractors");
+    expect(logEventMock.mock.calls[0][1]).toMatchObject({
+      type: "direct_connect_visible_to_contractors",
+      requestId: "request_456",
+      visibleContractorCount: 3,
+      dispatchMode: "county_localized",
+    });
+    expect(logEventMock.mock.calls[1][0]).toBe("direct_connect_contractor_action_started");
+    expect(logEventMock.mock.calls[1][1]).toMatchObject({
+      type: "direct_connect_contractor_action_started",
+      requestId: "request_456",
+      assignmentId: "assignment_789",
+      decision: "accepted",
+      responderType: "contractor",
+    });
+  });
+
+  it("sanitizes sensitive fields for every required Direct Connect funnel event", async () => {
+    const app = makeApp();
+    const requiredEvents = [
+      "direct_connect_request_started",
+      "direct_connect_request_review_opened",
+      "direct_connect_request_submitted",
+      "direct_connect_visible_to_contractors",
+      "direct_connect_contractor_action_started",
+    ];
+
+    for (const type of requiredEvents) {
+      const response = await request(app).post("/api/analytics/shell").send({
+        type,
+        surface: "direct_connect",
+        userState: "authenticated",
+        viewport: "desktop",
+        source: "direct_connect_test",
+        requestId: "request_safe",
+        description: "private request body",
+        message: "private message content",
+        privateNotes: "private note",
+        phone: "555-0000",
+        address: "123 Secret",
+        ts: new Date().toISOString(),
+      });
+      expect(response.status).toBe(204);
+    }
+
+    await flushAsyncWork();
+
+    expect(logEventMock).toHaveBeenCalledTimes(requiredEvents.length);
+    for (const call of logEventMock.mock.calls) {
+      expect(call[1]).toMatchObject({
+        surface: "direct_connect",
+        requestId: "request_safe",
+      });
+      expect(call[1]).not.toHaveProperty("description");
+      expect(call[1]).not.toHaveProperty("message");
+      expect(call[1]).not.toHaveProperty("privateNotes");
+      expect(call[1]).not.toHaveProperty("phone");
+      expect(call[1]).not.toHaveProperty("address");
+    }
+  });
+
   it("keeps Direct Connect analytics failure non-blocking", async () => {
     const app = makeApp();
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});

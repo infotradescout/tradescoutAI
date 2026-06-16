@@ -10,8 +10,8 @@ const analyticsSource = read("server/routes/analytics-routes.ts");
 const routesSource = read("server/routes/direct-connect.ts");
 
 describe("direct connect KPI funnel contracts", () => {
-  it("locks the canonical requester funnel events from start through submit", () => {
-    const requesterStages = [
+  it("locks every canonical Direct Connect funnel stage", () => {
+    const funnelStages = [
       {
         stage: "request_started",
         event: "direct_connect_request_started",
@@ -33,8 +33,20 @@ describe("direct connect KPI funnel contracts", () => {
       {
         stage: "request_submitted",
         event: "direct_connect_request_submitted",
-        source: shellSource,
-        evidence: 'type: "direct_connect_request_submitted"',
+        source: routesSource,
+        evidence: 'logDirectConnectFunnelEvent("direct_connect_request_submitted"',
+      },
+      {
+        stage: "visible_to_contractors",
+        event: "direct_connect_visible_to_contractors",
+        source: routesSource,
+        evidence: 'logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"',
+      },
+      {
+        stage: "contractor_action_started",
+        event: "direct_connect_contractor_action_started",
+        source: routesSource,
+        evidence: 'logDirectConnectFunnelEvent("direct_connect_contractor_action_started"',
       },
       {
         stage: "requester_reply_viewed",
@@ -44,7 +56,7 @@ describe("direct connect KPI funnel contracts", () => {
       },
     ] as const;
 
-    for (const stage of requesterStages) {
+    for (const stage of funnelStages) {
       expect(stage.source, `${stage.stage} should emit ${stage.event}`).toContain(stage.evidence);
       expect(analyticsSource, `${stage.event} should stay in KPI allowlist`).toContain(
         `"${stage.event}"`
@@ -53,15 +65,18 @@ describe("direct connect KPI funnel contracts", () => {
   });
 
   it("locks the server-side visibility and responder-action KPI events after submission", () => {
+    expect(routesSource).toContain("logDirectConnectVisibilityEvent({");
     expect(routesSource).toContain(
-      'await storage.logEvent("direct_connect_request_visible_to_contractors"'
+      'logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"'
     );
-    expect(routesSource).toContain('type: "direct_connect_request_visible_to_contractors"');
     expect(routesSource).toContain(
-      'await storage.logEvent("direct_connect_contractor_action_started"'
+      'logDirectConnectFunnelEvent("direct_connect_request_visible_to_contractors"'
     );
-    expect(routesSource).toContain('type: "direct_connect_contractor_action_started"');
+    expect(routesSource).toContain(
+      'logDirectConnectFunnelEvent("direct_connect_contractor_action_started"'
+    );
 
+    expect(analyticsSource).toContain('"direct_connect_visible_to_contractors"');
     expect(analyticsSource).toContain('"direct_connect_request_visible_to_contractors"');
     expect(analyticsSource).toContain('"direct_connect_contractor_action_started"');
     expect(analyticsSource).toContain('"direct_connect_requester_reply_viewed"');

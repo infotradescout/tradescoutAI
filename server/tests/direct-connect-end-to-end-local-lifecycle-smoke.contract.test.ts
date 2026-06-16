@@ -34,17 +34,17 @@ describe("direct connect end-to-end local lifecycle smoke", () => {
       "const allAssignments = [...contractorAssignments, ...businessAssignments]"
     );
     expect(routesSource).toContain(
-      'await storage.logEvent("direct_connect_request_visible_to_contractors"'
+      'logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"'
     );
     expect(routesSource).toContain(
-      'await storage.logEvent("direct_connect_contractor_action_started"'
+      'logDirectConnectFunnelEvent("direct_connect_contractor_action_started"'
     );
 
     const visibleEventIndex = routesSource.indexOf(
-      'await storage.logEvent("direct_connect_request_visible_to_contractors"'
+      'logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"'
     );
     const actionEventIndex = routesSource.indexOf(
-      'await storage.logEvent("direct_connect_contractor_action_started"'
+      'logDirectConnectFunnelEvent("direct_connect_contractor_action_started"'
     );
     expect(visibleEventIndex).toBeGreaterThan(-1);
     expect(actionEventIndex).toBeGreaterThan(-1);

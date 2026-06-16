@@ -1264,6 +1264,36 @@ async function appendHomeIdCompletedWorkEnrichmentFromDirectConnect(params: {
   }
 }
 
+type DirectConnectFunnelEventType =
+  | "direct_connect_request_submitted"
+  | "direct_connect_visible_to_contractors"
+  | "direct_connect_request_visible_to_contractors"
+  | "direct_connect_contractor_action_started";
+
+function logDirectConnectFunnelEvent(
+  eventType: DirectConnectFunnelEventType,
+  metadata: Record<string, unknown>
+) {
+  void storage
+    .logEvent(eventType, {
+      type: eventType,
+      surface: "direct_connect",
+      source: "direct_connect_server",
+      userState: "authenticated",
+      ...metadata,
+      ts: new Date().toISOString(),
+    })
+    .catch((error) => {
+      console.warn(`[direct-connect] Failed to log ${eventType}`, error);
+    });
+}
+
+function logDirectConnectVisibilityEvent(metadata: Record<string, unknown>) {
+  logDirectConnectFunnelEvent("direct_connect_visible_to_contractors", metadata);
+  // Keep the previous event name for existing reports while the canonical funnel name rolls out.
+  logDirectConnectFunnelEvent("direct_connect_request_visible_to_contractors", metadata);
+}
+
 const contractorConsoleResponseSchema = z.object({
   responseType: z.enum(["interested", "need_more_info", "not_a_fit", "unavailable"]),
   message: z.string().max(600).optional(),
@@ -2488,22 +2518,13 @@ export function registerDirectConnectRoutes(app: Express) {
       .set({ status: "routed", updatedAt: now })
       .where(eq(workRequests.id, requestId));
 
-    try {
-      await storage.logEvent("direct_connect_request_visible_to_contractors", {
-        type: "direct_connect_request_visible_to_contractors",
-        surface: "direct_connect",
-        source: "direct_connect_server",
-        userState: "authenticated",
-        requestId,
-        visibleContractorCount: insertedAssignments.length,
-        dispatchMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
-        countyFips: countyFips || null,
-        tradeId: tradeRecord?.id || null,
-        ts: new Date().toISOString(),
-      });
-    } catch (e) {
-      console.warn("[direct-connect] Failed to log request visibility event", e);
-    }
+    logDirectConnectVisibilityEvent({
+      requestId,
+      visibleContractorCount: insertedAssignments.length,
+      dispatchMode: usedExpandedFallback ? "expanded_fallback" : "county_localized",
+      countyFips: countyFips || null,
+      tradeId: tradeRecord?.id || null,
+    });
 
     try {
       // Collect all userIds to notify: contractor owners + business owners.
@@ -5898,6 +5919,22 @@ export function registerDirectConnectRoutes(app: Express) {
           } catch (e) {
             console.warn("[direct-connect] Failed to record work request created event", e);
           }
+          logDirectConnectFunnelEvent("direct_connect_request_submitted", {
+            requestId: String(created.id),
+            category: String(created.category || body.category || "direct_connect"),
+            hasBudget: Boolean(body.budgetMin || body.budgetMax),
+            attachmentCount: Array.isArray(body.attachments) ? body.attachments.length : 0,
+            dispatchMode:
+              targetProviderIds.length > 0
+                ? "direct_targeted"
+                : shouldAutoRoute
+                  ? "auto_route"
+                  : "manual",
+            dispatchCount: targetProviderIds.length > 0 ? targetProviderIds.length : null,
+            directTargets: targetProviderIds.length,
+            countyFips: countyFips || null,
+            tradeId: body.tradeId || null,
+          });
         }
 
         if (created?.id) {
@@ -6227,22 +6264,13 @@ export function registerDirectConnectRoutes(app: Express) {
                 .update(workRequests)
                 .set({ status: "routed", updatedAt: now })
                 .where(eq(workRequests.id, created.id));
-              try {
-                await storage.logEvent("direct_connect_request_visible_to_contractors", {
-                  type: "direct_connect_request_visible_to_contractors",
-                  surface: "direct_connect",
-                  source: "direct_connect_server",
-                  userState: "authenticated",
-                  requestId: String(created.id),
-                  visibleContractorCount: allAssignments.length,
-                  dispatchMode: "direct_targeted",
-                  countyFips: countyFips || null,
-                  tradeId: body.tradeId || null,
-                  ts: new Date().toISOString(),
-                });
-              } catch (e) {
-                console.warn("[direct-connect] Failed to log direct-target visibility event", e);
-              }
+              logDirectConnectVisibilityEvent({
+                requestId: String(created.id),
+                visibleContractorCount: allAssignments.length,
+                dispatchMode: "direct_targeted",
+                countyFips: countyFips || null,
+                tradeId: body.tradeId || null,
+              });
               try {
                 const contractorEvents = eligibleContractors.map((contractor) => ({
                   workRequestId: created.id,
@@ -6809,25 +6837,13 @@ export function registerDirectConnectRoutes(app: Express) {
                 .update(workRequests)
                 .set({ status: "routed", updatedAt: now })
                 .where(eq(workRequests.id, created.id));
-              try {
-                await storage.logEvent("direct_connect_request_visible_to_contractors", {
-                  type: "direct_connect_request_visible_to_contractors",
-                  surface: "direct_connect",
-                  source: "direct_connect_server",
-                  userState: "authenticated",
-                  requestId: String(created.id),
-                  visibleContractorCount: allAssignments.length,
-                  dispatchMode: "direct_targeted_admin",
-                  countyFips: countyFips || null,
-                  tradeId: resolvedTrade?.slug || null,
-                  ts: new Date().toISOString(),
-                });
-              } catch (e) {
-                console.warn(
-                  "[direct-connect] Failed to log admin direct-target visibility event",
-                  e
-                );
-              }
+              logDirectConnectVisibilityEvent({
+                requestId: String(created.id),
+                visibleContractorCount: allAssignments.length,
+                dispatchMode: "direct_targeted_admin",
+                countyFips: countyFips || null,
+                tradeId: resolvedTrade?.slug || null,
+              });
               try {
                 const contractorEvents = eligibleContractors.map((contractor) => ({
                   workRequestId: created.id,
@@ -11764,16 +11780,11 @@ export function registerDirectConnectRoutes(app: Express) {
         }
         try {
           const { assignment: updatedAssignment, responseSummary } = result.body as any;
-          await storage.logEvent("direct_connect_contractor_action_started", {
-            type: "direct_connect_contractor_action_started",
-            surface: "direct_connect",
-            source: "direct_connect_server",
-            userState: "authenticated",
+          logDirectConnectFunnelEvent("direct_connect_contractor_action_started", {
             requestId: String(updatedAssignment.workRequestId || ""),
             assignmentId: String(updatedAssignment.id || ""),
             decision: String(updatedAssignment.status || decision),
             responderType: contractor ? "contractor" : "business_or_worker",
-            ts: new Date().toISOString(),
           });
           const responseType =
             updatedAssignment.status === "accepted"

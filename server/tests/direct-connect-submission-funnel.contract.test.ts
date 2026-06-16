@@ -32,25 +32,32 @@ describe("direct connect submission funnel contract harness", () => {
   it("emits request-submitted event from successful submit path", () => {
     expect(shellSource).toContain('type: "direct_connect_request_submitted"');
     expect(shellSource).toContain("onSuccess: (data, variables) => {");
+    expect(routesSource).toContain(
+      'logDirectConnectFunnelEvent("direct_connect_request_submitted"'
+    );
   });
 
   it("emits contractor-visibility event when assignments/routing are created", () => {
+    expect(routesSource).toContain("logDirectConnectVisibilityEvent({");
     expect(routesSource).toContain(
-      'await storage.logEvent("direct_connect_request_visible_to_contractors"'
+      'logDirectConnectFunnelEvent("direct_connect_visible_to_contractors"'
     );
-    expect(routesSource).toContain('type: "direct_connect_request_visible_to_contractors"');
+    expect(routesSource).toContain(
+      'logDirectConnectFunnelEvent("direct_connect_request_visible_to_contractors"'
+    );
   });
 
   it("emits contractor-action-started when contractor starts assignment action", () => {
     expect(routesSource).toContain(
-      'await storage.logEvent("direct_connect_contractor_action_started"'
+      'logDirectConnectFunnelEvent("direct_connect_contractor_action_started"'
     );
-    expect(routesSource).toContain('type: "direct_connect_contractor_action_started"');
   });
 
   it("keeps KPI allowlist coverage for all submission funnel events", () => {
+    expect(analyticsSource).toContain('"direct_connect_request_started"');
     expect(analyticsSource).toContain('"direct_connect_request_review_opened"');
     expect(analyticsSource).toContain('"direct_connect_request_submitted"');
+    expect(analyticsSource).toContain('"direct_connect_visible_to_contractors"');
     expect(analyticsSource).toContain('"direct_connect_request_visible_to_contractors"');
     expect(analyticsSource).toContain('"direct_connect_contractor_action_started"');
     expect(analyticsSource).toContain('"direct_connect_requester_reply_viewed"');
