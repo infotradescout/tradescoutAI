@@ -58,6 +58,13 @@ function parseIsoDateParam(value: unknown): Date | null {
   return Number.isNaN(parsed.getTime()) ? new Date("invalid") : parsed;
 }
 
+const PENSACOLA_COUNTY_FIPS = "12033";
+
+function toInt(value: unknown): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 /**
  * Admin OS routes: health and high-level telemetry endpoints.
  *
@@ -172,6 +179,179 @@ export function mountAdminRoutes(app: any) {
   // ---------------------------------------------------------------------------
   // Business directory ops (unclaimed seeding + suggestions queue)
   // ---------------------------------------------------------------------------
+  app.get(
+    "/api/admin/business-directory/pensacola-liquidity/summary",
+    isAuthenticated,
+    requireAdmin,
+    async (_req: Request, res: Response) => {
+      try {
+        const [supplyResult, tradeResult, claimStateResult, recentSeedResult, suggestionResult] =
+          await Promise.all([
+            pool.query(
+              `
+              SELECT
+                COUNT(DISTINCT b.id)::int AS candidate_count,
+                COUNT(DISTINCT b.id) FILTER (
+                  WHERE b.status = 'active'
+                    AND b.claim_status = 'claimed'
+                    AND (
+                      u.verification_status = 'approved'
+                      OR COALESCE(u.verified_badge, false) = true
+                    )
+                )::int AS verified_active_count,
+                COUNT(DISTINCT b.id) FILTER (WHERE b.claim_status = 'claimed')::int AS claimed_count,
+                COUNT(DISTINCT b.id) FILTER (WHERE b.claim_status = 'unclaimed')::int AS unclaimed_count
+              FROM businesses b
+              INNER JOIN business_counties bc ON bc.business_id = b.id
+              INNER JOIN counties c ON c.id = bc.county_id
+              LEFT JOIN users u ON u.id = b.owner_user_id
+              WHERE c.fips = $1
+                AND b.status <> 'suspended'
+                AND COALESCE(b.public_discovery_enabled, true) = true
+            `,
+              [PENSACOLA_COUNTY_FIPS]
+            ),
+            pool.query(
+              `
+              SELECT
+                COALESCE(NULLIF(b.profile_data->>'category', ''), b.type, 'uncategorized') AS trade_category,
+                COUNT(DISTINCT b.id)::int AS candidate_count,
+                COUNT(DISTINCT b.id) FILTER (
+                  WHERE b.status = 'active'
+                    AND b.claim_status = 'claimed'
+                    AND (
+                      u.verification_status = 'approved'
+                      OR COALESCE(u.verified_badge, false) = true
+                    )
+                )::int AS verified_active_count
+              FROM businesses b
+              INNER JOIN business_counties bc ON bc.business_id = b.id
+              INNER JOIN counties c ON c.id = bc.county_id
+              LEFT JOIN users u ON u.id = b.owner_user_id
+              WHERE c.fips = $1
+                AND b.status <> 'suspended'
+                AND COALESCE(b.public_discovery_enabled, true) = true
+              GROUP BY 1
+              ORDER BY verified_active_count DESC, candidate_count DESC, trade_category ASC
+              LIMIT 25
+            `,
+              [PENSACOLA_COUNTY_FIPS]
+            ),
+            pool.query(
+              `
+              SELECT
+                b.claim_status AS claim_status,
+                b.status AS business_status,
+                COUNT(DISTINCT b.id)::int AS total
+              FROM businesses b
+              INNER JOIN business_counties bc ON bc.business_id = b.id
+              INNER JOIN counties c ON c.id = bc.county_id
+              WHERE c.fips = $1
+                AND b.status <> 'suspended'
+                AND COALESCE(b.public_discovery_enabled, true) = true
+              GROUP BY 1, 2
+              ORDER BY total DESC, claim_status ASC, business_status ASC
+            `,
+              [PENSACOLA_COUNTY_FIPS]
+            ),
+            pool.query(
+              `
+              SELECT
+                COUNT(*)::int AS total_runs,
+                COUNT(*) FILTER (WHERE status = 'succeeded')::int AS succeeded_runs,
+                COALESCE(SUM(inserted_count), 0)::int AS inserted_count,
+                COALESCE(SUM(duplicate_count), 0)::int AS duplicate_count,
+                COALESCE(SUM(error_count), 0)::int AS error_count
+              FROM business_seed_runs
+              WHERE county_fips = $1
+                AND state_code = 'FL'
+                AND started_at >= now() - interval '30 days'
+            `,
+              [PENSACOLA_COUNTY_FIPS]
+            ),
+            pool.query(
+              `
+              SELECT
+                bs.status AS suggestion_status,
+                COUNT(*)::int AS total
+              FROM business_suggestions bs
+              INNER JOIN businesses b ON b.id = bs.business_id
+              INNER JOIN business_counties bc ON bc.business_id = b.id
+              INNER JOIN counties c ON c.id = bc.county_id
+              WHERE c.fips = $1
+              GROUP BY 1
+              ORDER BY total DESC, suggestion_status ASC
+            `,
+              [PENSACOLA_COUNTY_FIPS]
+            ),
+          ]);
+
+        const supply = (supplyResult.rows?.[0] as any) || {};
+        const seed = (recentSeedResult.rows?.[0] as any) || {};
+
+        return res.json({
+          county: {
+            countyFips: PENSACOLA_COUNTY_FIPS,
+            label: "Pensacola / Escambia County",
+            stateCode: "FL",
+          },
+          supply: {
+            candidateCount: toInt(supply.candidate_count),
+            verifiedActiveCount: toInt(supply.verified_active_count),
+            claimedCount: toInt(supply.claimed_count),
+            unclaimedCount: toInt(supply.unclaimed_count),
+            verifiedActiveSource:
+              "Derived from existing businesses joined to Escambia County where status=active, claim_status=claimed, and owner verification is approved or verified badge is true.",
+          },
+          tradeCategoryCounts: (tradeResult.rows || []).map((row: any) => ({
+            tradeCategory: String(row.trade_category || "uncategorized"),
+            candidateCount: toInt(row.candidate_count),
+            verifiedActiveCount: toInt(row.verified_active_count),
+          })),
+          claimStateCounts: (claimStateResult.rows || []).map((row: any) => ({
+            claimStatus: String(row.claim_status || "unknown"),
+            businessStatus: String(row.business_status || "unknown"),
+            total: toInt(row.total),
+          })),
+          recentSeeding: {
+            windowDays: 30,
+            totalRuns: toInt(seed.total_runs),
+            succeededRuns: toInt(seed.succeeded_runs),
+            insertedCount: toInt(seed.inserted_count),
+            duplicateCount: toInt(seed.duplicate_count),
+            errorCount: toInt(seed.error_count),
+          },
+          suggestionCounts: (suggestionResult.rows || []).map((row: any) => ({
+            status: String(row.suggestion_status || "unknown"),
+            total: toInt(row.total),
+          })),
+          outreachStatus: {
+            contacted: {
+              supported: false,
+              count: 0,
+              reason:
+                "No safe existing outreach event source is wired for provider contacted status.",
+            },
+            interested: {
+              supported: false,
+              count: 0,
+              reason:
+                "No safe existing outreach event source is wired for provider interested status.",
+            },
+          },
+          blockers: {
+            contactGate: { supported: false, count: 0 },
+            paidRankingInfluence: { supported: false, count: 0 },
+            fakeStatus: { supported: false, count: 0 },
+          },
+        });
+      } catch (error: any) {
+        console.error("Error fetching Pensacola liquidity supply summary:", error);
+        res.status(500).json({ message: "Failed to fetch Pensacola liquidity supply summary" });
+      }
+    }
+  );
+
   app.get(
     "/api/admin/business-directory/suggestions",
     isAuthenticated,

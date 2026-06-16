@@ -45,6 +45,8 @@ const PRODUCT_KPI_EVENT_TYPES = [
   "scout_homeid_action_card_clicked",
 ] as const;
 
+const PENSACOLA_COUNTY_FIPS = "12033";
+
 const DIRECT_CONNECT_SAFE_EVENT_KEYS = new Set([
   "type",
   "surface",
@@ -118,6 +120,11 @@ const emptyDemandCounts = (): DemandCounts => ({
 
 function toNumber(value: unknown): number {
   const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function toInt(value: unknown): number {
+  const n = Number(value);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -600,6 +607,203 @@ export function registerAnalyticsRoutes(app: Express) {
       return res.status(500).json({ message: "Failed to fetch product KPI summary" });
     }
   });
+
+  app.get(
+    "/api/analytics/pensacola-liquidity/summary",
+    isStaff,
+    async (req: Request, res: Response) => {
+      try {
+        const { from, to } = resolveHoursWindow(
+          (req.query || {}) as Record<string, unknown>,
+          24 * 7
+        );
+
+        const [requestCountsResult, providerActionResult, blockerResult, passiveFrictionResult] =
+          await Promise.all([
+            pool.query(
+              `
+              WITH pensacola_requests AS (
+                SELECT wr.id, wr.status, wr.created_at
+                FROM work_requests wr
+                WHERE wr.source = 'direct_connect'
+                  AND wr.county_fips = $1
+                  AND wr.created_at >= $2
+                  AND wr.created_at < $3
+              ),
+              assignment_counts AS (
+                SELECT work_request_id, COUNT(*)::int AS assignment_count
+                FROM work_request_assignments
+                GROUP BY work_request_id
+              )
+              SELECT
+                COUNT(*) FILTER (WHERE status <> 'draft' AND status <> 'cancelled')::int AS route_ready_count,
+                COUNT(*) FILTER (
+                  WHERE status IN ('routed', 'in_progress', 'pending_outcome', 'completed')
+                    OR COALESCE(ac.assignment_count, 0) > 0
+                )::int AS contractor_visible_count,
+                COUNT(*) FILTER (
+                  WHERE status = 'open'
+                    AND COALESCE(ac.assignment_count, 0) = 0
+                    AND created_at < now() - interval '24 hours'
+                )::int AS stalled_no_provider_count,
+                COUNT(*) FILTER (WHERE status IN ('draft', 'cancelled'))::int AS not_route_ready_count,
+                COUNT(*) FILTER (WHERE status IN ('routed', 'in_progress', 'pending_outcome', 'completed'))::int AS routed_status_count
+              FROM pensacola_requests pr
+              LEFT JOIN assignment_counts ac ON ac.work_request_id = pr.id
+            `,
+              [PENSACOLA_COUNTY_FIPS, from, to]
+            ),
+            pool.query(
+              `
+              SELECT
+                COUNT(DISTINCT wra.work_request_id)::int AS requests_with_provider_action,
+                COUNT(*) FILTER (WHERE wra.status IN ('accepted', 'completed'))::int AS provider_action_count,
+                COUNT(*) FILTER (WHERE wra.status = 'accepted')::int AS accepted_count,
+                COUNT(*) FILTER (WHERE wra.status = 'completed')::int AS completed_count,
+                COUNT(*) FILTER (WHERE wra.status = 'declined')::int AS declined_count
+              FROM work_request_assignments wra
+              INNER JOIN work_requests wr ON wr.id = wra.work_request_id
+              WHERE wr.source = 'direct_connect'
+                AND wr.county_fips = $1
+                AND wr.created_at >= $2
+                AND wr.created_at < $3
+            `,
+              [PENSACOLA_COUNTY_FIPS, from, to]
+            ),
+            pool.query(
+              `
+              SELECT
+                event_type,
+                COUNT(*)::int AS total
+              FROM events
+              WHERE event_type = ANY($1::text[])
+                AND created_at >= $2
+                AND created_at < $3
+                AND (
+                  data->>'countyFips' = $4
+                  OR data->>'county' = $4
+                  OR data->>'source' ILIKE '%direct-connect%'
+                  OR data->>'source' ILIKE '%direct_connect%'
+                )
+              GROUP BY event_type
+            `,
+              [
+                [
+                  "direct_connect_request_submitted",
+                  "direct_connect_visible_to_contractors",
+                  "direct_connect_request_visible_to_contractors",
+                  "direct_connect_contractor_action_started",
+                ],
+                from,
+                to,
+                PENSACOLA_COUNTY_FIPS,
+              ]
+            ),
+            pool.query(
+              `
+              SELECT
+                event_type,
+                COUNT(*)::int AS total
+              FROM events
+              WHERE event_type = ANY($1::text[])
+                AND created_at >= $2
+                AND created_at < $3
+                AND (
+                  data->>'countyFips' = $4
+                  OR data->>'source' ILIKE '%direct-connect%'
+                  OR data->>'source' ILIKE '%direct_connect%'
+                )
+              GROUP BY event_type
+            `,
+              [
+                [
+                  "direct_connect_form_validation_blocked",
+                  "direct_connect_permission_or_role_blocked",
+                  "direct_connect_api_request_failed",
+                  "direct_connect_funnel_step_stalled",
+                ],
+                from,
+                to,
+                PENSACOLA_COUNTY_FIPS,
+              ]
+            ),
+          ]);
+
+        const requests = (requestCountsResult.rows?.[0] as any) || {};
+        const actions = (providerActionResult.rows?.[0] as any) || {};
+        const eventCounts = Object.fromEntries(
+          (blockerResult.rows || []).map((row: any) => [
+            String(row.event_type || ""),
+            toInt(row.total),
+          ])
+        );
+        const frictionCounts = Object.fromEntries(
+          (passiveFrictionResult.rows || []).map((row: any) => [
+            String(row.event_type || ""),
+            toInt(row.total),
+          ])
+        );
+
+        const routeReadyCount = toInt(requests.route_ready_count);
+        const contractorVisibleCount = toInt(requests.contractor_visible_count);
+        const stalledNoProviderCount = toInt(requests.stalled_no_provider_count);
+
+        return res.json({
+          county: {
+            countyFips: PENSACOLA_COUNTY_FIPS,
+            label: "Pensacola / Escambia County",
+            stateCode: "FL",
+          },
+          window: { from: from.toISOString(), to: to.toISOString() },
+          demand: {
+            routeReadyCount,
+            contractorVisibleCount,
+            stalledNoProviderCount,
+            notRouteReadyCount: toInt(requests.not_route_ready_count),
+            routedStatusCount: toInt(requests.routed_status_count),
+            routedToProviderPct:
+              routeReadyCount > 0
+                ? Number(((contractorVisibleCount / routeReadyCount) * 100).toFixed(2))
+                : 0,
+            source:
+              "Derived from existing work_requests and work_request_assignments where source=direct_connect and county_fips=12033.",
+          },
+          providerActions: {
+            requestsWithProviderAction: toInt(actions.requests_with_provider_action),
+            providerActionCount:
+              toInt(actions.provider_action_count) +
+              toInt(eventCounts.direct_connect_contractor_action_started),
+            acceptedCount: toInt(actions.accepted_count),
+            completedCount: toInt(actions.completed_count),
+            declinedCount: toInt(actions.declined_count),
+            eventBackedActionCount: toInt(eventCounts.direct_connect_contractor_action_started),
+          },
+          eventSignals: {
+            submitted: toInt(eventCounts.direct_connect_request_submitted),
+            visibleToContractors:
+              toInt(eventCounts.direct_connect_visible_to_contractors) +
+              toInt(eventCounts.direct_connect_request_visible_to_contractors),
+            contractorActionStarted: toInt(eventCounts.direct_connect_contractor_action_started),
+          },
+          blockers: {
+            routeReadiness: toInt(frictionCounts.direct_connect_form_validation_blocked),
+            permissionOrRole: toInt(frictionCounts.direct_connect_permission_or_role_blocked),
+            apiFailure: toInt(frictionCounts.direct_connect_api_request_failed),
+            funnelStalled: toInt(frictionCounts.direct_connect_funnel_step_stalled),
+            noAvailableProvider: stalledNoProviderCount,
+            contactGate: { supported: false, count: 0 },
+            paidRankingInfluence: { supported: false, count: 0 },
+            fakeStatus: { supported: false, count: 0 },
+          },
+        });
+      } catch (error) {
+        console.error("Error fetching Pensacola liquidity demand summary", error);
+        return res
+          .status(500)
+          .json({ message: "Failed to fetch Pensacola liquidity demand summary" });
+      }
+    }
+  );
 
   // Internal: progressive exposure shadow-mode distribution (read-only).
   app.get(
