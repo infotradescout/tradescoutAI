@@ -175,11 +175,13 @@ function IntentDetailCollector({
   if (!shouldShow) return null;
 
   return (
-    <div className="scout-intent-collector" aria-label="Details Scout can use">
+    <div className="scout-intent-collector" aria-label="Request context">
       <div className="min-w-0">
-        <p className="scout-intent-collector__title">Details Scout can use</p>
+        <p className="scout-intent-collector__title">Request context</p>
         <p className="scout-intent-collector__copy">
-          {chips.length > 0 ? chips.join(" | ") : "Add anything that matters. Scout will wait."}
+          {chips.length > 0
+            ? chips.join(" | ")
+            : "Add anything that matters. Results will update when you are ready."}
         </p>
       </div>
       <div className="scout-intent-collector__chips">
@@ -307,7 +309,7 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
     return [
       {
         type: "ASK_SCOUT",
-        label: "Search",
+        label: "Refine search",
         prompt: `Help me with ${cluster.title || "this"}.`,
       },
     ];
@@ -317,8 +319,8 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
     return [
       {
         type: "ASK_SCOUT",
-        label: "Ask before calling",
-        prompt: `Tell me what I should check before calling about ${cluster.title || "this"}.`,
+        label: "Review before contact",
+        prompt: `Help me review what to check before contact for ${cluster.title || "this"}.`,
       },
     ];
   }
@@ -335,8 +337,8 @@ function buildAskScoutAction(cluster: ScoutCluster): ScoutAction {
   const bodyHint = cluster.body ? ` Context: ${cluster.body.slice(0, 180)}` : "";
   return {
     type: "ASK_SCOUT",
-    label: "Search",
-    prompt: `Tell me more about ${title} and what I can safely do next.${bodyHint}`,
+    label: "Choose next step",
+    prompt: `Help me review ${title} and choose the safest next step.${bodyHint}`,
   };
 }
 
@@ -1175,9 +1177,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
             ]
           : mode === "admin"
             ? [
-                "Checking system status...",
-                "Gathering activity reports...",
-                "Compiling control settings...",
+                "Reviewing admin activity...",
+                "Gathering current reports...",
+                "Preparing control settings...",
               ]
             : [
                 "Reading what you shared...",
@@ -1270,7 +1272,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     <img src="/tradescout-logo.png" alt="Scout" />
                   </div>
                   <span className="scout-assistant-bubble__name">Scout</span>
-                  <span className="scout-assistant-bubble__badge">Community-Powered</span>
+                  <span className="scout-assistant-bubble__badge">Local results</span>
                   {msgTime && <span className="scout-assistant-bubble__time">{msgTime}</span>}
                 </div>
                 {displayContent && (
@@ -1328,7 +1330,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   className="mt-1 text-sm leading-relaxed"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  I’ll lock in the minimum details first, then I’ll give you one clear next step.
+                  Reviewing the minimum details so you can choose one clear next step.
                 </p>
                 {canShowBranchingActions && (
                   <div className="mt-3 flex flex-wrap gap-2">
