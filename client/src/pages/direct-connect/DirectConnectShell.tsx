@@ -252,7 +252,7 @@ const SECTION_META: Record<
   },
   employment: {
     title: "Jobs",
-    description: "Post a job or a resume and chat through Scout.",
+    description: "Post a request or profile and keep replies in Direct Connect.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
@@ -655,7 +655,7 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
       },
       {
         key: "where",
-        label: "Where should Scout focus?",
+        label: "Where should this request focus?",
         placeholder: "City, county, or neighborhood",
         required: true,
       },
@@ -985,7 +985,7 @@ function evaluateRequestCompleteness(params: {
   if (!hasMeaningfulTitle && !hasMeaningfulDescription) {
     return {
       level: "too_vague",
-      message: "Too vague to route well",
+      message: "Add more detail before review",
       missing: missing.length > 0 ? missing : ["Add what you need and one useful detail"],
     };
   }
@@ -1008,7 +1008,7 @@ function getRequestStageSummary(stage: RequestWorkflowStage): string {
     case "ready_to_send":
       return "This request is already live on your board for your area. Route to more pros anytime.";
     case "waiting_on_pros":
-      return "TradeScout has already sent this request out. You're waiting to see who responds.";
+      return "Your request is out to local pros. Review replies as they arrive.";
     case "active_conversation":
       return "A pro has engaged with this request, so your next step is to continue the conversation.";
     case "pending_outcome":
@@ -1016,7 +1016,7 @@ function getRequestStageSummary(stage: RequestWorkflowStage): string {
     case "completed":
       return "This request is done. You can review the details or reopen it only by creating a new request.";
     case "cancelled":
-      return "This request is paused. Reopen it when you want TradeScout to work it again.";
+      return "This request is paused. Reopen it when you are ready for replies again.";
   }
 }
 
@@ -3677,7 +3677,7 @@ function MyDirectConnectRequests() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Search widened" });
+      toast({ title: "Request shared with more pros" });
     },
   });
 
@@ -3688,7 +3688,7 @@ function MyDirectConnectRequests() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Request canceled" });
+      toast({ title: "Request paused" });
     },
   });
 
@@ -3699,7 +3699,7 @@ function MyDirectConnectRequests() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Request reopened" });
+      toast({ title: "Request ready for replies" });
     },
   });
 
@@ -3724,7 +3724,7 @@ function MyDirectConnectRequests() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/board"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      toast({ title: "Request completed", description: "Great work! This request is now closed." });
+      toast({ title: "Request closed", description: "Great work. This request is now closed." });
     },
   });
 
@@ -4025,7 +4025,7 @@ function MyDirectConnectRequests() {
                         </p>
                         {typeof r.unreadStatusCount === "number" && r.unreadStatusCount > 0 && (
                           <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
-                            {r.unreadStatusCount} new status update
+                            {r.unreadStatusCount} new request update
                             {r.unreadStatusCount === 1 ? "" : "s"}
                           </p>
                         )}

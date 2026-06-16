@@ -159,7 +159,7 @@ export default function Notifications() {
     <Page className="max-w-6xl">
       <Section
         title="Notifications"
-        subtitle="Track Direct Connect, Exchange, community, and system updates in one place."
+        subtitle="Review messages, contact requests, and updates that need attention."
         actions={
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="text-xs">
@@ -200,7 +200,7 @@ export default function Notifications() {
                 </TabsList>
               </Tabs>
               <div className="rounded-lg border border-muted/50 bg-muted/20 p-3 text-xs text-muted-foreground">
-                Unread requests and notifications show here until you clear them.
+                Unread items stay here until you review or mark them read.
               </div>
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
@@ -227,7 +227,7 @@ export default function Notifications() {
                 </div>
                 <Link href="/messages?tab=requests">
                   <Button size="sm" variant="outline">
-                    Review Queue
+                    Review requests
                   </Button>
                 </Link>
               </CardHeader>
@@ -283,8 +283,8 @@ export default function Notifications() {
 
             <Card className="border-muted/40">
               <CardHeader>
-                <CardTitle>Activity Feed</CardTitle>
-                <CardDescription>Your latest notifications and updates.</CardDescription>
+                <CardTitle>Recent updates</CardTitle>
+                <CardDescription>Your latest TradeScout updates.</CardDescription>
               </CardHeader>
               <CardContent>
                 {isLoading ? (

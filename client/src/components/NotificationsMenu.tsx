@@ -29,10 +29,7 @@ export function NotificationsMenu({ className }: NotificationsMenuProps) {
   };
 
   return (
-    <div
-      className={`relative ${className ?? ""}`}
-      data-testid="notifications-menu"
-    >
+    <div className={`relative ${className ?? ""}`} data-testid="notifications-menu">
       {/* Bell button */}
       <button
         type="button"
@@ -65,9 +62,7 @@ export function NotificationsMenu({ className }: NotificationsMenuProps) {
             <span className="text-xs font-semibold uppercase tracking-wide text-white/60">
               Notifications
             </span>
-            {isLoading && (
-              <span className="text-[10px] text-white/60">Syncing...</span>
-            )}
+            {isLoading && <span className="text-[10px] text-white/60">Syncing...</span>}
           </div>
 
           {isError && (
@@ -86,9 +81,7 @@ export function NotificationsMenu({ className }: NotificationsMenuProps) {
               >
                 <span className="flex flex-col">
                   <span className="font-semibold">Messages</span>
-                  <span className="text-[11px] text-white/60">
-                    Unread conversations in your inbox
-                  </span>
+                  <span className="text-[11px] text-white/60">Unread message threads</span>
                 </span>
                 <span className="ml-2 rounded-full bg-white/5 px-2 py-1 text-[11px] text-white">
                   {unreadThreads}
@@ -103,9 +96,7 @@ export function NotificationsMenu({ className }: NotificationsMenuProps) {
               >
                 <span className="flex flex-col">
                   <span className="font-semibold">HOA votes</span>
-                  <span className="text-[11px] text-white/60">
-                    Open votes waiting on you
-                  </span>
+                  <span className="text-[11px] text-white/60">Votes ready for review</span>
                 </span>
                 <span className="ml-2 rounded-full bg-white/5 px-2 py-1 text-[11px] text-white">
                   {openHoaVotes}
