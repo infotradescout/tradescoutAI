@@ -226,10 +226,11 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
 
   it("route-gates ErrorBoundary Direct Connect friction logging", () => {
     const source = read("client/src/components/ui/error-boundary.tsx");
+    const forbiddenGenericKey = `type: "${"client"}_${"runtime"}_${"error"}"`;
 
     expect(source).toContain("isDirectConnectRoute(path)");
     expect(source).toContain('"direct_connect_client_runtime_error"');
-    expect(source).toContain('type: "client_runtime_error"');
+    expect(source).not.toContain(forbiddenGenericKey);
   });
 
   it("wires Direct Connect-only friction signals without schema or dashboard work", () => {

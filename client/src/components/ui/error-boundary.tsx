@@ -1,5 +1,4 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { trackShellEvent } from "@/lib/analytics";
 import { isDirectConnectRoute, trackFrictionEvent } from "@/lib/telemetry";
 import { getRawErrorMessage } from "@/lib/userFacingError";
 
@@ -80,17 +79,6 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // Always log errors for debugging
     console.error("Error boundary caught an error:", error, errorInfo);
     console.error("Component stack:", errorInfo.componentStack);
-    void trackShellEvent({
-      type: "client_runtime_error",
-      source: "error",
-      message: error.message || "React render error",
-      stack: [error.stack, errorInfo.componentStack].filter(Boolean).join("\n"),
-      path:
-        typeof window !== "undefined"
-          ? `${window.location.pathname}${window.location.search}`
-          : "server",
-      ts: new Date().toISOString(),
-    });
     const path =
       typeof window !== "undefined"
         ? `${window.location.pathname}${window.location.search}`
