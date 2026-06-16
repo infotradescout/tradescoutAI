@@ -58,7 +58,7 @@ describe("direct connect intake contracts", () => {
     expect(source).toContain("function evaluateRequestCompleteness");
     expect(source).toContain("Ready to share");
     expect(source).toContain("Needs one more detail");
-    expect(source).toContain("Too vague to route well");
+    expect(source).toContain("Add more detail before review");
   });
 
   it("keeps submit payload contract with expected request fields", () => {

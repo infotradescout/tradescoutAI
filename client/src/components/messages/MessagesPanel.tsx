@@ -220,9 +220,9 @@ export default function MessagesPanel() {
         queryKey: ["/api/messages/threads", variables.threadId, "home-report"],
       });
       toast({
-        title: "Home report shared",
+        title: "Home context shared",
         description:
-          "This thread can now see your home context (address stays private unless you opted in).",
+          "This thread can now see the home details you chose to share. Address stays private unless you include it.",
       });
     },
     onError: (err: any) => {
@@ -276,8 +276,8 @@ export default function MessagesPanel() {
       toast({
         title: data?.accepted ? "Request accepted" : "Request declined",
         description: data?.accepted
-          ? "Contact is open and ready."
-          : "No further contact will be sent.",
+          ? "Conversation opens after acceptance."
+          : "This request will not open a conversation.",
       });
     },
   });
@@ -315,7 +315,7 @@ export default function MessagesPanel() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/60">Direct Connect</p>
-              <h2 className="text-lg font-semibold text-white">Message Manager</h2>
+              <h2 className="text-lg font-semibold text-white">Messages</h2>
             </div>
             <Badge variant="secondary" className="text-xs">
               {threads.length} threads
@@ -362,7 +362,7 @@ export default function MessagesPanel() {
             />
           </div>
           <div className="rounded-lg border border-white/10 bg-tsCard/95 px-3 py-2 text-xs text-white/60">
-            First-contact previews are required for new connections. Approved requests unlock chat.
+            Review requests before contact opens. Conversation opens after acceptance.
           </div>
         </div>
 
@@ -472,7 +472,7 @@ export default function MessagesPanel() {
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">
-              {activeView === "requests" ? "Contact Review" : "Conversation"}
+              {activeView === "requests" ? "Review request" : "Conversation"}
             </p>
             <h2 className="text-lg font-semibold text-white">
               {activeView === "requests"
@@ -524,7 +524,7 @@ export default function MessagesPanel() {
                 </div>
 
                 <div className="rounded-xl border border-white/10 bg-tsCard/95 px-4 py-3 text-xs text-white/60">
-                  Accepting opens a new conversation. Declining blocks this first-contact attempt.
+                  Conversation opens after acceptance. Declining keeps contact closed.
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -565,9 +565,9 @@ export default function MessagesPanel() {
               <div className="px-5 py-4 border-b border-white/10 space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-white">Home report</div>
+                    <div className="text-sm font-semibold text-white">Shared home context</div>
                     <div className="text-xs text-white/60">
-                      Share your Home Vault context into this already-approved thread.
+                      Keep request context attached with the home details you choose to share.
                     </div>
                   </div>
                   <Badge className="bg-tsCard border border-white/10 text-white/70 text-[10px]">

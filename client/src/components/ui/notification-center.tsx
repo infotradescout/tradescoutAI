@@ -236,9 +236,7 @@ export function NotificationCenter() {
                 <div className="text-xs uppercase tracking-wide text-amber-300">
                   Contact Requests
                 </div>
-                <p className="text-xs text-white/70 mt-1">
-                  {contactRequestCount} waiting for approval
-                </p>
+                <p className="text-xs text-white/70 mt-1">{contactRequestCount} ready for review</p>
               </div>
               <Button
                 variant="outline"
@@ -263,8 +261,8 @@ export function NotificationCenter() {
           ) : notifications.length === 0 ? (
             <div className="p-8 text-center text-white/60">
               <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p className="font-medium">No notifications yet</p>
-              <p className="text-sm">We'll let you know when something important happens.</p>
+              <p className="font-medium">No updates yet</p>
+              <p className="text-sm">New messages, requests, and updates will appear here.</p>
             </div>
           ) : Array.isArray(notifications) ? (
             notifications.map((notification: Notification) => (
