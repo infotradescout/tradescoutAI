@@ -277,6 +277,7 @@ export type ShellEvent =
         | "direct_connect_request_submitted"
         | "direct_connect_request_visible_to_contractors"
         | "direct_connect_contractor_action_started"
+        | "direct_connect_requester_reply_viewed"
         | "direct_connect_homeid_created_from_request"
         | "direct_connect_homeid_updated_from_request";
       surface: "direct_connect";
@@ -287,6 +288,7 @@ export type ShellEvent =
       requestId?: string;
       packetId?: string;
       componentType?: string;
+      replyCount?: number;
       ts: string;
     }
   | {

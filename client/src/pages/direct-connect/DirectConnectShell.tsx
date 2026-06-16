@@ -4806,6 +4806,7 @@ export default function DirectConnectShell() {
 
   const hasHomeIdContext = Boolean(Array.isArray(homesData?.homes) && homesData.homes.length > 0);
   const [showNotificationCenter, setShowNotificationCenter] = useState(false);
+  const replyViewedEventKeyRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
   const userRole = String((user as any)?.role || "").toLowerCase();
   const notificationRole = ["contractor", "business", "worker", "provider"].includes(userRole)
@@ -4960,6 +4961,31 @@ export default function DirectConnectShell() {
     }),
     [requestsData]
   );
+
+  useEffect(() => {
+    if (!isAuthenticated || activeSection !== "inbox" || isInboxCountLoading) return;
+    const actionableReplies = (inboxData || []).filter(
+      (item) => item.assignment.status === "suggested"
+    );
+    if (actionableReplies.length === 0) return;
+
+    const firstRequestId =
+      actionableReplies[0]?.request?.id || actionableReplies[0]?.assignment.workRequestId;
+    const eventKey = `${firstRequestId || "unknown"}:${actionableReplies.length}`;
+    if (replyViewedEventKeyRef.current === eventKey) return;
+    replyViewedEventKeyRef.current = eventKey;
+
+    void trackShellEvent({
+      type: "direct_connect_requester_reply_viewed",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: getDeviceType(),
+      source: "direct_connect_inbox",
+      requestId: firstRequestId || undefined,
+      replyCount: actionableReplies.length,
+      ts: new Date().toISOString(),
+    });
+  }, [activeSection, inboxData, isAuthenticated, isInboxCountLoading]);
 
   const directConnectFirstTaskPrompt = useMemo(
     () =>

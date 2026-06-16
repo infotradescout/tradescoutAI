@@ -291,4 +291,69 @@ describe("core product KPI analytics delivery", () => {
       source: "landing_primary_cta",
     });
   });
+
+  it("persists requester reply-viewed KPI events with safe metadata", async () => {
+    const app = makeApp();
+    const event = {
+      type: "direct_connect_requester_reply_viewed",
+      surface: "direct_connect",
+      userState: "authenticated",
+      viewport: "mobile",
+      source: "direct_connect_inbox",
+      requestId: "request_123",
+      replyCount: 2,
+      description: "Do not persist request body text",
+      phone: "555-1212",
+      address: "123 Private Street",
+      message: "Do not persist private reply content",
+      ts: new Date().toISOString(),
+    };
+
+    const response = await request(app).post("/api/analytics/shell").send(event);
+    expect(response.status).toBe(204);
+
+    await flushAsyncWork();
+
+    expect(logEventMock).toHaveBeenCalledTimes(1);
+    expect(logEventMock.mock.calls[0][0]).toBe("direct_connect_requester_reply_viewed");
+    expect(logEventMock.mock.calls[0][1]).toMatchObject({
+      type: "direct_connect_requester_reply_viewed",
+      surface: "direct_connect",
+      requestId: "request_123",
+      replyCount: 2,
+      source: "direct_connect_inbox",
+    });
+    expect(logEventMock.mock.calls[0][1]).not.toHaveProperty("description");
+    expect(logEventMock.mock.calls[0][1]).not.toHaveProperty("phone");
+    expect(logEventMock.mock.calls[0][1]).not.toHaveProperty("address");
+    expect(logEventMock.mock.calls[0][1]).not.toHaveProperty("message");
+  });
+
+  it("keeps Direct Connect analytics failure non-blocking", async () => {
+    const app = makeApp();
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    logEventMock.mockRejectedValueOnce(new Error("event store offline"));
+
+    const response = await request(app).post("/api/analytics/shell").send({
+      type: "direct_connect_request_submitted",
+      category: "roofing",
+      hasBudget: false,
+      attachmentCount: 0,
+      dispatchMode: "auto_route",
+      directTargets: 0,
+      deviceType: "desktop",
+      ts: new Date().toISOString(),
+    });
+
+    expect(response.status).toBe(204);
+
+    await flushAsyncWork();
+
+    expect(logEventMock).toHaveBeenCalledTimes(1);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[Analytics][Shell] Failed to persist event",
+      expect.any(Error)
+    );
+    errorSpy.mockRestore();
+  });
 });

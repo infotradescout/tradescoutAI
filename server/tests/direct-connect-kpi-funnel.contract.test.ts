@@ -36,6 +36,12 @@ describe("direct connect KPI funnel contracts", () => {
         source: shellSource,
         evidence: 'type: "direct_connect_request_submitted"',
       },
+      {
+        stage: "requester_reply_viewed",
+        event: "direct_connect_requester_reply_viewed",
+        source: shellSource,
+        evidence: 'type: "direct_connect_requester_reply_viewed"',
+      },
     ] as const;
 
     for (const stage of requesterStages) {
@@ -58,6 +64,7 @@ describe("direct connect KPI funnel contracts", () => {
 
     expect(analyticsSource).toContain('"direct_connect_request_visible_to_contractors"');
     expect(analyticsSource).toContain('"direct_connect_contractor_action_started"');
+    expect(analyticsSource).toContain('"direct_connect_requester_reply_viewed"');
   });
 
   it("documents the canonical business-action mapping without inventing a second event name", () => {

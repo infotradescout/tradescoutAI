@@ -53,6 +53,7 @@ describe("direct connect submission funnel contract harness", () => {
     expect(analyticsSource).toContain('"direct_connect_request_submitted"');
     expect(analyticsSource).toContain('"direct_connect_request_visible_to_contractors"');
     expect(analyticsSource).toContain('"direct_connect_contractor_action_started"');
+    expect(analyticsSource).toContain('"direct_connect_requester_reply_viewed"');
   });
 
   it("preserves contact gate doctrine in request review and share states", () => {
@@ -74,5 +75,17 @@ describe("direct connect submission funnel contract harness", () => {
       "Keep this request in your home record for future repairs and updates."
     );
     expect(shellSource).toContain("Skip for now");
+  });
+
+  it("tracks requester reply review without persisting message body content", () => {
+    expect(shellSource).toContain('type: "direct_connect_requester_reply_viewed"');
+    expect(shellSource).toContain('source: "direct_connect_inbox"');
+    expect(shellSource).toContain("replyCount: actionableReplies.length");
+    expect(analyticsSource).toContain("sanitizeShellAnalyticsEvent");
+    expect(analyticsSource).toContain("DIRECT_CONNECT_SAFE_EVENT_KEYS");
+    expect(analyticsSource).not.toContain('"description",');
+    expect(analyticsSource).not.toContain('"message",');
+    expect(analyticsSource).not.toContain('"phone",');
+    expect(analyticsSource).not.toContain('"address",');
   });
 });

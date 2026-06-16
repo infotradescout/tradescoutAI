@@ -37,11 +37,47 @@ const PRODUCT_KPI_EVENT_TYPES = [
   "direct_connect_request_submitted",
   "direct_connect_request_visible_to_contractors",
   "direct_connect_contractor_action_started",
+  "direct_connect_requester_reply_viewed",
   "direct_connect_homeid_created_from_request",
   "direct_connect_homeid_updated_from_request",
   "scout_homeid_context_viewed",
   "scout_homeid_action_card_clicked",
 ] as const;
+
+const DIRECT_CONNECT_SAFE_EVENT_KEYS = new Set([
+  "type",
+  "surface",
+  "userState",
+  "viewport",
+  "deviceType",
+  "source",
+  "homeId",
+  "requestId",
+  "packetId",
+  "componentType",
+  "category",
+  "field",
+  "hasBudget",
+  "attachmentCount",
+  "dispatchMode",
+  "dispatchCount",
+  "directTargets",
+  "homeContextIntent",
+  "replyCount",
+  "entry",
+  "section",
+  "fromSection",
+  "toSection",
+  "reason",
+  "openRequestCount",
+  "isAuthenticated",
+  "hasCountyFips",
+  "ts",
+  "ipAddress",
+  "userAgent",
+  "userId",
+  "contractorId",
+]);
 
 type DemandEventType = (typeof DEMAND_EVENT_TYPES)[number];
 
@@ -131,6 +167,19 @@ function resolveHoursWindow(
   return { from: new Date(to.getTime() - windowHours * 60 * 60 * 1000), to };
 }
 
+function sanitizeShellAnalyticsEvent(event: Record<string, unknown>): Record<string, unknown> {
+  const eventType = typeof event?.type === "string" ? event.type : "";
+  if (!eventType.startsWith("direct_connect_")) return event;
+
+  const safeEvent: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(event)) {
+    if (DIRECT_CONNECT_SAFE_EVENT_KEYS.has(key)) {
+      safeEvent[key] = value;
+    }
+  }
+  return safeEvent;
+}
+
 export function registerAnalyticsRoutes(app: Express) {
   // This endpoint is intentionally soft: it should never block UX.
   // Guests are allowed; userId is optional.
@@ -171,13 +220,13 @@ export function registerAnalyticsRoutes(app: Express) {
         const ipAddress = ipHeader?.split(",")[0]?.trim() || (req as any).ip || null;
         const userAgent = (req.headers["user-agent"] as string | undefined) ?? null;
 
-        const enrichedEvent = {
+        const enrichedEvent = sanitizeShellAnalyticsEvent({
           ...event,
           ipAddress,
           userAgent,
           userId,
           contractorId,
-        };
+        });
 
         const eventType =
           typeof event?.type === "string" && event.type.trim().length > 0
