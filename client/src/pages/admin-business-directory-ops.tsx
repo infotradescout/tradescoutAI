@@ -49,6 +49,37 @@ type Suggestion = {
   businessSlug: string;
 };
 
+type PensacolaLiquiditySupplySummary = {
+  county: { countyFips: string; label: string; stateCode: string };
+  supply: {
+    candidateCount: number;
+    verifiedActiveCount: number;
+    claimedCount: number;
+    unclaimedCount: number;
+    verifiedActiveSource: string;
+  };
+  tradeCategoryCounts: Array<{
+    tradeCategory: string;
+    candidateCount: number;
+    verifiedActiveCount: number;
+  }>;
+  claimStateCounts: Array<{ claimStatus: string; businessStatus: string; total: number }>;
+  recentSeeding: {
+    windowDays: number;
+    totalRuns: number;
+    succeededRuns: number;
+    insertedCount: number;
+    duplicateCount: number;
+    errorCount: number;
+  };
+  suggestionCounts: Array<{ status: string; total: number }>;
+  outreachStatus: {
+    contacted: { supported: boolean; count: number; reason?: string };
+    interested: { supported: boolean; count: number; reason?: string };
+  };
+  blockers: Record<string, { supported: boolean; count: number }>;
+};
+
 export default function AdminBusinessDirectoryOpsPage() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -82,6 +113,14 @@ export default function AdminBusinessDirectoryOpsPage() {
   const suggestions: Suggestion[] = Array.isArray(suggestionsQuery.data?.items)
     ? suggestionsQuery.data.items
     : [];
+
+  const pensacolaLiquidityQuery = useQuery<PensacolaLiquiditySupplySummary>({
+    queryKey: ["admin-pensacola-liquidity-supply"],
+    queryFn: async () =>
+      (await apiRequest("/api/admin/business-directory/pensacola-liquidity/summary")) as any,
+  });
+
+  const pensacolaLiquidity = pensacolaLiquidityQuery.data;
 
   const logsQuery = useQuery({
     queryKey: ["admin-seed-run-logs", selectedRunId],
@@ -165,6 +204,88 @@ export default function AdminBusinessDirectoryOpsPage() {
         </TabsList>
 
         <TabsContent value="seeding" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between gap-3">
+                <span>Pensacola / Escambia Supply Health</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => pensacolaLiquidityQuery.refetch()}
+                  disabled={pensacolaLiquidityQuery.isFetching}
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </CardTitle>
+              <div className="text-sm text-muted-foreground">
+                Aggregated counts only for county FIPS 12033. No contact lists or lead exports.
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {pensacolaLiquidityQuery.isLoading ? (
+                <div className="text-sm text-muted-foreground">Loading Pensacola supply…</div>
+              ) : !pensacolaLiquidity ? (
+                <div className="text-sm text-muted-foreground">
+                  Pensacola supply summary unavailable.
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-3 md:grid-cols-4">
+                    {[
+                      ["Candidate businesses", pensacolaLiquidity.supply.candidateCount],
+                      ["Verified-active providers", pensacolaLiquidity.supply.verifiedActiveCount],
+                      ["Claimed", pensacolaLiquidity.supply.claimedCount],
+                      ["Unclaimed", pensacolaLiquidity.supply.unclaimedCount],
+                    ].map(([label, value]) => (
+                      <div key={String(label)} className="rounded-lg border border-border p-3">
+                        <div className="text-xs text-muted-foreground">{label}</div>
+                        <div className="mt-1 text-2xl font-semibold">{String(value)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-sm font-medium">Verified-active by trade/category</div>
+                      <div className="mt-2 space-y-1 text-sm">
+                        {pensacolaLiquidity.tradeCategoryCounts.length === 0 ? (
+                          <div className="text-muted-foreground">No category counts yet.</div>
+                        ) : (
+                          pensacolaLiquidity.tradeCategoryCounts.slice(0, 8).map((row) => (
+                            <div
+                              key={row.tradeCategory}
+                              className="flex items-center justify-between gap-3"
+                            >
+                              <span className="truncate">{row.tradeCategory}</span>
+                              <span className="font-mono">
+                                {row.verifiedActiveCount}/{row.candidateCount}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="rounded-lg border border-border p-3">
+                      <div className="text-sm font-medium">Derived status notes</div>
+                      <div className="mt-2 space-y-2 text-xs text-muted-foreground">
+                        <p>{pensacolaLiquidity.supply.verifiedActiveSource}</p>
+                        <p>
+                          Contacted/interested provider counts are unsupported until an existing
+                          safe audit event source is available.
+                        </p>
+                        <p>
+                          Recent seed inserts: {pensacolaLiquidity.recentSeeding.insertedCount};
+                          errors: {pensacolaLiquidity.recentSeeding.errorCount}.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
