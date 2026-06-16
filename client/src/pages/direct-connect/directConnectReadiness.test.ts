@@ -10,7 +10,7 @@ describe("getDirectConnectNextStepCopy", () => {
 
     expect(copy).toMatchObject({
       label: "Send this request",
-      actionHint: "Route to more pros",
+      actionHint: "Send to more pros",
       contactUnlocked: false,
     });
   });
@@ -20,7 +20,7 @@ describe("getDirectConnectNextStepCopy", () => {
 
     expect(copy).toMatchObject({
       label: "Waiting for responses",
-      actionHint: "Check replies",
+      actionHint: "Review replies",
       contactUnlocked: false,
     });
   });
@@ -34,7 +34,7 @@ describe("getDirectConnectNextStepCopy", () => {
 
     expect(copy).toMatchObject({
       label: "Continue coordination",
-      actionHint: "Open messages",
+      actionHint: "Open conversation",
       contactUnlocked: true,
     });
   });

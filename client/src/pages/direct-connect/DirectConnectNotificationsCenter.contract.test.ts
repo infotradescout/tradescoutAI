@@ -20,8 +20,8 @@ describe("direct connect notification center ui contract", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain("unreadDirectConnectNotificationCount");
     expect(source).toContain('status !== "archived"');
-    expect(source).toContain("Mark all read");
-    expect(source).toContain("Archive");
+    expect(source).toContain("Mark reviewed");
+    expect(source).toContain("Hide update");
   });
 
   it("contains optimistic update rollback paths", () => {

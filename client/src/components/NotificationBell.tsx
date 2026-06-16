@@ -59,8 +59,8 @@ export function NotificationBell() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications:list"] });
       toast({
-        title: "All notifications marked as read",
-        description: "Your notifications have been cleared.",
+        title: "Updates marked read",
+        description: "You are caught up.",
       });
     },
   });
@@ -70,9 +70,8 @@ export function NotificationBell() {
       markAsReadMutation.mutate(notification.id);
     }
 
-    // Handle different notification types
+    // Keep destination handling unchanged while copy stays user-facing.
     if (notification.type === "saved_ad_reminder" && notification.relatedId) {
-      // Navigate to saved ads page
       navigate("/saved-ads");
     }
   };
@@ -120,7 +119,7 @@ export function NotificationBell() {
       <PopoverContent className="w-80 p-0 bg-tsCard border-white/10" align="end">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium text-white">Notifications</CardTitle>
+            <CardTitle className="text-sm font-medium text-white">Updates</CardTitle>
             {notifications.length > 0 && (
               <Button
                 variant="ghost"
@@ -130,7 +129,7 @@ export function NotificationBell() {
                 disabled={markAllAsReadMutation.isPending}
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Mark all read
+                Mark reviewed
               </Button>
             )}
           </div>
@@ -140,12 +139,12 @@ export function NotificationBell() {
           {isLoading ? (
             <div className="p-4 text-center">
               <div className="animate-spin w-5 h-5 border-2 border-ts-orange/30 border-t-transparent rounded-full mx-auto mb-2"></div>
-              <p className="text-sm text-white/60">Loading notifications...</p>
+              <p className="text-sm text-white/60">Loading updates...</p>
             </div>
           ) : notifications.length === 0 ? (
             <div className="p-4 text-center">
               <Bell className="h-8 w-8 text-white/60 mx-auto mb-2" />
-              <p className="text-sm text-white/60">No notifications yet</p>
+              <p className="text-sm text-white/60">No updates yet</p>
             </div>
           ) : (
             <div className="space-y-0">

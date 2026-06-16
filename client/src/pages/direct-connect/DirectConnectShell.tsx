@@ -922,7 +922,7 @@ const DIRECT_CONNECT_STRUCTURED_DATA = {
     createServiceStructuredData({
       name: "TradeScout Direct Connect",
       description:
-        "Local request routing that lets members post what they need, review replies, and reach out without the usual spam.",
+        "Local request flow that lets members post what they need, review replies, and reach out without the usual spam.",
       category: "Local provider request platform",
       areaServed: "United States",
     }),
@@ -1006,7 +1006,7 @@ function evaluateRequestCompleteness(params: {
 function getRequestStageSummary(stage: RequestWorkflowStage): string {
   switch (stage) {
     case "ready_to_send":
-      return "This request is already live on your board for your area. Route to more pros anytime.";
+      return "This request is already live on your board for your area. Send it to more pros anytime.";
     case "waiting_on_pros":
       return "Your request is out to local pros. Review replies as they arrive.";
     case "active_conversation":
@@ -3661,7 +3661,7 @@ function MyDirectConnectRequests() {
         description:
           excludedCount > 0
             ? `${excludedCount} business${excludedCount === 1 ? "" : "es"} were excluded for verification requirements.`
-            : "Request routing saved.",
+            : "Request sharing saved.",
       });
       setShowRouteSheet(false);
       setSelectedRouteRequestId(null);
@@ -4193,7 +4193,7 @@ function MyDirectConnectRequests() {
                           disabled={routeMutation.isPending}
                           onClick={() => openRouteSheetForRequest(r.id)}
                         >
-                          Route to more pros
+                          Send to more pros
                         </Button>
                       )}
                       {canMarkPendingOutcome && (
@@ -4304,7 +4304,7 @@ function MyDirectConnectRequests() {
                     disabled={routeMutation.isPending}
                     onClick={() => openRouteSheetForRequest(r.id)}
                   >
-                    Route to more pros
+                    Send to more pros
                   </Button>
                 )}
                 {stage === "waiting_on_pros" && (
@@ -4314,7 +4314,7 @@ function MyDirectConnectRequests() {
                     className="h-8 px-2 text-xs"
                     onClick={() => navigate("/direct-connect/inbox")}
                   >
-                    Check replies
+                    Review replies
                   </Button>
                 )}
                 {canMessage && (
@@ -4428,7 +4428,7 @@ function MyDirectConnectRequests() {
                       disabled={routeMutation.isPending}
                       onClick={() => openRouteSheetForRequest(r.id)}
                     >
-                      Route to more pros
+                      Send to more pros
                     </Button>
                   )}
                   {stage === "waiting_on_pros" && (
@@ -4438,7 +4438,7 @@ function MyDirectConnectRequests() {
                       className="h-8 px-2 text-xs"
                       onClick={() => navigate("/direct-connect/inbox")}
                     >
-                      Check replies
+                      Review replies
                     </Button>
                   )}
                   {canMessage && (
@@ -5307,7 +5307,7 @@ export default function DirectConnectShell() {
                 onClick={() => markAllReadMutation.mutate()}
                 disabled={markAllReadMutation.isPending || unreadDirectConnectNotificationCount < 1}
               >
-                Mark all read
+                Mark reviewed
               </Button>
             </div>
             <div className="mt-3 space-y-2 overflow-y-auto pr-1 max-h-[74vh]">
@@ -5317,7 +5317,7 @@ export default function DirectConnectShell() {
                 </div>
               ) : notificationsLoading ? (
                 <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
-                  Loading notifications...
+                  Loading Direct Connect updates...
                 </div>
               ) : notificationsError ? (
                 <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-3 text-xs text-rose-200">
@@ -5325,7 +5325,7 @@ export default function DirectConnectShell() {
                 </div>
               ) : activeNotifications.length < 1 ? (
                 <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
-                  No notifications yet.
+                  No Direct Connect updates yet.
                 </div>
               ) : (
                 activeNotifications.map((notification) => (
@@ -5381,7 +5381,7 @@ export default function DirectConnectShell() {
                         onClick={() => archiveMutation.mutate(notification.id)}
                         disabled={archiveMutation.isPending}
                       >
-                        Archive
+                        Hide update
                       </Button>
                     </div>
                   </div>

@@ -188,8 +188,8 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain(
       "Follow-up mode keeps request updates and replies together."
     );
-    expect(directConnectShellFile).toContain("Route to more pros");
-    expect(directConnectShellFile).toContain("Check replies");
+    expect(directConnectShellFile).toContain("Send to more pros");
+    expect(directConnectShellFile).toContain("Review replies");
   });
 
   it("supports request photo attachments in Direct Connect", () => {

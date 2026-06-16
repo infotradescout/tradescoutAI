@@ -81,7 +81,7 @@ export function getDirectConnectNextStepCopy(
     return {
       label: "Send this request",
       summary: "Choose who receives this request or continue without a selection.",
-      actionHint: "Route to more pros",
+      actionHint: "Send to more pros",
       contactUnlocked: false,
     };
   }
@@ -91,7 +91,7 @@ export function getDirectConnectNextStepCopy(
       label: "Continue coordination",
       summary:
         "An accepted Direct Connect path exists. Keep the conversation tied to this request.",
-      actionHint: "Open messages",
+      actionHint: "Open conversation",
       contactUnlocked: readiness.gates.contactUnlocked,
     };
   }
@@ -100,7 +100,7 @@ export function getDirectConnectNextStepCopy(
     return {
       label: "Review replies",
       summary: "Review the response in Direct Connect. Contact opens only after acceptance.",
-      actionHint: "Check replies",
+      actionHint: "Review replies",
       contactUnlocked: false,
     };
   }
@@ -108,7 +108,7 @@ export function getDirectConnectNextStepCopy(
   return {
     label: "Waiting for responses",
     summary: "This request is live and waiting for eligible responders.",
-    actionHint: "Check replies",
+    actionHint: "Review replies",
     contactUnlocked: false,
   };
 }
