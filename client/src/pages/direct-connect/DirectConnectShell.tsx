@@ -36,6 +36,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
+import {
+  scheduleDirectConnectStallSignal,
+  trackFrictionEvent,
+  trackOncePerSession,
+  trackRepeatedFrictionSignal,
+} from "@/lib/telemetry";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
 import { DIRECT_CONNECT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
 import { resolveDirectConnectFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
@@ -170,6 +176,40 @@ const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secon
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
 const DIRECT_CONNECT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const DIRECT_CONNECT_AUTH_HANDOFF_STALL_MS = 15 * 60 * 1000;
+const DIRECT_CONNECT_FUNNEL_STEP_STALL_MS = 5 * 60 * 1000;
+const DIRECT_CONNECT_REPEATED_SUBMIT_WINDOW_MS = 3000;
+const DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS = 4000;
+
+function getSafeDirectConnectErrorCode(error: unknown): string {
+  if (error && typeof error === "object") {
+    const code = String((error as any).code || (error as any).name || "").trim();
+    if (code) return code.slice(0, 80);
+    const status = Number((error as any).status);
+    if (Number.isFinite(status)) return `status_${status}`;
+  }
+  return "unknown";
+}
+
+function trackDirectConnectApiFailure(args: {
+  source: string;
+  section: string;
+  status?: number;
+  error?: unknown;
+  requestId?: string;
+  blocked?: boolean;
+}) {
+  trackFrictionEvent("direct_connect_api_request_failed", {
+    source: args.source,
+    section: args.section,
+    reason:
+      args.status && Number.isFinite(args.status)
+        ? `status_${args.status}`
+        : getSafeDirectConnectErrorCode(args.error),
+    requestId: args.requestId,
+    blocked: args.blocked ?? false,
+  });
+}
 const GENERATED_HOME_LABEL_PATTERN = /^(slice\d+\s+\d+|\d{8,}|[a-f0-9]{12,})$/i;
 
 type DirectConnectDraftSnapshot = {
@@ -1360,11 +1400,25 @@ function DirectConnectRequestComposer({
         parsed = candidate as DirectConnectDraftSnapshot;
       }
     } catch {
+      trackFrictionEvent("direct_connect_draft_restore_failed", {
+        source: currentReturnPath(),
+        section: "auth_handoff",
+        reason: "parse_failed",
+        blocked: false,
+      });
       clearDirectConnectDraft();
       return;
     }
 
-    if (!parsed) return;
+    if (!parsed) {
+      trackFrictionEvent("direct_connect_draft_restore_failed", {
+        source: currentReturnPath(),
+        section: "auth_handoff",
+        reason: "invalid_shape",
+        blocked: false,
+      });
+      return;
+    }
     if (parsed.returnPath !== currentReturnPath()) return;
     if (Date.now() - parsed.savedAt > DIRECT_CONNECT_DRAFT_TTL_MS) {
       clearDirectConnectDraft();
@@ -1479,6 +1533,18 @@ function DirectConnectRequestComposer({
     const serialized = JSON.stringify(draft);
     window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
     window.localStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
+    scheduleDirectConnectStallSignal({
+      key: `direct-connect-auth-handoff:${draft.returnPath}:${draft.savedAt}`,
+      type: "direct_connect_auth_handoff_stalled",
+      delayMs: DIRECT_CONNECT_AUTH_HANDOFF_STALL_MS,
+      shouldEmit: () => Boolean(readDirectConnectDraft()),
+      payload: {
+        source: draft.returnPath,
+        section: "auth_handoff",
+        reason: "draft_still_pending",
+        blocked: true,
+      },
+    });
   };
 
   const replaceAttachments = (next: DraftAttachment[]) => {
@@ -1744,11 +1810,22 @@ function DirectConnectRequestComposer({
         params.set("lng", String(viewerLng));
       }
 
-      const payload = await apiRequest(
-        "GET",
-        `/api/business-providers/search?${params.toString()}`
-      );
-      return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
+      try {
+        const payload = await apiRequest(
+          "GET",
+          `/api/business-providers/search?${params.toString()}`
+        );
+        return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
+      } catch (error) {
+        trackDirectConnectApiFailure({
+          source: "/api/business-providers/search",
+          section: "dispatch_selection",
+          status: Number((error as any)?.status),
+          error,
+          blocked: false,
+        });
+        return [];
+      }
     },
   });
 
@@ -1957,7 +2034,20 @@ function DirectConnectRequestComposer({
     },
     onError: (error: any, _variables: DirectConnectCreateDispatch | undefined) => {
       const variables = _variables ?? {};
+      trackDirectConnectApiFailure({
+        source: "/api/direct-connect/requests",
+        section: "submit",
+        status: Number(error?.status),
+        error,
+        blocked: true,
+      });
       if (error?.status === 401) {
+        trackFrictionEvent("direct_connect_permission_or_role_blocked", {
+          source: currentReturnPath(),
+          section: "submit",
+          reason: "auth_required",
+          blocked: true,
+        });
         persistDirectConnectDraft({
           selectedProviderIds: variables?.targetProviderIds || selectedContractorIds,
         });
@@ -1974,6 +2064,12 @@ function DirectConnectRequestComposer({
         error?.status === 428 ||
         String(error?.code || "").toUpperCase() === "VERIFICATION_REQUIRED";
       if (isVerificationGate) {
+        trackFrictionEvent("direct_connect_permission_or_role_blocked", {
+          source: currentReturnPath(),
+          section: "submit",
+          reason: "verification_required",
+          blocked: true,
+        });
         toast({
           title: "Address verification required",
           description: formatUserFacingErrorMessage(
@@ -2073,8 +2169,23 @@ function DirectConnectRequestComposer({
   };
 
   const handleOpenDispatchSheet = () => {
-    if (!requestReadyToShare || createMutation.isPending) return;
+    if (!requestReadyToShare || createMutation.isPending) {
+      trackFrictionEvent("direct_connect_form_validation_blocked", {
+        source: currentReturnPath(),
+        section: "dispatch_selection",
+        field: completeness.level === "too_vague" ? "request_details" : "routing_readiness",
+        reason: createMutation.isPending ? "submit_pending" : routingReadiness,
+        blocked: true,
+      });
+      return;
+    }
     if (!isAuthenticated) {
+      trackFrictionEvent("direct_connect_permission_or_role_blocked", {
+        source: currentReturnPath(),
+        section: "dispatch_selection",
+        reason: "auth_required",
+        blocked: true,
+      });
       persistDirectConnectDraft({ selectedProviderIds: selectedContractorIds });
       toast({
         title: "Create your free account to share this request",
@@ -2088,7 +2199,16 @@ function DirectConnectRequestComposer({
   };
 
   const openRequestReadyState = () => {
-    if (!reviewCardReady || createMutation.isPending) return;
+    if (!reviewCardReady || createMutation.isPending) {
+      trackFrictionEvent("direct_connect_form_validation_blocked", {
+        source: currentReturnPath(),
+        section: "review",
+        field: "request_details",
+        reason: createMutation.isPending ? "submit_pending" : completeness.level,
+        blocked: true,
+      });
+      return;
+    }
     void trackShellEvent({
       type: "direct_connect_request_review_opened",
       category: activeRequestMeta.category,
@@ -2102,6 +2222,18 @@ function DirectConnectRequestComposer({
   };
 
   const handleSendWithSelection = () => {
+    trackRepeatedFrictionSignal({
+      key: "direct-connect-submit-with-selection",
+      type: "direct_connect_repeated_submit_attempt",
+      threshold: 2,
+      windowMs: DIRECT_CONNECT_REPEATED_SUBMIT_WINDOW_MS,
+      payload: {
+        source: currentReturnPath(),
+        section: "submit",
+        field: "send_with_selection",
+        blocked: createMutation.isPending,
+      },
+    });
     const targetProviderIds = Array.from(new Set(selectedContractorIds));
     const userState = user?.id ? "authenticated" : "anonymous";
     if (homeContextIntent === "link_existing" || homeContextIntent === "update_from_request") {
@@ -2139,6 +2271,18 @@ function DirectConnectRequestComposer({
   };
 
   const handleSkipAndAutoRoute = () => {
+    trackRepeatedFrictionSignal({
+      key: "direct-connect-submit-auto-route",
+      type: "direct_connect_repeated_submit_attempt",
+      threshold: 2,
+      windowMs: DIRECT_CONNECT_REPEATED_SUBMIT_WINDOW_MS,
+      payload: {
+        source: currentReturnPath(),
+        section: "submit",
+        field: "continue_without_selection",
+        blocked: createMutation.isPending,
+      },
+    });
     const userState = user?.id ? "authenticated" : "anonymous";
     trackDirectConnectHomeRecordSkipped({
       userState,
@@ -3097,7 +3241,15 @@ function DirectConnectInbox() {
     queryKey: ["/api/direct-connect/inbox"],
     queryFn: async () => {
       const res = await fetch("/api/direct-connect/inbox");
-      if (!res.ok) throw new Error("Failed to load replies");
+      if (!res.ok) {
+        trackDirectConnectApiFailure({
+          source: "/api/direct-connect/inbox",
+          section: "inbox",
+          status: res.status,
+          blocked: true,
+        });
+        throw new Error("Failed to load replies");
+      }
       return res.json();
     },
     enabled: isAuthenticated,
@@ -3113,6 +3265,30 @@ function DirectConnectInbox() {
   const visibleItems = filteredItems.filter(
     (item) => !archivedAssignmentIds.includes(String(item.assignment.id || ""))
   );
+
+  useEffect(() => {
+    if (isAuthenticated && user) return;
+    trackOncePerSession(
+      "direct-connect-inbox-auth-blocked",
+      "direct_connect_permission_or_role_blocked",
+      {
+        source: "/direct-connect/inbox",
+        section: "inbox",
+        reason: "auth_required",
+        blocked: true,
+      }
+    );
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (!isAuthenticated || isLoading || items.length > 0) return;
+    trackOncePerSession("direct-connect-empty-inbox", "direct_connect_empty_state_seen", {
+      source: "/direct-connect/inbox",
+      section: "inbox",
+      reason: "no_replies",
+      blocked: false,
+    });
+  }, [isAuthenticated, isLoading, items.length]);
 
   const respondMutation = useMutation({
     mutationFn: async (payload: {
@@ -3138,6 +3314,16 @@ function DirectConnectInbox() {
       if (variables?.decision === "accept" && data?.conversationId) {
         window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
       }
+    },
+    onError: (error: any, variables: any) => {
+      trackDirectConnectApiFailure({
+        source: "/api/direct-connect/assignments/:id/respond",
+        section: "contractor_action",
+        status: Number(error?.status),
+        error,
+        requestId: variables?.id ? String(variables.id) : undefined,
+        blocked: true,
+      });
     },
   });
   const handleRespond = async (
@@ -3539,7 +3725,15 @@ function MyDirectConnectRequests() {
     queryKey: ["/api/direct-connect/requests"],
     queryFn: async () => {
       const res = await fetch("/api/direct-connect/requests?scope=all");
-      if (!res.ok) return [];
+      if (!res.ok) {
+        trackDirectConnectApiFailure({
+          source: "/api/direct-connect/requests?scope=all",
+          section: "engagements",
+          status: res.status,
+          blocked: true,
+        });
+        return [];
+      }
       return res.json();
     },
     enabled: isAuthenticated,
@@ -3562,6 +3756,30 @@ function MyDirectConnectRequests() {
     () => filteredRequests.find((request) => request.id === selectedRouteRequestId) || null,
     [filteredRequests, selectedRouteRequestId]
   );
+
+  useEffect(() => {
+    if (isAuthenticated && user) return;
+    trackOncePerSession(
+      "direct-connect-engagements-auth-blocked",
+      "direct_connect_permission_or_role_blocked",
+      {
+        source: "/direct-connect/engagements",
+        section: "engagements",
+        reason: "auth_required",
+        blocked: true,
+      }
+    );
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    if (!isAuthenticated || isLoading || filteredRequests.length > 0) return;
+    trackOncePerSession("direct-connect-empty-engagements", "direct_connect_empty_state_seen", {
+      source: "/direct-connect/engagements",
+      section: "engagements",
+      reason: "no_requests",
+      blocked: false,
+    });
+  }, [filteredRequests.length, isAuthenticated, isLoading]);
 
   const { data: routeCandidates = [], isLoading: routeCandidatesLoading } = useQuery<
     DirectoryCandidate[]
@@ -3610,11 +3828,23 @@ function MyDirectConnectRequests() {
         params.set("lng", String(viewerLng));
       }
 
-      const payload = await apiRequest(
-        "GET",
-        `/api/business-providers/search?${params.toString()}`
-      );
-      return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
+      try {
+        const payload = await apiRequest(
+          "GET",
+          `/api/business-providers/search?${params.toString()}`
+        );
+        return Array.isArray(payload) ? (payload as DirectoryCandidate[]) : [];
+      } catch (error) {
+        trackDirectConnectApiFailure({
+          source: "/api/business-providers/search",
+          section: "engagements_route_selection",
+          status: Number((error as any)?.status),
+          error,
+          requestId: activeRouteRequest?.id,
+          blocked: false,
+        });
+        return [];
+      }
     },
   });
 
@@ -4764,7 +4994,36 @@ export default function DirectConnectShell() {
     });
   }, [activeSection, defaultCountyFips, directConnectEntry, isAuthenticated, user]);
 
+  useEffect(() => {
+    scheduleDirectConnectStallSignal({
+      key: `direct-connect-step-stalled:${activeSection}`,
+      type: "direct_connect_funnel_step_stalled",
+      delayMs: DIRECT_CONNECT_FUNNEL_STEP_STALL_MS,
+      shouldEmit: () =>
+        typeof window !== "undefined" &&
+        getSectionFromPath(window.location.pathname) === activeSection,
+      payload: {
+        source: location || "/direct-connect",
+        section: activeSection,
+        reason: "same_step_over_threshold",
+        blocked: false,
+      },
+    });
+  }, [activeSection, location]);
+
   const navigateSection = (section: Section) => {
+    trackRepeatedFrictionSignal({
+      key: `direct-connect-tab:${section}`,
+      type: "direct_connect_repeated_cta_click",
+      threshold: 5,
+      windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
+      payload: {
+        source: location || "/direct-connect",
+        section,
+        reason: "tab_navigation",
+        blocked: false,
+      },
+    });
     void trackShellEvent({
       type: "direct_connect_tab_selected",
       fromSection: activeSection,
@@ -4780,7 +5039,15 @@ export default function DirectConnectShell() {
     queryKey: ["/api/direct-connect/inbox", "count"],
     queryFn: async () => {
       const res = await fetch("/api/direct-connect/inbox");
-      if (!res.ok) return [];
+      if (!res.ok) {
+        trackDirectConnectApiFailure({
+          source: "/api/direct-connect/inbox",
+          section: "inbox_count",
+          status: res.status,
+          blocked: false,
+        });
+        return [];
+      }
       return res.json();
     },
     enabled: isAuthenticated,
@@ -4791,7 +5058,15 @@ export default function DirectConnectShell() {
       queryKey: ["/api/direct-connect/requests", "count"],
       queryFn: async () => {
         const res = await fetch("/api/direct-connect/requests");
-        if (!res.ok) return [];
+        if (!res.ok) {
+          trackDirectConnectApiFailure({
+            source: "/api/direct-connect/requests",
+            section: "request_count",
+            status: res.status,
+            blocked: false,
+          });
+          return [];
+        }
         return res.json();
       },
       enabled: isAuthenticated,
@@ -4802,7 +5077,15 @@ export default function DirectConnectShell() {
     queryKey: ["/api/homes", "first-use-context"],
     queryFn: async () => {
       const res = await fetch("/api/homes");
-      if (!res.ok) return { homes: [] };
+      if (!res.ok) {
+        trackDirectConnectApiFailure({
+          source: "/api/homes",
+          section: "home_context",
+          status: res.status,
+          blocked: false,
+        });
+        return { homes: [] };
+      }
       return res.json();
     },
     enabled: isAuthenticated,
@@ -4836,6 +5119,12 @@ export default function DirectConnectShell() {
     queryFn: async () => {
       const res = await fetch(`/api/direct-connect/notifications?role=${notificationRole}`);
       if (!res.ok) {
+        trackDirectConnectApiFailure({
+          source: "/api/direct-connect/notifications",
+          section: "notifications",
+          status: res.status,
+          blocked: false,
+        });
         throw new Error("Failed to load Direct Connect notifications");
       }
       return res.json();
@@ -5195,6 +5484,18 @@ export default function DirectConnectShell() {
               className="border-[color:var(--border-subtle)]"
               onClick={() => {
                 let targetRoute = "/direct-connect";
+                trackRepeatedFrictionSignal({
+                  key: `direct-connect-first-task:${directConnectFirstTaskPrompt.ctaLabel}`,
+                  type: "direct_connect_repeated_cta_click",
+                  threshold: 5,
+                  windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
+                  payload: {
+                    source: location || "/direct-connect",
+                    section: "first_task_prompt",
+                    reason: directConnectFirstTaskPrompt.ctaLabel,
+                    blocked: false,
+                  },
+                });
                 if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
                   targetRoute = "/homes";
                   trackFirstUseTaskPromptClicked({

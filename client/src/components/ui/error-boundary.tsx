@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { trackShellEvent } from "@/lib/analytics";
+import { isDirectConnectRoute, trackFrictionEvent } from "@/lib/telemetry";
 import { getRawErrorMessage } from "@/lib/userFacingError";
 
 interface ErrorBoundaryProps {
@@ -90,6 +91,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           : "server",
       ts: new Date().toISOString(),
     });
+    const path =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "server";
+    if (isDirectConnectRoute(path)) {
+      trackFrictionEvent("direct_connect_client_runtime_error", {
+        source: path,
+        reason: error.name || "react_render_error",
+        section: "error_boundary",
+        field: "render",
+        blocked: true,
+        stack: [error.stack, errorInfo.componentStack].filter(Boolean).join("\n"),
+      });
+    }
 
     // Special handling for common array mapping errors
     if (error.message.includes("map is not a function")) {
