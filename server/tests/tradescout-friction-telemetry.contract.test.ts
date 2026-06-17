@@ -5,7 +5,6 @@ import path from "node:path";
 import {
   resetFrictionTelemetryForTests,
   sanitizeFrictionPayload,
-  scheduleDirectConnectStallSignal,
   trackFrictionEvent,
   trackOncePerSession,
   trackRepeatedFrictionSignal,
@@ -23,12 +22,10 @@ function latestPayload(fetchMock: ReturnType<typeof vi.fn>) {
 describe("TradeScout Direct Connect passive friction telemetry", () => {
   beforeEach(() => {
     resetFrictionTelemetryForTests();
-    vi.useFakeTimers();
   });
 
   afterEach(() => {
     resetFrictionTelemetryForTests();
-    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -123,8 +120,8 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
       trackRepeatedFrictionSignal({
         key: "cta-window",
         type: "direct_connect_repeated_cta_click",
-        threshold: 5,
-        windowMs: 4000,
+        threshold: 3,
+        windowMs: 2000,
         payload: { source: "/direct-connect", section: "first_task_prompt" },
       });
     }
@@ -132,7 +129,7 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(latestPayload(fetchMock)).toMatchObject({
       type: "direct_connect_repeated_cta_click",
-      dispatchCount: 6,
+      dispatchCount: 4,
     });
   });
 
@@ -154,49 +151,28 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("emits auth-handoff stalled with fake timers and dedupes the same draft", () => {
+  it("emits auth-handoff stalled once when auth blocks a preserved draft handoff", () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal("fetch", fetchMock);
 
-    scheduleDirectConnectStallSignal({
-      key: "auth-draft",
-      type: "direct_connect_auth_handoff_stalled",
-      delayMs: 15 * 60 * 1000,
-      shouldEmit: () => true,
-      payload: { source: "/direct-connect", section: "auth_handoff", reason: "draft_pending" },
+    trackOncePerSession("auth-draft", "direct_connect_auth_handoff_stalled", {
+      source: "/direct-connect",
+      section: "auth_handoff",
+      reason: "auth_required_before_submit",
+      blocked: true,
     });
-    scheduleDirectConnectStallSignal({
-      key: "auth-draft",
-      type: "direct_connect_auth_handoff_stalled",
-      delayMs: 15 * 60 * 1000,
-      shouldEmit: () => true,
-      payload: { source: "/direct-connect", section: "auth_handoff", reason: "draft_pending" },
+    trackOncePerSession("auth-draft", "direct_connect_auth_handoff_stalled", {
+      source: "/direct-connect",
+      section: "auth_handoff",
+      reason: "auth_required_before_submit",
+      blocked: true,
     });
-
-    vi.advanceTimersByTime(15 * 60 * 1000);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(latestPayload(fetchMock)).toMatchObject({
       type: "direct_connect_auth_handoff_stalled",
       section: "auth_handoff",
     });
-  });
-
-  it("does not emit a funnel stall when the user has moved on", () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-    vi.stubGlobal("fetch", fetchMock);
-
-    scheduleDirectConnectStallSignal({
-      key: "step-post",
-      type: "direct_connect_funnel_step_stalled",
-      delayMs: 5 * 60 * 1000,
-      shouldEmit: () => false,
-      payload: { source: "/direct-connect", section: "post" },
-    });
-
-    vi.advanceTimersByTime(5 * 60 * 1000);
-
-    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("emits draft restore and permission signals with safe reason codes only", () => {
@@ -246,12 +222,24 @@ describe("TradeScout Direct Connect passive friction telemetry", () => {
       "direct_connect_repeated_cta_click",
       "direct_connect_empty_state_seen",
       "direct_connect_permission_or_role_blocked",
-      "direct_connect_funnel_step_stalled",
     ]) {
       expect(`${shell}\n${telemetry}`).toContain(event);
     }
     expect(telemetry).toContain('fetch("/api/analytics/shell"');
     expect(telemetry).not.toContain("session replay");
     expect(telemetry).not.toContain("stripe");
+  });
+
+  it("keeps funnel-stall and timer-based friction capture deferred", () => {
+    const shell = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    const telemetry = read("client/src/lib/telemetry.ts");
+    const combined = `${shell}\n${telemetry}`;
+
+    expect(combined).not.toContain("direct_connect_funnel_step_stalled");
+    expect(combined).not.toContain("scheduleDirectConnectStallSignal");
+    expect(combined).not.toContain("DIRECT_CONNECT_FUNNEL_STEP_STALL_MS");
+    expect(telemetry).not.toContain("setTimeout");
+    expect(telemetry).not.toContain("setInterval");
+    expect(combined.toLowerCase()).not.toContain("heartbeat");
   });
 });

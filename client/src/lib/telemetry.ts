@@ -10,7 +10,6 @@ export const DIRECT_CONNECT_FRICTION_EVENTS = [
   "direct_connect_repeated_cta_click",
   "direct_connect_empty_state_seen",
   "direct_connect_permission_or_role_blocked",
-  "direct_connect_funnel_step_stalled",
 ] as const;
 
 export type DirectConnectFrictionEvent = (typeof DIRECT_CONNECT_FRICTION_EVENTS)[number];
@@ -21,7 +20,6 @@ const SENSITIVE_KEY_PATTERN =
 const MAX_SAFE_STRING_LENGTH = 240;
 const repeatedWindows = new Map<string, { count: number; firstAt: number; emitted: boolean }>();
 const onceKeys = new Set<string>();
-const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -127,32 +125,7 @@ export function trackOncePerSession(
   trackFrictionEvent(type, payload);
 }
 
-export function scheduleDirectConnectStallSignal({
-  key,
-  type,
-  delayMs,
-  shouldEmit,
-  payload,
-}: {
-  key: string;
-  type: DirectConnectFrictionEvent;
-  delayMs: number;
-  shouldEmit: () => boolean;
-  payload?: Record<string, unknown>;
-}): void {
-  if (onceKeys.has(key) || timers.has(key)) return;
-  const timer = setTimeout(() => {
-    timers.delete(key);
-    if (!shouldEmit() || onceKeys.has(key)) return;
-    onceKeys.add(key);
-    trackFrictionEvent(type, payload);
-  }, delayMs);
-  timers.set(key, timer);
-}
-
 export function resetFrictionTelemetryForTests(): void {
   repeatedWindows.clear();
   onceKeys.clear();
-  for (const timer of timers.values()) clearTimeout(timer);
-  timers.clear();
 }
