@@ -90,15 +90,15 @@ describe("scout response contract guards", () => {
   it("blocks competitor-pattern drift around form traps, lead selling, and paid ranking", async () => {
     const { finalizeScoutResponse } = await import("../scout/scoutResponseContract");
 
-    const samples = [
+    const competitorPatternInputs = [
       "You must complete the full form before I can help, then your lead is sold to the highest bidder.",
       "These sponsored contractors rank first because they paid for premium provider placement.",
     ];
 
-    for (const sample of samples) {
+    for (const competitorPatternInput of competitorPatternInputs) {
       const result = finalizeScoutResponse(
         {
-          message: sample,
+          message: competitorPatternInput,
         },
         {
           requestMessage: "Need a roofer near me.",
