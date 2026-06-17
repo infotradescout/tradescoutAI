@@ -22,7 +22,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..", "..");
 
 function readRepoFile(relativePath: string): string {
-  return fs.readFileSync(path.join(repoRoot, relativePath), "utf8");
+  return fs.readFileSync(path.join(repoRoot, relativePath), "utf8").replace(/\r\n/g, "\n");
+}
+
+function readWorkerRouteSources(): string {
+  return [readRepoFile("server/routes.ts"), readRepoFile("server/routes/worker-tasks.ts")].join(
+    "\n"
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -141,7 +147,7 @@ describe("DC worker integration — employment routes", () => {
   });
 
   it("routes.ts exposes PATCH /api/workers/profile/availability", () => {
-    const routes = readRepoFile("server/routes.ts");
+    const routes = readWorkerRouteSources();
     expect(routes).toContain("/api/workers/profile/availability");
     expect(routes).toContain("isAvailable");
   });
@@ -152,12 +158,12 @@ describe("DC worker integration — employment routes", () => {
 // ---------------------------------------------------------------------------
 describe("DC worker integration — public worker profile API", () => {
   it("routes.ts exposes GET /api/workers/:workerId/public", () => {
-    const routes = readRepoFile("server/routes.ts");
+    const routes = readWorkerRouteSources();
     expect(routes).toContain("/api/workers/:workerId/public");
   });
 
   it("public endpoint strips PII fields (phone, email, totalEarnings)", () => {
-    const routes = readRepoFile("server/routes.ts");
+    const routes = readWorkerRouteSources();
     const idx = routes.indexOf("/api/workers/:workerId/public");
     const body = routes.slice(idx, idx + 1500);
     expect(body).toContain("_phone");

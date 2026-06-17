@@ -8,8 +8,11 @@ const read = (relativePath: string) => {
 };
 
 describe("admin provisioning contract guards", () => {
+  const readRouteSources = () =>
+    [read("server/routes.ts"), read("server/routes/worker-tasks.ts")].join("\n");
+
   it("provision route keeps activation/verification email toggles", () => {
-    const routesSource = read("server/routes.ts");
+    const routesSource = readRouteSources();
 
     expect(routesSource).toContain("/api/admin/users/provision");
     expect(routesSource).toContain("sendActivationEmail");
@@ -44,7 +47,7 @@ describe("admin provisioning contract guards", () => {
   });
 
   it("provision route persists extended contact/location payload", () => {
-    const routesSource = read("server/routes.ts");
+    const routesSource = readRouteSources();
 
     expect(routesSource).toContain("const stateCodeRaw");
     expect(routesSource).toContain("countyFips must be 5 characters");
@@ -55,7 +58,7 @@ describe("admin provisioning contract guards", () => {
   });
 
   it("provision and support edit wire trade tags into routing declarations", () => {
-    const routesSource = read("server/routes.ts");
+    const routesSource = readRouteSources();
     const adminProvisionUserSource = read("client/src/pages/admin-provision-user.tsx");
 
     expect(routesSource).toContain("const rawProvisionTradeTags");
