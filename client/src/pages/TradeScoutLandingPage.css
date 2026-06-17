@@ -19,7 +19,7 @@
 
 .ts-landing-shell {
   min-height: 100vh;
-  background: linear-gradient(180deg, rgba(244, 122, 31, 0.08), transparent 26rem), var(--ts-bg);
+  background: var(--ts-bg);
   color: var(--ts-text);
   font-family:
     Inter,

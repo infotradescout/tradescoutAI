@@ -153,7 +153,7 @@ const sections: RuleSection[] = [
 
 export default function GiveawayRules() {
   return (
-    <main className="min-h-screen bg-[#05070a] text-slate-100">
+    <main className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         <header className="border-b border-slate-800 pb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-300">
