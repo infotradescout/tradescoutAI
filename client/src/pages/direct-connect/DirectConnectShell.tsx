@@ -37,7 +37,6 @@ import { useI18n } from "@/lib/i18n";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 import {
-  scheduleDirectConnectStallSignal,
   trackFrictionEvent,
   trackOncePerSession,
   trackRepeatedFrictionSignal,
@@ -176,10 +175,8 @@ const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secon
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
 const DIRECT_CONNECT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
-const DIRECT_CONNECT_AUTH_HANDOFF_STALL_MS = 15 * 60 * 1000;
-const DIRECT_CONNECT_FUNNEL_STEP_STALL_MS = 5 * 60 * 1000;
 const DIRECT_CONNECT_REPEATED_SUBMIT_WINDOW_MS = 3000;
-const DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS = 4000;
+const DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS = 2000;
 
 function getSafeDirectConnectErrorCode(error: unknown): string {
   if (error && typeof error === "object") {
@@ -1533,18 +1530,6 @@ function DirectConnectRequestComposer({
     const serialized = JSON.stringify(draft);
     window.sessionStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
     window.localStorage.setItem(DIRECT_CONNECT_DRAFT_DRAFT_KEY, serialized);
-    scheduleDirectConnectStallSignal({
-      key: `direct-connect-auth-handoff:${draft.returnPath}:${draft.savedAt}`,
-      type: "direct_connect_auth_handoff_stalled",
-      delayMs: DIRECT_CONNECT_AUTH_HANDOFF_STALL_MS,
-      shouldEmit: () => Boolean(readDirectConnectDraft()),
-      payload: {
-        source: draft.returnPath,
-        section: "auth_handoff",
-        reason: "draft_still_pending",
-        blocked: true,
-      },
-    });
   };
 
   const replaceAttachments = (next: DraftAttachment[]) => {
@@ -2051,6 +2036,16 @@ function DirectConnectRequestComposer({
         persistDirectConnectDraft({
           selectedProviderIds: variables?.targetProviderIds || selectedContractorIds,
         });
+        trackOncePerSession(
+          "direct-connect-auth-handoff-submit",
+          "direct_connect_auth_handoff_stalled",
+          {
+            source: currentReturnPath(),
+            section: "auth_handoff",
+            reason: "auth_required_before_submit",
+            blocked: true,
+          }
+        );
         toast({
           title: "Sign in to send",
           description: "Your request draft is ready. Sign in to review and send it.",
@@ -2187,6 +2182,16 @@ function DirectConnectRequestComposer({
         blocked: true,
       });
       persistDirectConnectDraft({ selectedProviderIds: selectedContractorIds });
+      trackOncePerSession(
+        "direct-connect-auth-handoff-dispatch-selection",
+        "direct_connect_auth_handoff_stalled",
+        {
+          source: currentReturnPath(),
+          section: "auth_handoff",
+          reason: "auth_required_before_dispatch",
+          blocked: true,
+        }
+      );
       toast({
         title: "Create your free account to share this request",
         description: "Your contact information stays private until you approve a contact request.",
@@ -4994,28 +4999,11 @@ export default function DirectConnectShell() {
     });
   }, [activeSection, defaultCountyFips, directConnectEntry, isAuthenticated, user]);
 
-  useEffect(() => {
-    scheduleDirectConnectStallSignal({
-      key: `direct-connect-step-stalled:${activeSection}`,
-      type: "direct_connect_funnel_step_stalled",
-      delayMs: DIRECT_CONNECT_FUNNEL_STEP_STALL_MS,
-      shouldEmit: () =>
-        typeof window !== "undefined" &&
-        getSectionFromPath(window.location.pathname) === activeSection,
-      payload: {
-        source: location || "/direct-connect",
-        section: activeSection,
-        reason: "same_step_over_threshold",
-        blocked: false,
-      },
-    });
-  }, [activeSection, location]);
-
   const navigateSection = (section: Section) => {
     trackRepeatedFrictionSignal({
       key: `direct-connect-tab:${section}`,
       type: "direct_connect_repeated_cta_click",
-      threshold: 5,
+      threshold: 3,
       windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
       payload: {
         source: location || "/direct-connect",
@@ -5487,7 +5475,7 @@ export default function DirectConnectShell() {
                 trackRepeatedFrictionSignal({
                   key: `direct-connect-first-task:${directConnectFirstTaskPrompt.ctaLabel}`,
                   type: "direct_connect_repeated_cta_click",
-                  threshold: 5,
+                  threshold: 3,
                   windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
                   payload: {
                     source: location || "/direct-connect",
