@@ -9,12 +9,16 @@ describe("master plan: trust ledger + provider fit score contracts", () => {
   it("defines a trust ledger table and writer service", () => {
     const schema = read("shared/schema.ts");
     const service = read("server/services/trustLedgerService.ts");
+    const bootstrap = read("scripts/bootstrap-test-db.mjs");
 
     expect(schema).toContain("trust_ledger_events");
     expect(schema).toContain("entity_type");
     expect(schema).toContain("event_type");
     expect(service).toContain("recordTrustLedgerEvent");
     expect(service).toContain("trustLedgerEvents");
+    expect(bootstrap).toContain("CREATE TABLE IF NOT EXISTS trust_ledger_events");
+    expect(bootstrap).toContain("verification_level varchar(40) NOT NULL DEFAULT 'none'");
+    expect(bootstrap).toContain("CREATE INDEX IF NOT EXISTS idx_trust_ledger_entity");
   });
 
   it("applies explainable provider fit scoring in direct-connect routing", () => {

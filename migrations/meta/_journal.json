@@ -715,6 +715,13 @@
       "when": 1780767600000,
       "tag": "0098_affiliate_attribution_conversion_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1780854000000,
+      "tag": "0099_trust_ledger_events",
+      "breakpoints": true
     }
   ]
 }
