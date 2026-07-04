@@ -77,7 +77,7 @@ describe("direct connect intake contracts", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain("Save to HomeID");
     expect(source).toContain(
-      "Keep this request in your home record for future repairs and updates."
+      "Save it so the next repair starts with this history already on file."
     );
     expect(source).not.toContain("How should this request use home details?");
     expect(source).toContain("Use saved home details");

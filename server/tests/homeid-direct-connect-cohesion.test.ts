@@ -29,7 +29,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
     expect(shellSource).toContain("const [homeContextIntent, setHomeContextIntent] = useState<");
     expect(shellSource).toContain('>("skip_for_now")');
     expect(shellSource).toContain(
-      "Keep this request in your home record for future repairs and updates."
+      "Save it so the next repair starts with this history already on file."
     );
     expect(shellSource).toContain("Add HomeID details");
     expect(shellSource).toContain("Skip for now");

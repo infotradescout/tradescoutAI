@@ -2347,7 +2347,7 @@ function DirectConnectRequestComposer({
                     TradeScout beta
                   </p>
                   <p className="text-[11px] leading-4 text-[color:var(--text-secondary)]">
-                    We’re improving requests while beta is active. Report anything that feels off.
+                    Requests are actively improving — tell us if anything feels off.
                   </p>
                 </div>
                 <button
@@ -2383,7 +2383,7 @@ function DirectConnectRequestComposer({
             </p>
           </div>
         )}
-        <div className="space-y-2.5">
+        <div className="space-y-3 pt-1">
           {intentConfig ? (
             <div className="rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 px-3 py-3.5">
               <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
@@ -2462,7 +2462,7 @@ function DirectConnectRequestComposer({
         ))}
         {!intentConfig && (
           <>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 pt-1">
               <label className={REQUEST_LABEL_CLASS}>What do you need help with? *</label>
               <Input
                 value={title}
@@ -2472,11 +2472,11 @@ function DirectConnectRequestComposer({
                   setTitle(next);
                   setDetailAnswers((current) => ({ ...current, what: next }));
                 }}
-                placeholder="Short request title"
+                placeholder="e.g. Fix a leaking kitchen faucet"
                 className={REQUEST_FIELD_CLASS}
               />
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 pt-1">
               <label className={REQUEST_LABEL_CLASS}>Describe the job *</label>
               <Textarea
                 value={description}
@@ -2486,12 +2486,12 @@ function DirectConnectRequestComposer({
                   setDescription(next);
                   setDetailAnswers((current) => ({ ...current, details: next }));
                 }}
-                placeholder="Tell us what is going on"
+                placeholder="What's happening, what you've tried, and any deadlines"
                 rows={4}
                 className={REQUEST_TEXTAREA_CLASS}
               />
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 pt-1">
               <label className={REQUEST_LABEL_CLASS}>Where is the job? *</label>
               <Input
                 value={detailAnswers.where}
@@ -2623,7 +2623,7 @@ function DirectConnectRequestComposer({
                   Add photos to this request
                 </div>
                 <div className={REQUEST_HELPER_CLASS}>
-                  Photos can help clarify scope before contact opens.
+                  Pros respond faster and quote more accurately when they can see the job.
                 </div>
               </div>
             </div>
@@ -2672,7 +2672,7 @@ function DirectConnectRequestComposer({
                 Save to HomeID
               </p>
               <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                Keep this request in your home record for future repairs and updates.
+                Save it so the next repair starts with this history already on file.
               </p>
             </div>
             <div className="flex shrink-0 flex-col items-end gap-1.5">

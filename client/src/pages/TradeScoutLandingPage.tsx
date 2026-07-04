@@ -84,7 +84,7 @@ export default function TradeScoutLandingPage() {
       <section className="ts-sequence" aria-labelledby="ts-sequence-title">
         <div className="ts-section-heading">
           <p className="ts-section-kicker">How it works</p>
-          <h2 id="ts-sequence-title">Simple sequence. Clear control.</h2>
+          <h2 id="ts-sequence-title">One request. Zero spam. Full control.</h2>
         </div>
 
         <div className="ts-step-grid">
@@ -92,18 +92,17 @@ export default function TradeScoutLandingPage() {
             <div className="ts-step-number" aria-hidden="true">
               1
             </div>
-            <h3>Describe the work</h3>
-            <p>Tell TradeScout what needs fixed, improved, quoted, or checked.</p>
+            <h3>Post what you need</h3>
+            <p>Fix, install, quote, or inspect — describe the job in under a minute.</p>
           </article>
 
           <article className="ts-step-card">
             <div className="ts-step-number" aria-hidden="true">
               2
             </div>
-            <h3>Organize by local fit</h3>
+            <h3>Matched to local pros</h3>
             <p>
-              Your request is matched to relevant local providers without selling your info as a
-              lead.
+              We route your request to relevant local providers — your info is never sold as a lead.
             </p>
           </article>
 
@@ -111,8 +110,8 @@ export default function TradeScoutLandingPage() {
             <div className="ts-step-number" aria-hidden="true">
               3
             </div>
-            <h3>Decide before contact</h3>
-            <p>You review the path forward before contact details are shared.</p>
+            <h3>You choose who reaches out</h3>
+            <p>Review the responses and release contact details only when you're ready.</p>
           </article>
         </div>
       </section>
@@ -120,12 +119,12 @@ export default function TradeScoutLandingPage() {
       <section className="ts-record-layer" aria-labelledby="ts-record-title">
         <div>
           <p className="ts-section-kicker">Record layer</p>
-          <h2 id="ts-record-title">Keep a record as you go</h2>
+          <h2 id="ts-record-title">Every job remembers itself</h2>
         </div>
 
         <p>
-          Save requests, documents, updates, and completed work to your HomeID so the next job
-          starts with better context.
+          Requests, photos, quotes, and completed work all save to your HomeID — so the next pro
+          starts with context, not a blank page.
         </p>
       </section>
     </main>
