@@ -170,7 +170,6 @@ describe("generic business profile and tool contracts", () => {
     const advancedSearch = read("client/src/pages/advanced-search.tsx");
     const simpleHome = read("client/src/pages/SimpleHome.tsx");
     const home = read("client/src/pages/home.tsx");
-    const safeLanding = read("client/src/pages/safe-landing.tsx");
     const propertyManagerDashboard = read("client/src/pages/property-manager-dashboard.tsx");
     const about = read("client/src/pages/about.tsx");
     const simpleLanding = read("client/src/pages/SimpleLanding.tsx");
@@ -182,7 +181,6 @@ describe("generic business profile and tool contracts", () => {
       advancedSearch,
       simpleHome,
       home,
-      safeLanding,
       propertyManagerDashboard,
       about,
       simpleLanding,
