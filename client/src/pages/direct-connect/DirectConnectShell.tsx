@@ -168,10 +168,10 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
 };
 
 const REQUEST_FIELD_CLASS =
-  "min-h-11 rounded-lg border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
-const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[116px] resize-y py-3 leading-6");
-const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-11 w-full px-3");
-const REQUEST_LABEL_CLASS = "text-[13px] font-medium text-[color:var(--text-primary)]";
+  "min-h-12 rounded-xl border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 px-3.5 text-[15px] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
+const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[128px] resize-y py-3 leading-6");
+const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-12 w-full");
+const REQUEST_LABEL_CLASS = "text-sm font-medium text-[color:var(--text-primary)]";
 const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secondary)]";
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
@@ -1340,6 +1340,7 @@ function DirectConnectRequestComposer({
   >("skip_for_now");
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
+  const [describeStep, setDescribeStep] = useState<0 | 1>(0);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
   >({
@@ -2014,6 +2015,7 @@ function DirectConnectRequestComposer({
       setShowOptional(false);
       setShowDispatchSheet(false);
       setShowRequestReady(false);
+      setDescribeStep(0);
       setDispatchMode("top_count");
       setDispatchCount(2);
       setDirectorySearch("");
@@ -2319,16 +2321,21 @@ function DirectConnectRequestComposer({
   };
 
   return (
-    <Card className="overflow-hidden border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
-      <CardContent className="space-y-4 px-4 py-4 sm:px-6">
+    <Card className="overflow-hidden rounded-2xl border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
+      <CardContent className="space-y-5 px-4 py-5 sm:px-6 sm:py-6">
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <h1 className="text-xl font-semibold leading-tight text-[color:var(--text-primary)]">
-              Post a request
-            </h1>
-            <span className="shrink-0 text-[11px] font-semibold text-[color:var(--theme-accent-primary)]">
-              Step 1 of 3 · Describe
+          <div className="space-y-2">
+            <span className="inline-flex items-center rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--theme-accent-primary)]">
+              {describeStep === 0 ? "Step 1 of 3 · Describe" : "Step 2 of 3 · Review"}
             </span>
+            <h1 className="text-3xl font-bold leading-tight tracking-tight text-[color:var(--text-primary)]">
+              {describeStep === 0 ? "What do you need done?" : "Review your request"}
+            </h1>
+            <p className="text-sm leading-snug text-[color:var(--text-secondary)]">
+              {describeStep === 0
+                ? "Tell us the essentials. You can add photos and extra details on the next step."
+                : "Add any extra details, then choose who receives it. You review before anything is shared."}
+            </p>
           </div>
           {showDirectConnectBetaNotice && (
             <div className="rounded-md border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/55 px-2.5 py-2">
@@ -2363,531 +2370,590 @@ function DirectConnectRequestComposer({
           )}
           <div className="space-y-1" aria-label="Request progress">
             <div className="h-1 rounded-full bg-[color:var(--surface-intermediate)]">
-              <div className="h-full w-1/3 rounded-full bg-[color:var(--theme-accent-primary)]" />
+              <div
+                className={cn(
+                  "h-full rounded-full bg-[color:var(--theme-accent-primary)] transition-all",
+                  describeStep === 0 ? "w-1/3" : "w-2/3"
+                )}
+              />
             </div>
             <div className="flex items-center justify-between text-[10px] font-medium text-[color:var(--text-secondary)]">
-              <span className="text-[color:var(--text-primary)]">Describe</span>
-              <span>Review</span>
+              <span className={describeStep === 0 ? "text-[color:var(--text-primary)]" : undefined}>
+                Describe
+              </span>
+              <span className={describeStep === 1 ? "text-[color:var(--text-primary)]" : undefined}>
+                Review
+              </span>
               <span>Submit</span>
             </div>
           </div>
         </div>
-        {prefillTargetUserId && (
-          <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">From Community</p>
-            <p className="mt-1 text-xs text-[color:var(--text-primary)]">
-              This request is scoped to <span className="font-semibold">{prefillTargetLabel}</span>.
-              {prefillSource === "community_active_now"
-                ? " They will see it in Direct Connect if they are eligible to respond."
-                : " The selected member context has been prefilled for you."}
-            </p>
-          </div>
-        )}
-        <div className="space-y-2.5">
-          {intentConfig ? (
-            <div className="rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 px-3 py-3.5">
-              <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
-                {intentConfig.heading}
-              </h2>
-              <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                {intentConfig.prompt}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {intentConfig.chips.map((chip) => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => {
-                      markRequestStarted("title");
-                      setTitle(chip);
-                      setDetailAnswers((current) => ({ ...current, what: chip }));
-                    }}
-                    className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                  >
-                    {chip}
-                  </button>
-                ))}
+        {describeStep === 0 && (
+          <div className="space-y-4">
+            {prefillTargetUserId && (
+              <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
+                  From Community
+                </p>
+                <p className="mt-1 text-xs text-[color:var(--text-primary)]">
+                  This request is scoped to{" "}
+                  <span className="font-semibold">{prefillTargetLabel}</span>.
+                  {prefillSource === "community_active_now"
+                    ? " They will see it in Direct Connect if they are eligible to respond."
+                    : " The selected member context has been prefilled for you."}
+                </p>
               </div>
-            </div>
-          ) : null}
-          <label className={REQUEST_LABEL_CLASS}>What do you need?</label>
-          <select
-            value={requestType}
-            onChange={(event) => {
-              markRequestStarted("type");
-              setRequestType(event.target.value as keyof typeof requestTypeMeta);
-            }}
-            className={REQUEST_SELECT_CLASS}
-          >
-            {requestTypeOrder.map((key) => (
-              <option key={key} value={key}>
-                {requestTypeMeta[key].label}
-              </option>
-            ))}
-          </select>
-        </div>
-        {intentConfig?.detailQuestions?.map((question) => (
-          <div key={question.key} className="space-y-2.5">
-            <label className={REQUEST_LABEL_CLASS}>
-              {question.label}
-              {question.required ? " *" : ""}
-            </label>
-            {question.key === "details" ? (
-              <Textarea
-                value={detailAnswers[question.key]}
-                onChange={(event) => {
-                  markRequestStarted("description");
-                  const next = event.target.value;
-                  setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                  setDescription(next);
-                }}
-                placeholder={question.placeholder}
-                rows={4}
-                className={REQUEST_TEXTAREA_CLASS}
-              />
-            ) : (
-              <Input
-                value={detailAnswers[question.key]}
-                onChange={(event) => {
-                  markRequestStarted("title");
-                  const next = event.target.value;
-                  setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                  if (question.key === "what") setTitle(next);
-                }}
-                placeholder={question.placeholder}
-                className={REQUEST_FIELD_CLASS}
-              />
             )}
-          </div>
-        ))}
-        {!intentConfig && (
-          <>
             <div className="space-y-2.5">
-              <label className={REQUEST_LABEL_CLASS}>What do you need help with? *</label>
-              <Input
-                value={title}
-                onChange={(event) => {
-                  markRequestStarted("title");
-                  const next = event.target.value;
-                  setTitle(next);
-                  setDetailAnswers((current) => ({ ...current, what: next }));
-                }}
-                placeholder="Short request title"
-                className={REQUEST_FIELD_CLASS}
-              />
-            </div>
-            <div className="space-y-2.5">
-              <label className={REQUEST_LABEL_CLASS}>Describe the job *</label>
-              <Textarea
-                value={description}
-                onChange={(event) => {
-                  markRequestStarted("description");
-                  const next = event.target.value;
-                  setDescription(next);
-                  setDetailAnswers((current) => ({ ...current, details: next }));
-                }}
-                placeholder="Tell us what is going on"
-                rows={4}
-                className={REQUEST_TEXTAREA_CLASS}
-              />
-            </div>
-            <div className="space-y-2.5">
-              <label className={REQUEST_LABEL_CLASS}>Where is the job? *</label>
-              <Input
-                value={detailAnswers.where}
-                onChange={(event) => {
-                  markRequestStarted("title");
-                  setDetailAnswers((current) => ({ ...current, where: event.target.value }));
-                }}
-                placeholder="City, county, ZIP, or service area"
-                className={REQUEST_FIELD_CLASS}
-              />
-            </div>
-          </>
-        )}
-        {reviewCardReady && (
-          <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
-                  Request details review
-                </p>
-                <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
-                  {reviewTitle}
-                </h3>
-                <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                  {reviewSummary}
-                </p>
-              </div>
-              <div className="grid shrink-0 grid-cols-2 gap-2 text-xs md:w-[260px]">
-                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
-                    Location
+              {intentConfig ? (
+                <div className="rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 px-3 py-3.5">
+                  <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
+                    {intentConfig.heading}
+                  </h2>
+                  <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                    {intentConfig.prompt}
                   </p>
-                  <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
-                    {reviewLocation}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
-                    Timing
-                  </p>
-                  <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
-                    {reviewTiming}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
-              Check the request before you send it.
-            </p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                {completeness.message}
-              </div>
-              <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                {requestReadyToShare ? "Ready for review" : "Add details to review"}
-              </div>
-            </div>
-            {completeness.missing.length > 0 && (
-              <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
-                Add: {completeness.missing.join(" · ")}
-              </p>
-            )}
-          </div>
-        )}
-        {showRequestReady && (
-          <div className="space-y-3 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3 shadow-[0_14px_42px_rgba(0,0,0,0.2)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
-                  Ready to submit
-                </h3>
-                <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                  Your request is ready to review.
-                </p>
-              </div>
-              <Badge className="bg-[color:var(--theme-accent-primary)] text-text-black">
-                Private
-              </Badge>
-            </div>
-            <div className="grid gap-2 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
-              {[
-                ["Request type", activeRequestMeta.label],
-                ["Location / county", reviewLocation],
-                ["Urgency", reviewTiming],
-                ["Summary", reviewSummary],
-                ["Next step", "Choose who receives it"],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2"
-                >
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
-                    {label}
-                  </p>
-                  <p className="mt-1 text-[color:var(--text-primary)]">{value}</p>
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                onClick={handleOpenDispatchSheet}
-                disabled={!requestReadyToShare || createMutation.isPending}
-                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
-              >
-                Submit when ready
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setShowRequestReady(false)}>
-                Edit request
-              </Button>
-            </div>
-            <DirectConnectGiveawayDisclosure />
-          </div>
-        )}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <label className={REQUEST_LABEL_CLASS}>Request photos</label>
-            <span className="rounded-full bg-[color:var(--surface-intermediate)] px-2 py-1 text-[11px] text-[color:var(--text-secondary)]">
-              {attachments.length}/6 added
-            </span>
-          </div>
-          <label className="flex cursor-pointer flex-col gap-3 rounded-lg border border-dashed border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)]/45 px-4 py-4 transition-colors hover:border-[color:var(--theme-accent-primary)]/65 hover:bg-[color:var(--surface-intermediate)]/65 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--theme-accent-primary)]">
-                <UploadCloud className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-medium text-[color:var(--text-primary)]">
-                  Add photos to this request
-                </div>
-                <div className={REQUEST_HELPER_CLASS}>
-                  Photos can help clarify scope before contact opens.
-                </div>
-              </div>
-            </div>
-            <span className="text-xs font-medium text-[color:var(--text-secondary)]">
-              JPG, PNG, WEBP
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(event) => {
-                markRequestStarted("attachment");
-                handleAttachmentSelect(event);
-              }}
-            />
-          </label>
-          {attachments.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {attachments.map((attachment, index) => (
-                <div
-                  key={`${attachment.file.name}-${index}`}
-                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)]"
-                >
-                  <img
-                    src={attachment.previewUrl}
-                    alt={attachment.file.name}
-                    className="h-full w-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
-                    onClick={() => removeAttachmentAt(index)}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/65 bg-[color:var(--surface-intermediate)]/35 p-3.5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-                Save to HomeID
-              </p>
-              <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                Keep this request in your home record for future repairs and updates.
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-8 border-[color:var(--border-subtle)]/80 px-2.5 text-xs text-[color:var(--text-primary)]"
-                onClick={() => setShowHomeRecordDetails((current) => !current)}
-              >
-                {showHomeRecordDetails ? "Hide options" : "Add HomeID details"}
-              </Button>
-              {!showHomeRecordDetails && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs text-[color:var(--text-secondary)]"
-                  onClick={() =>
-                    selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected")
-                  }
-                >
-                  Skip for now
-                </Button>
-              )}
-            </div>
-          </div>
-          {showHomeRecordDetails && (
-            <div className="grid gap-2 md:grid-cols-3">
-              <Button
-                type="button"
-                variant={homeContextIntent === "link_existing" ? "default" : "outline"}
-                onClick={() => {
-                  setShowHomeRecordDetails(true);
-                  selectHomeRecordIntent("link_existing", "home_record_compact_link_selected");
-                }}
-                className={
-                  homeContextIntent === "link_existing" ? "bg-ts-orange text-text-black" : ""
-                }
-              >
-                Use saved home details
-              </Button>
-              <Button
-                type="button"
-                variant={homeContextIntent === "create_from_request" ? "default" : "outline"}
-                onClick={() => {
-                  setShowHomeRecordDetails(true);
-                  selectHomeRecordIntent(
-                    "create_from_request",
-                    "home_record_compact_create_selected"
-                  );
-                }}
-                className={
-                  homeContextIntent === "create_from_request" ? "bg-ts-orange text-text-black" : ""
-                }
-              >
-                Create a home record
-              </Button>
-              <Button
-                type="button"
-                variant={homeContextIntent === "skip_for_now" ? "default" : "outline"}
-                onClick={() => {
-                  setShowHomeRecordDetails(false);
-                  selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected");
-                }}
-                className={
-                  homeContextIntent === "skip_for_now" ? "bg-ts-orange text-text-black" : ""
-                }
-              >
-                Skip for now
-              </Button>
-            </div>
-          )}
-          {showHomeRecordDetails && homeContextIntent === "link_existing" && (
-            <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-card)]/70 p-3">
-              <div className="space-y-2.5">
-                <label className={REQUEST_LABEL_CLASS}>Use saved home details</label>
-                <select
-                  value={selectedHomeId}
-                  onChange={(event) => {
-                    const nextHomeId = event.target.value;
-                    setSelectedHomeId(nextHomeId);
-                    const userState = user?.id ? "authenticated" : "anonymous";
-                    if (nextHomeId) {
-                      selectHomeRecordIntent(
-                        "link_existing",
-                        "home_record_select_saved_home_auto_link"
-                      );
-                      trackDirectConnectHomeRecordLinkSelected({
-                        userState,
-                        source: "home_record_select_saved_home",
-                        homeId: nextHomeId,
-                        componentType: assetComponentType || undefined,
-                      });
-                    }
-                  }}
-                  className={REQUEST_SELECT_CLASS}
-                >
-                  <option value="">
-                    {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
-                  </option>
-                  {homes.map((home: any) => (
-                    <option key={String(home?.id || "")} value={String(home?.id || "")}>
-                      {toCleanHomeLabel(home)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>System or component</label>
-                  <select
-                    value={assetComponentType}
-                    onChange={(event) =>
-                      setAssetComponentType(
-                        event.target.value as
-                          | "roof"
-                          | "hvac"
-                          | "plumbing"
-                          | "electrical"
-                          | "foundation"
-                          | "exterior"
-                          | "interior"
-                          | "appliance"
-                          | "permit_document"
-                          | "other"
-                      )
-                    }
-                    className={REQUEST_SELECT_CLASS}
-                  >
-                    {assetComponentTypeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {intentConfig.chips.map((chip) => (
+                      <button
+                        key={chip}
+                        type="button"
+                        onClick={() => {
+                          markRequestStarted("title");
+                          setTitle(chip);
+                          setDetailAnswers((current) => ({ ...current, what: chip }));
+                        }}
+                        className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                      >
+                        {chip}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
-                <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Component label</label>
+              ) : null}
+              <label className={REQUEST_LABEL_CLASS}>What do you need?</label>
+              <select
+                value={requestType}
+                onChange={(event) => {
+                  markRequestStarted("type");
+                  setRequestType(event.target.value as keyof typeof requestTypeMeta);
+                }}
+                className={REQUEST_SELECT_CLASS}
+              >
+                {requestTypeOrder.map((key) => (
+                  <option key={key} value={key}>
+                    {requestTypeMeta[key].label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {intentConfig?.detailQuestions?.map((question) => (
+              <div key={question.key} className="space-y-2.5">
+                <label className={REQUEST_LABEL_CLASS}>
+                  {question.label}
+                  {question.required ? " *" : ""}
+                </label>
+                {question.key === "details" ? (
+                  <Textarea
+                    value={detailAnswers[question.key]}
+                    onChange={(event) => {
+                      markRequestStarted("description");
+                      const next = event.target.value;
+                      setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                      setDescription(next);
+                    }}
+                    placeholder={question.placeholder}
+                    rows={4}
+                    className={REQUEST_TEXTAREA_CLASS}
+                  />
+                ) : (
                   <Input
-                    value={assetLabel}
-                    onChange={(event) => setAssetLabel(event.target.value)}
-                    placeholder="Upstairs AC, main panel, etc."
+                    value={detailAnswers[question.key]}
+                    onChange={(event) => {
+                      markRequestStarted("title");
+                      const next = event.target.value;
+                      setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                      if (question.key === "what") setTitle(next);
+                    }}
+                    placeholder={question.placeholder}
+                    className={REQUEST_FIELD_CLASS}
+                  />
+                )}
+              </div>
+            ))}
+            {!intentConfig && (
+              <>
+                <div className="space-y-2.5">
+                  <label className={REQUEST_LABEL_CLASS}>What do you need help with? *</label>
+                  <Input
+                    value={title}
+                    onChange={(event) => {
+                      markRequestStarted("title");
+                      const next = event.target.value;
+                      setTitle(next);
+                      setDetailAnswers((current) => ({ ...current, what: next }));
+                    }}
+                    placeholder="Short request title"
                     className={REQUEST_FIELD_CLASS}
                   />
                 </div>
+                <div className="space-y-2.5">
+                  <label className={REQUEST_LABEL_CLASS}>Describe the job *</label>
+                  <Textarea
+                    value={description}
+                    onChange={(event) => {
+                      markRequestStarted("description");
+                      const next = event.target.value;
+                      setDescription(next);
+                      setDetailAnswers((current) => ({ ...current, details: next }));
+                    }}
+                    placeholder="Tell us what is going on"
+                    rows={4}
+                    className={REQUEST_TEXTAREA_CLASS}
+                  />
+                </div>
+                <div className="space-y-2.5">
+                  <label className={REQUEST_LABEL_CLASS}>Where is the job? *</label>
+                  <Input
+                    value={detailAnswers.where}
+                    onChange={(event) => {
+                      markRequestStarted("title");
+                      setDetailAnswers((current) => ({ ...current, where: event.target.value }));
+                    }}
+                    placeholder="City, county, ZIP, or service area"
+                    className={REQUEST_FIELD_CLASS}
+                  />
+                </div>
+              </>
+            )}
+            <div className="pt-1">
+              <Button
+                type="button"
+                onClick={() => reviewCardReady && setDescribeStep(1)}
+                disabled={!reviewCardReady}
+                className="h-auto w-full rounded-full bg-ts-orange py-4 text-base font-semibold text-text-black hover:bg-ts-orange/90"
+              >
+                Continue
+              </Button>
+              {!reviewCardReady && (
+                <p className="mt-2 text-center text-xs text-[color:var(--text-secondary)]">
+                  Add required details to continue:{" "}
+                  {completeness.missing.length > 0
+                    ? completeness.missing.join(" · ")
+                    : "request details"}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+        {describeStep === 1 && (
+          <div className="space-y-5">
+            {reviewCardReady && (
+              <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
+                      Request details review
+                    </p>
+                    <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
+                      {reviewTitle}
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+                      {reviewSummary}
+                    </p>
+                  </div>
+                  <div className="grid shrink-0 grid-cols-2 gap-2 text-xs md:w-[260px]">
+                    <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                        Location
+                      </p>
+                      <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
+                        {reviewLocation}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                        Timing
+                      </p>
+                      <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
+                        {reviewTiming}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
+                  Check the request before you send it.
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
+                    {completeness.message}
+                  </div>
+                  <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
+                    {requestReadyToShare ? "Ready for review" : "Add details to review"}
+                  </div>
+                </div>
+                {completeness.missing.length > 0 && (
+                  <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
+                    Add: {completeness.missing.join(" · ")}
+                  </p>
+                )}
+              </div>
+            )}
+            {showRequestReady && (
+              <div className="space-y-3 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3 shadow-[0_14px_42px_rgba(0,0,0,0.2)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
+                      Ready to submit
+                    </h3>
+                    <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                      Your request is ready to review.
+                    </p>
+                  </div>
+                  <Badge className="bg-[color:var(--theme-accent-primary)] text-text-black">
+                    Private
+                  </Badge>
+                </div>
+                <div className="grid gap-2 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
+                  {[
+                    ["Request type", activeRequestMeta.label],
+                    ["Location / county", reviewLocation],
+                    ["Urgency", reviewTiming],
+                    ["Summary", reviewSummary],
+                    ["Next step", "Choose who receives it"],
+                  ].map(([label, value]) => (
+                    <div
+                      key={label}
+                      className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2"
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                        {label}
+                      </p>
+                      <p className="mt-1 text-[color:var(--text-primary)]">{value}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    onClick={handleOpenDispatchSheet}
+                    disabled={!requestReadyToShare || createMutation.isPending}
+                    className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                  >
+                    Submit when ready
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowRequestReady(false)}
+                    className="rounded-full"
+                  >
+                    Edit request
+                  </Button>
+                </div>
+                <DirectConnectGiveawayDisclosure />
+              </div>
+            )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <label className={REQUEST_LABEL_CLASS}>Request photos</label>
+                <span className="rounded-full bg-[color:var(--surface-intermediate)] px-2 py-1 text-[11px] text-[color:var(--text-secondary)]">
+                  {attachments.length}/6 added
+                </span>
+              </div>
+              <label className="flex cursor-pointer flex-col gap-3 rounded-lg border border-dashed border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)]/45 px-4 py-4 transition-colors hover:border-[color:var(--theme-accent-primary)]/65 hover:bg-[color:var(--surface-intermediate)]/65 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--theme-accent-primary)]">
+                    <UploadCloud className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <div className="text-sm font-medium text-[color:var(--text-primary)]">
+                      Add photos to this request
+                    </div>
+                    <div className={REQUEST_HELPER_CLASS}>
+                      Photos can help clarify scope before contact opens.
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-[color:var(--text-secondary)]">
+                  JPG, PNG, WEBP
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(event) => {
+                    markRequestStarted("attachment");
+                    handleAttachmentSelect(event);
+                  }}
+                />
+              </label>
+              {attachments.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {attachments.map((attachment, index) => (
+                    <div
+                      key={`${attachment.file.name}-${index}`}
+                      className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)]"
+                    >
+                      <img
+                        src={attachment.previewUrl}
+                        alt={attachment.file.name}
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
+                        onClick={() => removeAttachmentAt(index)}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/65 bg-[color:var(--surface-intermediate)]/35 p-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                    Save to HomeID
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+                    Keep this request in your home record for future repairs and updates.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 border-[color:var(--border-subtle)]/80 px-2.5 text-xs text-[color:var(--text-primary)]"
+                    onClick={() => setShowHomeRecordDetails((current) => !current)}
+                  >
+                    {showHomeRecordDetails ? "Hide options" : "Add HomeID details"}
+                  </Button>
+                  {!showHomeRecordDetails && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-[color:var(--text-secondary)]"
+                      onClick={() =>
+                        selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected")
+                      }
+                    >
+                      Skip for now
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {showHomeRecordDetails && (
+                <div className="grid gap-2 md:grid-cols-3">
+                  <Button
+                    type="button"
+                    variant={homeContextIntent === "link_existing" ? "default" : "outline"}
+                    onClick={() => {
+                      setShowHomeRecordDetails(true);
+                      selectHomeRecordIntent("link_existing", "home_record_compact_link_selected");
+                    }}
+                    className={
+                      homeContextIntent === "link_existing" ? "bg-ts-orange text-text-black" : ""
+                    }
+                  >
+                    Use saved home details
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={homeContextIntent === "create_from_request" ? "default" : "outline"}
+                    onClick={() => {
+                      setShowHomeRecordDetails(true);
+                      selectHomeRecordIntent(
+                        "create_from_request",
+                        "home_record_compact_create_selected"
+                      );
+                    }}
+                    className={
+                      homeContextIntent === "create_from_request"
+                        ? "bg-ts-orange text-text-black"
+                        : ""
+                    }
+                  >
+                    Create a home record
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={homeContextIntent === "skip_for_now" ? "default" : "outline"}
+                    onClick={() => {
+                      setShowHomeRecordDetails(false);
+                      selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected");
+                    }}
+                    className={
+                      homeContextIntent === "skip_for_now" ? "bg-ts-orange text-text-black" : ""
+                    }
+                  >
+                    Skip for now
+                  </Button>
+                </div>
+              )}
+              {showHomeRecordDetails && homeContextIntent === "link_existing" && (
+                <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-card)]/70 p-3">
+                  <div className="space-y-2.5">
+                    <label className={REQUEST_LABEL_CLASS}>Use saved home details</label>
+                    <select
+                      value={selectedHomeId}
+                      onChange={(event) => {
+                        const nextHomeId = event.target.value;
+                        setSelectedHomeId(nextHomeId);
+                        const userState = user?.id ? "authenticated" : "anonymous";
+                        if (nextHomeId) {
+                          selectHomeRecordIntent(
+                            "link_existing",
+                            "home_record_select_saved_home_auto_link"
+                          );
+                          trackDirectConnectHomeRecordLinkSelected({
+                            userState,
+                            source: "home_record_select_saved_home",
+                            homeId: nextHomeId,
+                            componentType: assetComponentType || undefined,
+                          });
+                        }
+                      }}
+                      className={REQUEST_SELECT_CLASS}
+                    >
+                      <option value="">
+                        {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
+                      </option>
+                      {homes.map((home: any) => (
+                        <option key={String(home?.id || "")} value={String(home?.id || "")}>
+                          {toCleanHomeLabel(home)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-2.5">
+                      <label className={REQUEST_LABEL_CLASS}>System or component</label>
+                      <select
+                        value={assetComponentType}
+                        onChange={(event) =>
+                          setAssetComponentType(
+                            event.target.value as
+                              | "roof"
+                              | "hvac"
+                              | "plumbing"
+                              | "electrical"
+                              | "foundation"
+                              | "exterior"
+                              | "interior"
+                              | "appliance"
+                              | "permit_document"
+                              | "other"
+                          )
+                        }
+                        className={REQUEST_SELECT_CLASS}
+                      >
+                        {assetComponentTypeOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2.5">
+                      <label className={REQUEST_LABEL_CLASS}>Component label</label>
+                      <Input
+                        value={assetLabel}
+                        onChange={(event) => setAssetLabel(event.target.value)}
+                        placeholder="Upstairs AC, main panel, etc."
+                        className={REQUEST_FIELD_CLASS}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="space-y-3">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-1 text-xs text-[color:var(--text-secondary)]"
+                onClick={() => setShowOptional((current) => !current)}
+              >
+                {showOptional ? "Hide optional budget" : "Add optional budget"}
+              </Button>
+              {showOptional && (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="space-y-2.5">
+                    <label className={REQUEST_LABEL_CLASS}>
+                      {activeRequestMeta.budgetLabelMin}
+                    </label>
+                    <Input
+                      value={budgetMin}
+                      onChange={(event) => {
+                        markRequestStarted("budget");
+                        setBudgetMin(event.target.value);
+                      }}
+                      inputMode="numeric"
+                      placeholder={activeRequestMeta.budgetPlaceholderMin}
+                      className={REQUEST_FIELD_CLASS}
+                    />
+                  </div>
+                  <div className="space-y-2.5">
+                    <label className={REQUEST_LABEL_CLASS}>
+                      {activeRequestMeta.budgetLabelMax}
+                    </label>
+                    <Input
+                      value={budgetMax}
+                      onChange={(event) => {
+                        markRequestStarted("budget");
+                        setBudgetMax(event.target.value);
+                      }}
+                      inputMode="numeric"
+                      placeholder={activeRequestMeta.budgetPlaceholderMax}
+                      className={REQUEST_FIELD_CLASS}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="space-y-3 rounded-xl border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
+              <DirectConnectGiveawayDisclosure />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-[color:var(--text-secondary)]">
+                  Review your request before sending it.
+                </p>
+                <Button
+                  onClick={openRequestReadyState}
+                  disabled={createMutation.isPending || !reviewCardReady}
+                  className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                >
+                  {createMutation.isPending
+                    ? "Sending..."
+                    : isAuthenticated
+                      ? "Review request details"
+                      : "Sign in to send"}
+                </Button>
               </div>
             </div>
-          )}
-        </div>
-        <div className="space-y-3">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 px-1 text-xs text-[color:var(--text-secondary)]"
-            onClick={() => setShowOptional((current) => !current)}
-          >
-            {showOptional ? "Hide optional budget" : "Add optional budget"}
-          </Button>
-          {showOptional && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-2.5">
-                <label className={REQUEST_LABEL_CLASS}>{activeRequestMeta.budgetLabelMin}</label>
-                <Input
-                  value={budgetMin}
-                  onChange={(event) => {
-                    markRequestStarted("budget");
-                    setBudgetMin(event.target.value);
-                  }}
-                  inputMode="numeric"
-                  placeholder={activeRequestMeta.budgetPlaceholderMin}
-                  className={REQUEST_FIELD_CLASS}
-                />
-              </div>
-              <div className="space-y-2.5">
-                <label className={REQUEST_LABEL_CLASS}>{activeRequestMeta.budgetLabelMax}</label>
-                <Input
-                  value={budgetMax}
-                  onChange={(event) => {
-                    markRequestStarted("budget");
-                    setBudgetMax(event.target.value);
-                  }}
-                  inputMode="numeric"
-                  placeholder={activeRequestMeta.budgetPlaceholderMax}
-                  className={REQUEST_FIELD_CLASS}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-        <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
-          <DirectConnectGiveawayDisclosure />
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs text-[color:var(--text-secondary)]">
-              Review your request before sending it.
-            </p>
+            {!reviewCardReady && (
+              <p className="text-xs text-[color:var(--text-secondary)]">
+                Add required details to continue:{" "}
+                {completeness.missing.length > 0
+                  ? completeness.missing.join(" · ")
+                  : "request details"}
+              </p>
+            )}
             <Button
-              onClick={openRequestReadyState}
-              disabled={createMutation.isPending || !reviewCardReady}
-              className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+              type="button"
+              variant="ghost"
+              onClick={() => setDescribeStep(0)}
+              className="w-full text-sm text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
             >
-              {createMutation.isPending
-                ? "Sending..."
-                : isAuthenticated
-                  ? "Review request details"
-                  : "Sign in to send"}
+              Back to details
             </Button>
           </div>
-        </div>
-        {!reviewCardReady && (
-          <p className="text-xs text-[color:var(--text-secondary)]">
-            Add required details to continue:{" "}
-            {completeness.missing.length > 0 ? completeness.missing.join(" · ") : "request details"}
-          </p>
         )}
 
         <Sheet open={showDispatchSheet} onOpenChange={setShowDispatchSheet}>
