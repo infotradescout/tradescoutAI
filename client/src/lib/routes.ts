@@ -1,9 +1,11 @@
+import { buildAuthEntryRoute } from "@/lib/postOnboardingRoute";
+
 // Centralized route configuration to prevent drift
 export const ROUTES = {
   // Public routes
   HOME: "/",
-  LOGIN: "/pre-scout-setup?mode=signin",
-  REGISTER: "/pre-scout-setup?mode=create",
+  LOGIN: buildAuthEntryRoute({ mode: "signin" }),
+  REGISTER: buildAuthEntryRoute({ mode: "create" }),
   FIND_CONTRACTORS: "/contractors",
   CONTRACTORS: "/contractors",
   MARKETPLACE: "/marketplace",

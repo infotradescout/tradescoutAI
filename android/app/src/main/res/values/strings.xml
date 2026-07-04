@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TradeScout</string>
+    <string name="title_activity_main">TradeScout</string>
+    <string name="package_name">com.thetradescout.app</string>
+    <string name="custom_url_scheme">com.thetradescout.app</string>
+</resources>

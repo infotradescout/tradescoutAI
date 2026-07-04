@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { SkeletonBlock } from "@/components/ui/states";
 import { isAdminTier, isSuperAdminLike as isSuperAdminRoleLike } from "@/lib/roleChecks";
 import {
+  buildAuthEntryRoute,
   getBusinessOnboardingRoute,
   getOnboardingEntryRoute,
   isBusinessOnboardingAllowedPath,
@@ -76,8 +77,7 @@ export function ProtectedRoute({
 
     if (!isAuthenticated) {
       // Preserve the user's intended destination so auth can return them correctly.
-      const next = encodeURIComponent(location || "/");
-      setLocation(`/pre-scout-setup?mode=signin&next=${next}`);
+      setLocation(buildAuthEntryRoute({ mode: "signin", next: location || "/" }));
       return;
     }
 

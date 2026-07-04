@@ -675,14 +675,14 @@ export function AppShell({ children, footer }: AppShellProps) {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => navigate("/pre-scout-setup?mode=create")}
+              onClick={() => navigate(ROUTES.REGISTER)}
               className="inline-flex items-center justify-center rounded-full border border-ts-orange/30 bg-ts-orange px-3 py-1 text-[0.85rem] font-semibold text-black shadow-sm shadow-orange-500/40"
             >
               Create free account
             </button>
             <button
               type="button"
-              onClick={() => navigate("/pre-scout-setup?mode=signin")}
+              onClick={() => navigate(ROUTES.LOGIN)}
               className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.85rem] font-medium hover:text-white transition"
               style={{
                 borderColor: "var(--border-primary)",
@@ -809,7 +809,7 @@ export function AppShell({ children, footer }: AppShellProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate("/pre-scout-setup?mode=create")}
+                  onClick={() => navigate(ROUTES.REGISTER)}
                   className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
@@ -821,7 +821,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/pre-scout-setup?mode=signin")}
+                  onClick={() => navigate(ROUTES.LOGIN)}
                   className="ts-shell-icon-btn inline-flex h-8 w-8 items-center justify-center rounded-full border transition hover:opacity-80 focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
@@ -957,14 +957,14 @@ export function AppShell({ children, footer }: AppShellProps) {
               <>
                 <button
                   type="button"
-                  onClick={() => navigate("/pre-scout-setup?mode=create")}
+                  onClick={() => navigate(ROUTES.REGISTER)}
                   className="inline-flex items-center justify-center rounded-full border border-ts-orange/30 bg-ts-orange px-3 py-1 text-[0.7rem] font-semibold text-black shadow-sm shadow-orange-500/40 focus:outline-none"
                 >
                   Create free account
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate("/pre-scout-setup?mode=signin")}
+                  onClick={() => navigate(ROUTES.LOGIN)}
                   className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-[0.7rem] font-medium hover:text-white transition focus:outline-none"
                   style={{
                     borderColor: "var(--border-primary)",
@@ -1303,7 +1303,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   type="button"
                   onClick={() => {
                     setIsToolsOpen(false);
-                    navigate("/pre-scout-setup?mode=create");
+                    navigate(ROUTES.REGISTER);
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-semibold"
                   style={mobilePrimaryActionButtonStyle}
@@ -1314,7 +1314,7 @@ export function AppShell({ children, footer }: AppShellProps) {
                   type="button"
                   onClick={() => {
                     setIsToolsOpen(false);
-                    navigate("/pre-scout-setup?mode=signin");
+                    navigate(ROUTES.LOGIN);
                   }}
                   className="inline-flex h-11 w-full items-center justify-center rounded-lg border text-sm font-medium"
                   style={mobileActionButtonStyle}

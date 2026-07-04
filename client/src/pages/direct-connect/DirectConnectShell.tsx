@@ -1136,6 +1136,34 @@ function countRequestsByStage(
   return (requests || []).filter((request) => getRequestWorkflowStage(request) === stage).length;
 }
 
+function getDirectConnectRequestPriorityScore(request: DirectConnectRequest): number {
+  const stage = getRequestWorkflowStage(request);
+  const contactGateState = String(request.contactGateState || "").toLowerCase();
+  const responseCount = Number(request.responseCount || 0);
+  const unreadStatusCount = Number(request.unreadStatusCount || 0);
+
+  if (contactGateState === "contractor_requested") return 600;
+  if (stage === "ready_to_send") return 500;
+  if (stage === "waiting_on_pros" && responseCount > 0) return 420;
+  if (stage === "active_conversation" && contactGateState === "user_approved") return 380;
+  if (stage === "active_conversation") return unreadStatusCount > 0 ? 360 : 320;
+  if (stage === "pending_outcome") return 300;
+  if (stage === "waiting_on_pros") return unreadStatusCount > 0 ? 260 : 220;
+  if (stage === "completed") return 100;
+  if (stage === "cancelled") return 0;
+  return 180;
+}
+
+function compareDirectConnectRequests(a: DirectConnectRequest, b: DirectConnectRequest): number {
+  const priorityDiff =
+    getDirectConnectRequestPriorityScore(b) - getDirectConnectRequestPriorityScore(a);
+  if (priorityDiff !== 0) return priorityDiff;
+
+  const aTs = new Date(a.dcLastEventAt || a.updatedAt || a.createdAt || 0).getTime();
+  const bTs = new Date(b.dcLastEventAt || b.updatedAt || b.createdAt || 0).getTime();
+  return bTs - aTs;
+}
+
 type DraftAttachment = {
   file: File;
   previewUrl: string;
@@ -2105,8 +2133,21 @@ function DirectConnectRequestComposer({
     completenessState: completeness.level,
   });
   const reviewCardReady = completeness.level !== "too_vague";
-  const requestReadyToShare =
+  const requestReadyToRoute =
     completeness.level === "ready_to_share" && routingReadiness === "route_ready";
+  const requestReadyToSend = reviewCardReady;
+  const routingGuidance =
+    routingReadiness === "route_ready"
+      ? "Routing looks good."
+      : routingReadiness === "needs_location"
+        ? "Add a clearer location for stronger local matching."
+        : routingReadiness === "needs_scope"
+          ? "Add a little more scope so routing can be more precise."
+          : routingReadiness === "manual_review"
+            ? "You can still send this now. A bit more detail will help routing."
+            : routingReadiness === "needs_category"
+              ? "Choose the closest request type so routing stays accurate."
+              : "You can still send this now and finish details after replies start.";
   const reviewTitle = detailAnswers.what.trim() || title.trim() || "Request";
   const reviewSummary =
     detailAnswers.details.trim() || description.trim() || "No extra details yet.";
@@ -2169,12 +2210,12 @@ function DirectConnectRequestComposer({
   };
 
   const handleOpenDispatchSheet = () => {
-    if (!requestReadyToShare || createMutation.isPending) {
+    if (!requestReadyToSend || createMutation.isPending) {
       trackFrictionEvent("direct_connect_form_validation_blocked", {
         source: currentReturnPath(),
         section: "dispatch_selection",
-        field: completeness.level === "too_vague" ? "request_details" : "routing_readiness",
-        reason: createMutation.isPending ? "submit_pending" : routingReadiness,
+        field: "request_details",
+        reason: createMutation.isPending ? "submit_pending" : completeness.level,
         blocked: true,
       });
       return;
@@ -2546,9 +2587,10 @@ function DirectConnectRequestComposer({
                 {completeness.message}
               </div>
               <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                {requestReadyToShare ? "Ready for review" : "Add details to review"}
+                {requestReadyToRoute ? "Routing ready" : "You can still send this"}
               </div>
             </div>
+            <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">{routingGuidance}</p>
             {completeness.missing.length > 0 && (
               <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
                 Add: {completeness.missing.join(" · ")}
@@ -2564,7 +2606,7 @@ function DirectConnectRequestComposer({
                   Ready to submit
                 </h3>
                 <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                  Your request is ready to review.
+                  Your request is ready to send. Choose who gets it or let TradeScout route it.
                 </p>
               </div>
               <Badge className="bg-[color:var(--theme-accent-primary)] text-text-black">
@@ -2577,7 +2619,12 @@ function DirectConnectRequestComposer({
                 ["Location / county", reviewLocation],
                 ["Urgency", reviewTiming],
                 ["Summary", reviewSummary],
-                ["Next step", "Choose who receives it"],
+                [
+                  "Next step",
+                  requestReadyToRoute
+                    ? "Choose who receives it"
+                    : "Send now and improve routing details as replies come in",
+                ],
               ].map(([label, value]) => (
                 <div
                   key={label}
@@ -2594,10 +2641,10 @@ function DirectConnectRequestComposer({
               <Button
                 type="button"
                 onClick={handleOpenDispatchSheet}
-                disabled={!requestReadyToShare || createMutation.isPending}
+                disabled={!requestReadyToSend || createMutation.isPending}
                 className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
               >
-                Submit when ready
+                Send request
               </Button>
               <Button type="button" variant="outline" onClick={() => setShowRequestReady(false)}>
                 Edit request
@@ -2868,18 +2915,16 @@ function DirectConnectRequestComposer({
           <DirectConnectGiveawayDisclosure />
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-[color:var(--text-secondary)]">
-              Review your request before sending it.
+              {isAuthenticated
+                ? "Review your request before sending it."
+                : "Review your request now. You will sign in before it is sent."}
             </p>
             <Button
               onClick={openRequestReadyState}
               disabled={createMutation.isPending || !reviewCardReady}
               className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
             >
-              {createMutation.isPending
-                ? "Sending..."
-                : isAuthenticated
-                  ? "Review request details"
-                  : "Sign in to send"}
+              {createMutation.isPending ? "Sending..." : "Review request details"}
             </Button>
           </div>
         </div>
@@ -3745,17 +3790,14 @@ function MyDirectConnectRequests() {
       .filter((request) => !looksLikeHiddenOrTestRequest(request))
       .filter((request) => isCurrentRequest(request))
       .filter((request) => matchesRequestFilter(request, requestFilter))
-      .sort((a, b) => {
-        const aTs = new Date(a.dcLastEventAt || a.updatedAt || a.createdAt || 0).getTime();
-        const bTs = new Date(b.dcLastEventAt || b.updatedAt || b.createdAt || 0).getTime();
-        return bTs - aTs;
-      });
+      .sort(compareDirectConnectRequests);
   }, [requestsData, requestFilter]);
 
   const activeRouteRequest = useMemo(
     () => filteredRequests.find((request) => request.id === selectedRouteRequestId) || null,
     [filteredRequests, selectedRouteRequestId]
   );
+  const nextPriorityRequest = filteredRequests[0] || null;
 
   useEffect(() => {
     if (isAuthenticated && user) return;
@@ -4113,6 +4155,90 @@ function MyDirectConnectRequests() {
           </div>
         </CardContent>
       </Card>
+
+      {nextPriorityRequest &&
+        (() => {
+          const nextRequestStage = getRequestWorkflowStage(nextPriorityRequest);
+          const nextContactGateState = String(
+            nextPriorityRequest.contactGateState || ""
+          ).toLowerCase();
+          const nextResponseCount = Number(nextPriorityRequest.responseCount || 0);
+          const nextDisplayTitle = getDisplayRequestTitle(nextPriorityRequest);
+
+          let nextTaskLabel = "Keep this request moving";
+          let nextTaskSummary = getRequestStageSummary(nextRequestStage);
+          let nextTaskAction = "Open request";
+          let nextTaskTone =
+            "border-[color:var(--theme-accent-primary)]/30 bg-[color:var(--theme-accent-primary)]/10";
+          let nextTaskActionHandler = () =>
+            setExpandedRequestId((current) =>
+              current === nextPriorityRequest.id ? null : nextPriorityRequest.id
+            );
+
+          if (nextContactGateState === "contractor_requested") {
+            nextTaskLabel = "Contact request waiting";
+            nextTaskSummary =
+              "A local provider is ready to connect. Review the contact request so this conversation can move forward without exposing private details too early.";
+            nextTaskAction = "Review contact request";
+            nextTaskTone = "border-emerald-500/30 bg-emerald-500/10";
+          } else if (nextRequestStage === "ready_to_send") {
+            nextTaskLabel = "Ready to send";
+            nextTaskSummary =
+              "This request is written well enough to go out now. Pick local pros or continue without a selection so replies can start coming in.";
+            nextTaskAction = "Send request";
+            nextTaskActionHandler = () => openRouteSheetForRequest(nextPriorityRequest.id);
+          } else if (nextRequestStage === "waiting_on_pros" && nextResponseCount > 0) {
+            nextTaskLabel = "Reply ready to review";
+            nextTaskSummary =
+              "A provider has replied to this request. Review the response next so you can accept, ask follow-up questions, or keep routing.";
+            nextTaskAction = "Review replies";
+            nextTaskActionHandler = () => navigate("/direct-connect/inbox");
+          } else if (nextRequestStage === "active_conversation") {
+            nextTaskLabel = "Conversation active";
+            nextTaskSummary =
+              nextContactGateState === "user_approved"
+                ? "Contact approval is already recorded. Release contact through TradeScout when you're ready, or continue the conversation in the protected thread."
+                : "A provider is already engaged on this request. Keep everything tied to the Direct Connect thread so the next step stays clear.";
+            nextTaskAction = "Open conversation";
+            nextTaskActionHandler = () => {
+              const threadId = nextPriorityRequest.dcConversationThreadId;
+              window.location.href = threadId
+                ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                : nextPriorityRequest.id
+                  ? `/messages?tab=requests&requestId=${encodeURIComponent(String(nextPriorityRequest.id))}`
+                  : "/messages?tab=requests";
+            };
+          } else if (nextRequestStage === "pending_outcome") {
+            nextTaskLabel = "Outcome needs confirmation";
+            nextTaskSummary =
+              "This request is close to finished. Confirm the outcome when the work is done so your request history stays trustworthy.";
+            nextTaskAction = "Review outcome";
+          }
+
+          return (
+            <Card className={cn("border shadow-none", nextTaskTone)}>
+              <CardContent className="space-y-3 p-4 md:p-5">
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                      Next up
+                    </p>
+                    <h3 className="text-base font-semibold text-[color:var(--text-primary)]">
+                      {nextTaskLabel}: {nextDisplayTitle}
+                    </h3>
+                    <p className="text-sm text-[color:var(--text-secondary)]">{nextTaskSummary}</p>
+                  </div>
+                  <Button
+                    className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                    onClick={nextTaskActionHandler}
+                  >
+                    {nextTaskAction}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
 
       {filteredRequests.map((r) => {
         const status = String(r.status || "open").toLowerCase();

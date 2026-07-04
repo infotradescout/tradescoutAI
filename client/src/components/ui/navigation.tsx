@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
+import { ROUTES } from "@/lib/routes";
 import {
   Home,
   Calculator,
@@ -119,7 +120,7 @@ export default function Navigation() {
                 </Link>
                 <Button
                   size="sm"
-                  onClick={() => navigate("/pre-scout-setup?mode=signin")}
+                  onClick={() => navigate(ROUTES.LOGIN)}
                   className="bg-ts-orange hover:bg-ts-orange-dark text-white shadow-lg shadow-ts-orange/25"
                 >
                   Sign In
@@ -206,7 +207,7 @@ export default function Navigation() {
                   size="sm"
                   onClick={() => {
                     setIsOpen(false);
-                    navigate("/pre-scout-setup?mode=signin");
+                    navigate(ROUTES.LOGIN);
                   }}
                   className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white shadow-lg shadow-ts-orange/25"
                 >

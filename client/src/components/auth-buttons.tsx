@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import { Facebook, User, UserPlus, LogIn } from "lucide-react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
+import { buildAuthEntryRoute } from "@/lib/postOnboardingRoute";
 
 interface AuthButtonsProps {
   title?: string;
@@ -35,7 +36,7 @@ export function AuthButtons({
     facebook: false,
   }));
   const oauthHref = (provider: "google" | "facebook", mode: "create" | "signin" = "create") => {
-    const next = encodeURIComponent(`/pre-scout-setup?mode=${mode}`);
+    const next = encodeURIComponent(buildAuthEntryRoute({ mode }));
     return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;
   };
 
@@ -71,11 +72,11 @@ export function AuthButtons({
   };
 
   const handleEmailSignUp = () => {
-    setLocation("/pre-scout-setup?mode=create");
+    setLocation(buildAuthEntryRoute({ mode: "create" }));
   };
 
   const handleEmailLogin = () => {
-    setLocation("/pre-scout-setup?mode=signin");
+    setLocation(buildAuthEntryRoute({ mode: "signin" }));
   };
 
   return (

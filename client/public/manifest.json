@@ -1,9 +1,9 @@
 
 {
-  "name": "TradeScout — Connection Without Compromise",
+  "name": "TradeScout",
   "short_name": "TradeScout",
-  "description": "Hyperlocal AI Assistant for Homeowners and Contractors",
-  "start_url": ".",
+  "description": "TradeScout helps people discover local opportunities, send trusted requests, and coordinate without exposing contact too early.",
+  "start_url": "/direct-connect?entry=install",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#0B0F14",
@@ -35,13 +35,13 @@
       "purpose": "maskable"
     }
   ],
-  "id": "/manifest.json",
+  "id": "/direct-connect",
   "shortcuts": [
     {
-      "name": "Find Contractors",
-      "short_name": "Find",
-      "description": "Search for verified contractors in your area",
-      "url": "/contractors/board",
+      "name": "Direct Connect",
+      "short_name": "Request",
+      "description": "Start a trusted local request",
+      "url": "/direct-connect?entry=shortcut_request",
       "icons": [
         {
           "src": "/icon-192.png?v=9",
@@ -50,10 +50,10 @@
       ]
     },
     {
-      "name": "Get Quote",
-      "short_name": "Quote",
-      "description": "Calculate project estimates",
-      "url": "/quote",
+      "name": "Local Providers",
+      "short_name": "Providers",
+      "description": "Browse providers and contractor matches",
+      "url": "/contractors/board",
       "icons": [
         {
           "src": "/icon-192.png?v=9",
@@ -64,8 +64,8 @@
     {
       "name": "Messages",
       "short_name": "Messages",
-      "description": "View your conversations",
-      "url": "/conversations",
+      "description": "Open request replies and conversations",
+      "url": "/messages",
       "icons": [
         {
           "src": "/icon-192.png?v=9",
@@ -80,19 +80,5 @@
   },
   "edge_side_panel": {
     "preferred_width": 400
-  },
-  "screenshots": [
-    {
-      "src": "/screenshot-mobile.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshot-desktop.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ]
+  }
 }
