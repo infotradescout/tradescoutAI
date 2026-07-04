@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
+import { buildAuthEntryRoute } from "@/lib/postOnboardingRoute";
 
 export default function Signup() {
   const [, setLocation] = useLocation();
   useEffect(() => {
-    setLocation(
-      `/pre-scout-setup?mode=create${window.location.search ? `&${window.location.search.slice(1)}` : ""}`
-    );
+    const params = new URLSearchParams(window.location.search);
+    const next = (params.get("next") || "").trim();
+    setLocation(buildAuthEntryRoute({ mode: "create", next }));
   }, [setLocation]);
 
   return null;

@@ -33,6 +33,7 @@ import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { ContextualHelp } from "@/components/help/HelpSystem";
 import { NotificationCenter } from "@/components/ui/notification-center";
 import { isSuperAdminLike, isAdminTier } from "@/lib/roleChecks";
+import { ROUTES } from "@/lib/routes";
 
 interface NextGenNavigationProps {
   className?: string;
@@ -361,12 +362,12 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
         <div className="flex items-center space-x-3">
           {!isAuthenticated && (
             <div className="hidden md:flex items-center gap-2">
-              <Link href="/pre-scout-setup?mode=create">
+              <Link href={ROUTES.REGISTER}>
                 <Button className="h-8 rounded-full bg-ts-orange px-3 text-xs font-semibold text-black hover:bg-ts-orange">
                   Create free account
                 </Button>
               </Link>
-              <Link href="/pre-scout-setup?mode=signin">
+              <Link href={ROUTES.LOGIN}>
                 <Button
                   variant="outline"
                   className="h-8 rounded-full border-white/15 px-3 text-xs text-white/70"
@@ -512,7 +513,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
 
                 {!isAuthenticated && (
                   <div className="border-t border-white/10 pt-6 space-y-2">
-                    <Link href="/pre-scout-setup?mode=create">
+                    <Link href={ROUTES.REGISTER}>
                       <Button
                         className="w-full bg-ts-orange text-black hover:bg-ts-orange"
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -520,7 +521,7 @@ export function NextGenNavigation({ className = "" }: NextGenNavigationProps) {
                         Create free account
                       </Button>
                     </Link>
-                    <Link href="/pre-scout-setup?mode=signin">
+                    <Link href={ROUTES.LOGIN}>
                       <Button
                         variant="outline"
                         className="w-full border-white/15 text-white/70"

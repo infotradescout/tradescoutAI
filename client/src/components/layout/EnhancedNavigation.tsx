@@ -12,6 +12,7 @@ import { UserMenu } from "@/components/navigation/RoleBasedNavigation";
 import { useAuth } from "@/hooks/useAuth";
 import { Menu, X, ChevronDown } from "lucide-react";
 import { TradeScoutLogo, TradeScoutIcon } from "@/components/TradeScoutIcons";
+import { ROUTES } from "@/lib/routes";
 
 interface EnhancedNavigationProps {
   className?: string;
@@ -115,7 +116,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
             <UserMenu />
           ) : (
             <div className="hidden md:flex items-center space-x-3">
-              <Link href="/pre-scout-setup?mode=signin">
+              <Link href={ROUTES.LOGIN}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -124,7 +125,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                   Sign In
                 </Button>
               </Link>
-              <Link href="/signup">
+              <Link href={ROUTES.REGISTER}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -220,10 +221,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                     <h3 className="text-sm font-semibold text-white/60 uppercase tracking-wider">
                       Account
                     </h3>
-                    <Link
-                      href="/pre-scout-setup?mode=signin"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
+                    <Link href={ROUTES.LOGIN} onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant="ghost"
                         className="w-full justify-start text-white/70 hover:text-white hover:bg-white/5"
@@ -231,7 +229,7 @@ export function EnhancedNavigation({ className = "" }: EnhancedNavigationProps) 
                         Sign In
                       </Button>
                     </Link>
-                    <Link href="/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href={ROUTES.REGISTER} onClick={() => setIsMobileMenuOpen(false)}>
                       <Button
                         variant="outline"
                         className="w-full justify-start border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"

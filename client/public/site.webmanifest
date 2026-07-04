@@ -1,7 +1,7 @@
 {
-  "name": "TradeScout — Connection Without Compromise",
+  "name": "TradeScout",
   "short_name": "TradeScout",
-  "description": "Hyperlocal AI Assistant for Homeowners and Contractors",
+  "description": "TradeScout helps people discover local opportunities, send trusted requests, and coordinate without exposing contact too early.",
   "icons": [
     {
       "src": "/icon-192.png?v=9",
@@ -20,8 +20,9 @@
   "background_color": "#0B0F14",
   "display": "standalone",
   "orientation": "portrait",
-  "start_url": "/",
+  "start_url": "/direct-connect?entry=install",
   "scope": "/",
+  "id": "/direct-connect",
   "categories": ["business", "productivity", "utilities"],
   "lang": "en-US",
   "dir": "ltr"

@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ROUTES } from "@/lib/routes";
 
 const SimpleNavigation = memo(function SimpleNavigation() {
   const { user, isAuthenticated } = useAuth();
@@ -230,12 +231,12 @@ const SimpleNavigation = memo(function SimpleNavigation() {
               </>
             ) : (
               <>
-                <Link href="/pre-scout-setup?mode=signin">
+                <Link href={ROUTES.LOGIN}>
                   <Button variant="ghost" size="sm" data-testid="button-login">
                     Log In
                   </Button>
                 </Link>
-                <Link href="/signup">
+                <Link href={ROUTES.REGISTER}>
                   <Button
                     size="sm"
                     className="bg-ts-orange-dark hover:bg-ts-orange-dark"

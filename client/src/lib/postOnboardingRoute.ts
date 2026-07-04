@@ -63,6 +63,7 @@ import { hasCompletedSetup } from "@/lib/setupState";
 
 export type DirectConnectEntry = "default" | "auth" | "setup" | "onboarding" | "intent";
 export type OnboardingState = "needs_profile" | "needs_intent" | "complete";
+export type AuthEntryMode = "create" | "signin";
 type BusinessOnboardingModuleId =
   | "identity_profile"
   | "service_catalog"
@@ -73,6 +74,7 @@ type BusinessOnboardingModuleStatus = "not_started" | "in_progress" | "complete"
 
 /** Canonical Direct Connect home surface. */
 export const DIRECT_CONNECT_HOME = "/direct-connect";
+export const DEFAULT_AUTH_COMPLETION_ROUTE = "/onboarding/profile";
 
 /** Default landing surface for regular (non-business) users. */
 export const SCOUT_HOME = "/scout";
@@ -116,6 +118,27 @@ export function isSafeNextPath(path: string): boolean {
   return SAFE_NEXT_PREFIXES.some(
     (prefix) => path === prefix || path.startsWith(prefix + "/") || path.startsWith(prefix + "?")
   );
+}
+
+export function buildAuthEntryRoute(options: {
+  mode: AuthEntryMode;
+  next?: string | null;
+  email?: string | null;
+}): string {
+  const params = new URLSearchParams();
+  params.set("mode", options.mode);
+
+  const trimmedNext = String(options.next || "").trim();
+  if (trimmedNext && isSafeNextPath(trimmedNext) && !trimmedNext.startsWith("/pre-scout-setup")) {
+    params.set("next", trimmedNext);
+  } else {
+    params.set("next", DEFAULT_AUTH_COMPLETION_ROUTE);
+  }
+
+  const email = String(options.email || "").trim();
+  if (email) params.set("email", email);
+
+  return `/pre-scout-setup?${params.toString()}`;
 }
 
 export function userNeedsOnboarding(user: unknown): boolean {

@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { useLocation } from "wouter";
 import { hasAdminUiAccess } from "@/lib/roleChecks";
+import { getOnboardingEntryRoute } from "@/lib/postOnboardingRoute";
 
 export function ProfileSetupRedirect({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -19,7 +20,7 @@ export function ProfileSetupRedirect({ children }: { children: React.ReactNode }
         typeof anyUser.profileVersion === "number" ? anyUser.profileVersion : 0;
 
       if (!isAdmin && profileVersion < CURRENT_PROFILE_VERSION) {
-        setLocation("/pre-scout-setup");
+        setLocation(getOnboardingEntryRoute(user));
       }
     }
   }, [user, isLoading, setLocation]);
