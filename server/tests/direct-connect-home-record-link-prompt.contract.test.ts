@@ -13,7 +13,7 @@ describe("direct connect home record link prompt conversion contract", () => {
     const source = fs.readFileSync(shellPath, "utf8");
     expect(source).toContain("Save to HomeID");
     expect(source).toContain(
-      "Keep this request in your home record for future repairs and updates."
+      "Save it so the next repair starts with this history already on file."
     );
     expect(source).toContain("Add HomeID details");
     expect(source).toContain("Use saved home details");

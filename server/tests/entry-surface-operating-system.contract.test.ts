@@ -34,9 +34,7 @@ describe("entry surface operating-system contracts", () => {
     const source = read("client/src/App.tsx");
 
     expect(source).toContain("TradeScout beta");
-    expect(source).toContain(
-      "We’re improving requests while beta is active. Report anything that feels off."
-    );
+    expect(source).toContain("Requests are actively improving — tell us if anything feels off.");
     expect(source).not.toContain("Some features may be rough.");
   });
 });
