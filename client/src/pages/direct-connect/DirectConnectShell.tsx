@@ -2101,8 +2101,6 @@ function DirectConnectRequestComposer({
     completenessState: completeness.level,
   });
   const reviewCardReady = completeness.level !== "too_vague";
-  const requestReadyToShare =
-    completeness.level === "ready_to_share" && routingReadiness === "route_ready";
   const reviewTitle = detailAnswers.what.trim() || title.trim() || "Request";
   const reviewSummary =
     detailAnswers.details.trim() || description.trim() || "No extra details yet.";
@@ -2165,12 +2163,12 @@ function DirectConnectRequestComposer({
   };
 
   const handleOpenDispatchSheet = () => {
-    if (!requestReadyToShare || createMutation.isPending) {
+    if (!reviewCardReady || createMutation.isPending) {
       trackFrictionEvent("direct_connect_form_validation_blocked", {
         source: currentReturnPath(),
         section: "dispatch_selection",
-        field: completeness.level === "too_vague" ? "request_details" : "routing_readiness",
-        reason: createMutation.isPending ? "submit_pending" : routingReadiness,
+        field: "request_details",
+        reason: createMutation.isPending ? "submit_pending" : completeness.level,
         blocked: true,
       });
       return;
@@ -2574,7 +2572,7 @@ function DirectConnectRequestComposer({
                     {completeness.message}
                   </div>
                   <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                    {requestReadyToShare ? "Ready for review" : "Add details to review"}
+                    {reviewCardReady ? "Ready for review" : "Add details to review"}
                   </div>
                 </div>
                 {completeness.missing.length > 0 && (
@@ -2622,7 +2620,7 @@ function DirectConnectRequestComposer({
                   <Button
                     type="button"
                     onClick={handleOpenDispatchSheet}
-                    disabled={!requestReadyToShare || createMutation.isPending}
+                    disabled={!reviewCardReady || createMutation.isPending}
                     className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
                     Submit when ready
