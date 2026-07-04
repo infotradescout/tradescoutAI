@@ -5572,7 +5572,10 @@ export class DatabaseStorage implements IStorage {
             ts.verification_status::text AS verification_status
           FROM trust_snapshots ts
           WHERE ts.county_fips = ${countyFips}
-            AND ts.user_id = ANY(${entityUserIds}::text[])
+            AND ts.user_id IN (${sql.join(
+              entityUserIds.map((userId) => sql`${userId}`),
+              sql`, `
+            )})
           ORDER BY ts.user_id, ts.computed_at DESC
         `)
       : { rows: [] as any[] };
@@ -5681,7 +5684,10 @@ export class DatabaseStorage implements IStorage {
             ts.verification_status::text AS verification_status
           FROM trust_snapshots ts
           WHERE ts.county_fips = ${countyFips}
-            AND ts.user_id = ANY(${fallbackUserIds}::text[])
+            AND ts.user_id IN (${sql.join(
+              fallbackUserIds.map((userId) => sql`${userId}`),
+              sql`, `
+            )})
           ORDER BY ts.user_id, ts.computed_at DESC
         `)
       : { rows: [] as any[] };
