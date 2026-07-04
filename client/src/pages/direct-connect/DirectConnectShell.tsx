@@ -4107,585 +4107,455 @@ function MyDirectConnectRequests() {
           </CardContent>
         </Card>
       )}
-      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-        <CardContent className="space-y-3 p-3">
-          <div className="space-y-1 px-1">
-            <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-              Request stages
-            </p>
-            <p className="text-sm text-[color:var(--text-secondary)]">
-              Each request moves through one clear stage at a time: ready to send, waiting on pros,
-              or in conversation.
-            </p>
-          </div>
-          <div className="flex gap-1.5 overflow-x-auto">
-            {REQUEST_FILTERS.map((f) => {
-              const count =
-                requestsData?.filter((request) => matchesRequestFilter(request, f)).length || 0;
-              const active = requestFilter === f;
-              return (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setRequestFilter(f)}
-                  className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
-                  style={{
-                    borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
-                    color: active ? "var(--text-primary)" : "var(--text-secondary)",
-                    backgroundColor: active
-                      ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
-                      : "var(--surface-intermediate)",
-                  }}
-                >
-                  {getRequestFilterLabel(f)} ({count})
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {filteredRequests.map((r) => {
-        const status = String(r.status || "open").toLowerCase();
-        const interpreted = interpretWorkRequestStateForScout(r as unknown as WorkRequest);
-        const stage = getRequestWorkflowStage(r);
-        const hasAccepted = stage === "active_conversation" || stage === "completed";
-        const canSend = stage === "ready_to_send";
-        const canExpand = stage === "waiting_on_pros";
-        const canMessage = Boolean(r.dcConversationThreadId) || stage === "active_conversation";
-        const canCancel =
-          stage === "ready_to_send" ||
-          stage === "waiting_on_pros" ||
-          stage === "active_conversation";
-        const canMarkPendingOutcome = stage === "active_conversation";
-        const canMarkComplete = stage === "pending_outcome" || stage === "active_conversation";
-        const canReopen = stage === "cancelled";
-        const canShare = stage !== "cancelled" && stage !== "completed";
-        const nextStepCopy = getDirectConnectNextStepCopy(r);
-        const isExpanded = expandedRequestId === r.id;
-        const isMobileActionOpen = mobileActionRequestId === r.id;
-        const timelineStamp = r.dcLastEventAt || r.createdAt;
-        const displayTitle = getDisplayRequestTitle(r);
-        const displayDescription = getDisplayRequestDescription(r);
-        const displayLatestStatus = getDisplayLatestStatus(r);
-        const statusFacts = [
-          r.tradeId ? `Trade ${r.tradeId}` : null,
-          r.countyFips ? formatCountyLabel(r.countyFips, r.stateCode) : null,
-          typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
-            ? `${r.dcSuggestedCount} routed`
-            : null,
-          typeof r.responseCount === "number" && r.responseCount > 0
-            ? `${r.responseCount} response${r.responseCount === 1 ? "" : "s"}`
-            : null,
-          typeof r.contactRequestCount === "number" && r.contactRequestCount > 0
-            ? `${r.contactRequestCount} contact request${r.contactRequestCount === 1 ? "" : "s"}`
-            : null,
-          typeof r.attachmentCount === "number" && r.attachmentCount > 0
-            ? `${r.attachmentCount} photos`
-            : null,
-        ].filter(Boolean);
-        const contactGateState = String(r.contactGateState || "locked");
-        const canApproveContact = contactGateState === "contractor_requested";
-        const canDenyContact = contactGateState === "contractor_requested";
-        const canReleaseContact = contactGateState === "user_approved";
-        const contactPanelState = normalizeDirectConnectContactState(r.contactGateState);
-        const contactPanelActions: DecisionContactGateAction[] = [
-          canApproveContact ? { label: "Approve contact" } : null,
-          canDenyContact ? { label: "Decline contact" } : null,
-          canReleaseContact ? { label: "Release contact" } : null,
-        ].filter((action): action is DecisionContactGateAction => Boolean(action));
-
-        const handleOpenRequest = async () => {
-          void trackShellEvent({
-            type: "scout_query",
-            payload: {
-              event: "direct_connect_next_step_card_opened",
-              requestId: r.id,
-              stage,
-              label: nextStepCopy.label,
-              actionHint: nextStepCopy.actionHint,
-              contactUnlocked: nextStepCopy.contactUnlocked,
-              ts: new Date().toISOString(),
-            },
-          });
-
-          if (canShare) {
-            try {
-              let shareUrl = String(r.dcMiniLandingUrl || "").trim();
-              if (!shareUrl) {
-                const payload = await shareLandingMutation.mutateAsync(r.id);
-                shareUrl = String(payload?.shareUrl || "").trim();
-              }
-              if (shareUrl) {
-                window.location.href = shareUrl;
-                return;
-              }
-            } catch {
-              // fall through to non-share behavior
-            }
-          }
-
-          if (canMessage) {
-            const threadId = r.dcConversationThreadId;
-            window.location.href = threadId
-              ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-              : r.id
-                ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                : "/messages?tab=requests";
-            return;
-          }
-          setExpandedRequestId((current) => (current === r.id ? null : r.id));
-        };
-
-        return (
-          <Card
-            key={r.id}
-            className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] transition-colors hover:border-[color:var(--theme-accent-primary)]/50"
-          >
-            <CardContent className="space-y-4 p-4 md:p-5">
+      <div className="space-y-2 px-1">
+        <p className="text-sm text-[color:var(--text-secondary)]">
+          Each request moves through one clear stage at a time: ready to send, waiting on pros, or
+          in conversation.
+        </p>
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+          {REQUEST_FILTERS.map((f) => {
+            const count =
+              requestsData?.filter((request) => matchesRequestFilter(request, f)).length || 0;
+            const active = requestFilter === f;
+            return (
               <button
+                key={f}
                 type="button"
-                onClick={handleOpenRequest}
-                className="w-full text-left"
-                aria-label={`Open request ${displayTitle}`}
+                onClick={() => setRequestFilter(f)}
+                className="shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-all"
+                style={{
+                  borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
+                  color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                  backgroundColor: active
+                    ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
+                    : "var(--surface-intermediate)",
+                }}
               >
-                <div className="flex flex-col gap-3 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/75 p-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                        {nextStepCopy.label}
-                      </p>
-                      {timelineStamp && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
-                          <Clock3 className="h-3 w-3" />
-                          {formatDistanceToNow(new Date(timelineStamp), { addSuffix: true })}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
-                      {displayTitle}
-                    </h3>
-                    <p className="text-sm text-[color:var(--text-secondary)]">
-                      {interpreted.primaryPhrase}
-                    </p>
-                    {interpreted.secondaryPhrase && (
-                      <p className="text-xs text-[color:var(--text-secondary)]/90">
-                        {interpreted.secondaryPhrase}
-                      </p>
-                    )}
-                    {canApproveContact && (
-                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2">
-                        <p className="text-xs font-medium text-emerald-100">
-                          A local business responded
+                {getRequestFilterLabel(f)} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Card className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        {filteredRequests.map((r) => {
+          const status = String(r.status || "open").toLowerCase();
+          const interpreted = interpretWorkRequestStateForScout(r as unknown as WorkRequest);
+          const stage = getRequestWorkflowStage(r);
+          const hasAccepted = stage === "active_conversation" || stage === "completed";
+          const canSend = stage === "ready_to_send";
+          const canExpand = stage === "waiting_on_pros";
+          const canMessage = Boolean(r.dcConversationThreadId) || stage === "active_conversation";
+          const canCancel =
+            stage === "ready_to_send" ||
+            stage === "waiting_on_pros" ||
+            stage === "active_conversation";
+          const canMarkPendingOutcome = stage === "active_conversation";
+          const canMarkComplete = stage === "pending_outcome" || stage === "active_conversation";
+          const canReopen = stage === "cancelled";
+          const canShare = stage !== "cancelled" && stage !== "completed";
+          const nextStepCopy = getDirectConnectNextStepCopy(r);
+          const isExpanded = expandedRequestId === r.id;
+          const isMobileActionOpen = mobileActionRequestId === r.id;
+          const timelineStamp = r.dcLastEventAt || r.createdAt;
+          const displayTitle = getDisplayRequestTitle(r);
+          const displayDescription = getDisplayRequestDescription(r);
+          const displayLatestStatus = getDisplayLatestStatus(r);
+          const statusFacts = [
+            r.tradeId ? `Trade ${r.tradeId}` : null,
+            r.countyFips ? formatCountyLabel(r.countyFips, r.stateCode) : null,
+            typeof r.dcSuggestedCount === "number" && r.dcSuggestedCount > 0
+              ? `${r.dcSuggestedCount} routed`
+              : null,
+            typeof r.responseCount === "number" && r.responseCount > 0
+              ? `${r.responseCount} response${r.responseCount === 1 ? "" : "s"}`
+              : null,
+            typeof r.contactRequestCount === "number" && r.contactRequestCount > 0
+              ? `${r.contactRequestCount} contact request${r.contactRequestCount === 1 ? "" : "s"}`
+              : null,
+            typeof r.attachmentCount === "number" && r.attachmentCount > 0
+              ? `${r.attachmentCount} photos`
+              : null,
+          ].filter(Boolean);
+          const contactGateState = String(r.contactGateState || "locked");
+          const canApproveContact = contactGateState === "contractor_requested";
+          const canDenyContact = contactGateState === "contractor_requested";
+          const canReleaseContact = contactGateState === "user_approved";
+          const contactPanelState = normalizeDirectConnectContactState(r.contactGateState);
+          const contactPanelActions: DecisionContactGateAction[] = [
+            canApproveContact ? { label: "Approve contact" } : null,
+            canDenyContact ? { label: "Decline contact" } : null,
+            canReleaseContact ? { label: "Release contact" } : null,
+          ].filter((action): action is DecisionContactGateAction => Boolean(action));
+
+          const handleOpenRequest = async () => {
+            void trackShellEvent({
+              type: "scout_query",
+              payload: {
+                event: "direct_connect_next_step_card_opened",
+                requestId: r.id,
+                stage,
+                label: nextStepCopy.label,
+                actionHint: nextStepCopy.actionHint,
+                contactUnlocked: nextStepCopy.contactUnlocked,
+                ts: new Date().toISOString(),
+              },
+            });
+
+            if (canShare) {
+              try {
+                let shareUrl = String(r.dcMiniLandingUrl || "").trim();
+                if (!shareUrl) {
+                  const payload = await shareLandingMutation.mutateAsync(r.id);
+                  shareUrl = String(payload?.shareUrl || "").trim();
+                }
+                if (shareUrl) {
+                  window.location.href = shareUrl;
+                  return;
+                }
+              } catch {
+                // fall through to non-share behavior
+              }
+            }
+
+            if (canMessage) {
+              const threadId = r.dcConversationThreadId;
+              window.location.href = threadId
+                ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                : r.id
+                  ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                  : "/messages?tab=requests";
+              return;
+            }
+            setExpandedRequestId((current) => (current === r.id ? null : r.id));
+          };
+
+          return (
+            <div
+              key={r.id}
+              className="border-b border-[color:var(--border-subtle)]/60 last:border-b-0 transition-colors hover:bg-[color:var(--surface-intermediate)]/30"
+            >
+              <div className="space-y-4 p-4 md:p-5">
+                <button
+                  type="button"
+                  onClick={handleOpenRequest}
+                  className="w-full text-left"
+                  aria-label={`Open request ${displayTitle}`}
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                          {nextStepCopy.label}
                         </p>
-                        <p className="mt-1 text-[11px] text-emerald-200/90">
-                          They are asking to contact you
-                        </p>
-                      </div>
-                    )}
-                    {displayLatestStatus && (
-                      <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
-                        <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                          {displayLatestStatus}
-                        </p>
-                        {typeof r.unreadStatusCount === "number" && r.unreadStatusCount > 0 && (
-                          <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
-                            {r.unreadStatusCount} new request update
-                            {r.unreadStatusCount === 1 ? "" : "s"}
-                          </p>
+                        {timelineStamp && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--text-secondary)]">
+                            <Clock3 className="h-3 w-3" />
+                            {formatDistanceToNow(new Date(timelineStamp), { addSuffix: true })}
+                          </span>
                         )}
                       </div>
-                    )}
-                    <p className="text-[11px] text-ts-orange/90">{nextStepCopy.actionHint}</p>
+                      <h3 className="text-base font-semibold text-[color:var(--text-primary)] md:text-lg">
+                        {displayTitle}
+                      </h3>
+                      <p className="text-sm text-[color:var(--text-secondary)]">
+                        {interpreted.primaryPhrase}
+                      </p>
+                      {interpreted.secondaryPhrase && (
+                        <p className="text-xs text-[color:var(--text-secondary)]/90">
+                          {interpreted.secondaryPhrase}
+                        </p>
+                      )}
+                      {canApproveContact && (
+                        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-2">
+                          <p className="text-xs font-medium text-emerald-100">
+                            A local business responded
+                          </p>
+                          <p className="mt-1 text-[11px] text-emerald-200/90">
+                            They are asking to contact you
+                          </p>
+                        </div>
+                      )}
+                      {displayLatestStatus && (
+                        <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                          <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                            {displayLatestStatus}
+                          </p>
+                          {typeof r.unreadStatusCount === "number" && r.unreadStatusCount > 0 && (
+                            <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
+                              {r.unreadStatusCount} new request update
+                              {r.unreadStatusCount === 1 ? "" : "s"}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-[11px] text-ts-orange/90">{nextStepCopy.actionHint}</p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={cn("h-fit uppercase text-[10px]", statusTone(status))}
+                    >
+                      {status.replace("_", " ")}
+                    </Badge>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={cn("h-fit uppercase text-[10px]", statusTone(status))}
-                  >
-                    {status.replace("_", " ")}
-                  </Badge>
+                </button>
+
+                <div className="space-y-2">
+                  <p className="text-sm text-[color:var(--text-primary)]">{displayDescription}</p>
+                  {statusFacts.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
+                      {statusFacts.map((fact) => (
+                        <span
+                          key={fact}
+                          className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1"
+                        >
+                          {fact}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <RequestLifecycleRail stage={stage} />
                 </div>
-              </button>
 
-              <div className="space-y-2">
-                <p className="text-sm text-[color:var(--text-primary)]">{displayDescription}</p>
-                {statusFacts.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-[color:var(--text-secondary)]">
-                    {statusFacts.map((fact) => (
-                      <span
-                        key={fact}
-                        className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1"
-                      >
-                        {fact}
-                      </span>
-                    ))}
+                <DecisionContactGatePanel
+                  contactState={contactPanelState}
+                  viewerRole="requester"
+                  nextActor={getDirectConnectContactGateNextActor(contactPanelState)}
+                  nextRequiredAction={getDirectConnectContactGateNextAction(contactPanelState)}
+                  safeSummary={getDirectConnectContactGateSummary(r)}
+                  releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}
+                  actions={contactPanelActions}
+                  className="shadow-none"
+                />
+
+                <RequestAttachmentStrip requestId={r.id} attachmentCount={r.attachmentCount} />
+
+                <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                        What happens now
+                      </p>
+                      <p className="mt-1 text-sm text-[color:var(--text-primary)]">
+                        {nextStepCopy.summary}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 px-2 text-xs"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setExpandedRequestId((current) => (current === r.id ? null : r.id));
+                      }}
+                    >
+                      {isExpanded ? "Hide details" : "Show details"}
+                    </Button>
                   </div>
-                )}
-                <RequestLifecycleRail stage={stage} />
-              </div>
+                </div>
 
-              <DecisionContactGatePanel
-                contactState={contactPanelState}
-                viewerRole="requester"
-                nextActor={getDirectConnectContactGateNextActor(contactPanelState)}
-                nextRequiredAction={getDirectConnectContactGateNextAction(contactPanelState)}
-                safeSummary={getDirectConnectContactGateSummary(r)}
-                releasedContact={getDirectConnectReleasedContactForPanel(r, contactPanelState)}
-                actions={contactPanelActions}
-                className="shadow-none"
-              />
-
-              <RequestAttachmentStrip requestId={r.id} attachmentCount={r.attachmentCount} />
-
-              <div className="rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/65 p-3">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      What happens now
-                    </p>
-                    <p className="mt-1 text-sm text-[color:var(--text-primary)]">
-                      {nextStepCopy.summary}
-                    </p>
-                  </div>
+                <div className="flex flex-wrap gap-1.5 sm:hidden">
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
                     className="h-8 px-2 text-xs"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setExpandedRequestId((current) => (current === r.id ? null : r.id));
+                      setMobileActionRequestId((current) => (current === r.id ? null : r.id));
                     }}
                   >
-                    {isExpanded ? "Hide details" : "Show details"}
+                    <MoreHorizontal className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap gap-1.5 sm:hidden">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-xs"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setMobileActionRequestId((current) => (current === r.id ? null : r.id));
-                  }}
-                >
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-
-              {isExpanded && (
-                <div className="grid gap-2 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-sm text-[color:var(--text-secondary)] md:grid-cols-2">
-                  {(stage === "active_conversation" ||
-                    stage === "pending_outcome" ||
-                    stage === "completed") &&
-                    r.dcAcceptedResponseSummary && (
-                      <div className="md:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
-                          Provider Response
-                        </p>
-                        {r.dcAcceptedResponseSummary.availabilityWindow && (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
-                              Availability
-                            </p>
-                            <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
-                              {r.dcAcceptedResponseSummary.availabilityWindow}
-                            </p>
-                          </div>
+                {isExpanded && (
+                  <div className="grid gap-2 rounded-2xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-sm text-[color:var(--text-secondary)] md:grid-cols-2">
+                    {(stage === "active_conversation" ||
+                      stage === "pending_outcome" ||
+                      stage === "completed") &&
+                      r.dcAcceptedResponseSummary && (
+                        <div className="md:col-span-2 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-400">
+                            Provider Response
+                          </p>
+                          {r.dcAcceptedResponseSummary.availabilityWindow && (
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                                Availability
+                              </p>
+                              <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
+                                {r.dcAcceptedResponseSummary.availabilityWindow}
+                              </p>
+                            </div>
+                          )}
+                          {r.dcAcceptedResponseSummary.priceBand && (
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                                Price Band
+                              </p>
+                              <p className="mt-0.5 text-sm text-[color:var(--text-primary)] capitalize">
+                                {r.dcAcceptedResponseSummary.priceBand.replace("_", " ")}
+                              </p>
+                            </div>
+                          )}
+                          {r.dcAcceptedResponseSummary.scopeNote && (
+                            <div>
+                              <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
+                                Scope Note
+                              </p>
+                              <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
+                                {r.dcAcceptedResponseSummary.scopeNote}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                        Status
+                      </p>
+                      <p className="mt-1 text-[color:var(--text-primary)]">
+                        {getRequestStageLabel(stage)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                        Conversation
+                      </p>
+                      <p className="mt-1 text-[color:var(--text-primary)]">
+                        {canMessage
+                          ? "You can open the thread now."
+                          : "Messaging unlocks after a pro engages."}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                        Other actions
+                      </p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {canExpand && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs"
+                            disabled={expandMutation.isPending}
+                            onClick={() => expandMutation.mutate(r.id)}
+                          >
+                            Widen search
+                          </Button>
                         )}
-                        {r.dcAcceptedResponseSummary.priceBand && (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
-                              Price Band
-                            </p>
-                            <p className="mt-0.5 text-sm text-[color:var(--text-primary)] capitalize">
-                              {r.dcAcceptedResponseSummary.priceBand.replace("_", " ")}
-                            </p>
-                          </div>
+                        {canSend && (
+                          <Button
+                            size="sm"
+                            className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                            disabled={routeMutation.isPending}
+                            onClick={() => openRouteSheetForRequest(r.id)}
+                          >
+                            Send to more pros
+                          </Button>
                         )}
-                        {r.dcAcceptedResponseSummary.scopeNote && (
-                          <div>
-                            <p className="text-[10px] uppercase tracking-[0.15em] text-[color:var(--text-secondary)]">
-                              Scope Note
-                            </p>
-                            <p className="mt-0.5 text-sm text-[color:var(--text-primary)]">
-                              {r.dcAcceptedResponseSummary.scopeNote}
-                            </p>
-                          </div>
+                        {canMarkPendingOutcome && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
+                            data-testid="dc-mark-pending-outcome-btn"
+                            disabled={markPendingOutcomeMutation.isPending}
+                            onClick={() => markPendingOutcomeMutation.mutate(r.id)}
+                          >
+                            Mark pending outcome
+                          </Button>
                         )}
+                        {canMarkComplete && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                            data-testid="dc-mark-complete-btn"
+                            disabled={markCompleteMutation.isPending}
+                            onClick={() => markCompleteMutation.mutate(r.id)}
+                          >
+                            Mark complete
+                          </Button>
+                        )}
+                        {canCancel && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                            disabled={cancelMutation.isPending}
+                            onClick={() => cancelMutation.mutate(r.id)}
+                          >
+                            Cancel request
+                          </Button>
+                        )}
+                        {canReopen && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                            disabled={reopenMutation.isPending}
+                            onClick={() => reopenMutation.mutate(r.id)}
+                          >
+                            Reopen request
+                          </Button>
+                        )}
+                        {canApproveContact && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                            disabled={contactGateMutation.isPending}
+                            onClick={() =>
+                              contactGateMutation.mutate({
+                                requestId: String(r.id),
+                                nextState: "user_approved",
+                              })
+                            }
+                          >
+                            Approve contact
+                          </Button>
+                        )}
+                        {canReleaseContact && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                            disabled={contactGateMutation.isPending}
+                            onClick={() =>
+                              contactGateMutation.mutate({
+                                requestId: String(r.id),
+                                nextState: "released",
+                              })
+                            }
+                          >
+                            Release contact
+                          </Button>
+                        )}
+                        {canDenyContact && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                            disabled={contactGateMutation.isPending}
+                            onClick={() =>
+                              contactGateMutation.mutate({
+                                requestId: String(r.id),
+                                nextState: "denied",
+                              })
+                            }
+                          >
+                            Decline
+                          </Button>
+                        )}
+                        {!canMessage && <WhyLink to={getHelpLink("messaging")} />}
                       </div>
-                    )}
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      Status
-                    </p>
-                    <p className="mt-1 text-[color:var(--text-primary)]">
-                      {getRequestStageLabel(stage)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      Conversation
-                    </p>
-                    <p className="mt-1 text-[color:var(--text-primary)]">
-                      {canMessage
-                        ? "You can open the thread now."
-                        : "Messaging unlocks after a pro engages."}
-                    </p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <p className="text-[11px] uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                      Other actions
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {canExpand && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs"
-                          disabled={expandMutation.isPending}
-                          onClick={() => expandMutation.mutate(r.id)}
-                        >
-                          Widen search
-                        </Button>
-                      )}
-                      {canSend && (
-                        <Button
-                          size="sm"
-                          className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                          disabled={routeMutation.isPending}
-                          onClick={() => openRouteSheetForRequest(r.id)}
-                        >
-                          Send to more pros
-                        </Button>
-                      )}
-                      {canMarkPendingOutcome && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
-                          data-testid="dc-mark-pending-outcome-btn"
-                          disabled={markPendingOutcomeMutation.isPending}
-                          onClick={() => markPendingOutcomeMutation.mutate(r.id)}
-                        >
-                          Mark pending outcome
-                        </Button>
-                      )}
-                      {canMarkComplete && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                          data-testid="dc-mark-complete-btn"
-                          disabled={markCompleteMutation.isPending}
-                          onClick={() => markCompleteMutation.mutate(r.id)}
-                        >
-                          Mark complete
-                        </Button>
-                      )}
-                      {canCancel && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                          disabled={cancelMutation.isPending}
-                          onClick={() => cancelMutation.mutate(r.id)}
-                        >
-                          Cancel request
-                        </Button>
-                      )}
-                      {canReopen && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                          disabled={reopenMutation.isPending}
-                          onClick={() => reopenMutation.mutate(r.id)}
-                        >
-                          Reopen request
-                        </Button>
-                      )}
-                      {canApproveContact && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                          disabled={contactGateMutation.isPending}
-                          onClick={() =>
-                            contactGateMutation.mutate({
-                              requestId: String(r.id),
-                              nextState: "user_approved",
-                            })
-                          }
-                        >
-                          Approve contact
-                        </Button>
-                      )}
-                      {canReleaseContact && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                          disabled={contactGateMutation.isPending}
-                          onClick={() =>
-                            contactGateMutation.mutate({
-                              requestId: String(r.id),
-                              nextState: "released",
-                            })
-                          }
-                        >
-                          Release contact
-                        </Button>
-                      )}
-                      {canDenyContact && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                          disabled={contactGateMutation.isPending}
-                          onClick={() =>
-                            contactGateMutation.mutate({
-                              requestId: String(r.id),
-                              nextState: "denied",
-                            })
-                          }
-                        >
-                          Decline
-                        </Button>
-                      )}
-                      {!canMessage && <WhyLink to={getHelpLink("messaging")} />}
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="hidden flex-wrap items-center justify-end gap-1.5 sm:flex">
-                {canSend && (
-                  <Button
-                    size="sm"
-                    className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                    disabled={routeMutation.isPending}
-                    onClick={() => openRouteSheetForRequest(r.id)}
-                  >
-                    Send to more pros
-                  </Button>
-                )}
-                {stage === "waiting_on_pros" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => navigate("/direct-connect/inbox")}
-                  >
-                    Review replies
-                  </Button>
-                )}
-                {canMessage && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => {
-                      const threadId = r.dcConversationThreadId;
-                      window.location.href = threadId
-                        ? `/messages?thread=${encodeURIComponent(String(threadId))}`
-                        : r.id
-                          ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
-                          : "/messages?tab=requests";
-                    }}
-                  >
-                    Open inbox
-                  </Button>
-                )}
-                {canMarkPendingOutcome && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
-                    data-testid="dc-mark-pending-outcome-btn"
-                    disabled={markPendingOutcomeMutation.isPending}
-                    onClick={() => markPendingOutcomeMutation.mutate(r.id)}
-                  >
-                    Mark pending outcome
-                  </Button>
-                )}
-                {canMarkComplete && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                    data-testid="dc-mark-complete-btn"
-                    disabled={markCompleteMutation.isPending}
-                    onClick={() => markCompleteMutation.mutate(r.id)}
-                  >
-                    Mark complete
-                  </Button>
-                )}
-                {canReopen && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                    disabled={reopenMutation.isPending}
-                    onClick={() => reopenMutation.mutate(r.id)}
-                  >
-                    Reopen request
-                  </Button>
-                )}
-                {canApproveContact && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                    disabled={contactGateMutation.isPending}
-                    onClick={() =>
-                      contactGateMutation.mutate({
-                        requestId: String(r.id),
-                        nextState: "user_approved",
-                      })
-                    }
-                  >
-                    Approve contact
-                  </Button>
-                )}
-                {canReleaseContact && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
-                    disabled={contactGateMutation.isPending}
-                    onClick={() =>
-                      contactGateMutation.mutate({
-                        requestId: String(r.id),
-                        nextState: "released",
-                      })
-                    }
-                  >
-                    Release contact
-                  </Button>
-                )}
-                {canDenyContact && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                    disabled={contactGateMutation.isPending}
-                    onClick={() =>
-                      contactGateMutation.mutate({
-                        requestId: String(r.id),
-                        nextState: "denied",
-                      })
-                    }
-                  >
-                    Decline
-                  </Button>
-                )}
-              </div>
-
-              {isMobileActionOpen && (
-                <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
+                <div className="hidden flex-wrap items-center justify-end gap-1.5 sm:flex">
                   {canSend && (
                     <Button
                       size="sm"
@@ -4720,7 +4590,6 @@ function MyDirectConnectRequests() {
                             : "/messages?tab=requests";
                       }}
                     >
-                      <MessageCircle className="mr-1 h-3.5 w-3.5" />
                       Open inbox
                     </Button>
                   )}
@@ -4759,12 +4628,138 @@ function MyDirectConnectRequests() {
                       Reopen request
                     </Button>
                   )}
+                  {canApproveContact && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                      disabled={contactGateMutation.isPending}
+                      onClick={() =>
+                        contactGateMutation.mutate({
+                          requestId: String(r.id),
+                          nextState: "user_approved",
+                        })
+                      }
+                    >
+                      Approve contact
+                    </Button>
+                  )}
+                  {canReleaseContact && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                      disabled={contactGateMutation.isPending}
+                      onClick={() =>
+                        contactGateMutation.mutate({
+                          requestId: String(r.id),
+                          nextState: "released",
+                        })
+                      }
+                    >
+                      Release contact
+                    </Button>
+                  )}
+                  {canDenyContact && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                      disabled={contactGateMutation.isPending}
+                      onClick={() =>
+                        contactGateMutation.mutate({
+                          requestId: String(r.id),
+                          nextState: "denied",
+                        })
+                      }
+                    >
+                      Decline
+                    </Button>
+                  )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        );
-      })}
+
+                {isMobileActionOpen && (
+                  <div className="flex flex-wrap items-center justify-end gap-1.5 sm:hidden">
+                    {canSend && (
+                      <Button
+                        size="sm"
+                        className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                        disabled={routeMutation.isPending}
+                        onClick={() => openRouteSheetForRequest(r.id)}
+                      >
+                        Send to more pros
+                      </Button>
+                    )}
+                    {stage === "waiting_on_pros" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2 text-xs"
+                        onClick={() => navigate("/direct-connect/inbox")}
+                      >
+                        Review replies
+                      </Button>
+                    )}
+                    {canMessage && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2 text-xs"
+                        onClick={() => {
+                          const threadId = r.dcConversationThreadId;
+                          window.location.href = threadId
+                            ? `/messages?thread=${encodeURIComponent(String(threadId))}`
+                            : r.id
+                              ? `/messages?tab=requests&requestId=${encodeURIComponent(String(r.id))}`
+                              : "/messages?tab=requests";
+                        }}
+                      >
+                        <MessageCircle className="mr-1 h-3.5 w-3.5" />
+                        Open inbox
+                      </Button>
+                    )}
+                    {canMarkPendingOutcome && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2 text-xs border-amber-500/60 text-amber-200 hover:bg-amber-500/10"
+                        data-testid="dc-mark-pending-outcome-btn"
+                        disabled={markPendingOutcomeMutation.isPending}
+                        onClick={() => markPendingOutcomeMutation.mutate(r.id)}
+                      >
+                        Mark pending outcome
+                      </Button>
+                    )}
+                    {canMarkComplete && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                        data-testid="dc-mark-complete-btn"
+                        disabled={markCompleteMutation.isPending}
+                        onClick={() => markCompleteMutation.mutate(r.id)}
+                      >
+                        Mark complete
+                      </Button>
+                    )}
+                    {canReopen && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 px-2 text-xs border-emerald-500/60 text-emerald-200 hover:bg-emerald-500/10"
+                        disabled={reopenMutation.isPending}
+                        onClick={() => reopenMutation.mutate(r.id)}
+                      >
+                        Reopen request
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </Card>
 
       <Sheet
         open={showRouteSheet}
