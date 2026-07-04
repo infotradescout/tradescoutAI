@@ -2314,11 +2314,8 @@ function DirectConnectRequestComposer({
   return (
     <Card className="overflow-hidden rounded-2xl border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
       <CardContent className="space-y-6 px-4 py-5 sm:px-6 sm:py-6">
-        <div className="space-y-3">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--theme-accent-primary)]">
-            {describeStep === 0 ? "Step 1 of 3 · Describe" : "Step 2 of 3 · Review"}
-          </span>
-          <h1 className="text-3xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--text-primary)] sm:text-[2.1rem]">
+        <div className="space-y-2">
+          <h1 className="text-base font-semibold text-[color:var(--text-primary)]">
             {describeStep === 0 ? "What do you need done?" : "Review your request"}
           </h1>
           <p className="max-w-[44ch] text-sm leading-snug text-[color:var(--text-secondary)]">
@@ -3415,319 +3412,325 @@ function DirectConnectInbox() {
   const currentAcceptedForInvoice = items.find((i) => i.assignment.id === creatingInvoice);
 
   return (
-    <div className="space-y-2.5">
-      <Card className="border-[color:var(--border-subtle)]/50 bg-[color:var(--surface-card)]/70 shadow-none">
-        <CardContent className="flex gap-2 overflow-x-auto p-1.5">
-          {(["all", "suggested", "accepted", "declined"] as const).map((f) => {
-            const count =
-              f === "all"
-                ? items.length
-                : items.filter((i) => normalizeInboxStatus(i.assignment.status) === f).length;
-            const active = inboxFilter === f;
-            const filterLabel = f === "all" ? "All" : getDirectConnectInboxStatusLabel(f);
-            return (
-              <button
-                key={f}
-                type="button"
-                onClick={() => setInboxFilter(f)}
-                className="shrink-0 rounded-xl border px-3.5 text-[13px] font-medium transition-all h-10"
-                style={{
-                  borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
-                  color: active ? "var(--text-primary)" : "var(--text-secondary)",
-                  backgroundColor: active
-                    ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
-                    : "var(--surface-intermediate)",
-                }}
-              >
-                {filterLabel} ({count})
-              </button>
-            );
-          })}
-        </CardContent>
-      </Card>
+    <div className="space-y-3">
+      <div className="flex gap-2 overflow-x-auto pb-0.5">
+        {(["all", "suggested", "accepted", "declined"] as const).map((f) => {
+          const count =
+            f === "all"
+              ? items.length
+              : items.filter((i) => normalizeInboxStatus(i.assignment.status) === f).length;
+          const active = inboxFilter === f;
+          const filterLabel = f === "all" ? "All" : getDirectConnectInboxStatusLabel(f);
+          return (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setInboxFilter(f)}
+              className="shrink-0 rounded-xl border px-3.5 text-[13px] font-medium transition-all h-10"
+              style={{
+                borderColor: active ? "var(--theme-accent-primary)" : "var(--border-subtle)",
+                color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                backgroundColor: active
+                  ? "color-mix(in oklab, var(--theme-accent-primary) 10%, transparent)"
+                  : "var(--surface-intermediate)",
+              }}
+            >
+              {filterLabel} ({count})
+            </button>
+          );
+        })}
+      </div>
+      <Card className="overflow-hidden border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+        {visibleItems.map((item) => {
+          const { assignment, request } = item;
+          const assignmentStatusRaw = String(assignment.status || "suggested").toLowerCase();
+          const canRespond =
+            assignmentStatusRaw === "suggested" || assignmentStatusRaw === "invited";
+          const actionableAssignment =
+            canRespond && !String(assignment.id || "").startsWith("request-");
+          const status = assignmentStatusRaw;
+          const snapshot = assignment.scoreSnapshot || undefined;
+          const createdAt = assignment.createdAt || request?.createdAt;
+          const isExpanded = expandedAssignmentId === assignment.id;
+          const isMobileActionOpen = mobileActionAssignmentId === assignment.id;
+          const isStructuredReplyOpen = structuredReplyOpenId === assignment.id;
+          const availabilityWindow = availabilityByAssignment[assignment.id] || "";
+          const priceBand = priceBandByAssignment[assignment.id] || "";
+          const scopeNote = scopeNoteByAssignment[assignment.id] || "";
+          const canSubmitStructuredAccept =
+            availabilityWindow.trim().length >= 3 &&
+            scopeNote.trim().length >= 10 &&
+            ["budget", "standard", "premium", "custom_quote"].includes(priceBand);
+          const inboxNextStepCopy = getDirectConnectInboxNextStepCopy({
+            assignmentStatus: status,
+            requestStatus: request?.status ?? null,
+            conversationThreadId: item.conversationThreadId ?? null,
+            actionableAssignment,
+            isStructuredReplyOpen,
+          });
+          const inboxDisplay = buildDirectConnectInboxDisplay({
+            status,
+            timestamp: createdAt,
+            scoreSnapshot: snapshot,
+          });
 
-      {visibleItems.map((item) => {
-        const { assignment, request } = item;
-        const assignmentStatusRaw = String(assignment.status || "suggested").toLowerCase();
-        const canRespond = assignmentStatusRaw === "suggested" || assignmentStatusRaw === "invited";
-        const actionableAssignment =
-          canRespond && !String(assignment.id || "").startsWith("request-");
-        const status = assignmentStatusRaw;
-        const snapshot = assignment.scoreSnapshot || undefined;
-        const createdAt = assignment.createdAt || request?.createdAt;
-        const isExpanded = expandedAssignmentId === assignment.id;
-        const isMobileActionOpen = mobileActionAssignmentId === assignment.id;
-        const isStructuredReplyOpen = structuredReplyOpenId === assignment.id;
-        const availabilityWindow = availabilityByAssignment[assignment.id] || "";
-        const priceBand = priceBandByAssignment[assignment.id] || "";
-        const scopeNote = scopeNoteByAssignment[assignment.id] || "";
-        const canSubmitStructuredAccept =
-          availabilityWindow.trim().length >= 3 &&
-          scopeNote.trim().length >= 10 &&
-          ["budget", "standard", "premium", "custom_quote"].includes(priceBand);
-        const inboxNextStepCopy = getDirectConnectInboxNextStepCopy({
-          assignmentStatus: status,
-          requestStatus: request?.status ?? null,
-          conversationThreadId: item.conversationThreadId ?? null,
-          actionableAssignment,
-          isStructuredReplyOpen,
-        });
-        const inboxDisplay = buildDirectConnectInboxDisplay({
-          status,
-          timestamp: createdAt,
-          scoreSnapshot: snapshot,
-        });
-
-        return (
-          <Card
-            key={assignment.id}
-            className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] hover:border-[color:var(--theme-accent-primary)]/50 transition-colors"
-          >
-            <CardContent className="space-y-3 p-3 md:p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
-                    {inboxNextStepCopy.label}
-                  </p>
-                  <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
-                    {request?.title || "New opportunity"}
-                  </h3>
-                  <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
-                    {request?.description || "Request details."}
-                  </p>
-                  <p className="text-[11px] text-[color:var(--text-secondary)]/90">
-                    {inboxNextStepCopy.summary}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <Badge
-                    variant="outline"
-                    className={cn("uppercase text-[10px]", statusTone(status))}
-                  >
-                    {inboxDisplay.statusLabel}
-                  </Badge>
-                  {(() => {
-                    const a = assignment as any;
-                    if (a.workerId)
-                      return (
-                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
-                          Worker
-                        </Badge>
-                      );
-                    if (a.responderUserId && !a.contractorId)
-                      return (
-                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
-                          Business
-                        </Badge>
-                      );
-                    if (a.contractorId)
-                      return (
-                        <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
-                          Provider
-                        </Badge>
-                      );
-                    return null;
-                  })()}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
-                <span className="min-w-0 truncate">
-                  {[
-                    request?.status ? `Request ${String(request.status).replace("_", " ")}` : null,
-                    request?.tradeId ? `Trade ${request.tradeId}` : null,
-                    request?.countyFips
-                      ? formatCountyLabel(request.countyFips, request?.stateCode)
-                      : null,
-                    inboxDisplay.timeLabel,
-                  ]
-                    .filter(Boolean)
-                    .join(" • ") || "Local match"}
-                </span>
-                {inboxDisplay.detailRows.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 shrink-0 px-2 text-[11px]"
-                    onClick={() =>
-                      setExpandedAssignmentId((current) =>
-                        current === assignment.id ? null : assignment.id
-                      )
-                    }
-                    aria-expanded={isExpanded}
-                  >
-                    {isExpanded ? "Hide details" : inboxDisplay.detailsLabel}
-                  </Button>
-                )}
-              </div>
-
-              {isExpanded && inboxDisplay.detailRows.length > 0 && (
-                <div className="space-y-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-[11px] text-[color:var(--text-secondary)]">
-                  <p className="font-medium uppercase tracking-[0.16em] text-[color:var(--text-primary)]">
-                    {inboxDisplay.detailsHeading}
-                  </p>
-                  {inboxDisplay.detailRows.map((detail) => (
-                    <div key={`${assignment.id}-${detail}`}>{detail}</div>
-                  ))}
-                </div>
-              )}
-
-              {request?.id && request.attachmentCount ? (
-                <RequestAttachmentStrip
-                  requestId={request.id}
-                  attachmentCount={request.attachmentCount}
-                />
-              ) : null}
-
-              {actionableAssignment && isStructuredReplyOpen && (
-                <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
-                  <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
-                    Structured reply
-                  </p>
-                  <Input
-                    value={availabilityWindow}
-                    onChange={(event) =>
-                      setAvailabilityByAssignment((current) => ({
-                        ...current,
-                        [assignment.id]: event.target.value,
-                      }))
-                    }
-                    placeholder="Availability window (e.g., this week, weekdays after 3pm)"
-                    className="bg-[color:var(--surface-card)]"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    {[
-                      { value: "budget", label: "Budget" },
-                      { value: "standard", label: "Standard" },
-                      { value: "premium", label: "Premium" },
-                      { value: "custom_quote", label: "Custom quote" },
-                    ].map((option) => {
-                      const active = priceBand === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() =>
-                            setPriceBandByAssignment((current) => ({
-                              ...current,
-                              [assignment.id]: option.value,
-                            }))
-                          }
-                          className={cn(
-                            "rounded-md border px-2 py-1.5 text-xs text-left transition-colors",
-                            active
-                              ? "border-ts-orange bg-ts-orange/20 text-white"
-                              : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
+          return (
+            <div
+              key={assignment.id}
+              className="border-b border-[color:var(--border-subtle)]/60 last:border-b-0 hover:bg-[color:var(--surface-intermediate)]/40 transition-colors"
+            >
+              <div className="space-y-3 p-3 md:p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-[color:var(--text-secondary)]">
+                      {inboxNextStepCopy.label}
+                    </p>
+                    <h3 className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
+                      {request?.title || "New opportunity"}
+                    </h3>
+                    <p className="line-clamp-1 text-xs text-[color:var(--text-secondary)] md:line-clamp-2">
+                      {request?.description || "Request details."}
+                    </p>
+                    <p className="text-[11px] text-[color:var(--text-secondary)]/90">
+                      {inboxNextStepCopy.summary}
+                    </p>
                   </div>
-                  <Textarea
-                    value={scopeNote}
-                    onChange={(event) =>
-                      setScopeNoteByAssignment((current) => ({
-                        ...current,
-                        [assignment.id]: event.target.value,
-                      }))
-                    }
-                    rows={2}
-                    placeholder="Scope note (what you can handle and next recommended step)"
-                    className="bg-[color:var(--surface-card)]"
-                  />
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className={cn("uppercase text-[10px]", statusTone(status))}
+                    >
+                      {inboxDisplay.statusLabel}
+                    </Badge>
+                    {(() => {
+                      const a = assignment as any;
+                      if (a.workerId)
+                        return (
+                          <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
+                            Worker
+                          </Badge>
+                        );
+                      if (a.responderUserId && !a.contractorId)
+                        return (
+                          <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
+                            Business
+                          </Badge>
+                        );
+                      if (a.contractorId)
+                        return (
+                          <Badge variant="secondary" className="text-[9px] uppercase tracking-wide">
+                            Provider
+                          </Badge>
+                        );
+                      return null;
+                    })()}
+                  </div>
                 </div>
-              )}
 
-              <div className="flex flex-wrap gap-1.5">
-                {actionableAssignment && (
-                  <Button
-                    size="sm"
-                    className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                    disabled={
-                      respondMutation.isPending ||
-                      (isStructuredReplyOpen && !canSubmitStructuredAccept)
-                    }
-                    onClick={async () => {
-                      if (!isStructuredReplyOpen) {
-                        setStructuredReplyOpenId(assignment.id);
-                        return;
+                <div className="flex items-center justify-between gap-2 text-[11px] text-[color:var(--text-secondary)]">
+                  <span className="min-w-0 truncate">
+                    {[
+                      request?.status
+                        ? `Request ${String(request.status).replace("_", " ")}`
+                        : null,
+                      request?.tradeId ? `Trade ${request.tradeId}` : null,
+                      request?.countyFips
+                        ? formatCountyLabel(request.countyFips, request?.stateCode)
+                        : null,
+                      inboxDisplay.timeLabel,
+                    ]
+                      .filter(Boolean)
+                      .join(" • ") || "Local match"}
+                  </span>
+                  {inboxDisplay.detailRows.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 shrink-0 px-2 text-[11px]"
+                      onClick={() =>
+                        setExpandedAssignmentId((current) =>
+                          current === assignment.id ? null : assignment.id
+                        )
                       }
-                      const result = await respondMutation.mutateAsync({
-                        id: assignment.id,
-                        decision: "accept",
-                        availabilityWindow,
-                        priceBand: priceBand as "budget" | "standard" | "premium" | "custom_quote",
-                        scopeNote,
-                      });
-                      trackShellEvent({
-                        type: "scout_query",
-                        payload: {
-                          event: "direct_connect_reply_accepted",
-                          assignmentId: assignment.id,
-                          requestId: assignment.workRequestId,
-                        },
-                      });
-                      if (result?.conversationId) {
+                      aria-expanded={isExpanded}
+                    >
+                      {isExpanded ? "Hide details" : inboxDisplay.detailsLabel}
+                    </Button>
+                  )}
+                </div>
+
+                {isExpanded && inboxDisplay.detailRows.length > 0 && (
+                  <div className="space-y-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3 text-[11px] text-[color:var(--text-secondary)]">
+                    <p className="font-medium uppercase tracking-[0.16em] text-[color:var(--text-primary)]">
+                      {inboxDisplay.detailsHeading}
+                    </p>
+                    {inboxDisplay.detailRows.map((detail) => (
+                      <div key={`${assignment.id}-${detail}`}>{detail}</div>
+                    ))}
+                  </div>
+                )}
+
+                {request?.id && request.attachmentCount ? (
+                  <RequestAttachmentStrip
+                    requestId={request.id}
+                    attachmentCount={request.attachmentCount}
+                  />
+                ) : null}
+
+                {actionableAssignment && isStructuredReplyOpen && (
+                  <div className="space-y-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/55 p-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--text-secondary)]">
+                      Structured reply
+                    </p>
+                    <Input
+                      value={availabilityWindow}
+                      onChange={(event) =>
+                        setAvailabilityByAssignment((current) => ({
+                          ...current,
+                          [assignment.id]: event.target.value,
+                        }))
+                      }
+                      placeholder="Availability window (e.g., this week, weekdays after 3pm)"
+                      className="bg-[color:var(--surface-card)]"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: "budget", label: "Budget" },
+                        { value: "standard", label: "Standard" },
+                        { value: "premium", label: "Premium" },
+                        { value: "custom_quote", label: "Custom quote" },
+                      ].map((option) => {
+                        const active = priceBand === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() =>
+                              setPriceBandByAssignment((current) => ({
+                                ...current,
+                                [assignment.id]: option.value,
+                              }))
+                            }
+                            className={cn(
+                              "rounded-md border px-2 py-1.5 text-xs text-left transition-colors",
+                              active
+                                ? "border-ts-orange bg-ts-orange/20 text-white"
+                                : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <Textarea
+                      value={scopeNote}
+                      onChange={(event) =>
+                        setScopeNoteByAssignment((current) => ({
+                          ...current,
+                          [assignment.id]: event.target.value,
+                        }))
+                      }
+                      rows={2}
+                      placeholder="Scope note (what you can handle and next recommended step)"
+                      className="bg-[color:var(--surface-card)]"
+                    />
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-1.5">
+                  {actionableAssignment && (
+                    <Button
+                      size="sm"
+                      className="h-8 px-2 text-xs bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                      disabled={
+                        respondMutation.isPending ||
+                        (isStructuredReplyOpen && !canSubmitStructuredAccept)
+                      }
+                      onClick={async () => {
+                        if (!isStructuredReplyOpen) {
+                          setStructuredReplyOpenId(assignment.id);
+                          return;
+                        }
+                        const result = await respondMutation.mutateAsync({
+                          id: assignment.id,
+                          decision: "accept",
+                          availabilityWindow,
+                          priceBand: priceBand as
+                            | "budget"
+                            | "standard"
+                            | "premium"
+                            | "custom_quote",
+                          scopeNote,
+                        });
                         trackShellEvent({
                           type: "scout_query",
                           payload: {
-                            event: "direct_connect_moved_to_conversation",
+                            event: "direct_connect_reply_accepted",
                             assignmentId: assignment.id,
                             requestId: assignment.workRequestId,
-                            conversationId: String(result.conversationId),
                           },
                         });
+                        if (result?.conversationId) {
+                          trackShellEvent({
+                            type: "scout_query",
+                            payload: {
+                              event: "direct_connect_moved_to_conversation",
+                              assignmentId: assignment.id,
+                              requestId: assignment.workRequestId,
+                              conversationId: String(result.conversationId),
+                            },
+                          });
+                        }
+                        setStructuredReplyOpenId(null);
+                      }}
+                    >
+                      {inboxNextStepCopy.actionHint}
+                    </Button>
+                  )}
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs"
+                    onClick={() => {
+                      const threadId = item.conversationThreadId;
+                      if (threadId) {
+                        window.location.href = `/messages?thread=${encodeURIComponent(String(threadId))}`;
+                        return;
                       }
-                      setStructuredReplyOpenId(null);
+                      window.location.href = request?.id
+                        ? `/messages?tab=requests&requestId=${encodeURIComponent(String(request.id))}`
+                        : "/messages?tab=requests";
                     }}
                   >
-                    {inboxNextStepCopy.actionHint}
+                    {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Ask follow-up"}
                   </Button>
-                )}
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-xs"
-                  onClick={() => {
-                    const threadId = item.conversationThreadId;
-                    if (threadId) {
-                      window.location.href = `/messages?thread=${encodeURIComponent(String(threadId))}`;
-                      return;
-                    }
-                    window.location.href = request?.id
-                      ? `/messages?tab=requests&requestId=${encodeURIComponent(String(request.id))}`
-                      : "/messages?tab=requests";
-                  }}
-                >
-                  {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Ask follow-up"}
-                </Button>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
-                  disabled={respondMutation.isPending}
-                  onClick={async () => {
-                    if (actionableAssignment) {
-                      await respondMutation.mutateAsync({
-                        id: assignment.id,
-                        decision: "decline",
-                        reason: "Archived from inbox",
-                      });
-                    }
-                    setArchivedAssignmentIds((current) => [...current, assignment.id]);
-                  }}
-                >
-                  Archive
-                </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 px-2 text-xs border-rose-500/60 text-rose-200 hover:bg-rose-500/10"
+                    disabled={respondMutation.isPending}
+                    onClick={async () => {
+                      if (actionableAssignment) {
+                        await respondMutation.mutateAsync({
+                          id: assignment.id,
+                          decision: "decline",
+                          reason: "Archived from inbox",
+                        });
+                      }
+                      setArchivedAssignmentIds((current) => [...current, assignment.id]);
+                    }}
+                  >
+                    Archive
+                  </Button>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+            </div>
+          );
+        })}
+      </Card>
     </div>
   );
 }
