@@ -168,10 +168,10 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
 };
 
 const REQUEST_FIELD_CLASS =
-  "min-h-11 rounded-lg border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 text-sm text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
-const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[116px] resize-y py-3 leading-6");
-const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-11 w-full px-3");
-const REQUEST_LABEL_CLASS = "text-[13px] font-medium text-[color:var(--text-primary)]";
+  "min-h-12 rounded-xl border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 px-3.5 text-[15px] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
+const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[128px] resize-y py-3 leading-6");
+const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-12 w-full");
+const REQUEST_LABEL_CLASS = "text-sm font-medium text-[color:var(--text-primary)]";
 const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secondary)]";
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
@@ -2321,14 +2321,14 @@ function DirectConnectRequestComposer({
   };
 
   return (
-    <Card className="overflow-hidden border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
-      <CardContent className="space-y-4 px-4 py-4 sm:px-6">
+    <Card className="overflow-hidden rounded-2xl border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
+      <CardContent className="space-y-5 px-4 py-5 sm:px-6 sm:py-6">
         <div className="space-y-3">
           <div className="space-y-2">
             <span className="inline-flex items-center rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--theme-accent-primary)]">
               {describeStep === 0 ? "Step 1 of 3 · Describe" : "Step 2 of 3 · Review"}
             </span>
-            <h1 className="text-2xl font-bold leading-tight tracking-tight text-[color:var(--text-primary)]">
+            <h1 className="text-3xl font-bold leading-tight tracking-tight text-[color:var(--text-primary)]">
               {describeStep === 0 ? "What do you need done?" : "Review your request"}
             </h1>
             <p className="text-sm leading-snug text-[color:var(--text-secondary)]">
@@ -2547,7 +2547,7 @@ function DirectConnectRequestComposer({
           </div>
         )}
         {describeStep === 1 && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {reviewCardReady && (
               <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
