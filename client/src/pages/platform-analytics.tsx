@@ -130,9 +130,53 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
     };
   };
 
+  type PensacolaLiquidityDemandSummary = {
+    county: { countyFips: string; label: string; stateCode: string };
+    window: { from: string; to: string };
+    demand: {
+      routeReadyCount: number;
+      contractorVisibleCount: number;
+      stalledNoProviderCount: number;
+      notRouteReadyCount: number;
+      routedStatusCount: number;
+      routedToProviderPct: number;
+      source: string;
+    };
+    providerActions: {
+      requestsWithProviderAction: number;
+      providerActionCount: number;
+      acceptedCount: number;
+      completedCount: number;
+      declinedCount: number;
+      eventBackedActionCount: number;
+    };
+    eventSignals: {
+      submitted: number;
+      visibleToContractors: number;
+      contractorActionStarted: number;
+    };
+    blockers: {
+      routeReadiness: number;
+      permissionOrRole: number;
+      apiFailure: number;
+      funnelStalled: number;
+      noAvailableProvider: number;
+      contactGate: { supported: boolean; count: number };
+      paidRankingInfluence: { supported: boolean; count: number };
+      fakeStatus: { supported: boolean; count: number };
+    };
+  };
+
   const { data: productKpiSummary } = useQuery<ProductKpiSummaryResponse>({
     queryKey: ["/api/analytics/product-kpi/summary"],
     queryFn: () => apiRequest("GET", "/api/analytics/product-kpi/summary"),
+    enabled: outcomeRolesAllowed,
+    staleTime: 30 * 1000,
+  });
+
+  const { data: pensacolaLiquidityDemand } = useQuery<PensacolaLiquidityDemandSummary>({
+    queryKey: ["/api/analytics/pensacola-liquidity/summary"],
+    queryFn: () => apiRequest("GET", "/api/analytics/pensacola-liquidity/summary"),
     enabled: outcomeRolesAllowed,
     staleTime: 30 * 1000,
   });
@@ -645,6 +689,102 @@ const PlatformAnalytics = memo(function PlatformAnalytics() {
                   </div>
                   <p className="text-xs text-white/50">
                     Total tracked events: {productKpiSummary.totalEvents.toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {pensacolaLiquidityDemand && (
+              <Card className="bg-tsCard/50 border-white/10 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="text-white flex items-center gap-2">
+                    <Target className="h-5 w-5 text-ts-orange" />
+                    Pensacola Direct Connect Liquidity (internal)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-sm text-white/70">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {[
+                      ["Route-ready requests", pensacolaLiquidityDemand.demand.routeReadyCount],
+                      [
+                        "Contractor-visible",
+                        pensacolaLiquidityDemand.demand.contractorVisibleCount,
+                      ],
+                      [
+                        "No available provider",
+                        pensacolaLiquidityDemand.demand.stalledNoProviderCount,
+                      ],
+                      [
+                        "Provider actions",
+                        pensacolaLiquidityDemand.providerActions.providerActionCount,
+                      ],
+                    ].map(([label, value]) => (
+                      <div
+                        key={String(label)}
+                        className="rounded-lg border border-white/10 bg-black/20 p-3"
+                      >
+                        <p className="text-[11px] uppercase tracking-[0.08em] text-white/50">
+                          {label}
+                        </p>
+                        <p className="mt-1 text-xl font-semibold text-white">{String(value)}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs font-semibold text-white/80">Routing health</p>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        <li className="flex items-center justify-between">
+                          <span>Routed-to-provider ratio</span>
+                          <span className="font-mono">
+                            {pensacolaLiquidityDemand.demand.routedToProviderPct}%
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span>Routed status count</span>
+                          <span className="font-mono">
+                            {pensacolaLiquidityDemand.demand.routedStatusCount}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span>Requests with provider action</span>
+                          <span className="font-mono">
+                            {pensacolaLiquidityDemand.providerActions.requestsWithProviderAction}
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs font-semibold text-white/80">Blocker signals</p>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        <li className="flex items-center justify-between">
+                          <span>Route-readiness blocked</span>
+                          <span className="font-mono">
+                            {pensacolaLiquidityDemand.blockers.routeReadiness}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span>Permission or role blocked</span>
+                          <span className="font-mono">
+                            {pensacolaLiquidityDemand.blockers.permissionOrRole}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span>Funnel stalled</span>
+                          <span className="font-mono">
+                            {pensacolaLiquidityDemand.blockers.funnelStalled}
+                          </span>
+                        </li>
+                        <li className="flex items-center justify-between">
+                          <span>Contact-gate/paying/fake-status blockers</span>
+                          <span className="font-mono">unsupported</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <p className="text-xs text-white/50">
+                    {pensacolaLiquidityDemand.demand.source} No raw request text, contact fields,
+                    provider lists, or lead exports are returned by this summary.
                   </p>
                 </CardContent>
               </Card>
