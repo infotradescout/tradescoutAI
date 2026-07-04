@@ -2313,66 +2313,48 @@ function DirectConnectRequestComposer({
 
   return (
     <Card className="overflow-hidden rounded-2xl border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
-      <CardContent className="space-y-5 px-4 py-5 sm:px-6 sm:py-6">
-        <div className="space-y-4 rounded-2xl border border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-intermediate)]/35 p-4 sm:p-5">
-          <div className="space-y-2.5">
-            <span className="inline-flex items-center rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--theme-accent-primary)]">
-              {describeStep === 0 ? "Step 1 of 3 · Describe" : "Step 2 of 3 · Review"}
+      <CardContent className="space-y-6 px-4 py-5 sm:px-6 sm:py-6">
+        <div className="space-y-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:var(--theme-accent-primary)]">
+            {describeStep === 0 ? "Step 1 of 3 · Describe" : "Step 2 of 3 · Review"}
+          </span>
+          <h1 className="text-3xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--text-primary)] sm:text-[2.1rem]">
+            {describeStep === 0 ? "What do you need done?" : "Review your request"}
+          </h1>
+          <p className="max-w-[44ch] text-sm leading-snug text-[color:var(--text-secondary)]">
+            {describeStep === 0
+              ? "Tell us the essentials first. Add photos and extra detail on the next step."
+              : "Confirm details, then choose who receives this request. You review before anything is shared."}
+          </p>
+          <div className="grid grid-cols-3 gap-1 pt-1" aria-label="Request progress">
+            <button
+              type="button"
+              onClick={() => setDescribeStep(0)}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
+                describeStep === 0
+                  ? "bg-ts-orange text-text-black"
+                  : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
+              )}
+            >
+              Describe
+            </button>
+            <button
+              type="button"
+              onClick={() => reviewCardReady && setDescribeStep(1)}
+              disabled={!reviewCardReady}
+              className={cn(
+                "rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45",
+                describeStep === 1
+                  ? "bg-ts-orange text-text-black"
+                  : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
+              )}
+            >
+              Review
+            </button>
+            <span className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-[color:var(--text-secondary)]">
+              Submit
             </span>
-            <h1 className="text-3xl font-extrabold leading-[1.05] tracking-tight text-[color:var(--text-primary)] sm:text-[2.1rem]">
-              {describeStep === 0 ? "What do you need done?" : "Review your request"}
-            </h1>
-            <p className="max-w-[44ch] text-sm leading-snug text-[color:var(--text-secondary)]">
-              {describeStep === 0
-                ? "Tell us the essentials first. Add photos and extra detail on the next step."
-                : "Confirm details, then choose who receives this request. You review before anything is shared."}
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <span className="rounded-full border border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] px-3 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                Local routing
-              </span>
-              <span className="rounded-full border border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] px-3 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                Private until approved
-              </span>
-              <span className="rounded-full border border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] px-3 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                Review before send
-              </span>
-            </div>
-          </div>
-          <div
-            className="rounded-xl border border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-card)] p-1"
-            aria-label="Request progress"
-          >
-            <div className="grid grid-cols-3 gap-1">
-              <button
-                type="button"
-                onClick={() => setDescribeStep(0)}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
-                  describeStep === 0
-                    ? "bg-ts-orange text-text-black"
-                    : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
-                )}
-              >
-                Describe
-              </button>
-              <button
-                type="button"
-                onClick={() => reviewCardReady && setDescribeStep(1)}
-                disabled={!reviewCardReady}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45",
-                  describeStep === 1
-                    ? "bg-ts-orange text-text-black"
-                    : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
-                )}
-              >
-                Review
-              </button>
-              <span className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-[color:var(--text-secondary)]">
-                Submit
-              </span>
-            </div>
           </div>
         </div>
         {describeStep === 0 && (
@@ -2549,8 +2531,8 @@ function DirectConnectRequestComposer({
                       {reviewSummary}
                     </p>
                   </div>
-                  <div className="grid shrink-0 grid-cols-2 gap-2 text-xs md:w-[260px]">
-                    <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                  <div className="grid shrink-0 grid-cols-2 gap-3 text-xs md:w-[260px]">
+                    <div>
                       <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
                         Location
                       </p>
@@ -2558,7 +2540,7 @@ function DirectConnectRequestComposer({
                         {reviewLocation}
                       </p>
                     </div>
-                    <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2">
+                    <div>
                       <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
                         Timing
                       </p>
@@ -2568,17 +2550,10 @@ function DirectConnectRequestComposer({
                     </div>
                   </div>
                 </div>
-                <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
-                  Check the request before you send it.
+                <p className="mt-3 text-[11px] text-[color:var(--text-secondary)]">
+                  Check the request before you send it. {completeness.message} ·{" "}
+                  {reviewCardReady ? "Ready for review" : "Add details to review"}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                    {completeness.message}
-                  </div>
-                  <div className="inline-flex rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                    {reviewCardReady ? "Ready for review" : "Add details to review"}
-                  </div>
-                </div>
                 {completeness.missing.length > 0 && (
                   <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
                     Add: {completeness.missing.join(" · ")}
@@ -2601,7 +2576,7 @@ function DirectConnectRequestComposer({
                     Private
                   </Badge>
                 </div>
-                <div className="grid gap-2 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
+                <div className="grid gap-2.5 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
                   {[
                     ["Request type", activeRequestMeta.label],
                     ["Location / county", reviewLocation],
@@ -2609,10 +2584,7 @@ function DirectConnectRequestComposer({
                     ["Summary", reviewSummary],
                     ["Next step", "Choose who receives it"],
                   ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-2"
-                    >
+                    <div key={label}>
                       <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
                         {label}
                       </p>
