@@ -60,8 +60,9 @@ export default function TradeScoutLandingPage() {
           <h1 id="ts-hero-title">Connection Without Compromise</h1>
 
           <p className="ts-hero-subheadline">
-            Tell us what you need done — no one gets your phone number until you say so. We organize
-            the job and the details first, so you're in control from the first message.
+            Post what you need done in Direct Connect — no one gets your phone number until you say
+            so. We organize the job and the details first, so you're in control from the first
+            message.
           </p>
 
           <div className="ts-hero-actions" aria-label="Primary actions">

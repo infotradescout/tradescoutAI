@@ -70,8 +70,9 @@ export default function ForBusinessesPage() {
           Get more work from people who already need it
         </h1>
         <p className="text-white/70 max-w-3xl">
-          We put your business in front of people in your area who are actively looking for help. No
-          bidding for placement, no buying your way to the top — just real requests.
+          {
+            "We put your business in front of people in your area who are actively looking for help, services, or products. No bidding for placement, no buying your way to the top — just real requests."
+          }
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href={tangipahoaApplyHref}>
