@@ -177,7 +177,7 @@ export default function OnboardingProfile() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      navigate("/pre-scout-setup?mode=create");
+      navigate(`/pre-scout-setup?mode=create&next=${encodeURIComponent("/onboarding/profile")}`);
     }
   }, [isAuthenticated, isLoading, navigate]);
 

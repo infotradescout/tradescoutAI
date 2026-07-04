@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
+import { buildAuthEntryRoute } from "@/lib/postOnboardingRoute";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ export function AuthModal({
     ""
   ).replace(/\/$/, "");
   const oauthHref = (provider: "google" | "facebook", mode: "create" | "signin" = "create") => {
-    const next = encodeURIComponent(`/pre-scout-setup?mode=${mode}`);
+    const next = encodeURIComponent(buildAuthEntryRoute({ mode }));
     return `${apiBaseUrl}/api/auth/${provider}?next=${next}`;
   };
 
@@ -147,7 +148,7 @@ export function AuthModal({
               variant="outline"
               className="w-full"
               onClick={() => {
-                navigate("/pre-scout-setup?mode=create");
+                navigate(buildAuthEntryRoute({ mode: "create" }));
               }}
             >
               Create account with email
@@ -157,7 +158,7 @@ export function AuthModal({
               variant="ghost"
               className="w-full text-white/60 hover:text-white"
               onClick={() => {
-                navigate("/pre-scout-setup?mode=signin");
+                navigate(buildAuthEntryRoute({ mode: "signin" }));
               }}
             >
               Already have an account? Sign in

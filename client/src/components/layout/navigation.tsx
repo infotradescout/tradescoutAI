@@ -35,6 +35,7 @@ import { ConstructionEmblem } from "@/components/ConstructionEmblem";
 import { NotificationBell } from "@/components/NotificationBell";
 import { cn } from "@/lib/utils";
 import { hasAdminUiAccess, hasBusinessProviderToolAccess } from "@/lib/roleChecks";
+import { ROUTES } from "@/lib/routes";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -338,7 +339,7 @@ export default function Navigation() {
                 </div>
               </div>
             ) : (
-              <Link href="/pre-scout-setup?mode=signin">
+              <Link href={ROUTES.LOGIN}>
                 <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white px-6 py-2 rounded-lg font-medium shadow-lg hover:shadow-orange-500/25 transition-all duration-300">
                   <User className="h-4 w-4 mr-2" />
                   Sign In
@@ -659,7 +660,7 @@ export default function Navigation() {
                         </a>
                       </div>
                     ) : (
-                      <Link href="/pre-scout-setup?mode=signin" onClick={closeMobileMenu}>
+                      <Link href={ROUTES.LOGIN} onClick={closeMobileMenu}>
                         <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white glow-effect">
                           Sign In
                         </Button>

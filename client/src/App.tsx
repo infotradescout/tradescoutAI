@@ -55,6 +55,11 @@ const ProfileCompletionBanner = React.lazy(
 const PageFirstVisitTutorial = React.lazy(
   () => import("./components/onboarding/PageFirstVisitTutorial")
 );
+const PWAInstallPrompt = React.lazy(() =>
+  import("./components/PWAInstallPrompt").then((module) => ({
+    default: module.PWAInstallPrompt,
+  }))
+);
 const SimpleBugReportTool = React.lazy(() => import("./components/SimpleBugReportTool"));
 
 function isDefaultHomePage(value: unknown): value is DefaultHomePage {
@@ -363,6 +368,17 @@ const AppLayout = memo(function AppLayout() {
           <PageFirstVisitTutorial />
         </Suspense>
       )}
+
+      {isAuthenticated &&
+        !isLandingRoute &&
+        !isPublicCampaignRoute &&
+        !isShareRoute &&
+        !isAuthSurface &&
+        !isDirectConnectSurface && (
+          <Suspense fallback={null}>
+            <PWAInstallPrompt enabled />
+          </Suspense>
+        )}
 
       {/* Bug report tool - always available */}
       <Suspense fallback={null}>

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
+import { getOnboardingEntryRoute } from "@/lib/postOnboardingRoute";
 
 interface AuthFlowProps {
   onComplete: () => void;
@@ -24,7 +25,7 @@ export function AuthFlow({ onComplete }: AuthFlowProps) {
     if (profileVersion >= CURRENT_PROFILE_VERSION) {
       onComplete();
     } else {
-      navigate("/pre-scout-setup");
+      navigate(getOnboardingEntryRoute(user));
     }
   }, [isAuthenticated, user, navigate, onComplete]);
 

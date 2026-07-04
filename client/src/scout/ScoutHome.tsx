@@ -1,12 +1,15 @@
 import {
+  ArrowRight,
   Calendar,
   Car,
   ChevronDown,
   ChevronRight,
   Hammer,
+  Loader2,
   Home,
   MapPin,
   Search,
+  Sparkles,
   Tag,
   Users2,
   UsersRound,
@@ -15,6 +18,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -93,6 +97,39 @@ type SetupNudgeConfig = {
   actionPrompt: string;
 };
 
+type ObjectiveUrgency = "low" | "medium" | "high";
+
+type FastWinActionCard = {
+  id: string;
+  title: string;
+  body: string;
+  actionLabel: string;
+  actionTarget: string;
+  objectiveId: string;
+  valueScore: number;
+  urgency: ObjectiveUrgency;
+};
+
+type ObjectiveSuggestion = {
+  id: string;
+  title: string;
+  description: string;
+  recommendedRoute: string;
+};
+
+type ObjectiveOnboardingBundle = {
+  role: string;
+  suggestions: ObjectiveSuggestion[];
+  fastWins: FastWinActionCard[];
+  nextRecommendedObjectiveId?: string;
+  completionSummary: {
+    completedCount: number;
+    inProgressCount: number;
+    pendingCount: number;
+    completionRate: number;
+  };
+};
+
 type ScoutLocalWorkRequest = {
   id?: string | number | null;
   title?: string | null;
@@ -130,6 +167,33 @@ type LocalCommandSnapshot = {
   localSignalCount: number;
   nextActions: LocalSnapshotAction[];
 };
+
+function inferObjectiveRole(lane?: OnboardingLane): string | undefined {
+  switch (lane) {
+    case "offer_services":
+      return "contractor";
+    case "real_estate":
+      return "realtor";
+    case "manage_projects":
+    case "find_help":
+    case "community":
+    case "browse_only":
+      return "homeowner";
+    default:
+      return undefined;
+  }
+}
+
+function formatUrgencyTone(urgency: ObjectiveUrgency): string {
+  switch (urgency) {
+    case "high":
+      return "Best first move";
+    case "medium":
+      return "Good next step";
+    default:
+      return "Worth setting up";
+  }
+}
 
 const INVALID_CONTINUITY_LABELS = new Set([
   "home project",
@@ -1057,11 +1121,102 @@ function SetupNudgeCard({
   );
 }
 
+function OnboardingPlanCard({
+  bundle,
+  isLoading,
+  onPromptSelect,
+  onOpenTarget,
+}: {
+  bundle: ObjectiveOnboardingBundle | null;
+  isLoading: boolean;
+  onPromptSelect: (prompt: string) => void;
+  onOpenTarget: (target: string) => void;
+}) {
+  if (isLoading) {
+    return (
+      <section className="px-4 pt-2">
+        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin text-ts-orange" />
+            <span>Finishing your first-run plan from onboarding.</span>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const primaryFastWin = bundle?.fastWins?.[0];
+  if (!primaryFastWin) return null;
+
+  return (
+    <section className="px-4 pt-2">
+      <div className="rounded-2xl border border-ts-orange/35 bg-gradient-to-br from-ts-orange/12 via-zinc-950 to-zinc-950 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-ts-orange">
+              <Sparkles className="h-3.5 w-3.5" />
+              <span>{formatUrgencyTone(primaryFastWin.urgency)}</span>
+            </div>
+            <h2 className="mt-2 text-lg font-semibold text-white">
+              Your setup already built a plan
+            </h2>
+            <p className="mt-1 text-sm text-zinc-300">
+              TradeScout used your onboarding answers to line up a real first move before contact
+              opens.
+            </p>
+          </div>
+          <div className="rounded-full border border-ts-orange/35 px-2.5 py-1 text-[11px] font-semibold text-ts-orange">
+            Score {primaryFastWin.valueScore}
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4">
+          <p className="text-base font-semibold text-white">{primaryFastWin.title}</p>
+          <p className="mt-1 text-sm text-zinc-300">{primaryFastWin.body}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenTarget(primaryFastWin.actionTarget)}
+              className="inline-flex items-center gap-2 rounded-lg bg-ts-orange px-3 py-2 text-sm font-semibold text-black"
+            >
+              {primaryFastWin.actionLabel}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onPromptSelect(`Help me complete this next step: ${primaryFastWin.title}`)
+              }
+              className="inline-flex rounded-lg border border-ts-orange/40 bg-ts-orange/10 px-3 py-2 text-sm font-semibold text-ts-orange"
+            >
+              Guide this step
+            </button>
+          </div>
+        </div>
+        {bundle?.fastWins && bundle.fastWins.length > 1 ? (
+          <div className="mt-3 space-y-2">
+            {bundle.fastWins.slice(1, 3).map((card) => (
+              <div key={card.id} className="flex items-start gap-2 text-sm text-zinc-400">
+                <ArrowRight className="mt-0.5 h-4 w-4 text-ts-orange" />
+                <span>
+                  <span className="font-medium text-white">{card.title}.</span> {card.body}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHomeProps) {
   const { isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const { location } = useScoutLocation();
   const { data } = useScoutHomeSnapshot(location);
   const [onboardingStatus, setOnboardingStatus] = useState<UnifiedOnboardingState | null>(null);
+  const [objectiveBundle, setObjectiveBundle] = useState<ObjectiveOnboardingBundle | null>(null);
+  const [objectiveBundlePending, setObjectiveBundlePending] = useState(false);
   const { data: directConnectRequests = [] } = useQuery<ScoutLocalWorkRequest[]>({
     queryKey: ["/api/direct-connect/requests", "scout-local-snapshot"],
     queryFn: fetchDirectConnectRequestsForScout,
@@ -1101,6 +1256,48 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
       cancelled = true;
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (!isAuthenticated || !onboardingStatus?.lane || onboardingStatus.lane === "browse_only") {
+        setObjectiveBundle(null);
+        setObjectiveBundlePending(false);
+        return;
+      }
+
+      setObjectiveBundlePending(true);
+      try {
+        const response = await fetch("/api/scout/onboarding/objective-bundle", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role: inferObjectiveRole(onboardingStatus.lane),
+            countyFips: location.fips,
+            stateCode: location.state,
+          }),
+        });
+
+        if (!response.ok) {
+          if (!cancelled) setObjectiveBundle(null);
+          return;
+        }
+
+        const bundle = (await response.json()) as ObjectiveOnboardingBundle;
+        if (!cancelled) setObjectiveBundle(bundle);
+      } catch {
+        if (!cancelled) setObjectiveBundle(null);
+      } finally {
+        if (!cancelled) setObjectiveBundlePending(false);
+      }
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, location.fips, location.state, onboardingStatus?.lane]);
 
   const continueItems = buildContinueItems(continuationThreads);
   const interests = inferUserInterestCategories(continueItems, data?.recentActivity ?? []);
@@ -1191,6 +1388,19 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
           </button>
         </div>
       </section>
+      <OnboardingPlanCard
+        bundle={objectiveBundle}
+        isLoading={objectiveBundlePending}
+        onPromptSelect={onPromptSelect}
+        onOpenTarget={(target) => {
+          const nextTarget = String(target || "").trim();
+          if (!nextTarget.startsWith("/")) {
+            onPromptSelect("Help me choose the right next step from my onboarding plan.");
+            return;
+          }
+          navigate(nextTarget);
+        }}
+      />
       {shouldShowSetupNudge && setupNudge ? (
         <SetupNudgeCard config={setupNudge} onPromptSelect={onPromptSelect} />
       ) : null}

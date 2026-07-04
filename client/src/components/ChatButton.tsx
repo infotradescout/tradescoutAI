@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { MessageCircle } from "lucide-react";
 import { useLocation } from "wouter";
+import { buildAuthEntryRoute } from "@/lib/postOnboardingRoute";
 
 interface ChatButtonProps {
   contractorId: string;
@@ -39,7 +40,7 @@ export function ChatButton({
         description: "Please sign in to start Direct Connect.",
         variant: "destructive",
       });
-      setLocation(`/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`);
+      setLocation(buildAuthEntryRoute({ mode: "signin", next: directConnectHref }));
       return;
     }
 
