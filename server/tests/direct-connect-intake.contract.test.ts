@@ -39,7 +39,7 @@ describe("direct connect intake contracts", () => {
   it("renders a request review card once required intent details are complete", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain('const reviewCardReady = completeness.level !== "too_vague";');
-    expect(source).toContain("const requestReadyToShare =");
+    expect(source).toContain("const requestReadyToRoute =");
     expect(source).toContain('routingReadiness === "route_ready"');
     expect(source).toContain("Request details review");
     expect(source).toContain("reviewCardReady && (");
@@ -48,7 +48,7 @@ describe("direct connect intake contracts", () => {
   it("adds request ready finalization state before sharing", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain("Ready to submit");
-    expect(source).toContain("Submit when ready");
+    expect(source).toContain("Send request");
     expect(source).toContain("Edit request");
     expect(source).toContain("Check the request before you send it.");
   });
