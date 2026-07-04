@@ -2319,11 +2319,11 @@ function DirectConnectRequestComposer({
   };
 
   return (
-    <Card className="overflow-hidden rounded-2xl border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
+    <Card className="overflow-hidden border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
       <CardContent className="space-y-4 px-4 py-4 sm:px-6">
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h1 className="text-3xl font-black tracking-tight leading-tight text-[color:var(--text-primary)]">
+            <h1 className="text-xl font-semibold leading-tight text-[color:var(--text-primary)]">
               Post a request
             </h1>
             <span className="shrink-0 text-[11px] font-semibold text-[color:var(--theme-accent-primary)]">
@@ -5399,7 +5399,7 @@ export default function DirectConnectShell() {
       <div className="mx-auto w-full max-w-6xl space-y-2.5 px-2.5 py-3 sm:px-3 sm:py-4 md:space-y-3 md:px-6 md:py-6">
         <div className="flex flex-col gap-2.5 md:flex-row md:items-end md:justify-between">
           {activeSection !== "post" && (
-            <h1 className="text-3xl font-black tracking-tight text-[color:var(--text-primary)] md:text-4xl">
+            <h1 className="text-2xl font-bold text-[color:var(--text-primary)] md:text-3xl">
               <span className="md:hidden">{mobileTitle}</span>
               <span className="hidden md:inline">Direct Connect</span>
             </h1>
