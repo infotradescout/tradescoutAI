@@ -1313,7 +1313,7 @@ function DirectConnectRequestComposer({
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
   const [showDispatchSheet, setShowDispatchSheet] = useState(false);
   const [dispatchMode, setDispatchMode] = useState<DispatchMode>("top_count");
-  const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(2);
+  const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(3);
   const [directorySearch, setDirectorySearch] = useState("");
   const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
   const [selectedHomeId, setSelectedHomeId] = useState<string>("");
@@ -1816,11 +1816,15 @@ function DirectConnectRequestComposer({
 
   const rankedCandidates = useMemo(() => {
     return [...localDirectoryCandidates].sort((a, b) => {
-      const locationDiff =
+      // Recommendation-first: CVS score is the composite trust/recommendation
+      // signal (recommendations + user activity + trust categories). Location
+      // is the tiebreak so equally-trusted providers surface the closest first.
+      const cvsDiff = getCandidateCvsScore(b) - getCandidateCvsScore(a);
+      if (cvsDiff !== 0) return cvsDiff;
+      return (
         getCandidateLocationScore(b, defaultCountyFips) -
-        getCandidateLocationScore(a, defaultCountyFips);
-      if (locationDiff !== 0) return locationDiff;
-      return getCandidateCvsScore(b) - getCandidateCvsScore(a);
+        getCandidateLocationScore(a, defaultCountyFips)
+      );
     });
   }, [defaultCountyFips, localDirectoryCandidates]);
 
@@ -2001,7 +2005,7 @@ function DirectConnectRequestComposer({
       setShowRequestReady(false);
       setDescribeStep(0);
       setDispatchMode("top_count");
-      setDispatchCount(2);
+      setDispatchCount(3);
       setDirectorySearch("");
       setSelectedContractorIds([]);
       setSelectedHomeId("");
@@ -3765,7 +3769,7 @@ function MyDirectConnectRequests() {
   const [requestFilter, setRequestFilter] = useState<RequestFilter>("all");
   const [showRouteSheet, setShowRouteSheet] = useState(false);
   const [routeDispatchMode, setRouteDispatchMode] = useState<DispatchMode>("top_count");
-  const [routeDispatchCount, setRouteDispatchCount] = useState<1 | 2 | 3>(2);
+  const [routeDispatchCount, setRouteDispatchCount] = useState<1 | 2 | 3>(3);
   const [routeDirectorySearch, setRouteDirectorySearch] = useState("");
   const [selectedRouteRequestId, setSelectedRouteRequestId] = useState<string | null>(null);
   const [selectedRouteContractorIds, setSelectedRouteContractorIds] = useState<string[]>([]);
@@ -3899,11 +3903,14 @@ function MyDirectConnectRequests() {
 
   const rankedRouteCandidates = useMemo(() => {
     return [...routeCandidates].sort((a, b) => {
-      const locationDiff =
+      // Recommendation-first (CVS composite), location as tiebreak. Mirrors the
+      // primary composer ranking so both entry points order providers the same way.
+      const cvsDiff = getCandidateCvsScore(b) - getCandidateCvsScore(a);
+      if (cvsDiff !== 0) return cvsDiff;
+      return (
         getCandidateLocationScore(b, activeRouteRequest?.countyFips || undefined) -
-        getCandidateLocationScore(a, activeRouteRequest?.countyFips || undefined);
-      if (locationDiff !== 0) return locationDiff;
-      return getCandidateCvsScore(b) - getCandidateCvsScore(a);
+        getCandidateLocationScore(a, activeRouteRequest?.countyFips || undefined)
+      );
     });
   }, [activeRouteRequest?.countyFips, routeCandidates]);
 
@@ -4039,7 +4046,7 @@ function MyDirectConnectRequests() {
   const openRouteSheetForRequest = (requestId: string) => {
     setSelectedRouteRequestId(requestId);
     setRouteDispatchMode("top_count");
-    setRouteDispatchCount(2);
+    setRouteDispatchCount(3);
     setRouteDirectorySearch("");
     setSelectedRouteContractorIds([]);
     setShowRouteSheet(true);
