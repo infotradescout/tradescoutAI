@@ -3322,7 +3322,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 contact_gate_state,
                 updated_at
               FROM direct_connect_dispatch_requests
-              WHERE id = ANY(${requestIds}::text[])
+              WHERE id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
             `);
             for (const row of (dispatchRows.rows || []) as any[]) {
               dispatchMetaByRequestId.set(String(row.id), row);
@@ -3356,7 +3359,10 @@ export function registerDirectConnectRoutes(app: Express) {
             db.execute(sql`
               SELECT request_id, id, status, active_stage, updated_at
               FROM direct_connect_job_workspaces
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
             `)
           );
           for (const row of workspaceRows as any[]) {
@@ -3395,7 +3401,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_estimate_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_estimates e ON e.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3430,7 +3439,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_payment_request_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3475,7 +3487,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_schedule_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3515,7 +3530,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_invoice_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_invoices i ON i.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3553,7 +3571,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_payment_record_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_receipts r ON r.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3591,7 +3612,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_checkpoint_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_checkpoints c ON c.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3627,7 +3651,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_change_order_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_change_orders c ON c.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3663,7 +3690,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_punch_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_punch_list_items p ON p.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -3695,7 +3725,10 @@ export function registerDirectConnectRoutes(app: Express) {
                   SELECT c3.status FROM job_completion_requests c3 WHERE c3.workspace_id = w.id ORDER BY c3.created_at DESC LIMIT 1
                 ) AS latest_completion_status
               FROM direct_connect_job_workspaces w
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
             `)
           );
           for (const row of completionRows as any[]) {
@@ -3723,7 +3756,10 @@ export function registerDirectConnectRoutes(app: Express) {
             const responseRows = await db.execute(sql`
               SELECT request_id, COUNT(*)::int AS count
               FROM direct_connect_contractor_responses
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY request_id
             `);
             for (const row of (responseRows.rows || []) as any[]) {
@@ -3736,7 +3772,10 @@ export function registerDirectConnectRoutes(app: Express) {
             const contactRows = await db.execute(sql`
               SELECT request_id, COUNT(*)::int AS count
               FROM direct_connect_dispatch_events
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
                 AND event_type = 'contact_requested'
               GROUP BY request_id
             `);
@@ -3751,7 +3790,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 message_text,
                 created_at
               FROM direct_connect_lifecycle_notifications
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
                 AND recipient_type = 'requester'
                 AND recipient_id = ${String(userId)}
               ORDER BY request_id, created_at DESC
@@ -3767,7 +3809,10 @@ export function registerDirectConnectRoutes(app: Express) {
             const unreadRows = await db.execute(sql`
               SELECT request_id, COUNT(*)::int AS count
               FROM direct_connect_lifecycle_notifications
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
                 AND recipient_type = 'requester'
                 AND recipient_id = ${String(userId)}
                 AND is_read = false
@@ -7419,7 +7464,10 @@ export function registerDirectConnectRoutes(app: Express) {
             db.execute(sql`
               SELECT request_id, id, status, active_stage, updated_at
               FROM direct_connect_job_workspaces
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
             `)
           );
           for (const row of workspaceRows as any[]) {
@@ -7442,7 +7490,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 message_text,
                 created_at
               FROM direct_connect_lifecycle_notifications
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
                 AND recipient_type = 'contractor'
                 AND recipient_id = ${userId}
               ORDER BY request_id, created_at DESC
@@ -7459,7 +7510,10 @@ export function registerDirectConnectRoutes(app: Express) {
             db.execute(sql`
               SELECT request_id, COUNT(*)::int AS count
               FROM direct_connect_lifecycle_notifications
-              WHERE request_id = ANY(${requestIds}::text[])
+              WHERE request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
                 AND recipient_type = 'contractor'
                 AND recipient_id = ${userId}
                 AND is_read = false
@@ -7500,7 +7554,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_estimate_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_estimates e ON e.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -7535,7 +7592,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_payment_request_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_payment_requests p ON p.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
@@ -7580,7 +7640,10 @@ export function registerDirectConnectRoutes(app: Express) {
                 ) AS latest_schedule_status
               FROM direct_connect_job_workspaces w
               LEFT JOIN job_schedule_proposals s ON s.workspace_id = w.id
-              WHERE w.request_id = ANY(${requestIds}::text[])
+              WHERE w.request_id IN (${sql.join(
+                requestIds.map((requestId) => sql`${requestId}`),
+                sql`, `
+              )})
               GROUP BY w.request_id, w.id
             `)
           );
