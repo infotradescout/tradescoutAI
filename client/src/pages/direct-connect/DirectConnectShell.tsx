@@ -2473,7 +2473,7 @@ function DirectConnectRequestComposer({
                       setTitle(next);
                       setDetailAnswers((current) => ({ ...current, what: next }));
                     }}
-                    placeholder="Short request title"
+                    placeholder="e.g. Fix a leaking kitchen faucet"
                     className={REQUEST_FIELD_CLASS}
                   />
                 </div>
@@ -2487,7 +2487,7 @@ function DirectConnectRequestComposer({
                       setDescription(next);
                       setDetailAnswers((current) => ({ ...current, details: next }));
                     }}
-                    placeholder="Tell us what is going on"
+                    placeholder="What's happening, what you've tried, and any deadlines"
                     rows={4}
                     className={REQUEST_TEXTAREA_CLASS}
                   />
@@ -2651,7 +2651,7 @@ function DirectConnectRequestComposer({
                       Add photos to this request
                     </div>
                     <div className={REQUEST_HELPER_CLASS}>
-                      Photos can help clarify scope before contact opens.
+                      Pros respond faster and quote more accurately when they can see the job.
                     </div>
                   </div>
                 </div>
@@ -2700,7 +2700,7 @@ function DirectConnectRequestComposer({
                     Save to HomeID
                   </p>
                   <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                    Keep this request in your home record for future repairs and updates.
+                    Save it so the next repair starts with this history already on file.
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">

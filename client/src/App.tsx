@@ -284,7 +284,7 @@ const AppLayout = memo(function AppLayout() {
                     TradeScout beta
                   </p>
                   <p className="mt-0.5 text-[11px] leading-4 text-[color:var(--text-secondary)]">
-                    We’re improving requests while beta is active. Report anything that feels off.
+                    Requests are actively improving — tell us if anything feels off.
                   </p>
                 </div>
                 <button
