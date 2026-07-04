@@ -2638,7 +2638,7 @@ function DirectConnectRequestComposer({
                     type="button"
                     onClick={handleOpenDispatchSheet}
                     disabled={!requestReadyToShare || createMutation.isPending}
-                    className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                    className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
                     Submit when ready
                   </Button>
@@ -2646,6 +2646,7 @@ function DirectConnectRequestComposer({
                     type="button"
                     variant="outline"
                     onClick={() => setShowRequestReady(false)}
+                    className="rounded-full"
                   >
                     Edit request
                   </Button>
@@ -2917,7 +2918,7 @@ function DirectConnectRequestComposer({
                 </div>
               )}
             </div>
-            <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
+            <div className="space-y-3 rounded-xl border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
               <DirectConnectGiveawayDisclosure />
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-xs text-[color:var(--text-secondary)]">
@@ -2926,7 +2927,7 @@ function DirectConnectRequestComposer({
                 <Button
                   onClick={openRequestReadyState}
                   disabled={createMutation.isPending || !reviewCardReady}
-                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                  className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
                 >
                   {createMutation.isPending
                     ? "Sending..."
