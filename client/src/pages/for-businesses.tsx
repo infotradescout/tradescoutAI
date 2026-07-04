@@ -67,11 +67,11 @@ export default function ForBusinessesPage() {
 
       <section className="space-y-3">
         <h1 className="text-3xl md:text-4xl font-bold text-white">
-          Grow your business with trust-first local demand
+          Get more work from people who already need it
         </h1>
         <p className="text-white/70 max-w-3xl">
-          TradeScout helps local businesses get in front of people who are actively looking for
-          help, services, or products. Contact is gated by intent and trust, not bought rankings.
+          We put your business in front of people in your area who are actively looking for help. No
+          bidding for placement, no buying your way to the top — just real requests.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href={tangipahoaApplyHref}>
@@ -177,28 +177,26 @@ export default function ForBusinessesPage() {
       <section className="grid gap-4 md:grid-cols-3">
         <Card className="bg-white/5 border-white/10">
           <CardContent className="p-5 space-y-2">
-            <h2 className="text-lg font-semibold text-white">Real local intent</h2>
+            <h2 className="text-lg font-semibold text-white">Real requests, not clicks</h2>
             <p className="text-sm text-white/70">
-              Requests come from people looking for real help in real counties, not generic ad
-              clicks.
+              Every request comes from someone nearby who actually needs the work done — not an ad
+              click with no intent behind it.
             </p>
           </CardContent>
         </Card>
         <Card className="bg-white/5 border-white/10">
           <CardContent className="p-5 space-y-2">
-            <h2 className="text-lg font-semibold text-white">No pay-to-play ranking</h2>
+            <h2 className="text-lg font-semibold text-white">You can't buy your way to the top</h2>
             <p className="text-sm text-white/70">
-              Exposure is governed by trust and fit signals. Payment does not override trust
-              placement.
+              How you show up depends on trust and fit for the job — not who pays the most.
             </p>
           </CardContent>
         </Card>
         <Card className="bg-white/5 border-white/10">
           <CardContent className="p-5 space-y-2">
-            <h2 className="text-lg font-semibold text-white">County-level focus</h2>
+            <h2 className="text-lg font-semibold text-white">Only jobs where you actually work</h2>
             <p className="text-sm text-white/70">
-              Operate where you actually work. TradeScout routes and context are built around county
-              operations.
+              We organize everything by county, so you only see requests from the areas you cover.
             </p>
           </CardContent>
         </Card>
@@ -215,7 +213,7 @@ export default function ForBusinessesPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-2xl font-semibold text-white">Explore demand surfaces</h2>
+        <h2 className="text-2xl font-semibold text-white">See where the work is</h2>
         <div className="flex flex-wrap gap-2">
           <Link href="/trade">
             <Button variant="outline" className="border-white/20 text-white">
