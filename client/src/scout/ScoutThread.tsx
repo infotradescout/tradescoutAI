@@ -121,6 +121,49 @@ function trimToSummary(content: string): string {
   return `${clean.slice(0, SUMMARY_MAX_CHARS - 3).trim()}...`;
 }
 
+function tryParseScoutEnvelope(raw: string): Record<string, unknown> | null {
+  const text = String(raw || "").trim();
+  if (!text || (!text.startsWith("{") && !text.startsWith("["))) return null;
+  try {
+    const parsed = JSON.parse(text);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function coerceReadableAssistantContent(content: string): string {
+  const envelope = tryParseScoutEnvelope(content);
+  if (!envelope) return content;
+
+  const nestedResponse =
+    envelope.response && typeof envelope.response === "object" && !Array.isArray(envelope.response)
+      ? (envelope.response as Record<string, unknown>)
+      : null;
+
+  const primaryMessage = [
+    envelope.message,
+    envelope.summary,
+    envelope.answer,
+    envelope.text,
+    nestedResponse?.message,
+    nestedResponse?.text,
+  ].find((value) => typeof value === "string" && value.trim().length > 0) as string | undefined;
+
+  if (!primaryMessage) return content;
+
+  const intent =
+    typeof envelope.intent === "string" && envelope.intent.trim().length > 0
+      ? humanizeToken(envelope.intent)
+      : "";
+
+  if (!intent) return primaryMessage.trim();
+  return `${primaryMessage.trim()}\n\nIntent: ${intent}`;
+}
+
 function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
   const hasResultSurface = Boolean(
     msg.frame ||
@@ -1242,6 +1285,10 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
             const filtered = paragraphs.filter((p) => !toStrip.some((line) => p === line.trim()));
             displayContent = filtered.join("\n\n");
           }
+        }
+
+        if (!isUser) {
+          displayContent = coerceReadableAssistantContent(displayContent);
         }
 
         const msgTime = msg.timestamp
