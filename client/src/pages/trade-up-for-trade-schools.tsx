@@ -41,6 +41,21 @@ const participation = [
   },
 ];
 
+const trackerFields = [
+  ["Starting item", "TradeScout Carpenter’s Pencil"],
+  ["Goal", "$250,000 in trade school scholarships"],
+  ["Current stage", "Starting point"],
+  ["Current item", "TradeScout Carpenter’s Pencil"],
+  ["Next milestone", "First accepted trade"],
+  ["Verified updates", "Published as the series progresses"],
+] as const;
+
+const trackerTimeline = [
+  ["Start", "Carpenter’s Pencil"],
+  ["Next", "First accepted trade"],
+  ["Goal", "$250,000 scholarships"],
+] as const;
+
 const TradeUpForTradeSchoolsPage = memo(function TradeUpForTradeSchoolsPage() {
   return (
     <>
@@ -50,7 +65,7 @@ const TradeUpForTradeSchoolsPage = memo(function TradeUpForTradeSchoolsPage() {
         canonical="https://www.thetradescout.com/trade-up-for-trade-schools"
       />
 
-      <main className="min-h-screen overflow-x-hidden bg-stone-50 text-zinc-950">
+      <main className="min-h-screen overflow-x-hidden bg-[#fafaf9] text-zinc-950">
         <header className="border-b border-zinc-200 bg-white">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <Link href="/">
@@ -116,21 +131,58 @@ const TradeUpForTradeSchoolsPage = memo(function TradeUpForTradeSchoolsPage() {
             </div>
 
             <aside className="w-full min-w-0 rounded-lg border border-zinc-200 bg-stone-50 p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
-                Starting point
-              </p>
-              <div className="mt-4 rounded-md border border-zinc-300 bg-white p-4">
-                <div className="h-3 w-full rounded-sm bg-zinc-900" />
-                <div className="mt-2 h-3 w-4/5 rounded-sm bg-[color:var(--theme-accent-primary,#ff6600)]" />
-                <div className="mt-2 h-3 w-3/5 rounded-sm bg-zinc-300" />
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-zinc-500">
+                    Campaign status
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black leading-tight text-zinc-950">
+                    Trade-Up Project Goal Tracker
+                  </h2>
+                </div>
+                <span className="inline-flex w-fit items-center rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-bold text-zinc-800">
+                  Starting point
+                </span>
               </div>
-              <h2 className="mt-5 text-2xl font-black leading-tight text-zinc-950">
-                One carpenter’s pencil. One public trade-up chain.
-              </h2>
-              <p className="mt-3 text-sm leading-6 text-zinc-700">
-                The pencil is the first trade, not a product line. Verified updates will be
-                published as the campaign series progresses.
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+                {trackerFields.map(([label, value]) => (
+                  <div key={label} className="rounded-md border border-zinc-200 bg-white p-3">
+                    <p className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">
+                      {label}
+                    </p>
+                    <p className="mt-1 text-sm font-black leading-5 text-zinc-950">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-md border border-zinc-200 bg-white p-4">
+                <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                  {trackerTimeline.map(([label, value]) => (
+                    <div key={label} className="flex items-start gap-3">
+                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-ts-orange" />
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.1em] text-zinc-500">
+                          {label}
+                        </p>
+                        <p className="text-sm font-bold leading-5 text-zinc-900">{value}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="mt-4 text-sm leading-6 text-zinc-700">
+                The tracker will update as verified trades are accepted and published through the
+                series.
               </p>
+              <a
+                href={contactHref}
+                className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-zinc-950 px-5 py-3 text-sm font-bold text-white hover:bg-zinc-800 sm:w-auto"
+              >
+                Offer a Trade
+                <ArrowRight className="h-4 w-4" />
+              </a>
             </aside>
           </div>
         </section>

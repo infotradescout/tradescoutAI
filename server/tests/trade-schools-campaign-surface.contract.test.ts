@@ -38,6 +38,7 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     const normalizedWhitespace = page.replace(/\s+/g, " ");
 
     expect(page).toContain("Trade-Up For Trade Schools");
+    expect(page).toContain("Trade-Up Project Goal Tracker");
     expect(normalizedWhitespace).toContain(
       "Following the journey from a single carpenter’s pencil to $250,000 in trade school scholarships."
     );
@@ -45,12 +46,34 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(page).toContain("Follow the Trade-Up Series");
     expect(page).toContain("Connect the Next Trade");
     expect(page).toContain("How the trade-up works");
-    expect(page).toContain("Current campaign status");
+    expect(page).toContain("Campaign status");
     expect(page).toContain("TradeScout Carpenter’s Pencil");
+    expect(page).toContain("$250,000 in trade school scholarships");
     expect(page).toContain("Direct donation portal is separate.");
     expect(page).toContain(
       "Trade-Up For Trade Schools is an independent initiative run by TradeScout."
     );
+  });
+
+  it("renders the truthful project goal tracker without invented progress", () => {
+    expect(page).toContain("Trade-Up Project Goal Tracker");
+    expect(page).toContain("Starting item");
+    expect(page).toContain("TradeScout Carpenter’s Pencil");
+    expect(page).toContain("Goal");
+    expect(page).toContain("$250,000 in trade school scholarships");
+    expect(page).toContain("Current stage");
+    expect(page).toContain("Starting point");
+    expect(page).toContain("Current item");
+    expect(page).toContain("Next milestone");
+    expect(page).toContain("First accepted trade");
+    expect(page).toContain("Verified updates");
+    expect(page).toContain("Published as the series progresses");
+    expect(page.replace(/\s+/g, " ")).toContain(
+      "The tracker will update as verified trades are accepted and published through the series."
+    );
+    expect(page).toContain("Start");
+    expect(page).toContain("Next");
+    expect(page).toContain("$250,000 scholarships");
   });
 
   it("keeps the carpenter-pencil-to-scholarships mechanic explicit", () => {
@@ -79,6 +102,10 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(page).not.toContain("Get campaign updates");
     expect(page).not.toContain("shopping cart");
     expect(page).not.toContain("prices");
+    expect(page.toLowerCase()).not.toContain("apparel");
+    expect(page.toLowerCase()).not.toContain("decals");
+    expect(page.toLowerCase()).not.toContain("signage");
+    expect(page.toLowerCase()).not.toContain("sponsor cards");
   });
 
   it("stays informational without checkout, donation-page, or fake status claims", () => {
@@ -93,6 +120,7 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(normalized).not.toContain("recipients");
     expect(normalized).not.toMatch(/\bbuy\b/);
     expect(normalized).not.toContain("buy now");
+    expect(normalized).not.toContain("purchase");
     expect(normalized).not.toContain("checkout");
     expect(normalized).not.toContain("add to cart");
     expect(normalized).not.toContain("payment processing");
@@ -103,6 +131,12 @@ describe("Trade-Up For Trade Schools campaign surface", () => {
     expect(normalized).not.toContain("tax-deductible");
     expect(normalized).not.toContain("total raised");
     expect(normalized).not.toContain("totals raised");
+    expect(normalized).not.toContain("% complete");
+    expect(normalized).not.toContain("percent complete");
+    expect(normalized).not.toContain("current estimated value");
+    expect(normalized).not.toContain("amount raised");
+    expect(normalized).not.toContain("trade count");
+    expect(normalized).not.toContain("episode count");
   });
 
   it("includes SEO metadata and the exact required disclaimer boundary", () => {
