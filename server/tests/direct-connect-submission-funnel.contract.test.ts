@@ -27,6 +27,8 @@ describe("direct connect submission funnel contract harness", () => {
     expect(shellSource).toContain('type: "direct_connect_request_review_opened"');
     expect(shellSource).toContain("const openRequestReadyState = () => {");
     expect(shellSource).toContain("if (!reviewCardReady || createMutation.isPending) {");
+    expect(shellSource).toContain("direct_connect_form_validation_blocked");
+    expect(shellSource).toContain('section: "review"');
   });
 
   it("emits request-submitted event from successful submit path", () => {
