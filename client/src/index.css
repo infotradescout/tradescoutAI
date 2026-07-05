@@ -848,6 +848,7 @@ html {
     --ts-radius-card: 8px;
     --ts-radius-control: 8px;
     --ts-radius-panel: 10px;
+    --radius: 10px;
 
     /* Charcoal foundations (mapped to theme tokens) */
     --charcoal-950: color-mix(in oklab, var(--ts-bg, #0b0f14) 92%, #000 8%);

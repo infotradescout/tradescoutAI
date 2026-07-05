@@ -208,7 +208,9 @@ export default function AdminAddressVerifications() {
       <div className="p-6">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-white/60 dark:text-white/60">Loading address verifications...</p>
+          <p className="text-[color:var(--text-secondary)] dark:text-[color:var(--text-secondary)]">
+            Loading address verifications...
+          </p>
         </div>
       </div>
     );
@@ -219,7 +221,7 @@ export default function AdminAddressVerifications() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-ts-orange">Address Verifications</h1>
-        <p className="text-white/60 dark:text-white/60 mt-2">
+        <p className="text-[color:var(--text-secondary)] dark:text-[color:var(--text-secondary)] mt-2">
           Manage user address verification requests and monitor platform compliance.
         </p>
       </div>
@@ -231,11 +233,16 @@ export default function AdminAddressVerifications() {
             verifications?.filter((v: VerificationWithUser) => v.verification.status === status)
               .length || 0;
           return (
-            <Card key={status}>
+            <Card
+              key={status}
+              className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]"
+            >
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-white/60 dark:text-white/60 capitalize">{status}</p>
+                    <p className="text-sm text-[color:var(--text-secondary)] dark:text-[color:var(--text-secondary)] capitalize">
+                      {status}
+                    </p>
                     <p className="text-2xl font-bold">{count}</p>
                   </div>
                   {getStatusIcon(status)}
@@ -247,7 +254,7 @@ export default function AdminAddressVerifications() {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader>
           <CardTitle>Filter Verifications</CardTitle>
         </CardHeader>
@@ -271,7 +278,7 @@ export default function AdminAddressVerifications() {
       </Card>
 
       {/* Verifications Table */}
-      <Card>
+      <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardHeader>
           <CardTitle>Address Verification Requests</CardTitle>
           <CardDescription>
@@ -302,19 +309,21 @@ export default function AdminAddressVerifications() {
                     <TableRow key={verification.id}>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <UserCheck className="w-4 h-4 text-white/60" />
+                          <UserCheck className="w-4 h-4 text-[color:var(--text-secondary)]" />
                           <div>
                             <p className="font-medium">
                               {user.firstName} {user.lastName}
                             </p>
-                            <p className="text-sm text-white/60">{user.email}</p>
+                            <p className="text-sm text-[color:var(--text-secondary)]">
+                              {user.email}
+                            </p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="max-w-xs">
                           <p className="font-medium">{verification.fullAddress}</p>
-                          <p className="text-sm text-white/60">
+                          <p className="text-sm text-[color:var(--text-secondary)]">
                             {verification.city}, {verification.state} {verification.zipCode}
                           </p>
                         </div>
@@ -330,11 +339,11 @@ export default function AdminAddressVerifications() {
                       <TableCell>{getStatusBadge(verification.status)}</TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-white/60" />
+                          <Calendar className="w-4 h-4 text-[color:var(--text-secondary)]" />
                           <div>
                             <p className="text-sm">{formatDate(verification.deadline)}</p>
                             <p
-                              className={`text-xs ${isOverdue ? "text-red-600" : daysRemaining <= 3 ? "text-ts-orange" : "text-white/60"}`}
+                              className={`text-xs ${isOverdue ? "text-red-600" : daysRemaining <= 3 ? "text-ts-orange" : "text-[color:var(--text-secondary)]"}`}
                             >
                               {isOverdue
                                 ? `${Math.abs(daysRemaining)} days overdue`
@@ -379,7 +388,7 @@ export default function AdminAddressVerifications() {
                                       {selectedVerification.user.firstName}{" "}
                                       {selectedVerification.user.lastName}
                                     </p>
-                                    <p className="text-sm text-white/60">
+                                    <p className="text-sm text-[color:var(--text-secondary)]">
                                       {selectedVerification.user.email}
                                     </p>
                                   </div>
@@ -399,7 +408,7 @@ export default function AdminAddressVerifications() {
                                     style={{ backgroundColor: "var(--surface-card)" }}
                                   >
                                     <p>{selectedVerification.verification.fullAddress}</p>
-                                    <p className="text-sm text-white/60">
+                                    <p className="text-sm text-[color:var(--text-secondary)]">
                                       {selectedVerification.verification.city},{" "}
                                       {selectedVerification.verification.state}{" "}
                                       {selectedVerification.verification.zipCode}
@@ -476,7 +485,9 @@ export default function AdminAddressVerifications() {
 
             {(!verifications || verifications.length === 0) && (
               <div className="text-center py-8">
-                <p className="text-white/60 dark:text-white/60">No address verifications found.</p>
+                <p className="text-[color:var(--text-secondary)] dark:text-[color:var(--text-secondary)]">
+                  No address verifications found.
+                </p>
               </div>
             )}
           </div>
