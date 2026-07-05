@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -22,6 +23,30 @@ import {
 import { StateCountySelector } from "@/components/state-county-selector";
 import { Link } from "wouter";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
+
+const BUSINESS_AVATAR_PALETTE = [
+  "bg-sky-500/20 text-sky-200",
+  "bg-emerald-500/20 text-emerald-200",
+  "bg-amber-500/20 text-amber-200",
+  "bg-violet-500/20 text-violet-200",
+  "bg-rose-500/20 text-rose-200",
+  "bg-teal-500/20 text-teal-200",
+];
+
+function getBusinessInitials(label: string): string {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+}
+
+function getBusinessAvatarClass(label: string): string {
+  let hash = 0;
+  for (let i = 0; i < label.length; i += 1) {
+    hash = (hash * 31 + label.charCodeAt(i)) >>> 0;
+  }
+  return BUSINESS_AVATAR_PALETTE[hash % BUSINESS_AVATAR_PALETTE.length];
+}
 
 type TradeOption = {
   id: string;
@@ -318,26 +343,35 @@ export default function DirectConnectPros() {
               return (
                 <div
                   key={business.id}
-                  className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3"
+                  className="border-b border-[color:var(--border-subtle)]/60 py-3 last:border-b-0"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
-                        {business.name}
-                      </div>
-                      <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                        {county
-                          ? formatCountyLabel(county.fips, county.stateCode)
-                          : "Local area not specified"}
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <Badge variant="secondary">Not verified</Badge>
-                        <Badge variant="outline">Local directory</Badge>
-                        {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
-                          <Badge variant="outline">Claimed profile</Badge>
-                        ) : (
-                          <Badge variant="outline">Unclaimed listing</Badge>
-                        )}
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <Avatar className="h-9 w-9 shrink-0 border border-[color:var(--border-subtle)]">
+                        <AvatarFallback
+                          className={`text-[11px] font-semibold ${getBusinessAvatarClass(business.name)}`}
+                        >
+                          {getBusinessInitials(business.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-[color:var(--text-primary)]">
+                          {business.name}
+                        </div>
+                        <div className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                          {county
+                            ? formatCountyLabel(county.fips, county.stateCode)
+                            : "Local area not specified"}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <Badge variant="secondary">Not verified</Badge>
+                          <Badge variant="outline">Local directory</Badge>
+                          {String(business.claimStatus || "").toLowerCase() === "claimed" ? (
+                            <Badge variant="outline">Claimed profile</Badge>
+                          ) : (
+                            <Badge variant="outline">Unclaimed listing</Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="shrink-0">

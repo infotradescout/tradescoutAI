@@ -19,6 +19,7 @@ import { interpretWorkRequestStateForScout } from "@/utils/interpretWorkRequestS
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DecisionContactGatePanel,
   type DecisionContactGateAction,
@@ -1155,6 +1156,30 @@ type DirectoryCandidate = {
   slug?: string | null;
   roleContext?: string | null;
 };
+
+const PROVIDER_AVATAR_PALETTE = [
+  "bg-sky-500/20 text-sky-200",
+  "bg-emerald-500/20 text-emerald-200",
+  "bg-amber-500/20 text-amber-200",
+  "bg-violet-500/20 text-violet-200",
+  "bg-rose-500/20 text-rose-200",
+  "bg-teal-500/20 text-teal-200",
+];
+
+function getProviderInitials(label: string): string {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase();
+}
+
+function getProviderAvatarClass(label: string): string {
+  let hash = 0;
+  for (let i = 0; i < label.length; i += 1) {
+    hash = (hash * 31 + label.charCodeAt(i)) >>> 0;
+  }
+  return PROVIDER_AVATAR_PALETTE[hash % PROVIDER_AVATAR_PALETTE.length];
+}
 
 type DispatchMode = "top_count" | "direct_pick";
 type DirectConnectCreateDispatch = {
@@ -3251,13 +3276,13 @@ function DirectConnectRequestComposer({
 
               <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
                 {isDirectoryLoading && (
-                  <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                  <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
                     Finding local businesses...
                   </div>
                 )}
 
                 {!isDirectoryLoading && rankedCandidates.length === 0 && (
-                  <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                  <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
                     No local companies found right now. You can still send this request with none
                     selected.
                   </div>
@@ -3269,6 +3294,8 @@ function DirectConnectRequestComposer({
                     const distance = parseNumberOrNull(candidate.distanceMiles);
                     const cvsScore = getCandidateCvsScore(candidate);
                     const locationScore = getCandidateLocationScore(candidate, defaultCountyFips);
+                    const candidateLabel =
+                      candidate.companyName || candidate.name || "Local company";
 
                     return (
                       <button
@@ -3283,22 +3310,33 @@ function DirectConnectRequestComposer({
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1">
-                            <p className="text-xs font-semibold text-[color:var(--text-primary)]">
-                              {index + 1}.{" "}
-                              {candidate.companyName || candidate.name || "Local company"}
-                            </p>
-                            <p className="text-[11px] text-[color:var(--text-secondary)]">
-                              {distance !== null
-                                ? `${distance.toFixed(1)} mi away`
-                                : candidate.serviceAreas?.length
-                                  ? candidate.serviceAreas.slice(0, 2).join(", ")
-                                  : "Local service area"}
-                            </p>
-                            <p className="text-[11px] text-[color:var(--text-secondary)]">
-                              CVS {Math.round(cvsScore)} • Location score{" "}
-                              {Math.round(locationScore)}
-                            </p>
+                          <div className="flex items-start gap-2.5">
+                            <Avatar className="h-9 w-9 border border-[color:var(--border-subtle)]">
+                              <AvatarFallback
+                                className={cn(
+                                  "text-[11px] font-semibold",
+                                  getProviderAvatarClass(candidateLabel)
+                                )}
+                              >
+                                {getProviderInitials(candidateLabel)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1">
+                              <p className="text-xs font-semibold text-[color:var(--text-primary)]">
+                                {index + 1}. {candidateLabel}
+                              </p>
+                              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                                {distance !== null
+                                  ? `${distance.toFixed(1)} mi away`
+                                  : candidate.serviceAreas?.length
+                                    ? candidate.serviceAreas.slice(0, 2).join(", ")
+                                    : "Local service area"}
+                              </p>
+                              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                                CVS {Math.round(cvsScore)} • Location score{" "}
+                                {Math.round(locationScore)}
+                              </p>
+                            </div>
                           </div>
                           <Badge
                             variant={isSelected ? "default" : "outline"}
@@ -5100,13 +5138,13 @@ function MyDirectConnectRequests() {
 
             <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
               {routeCandidatesLoading && (
-                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
                   Finding local businesses...
                 </div>
               )}
 
               {!routeCandidatesLoading && rankedRouteCandidates.length === 0 && (
-                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
                   No businesses found right now. We will manually route this to a reputable local
                   company, and you will still approve before contact is unlocked.
                 </div>
@@ -5121,6 +5159,8 @@ function MyDirectConnectRequests() {
                     candidate,
                     activeRouteRequest?.countyFips || undefined
                   );
+                  const candidateLabel =
+                    candidate.companyName || candidate.name || "Local business";
                   return (
                     <button
                       key={candidate.id}
@@ -5134,21 +5174,32 @@ function MyDirectConnectRequests() {
                       )}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <p className="text-xs font-semibold text-[color:var(--text-primary)]">
-                            {index + 1}.{" "}
-                            {candidate.companyName || candidate.name || "Local business"}
-                          </p>
-                          <p className="text-[11px] text-[color:var(--text-secondary)]">
-                            {distance !== null
-                              ? `${distance.toFixed(1)} mi away`
-                              : candidate.serviceAreas?.length
-                                ? candidate.serviceAreas.slice(0, 2).join(", ")
-                                : "Local service area"}
-                          </p>
-                          <p className="text-[11px] text-[color:var(--text-secondary)]">
-                            CVS {Math.round(cvs)} • Location score {Math.round(location)}
-                          </p>
+                        <div className="flex items-start gap-2.5">
+                          <Avatar className="h-9 w-9 border border-[color:var(--border-subtle)]">
+                            <AvatarFallback
+                              className={cn(
+                                "text-[11px] font-semibold",
+                                getProviderAvatarClass(candidateLabel)
+                              )}
+                            >
+                              {getProviderInitials(candidateLabel)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-[color:var(--text-primary)]">
+                              {index + 1}. {candidateLabel}
+                            </p>
+                            <p className="text-[11px] text-[color:var(--text-secondary)]">
+                              {distance !== null
+                                ? `${distance.toFixed(1)} mi away`
+                                : candidate.serviceAreas?.length
+                                  ? candidate.serviceAreas.slice(0, 2).join(", ")
+                                  : "Local service area"}
+                            </p>
+                            <p className="text-[11px] text-[color:var(--text-secondary)]">
+                              CVS {Math.round(cvs)} • Location score {Math.round(location)}
+                            </p>
+                          </div>
                         </div>
                         <Badge
                           variant={selected ? "default" : "outline"}
@@ -5869,11 +5920,11 @@ export default function DirectConnectShell() {
             </div>
             <div className="mt-3 space-y-2 overflow-y-auto pr-1 max-h-[74vh]">
               {!isAuthenticated ? (
-                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
                   Sign in to view Direct Connect notifications.
                 </div>
               ) : notificationsLoading ? (
-                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
                   Loading Direct Connect updates...
                 </div>
               ) : notificationsError ? (
@@ -5881,7 +5932,7 @@ export default function DirectConnectShell() {
                   Could not load notifications right now.
                 </div>
               ) : activeNotifications.length < 1 ? (
-                <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-3 text-xs text-[color:var(--text-secondary)]">
+                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
                   No Direct Connect updates yet.
                 </div>
               ) : (
