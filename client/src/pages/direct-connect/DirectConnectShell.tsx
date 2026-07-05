@@ -1337,6 +1337,7 @@ function DirectConnectRequestComposer({
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
+  const [autofillSources, setAutofillSources] = useState<string[]>([]);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
   >({
@@ -1349,6 +1350,12 @@ function DirectConnectRequestComposer({
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
   const contextualAutofillAppliedRef = useRef(false);
+  const contextualAutofillSnapshotRef = useRef<{
+    title?: string;
+    description?: string;
+    where?: string;
+    requestType?: RequestType;
+  }>({});
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
 
@@ -1566,6 +1573,37 @@ function DirectConnectRequestComposer({
     attachmentsRef.current.forEach((attachment) => URL.revokeObjectURL(attachment.previewUrl));
     attachmentsRef.current = [];
     setAttachments([]);
+  };
+
+  const clearContextualAutofill = () => {
+    const snapshot = contextualAutofillSnapshotRef.current;
+
+    if (snapshot.title && title.trim() === snapshot.title.trim()) {
+      setTitle("");
+      setDetailAnswers((current) => ({
+        ...current,
+        what: current.what.trim() === snapshot.title?.trim() ? "" : current.what,
+      }));
+    }
+
+    if (snapshot.description && description.trim() === snapshot.description.trim()) {
+      setDescription("");
+      setDetailAnswers((current) => ({
+        ...current,
+        details: current.details.trim() === snapshot.description?.trim() ? "" : current.details,
+      }));
+    }
+
+    if (snapshot.where && detailAnswers.where.trim() === snapshot.where.trim()) {
+      setDetailAnswers((current) => ({ ...current, where: "" }));
+    }
+
+    if (snapshot.requestType && requestType === snapshot.requestType) {
+      setRequestType("service_request");
+    }
+
+    contextualAutofillSnapshotRef.current = {};
+    setAutofillSources([]);
   };
 
   const requestTypeMeta: Record<
@@ -1980,6 +2018,13 @@ function DirectConnectRequestComposer({
     }
 
     let changed = false;
+    const nextSources: string[] = [];
+    const nextSnapshot: {
+      title?: string;
+      description?: string;
+      where?: string;
+      requestType?: RequestType;
+    } = {};
 
     if (!title.trim() && latestTitle) {
       setTitle(latestTitle);
@@ -1988,6 +2033,8 @@ function DirectConnectRequestComposer({
         what: current.what.trim() ? current.what : latestTitle,
       }));
       changed = true;
+      nextSources.push("Recent activity");
+      nextSnapshot.title = latestTitle;
     }
 
     if (!description.trim() && latestDescription) {
@@ -1998,19 +2045,27 @@ function DirectConnectRequestComposer({
         details: current.details.trim() ? current.details : concise,
       }));
       changed = true;
+      nextSources.push("Recent activity");
+      nextSnapshot.description = concise;
     }
 
     if (!detailAnswers.where.trim() && locationSuggestion) {
       setDetailAnswers((current) => ({ ...current, where: locationSuggestion }));
       changed = true;
+      nextSources.push("Location profile");
+      nextSnapshot.where = locationSuggestion;
     }
 
-    if (requestType === "service_request" && suggestedType) {
+    if (!prefillSource && requestType === "service_request" && suggestedType) {
       setRequestType(suggestedType);
       changed = true;
+      nextSources.push("Onboarding profile");
+      nextSnapshot.requestType = suggestedType;
     }
 
     if (changed) {
+      contextualAutofillSnapshotRef.current = nextSnapshot;
+      setAutofillSources(Array.from(new Set(nextSources)));
       void trackShellEvent({
         type: "direct_connect_request_started",
         category: activeRequestMeta.category,
@@ -2019,6 +2074,9 @@ function DirectConnectRequestComposer({
         deviceType: getDeviceType(),
         ts: new Date().toISOString(),
       });
+    } else {
+      contextualAutofillSnapshotRef.current = {};
+      setAutofillSources([]);
     }
 
     contextualAutofillAppliedRef.current = true;
@@ -2519,6 +2577,26 @@ function DirectConnectRequestComposer({
               Submit
             </span>
           </div>
+          {describeStep === 0 && autofillSources.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="text-[11px] text-[color:var(--text-secondary)]">Autofilled:</span>
+              {autofillSources.map((source) => (
+                <span
+                  key={source}
+                  className="inline-flex items-center rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]"
+                >
+                  {source}
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={clearContextualAutofill}
+                className="text-[11px] font-medium text-[color:var(--theme-accent-primary)] hover:underline"
+              >
+                Clear autofill
+              </button>
+            </div>
+          )}
         </div>
         {describeStep === 0 && (
           <div className="space-y-6">
