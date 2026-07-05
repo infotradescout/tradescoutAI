@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">TradeScout Carpet &amp; Upholstery Cleaning category placeholder</title>
+  <desc id="desc">Generic illustrated placeholder tile for the TradeScout Carpet &amp; Upholstery Cleaning category.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="46%" cy="26%" r="65%">
+      <stop offset="0%" stop-color="#14b8a6" stop-opacity=".42"/>
+      <stop offset="58%" stop-color="#14b8a6" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#14b8a6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f8fafc" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" rx="54" fill="url(#bg)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#grid)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#glow)"/>
+  <circle cx="849" cy="146" r="126" fill="#14b8a6" fill-opacity="0.072"/>
+  <circle cx="221" cy="629" r="181" fill="#14b8a6" fill-opacity="0.060"/>
+  <path d="M100 191 C260 101, 390 111, 505 206" stroke="#14b8a6" stroke-opacity=".22" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M710 634 C835 609, 940 614, 1095 544" stroke="#14b8a6" stroke-opacity=".13" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <g color="#14b8a6" opacity=".97" >
+    
+            <path d="M450 610h300l-45-245H495z" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M520 365V245h160v120M480 610l-45 75h330l-45-75" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M805 245l24 54 54 24-54 24-24 54-24-54-54-24 54-24z" fill="currentColor"/>
+            <path d="M360 340l16 36 36 16-36 16-16 36-16-36-36-16 36-16z" fill="currentColor"/>
+        
+  </g>
+  
+</svg>

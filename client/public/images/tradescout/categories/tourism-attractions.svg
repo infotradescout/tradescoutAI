@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">TradeScout Tourism &amp; Attractions category placeholder</title>
+  <desc id="desc">Generic illustrated placeholder tile for the TradeScout Tourism &amp; Attractions category.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="73%" cy="33%" r="65%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity=".42"/>
+      <stop offset="58%" stop-color="#f97316" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f8fafc" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" rx="54" fill="url(#bg)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#grid)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#glow)"/>
+  <circle cx="902" cy="133" r="123" fill="#f97316" fill-opacity="0.096"/>
+  <circle cx="108" cy="617" r="188" fill="#f97316" fill-opacity="0.110"/>
+  <path d="M100 168 C260 48, 390 118, 505 153" stroke="#f97316" stroke-opacity=".22" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M710 587 C835 582, 940 567, 1095 497" stroke="#f97316" stroke-opacity=".13" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <g color="#f97316" opacity=".97" >
+    
+            <rect x="385" y="250" width="430" height="360" rx="34" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M475 210v80M725 210v80M385 360h430" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M600 420l35 70 78 12-56 55 13 78-70-37-70 37 13-78-56-55 78-12z" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+        
+  </g>
+  
+</svg>

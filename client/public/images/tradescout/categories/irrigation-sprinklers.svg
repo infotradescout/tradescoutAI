@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">TradeScout Irrigation &amp; Sprinklers category placeholder</title>
+  <desc id="desc">Generic illustrated placeholder tile for the TradeScout Irrigation &amp; Sprinklers category.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="71%" cy="21%" r="65%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity=".42"/>
+      <stop offset="58%" stop-color="#22c55e" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#22c55e" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f8fafc" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" rx="54" fill="url(#bg)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#grid)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#glow)"/>
+  <circle cx="854" cy="171" r="126" fill="#22c55e" fill-opacity="0.072"/>
+  <circle cx="171" cy="609" r="146" fill="#22c55e" fill-opacity="0.060"/>
+  <path d="M100 186 C260 96, 390 76, 505 201" stroke="#22c55e" stroke-opacity=".22" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M710 599 C835 584, 940 579, 1095 509" stroke="#22c55e" stroke-opacity=".13" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <g color="#22c55e" opacity=".97" >
+    
+            <path d="M600 625c0-210 155-330 315-320-20 160-135 305-315 320z" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M595 625C575 440 435 330 285 345c30 140 135 260 310 280z" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M600 625V310M345 665h510" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+        
+  </g>
+  
+</svg>

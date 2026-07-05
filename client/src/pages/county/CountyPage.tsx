@@ -38,6 +38,27 @@ interface CountyCoverageData {
   lastEntityChangeAt: string | null;
 }
 
+const FEATURED_TRADE_PLACEHOLDER_SLUGS: Record<string, string> = {
+  plumbing: "plumbing",
+  electrical: "electrical",
+  roofing: "roofing",
+  hvac: "hvac",
+  "concrete-contractor": "masonry-concrete",
+  landscaping: "landscaping-lawn-care",
+  painting: "painting",
+  flooring: "flooring",
+  "pest-control": "pest-control",
+  "general-contractor": "general-contractor",
+  "tree-service": "tree-service",
+  handyman: "handyman",
+};
+
+function getCategoryPlaceholderSrc(tradeSlug: string): string | null {
+  const placeholderSlug = FEATURED_TRADE_PLACEHOLDER_SLUGS[tradeSlug];
+  if (!placeholderSlug) return null;
+  return `/images/tradescout/categories/${placeholderSlug}.svg`;
+}
+
 // Utility: Convert county name to kebab-case slug
 function nameToSlug(name: string): string {
   return name
@@ -319,18 +340,36 @@ const CountyPage = memo(function CountyPage() {
           <CardContent className="p-6">
             <h2 className="text-xl font-semibold text-white mb-3">Browse trades in {marketName}</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {featuredTrades.map((trade) => (
-                <Link
-                  key={trade.slug}
-                  href={`/trade/${encodeURIComponent(trade.slug)}/${encodeURIComponent(
-                    state.code.toLowerCase()
-                  )}/${encodeURIComponent(countySlugForTradeLinks)}`}
-                >
-                  <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
-                    {trade.name}
-                  </a>
-                </Link>
-              ))}
+              {featuredTrades.map((trade) =>
+                (() => {
+                  const categoryImageSrc = getCategoryPlaceholderSrc(trade.slug);
+                  return (
+                    <Link
+                      key={trade.slug}
+                      href={`/trade/${encodeURIComponent(trade.slug)}/${encodeURIComponent(
+                        state.code.toLowerCase()
+                      )}/${encodeURIComponent(countySlugForTradeLinks)}`}
+                    >
+                      <a className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white hover:bg-white/10">
+                        <span className="flex items-center gap-2">
+                          {categoryImageSrc ? (
+                            <img
+                              src={categoryImageSrc}
+                              alt={`${trade.name} category placeholder illustration`}
+                              className="h-6 w-6 shrink-0 rounded bg-white/10 p-0.5"
+                              loading="lazy"
+                              onError={(event) => {
+                                event.currentTarget.style.display = "none";
+                              }}
+                            />
+                          ) : null}
+                          <span>{trade.name}</span>
+                        </span>
+                      </a>
+                    </Link>
+                  );
+                })()
+              )}
             </div>
           </CardContent>
         </Card>

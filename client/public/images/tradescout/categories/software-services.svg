@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">TradeScout Software Services category placeholder</title>
+  <desc id="desc">Generic illustrated placeholder tile for the TradeScout Software Services category.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="73%" cy="33%" r="65%">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity=".42"/>
+      <stop offset="58%" stop-color="#818cf8" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f8fafc" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" rx="54" fill="url(#bg)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#grid)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#glow)"/>
+  <circle cx="842" cy="133" r="143" fill="#818cf8" fill-opacity="0.096"/>
+  <circle cx="138" cy="572" r="188" fill="#818cf8" fill-opacity="0.090"/>
+  <path d="M100 198 C260 108, 390 118, 505 213" stroke="#818cf8" stroke-opacity=".22" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M710 617 C835 582, 940 597, 1095 527" stroke="#818cf8" stroke-opacity=".13" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <g color="#818cf8" opacity=".97" >
+    
+            <rect x="350" y="240" width="500" height="340" rx="30" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M350 335h500M600 580v75M455 655h290" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M500 460l70 70 145-165" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+        
+  </g>
+  
+</svg>

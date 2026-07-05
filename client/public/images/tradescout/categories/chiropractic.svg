@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">TradeScout Chiropractic category placeholder</title>
+  <desc id="desc">Generic illustrated placeholder tile for the TradeScout Chiropractic category.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="80%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#2dd4bf" stop-opacity=".42"/>
+      <stop offset="58%" stop-color="#2dd4bf" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f8fafc" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" rx="54" fill="url(#bg)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#grid)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#glow)"/>
+  <circle cx="905" cy="180" r="150" fill="#2dd4bf" fill-opacity="0.060"/>
+  <circle cx="165" cy="610" r="155" fill="#2dd4bf" fill-opacity="0.070"/>
+  <path d="M100 135 C260 45, 390 85, 505 150" stroke="#2dd4bf" stroke-opacity=".22" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M710 640 C835 575, 940 620, 1095 550" stroke="#2dd4bf" stroke-opacity=".13" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <g color="#2dd4bf" opacity=".97" >
+    
+            <path d="M600 635S365 505 365 345c0-75 58-130 130-130 45 0 85 24 105 62 20-38 60-62 105-62 72 0 130 55 130 130 0 160-235 290-235 290z" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M435 425h100l40-80 65 155 45-75h80" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+        
+  </g>
+  
+</svg>

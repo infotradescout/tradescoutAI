@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">TradeScout Pet Boarding &amp; Daycare category placeholder</title>
+  <desc id="desc">Generic illustrated placeholder tile for the TradeScout Pet Boarding &amp; Daycare category.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="71%" cy="21%" r="65%">
+      <stop offset="0%" stop-color="#a3e635" stop-opacity=".42"/>
+      <stop offset="58%" stop-color="#a3e635" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#a3e635" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0H0V64" fill="none" stroke="#f8fafc" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="800" rx="54" fill="url(#bg)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#grid)"/>
+  <rect width="1200" height="800" rx="54" fill="url(#glow)"/>
+  <circle cx="944" cy="171" r="146" fill="#a3e635" fill-opacity="0.072"/>
+  <circle cx="201" cy="564" r="146" fill="#a3e635" fill-opacity="0.110"/>
+  <path d="M100 126 C260 81, 390 76, 505 186" stroke="#a3e635" stroke-opacity=".22" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M710 629 C835 584, 940 609, 1095 539" stroke="#a3e635" stroke-opacity=".13" stroke-width="20" fill="none" stroke-linecap="round"/>
+  <g color="#a3e635" opacity=".97" >
+    
+            <circle cx="600" cy="470" r="95" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="470" cy="340" r="55" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="550" cy="280" r="55" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="650" cy="280" r="55" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="730" cy="340" r="55" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M540 530c35 30 85 30 120 0" fill="none" stroke="currentColor" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+        
+  </g>
+  
+</svg>
