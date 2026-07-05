@@ -1348,6 +1348,7 @@ function DirectConnectRequestComposer({
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
+  const contextualAutofillAppliedRef = useRef(false);
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
 
@@ -1359,6 +1360,30 @@ function DirectConnectRequestComposer({
     ? (homesQuery.data as any).homes
     : [];
   const hasExistingHomes = homes.length > 0;
+
+  const recentRequestsQuery = useQuery<DirectConnectRequest[]>({
+    queryKey: ["/api/direct-connect/requests", "composer_autofill"],
+    queryFn: async () => {
+      const res = await fetch("/api/direct-connect/requests?scope=all");
+      if (!res.ok) return [];
+      const payload = await res.json();
+      return Array.isArray(payload) ? (payload as DirectConnectRequest[]) : [];
+    },
+    enabled: isAuthenticated,
+    staleTime: 60 * 1000,
+  });
+
+  const latestRequest = useMemo(() => {
+    const rows = Array.isArray(recentRequestsQuery.data) ? recentRequestsQuery.data : [];
+    if (rows.length < 1) return null;
+    return [...rows]
+      .filter((request) => !looksLikeHiddenOrTestRequest(request))
+      .sort((a, b) => {
+        const aTs = new Date(a.updatedAt || a.createdAt || 0).getTime();
+        const bTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
+        return bTs - aTs;
+      })[0];
+  }, [recentRequestsQuery.data]);
   const currentReturnPath = () => {
     if (typeof window === "undefined") return location || "/direct-connect";
     return `${window.location.pathname}${window.location.search || ""}`;
@@ -1873,6 +1898,147 @@ function DirectConnectRequestComposer({
         : `${intentConfig.prompt} Share details, timing, and location.`
     );
   }, [intentConfig]);
+
+  useEffect(() => {
+    if (contextualAutofillAppliedRef.current) return;
+    if (!isAuthenticated) return;
+    if (!homesQuery.isFetched || !recentRequestsQuery.isFetched) return;
+
+    const profile = (user as any) || {};
+    const home = hasExistingHomes ? (homes[0] as any) : null;
+
+    const profileCity =
+      typeof profile.city === "string"
+        ? profile.city.trim()
+        : typeof profile.preferences?.geo?.homeLocation?.city === "string"
+          ? String(profile.preferences.geo.homeLocation.city).trim()
+          : "";
+    const profileState =
+      typeof profile.stateCode === "string"
+        ? profile.stateCode.trim().toUpperCase()
+        : typeof profile.preferences?.geo?.homeLocation?.state === "string"
+          ? String(profile.preferences.geo.homeLocation.state).trim().toUpperCase()
+          : "";
+    const profileZip =
+      typeof profile.zipCode === "string"
+        ? profile.zipCode.trim()
+        : typeof profile.zip === "string"
+          ? profile.zip.trim()
+          : typeof profile.preferences?.geo?.homeLocation?.zip === "string"
+            ? String(profile.preferences.geo.homeLocation.zip).trim()
+            : "";
+
+    const homeCity = typeof home?.city === "string" ? home.city.trim() : "";
+    const homeState =
+      typeof home?.stateCode === "string" ? String(home.stateCode).trim().toUpperCase() : "";
+    const homeZip =
+      typeof home?.zipCode === "string"
+        ? String(home.zipCode).trim()
+        : typeof home?.postalCode === "string"
+          ? String(home.postalCode).trim()
+          : "";
+
+    const city = homeCity || profileCity;
+    const state = homeState || profileState;
+    const zip = homeZip || profileZip;
+
+    const countySource =
+      defaultCountyFips ||
+      (typeof profile.countyFips === "string" ? profile.countyFips : "") ||
+      (typeof home?.countyFips === "string" ? home.countyFips : "");
+    const countyLabel = countySource ? formatCountyLabel(countySource) : "";
+
+    const locationBits = [
+      [city, state].filter(Boolean).join(", "),
+      zip,
+      countyLabel && countyLabel !== countySource ? countyLabel : "",
+    ].filter((part) => typeof part === "string" && part.trim().length > 0);
+    const locationSuggestion = locationBits.join(" · ");
+
+    const laneSignal = String(
+      profile?.onboarding?.lane ||
+        profile?.preferences?.onboarding?.lane ||
+        profile?.userIntent ||
+        ""
+    ).toLowerCase();
+    const roleSignal = String(profile?.role || "").toLowerCase();
+    const latestTitle = String(latestRequest?.title || "").trim();
+    const latestDescription = String(latestRequest?.description || "").trim();
+
+    let suggestedType: RequestType | null = null;
+    if (
+      /(offer_services|business|provider|contractor)/.test(laneSignal) ||
+      /contractor|business/.test(roleSignal)
+    ) {
+      suggestedType = "business_request";
+    } else if (/(hire|job|staff|employment)/.test(laneSignal)) {
+      suggestedType = "employment";
+    } else if (/(sell|buy|exchange|marketplace|inventory|material)/.test(laneSignal)) {
+      suggestedType = "buy_sell";
+    } else if (/(property|tenant|hoa|resident)/.test(laneSignal)) {
+      suggestedType = "customer_support";
+    }
+
+    let changed = false;
+
+    if (!title.trim() && latestTitle) {
+      setTitle(latestTitle);
+      setDetailAnswers((current) => ({
+        ...current,
+        what: current.what.trim() ? current.what : latestTitle,
+      }));
+      changed = true;
+    }
+
+    if (!description.trim() && latestDescription) {
+      const concise = latestDescription.slice(0, 280).trim();
+      setDescription(concise);
+      setDetailAnswers((current) => ({
+        ...current,
+        details: current.details.trim() ? current.details : concise,
+      }));
+      changed = true;
+    }
+
+    if (!detailAnswers.where.trim() && locationSuggestion) {
+      setDetailAnswers((current) => ({ ...current, where: locationSuggestion }));
+      changed = true;
+    }
+
+    if (requestType === "service_request" && suggestedType) {
+      setRequestType(suggestedType);
+      changed = true;
+    }
+
+    if (changed) {
+      void trackShellEvent({
+        type: "direct_connect_request_started",
+        category: activeRequestMeta.category,
+        field: "type",
+        source: prefillSource || "profile_activity",
+        deviceType: getDeviceType(),
+        ts: new Date().toISOString(),
+      });
+    }
+
+    contextualAutofillAppliedRef.current = true;
+  }, [
+    activeRequestMeta.category,
+    defaultCountyFips,
+    detailAnswers.where,
+    description,
+    hasExistingHomes,
+    homes,
+    homesQuery.isFetched,
+    isAuthenticated,
+    latestRequest?.description,
+    latestRequest?.title,
+    prefillSource,
+    recentRequestsQuery.isFetched,
+    requestType,
+    title,
+    user,
+  ]);
 
   const createMutation = useMutation<any, any, DirectConnectCreateDispatch | undefined>({
     mutationFn: async (dispatch?: DirectConnectCreateDispatch) => {
@@ -5565,7 +5731,7 @@ export default function DirectConnectShell() {
         <div
           className={cn(
             "rounded-lg border border-transparent bg-transparent p-0",
-            activeSection === "post" ? "hidden md:block" : ""
+            activeSection === "post" ? "hidden" : ""
           )}
         >
           <div className="grid grid-cols-3 gap-1 md:flex md:items-center md:gap-1.5">
@@ -5601,33 +5767,6 @@ export default function DirectConnectShell() {
         </div>
 
         <div className="min-w-0 space-y-3">{centerContent}</div>
-        {activeSection === "post" && (
-          <div className="rounded-lg border border-transparent bg-transparent p-0 md:hidden">
-            <div className="grid grid-cols-3 gap-1">
-              {DIRECT_CONNECT_TABS.map((section) => {
-                const active = section === activeSection;
-                return (
-                  <button
-                    key={`mobile-post-${section}`}
-                    type="button"
-                    onClick={() => navigateSection(section)}
-                    className={cn(
-                      "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl border px-2 text-[13px] font-medium transition-colors",
-                      active
-                        ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--text-primary)]"
-                        : "border-[color:var(--border-subtle)]/60 bg-[color:var(--surface-card)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
-                    )}
-                  >
-                    <span className="text-[color:var(--theme-accent-primary)] [&>svg]:h-3.5 [&>svg]:w-3.5">
-                      {SECTION_ICONS[section]}
-                    </span>
-                    <span className="truncate">{SECTION_SHORT_LABELS[section]}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
         <Sheet open={showNotificationCenter} onOpenChange={setShowNotificationCenter}>
           <SheetContent
             side="right"
