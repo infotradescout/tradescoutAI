@@ -1,5 +1,6 @@
 import React from "react";
 import { X, Settings, MapPin, Bell } from "lucide-react";
+import { NAV_SECTIONS } from "@/config/nav";
 
 interface ScoutToolsDrawerProps {
   isOpen: boolean;
@@ -9,8 +10,9 @@ interface ScoutToolsDrawerProps {
 
 /**
  * ScoutToolsDrawer - CONTENT ONLY
- * Per architecture rules: ONLY AppShell can render navigation/tools
- * This drawer provides Scout-specific quick links without duplicating nav
+ * Per architecture rules: ONLY AppShell can render navigation/tools.
+ * This drawer augments Scout with the canonical tool spine so users see
+ * the same core destinations they see elsewhere in the app.
  */
 export default function ScoutToolsDrawer({
   isOpen,
@@ -61,8 +63,32 @@ export default function ScoutToolsDrawer({
           </button>
         </div>
 
-        {/* Scout-specific quick links */}
+        <div className="mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 mb-2">
+            Core tools
+          </p>
+          <div className="space-y-2">
+            {NAV_SECTIONS.map((item) => (
+              <button
+                key={item.href}
+                type="button"
+                onClick={() => openOrNavigate({ title: item.label, url: item.href })}
+                className="w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left"
+                style={{
+                  border: "1px solid var(--theme-border-secondary)",
+                  color: "var(--theme-text-secondary)",
+                }}
+              >
+                <span className="text-sm">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 mb-2">
+            Personal settings
+          </p>
           <button
             type="button"
             onClick={() => openOrNavigate({ title: "Profile settings", url: "/profile-settings" })}
