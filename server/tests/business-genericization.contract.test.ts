@@ -132,7 +132,6 @@ describe("generic business profile and tool contracts", () => {
     const accounting = read("client/src/pages/accounting.tsx");
     const contractors = read("client/src/pages/contractors.tsx");
     const contractorSignup = read("client/src/pages/contractor-signup.tsx");
-    const contractorDashboard = read("client/src/pages/contractor-dashboard-simple.tsx");
     const myTradeScout = read("client/src/pages/my-tradescout.tsx");
     const tasks = read("client/src/pages/tasks.tsx");
     const commercialDirectory = read("client/src/pages/commercial-directory.tsx");
@@ -141,7 +140,6 @@ describe("generic business profile and tool contracts", () => {
       accounting,
       contractors,
       contractorSignup,
-      contractorDashboard,
       myTradeScout,
       tasks,
       commercialDirectory,
@@ -170,9 +168,7 @@ describe("generic business profile and tool contracts", () => {
     const advancedSearch = read("client/src/pages/advanced-search.tsx");
     const simpleHome = read("client/src/pages/SimpleHome.tsx");
     const home = read("client/src/pages/home.tsx");
-    const propertyManagerDashboard = read("client/src/pages/property-manager-dashboard.tsx");
     const about = read("client/src/pages/about.tsx");
-    const simpleLanding = read("client/src/pages/SimpleLanding.tsx");
     const landingVariants = read("client/src/pages/landingVariants.ts");
 
     const source = [
@@ -181,9 +177,7 @@ describe("generic business profile and tool contracts", () => {
       advancedSearch,
       simpleHome,
       home,
-      propertyManagerDashboard,
       about,
-      simpleLanding,
       landingVariants,
     ].join("\n");
 
