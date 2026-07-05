@@ -8,7 +8,7 @@ import {
   insertCrmEmailTemplateSchema,
   insertCrmPipelineSchema,
 } from "@shared/schema";
-import { isAuthenticated } from "./auth";
+import { requireRole } from "./auth";
 import { emailService } from "./services/emailService";
 
 interface AuthenticatedRequest extends Request {
@@ -20,9 +20,13 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+// Internal sales CRM: no per-business scoping exists on this data, so every
+// route is restricted to ops/super admin rather than any authenticated user.
+const isCrmAdmin = requireRole(["ops_admin", "super_admin"]);
+
 export function registerCrmRoutes(app: Express) {
   // CRM Contact routes
-  app.get("/api/crm/contacts", async (req, res) => {
+  app.get("/api/crm/contacts", isCrmAdmin, async (req, res) => {
     try {
       const { status, assignedTo, search } = req.query;
       const contacts = await storage.getAllCrmContacts({
@@ -37,7 +41,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.get("/api/crm/contacts/:id", async (req, res) => {
+  app.get("/api/crm/contacts/:id", isCrmAdmin, async (req, res) => {
     try {
       const contact = await storage.getCrmContact(req.params.id);
       if (!contact) {
@@ -50,7 +54,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.post("/api/crm/contacts", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/crm/contacts", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const contactData = insertCrmContactSchema.parse(req.body);
       const contact = await storage.createCrmContact(contactData);
@@ -74,7 +78,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.put("/api/crm/contacts/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.put("/api/crm/contacts/:id", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const updates = req.body;
       const contact = await storage.updateCrmContact(req.params.id, updates);
@@ -95,7 +99,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/crm/contacts/:id", async (req, res) => {
+  app.delete("/api/crm/contacts/:id", isCrmAdmin, async (req, res) => {
     try {
       await storage.deleteCrmContact(req.params.id);
       res.status(204).send();
@@ -106,7 +110,7 @@ export function registerCrmRoutes(app: Express) {
   });
 
   // CRM Deal routes
-  app.get("/api/crm/deals", async (req, res) => {
+  app.get("/api/crm/deals", isCrmAdmin, async (req, res) => {
     try {
       const { stage, assignedTo, contactId } = req.query;
       const deals = await storage.getAllCrmDeals({
@@ -121,7 +125,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.get("/api/crm/deals/:id", async (req, res) => {
+  app.get("/api/crm/deals/:id", isCrmAdmin, async (req, res) => {
     try {
       const deal = await storage.getCrmDeal(req.params.id);
       if (!deal) {
@@ -134,7 +138,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.post("/api/crm/deals", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/crm/deals", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const dealData = insertCrmDealSchema.parse(req.body);
       const deal = await storage.createCrmDeal(dealData);
@@ -159,7 +163,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.put("/api/crm/deals/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.put("/api/crm/deals/:id", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const updates = req.body;
       const deal = await storage.updateCrmDeal(req.params.id, updates);
@@ -189,7 +193,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/crm/deals/:id", async (req, res) => {
+  app.delete("/api/crm/deals/:id", isCrmAdmin, async (req, res) => {
     try {
       await storage.deleteCrmDeal(req.params.id);
       res.status(204).send();
@@ -200,7 +204,7 @@ export function registerCrmRoutes(app: Express) {
   });
 
   // CRM Activity routes
-  app.get("/api/crm/activities", async (req, res) => {
+  app.get("/api/crm/activities", isCrmAdmin, async (req, res) => {
     try {
       const { type, contactId, dealId } = req.query;
       const activities = await storage.getAllCrmActivities({
@@ -215,7 +219,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.get("/api/crm/activities/contact/:contactId", async (req, res) => {
+  app.get("/api/crm/activities/contact/:contactId", isCrmAdmin, async (req, res) => {
     try {
       const activities = await storage.getCrmActivitiesByContact(req.params.contactId);
       res.json(activities);
@@ -225,7 +229,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.get("/api/crm/activities/deal/:dealId", async (req, res) => {
+  app.get("/api/crm/activities/deal/:dealId", isCrmAdmin, async (req, res) => {
     try {
       const activities = await storage.getCrmActivitiesByDeal(req.params.dealId);
       res.json(activities);
@@ -235,7 +239,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.post("/api/crm/activities", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/crm/activities", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const activityData = insertCrmActivitySchema.parse(req.body);
 
@@ -255,7 +259,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.put("/api/crm/activities/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.put("/api/crm/activities/:id", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const updates = req.body;
       const activity = await storage.updateCrmActivity(req.params.id, updates);
@@ -266,7 +270,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/crm/activities/:id", async (req, res) => {
+  app.delete("/api/crm/activities/:id", isCrmAdmin, async (req, res) => {
     try {
       await storage.deleteCrmActivity(req.params.id);
       res.status(204).send();
@@ -277,7 +281,7 @@ export function registerCrmRoutes(app: Express) {
   });
 
   // CRM Email Template routes
-  app.get("/api/crm/email-templates", async (req, res) => {
+  app.get("/api/crm/email-templates", isCrmAdmin, async (req, res) => {
     try {
       const { category } = req.query;
       const templates = await storage.getAllCrmEmailTemplates(category as string);
@@ -288,7 +292,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.get("/api/crm/email-templates/:id", async (req, res) => {
+  app.get("/api/crm/email-templates/:id", isCrmAdmin, async (req, res) => {
     try {
       const template = await storage.getCrmEmailTemplate(req.params.id);
       if (!template) {
@@ -301,7 +305,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.post("/api/crm/email-templates", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/crm/email-templates", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const templateData = insertCrmEmailTemplateSchema.parse(req.body);
 
@@ -321,7 +325,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.put("/api/crm/email-templates/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.put("/api/crm/email-templates/:id", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const updates = req.body;
       const template = await storage.updateCrmEmailTemplate(req.params.id, updates);
@@ -332,7 +336,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/crm/email-templates/:id", async (req, res) => {
+  app.delete("/api/crm/email-templates/:id", isCrmAdmin, async (req, res) => {
     try {
       await storage.deleteCrmEmailTemplate(req.params.id);
       res.status(204).send();
@@ -343,7 +347,7 @@ export function registerCrmRoutes(app: Express) {
   });
 
   // CRM Pipeline routes
-  app.get("/api/crm/pipelines", async (req, res) => {
+  app.get("/api/crm/pipelines", isCrmAdmin, async (req, res) => {
     try {
       const pipelines = await storage.getAllCrmPipelines();
       res.json(pipelines);
@@ -353,7 +357,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.get("/api/crm/pipelines/default", async (req, res) => {
+  app.get("/api/crm/pipelines/default", isCrmAdmin, async (req, res) => {
     try {
       const pipeline = await storage.getDefaultCrmPipeline();
       if (!pipeline) {
@@ -366,7 +370,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.get("/api/crm/pipelines/:id", async (req, res) => {
+  app.get("/api/crm/pipelines/:id", isCrmAdmin, async (req, res) => {
     try {
       const pipeline = await storage.getCrmPipeline(req.params.id);
       if (!pipeline) {
@@ -379,7 +383,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.post("/api/crm/pipelines", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/crm/pipelines", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const pipelineData = insertCrmPipelineSchema.parse(req.body);
 
@@ -399,7 +403,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.put("/api/crm/pipelines/:id", isAuthenticated, async (req: Request, res: Response) => {
+  app.put("/api/crm/pipelines/:id", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const updates = req.body;
       const pipeline = await storage.updateCrmPipeline(req.params.id, updates);
@@ -410,7 +414,7 @@ export function registerCrmRoutes(app: Express) {
     }
   });
 
-  app.delete("/api/crm/pipelines/:id", async (req, res) => {
+  app.delete("/api/crm/pipelines/:id", isCrmAdmin, async (req, res) => {
     try {
       await storage.deleteCrmPipeline(req.params.id);
       res.status(204).send();
@@ -421,7 +425,7 @@ export function registerCrmRoutes(app: Express) {
   });
 
   // Send email endpoint (will integrate with SendGrid)
-  app.post("/api/crm/send-email", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/crm/send-email", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const { templateId, contactId, customSubject, customBody, variables } = (req.body ??
         {}) as any;
@@ -507,7 +511,7 @@ export function registerCrmRoutes(app: Express) {
   });
 
   // Internal direct message endpoint
-  app.post("/api/crm/internal-message", isAuthenticated, async (req: Request, res: Response) => {
+  app.post("/api/crm/internal-message", isCrmAdmin, async (req: Request, res: Response) => {
     try {
       const { recipients, subject, message, contactId, dealId } = (req.body ?? {}) as any;
 
