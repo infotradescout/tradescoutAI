@@ -14,6 +14,7 @@ import {
   Store,
   ShoppingBag,
   ReceiptText,
+  Megaphone,
 } from "lucide-react";
 
 export default function BusinessOwnerDashboard() {
@@ -149,6 +150,15 @@ export default function BusinessOwnerDashboard() {
                       >
                         <Calendar className="h-4 w-4 mr-2" />
                         Profile & Availability
+                      </Button>
+                    </Link>
+                    <Link href="/contractor-promos">
+                      <Button
+                        variant="outline"
+                        className="border-white/15 text-white/70 justify-start w-full"
+                      >
+                        <Megaphone className="h-4 w-4 mr-2" />
+                        Promotions
                       </Button>
                     </Link>
                   </div>

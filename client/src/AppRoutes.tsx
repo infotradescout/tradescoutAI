@@ -272,6 +272,7 @@ const ProfilePurchaseStatus = React.lazy(() => import("./pages/profile-purchase-
 const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
 const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-dashboard"));
+const ContractorPromos = React.lazy(() => import("./pages/contractor-promos"));
 
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
@@ -1004,6 +1005,9 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/business-owner-dashboard">
                 <RedirectTo to="/business-dashboard" />
+              </Route>
+              <Route path="/contractor-promos">
+                <LazyPage Component={ContractorPromos} />
               </Route>
 
               {/* Marketplace routes */}
