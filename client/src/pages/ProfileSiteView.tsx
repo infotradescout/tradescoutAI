@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -272,6 +273,15 @@ export default function ProfileSiteView() {
     )
   );
   const serviceAreas = Array.isArray(business?.serviceAreas) ? business.serviceAreas : [];
+  const profilePlaceholderSrc = getCategoryPlaceholderSrc([
+    ...(Array.isArray(business?.categories) ? business.categories.slice(0, 4) : []),
+    ...serviceTags.slice(0, 4),
+    profile.headline,
+    profile.roleContext,
+  ]);
+  const profilePlaceholderAlt = `${
+    serviceTags[0] || profile.headline || "Business"
+  } category placeholder illustration`;
   const customBlocks = contentBlocks
     .filter((block) => block && typeof block === "object")
     .filter((block: any) => !["about", "hero", "services", "cta"].includes(String(block?.type)))
@@ -312,6 +322,21 @@ export default function ProfileSiteView() {
             <div className="space-y-3">
               <Badge variant="secondary">Website Profile</Badge>
               <CardTitle className="text-white text-3xl md:text-4xl">{displayName}</CardTitle>
+              <div className="inline-flex items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
+                <img
+                  src={profilePlaceholderSrc}
+                  alt={profilePlaceholderAlt}
+                  className="h-10 w-10 rounded bg-white/10 p-1"
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.src =
+                      "/images/tradescout/categories/general-contractor.svg";
+                  }}
+                />
+                <div className="text-xs text-white/70">
+                  Placeholder image shown until this profile adds real media.
+                </div>
+              </div>
               {profileSections.about !== false ? (
                 <p className="text-white/70 text-sm uppercase tracking-[0.18em]">
                   {profile.roleContext}

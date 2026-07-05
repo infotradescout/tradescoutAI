@@ -52,6 +52,7 @@ import { SEOHelmet, createLocalBusinessStructuredData } from "@/components/SEOHe
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "@/components/community/DecisionCard";
 import { apiRequest } from "@/lib/queryClient";
+import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { matchFlowCopy, stripCountySuffix } from "@/lib/userFacingCopy";
 
 /**
@@ -282,6 +283,11 @@ export default function BusinessProfileView() {
     primaryServiceLabelRaw.length > 44
       ? `${primaryServiceLabelRaw.slice(0, 41).trim()}...`
       : primaryServiceLabelRaw;
+  const profilePlaceholderSrc = getCategoryPlaceholderSrc([
+    ...serviceList.slice(0, 4),
+    profile.headline,
+    primaryServiceLabelRaw,
+  ]);
   const visibleSections = {
     about: profile.profileSections?.about !== false,
     rolesAndBadges: profile.profileSections?.rolesAndBadges !== false,
@@ -621,6 +627,21 @@ export default function BusinessProfileView() {
             >
               {profile.name}
             </h1>
+
+            <div className="mt-4 inline-flex items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
+              <img
+                src={profilePlaceholderSrc}
+                alt={`${primaryServiceLabelRaw} category placeholder illustration`}
+                className="h-10 w-10 rounded bg-white/10 p-1"
+                loading="lazy"
+                onError={(event) => {
+                  event.currentTarget.src = "/images/tradescout/categories/general-contractor.svg";
+                }}
+              />
+              <div className="text-xs text-white/70">
+                Placeholder image shown until this profile adds real media.
+              </div>
+            </div>
 
             <p className="mt-3 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
               {businessPromise}
