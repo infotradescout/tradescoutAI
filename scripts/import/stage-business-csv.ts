@@ -86,10 +86,23 @@ const RETAIL_ALLOW_PATTERNS = [
 
 function buildIndustrySignal(record: Record<string, string>): string {
   return [
-    getFirstValue(record, ["business_name", "name", "company_name", "company", "legal_name"]),
-    getFirstValue(record, ["categories", "category", "trade_categories", "services"]),
+    getFirstValue(record, [
+      "business_name",
+      "name",
+      "business_or_file_name",
+      "company_name",
+      "company",
+      "legal_name",
+    ]),
+    getFirstValue(record, [
+      "categories",
+      "category",
+      "trade_categories",
+      "services",
+      "menu_services_details",
+    ]),
     getFirstValue(record, ["business_type", "industry", "vertical", "naics_description"]),
-    getFirstValue(record, ["description", "about", "summary"]),
+    getFirstValue(record, ["description", "about", "summary", "raw_text"]),
   ]
     .filter(Boolean)
     .join(" | ")
@@ -258,6 +271,7 @@ async function main() {
       const name = getFirstValue(record, [
         "business_name",
         "name",
+        "business_or_file_name",
         "company_name",
         "company",
         "legal_name",
@@ -270,8 +284,18 @@ async function main() {
       }
 
       const stateCodeRaw = getFirstValue(record, ["state_code", "state", "st"]).toUpperCase();
-      const municipality = getFirstValue(record, ["municipality", "city_state_zip", "city"]);
-      const fulladdress = getFirstValue(record, ["fulladdress", "full_address", "address"]);
+      const municipality = getFirstValue(record, [
+        "municipality",
+        "city_state_zip",
+        "city",
+        "location_or_service_area",
+      ]);
+      const fulladdress = getFirstValue(record, [
+        "fulladdress",
+        "full_address",
+        "address",
+        "location_or_service_area",
+      ]);
       const stateCode =
         stateCodeRaw ||
         extractStateCodeFromLooseAddress(municipality) ||
@@ -279,12 +303,26 @@ async function main() {
       const countyFips = getFirstValue(record, ["county_fips", "fips", "countyfips"]);
       const countyName = getFirstValue(record, ["county_name", "county"]);
       const phone = normalizePhone(
-        getFirstValue(record, ["phone", "phone_number", "business_phone", "contact_phone"])
+        getFirstValue(record, [
+          "phone",
+          "phone_number",
+          "business_phone",
+          "contact_phone",
+          "phones_extracted",
+        ])
       );
       const email = normalizeEmail(
-        getFirstValue(record, ["email", "business_email", "contact_email", "owner_email"])
+        getFirstValue(record, [
+          "email",
+          "business_email",
+          "contact_email",
+          "owner_email",
+          "emails_extracted",
+        ])
       );
-      const website = normalizeWebsite(getFirstValue(record, ["website", "url", "site"]));
+      const website = normalizeWebsite(
+        getFirstValue(record, ["website", "url", "site", "urls_extracted"])
+      );
       const googleMapsUrl = getFirstValue(record, ["google_maps_url", "google_maps", "maps_url"]);
       const externalId =
         getFirstValue(record, ["external_id", "source_id", "id"]) ||
@@ -292,7 +330,12 @@ async function main() {
       const latRaw = getFirstValue(record, ["lat", "latitude"]);
       const lngRaw = getFirstValue(record, ["lng", "longitude", "lon"]);
       const tradeCategories = parseTradeCategories(
-        getFirstValue(record, ["trade_categories", "categories", "services"])
+        getFirstValue(record, [
+          "trade_categories",
+          "categories",
+          "services",
+          "menu_services_details",
+        ])
       );
 
       const normalizedName = normalizeName(name);
