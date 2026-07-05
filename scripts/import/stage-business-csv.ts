@@ -50,6 +50,72 @@ function extractGoogleCid(input: string): string {
   return cidMatch?.[1] || "";
 }
 
+const FOOD_SERVICE_PATTERNS = [
+  /\brestaurant\b/i,
+  /\bfood\s*truck\b/i,
+  /\bcafe\b/i,
+  /\bdiner\b/i,
+  /\bbistro\b/i,
+  /\bcoffee\s*shop\b/i,
+  /\bbakery\b/i,
+  /\bpizzeria|pizza\b/i,
+  /\bbar\b/i,
+  /\bpub\b/i,
+  /\bgrill\b/i,
+  /\bcatering\b/i,
+  /\bfood\s*service\b/i,
+  /\bmenu\b/i,
+  /\btaqueria|taco\b/i,
+  /\bburger\b/i,
+  /\bice\s*cream\b/i,
+];
+
+const RETAIL_ALLOW_PATTERNS = [
+  /\bretail\b/i,
+  /\bstore\b/i,
+  /\bshop\b/i,
+  /\bmarket\b/i,
+  /\bgrocery\b/i,
+  /\bconvenience\b/i,
+  /\bsupermarket\b/i,
+  /\boutlet\b/i,
+  /\bwholesale\b/i,
+  /\bdistributor\b/i,
+  /\bboutique\b/i,
+];
+
+function buildIndustrySignal(record: Record<string, string>): string {
+  return [
+    getFirstValue(record, ["business_name", "name", "company_name", "company", "legal_name"]),
+    getFirstValue(record, ["categories", "category", "trade_categories", "services"]),
+    getFirstValue(record, ["business_type", "industry", "vertical", "naics_description"]),
+    getFirstValue(record, ["description", "about", "summary"]),
+  ]
+    .filter(Boolean)
+    .join(" | ")
+    .toLowerCase();
+}
+
+function shouldSkipForFoodPolicy(
+  record: Record<string, string>,
+  options: { excludeFood: boolean; allowRetailFood: boolean }
+): { skip: boolean; reason: string } {
+  if (!options.excludeFood) return { skip: false, reason: "disabled" };
+
+  const signal = buildIndustrySignal(record);
+  if (!signal) return { skip: false, reason: "no-signal" };
+
+  const isFoodService = FOOD_SERVICE_PATTERNS.some((pattern) => pattern.test(signal));
+  if (!isFoodService) return { skip: false, reason: "not-food-service" };
+
+  const isRetail = RETAIL_ALLOW_PATTERNS.some((pattern) => pattern.test(signal));
+  if (options.allowRetailFood && isRetail) {
+    return { skip: false, reason: "food-retail-allowed" };
+  }
+
+  return { skip: true, reason: "food-service-excluded" };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const filePath = String(args.file || "").trim();
@@ -72,6 +138,8 @@ async function main() {
   const maxRowsRaw = args.maxRows ? Number.parseInt(String(args.maxRows), 10) : null;
   const maxRows =
     maxRowsRaw != null && Number.isFinite(maxRowsRaw) ? Math.max(1, maxRowsRaw) : undefined;
+  const excludeFood = String(args.excludeFood || "true").toLowerCase() !== "false";
+  const allowRetailFood = String(args.allowRetailFood || "true").toLowerCase() !== "false";
 
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
 
@@ -81,6 +149,9 @@ async function main() {
 
   let inputRows = 0;
   let stagedRows = 0;
+  let skippedRows = 0;
+  let skippedFoodRows = 0;
+  let allowedRetailFoodRows = 0;
   let buffer: any[] = [];
 
   const flush = async () => {
@@ -105,6 +176,16 @@ async function main() {
     maxRecords: maxRows,
     onRecord: async (record) => {
       inputRows++;
+
+      const foodPolicy = shouldSkipForFoodPolicy(record, { excludeFood, allowRetailFood });
+      if (foodPolicy.reason === "food-retail-allowed") {
+        allowedRetailFoodRows++;
+      }
+      if (foodPolicy.skip) {
+        skippedRows++;
+        skippedFoodRows++;
+        return;
+      }
 
       const name = getFirstValue(record, [
         "business_name",
@@ -191,6 +272,13 @@ async function main() {
         source,
         inputRows,
         stagedRows,
+        skippedRows,
+        skippedFoodRows,
+        allowedRetailFoodRows,
+        policy: {
+          excludeFood,
+          allowRetailFood,
+        },
       },
       null,
       2
