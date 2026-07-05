@@ -116,6 +116,18 @@ function shouldSkipForFoodPolicy(
   return { skip: true, reason: "food-service-excluded" };
 }
 
+function csvEscape(value: unknown): string {
+  const text = String(value ?? "");
+  if (/[",\n\r]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function toCsvLine(values: unknown[]): string {
+  return `${values.map(csvEscape).join(",")}\n`;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const filePath = String(args.file || "").trim();
@@ -140,6 +152,13 @@ async function main() {
     maxRowsRaw != null && Number.isFinite(maxRowsRaw) ? Math.max(1, maxRowsRaw) : undefined;
   const excludeFood = String(args.excludeFood || "true").toLowerCase() !== "false";
   const allowRetailFood = String(args.allowRetailFood || "true").toLowerCase() !== "false";
+  const reportOnly = String(args.reportOnly || "false").toLowerCase() === "true";
+  const excludedReportPathRaw = String(args.excludedReport || "").trim();
+  const excludedReportPath = excludedReportPathRaw
+    ? path.isAbsolute(excludedReportPathRaw)
+      ? excludedReportPathRaw
+      : path.resolve(process.cwd(), excludedReportPathRaw)
+    : "";
 
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
 
@@ -153,6 +172,30 @@ async function main() {
   let skippedFoodRows = 0;
   let allowedRetailFoodRows = 0;
   let buffer: any[] = [];
+  let excludedReportRows = 0;
+
+  const excludedReportStream = excludedReportPath
+    ? fs.createWriteStream(excludedReportPath, { encoding: "utf8" })
+    : null;
+
+  if (excludedReportStream) {
+    excludedReportStream.write(
+      toCsvLine([
+        "row_number",
+        "reason",
+        "business_name",
+        "categories",
+        "business_type",
+        "industry",
+        "description",
+        "external_id",
+        "website",
+        "phone",
+        "state_code",
+        "county_name",
+      ])
+    );
+  }
 
   const flush = async () => {
     if (!buffer.length) return;
@@ -184,6 +227,31 @@ async function main() {
       if (foodPolicy.skip) {
         skippedRows++;
         skippedFoodRows++;
+        if (excludedReportStream) {
+          excludedReportRows++;
+          excludedReportStream.write(
+            toCsvLine([
+              inputRows,
+              foodPolicy.reason,
+              getFirstValue(record, [
+                "business_name",
+                "name",
+                "company_name",
+                "company",
+                "legal_name",
+              ]),
+              getFirstValue(record, ["categories", "category", "trade_categories", "services"]),
+              getFirstValue(record, ["business_type"]),
+              getFirstValue(record, ["industry", "vertical", "naics_description"]),
+              getFirstValue(record, ["description", "about", "summary"]),
+              getFirstValue(record, ["external_id", "source_id", "id"]),
+              getFirstValue(record, ["website", "url", "site"]),
+              getFirstValue(record, ["phone", "phone_number", "business_phone", "contact_phone"]),
+              getFirstValue(record, ["state_code", "state", "st"]),
+              getFirstValue(record, ["county_name", "county"]),
+            ])
+          );
+        }
         return;
       }
 
@@ -195,6 +263,11 @@ async function main() {
         "legal_name",
       ]);
       if (!name) return;
+
+      if (reportOnly) {
+        stagedRows++;
+        return;
+      }
 
       const stateCodeRaw = getFirstValue(record, ["state_code", "state", "st"]).toUpperCase();
       const municipality = getFirstValue(record, ["municipality", "city_state_zip", "city"]);
@@ -264,6 +337,15 @@ async function main() {
 
   await flush();
 
+  if (excludedReportStream) {
+    await new Promise<void>((resolve, reject) => {
+      excludedReportStream.end((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -275,6 +357,9 @@ async function main() {
         skippedRows,
         skippedFoodRows,
         allowedRetailFoodRows,
+        excludedReportRows,
+        reportOnly,
+        excludedReportPath: excludedReportPath || null,
         policy: {
           excludeFood,
           allowRetailFood,
