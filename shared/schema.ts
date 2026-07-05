@@ -170,6 +170,26 @@ export const tradeCategoryEnum = pgEnum("trade_category", [
   "cleaning_service",
   "handyman",
   "maintenance_contractor",
+
+  // General & Retail Small Business (non-trade)
+  "salon_barbershop",
+  "spa_wellness",
+  "bakery_cafe",
+  "restaurant_food_service",
+  "retail_shop",
+  "boutique_apparel",
+  "florist",
+  "pet_grooming_services",
+  "childcare_provider",
+  "tutor_education_services",
+  "photographer_videographer",
+  "event_planner",
+  "auto_repair_service",
+  "laundry_dry_cleaning",
+  "fitness_instructor",
+  "bookkeeping_accounting",
+  "marketing_creative_services",
+  "general_small_business",
 ]);
 
 // Permission levels enum
@@ -650,6 +670,19 @@ export const userProfiles = pgTable(
     insurance_verified: boolean("insurance_verified").default(false),
     tax_id_verified: boolean("tax_id_verified").default(false),
     business_registration_verified: boolean("business_registration_verified").default(false),
+
+    // Submitted values/documents awaiting review for the requirements above.
+    // Submitting a value does not flip the *_verified flags; an admin review does.
+    verificationSubmissions: jsonb("verification_submissions")
+      .$type<{
+        licenseNumber?: string;
+        licenseDocObjectKey?: string;
+        taxId?: string;
+        insuranceDocObjectKey?: string;
+        businessRegistrationDocObjectKey?: string;
+        submittedAt?: string;
+      }>()
+      .default(sql`'{}'::jsonb`),
 
     // Profile metadata
     isPrimary: boolean("is_primary").default(false), // First profile is primary

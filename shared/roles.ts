@@ -99,7 +99,27 @@ export type TradeCategory =
   | "pest_control"
   | "cleaning_service"
   | "handyman"
-  | "maintenance_contractor";
+  | "maintenance_contractor"
+
+  // General & Retail Small Business (non-trade)
+  | "salon_barbershop"
+  | "spa_wellness"
+  | "bakery_cafe"
+  | "restaurant_food_service"
+  | "retail_shop"
+  | "boutique_apparel"
+  | "florist"
+  | "pet_grooming_services"
+  | "childcare_provider"
+  | "tutor_education_services"
+  | "photographer_videographer"
+  | "event_planner"
+  | "auto_repair_service"
+  | "laundry_dry_cleaning"
+  | "fitness_instructor"
+  | "bookkeeping_accounting"
+  | "marketing_creative_services"
+  | "general_small_business";
 
 export interface RolePermissions {
   // Content permissions
@@ -903,6 +923,26 @@ export function getTradeDisplayName(trade: TradeCategory): string {
     cleaning_service: "Cleaning Service",
     handyman: "Handyman",
     maintenance_contractor: "Maintenance Contractor",
+
+    // General & Retail Small Business
+    salon_barbershop: "Salon / Barbershop",
+    spa_wellness: "Spa & Wellness",
+    bakery_cafe: "Bakery / Cafe",
+    restaurant_food_service: "Restaurant / Food Service",
+    retail_shop: "Retail Shop",
+    boutique_apparel: "Boutique / Apparel",
+    florist: "Florist",
+    pet_grooming_services: "Pet Grooming Services",
+    childcare_provider: "Childcare Provider",
+    tutor_education_services: "Tutor / Education Services",
+    photographer_videographer: "Photographer / Videographer",
+    event_planner: "Event Planner",
+    auto_repair_service: "Auto Repair Service",
+    laundry_dry_cleaning: "Laundry / Dry Cleaning",
+    fitness_instructor: "Fitness Instructor",
+    bookkeeping_accounting: "Bookkeeping / Accounting",
+    marketing_creative_services: "Marketing / Creative Services",
+    general_small_business: "Other Small Business",
   };
 
   return tradeNames[trade] || trade;
@@ -1048,5 +1088,25 @@ export const TRADE_CATEGORIES = {
     "cleaning_service",
     "handyman",
     "maintenance_contractor",
+  ],
+  general_small_business: [
+    "salon_barbershop",
+    "spa_wellness",
+    "bakery_cafe",
+    "restaurant_food_service",
+    "retail_shop",
+    "boutique_apparel",
+    "florist",
+    "pet_grooming_services",
+    "childcare_provider",
+    "tutor_education_services",
+    "photographer_videographer",
+    "event_planner",
+    "auto_repair_service",
+    "laundry_dry_cleaning",
+    "fitness_instructor",
+    "bookkeeping_accounting",
+    "marketing_creative_services",
+    "general_small_business",
   ],
 } as const;

@@ -1,0 +1,20 @@
+-- Expand trade_category enum to cover general/retail small businesses,
+-- not just construction trades. Additive only; existing values untouched.
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'salon_barbershop';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'spa_wellness';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'bakery_cafe';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'restaurant_food_service';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'retail_shop';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'boutique_apparel';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'florist';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'pet_grooming_services';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'childcare_provider';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'tutor_education_services';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'photographer_videographer';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'event_planner';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'auto_repair_service';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'laundry_dry_cleaning';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'fitness_instructor';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'bookkeeping_accounting';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'marketing_creative_services';
+ALTER TYPE trade_category ADD VALUE IF NOT EXISTS 'general_small_business';

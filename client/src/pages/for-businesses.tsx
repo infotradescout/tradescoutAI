@@ -175,6 +175,16 @@ export default function ForBusinessesPage() {
         </div>
       </section>
 
+      <section className="space-y-3">
+        <h2 className="text-2xl font-semibold text-white">Built for any local business</h2>
+        <p className="text-white/70 max-w-3xl">
+          TradeScout started with contractors, but it's not just for contractors. Salons, bakeries,
+          retail shops, tutors, pet groomers, photographers, auto repair shops, cleaners, and any
+          other local business can build a profile, publish offers, and respond to real local
+          requests the same way.
+        </p>
+      </section>
+
       <section className="grid gap-4 md:grid-cols-3">
         <Card className="bg-white/5 border-white/10">
           <CardContent className="p-5 space-y-2">
