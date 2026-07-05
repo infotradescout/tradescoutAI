@@ -214,6 +214,8 @@ const AdminErrorReports = React.lazy(() => import("@/pages/admin-error-reports")
 const AdminPricingAnalytics = React.lazy(() => import("@/pages/admin-pricing-analytics"));
 const AdminAddressVerifications = React.lazy(() => import("@/pages/admin-address-verifications"));
 const AdminListings = React.lazy(() => import("@/pages/admin-listings"));
+const CrmDashboard = React.lazy(() => import("@/pages/CrmDashboard"));
+const AdminProfileVerifications = React.lazy(() => import("@/pages/admin-profile-verifications"));
 const AdminHomeScoutListings = React.lazy(() => import("@/pages/admin-homescout-listings"));
 const AdminHomeScoutSources = React.lazy(() => import("@/pages/admin-homescout-sources"));
 const AdminCommercialDirectory = React.lazy(() => import("@/pages/admin-commercial-directory"));
@@ -351,6 +353,17 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectTool to="/admin/verification" />,
+      }),
+      tool({
+        id: "business-verifications",
+        label: "Business Verifications",
+        path: "/admin/business-verifications",
+        icon: ShieldCheck,
+        description:
+          "Review license, insurance, tax ID, and business registration submissions per profile type.",
+        keywords: ["license", "insurance", "tax id", "business registration", "verification"],
+        visibleIf: { roles: ["moderator", "ops_admin", "super_admin"] },
+        render: () => <AdminProfileVerifications />,
       }),
       tool({
         id: "moderation",
@@ -568,6 +581,16 @@ export const ADMIN_TOOL_SECTIONS: AdminToolSection[] = [
         visibleIf: { roles: ["ops_admin", "super_admin"] },
         navHidden: true,
         render: () => <RedirectToAdminPanelTab tab="prizes" />,
+      }),
+      tool({
+        id: "crm",
+        label: "Sales CRM",
+        path: "/admin/crm",
+        icon: Briefcase,
+        description: "Internal contacts, deals, and activity pipeline for the sales/growth team.",
+        keywords: ["crm", "contacts", "deals", "sales", "pipeline"],
+        visibleIf: { roles: ["ops_admin", "super_admin"] },
+        render: () => <CrmDashboard />,
       }),
       tool({
         id: "tradepartner-ops",

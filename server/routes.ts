@@ -2972,6 +2972,139 @@ export async function registerRoutes(app: any) {
     }
   };
 
+  // Verification checklist: what this account still needs, recomputed live so it
+  // always matches the profile's current category (not stale from signup time).
+  app.get("/api/profile/verification", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const [profile] = await db
+        .select()
+        .from(userProfiles)
+        .where(and(eq(userProfiles.userId, userId), eq(userProfiles.isPrimary, true)))
+        .limit(1);
+
+      if (!profile) {
+        return res.json({
+          userIntent: "person",
+          requirements: {
+            email: true,
+            address: true,
+            license: false,
+            insurance: false,
+            tax_id: false,
+            business_registration: false,
+          },
+          status: {
+            email: Boolean((user as any).emailVerified),
+            address: Boolean((user as any).addressVerified),
+            license: false,
+            insurance: false,
+            tax_id: false,
+            business_registration: false,
+          },
+          submissions: {},
+        });
+      }
+
+      const requirements = await computeVerificationRequirements(
+        profile.userIntent as "person" | "business",
+        (profile.businessType as "service_provider" | "seller") || undefined,
+        profile.serviceTags || [],
+        profile.sellerTags || []
+      );
+
+      res.json({
+        userIntent: profile.userIntent,
+        businessType: profile.businessType,
+        requirements,
+        status: {
+          email: Boolean((user as any).emailVerified || (profile as any).email_verified),
+          address: Boolean((user as any).addressVerified || (profile as any).address_verified),
+          license: Boolean((profile as any).license_verified),
+          insurance: Boolean((profile as any).insurance_verified),
+          tax_id: Boolean((profile as any).tax_id_verified),
+          business_registration: Boolean((profile as any).business_registration_verified),
+        },
+        submissions: (profile as any).verificationSubmissions || {},
+        verificationStatus: profile.verificationStatus,
+      });
+    } catch (error) {
+      console.error("Error fetching verification status:", error);
+      res.status(500).json({ message: "Failed to fetch verification status" });
+    }
+  });
+
+  // Accepts self-reported values/documents for the requirements above. This does NOT
+  // flip the *_verified flags — those only change once an admin reviews the submission.
+  app.patch("/api/profile/verification", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = (req.user as any)?.id;
+      const {
+        licenseNumber,
+        licenseDocObjectKey,
+        taxId,
+        insuranceDocObjectKey,
+        businessRegistrationDocObjectKey,
+      } = (req.body ?? {}) as Record<string, unknown>;
+
+      const [profile] = await db
+        .select()
+        .from(userProfiles)
+        .where(and(eq(userProfiles.userId, userId), eq(userProfiles.isPrimary, true)))
+        .limit(1);
+
+      if (!profile) {
+        return res.status(404).json({ message: "No profile found for this account" });
+      }
+
+      const existingSubmissions = ((profile as any).verificationSubmissions || {}) as Record<
+        string,
+        unknown
+      >;
+      const nextSubmissions = {
+        ...existingSubmissions,
+        ...(typeof licenseNumber === "string" && licenseNumber.trim()
+          ? { licenseNumber: licenseNumber.trim() }
+          : {}),
+        ...(typeof licenseDocObjectKey === "string" && licenseDocObjectKey.trim()
+          ? { licenseDocObjectKey: licenseDocObjectKey.trim() }
+          : {}),
+        ...(typeof taxId === "string" && taxId.trim() ? { taxId: taxId.trim() } : {}),
+        ...(typeof insuranceDocObjectKey === "string" && insuranceDocObjectKey.trim()
+          ? { insuranceDocObjectKey: insuranceDocObjectKey.trim() }
+          : {}),
+        ...(typeof businessRegistrationDocObjectKey === "string" &&
+        businessRegistrationDocObjectKey.trim()
+          ? { businessRegistrationDocObjectKey: businessRegistrationDocObjectKey.trim() }
+          : {}),
+        submittedAt: new Date().toISOString(),
+      };
+
+      const [updated] = await db
+        .update(userProfiles)
+        .set({
+          verificationSubmissions: nextSubmissions as any,
+          verificationStatus: "pending",
+          updatedAt: new Date(),
+        })
+        .where(eq(userProfiles.id, profile.id))
+        .returning();
+
+      res.json({
+        submissions: (updated as any).verificationSubmissions || {},
+        verificationStatus: updated.verificationStatus,
+      });
+    } catch (error) {
+      console.error("Error submitting verification info:", error);
+      res.status(500).json({ message: "Failed to submit verification info" });
+    }
+  });
+
   const handleRegister = async (req: Request, res: Response) => {
     try {
       const registrationEnabled = await getGeneralSetting<boolean>("registration_enabled", true);
@@ -19110,6 +19243,98 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       } catch (error: any) {
         console.error("Error updating address verification:", error);
         res.status(400).json({ message: "Failed to update verification" });
+      }
+    }
+  );
+
+  // Admin review queue for license/insurance/tax-id/business-registration submissions
+  // captured via /api/profile/verification (self-reported, awaiting review).
+  app.get(
+    "/api/admin/profile-verifications",
+    isAuthenticated,
+    isAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const statusFilter = String((req.query.status as string) || "all");
+
+        const rows = await db
+          .select({
+            profile: userProfiles,
+            user: users,
+          })
+          .from(userProfiles)
+          .leftJoin(users, eq(userProfiles.userId, users.id))
+          .where(
+            statusFilter !== "all"
+              ? eq(userProfiles.verificationStatus, statusFilter as any)
+              : sql`(user_profiles.verification_submissions IS NOT NULL AND user_profiles.verification_submissions != '{}'::jsonb)`
+          )
+          .orderBy(desc(userProfiles.updatedAt));
+
+        res.json(rows);
+      } catch (error) {
+        console.error("Error fetching profile verifications:", error);
+        res.status(500).json({ message: "Failed to fetch profile verifications" });
+      }
+    }
+  );
+
+  app.put(
+    "/api/admin/profile-verifications/:profileId",
+    isAuthenticated,
+    isAdmin,
+    async (req: Request, res: Response) => {
+      try {
+        const { profileId } = req.params;
+        const { field, decision } = (req.body ?? {}) as {
+          field?: "license" | "insurance" | "tax_id" | "business_registration";
+          decision?: "approved" | "rejected";
+        };
+
+        const validFields = ["license", "insurance", "tax_id", "business_registration"] as const;
+        if (!field || !validFields.includes(field)) {
+          return res.status(400).json({ message: "Invalid field" });
+        }
+        if (decision !== "approved" && decision !== "rejected") {
+          return res.status(400).json({ message: "Invalid decision" });
+        }
+
+        const columnMap = {
+          license: "license_verified",
+          insurance: "insurance_verified",
+          tax_id: "tax_id_verified",
+          business_registration: "business_registration_verified",
+        } as const;
+
+        const [updated] = await db
+          .update(userProfiles)
+          .set({
+            [columnMap[field]]: decision === "approved",
+            updatedAt: new Date(),
+          } as any)
+          .where(eq(userProfiles.id, profileId))
+          .returning();
+
+        if (!updated) {
+          return res.status(404).json({ message: "Profile not found" });
+        }
+
+        const allRequired = (updated as any).verificationRequirements || {};
+        const allSatisfied = (["license", "insurance", "tax_id", "business_registration"] as const)
+          .filter((key) => allRequired[key])
+          .every((key) => Boolean((updated as any)[columnMap[key]]));
+
+        if (allSatisfied) {
+          await db
+            .update(userProfiles)
+            .set({ verificationStatus: "approved", updatedAt: new Date() })
+            .where(eq(userProfiles.id, profileId));
+        }
+
+        res.json({ profile: updated });
+      } catch (error) {
+        console.error("Error updating profile verification:", error);
+        res.status(500).json({ message: "Failed to update profile verification" });
       }
     }
   );

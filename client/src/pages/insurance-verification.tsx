@@ -1,13 +1,64 @@
 import { memo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Shield, CheckCircle, AlertTriangle, FileText } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import { useToast } from "@/hooks/use-toast";
+
+type VerificationStatusResponse = {
+  submissions?: { insuranceDocObjectKey?: string };
+  status?: { insurance?: boolean };
+};
 
 const InsuranceVerification = memo(function InsuranceVerification() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const { data } = useQuery<VerificationStatusResponse>({
+    queryKey: ["/api/profile/verification"],
+    queryFn: () => apiRequest("GET", "/api/profile/verification"),
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (payload: Record<string, string>) =>
+      apiRequest("PATCH", "/api/profile/verification", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profile/verification"] });
+      toast({ title: "Certificate submitted for review" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to submit certificate",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const alreadySubmitted = Boolean(data?.submissions?.insuranceDocObjectKey);
+  const alreadyVerified = Boolean(data?.status?.insurance);
+
+  const handleCertificateFile = async (file: File) => {
+    setIsUploading(true);
+    try {
+      const { objectKey } = await uploadPrivateObject(file);
+      await submitMutation.mutateAsync({ insuranceDocObjectKey: objectKey });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const insuranceRequirements = [
     {
@@ -65,59 +116,36 @@ const InsuranceVerification = memo(function InsuranceVerification() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {insuranceRequirements.map((req, index) => {
-                const isUploaded = uploadedFiles.includes(req.type);
-                return (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg border-2 ${
-                      isUploaded
-                        ? "border-emerald-500/50 bg-emerald-500/10"
-                        : req.required
-                          ? "border-red-500/50 bg-red-500/10"
-                          : "border-blue-500/50 bg-blue-500/10"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-white">{req.type}</h3>
-                        <p className="text-sm text-white/60">{req.minimum} minimum</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {req.required && (
-                          <Badge variant="error" className="text-xs">
-                            Required
-                          </Badge>
-                        )}
-                        {isUploaded && <CheckCircle className="w-5 h-5 text-emerald-400" />}
-                      </div>
+              {insuranceRequirements.map((req, index) => (
+                <div
+                  key={index}
+                  className={`p-4 rounded-lg border-2 ${
+                    alreadyVerified
+                      ? "border-emerald-500/50 bg-emerald-500/10"
+                      : req.required
+                        ? "border-red-500/50 bg-red-500/10"
+                        : "border-blue-500/50 bg-blue-500/10"
+                  }`}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h3 className="font-semibold text-white">{req.type}</h3>
+                      <p className="text-sm text-white/60">{req.minimum} minimum</p>
                     </div>
-
-                    <p className="text-sm text-white/70 mb-4">{req.description}</p>
-
-                    {!isUploaded ? (
-                      <Button
-                        onClick={() => handleFileUpload(req.type)}
-                        size="sm"
-                        className={`w-full ${
-                          req.required
-                            ? "bg-red-600 hover:bg-red-700"
-                            : "bg-blue-600 hover:bg-blue-700"
-                        }`}
-                      >
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Certificate
-                      </Button>
-                    ) : (
-                      <div className="flex items-center gap-2 text-emerald-400">
-                        <CheckCircle className="w-4 h-4" />
-                        <span className="text-sm font-medium">Certificate Uploaded</span>
-                      </div>
+                    {req.required && (
+                      <Badge variant="error" className="text-xs">
+                        Required
+                      </Badge>
                     )}
                   </div>
-                );
-              })}
+                  <p className="text-sm text-white/70">{req.description}</p>
+                </div>
+              ))}
             </div>
+            <p className="mt-4 text-xs text-white/60">
+              Upload one certificate covering your active coverage below — it's reviewed against
+              these requirements.
+            </p>
           </CardContent>
         </Card>
 
@@ -186,12 +214,35 @@ const InsuranceVerification = memo(function InsuranceVerification() {
                   <p className="text-white/70 mb-2">
                     Drop your certificate here or click to browse
                   </p>
-                  <p className="text-sm text-white/60">
+                  <p className="text-sm text-white/60 mb-4">
                     Supported formats: PDF, JPG, PNG (Max 10MB)
                   </p>
-                  <Button variant="outline" className="mt-4">
-                    Select File
-                  </Button>
+                  {alreadyVerified ? (
+                    <div className="flex items-center justify-center gap-2 text-emerald-400">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Certificate verified</span>
+                    </div>
+                  ) : alreadySubmitted ? (
+                    <div className="flex items-center justify-center gap-2 text-amber-400">
+                      <CheckCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">Submitted, pending review</span>
+                    </div>
+                  ) : (
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-white/15 px-4 py-2 text-sm text-white hover:border-ts-orange/50">
+                      {isUploading ? "Uploading..." : "Select File"}
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        className="hidden"
+                        disabled={isUploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleCertificateFile(file);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
 
@@ -230,15 +281,17 @@ const InsuranceVerification = memo(function InsuranceVerification() {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button variant="outline" className="flex-1">
-            Save as Draft
-          </Button>
-          <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
-            Submit for Verification
-          </Button>
-        </div>
+        {alreadyVerified && (
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+            Your certificate is verified.
+          </div>
+        )}
+        {!alreadyVerified && alreadySubmitted && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200">
+            Uploading a certificate above submits it for review automatically — no separate submit
+            step needed.
+          </div>
+        )}
       </div>
     </div>
   );

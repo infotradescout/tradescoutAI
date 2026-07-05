@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +13,65 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Upload, Award, CheckCircle, AlertTriangle, FileCheck, ExternalLink } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import { useToast } from "@/hooks/use-toast";
+
+type VerificationStatusResponse = {
+  requirements?: { license?: boolean };
+  submissions?: { licenseNumber?: string };
+  status?: { license?: boolean };
+};
 
 const LicenseVerification = memo(function LicenseVerification() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedTrade, setSelectedTrade] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
+  const { data } = useQuery<VerificationStatusResponse>({
+    queryKey: ["/api/profile/verification"],
+    queryFn: () => apiRequest("GET", "/api/profile/verification"),
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: (payload: Record<string, string>) =>
+      apiRequest("PATCH", "/api/profile/verification", payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profile/verification"] });
+      toast({ title: "License submitted for review" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to submit",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const alreadyVerified = Boolean(data?.status?.license);
+  const alreadySubmitted = Boolean(data?.submissions?.licenseNumber);
+
+  const handleLicenseDocFile = async (file: File) => {
+    setIsUploadingDoc(true);
+    try {
+      const { objectKey } = await uploadPrivateObject(file);
+      await submitMutation.mutateAsync({
+        ...(licenseNumber.trim() ? { licenseNumber: licenseNumber.trim() } : {}),
+        licenseDocObjectKey: objectKey,
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
 
   const tradeCategories = [
     { value: "general", label: "General Contractor", code: "GC" },
@@ -290,7 +346,30 @@ const LicenseVerification = memo(function LicenseVerification() {
                 <p className="text-sm text-muted-foreground/70 mb-4">
                   Supported formats: PDF, JPG, PNG (Max 10MB each)
                 </p>
-                <Button className="bg-ts-orange-dark hover:bg-ts-orange-dark">Select Files</Button>
+                {alreadyVerified ? (
+                  <div className="flex items-center justify-center gap-2 text-emerald-400">
+                    <CheckCircle className="w-4 h-4" />
+                    <span className="text-sm font-medium">License verified</span>
+                  </div>
+                ) : (
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-ts-orange-dark px-4 py-2 text-sm text-white hover:opacity-90">
+                    {isUploadingDoc ? "Uploading..." : "Select Files"}
+                    <input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      className="hidden"
+                      disabled={isUploadingDoc}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleLicenseDocFile(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+                {!alreadyVerified && alreadySubmitted && (
+                  <p className="mt-3 text-xs text-amber-400">Submitted, pending review.</p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -333,15 +412,21 @@ const LicenseVerification = memo(function LicenseVerification() {
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button variant="outline" className="flex-1">
-            Save Progress
-          </Button>
-          <Button className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark">
-            Submit for Verification
-          </Button>
-        </div>
+        {alreadyVerified ? (
+          <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+            Your license is verified.
+          </div>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Button
+              className="flex-1 bg-ts-orange-dark hover:bg-ts-orange-dark"
+              disabled={!licenseNumber.trim() || submitMutation.isPending}
+              onClick={() => submitMutation.mutate({ licenseNumber: licenseNumber.trim() })}
+            >
+              Submit License Number for Verification
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
