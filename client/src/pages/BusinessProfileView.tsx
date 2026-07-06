@@ -145,6 +145,7 @@ export default function BusinessProfileView() {
           const counties = Array.isArray(directoryData?.counties) ? directoryData.counties : [];
           const primaryCounty = counties[0] || null;
           const publicProfile = directoryData?.profile || {};
+          const importExtras = publicProfile?.importExtras || {};
           const publicServices = Array.isArray(publicProfile?.services)
             ? publicProfile.services.filter((item: any) => typeof item === "string")
             : [];
@@ -157,13 +158,15 @@ export default function BusinessProfileView() {
             headline: publicProfile?.tagline || publicProfile?.category || null,
             description: publicProfile?.description ?? null,
             services: publicServices,
-            countyFips: primaryCounty?.fips || null,
-            countyName: primaryCounty?.name || null,
+            countyFips: primaryCounty?.fips || importExtras?.countyFips || null,
+            countyName: primaryCounty?.name || importExtras?.countyName || null,
             city: publicProfile?.city || null,
             stateCode: publicProfile?.stateCode || primaryCounty?.stateCode || null,
             serviceAreas: counties.map((c: any) => String(c?.name || "")).filter(Boolean),
             // Prevent contact bypass for directory shells; contact stays Scout-gated.
             website: null,
+            address: publicProfile?.address || null,
+            zipCode: publicProfile?.zipCode || null,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             publishedAt: null as any,
@@ -171,6 +174,14 @@ export default function BusinessProfileView() {
             verificationStatus: "pending" as any,
             addressVerified: false as any,
             cvsScore: null as any,
+            googleRating:
+              typeof importExtras?.averageRating === "number" ? importExtras.averageRating : null,
+            googleReviewCount:
+              typeof importExtras?.reviewCount === "number" ? importExtras.reviewCount : null,
+            googleMapsUrl:
+              typeof importExtras?.googleMapsUrl === "string" ? importExtras.googleMapsUrl : null,
+            directoryPublication: directoryData?.publication || null,
+            dataSource: importExtras?.source || "directory_import",
           } as any;
 
           setDirectoryBusinessId(String(directoryData?.id || ""));
@@ -530,6 +541,18 @@ export default function BusinessProfileView() {
   const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
   const showUnclaimedBadge = profileSource === "directory" && directoryClaimStatus === "unclaimed";
   const showSuggestCta = profileSource === "directory" && Boolean(directoryBusinessId);
+  const googleRating =
+    typeof (profile as any).googleRating === "number" &&
+    Number.isFinite(Number((profile as any).googleRating))
+      ? Number((profile as any).googleRating)
+      : null;
+  const googleReviewCount =
+    typeof (profile as any).googleReviewCount === "number" &&
+    Number.isFinite(Number((profile as any).googleReviewCount))
+      ? Number((profile as any).googleReviewCount)
+      : null;
+  const directoryPublication = (profile as any).directoryPublication || null;
+  const importedAddress = [profile.address, profile.zipCode].filter(Boolean).join(" ");
   const directConnectParams = new URLSearchParams({
     prefill_businessName: profile.name,
     prefill_businessSlug: profile.slug,
@@ -581,6 +604,11 @@ export default function BusinessProfileView() {
       value: showUnclaimedBadge ? "Claimable" : verificationLabel,
       icon: FileCheck2,
     },
+    {
+      label: "Source",
+      value: profileSource === "directory" ? "Imported" : "Published",
+      icon: Search,
+    },
   ];
   const structuredData = createLocalBusinessStructuredData({
     slug: profile.slug,
@@ -616,6 +644,17 @@ export default function BusinessProfileView() {
               <Badge variant="outline" className="border-white/15 bg-white/5 text-white">
                 {primaryServiceLabel}
               </Badge>
+              {googleRating !== null ? (
+                <Badge variant="outline" className="border-white/15 bg-white/5 text-white">
+                  Google {googleRating.toFixed(1)}
+                  {googleReviewCount !== null ? ` (${googleReviewCount})` : ""}
+                </Badge>
+              ) : null}
+              {profileSource === "directory" && directoryPublication?.crawlable === false ? (
+                <Badge variant="outline" className="border-white/15 bg-white/5 text-white/80">
+                  Directory shell
+                </Badge>
+              ) : null}
             </div>
 
             <h1
@@ -645,6 +684,13 @@ export default function BusinessProfileView() {
             </p>
 
             <div className="mt-5 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+              {importedAddress ? (
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-ts-orange" />
+                  <span>{importedAddress}</span>
+                </div>
+              ) : null}
+
               {locationLabel ? (
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-ts-orange" />
@@ -696,6 +742,11 @@ export default function BusinessProfileView() {
                   {item}
                 </Badge>
               ))}
+              {profileSource === "directory" ? (
+                <Badge variant="secondary" className="bg-white/8 text-white">
+                  Google-imported fields queued for enrichment
+                </Badge>
+              ) : null}
             </div>
           </div>
 
@@ -797,7 +848,7 @@ export default function BusinessProfileView() {
                 </>
               )}
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2">
                 {profilePulse.map(({ label, value, icon: Icon }) => (
                   <div
                     key={label}
