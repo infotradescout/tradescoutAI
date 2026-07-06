@@ -48,6 +48,22 @@ export default function ContractorCard({
   const stateCode = String((contractor as any).state || (contractor as any).stateCode || "").trim();
   const county = String((contractor as any).county || (contractor as any).countyName || "").trim();
   const locationSummary = [city, stateCode].filter(Boolean).join(", ") || county;
+  const serviceAreaLabel =
+    serviceAreas.length > 0
+      ? `${serviceAreas.slice(0, 2).join(", ")}${
+          serviceAreas.length > 2 ? ` +${serviceAreas.length - 2} more` : ""
+        }`
+      : locationSummary || "Local service area pending";
+  const yearsInBusinessLabel = contractor.yearsInBusiness
+    ? `${contractor.yearsInBusiness} years`
+    : "Profile age pending";
+  const responseTimeLabel = contractor.responseTimeSla
+    ? `${contractor.responseTimeSla} hrs response`
+    : "Response signal pending";
+  const recommendationLabel =
+    (contractor.totalRecommendations || 0) > 0
+      ? `${contractor.totalRecommendations} recommendations`
+      : "Recommendations pending";
   const rawCvs =
     typeof (contractor as any).trustScore === "number"
       ? (contractor as any).trustScore
@@ -59,6 +75,7 @@ export default function ContractorCard({
             ? Number((contractor as any).cvsScore)
             : null;
   const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
+  const cvsLabel = cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS calculating";
   const connectionRecommendationCountRaw = (contractor as any).connectionRecommendationCount;
   const connectionRecommendationCount =
     typeof connectionRecommendationCountRaw === "number" &&
@@ -165,11 +182,7 @@ export default function ContractorCard({
             className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
             style={{ color: "var(--theme-accent-primary)" }}
           />
-          {serviceAreas.length > 0
-            ? `${serviceAreas.slice(0, 2).join(", ")}${
-                serviceAreas.length > 2 ? ` +${serviceAreas.length - 2} more` : ""
-              }`
-            : locationSummary || "Service area not specified"}
+          {serviceAreaLabel}
         </p>
 
         {/* Business Info */}
@@ -183,25 +196,21 @@ export default function ContractorCard({
               className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
               style={{ color: "var(--theme-accent-primary)" }}
             />
-            {contractor.yearsInBusiness
-              ? `${contractor.yearsInBusiness} years`
-              : "Years in business n/a"}
+            {yearsInBusinessLabel}
           </span>
           <span className="flex items-center">
             <Clock
               className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
               style={{ color: "var(--theme-accent-primary)" }}
             />
-            {contractor.responseTimeSla
-              ? `${contractor.responseTimeSla} hrs response`
-              : "Response time n/a"}
+            {responseTimeLabel}
           </span>
           <span className="flex items-center">
             <ThumbsUp
               className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
               style={{ color: "var(--theme-accent-primary)" }}
             />
-            {contractor.totalRecommendations || 0} recommendations
+            {recommendationLabel}
           </span>
         </div>
 
@@ -211,7 +220,7 @@ export default function ContractorCard({
             variant="outline"
             className="text-xs text-white border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
           >
-            {cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS Pending"}
+            {cvsLabel}
           </Badge>
           {contractor.verifiedLicensed && (
             <Badge className="bg-green-600 hover:bg-green-600 text-white text-xs">
