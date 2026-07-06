@@ -96,17 +96,17 @@ export default function Home() {
             Describe the job and send it to local pros who match the work.
           </p>
 
-          <Card className="mt-5 rounded-2xl border-ts-orange/35 bg-[#091A35]/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <Card className="mt-5 rounded-2xl border-ts-orange/35 bg-[color:var(--surface-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <CardContent className="p-4">
               <p className="text-[0.95rem] font-medium text-ts-orange">Describe your job...</p>
               <p className="mt-2 text-base leading-7 text-white/62">
                 Replace kitchen faucet, fix drywall, install backyard lighting...
               </p>
               <div className="mt-4 flex flex-wrap gap-2.5">
-                <Badge className="rounded-xl border border-white/20 bg-[#0D1F3F] px-3 py-1.5 text-xs text-white/80">
+                <Badge className="rounded-xl border border-white/20 bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-white/80">
                   Add timeline
                 </Badge>
-                <Badge className="rounded-xl border border-white/20 bg-[#0D1F3F] px-3 py-1.5 text-xs text-white/80">
+                <Badge className="rounded-xl border border-white/20 bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-white/80">
                   Set budget
                 </Badge>
                 <Button
@@ -133,7 +133,7 @@ export default function Home() {
                   <Link
                     key={service.label}
                     href={service.href}
-                    className="rounded-2xl border border-ts-orange/30 bg-[#081A34]/78 p-3.5 transition-colors hover:border-ts-orange/55"
+                    className="rounded-2xl border border-ts-orange/30 bg-[color:var(--surface-card)] p-3.5 transition-colors hover:border-ts-orange/55"
                   >
                     <Icon className="h-4 w-4 text-ts-orange" />
                     <p className="mt-2 text-sm font-medium text-white">{service.label}</p>
@@ -144,7 +144,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-4 rounded-2xl border border-[#7B5A1A]/60 bg-[linear-gradient(135deg,rgba(44,33,11,0.45),rgba(13,17,30,0.92))] p-4 shadow-[0_14px_32px_rgba(0,0,0,0.35)] md:p-5">
+        <section className="mt-4 rounded-2xl border border-ts-orange/35 bg-[color:var(--surface-card)] p-4 shadow-[0_14px_32px_rgba(0,0,0,0.35)] md:p-5">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-2xl font-semibold text-white">Start a Direct Connect request</h2>
@@ -157,7 +157,7 @@ export default function Home() {
             </div>
             <Button
               asChild
-              className="h-12 rounded-xl bg-[#F7B500] px-6 text-base font-semibold text-[#17120A] hover:bg-[#FFC42E]"
+              className="h-12 rounded-xl bg-ts-orange px-6 text-base font-semibold text-black hover:bg-ts-orange/90"
             >
               <Link href="/direct-connect?source=home_direct_connect_cta">Start request</Link>
             </Button>
@@ -165,7 +165,7 @@ export default function Home() {
         </section>
 
         <div className="mt-4 grid grid-cols-1 gap-2">
-          <Card className="border-[#1E355A] bg-[#081427]/86">
+          <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
             <CardContent className="p-3.5 md:p-5">
               <p className="text-sm text-white/78">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
             </CardContent>

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
 import { safeStorage } from "../utils/safeStorage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { PRESET_THEMES, applyTheme, getThemeById, type Theme } from "@/lib/themes";
+import { applyTheme, getThemeById, LOCKED_TRADESCOUT_THEME_ID, type Theme } from "@/lib/themes";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -31,25 +31,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const resolveTheme = useCallback(() => {
-    // App theme should come from theme preference/custom theme only.
-    // Profile colorScheme is used by public profile rendering and should not force in-app theme swaps.
-    const savedThemeId =
-      user?.themePreference ||
-      (typeof window !== "undefined" ? safeStorage.get("themeId") : null) ||
-      "default";
-    const baseTheme = getThemeById(savedThemeId);
-
-    if (savedCustomColors) {
-      const customTheme: Theme = {
-        ...baseTheme,
-        id: "custom",
-        name: "Custom Theme",
-        colors: { ...baseTheme.colors, ...savedCustomColors },
-      };
-      return { theme: customTheme, custom: savedCustomColors, themeId: "custom" };
-    }
-
-    return { theme: baseTheme, custom: null, themeId: savedThemeId };
+    // Global app chrome is locked to the TradeScout charcoal/orange palette.
+    // Profile identity surfaces remain scoped through ThemeScope instead of changing app chrome.
+    const baseTheme = getThemeById(LOCKED_TRADESCOUT_THEME_ID);
+    return { theme: baseTheme, custom: null, themeId: LOCKED_TRADESCOUT_THEME_ID };
   }, [savedCustomColors, user]);
 
   const initialTheme = useMemo(() => resolveTheme(), [resolveTheme]);
@@ -82,37 +67,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   const setTheme = (themeId: string) => {
-    const newTheme = getThemeById(themeId);
+    void themeId;
+    const newTheme = getThemeById(LOCKED_TRADESCOUT_THEME_ID);
     setCurrentTheme(newTheme);
     setCustomColors(null);
     applyTheme(newTheme);
     if (typeof window !== "undefined") {
-      safeStorage.set("themeId", themeId);
+      safeStorage.set("themeId", LOCKED_TRADESCOUT_THEME_ID);
       localStorage.removeItem("customColors");
     }
-    saveThemeMutation.mutate({ themeId });
+    saveThemeMutation.mutate({ themeId: LOCKED_TRADESCOUT_THEME_ID });
   };
 
   const updateCustomColors = (colors: Partial<Theme["colors"]>) => {
-    const baseTheme = getThemeById(currentTheme.id === "custom" ? "default" : currentTheme.id);
-    const mergedColors = { ...baseTheme.colors, ...colors };
-    const customTheme: Theme = {
-      id: "custom",
-      name: "Custom Theme",
-      description: "Your personalized color scheme",
-      colors: mergedColors,
-    };
-
-    setCurrentTheme(customTheme);
-    setCustomColors(colors);
-    applyTheme(customTheme);
+    void colors;
+    const lockedTheme = getThemeById(LOCKED_TRADESCOUT_THEME_ID);
+    setCurrentTheme(lockedTheme);
+    setCustomColors(null);
+    applyTheme(lockedTheme);
     if (typeof window !== "undefined") {
-      safeStorage.set("themeId", "custom");
-      safeStorage.set("customColors", JSON.stringify(colors));
+      safeStorage.set("themeId", LOCKED_TRADESCOUT_THEME_ID);
+      localStorage.removeItem("customColors");
     }
     saveThemeMutation.mutate({
-      themeId: "custom",
-      colors: JSON.stringify(colors),
+      themeId: LOCKED_TRADESCOUT_THEME_ID,
     });
   };
 

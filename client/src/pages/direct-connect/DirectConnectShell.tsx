@@ -181,7 +181,7 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
 };
 
 const REQUEST_FIELD_CLASS =
-  "min-h-12 rounded-xl border border-[color:var(--theme-accent-primary)]/22 bg-[#071832]/78 px-3.5 text-[15px] text-[color:var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] placeholder:text-[color:var(--text-secondary)]/70 focus:border-[color:var(--theme-accent-primary)]/60 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/26";
+  "min-h-12 rounded-xl border border-[color:var(--theme-accent-primary)]/22 bg-[color:var(--surface-input)] px-3.5 text-[15px] text-[color:var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] placeholder:text-[color:var(--text-secondary)]/70 focus:border-[color:var(--theme-accent-primary)]/60 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/26";
 const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[124px] resize-y py-3 leading-6");
 const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-12 w-full");
 const REQUEST_LABEL_CLASS = "text-sm font-semibold text-[color:var(--text-primary)]";
@@ -2779,7 +2779,7 @@ function DirectConnectRequestComposer({
                       key={chip.label}
                       type="button"
                       onClick={chip.onClick}
-                      className="rounded-lg border border-white/18 bg-[#101C31] px-2.5 py-2 text-left text-xs font-medium text-white/80 transition-colors hover:border-ts-orange/45 hover:text-white"
+                      className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2 text-left text-xs font-medium text-white/80 transition-colors hover:border-ts-orange/45 hover:text-white"
                     >
                       {chip.label}
                     </button>
