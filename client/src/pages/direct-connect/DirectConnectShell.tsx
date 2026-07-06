@@ -10,6 +10,12 @@ import {
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
 import { CreateEstimatePanel, ReviewEstimatePanel } from "./EstimatePanel";
+import {
+  ReviewSchedulePanel,
+  ReviewCompletionPanel,
+  CreateInvoicePanel,
+  ReviewInvoicePanel,
+} from "./JobLifecyclePanels";
 import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -5464,6 +5470,9 @@ export default function DirectConnectShell() {
     return {
       jobWorkspaceId,
       estimateId: params.get("estimateId") || undefined,
+      scheduleProposalId: params.get("scheduleProposalId") || undefined,
+      completionRequestId: params.get("completionRequestId") || undefined,
+      invoiceId: params.get("invoiceId") || undefined,
       action: params.get("action") || undefined,
     };
   }, [location]);
@@ -5750,6 +5759,9 @@ export default function DirectConnectShell() {
           {jobPanelParams?.action === "create_estimate" && (
             <CreateEstimatePanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
           )}
+          {jobPanelParams?.action === "create_invoice" && (
+            <CreateInvoicePanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
+          )}
           <DirectConnectInbox />
         </div>
       );
@@ -5766,6 +5778,26 @@ export default function DirectConnectShell() {
               <ReviewEstimatePanel
                 jobWorkspaceId={jobPanelParams.jobWorkspaceId}
                 estimateId={jobPanelParams.estimateId}
+              />
+            )}
+          {jobPanelParams?.action === "review_schedule" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.scheduleProposalId && (
+              <ReviewSchedulePanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                scheduleProposalId={jobPanelParams.scheduleProposalId}
+              />
+            )}
+          {jobPanelParams?.action === "review_completion_request" &&
+            jobPanelParams.jobWorkspaceId && (
+              <ReviewCompletionPanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
+            )}
+          {jobPanelParams?.action === "review_invoice" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.invoiceId && (
+              <ReviewInvoicePanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                invoiceId={jobPanelParams.invoiceId}
               />
             )}
           <MyDirectConnectRequests />

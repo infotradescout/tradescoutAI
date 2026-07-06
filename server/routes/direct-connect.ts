@@ -10149,6 +10149,94 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/schedule-proposals/:scheduleProposalId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const scheduleProposalId = String(req.params.scheduleProposalId || "").trim();
+        if (!jobWorkspaceId || !scheduleProposalId) {
+          return res
+            .status(400)
+            .json({ message: "jobWorkspaceId and scheduleProposalId are required" });
+        }
+        const rows = await db.execute(sql`
+          SELECT
+            id, workspace_id, request_id, requester_user_id, proposed_start, proposed_end,
+            time_window, notes, status, responded_at, created_at, updated_at
+          FROM job_schedule_proposals
+          WHERE id = ${scheduleProposalId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const proposal = ((rows.rows || []) as any[])[0] || null;
+        if (!proposal) return res.status(404).json({ message: "Schedule proposal not found" });
+        const requesterUserId = String(proposal.requester_user_id || "").trim();
+        const isRequester = requesterUserId === userId;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(sql`
+                SELECT c.request_id
+                FROM direct_connect_dispatch_candidates c
+                WHERE c.request_id = ${String(proposal.request_id)}
+                  AND c.eligibility_state = 'eligible'
+                  AND (
+                    c.contractor_id = ${contractorId}
+                    OR c.responder_user_id = ${userId}
+                    OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  )
+                LIMIT 1
+              `)
+            : await db.execute(sql`
+                SELECT c.request_id
+                FROM direct_connect_dispatch_candidates c
+                WHERE c.request_id = ${String(proposal.request_id)}
+                  AND c.eligibility_state = 'eligible'
+                  AND (
+                    c.responder_user_id = ${userId}
+                    OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  )
+                LIMIT 1
+              `);
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res
+              .status(403)
+              .json({ message: "Schedule proposal not available for this account." });
+          }
+        }
+        return res.status(200).json({
+          scheduleProposalId: String(proposal.id),
+          jobWorkspaceId: String(proposal.workspace_id),
+          requestId: String(proposal.request_id || ""),
+          proposedStart: proposal.proposed_start || null,
+          proposedEnd: proposal.proposed_end || null,
+          timeWindow: proposal.time_window ? String(proposal.time_window) : null,
+          notes: proposal.notes ? String(proposal.notes) : null,
+          status: String(proposal.status || "proposed"),
+          respondedAt: proposal.responded_at || null,
+          createdAt: proposal.created_at || null,
+        });
+      } catch (error) {
+        console.error("Error fetching schedule proposal:", error);
+        return res.status(500).json({
+          message: "Failed to load schedule proposal",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
   app.post(
     "/api/direct-connect/jobs/:jobWorkspaceId/schedule-proposals/:scheduleProposalId/respond",
     isAuthenticated,
