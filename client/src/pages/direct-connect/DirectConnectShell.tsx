@@ -91,7 +91,6 @@ import {
   ChevronRight,
   Zap,
   TrendingUp,
-  Bell,
   Paperclip,
   UploadCloud,
   FolderKanban,
@@ -255,8 +254,6 @@ type DirectConnectDraftSnapshot = {
   attachmentKeys: string[];
   detailAnswers?: Record<"what" | "where" | "when" | "details", string>;
 };
-
-type FlowMode = "start" | "manage";
 
 function toCleanHomeLabel(home: any): string {
   const nickname = String(home?.nickname || home?.name || home?.title || "").trim();
@@ -752,10 +749,6 @@ function localizeIntentConfig(
   };
 }
 
-function getFlowMode(section: Section): FlowMode {
-  return section === "engagements" || section === "inbox" ? "manage" : "start";
-}
-
 function statusTone(status: string) {
   const value = String(status || "").toLowerCase();
   if (value === "accepted" || value === "in_progress") {
@@ -901,19 +894,6 @@ type DirectConnectInboxItem = {
     attachmentCount?: number | null;
   } | null;
   conversationThreadId?: string | null;
-};
-
-type DirectConnectNotification = {
-  id: string;
-  request_id: string;
-  notification_type: string;
-  title: string;
-  message: string;
-  action_url?: string | null;
-  action_key?: string | null;
-  status: "unread" | "read" | "archived" | "dismissed";
-  priority: "low" | "normal" | "high";
-  created_at: string;
 };
 
 type DirectConnectRequest = {
@@ -1159,13 +1139,6 @@ function isCurrentRequest(request: DirectConnectRequest): boolean {
   if (!ts) return false;
   const ageMs = Date.now() - new Date(ts).getTime();
   return Number.isFinite(ageMs) && ageMs <= 120 * 24 * 60 * 60 * 1000;
-}
-
-function countRequestsByStage(
-  requests: DirectConnectRequest[] | undefined,
-  stage: RequestWorkflowStage
-): number {
-  return (requests || []).filter((request) => getRequestWorkflowStage(request) === stage).length;
 }
 
 type DraftAttachment = {
@@ -5397,7 +5370,6 @@ export default function DirectConnectShell() {
   const pathOnly = useMemo(() => getPathOnly(location), [location]);
   const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
-  const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
 
   const requestPrefill = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -5523,152 +5495,7 @@ export default function DirectConnectShell() {
   });
 
   const hasHomeIdContext = Boolean(Array.isArray(homesData?.homes) && homesData.homes.length > 0);
-  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const replyViewedEventKeyRef = useRef<string | null>(null);
-  const queryClient = useQueryClient();
-  const userRole = String((user as any)?.role || "").toLowerCase();
-  const notificationRole = ["contractor", "business", "worker", "provider"].includes(userRole)
-    ? "business"
-    : "requester";
-
-  const notificationsQueryKey = useMemo(
-    () => ["/api/direct-connect/notifications", notificationRole] as const,
-    [notificationRole]
-  );
-
-  const {
-    data: notificationsPayload,
-    isLoading: notificationsLoading,
-    isError: notificationsError,
-  } = useQuery<{
-    notifications: DirectConnectNotification[];
-    unreadDirectConnectNotificationCount: number;
-    latestNotification: DirectConnectNotification | null;
-    pendingActionKey: string | null;
-  }>({
-    queryKey: notificationsQueryKey,
-    queryFn: async () => {
-      const res = await fetch(`/api/direct-connect/notifications?role=${notificationRole}`);
-      if (!res.ok) {
-        trackDirectConnectApiFailure({
-          source: "/api/direct-connect/notifications",
-          section: "notifications",
-          status: res.status,
-          blocked: false,
-        });
-        throw new Error("Failed to load Direct Connect notifications");
-      }
-      return res.json();
-    },
-    enabled: isAuthenticated,
-  });
-
-  const notifications = notificationsPayload?.notifications || [];
-  const activeNotifications = notifications.filter((n) => n.status !== "archived");
-  const unreadDirectConnectNotificationCount = activeNotifications.filter(
-    (n) => n.status === "unread"
-  ).length;
-
-  const markReadMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const response = await fetch(
-        `/api/direct-connect/notifications/${encodeURIComponent(notificationId)}/read?role=${notificationRole}`,
-        { method: "POST" }
-      );
-      if (!response.ok) throw new Error("Failed to mark notification as read");
-      return response.json();
-    },
-    onMutate: async (notificationId) => {
-      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
-      const previous = queryClient.getQueryData(notificationsQueryKey);
-      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
-        if (!current?.notifications) return current;
-        return {
-          ...current,
-          notifications: current.notifications.map((item: DirectConnectNotification) =>
-            item.id === notificationId ? { ...item, status: "read" } : item
-          ),
-        };
-      });
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(notificationsQueryKey, context.previous);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
-    },
-  });
-
-  const markAllReadMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(
-        `/api/direct-connect/notifications/read-all?role=${notificationRole}`,
-        {
-          method: "POST",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to mark all notifications as read");
-      return response.json();
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
-      const previous = queryClient.getQueryData(notificationsQueryKey);
-      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
-        if (!current?.notifications) return current;
-        return {
-          ...current,
-          notifications: current.notifications.map((item: DirectConnectNotification) =>
-            item.status === "unread" ? { ...item, status: "read" } : item
-          ),
-        };
-      });
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(notificationsQueryKey, context.previous);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
-    },
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const response = await fetch(
-        `/api/direct-connect/notifications/${encodeURIComponent(notificationId)}/archive?role=${notificationRole}`,
-        { method: "POST" }
-      );
-      if (!response.ok) throw new Error("Failed to archive notification");
-      return response.json();
-    },
-    onMutate: async (notificationId) => {
-      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
-      const previous = queryClient.getQueryData(notificationsQueryKey);
-      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
-        if (!current?.notifications) return current;
-        return {
-          ...current,
-          notifications: current.notifications.map((item: DirectConnectNotification) =>
-            item.id === notificationId ? { ...item, status: "archived" } : item
-          ),
-        };
-      });
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(notificationsQueryKey, context.previous);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
-    },
-  });
 
   const navCounts: Partial<Record<Section, number>> = useMemo(
     () => ({
@@ -5676,14 +5503,6 @@ export default function DirectConnectShell() {
       engagements: (requestsData || []).filter((r) => r.status !== "cancelled").length,
     }),
     [inboxData, requestsData]
-  );
-  const requestSummary = useMemo(
-    () => ({
-      readyToSend: countRequestsByStage(requestsData, "ready_to_send"),
-      waitingOnPros: countRequestsByStage(requestsData, "waiting_on_pros"),
-      inConversation: countRequestsByStage(requestsData, "active_conversation"),
-    }),
-    [requestsData]
   );
 
   useEffect(() => {
@@ -5786,7 +5605,7 @@ export default function DirectConnectShell() {
   let centerContent: ReactNode = null;
   switch (activeSection) {
     case "post":
-      centerContent = (
+      centerContent = isAuthenticated ? (
         <DirectConnectRequestComposer
           defaultCountyFips={defaultCountyFips}
           prefillTargetUserId={requestPrefill?.targetUserId}
@@ -5798,6 +5617,52 @@ export default function DirectConnectShell() {
           prefillBudgetMax={requestPrefill?.budgetMax}
           prefillTradeId={requestPrefill?.tradeId}
         />
+      ) : (
+        <Card className="mx-auto max-w-3xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="space-y-5 p-5 md:p-7">
+            <div className="space-y-2">
+              <Badge className="bg-ts-orange/15 text-ts-orange">Account required</Badge>
+              <h2 className="text-2xl font-bold text-[color:var(--text-primary)]">
+                Sign in before starting a request
+              </h2>
+              <p className="text-sm text-[color:var(--text-secondary)]">
+                Direct Connect requests create private job records, gated replies, Messages, and
+                lifecycle history. Create an account first so the customer and business stay tied to
+                the same request from start to finish.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                onClick={() =>
+                  navigate(
+                    `/pre-scout-setup?mode=signup&next=${encodeURIComponent("/direct-connect")}`
+                  )
+                }
+              >
+                Create free account
+              </Button>
+              <Button
+                variant="outline"
+                className="border-[color:var(--border-subtle)]"
+                onClick={() =>
+                  navigate(
+                    `/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect")}`
+                  )
+                }
+              >
+                Sign in
+              </Button>
+              <Button
+                variant="outline"
+                className="border-[color:var(--border-subtle)]"
+                onClick={() => navigate("/direct-connect/pros")}
+              >
+                Browse directory
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       );
       break;
     case "board":
@@ -5835,62 +5700,6 @@ export default function DirectConnectShell() {
               <span className="hidden md:inline">Direct Connect</span>
             </h1>
           )}
-
-          <div className="hidden flex-wrap justify-end gap-2 md:flex">
-            <button
-              type="button"
-              onClick={() => setShowNotificationCenter(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm"
-            >
-              <Bell className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-              <span className="text-[color:var(--text-secondary)]">Notifications</span>
-              <span className="font-semibold text-[color:var(--text-primary)]">
-                {unreadDirectConnectNotificationCount}
-              </span>
-            </button>
-            {activeFlowMode === "manage" ? (
-              <>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <Zap className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Open</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {requestSummary.readyToSend}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Waiting on businesses</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {requestSummary.waitingOnPros}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <MessageCircle className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">In conversation</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {requestSummary.inConversation}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Messages</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {navCounts.inbox || 0}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <TrendingUp className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">My Requests</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {navCounts.engagements || 0}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
         </div>
 
         <div className={cn(activeSection === "post" ? "hidden md:block" : "")}>
@@ -6023,108 +5832,6 @@ export default function DirectConnectShell() {
         </div>
 
         <div className="min-w-0 space-y-3">{centerContent}</div>
-        <Sheet open={showNotificationCenter} onOpenChange={setShowNotificationCenter}>
-          <SheetContent
-            side="right"
-            className="w-full max-w-md border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-primary)]"
-          >
-            <SheetHeader>
-              <SheetTitle>Direct Connect notifications</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-xs text-[color:var(--text-secondary)]">
-                {unreadDirectConnectNotificationCount} unread
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-[color:var(--border-subtle)]"
-                onClick={() => markAllReadMutation.mutate()}
-                disabled={markAllReadMutation.isPending || unreadDirectConnectNotificationCount < 1}
-              >
-                Mark reviewed
-              </Button>
-            </div>
-            <div className="mt-3 space-y-2 overflow-y-auto pr-1 max-h-[74vh]">
-              {!isAuthenticated ? (
-                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                  Sign in to view Direct Connect notifications.
-                </div>
-              ) : notificationsLoading ? (
-                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                  Loading Direct Connect updates...
-                </div>
-              ) : notificationsError ? (
-                <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-3 text-xs text-rose-200">
-                  Could not load notifications right now.
-                </div>
-              ) : activeNotifications.length < 1 ? (
-                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                  No Direct Connect updates yet.
-                </div>
-              ) : (
-                activeNotifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={cn(
-                      "rounded-xl border px-3 py-3",
-                      notification.status === "unread"
-                        ? "border-ts-orange/45 bg-ts-orange/10"
-                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">{notification.title}</p>
-                        <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                          {notification.message}
-                        </p>
-                        <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
-                          {formatDistanceToNow(new Date(notification.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px]",
-                          notification.status === "unread"
-                            ? "border-ts-orange/40 text-ts-orange"
-                            : "border-[color:var(--border-subtle)] text-[color:var(--text-secondary)]"
-                        )}
-                      >
-                        {notification.status === "unread" ? "Unread" : "Read"}
-                      </Badge>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {notification.status === "unread" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 border-[color:var(--border-subtle)] text-[11px]"
-                          onClick={() => markReadMutation.mutate(notification.id)}
-                          disabled={markReadMutation.isPending}
-                        >
-                          Mark read
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 border-[color:var(--border-subtle)] text-[11px]"
-                        onClick={() => archiveMutation.mutate(notification.id)}
-                        disabled={archiveMutation.isPending}
-                      >
-                        Hide update
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
     </div>
   );
