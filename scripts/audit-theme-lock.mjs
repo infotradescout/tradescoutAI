@@ -40,6 +40,12 @@ function main() {
     { file: "client/src/lib/themes.ts", token: '"--ts-accent": "#FF6A00"' },
     { file: "client/tailwind.config.ts", token: 'tsBg: "#050607"' },
     { file: "client/tailwind.config.ts", token: 'tsAccent: "#FF6A00"' },
+    { file: "client/src/index.css", token: "--ts-radius-card: 8px;" },
+    { file: "client/src/index.css", token: "--ts-radius-control: 8px;" },
+    { file: "client/src/index.css", token: "--surface-card-border:" },
+    { file: "client/src/components/ui/card.tsx", token: '"ts-card text-[color:var(--text-primary)]"' },
+    { file: "client/src/components/ui/input.tsx", token: '"ts-control flex h-[var(--ts-control-height)]' },
+    { file: "client/src/components/ui/button.tsx", token: 'default: "ts-action font-bold"' },
   ];
 
   for (const item of requiredPalette) {

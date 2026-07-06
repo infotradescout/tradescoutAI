@@ -848,7 +848,12 @@ html {
     --ts-radius-card: 8px;
     --ts-radius-control: 8px;
     --ts-radius-panel: 10px;
-    --radius: 10px;
+    --ts-radius-chip: 999px;
+    --ts-border-width: 1px;
+    --ts-control-height: 40px;
+    --ts-control-height-sm: 34px;
+    --ts-control-height-lg: 44px;
+    --radius: var(--ts-radius-card);
 
     /* Charcoal foundations (mapped to theme tokens) */
     --charcoal-950: color-mix(in oklab, var(--ts-bg, #0b0f14) 92%, #000 8%);
@@ -911,6 +916,8 @@ html {
       color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-alpha)) 78%, transparent);
     --surface-card-shadow-hover: 0 12px 28px
       color-mix(in oklab, rgba(0, 0, 0, var(--surface-shadow-hover-alpha)) 78%, transparent);
+    --surface-control-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    --surface-action-shadow: 0 8px 18px color-mix(in oklab, var(--theme-accent-primary) 18%, transparent);
 
     /* TEXT HIERARCHY */
     --text-primary: var(--ts-text, rgba(255, 255, 255, 0.95));
@@ -1239,8 +1246,15 @@ html {
     position: relative;
     z-index: 0;
     isolation: isolate;
-    border: 1px solid var(--surface-card-border);
+    border: var(--ts-border-width) solid var(--surface-card-border);
+    border-radius: var(--ts-radius-card);
+    background: var(--surface-card);
     box-shadow: var(--surface-card-shadow);
+    transition:
+      border-color 150ms ease,
+      background-color 150ms ease,
+      box-shadow 150ms ease,
+      transform 150ms ease;
   }
 
   .ts-card::before {
@@ -1260,6 +1274,64 @@ html {
   .ts-card:hover {
     border-color: var(--surface-card-border-hover);
     box-shadow: var(--surface-card-shadow-hover);
+  }
+
+  .ts-panel {
+    border: var(--ts-border-width) solid color-mix(in oklab, var(--border-primary) 78%, transparent);
+    border-radius: var(--ts-radius-panel);
+    background: color-mix(in oklab, var(--surface-card) 92%, transparent);
+    box-shadow: var(--surface-card-shadow);
+  }
+
+  .ts-control {
+    min-height: var(--ts-control-height);
+    border: var(--ts-border-width) solid var(--border-subtle);
+    border-radius: var(--ts-radius-control);
+    background: var(--surface-input);
+    color: var(--text-primary);
+    box-shadow: var(--surface-control-shadow);
+    transition:
+      border-color 150ms ease,
+      background-color 150ms ease,
+      box-shadow 150ms ease;
+  }
+
+  .ts-control:hover {
+    border-color: color-mix(in oklab, var(--border-active) 72%, transparent);
+  }
+
+  .ts-control:focus,
+  .ts-control:focus-visible,
+  .ts-control[data-state="open"] {
+    outline: none;
+    border-color: var(--theme-accent-primary);
+    box-shadow:
+      var(--surface-control-shadow),
+      0 0 0 3px color-mix(in oklab, var(--theme-accent-primary) 22%, transparent);
+  }
+
+  .ts-action {
+    border-radius: var(--ts-radius-control);
+    background: var(--theme-accent-primary);
+    color: var(--ts-text-on-accent, #050607);
+    box-shadow: var(--surface-action-shadow);
+  }
+
+  .ts-action:hover {
+    background: color-mix(in oklab, var(--theme-accent-primary) 92%, white 8%);
+  }
+
+  .ts-secondary-action {
+    border: var(--ts-border-width) solid var(--border-subtle);
+    border-radius: var(--ts-radius-control);
+    background: var(--surface-intermediate);
+    color: var(--text-primary);
+    box-shadow: var(--surface-control-shadow);
+  }
+
+  .ts-secondary-action:hover {
+    border-color: color-mix(in oklab, var(--theme-accent-primary) 34%, var(--border-subtle));
+    background: color-mix(in oklab, var(--surface-intermediate) 92%, white 8%);
   }
 }
 
@@ -3930,6 +4002,10 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
 .ts-bottom-nav-item,
 .ts-bottom-nav-icon {
   border-radius: var(--ts-radius-control) !important;
+}
+
+.ts-authenticated-app .app-page .rounded-3xl {
+  border-radius: var(--ts-radius-panel) !important;
 }
 
 .ts-page-section,
