@@ -372,6 +372,8 @@ function getDirectConnectIntent(path: string): DirectConnectIntent | null {
     browse_activity: "browse_activity",
     community: "browse_activity",
     browse_only: "browse_only",
+    local_search: "find_person_business",
+    directory: "find_person_business",
     business: "find_person_business",
   };
   return map[value] || null;
@@ -385,7 +387,25 @@ function getSectionFromPath(path: string): Section {
   const pathOnly = getPathOnly(path);
   const match = pathOnly.match(/^\/direct-connect(?:\/(.+))?/);
   const raw = match?.[1]?.split("/")[0] ?? "";
-  if (!raw) return "post";
+  if (!raw) {
+    const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
+    const params = new URLSearchParams(query);
+    const mode = String(params.get("mode") || "")
+      .trim()
+      .toLowerCase();
+    const intent = String(params.get("intent") || "")
+      .trim()
+      .toLowerCase();
+    if (
+      ["directory", "pros", "browse", "browse_only", "local_search"].includes(mode) ||
+      ["directory", "browse_only", "local_search", "find_help", "find_person_business"].includes(
+        intent
+      )
+    ) {
+      return "pros";
+    }
+    return "post";
+  }
   if (SECTIONS.includes(raw as Section)) return raw as Section;
   return "post";
 }
@@ -5853,6 +5873,41 @@ export default function DirectConnectShell() {
               >
                 Create account
               </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {activeSection === "post" ? (
+          <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-3 md:px-4">
+            <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                  Want the directory instead?
+                </p>
+                <p className="text-xs text-[color:var(--text-secondary)]">
+                  Browse local businesses first. Calling opens from the profile after the contact
+                  gate.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-[color:var(--border-subtle)]"
+                  onClick={() => navigate("/direct-connect/pros")}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Browse directory
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-[color:var(--text-secondary)]"
+                  onClick={() => navigate("/contractors")}
+                >
+                  Open full directory
+                </Button>
+              </div>
             </div>
           </div>
         ) : null}

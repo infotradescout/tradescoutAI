@@ -3,7 +3,7 @@ import path from "path";
 import { randomUUID } from "crypto";
 import dotenv from "dotenv";
 import { db } from "../../server/db";
-import { listingImportStaging } from "../../shared/schema";
+import { counties, listingImportStaging } from "../../shared/schema";
 import {
   getFirstValue,
   normalizeEmail,
@@ -16,6 +16,52 @@ import {
 } from "./utils";
 
 dotenv.config();
+
+function normalizeCountyLookupValue(value: string): string {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\bsaint\b/g, "st")
+    .replace(/\b(county|parish|borough|census area|municipality|district)\b/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function buildCountyLookup(): Promise<Map<string, { fips: string; name: string }>> {
+  const rows = await db
+    .select({
+      fips: counties.fips,
+      name: counties.name,
+      stateCode: counties.stateCode,
+    })
+    .from(counties);
+  const lookup = new Map<string, { fips: string; name: string }>();
+
+  for (const row of rows) {
+    const stateCode = String(row.stateCode || "")
+      .trim()
+      .toUpperCase();
+    const countyName = String(row.name || "").trim();
+    const fips = String(row.fips || "").trim();
+    if (!stateCode || !countyName || !/^\d{5}$/.test(fips)) continue;
+
+    const values = new Set([
+      countyName.trim().toLowerCase(),
+      normalizeCountyLookupValue(countyName),
+    ]);
+    for (const value of values) {
+      if (!value) continue;
+      lookup.set(`${stateCode}|${value}`, { fips, name: countyName });
+    }
+
+    if (stateCode === "FL" && normalizeCountyLookupValue(countyName) === "miami dade") {
+      lookup.set("FL|dade", { fips, name: countyName });
+    }
+  }
+
+  return lookup;
+}
 
 function resolveDelimiter(input: string): string {
   const key = String(input || "comma").toLowerCase();
@@ -166,6 +212,7 @@ async function main() {
   const excludeFood = String(args.excludeFood || "true").toLowerCase() !== "false";
   const allowRetailFood = String(args.allowRetailFood || "true").toLowerCase() !== "false";
   const reportOnly = String(args.reportOnly || "false").toLowerCase() === "true";
+  const requireCounty = String(args.requireCounty || "false").toLowerCase() === "true";
   const excludedReportPathRaw = String(args.excludedReport || "").trim();
   const excludedReportPath = excludedReportPathRaw
     ? path.isAbsolute(excludedReportPathRaw)
@@ -180,12 +227,16 @@ async function main() {
   }
 
   let inputRows = 0;
+  let acceptedRows = 0;
   let stagedRows = 0;
   let skippedRows = 0;
   let skippedFoodRows = 0;
+  let skippedMissingCountyRows = 0;
+  let resolvedCountyRows = 0;
   let allowedRetailFoodRows = 0;
   let buffer: any[] = [];
   let excludedReportRows = 0;
+  const countyLookup = await buildCountyLookup();
 
   const excludedReportStream = excludedReportPath
     ? fs.createWriteStream(excludedReportPath, { encoding: "utf8" })
@@ -214,7 +265,7 @@ async function main() {
     if (!buffer.length) return;
     const chunk = buffer;
     buffer = [];
-    await db
+    const inserted = await db
       .insert(listingImportStaging)
       .values(chunk)
       .onConflictDoNothing({
@@ -223,7 +274,9 @@ async function main() {
           listingImportStaging.source,
           listingImportStaging.externalId,
         ],
-      });
+      })
+      .returning({ id: listingImportStaging.id });
+    stagedRows += inserted.length;
   };
 
   await streamCsvFile({
@@ -277,9 +330,9 @@ async function main() {
         "legal_name",
       ]);
       if (!name) return;
+      acceptedRows++;
 
       if (reportOnly) {
-        stagedRows++;
         return;
       }
 
@@ -302,6 +355,43 @@ async function main() {
         extractStateCodeFromLooseAddress(fulladdress);
       const countyFips = getFirstValue(record, ["county_fips", "fips", "countyfips"]);
       const countyName = getFirstValue(record, ["county_name", "county"]);
+      const resolvedCounty =
+        countyFips && /^\d{5}$/.test(countyFips)
+          ? { fips: countyFips, name: countyName }
+          : stateCode && countyName
+            ? countyLookup.get(`${stateCode}|${countyName.trim().toLowerCase()}`) ||
+              countyLookup.get(`${stateCode}|${normalizeCountyLookupValue(countyName)}`) ||
+              null
+            : null;
+      const resolvedCountyFips = resolvedCounty?.fips || "";
+      const resolvedCountyName = resolvedCounty?.name || countyName;
+
+      if (requireCounty && !resolvedCountyFips) {
+        skippedRows++;
+        skippedMissingCountyRows++;
+        if (excludedReportStream) {
+          excludedReportRows++;
+          excludedReportStream.write(
+            toCsvLine([
+              inputRows,
+              "county-unresolved",
+              name,
+              getFirstValue(record, ["categories", "category", "trade_categories", "services"]),
+              getFirstValue(record, ["business_type"]),
+              getFirstValue(record, ["industry", "vertical", "naics_description"]),
+              getFirstValue(record, ["description", "about", "summary"]),
+              getFirstValue(record, ["external_id", "source_id", "id"]),
+              getFirstValue(record, ["website", "url", "site"]),
+              getFirstValue(record, ["phone", "phone_number", "business_phone", "contact_phone"]),
+              stateCode,
+              countyName,
+            ])
+          );
+        }
+        return;
+      }
+      if (resolvedCountyFips) resolvedCountyRows++;
+
       const phone = normalizePhone(
         getFirstValue(record, [
           "phone",
@@ -338,14 +428,16 @@ async function main() {
         ])
       );
 
-      const normalizedName = normalizeName(name);
+      const normalizedName = normalizeName(name).slice(0, 255);
       const dedupeKey = [
         normalizedName,
         stateCode || "_",
-        countyFips || "_",
+        resolvedCountyFips || "_",
         phone || "_",
         website || "_",
-      ].join("|");
+      ]
+        .join("|")
+        .slice(0, 255);
 
       const lat = latRaw ? Number(latRaw) : null;
       const lng = lngRaw ? Number(lngRaw) : null;
@@ -355,14 +447,14 @@ async function main() {
         batchId,
         source,
         externalId: externalId || null,
-        name,
+        name: name.slice(0, 255),
         normalizedName,
         phone: phone || null,
-        email: email || null,
+        email: (email || "").slice(0, 255) || null,
         website: website || null,
-        stateCode: stateCode || null,
-        countyFips: countyFips || null,
-        countyName: countyName || null,
+        stateCode: (stateCode || "").slice(0, 2) || null,
+        countyFips: resolvedCountyFips || null,
+        countyName: (resolvedCountyName || "").slice(0, 128) || null,
         lat: lat != null && Number.isFinite(lat) ? String(lat) : null,
         lng: lng != null && Number.isFinite(lng) ? String(lng) : null,
         tradeCategories,
@@ -371,7 +463,6 @@ async function main() {
         status: "pending",
       } as any);
 
-      stagedRows++;
       if (buffer.length >= chunkSize) {
         await flush();
       }
@@ -396,13 +487,17 @@ async function main() {
         batchId,
         source,
         inputRows,
+        acceptedRows,
         stagedRows,
         skippedRows,
         skippedFoodRows,
+        skippedMissingCountyRows,
+        resolvedCountyRows,
         allowedRetailFoodRows,
         excludedReportRows,
         reportOnly,
         excludedReportPath: excludedReportPath || null,
+        requireCounty,
         policy: {
           excludeFood,
           allowRetailFood,

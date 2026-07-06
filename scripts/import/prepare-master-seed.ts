@@ -122,6 +122,7 @@ function main() {
       "website",
       "state_code",
       "municipality",
+      "county_name",
       "trade_categories",
       "description",
       "source_id",
@@ -187,6 +188,7 @@ function main() {
       getFirstValue(record, ["state_code", "state", "st"]).toUpperCase() ||
       extractStateCodeFromLooseAddress(municipality) ||
       extractStateCodeFromLooseAddress(fulladdress);
+    const countyName = getFirstValue(record, ["county_name", "county"]);
 
     const phone = normalizePhone(
       getFirstValue(record, [
@@ -228,9 +230,10 @@ function main() {
         website,
         stateCode,
         municipality,
+        countyName,
         tradeCategories,
         description,
-        getFirstValue(record, ["source_id", "external_id", "id"]),
+        getFirstValue(record, ["source_id", "external_id", "id", "seed_id"]),
       ])
     );
     keptRows++;
