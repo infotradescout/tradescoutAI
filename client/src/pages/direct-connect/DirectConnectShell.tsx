@@ -17,6 +17,7 @@ import {
   ReviewInvoicePanel,
   CreatePaymentRequestPanel,
   ReviewPaymentRequestPanel,
+  WorkTrackingPanel,
 } from "./JobLifecyclePanels";
 import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5773,6 +5774,12 @@ export default function DirectConnectShell() {
                 estimateId={jobPanelParams.estimateId}
               />
             )}
+          {jobPanelParams?.jobWorkspaceId && (
+            <WorkTrackingPanel
+              jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+              viewerRole="provider"
+            />
+          )}
           <DirectConnectInbox />
         </div>
       );
@@ -5819,6 +5826,12 @@ export default function DirectConnectShell() {
                 paymentRequestId={jobPanelParams.paymentRequestId}
               />
             )}
+          {jobPanelParams?.jobWorkspaceId && (
+            <WorkTrackingPanel
+              jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+              viewerRole="requester"
+            />
+          )}
           <MyDirectConnectRequests />
         </div>
       );

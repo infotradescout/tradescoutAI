@@ -740,3 +740,350 @@ export function ReviewPaymentRequestPanel({
     </Card>
   );
 }
+
+type Checkpoint = {
+  checkpointId: string;
+  title: string;
+  status: string;
+};
+
+type ChangeOrder = {
+  changeOrderId: string;
+  title: string;
+  scopeChangeSummary: string;
+  totalDelta: number;
+  status: string;
+};
+
+type PunchItem = {
+  punchItemId: string;
+  title: string;
+  status: string;
+};
+
+function StatusBadge({ status }: { status: string }) {
+  return <Badge variant="outline">{status.replace(/_/g, " ")}</Badge>;
+}
+
+/**
+ * Checkpoints, change orders, and punch list items are open-ended, multi-item
+ * lists (either party can add to them over time) rather than a single next
+ * step -- so unlike the estimate/schedule/invoice panels, this renders
+ * whenever a job workspace exists instead of being gated to one ?action=.
+ */
+export function WorkTrackingPanel({
+  jobWorkspaceId,
+  viewerRole,
+}: {
+  jobWorkspaceId: string;
+  viewerRole: "requester" | "provider";
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const invalidate = (key: string) =>
+    queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/jobs", jobWorkspaceId, key] });
+
+  const onError = (title: string) => (error: any) =>
+    toast({
+      title,
+      description: error instanceof Error ? error.message : undefined,
+      variant: "destructive",
+    });
+
+  const { data: checkpointsData } = useQuery<{ checkpoints: Checkpoint[] }>({
+    queryKey: ["/api/direct-connect/jobs", jobWorkspaceId, "checkpoints"],
+    queryFn: () => apiRequest("GET", `/api/direct-connect/jobs/${jobWorkspaceId}/checkpoints`),
+  });
+  const [checkpointTitle, setCheckpointTitle] = useState("");
+  const createCheckpoint = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/direct-connect/jobs/${jobWorkspaceId}/checkpoints`, {
+        title: checkpointTitle.trim(),
+      }),
+    onSuccess: () => {
+      setCheckpointTitle("");
+      invalidate("checkpoints");
+    },
+    onError: onError("Could not add checkpoint"),
+  });
+  const respondCheckpoint = useMutation({
+    mutationFn: ({ id, decision }: { id: string; decision: "approve" | "report_issue" }) =>
+      apiRequest("POST", `/api/direct-connect/jobs/${jobWorkspaceId}/checkpoints/${id}/respond`, {
+        decision,
+      }),
+    onSuccess: () => invalidate("checkpoints"),
+    onError: onError("Could not respond to checkpoint"),
+  });
+
+  const { data: changeOrdersData } = useQuery<{ changeOrders: ChangeOrder[] }>({
+    queryKey: ["/api/direct-connect/jobs", jobWorkspaceId, "change-orders"],
+    queryFn: () => apiRequest("GET", `/api/direct-connect/jobs/${jobWorkspaceId}/change-orders`),
+  });
+  const [changeOrderTitle, setChangeOrderTitle] = useState("");
+  const [changeOrderSummary, setChangeOrderSummary] = useState("");
+  const createChangeOrder = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/direct-connect/jobs/${jobWorkspaceId}/change-orders`, {
+        title: changeOrderTitle.trim(),
+        scopeChangeSummary: changeOrderSummary.trim(),
+      }),
+    onSuccess: () => {
+      setChangeOrderTitle("");
+      setChangeOrderSummary("");
+      invalidate("change-orders");
+    },
+    onError: onError("Could not create change order"),
+  });
+  const respondChangeOrder = useMutation({
+    mutationFn: ({
+      id,
+      decision,
+    }: {
+      id: string;
+      decision: "approve" | "decline" | "request_changes";
+    }) =>
+      apiRequest("POST", `/api/direct-connect/jobs/${jobWorkspaceId}/change-orders/${id}/respond`, {
+        decision,
+      }),
+    onSuccess: () => invalidate("change-orders"),
+    onError: onError("Could not respond to change order"),
+  });
+
+  const { data: punchData } = useQuery<{ punchListItems: PunchItem[] }>({
+    queryKey: ["/api/direct-connect/jobs", jobWorkspaceId, "punch-list-items"],
+    queryFn: () => apiRequest("GET", `/api/direct-connect/jobs/${jobWorkspaceId}/punch-list-items`),
+  });
+  const [punchTitle, setPunchTitle] = useState("");
+  const createPunchItem = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/direct-connect/jobs/${jobWorkspaceId}/punch-list-items`, {
+        title: punchTitle.trim(),
+      }),
+    onSuccess: () => {
+      setPunchTitle("");
+      invalidate("punch-list-items");
+    },
+    onError: onError("Could not add punch list item"),
+  });
+  const respondPunchItem = useMutation({
+    mutationFn: ({
+      id,
+      decision,
+    }: {
+      id: string;
+      decision: "approve_resolved" | "reject_resolved" | "waive_item";
+    }) =>
+      apiRequest(
+        "POST",
+        `/api/direct-connect/jobs/${jobWorkspaceId}/punch-list-items/${id}/respond`,
+        { decision }
+      ),
+    onSuccess: () => invalidate("punch-list-items"),
+    onError: onError("Could not respond to punch list item"),
+  });
+
+  const checkpoints = checkpointsData?.checkpoints || [];
+  const changeOrders = changeOrdersData?.changeOrders || [];
+  const punchItems = punchData?.punchListItems || [];
+
+  if (
+    checkpoints.length === 0 &&
+    changeOrders.length === 0 &&
+    punchItems.length === 0 &&
+    viewerRole !== "provider"
+  ) {
+    return null;
+  }
+
+  return (
+    <Card className="border-ts-orange/35 bg-[color:var(--surface-card)]">
+      <CardHeader>
+        <CardTitle className="text-base">Work tracking</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">Checkpoints</p>
+          {checkpoints.map((cp) => (
+            <div key={cp.checkpointId} className="flex items-center justify-between text-sm">
+              <span>{cp.title}</span>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={cp.status} />
+                {viewerRole === "requester" && cp.status === "requester_review" && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        respondCheckpoint.mutate({ id: cp.checkpointId, decision: "approve" })
+                      }
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        respondCheckpoint.mutate({
+                          id: cp.checkpointId,
+                          decision: "report_issue",
+                        })
+                      }
+                    >
+                      Report issue
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          {viewerRole === "provider" && (
+            <div className="flex gap-2">
+              <Input
+                value={checkpointTitle}
+                onChange={(e) => setCheckpointTitle(e.target.value)}
+                placeholder="New checkpoint"
+              />
+              <Button
+                variant="outline"
+                onClick={() => createCheckpoint.mutate()}
+                disabled={createCheckpoint.isPending || checkpointTitle.trim().length < 2}
+              >
+                Add
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2 border-t border-[color:var(--border-subtle)] pt-4">
+          <p className="text-sm font-semibold">Change orders</p>
+          {changeOrders.map((co) => (
+            <div key={co.changeOrderId} className="space-y-1 text-sm">
+              <div className="flex items-center justify-between">
+                <span>
+                  {co.title} ({formatMoney(co.totalDelta)})
+                </span>
+                <StatusBadge status={co.status} />
+              </div>
+              <p className="text-xs text-[color:var(--text-secondary)]">{co.scopeChangeSummary}</p>
+              {viewerRole === "requester" && co.status === "sent" && (
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      respondChangeOrder.mutate({ id: co.changeOrderId, decision: "approve" })
+                    }
+                    className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      respondChangeOrder.mutate({
+                        id: co.changeOrderId,
+                        decision: "request_changes",
+                      })
+                    }
+                  >
+                    Request changes
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      respondChangeOrder.mutate({ id: co.changeOrderId, decision: "decline" })
+                    }
+                  >
+                    Decline
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+          {viewerRole === "provider" && (
+            <div className="space-y-2">
+              <Input
+                value={changeOrderTitle}
+                onChange={(e) => setChangeOrderTitle(e.target.value)}
+                placeholder="Change order title"
+              />
+              <Textarea
+                value={changeOrderSummary}
+                onChange={(e) => setChangeOrderSummary(e.target.value)}
+                placeholder="What's changing in scope?"
+                className="min-h-[70px]"
+              />
+              <Button
+                variant="outline"
+                onClick={() => createChangeOrder.mutate()}
+                disabled={
+                  createChangeOrder.isPending ||
+                  changeOrderTitle.trim().length < 2 ||
+                  changeOrderSummary.trim().length < 5
+                }
+              >
+                Send change order
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2 border-t border-[color:var(--border-subtle)] pt-4">
+          <p className="text-sm font-semibold">Punch list</p>
+          {punchItems.map((item) => (
+            <div key={item.punchItemId} className="flex items-center justify-between text-sm">
+              <span>{item.title}</span>
+              <div className="flex items-center gap-2">
+                <StatusBadge status={item.status} />
+                {viewerRole === "requester" && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        respondPunchItem.mutate({
+                          id: item.punchItemId,
+                          decision: "approve_resolved",
+                        })
+                      }
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        respondPunchItem.mutate({
+                          id: item.punchItemId,
+                          decision: "waive_item",
+                        })
+                      }
+                    >
+                      Waive
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+          <div className="flex gap-2">
+            <Input
+              value={punchTitle}
+              onChange={(e) => setPunchTitle(e.target.value)}
+              placeholder="New punch list item"
+            />
+            <Button
+              variant="outline"
+              onClick={() => createPunchItem.mutate()}
+              disabled={createPunchItem.isPending || punchTitle.trim().length < 2}
+            >
+              Add
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

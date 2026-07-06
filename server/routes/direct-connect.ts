@@ -432,7 +432,7 @@ function buildMessageJobAssist(args: {
     review_invoice: `${detailHref}${workspaceQuery}&invoiceId=${encodeURIComponent(
       args.latestInvoiceId || ""
     )}&action=review_invoice`,
-    wait_for_business: detailHref,
+    wait_for_business: `${detailHref}${workspaceQuery}`,
   };
   const oneClickAction =
     args.viewerRole === "provider" &&
@@ -10656,6 +10656,72 @@ export function registerDirectConnectRoutes(app: Express) {
     }
   );
 
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/checkpoints",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+
+        const workspaceRows = await db.execute(
+          sql`SELECT id, request_id, requester_user_id FROM direct_connect_job_workspaces WHERE id = ${jobWorkspaceId} LIMIT 1`
+        );
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const isRequester = String(workspace.requester_user_id || "") === userId;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              );
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res.status(403).json({ message: "Checkpoints not available for this account." });
+          }
+        }
+
+        const rows = await db.execute(sql`
+          SELECT id, title, description, status, due_date, requester_responded_at, created_at, updated_at
+          FROM job_checkpoints
+          WHERE workspace_id = ${jobWorkspaceId}
+          ORDER BY created_at ASC
+        `);
+        return res.status(200).json({
+          jobWorkspaceId,
+          checkpoints: ((rows.rows || []) as any[]).map((row) => ({
+            checkpointId: String(row.id),
+            title: String(row.title || ""),
+            description: row.description ? String(row.description) : null,
+            status: String(row.status || "planned"),
+            dueDate: row.due_date || null,
+            respondedAt: row.requester_responded_at || null,
+            createdAt: row.created_at || null,
+          })),
+        });
+      } catch (error) {
+        console.error("Error listing checkpoints:", error);
+        return res.status(500).json({
+          message: "Failed to load checkpoints",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
   app.patch(
     "/api/direct-connect/jobs/:jobWorkspaceId/checkpoints/:checkpointId",
     isAuthenticated,
@@ -10959,6 +11025,79 @@ export function registerDirectConnectRoutes(app: Express) {
         console.error("Error creating change order:", error);
         return res.status(500).json({
           message: "Failed to create change order",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/change-orders",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+
+        const workspaceRows = await db.execute(
+          sql`SELECT id, request_id, requester_user_id FROM direct_connect_job_workspaces WHERE id = ${jobWorkspaceId} LIMIT 1`
+        );
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const isRequester = String(workspace.requester_user_id || "") === userId;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              );
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res
+              .status(403)
+              .json({ message: "Change orders not available for this account." });
+          }
+        }
+
+        const rows = await db.execute(sql`
+          SELECT id, title, reason, scope_change_summary, total_delta, timeline_delta_days, status, created_at, responded_at
+          FROM job_change_orders
+          WHERE workspace_id = ${jobWorkspaceId}
+          ORDER BY created_at ASC
+        `);
+        return res.status(200).json({
+          jobWorkspaceId,
+          changeOrders: ((rows.rows || []) as any[]).map((row) => ({
+            changeOrderId: String(row.id),
+            title: String(row.title || ""),
+            reason: row.reason ? String(row.reason) : null,
+            scopeChangeSummary: String(row.scope_change_summary || ""),
+            totalDelta: toNumber(row.total_delta),
+            timelineDeltaDays:
+              row.timeline_delta_days === null || row.timeline_delta_days === undefined
+                ? null
+                : Number(row.timeline_delta_days),
+            status: String(row.status || "sent"),
+            createdAt: row.created_at || null,
+            respondedAt: row.responded_at || null,
+          })),
+        });
+      } catch (error) {
+        console.error("Error listing change orders:", error);
+        return res.status(500).json({
+          message: "Failed to load change orders",
           requestId: (req as any).requestId || null,
         });
       }
@@ -11291,6 +11430,73 @@ export function registerDirectConnectRoutes(app: Express) {
         console.error("Error creating punch list item:", error);
         return res.status(500).json({
           message: "Failed to create punch list item",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/punch-list-items",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        if (!jobWorkspaceId)
+          return res.status(400).json({ message: "Job workspace id is required" });
+
+        const workspaceRows = await db.execute(
+          sql`SELECT id, request_id, requester_user_id FROM direct_connect_job_workspaces WHERE id = ${jobWorkspaceId} LIMIT 1`
+        );
+        const workspace = ((workspaceRows.rows || []) as any[])[0] || null;
+        if (!workspace) return res.status(404).json({ message: "Job workspace not found" });
+        const isRequester = String(workspace.requester_user_id || "") === userId;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.contractor_id = ${contractorId} OR c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              )
+            : await db.execute(
+                sql`SELECT c.request_id FROM direct_connect_dispatch_candidates c WHERE c.request_id = ${String(workspace.request_id)} AND c.eligibility_state = 'eligible' AND (c.responder_user_id = ${userId} OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})) LIMIT 1`
+              );
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res.status(403).json({ message: "Punch list not available for this account." });
+          }
+        }
+
+        const rows = await db.execute(sql`
+          SELECT id, title, description, status, assigned_to, due_date, created_by, created_at, updated_at
+          FROM job_punch_list_items
+          WHERE workspace_id = ${jobWorkspaceId}
+          ORDER BY created_at ASC
+        `);
+        return res.status(200).json({
+          jobWorkspaceId,
+          punchListItems: ((rows.rows || []) as any[]).map((row) => ({
+            punchItemId: String(row.id),
+            title: String(row.title || ""),
+            description: row.description ? String(row.description) : null,
+            status: String(row.status || "open"),
+            assignedTo: row.assigned_to ? String(row.assigned_to) : null,
+            dueDate: row.due_date || null,
+            createdByViewer: String(row.created_by || "") === userId,
+            createdAt: row.created_at || null,
+          })),
+        });
+      } catch (error) {
+        console.error("Error listing punch list items:", error);
+        return res.status(500).json({
+          message: "Failed to load punch list items",
           requestId: (req as any).requestId || null,
         });
       }
