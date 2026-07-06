@@ -4019,6 +4019,48 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   border-radius: var(--ts-radius-card) !important;
 }
 
+.app-page .bg-card,
+.app-page [class*="bg-card"],
+.app-page [class*="bg-white/"],
+.app-page [class*="bg-black/"],
+.app-page [class*="bg-zinc-9"],
+.app-page [class*="bg-slate-9"],
+.app-page [class*="bg-navy-9"] {
+  border-radius: var(--ts-radius-card);
+}
+
+.app-page [role="dialog"],
+.app-page [role="menu"],
+.app-page [role="listbox"],
+.app-page [data-radix-popper-content-wrapper] > * {
+  border-color: var(--surface-card-border) !important;
+  border-radius: var(--ts-radius-panel) !important;
+  background-color: var(--surface-card) !important;
+  box-shadow: var(--surface-card-shadow-hover) !important;
+}
+
+.app-page [role="tablist"] {
+  border: var(--ts-border-width) solid var(--border-subtle);
+  border-radius: var(--ts-radius-panel);
+  background: var(--surface-intermediate);
+  padding: 0.2rem;
+}
+
+.app-page [role="tab"] {
+  border-radius: var(--ts-radius-control);
+}
+
+.app-page [data-state="active"],
+.app-page [aria-selected="true"] {
+  border-color: color-mix(in oklab, var(--theme-accent-primary) 40%, var(--border-subtle));
+}
+
+.app-page input:not([type="checkbox"]):not([type="radio"]),
+.app-page textarea,
+.app-page select {
+  border-radius: var(--ts-radius-control);
+}
+
 @media (max-width: 640px) {
   .ts-landing__field {
     min-height: 600px;

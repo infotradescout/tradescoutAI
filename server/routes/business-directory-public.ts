@@ -368,6 +368,105 @@ router.get("/api/businesses/:id", async (req, res, next) => {
   }
 });
 
+// Public-safe directory detail by slug for /business/:slug fallback pages.
+router.get("/api/public/businesses/:slug", async (req, res) => {
+  try {
+    const businessSlug = coerceString(req.params.slug);
+    if (!businessSlug) return res.status(400).json({ message: "Invalid business slug" });
+
+    const rows = await db
+      .select({
+        id: businesses.id,
+        ownerUserId: businesses.ownerUserId,
+        name: businesses.name,
+        slug: businesses.slug,
+        type: businesses.type,
+        roleContext: businesses.roleContext,
+        status: businesses.status,
+        claimStatus: businesses.claimStatus,
+        profileData: businesses.profileData,
+        updatedAt: businesses.updatedAt,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+        ownerVerificationStatus: users.verificationStatus,
+        ownerAddressVerified: users.addressVerified,
+        county: {
+          fips: counties.fips,
+          stateCode: counties.stateCode,
+          name: counties.name,
+        },
+      })
+      .from(businesses)
+      .leftJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .leftJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
+      .where(eq(businesses.slug, businessSlug));
+
+    if (!rows.length) return res.status(404).json({ message: "Business not found" });
+    const first = rows[0];
+    if (first.status !== ("active" as any)) {
+      return res.status(404).json({ message: "Business not found" });
+    }
+
+    const countiesList = rows
+      .map((r) => r.county)
+      .filter(Boolean)
+      .reduce((acc: any[], c: any) => {
+        if (!acc.some((x) => x?.fips === c.fips)) acc.push(c);
+        return acc;
+      }, []);
+
+    const rules = await getPublicationRules();
+    const now = new Date();
+    const profileData: any = (first as any).profileData || {};
+    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
+    const city = typeof profileData.city === "string" ? profileData.city : null;
+    const tier = derivePublicationTier({
+      ownerUserId: (first as any).ownerUserId ? String((first as any).ownerUserId) : null,
+      claimStatus: String((first as any).claimStatus || ""),
+      ownerVerificationStatus: (first as any).ownerVerificationStatus
+        ? String((first as any).ownerVerificationStatus)
+        : null,
+      ownerAddressVerified:
+        typeof (first as any).ownerAddressVerified === "boolean"
+          ? (first as any).ownerAddressVerified
+          : null,
+    });
+    const countyPrimary = countiesList[0] || null;
+    const pub = isPublicAndCrawlableBusiness(
+      buildPublicBusinessSignals({
+        id: String((first as any).id),
+        name: String((first as any).name || ""),
+        slug: String((first as any).slug || ""),
+        updatedAt: (first as any).updatedAt instanceof Date ? (first as any).updatedAt : new Date(),
+        publicDiscoveryEnabled: Boolean((first as any).publicDiscoveryEnabled),
+        stateCode: countyPrimary?.stateCode ? String(countyPrimary.stateCode) : null,
+        countyName: countyPrimary?.name ? String(countyPrimary.name) : null,
+        city,
+        tradeSlug,
+        tier,
+      }),
+      rules,
+      now
+    );
+    if (!pub.ok) return res.status(410).json({ message: "Listing inactive/out of date" });
+
+    res.json({
+      id: first.id,
+      name: first.name,
+      slug: first.slug,
+      type: first.type,
+      roleContext: first.roleContext,
+      status: first.status,
+      claimStatus: first.claimStatus,
+      profile: toPublicProfile(first.profileData),
+      counties: countiesList,
+    });
+  } catch (error: any) {
+    console.error("Error fetching public business by slug:", error);
+    res.status(500).json({ message: "Failed to fetch business" });
+  }
+});
+
 // Public: Suggest an edit or request removal (creates an admin queue item).
 router.post("/api/businesses/:id/suggest-edit", async (req, res) => {
   try {

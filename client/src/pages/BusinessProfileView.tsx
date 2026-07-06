@@ -594,7 +594,7 @@ export default function BusinessProfileView() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-5 text-white sm:py-8">
+    <div className="mx-auto max-w-7xl px-4 py-5 text-white sm:py-8">
       {/* SEO Metadata */}
       <SEOHelmet
         title={pageTitle}
@@ -604,10 +604,7 @@ export default function BusinessProfileView() {
         structuredData={structuredData}
       />
 
-      <section
-        className="mb-4 overflow-hidden rounded-lg border border-white/10 bg-tsCard shadow-[0_18px_60px_rgba(0,0,0,0.35)]"
-        style={themeStyle}
-      >
+      <section className="ts-card mb-4 overflow-hidden" style={themeStyle}>
         <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 p-5 sm:p-7">
             <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
@@ -628,7 +625,7 @@ export default function BusinessProfileView() {
               {profile.name}
             </h1>
 
-            <div className="mt-4 inline-flex items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
+            <div className="mt-4 inline-flex items-center gap-3 rounded-[var(--ts-radius-control)] border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
               <img
                 src={profilePlaceholderSrc}
                 alt={`${primaryServiceLabelRaw} category placeholder illustration`}
@@ -702,7 +699,7 @@ export default function BusinessProfileView() {
             </div>
           </div>
 
-          <aside className="border-t border-white/10 bg-white/[0.03] p-5 lg:border-l lg:border-t-0">
+          <aside className="border-t border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-5 lg:border-l lg:border-t-0">
             <div className="space-y-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/48">
@@ -802,7 +799,10 @@ export default function BusinessProfileView() {
 
               <div className="grid grid-cols-3 gap-2">
                 {profilePulse.map(({ label, value, icon: Icon }) => (
-                  <div key={label} className="min-w-0 rounded-md bg-black/25 p-2">
+                  <div
+                    key={label}
+                    className="min-w-0 rounded-[var(--ts-radius-control)] border border-[color:var(--border-subtle)] bg-black/25 p-2"
+                  >
                     <Icon className="mb-1 h-4 w-4 text-ts-orange" />
                     <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/44">
                       {label}
@@ -817,11 +817,14 @@ export default function BusinessProfileView() {
       </section>
 
       <div
-        className="mb-5 grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 sm:grid-cols-3"
+        className="ts-panel mb-5 grid gap-2 p-3 sm:grid-cols-3"
         data-testid="bp-direct-connect-flow"
       >
         {contactFlow.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="flex gap-3 rounded-md bg-black/20 p-3">
+          <div
+            key={label}
+            className="flex gap-3 rounded-[var(--ts-radius-control)] border border-[color:var(--border-subtle)] bg-black/20 p-3"
+          >
             <Icon className="mt-0.5 h-4 w-4 shrink-0 text-ts-orange" />
             <div className="min-w-0">
               <div className="text-xs font-semibold uppercase tracking-[0.12em] text-white/50">
@@ -834,7 +837,7 @@ export default function BusinessProfileView() {
       </div>
 
       {hasDescription && !visibleSections.about ? (
-        <div className="mb-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+        <div className="ts-panel mb-6 p-5">
           <p
             className="text-base leading-relaxed text-white/76"
             data-testid="bp-mission"
@@ -844,7 +847,7 @@ export default function BusinessProfileView() {
           </p>
         </div>
       ) : isOwner ? (
-        <div className="mb-6 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+        <div className="ts-panel mb-6 p-5">
           <div className="text-sm font-semibold text-white">Add a short profile intro</div>
           <Button
             className="mt-3"
