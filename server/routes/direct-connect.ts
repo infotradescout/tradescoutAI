@@ -293,11 +293,13 @@ function nextActionForRequester(args: {
   contactGateState: string;
   latestEstimateStatus: string | null;
   latestScheduleStatus: string | null;
+  latestPaymentStatus: string | null;
   latestCompletionStatus: string | null;
   latestInvoiceStatus: string | null;
 }) {
   if (args.contactGateState === "contractor_requested") return "approve_or_decline_contact";
   if (args.latestEstimateStatus === "sent") return "review_estimate";
+  if (args.latestPaymentStatus === "sent") return "review_payment_request";
   if (args.latestScheduleStatus === "proposed") return "review_schedule";
   if (args.latestCompletionStatus === "requested") return "review_completion_request";
   if (args.latestInvoiceStatus === "sent") return "review_invoice";
@@ -307,12 +309,22 @@ function nextActionForRequester(args: {
 function nextActionForBusiness(args: {
   contactGateState: string;
   latestEstimateStatus: string | null;
+  latestPaymentStatus: string | null;
   latestCompletionStatus: string | null;
   latestInvoiceStatus: string | null;
 }) {
   if (args.contactGateState === "locked") return "wait_for_contact_approval";
   if (!args.latestEstimateStatus) return "create_estimate";
   if (args.latestEstimateStatus === "change_requested") return "revise_estimate";
+  // Requesting a deposit/progress payment is optional, not a gate -- only surface it
+  // once while the job is still active (before completion), so it doesn't linger as
+  // "next action" after the job is effectively done.
+  if (
+    args.latestEstimateStatus === "accepted" &&
+    !args.latestPaymentStatus &&
+    !args.latestCompletionStatus
+  )
+    return "create_payment_request";
   if (args.latestCompletionStatus === "confirmed" && !args.latestInvoiceStatus)
     return "create_invoice";
   if (args.latestInvoiceStatus === "disputed") return "review_invoice_dispute";
@@ -360,12 +372,14 @@ function buildMessageJobAssist(args: {
     contactGateState: "released",
     latestEstimateStatus: args.latestEstimateStatus,
     latestScheduleStatus: args.latestScheduleStatus,
+    latestPaymentStatus: args.latestPaymentStatus,
     latestCompletionStatus: args.latestCompletionStatus,
     latestInvoiceStatus: args.latestInvoiceStatus,
   });
   const providerAction = nextActionForBusiness({
     contactGateState: "released",
     latestEstimateStatus: args.latestEstimateStatus,
+    latestPaymentStatus: args.latestPaymentStatus,
     latestCompletionStatus: args.latestCompletionStatus,
     latestInvoiceStatus: args.latestInvoiceStatus,
   });
@@ -393,6 +407,9 @@ function buildMessageJobAssist(args: {
     revise_estimate: `/direct-connect/inbox?${prefillQuery}&estimateId=${encodeURIComponent(
       args.latestEstimateId || ""
     )}&action=revise_estimate`,
+    create_payment_request: `/direct-connect/inbox?${prefillQuery}&estimateId=${encodeURIComponent(
+      args.latestEstimateId || ""
+    )}&action=create_payment_request`,
     create_invoice: `/direct-connect/inbox?${prefillQuery}&invoiceId=${encodeURIComponent(
       args.latestInvoiceId || ""
     )}&action=create_invoice`,
@@ -403,6 +420,9 @@ function buildMessageJobAssist(args: {
     review_estimate: `${detailHref}${workspaceQuery}&estimateId=${encodeURIComponent(
       args.latestEstimateId || ""
     )}&action=review_estimate`,
+    review_payment_request: `${detailHref}${workspaceQuery}&paymentRequestId=${encodeURIComponent(
+      args.latestPaymentRequestId || ""
+    )}&action=review_payment_request`,
     review_schedule: `${detailHref}${workspaceQuery}&scheduleProposalId=${encodeURIComponent(
       args.latestScheduleProposalId || ""
     )}&action=review_schedule`,
@@ -4232,6 +4252,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 : "locked",
               latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
               latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
+              latestPaymentStatus: paymentMeta?.latestPaymentRequestStatus ?? null,
               latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
               latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
             }),
@@ -4240,6 +4261,7 @@ export function registerDirectConnectRoutes(app: Express) {
                 ? String(dispatchMeta.contact_gate_state)
                 : "locked",
               latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+              latestPaymentStatus: paymentMeta?.latestPaymentRequestStatus ?? null,
               latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
               latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
             }),
@@ -4655,6 +4677,9 @@ export function registerDirectConnectRoutes(app: Express) {
           latestScheduleStatus: scheduleSummary?.latest_schedule_status
             ? String(scheduleSummary.latest_schedule_status)
             : null,
+          latestPaymentStatus: paymentSummary?.latest_payment_request_status
+            ? String(paymentSummary.latest_payment_request_status)
+            : null,
           latestCompletionStatus: completionSummary?.latest_completion_status
             ? String(completionSummary.latest_completion_status)
             : null,
@@ -4666,6 +4691,9 @@ export function registerDirectConnectRoutes(app: Express) {
           contactGateState: String(dispatch?.contact_gate_state || "locked"),
           latestEstimateStatus: estimateSummary?.latest_estimate_status
             ? String(estimateSummary.latest_estimate_status)
+            : null,
+          latestPaymentStatus: paymentSummary?.latest_payment_request_status
+            ? String(paymentSummary.latest_payment_request_status)
             : null,
           latestCompletionStatus: completionSummary?.latest_completion_status
             ? String(completionSummary.latest_completion_status)
@@ -8289,12 +8317,14 @@ export function registerDirectConnectRoutes(app: Express) {
               contactGateState: String(row.contact_gate_state || "locked"),
               latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
               latestScheduleStatus: scheduleMeta?.latestScheduleStatus ?? null,
+              latestPaymentStatus: paymentMeta?.latestPaymentRequestStatus ?? null,
               latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
               latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
             }),
             nextActionForBusiness: nextActionForBusiness({
               contactGateState: String(row.contact_gate_state || "locked"),
               latestEstimateStatus: estimateMeta?.latestEstimateStatus ?? null,
+              latestPaymentStatus: paymentMeta?.latestPaymentRequestStatus ?? null,
               latestCompletionStatus: completionMeta?.latestCompletionStatus ?? null,
               latestInvoiceStatus: invoiceMeta?.latestInvoiceStatus ?? null,
             }),
@@ -8714,6 +8744,9 @@ export function registerDirectConnectRoutes(app: Express) {
           latestScheduleStatus: scheduleSummary?.latest_schedule_status
             ? String(scheduleSummary.latest_schedule_status)
             : null,
+          latestPaymentStatus: paymentSummary?.latest_payment_request_status
+            ? String(paymentSummary.latest_payment_request_status)
+            : null,
           latestCompletionStatus: completionSummary?.latest_completion_status
             ? String(completionSummary.latest_completion_status)
             : null,
@@ -8725,6 +8758,9 @@ export function registerDirectConnectRoutes(app: Express) {
           contactGateState: String(candidate.contact_gate_state || "locked"),
           latestEstimateStatus: estimateSummary?.latest_estimate_status
             ? String(estimateSummary.latest_estimate_status)
+            : null,
+          latestPaymentStatus: paymentSummary?.latest_payment_request_status
+            ? String(paymentSummary.latest_payment_request_status)
             : null,
           latestCompletionStatus: completionSummary?.latest_completion_status
             ? String(completionSummary.latest_completion_status)
@@ -9931,6 +9967,95 @@ export function registerDirectConnectRoutes(app: Express) {
         console.error("Error creating payment request:", error);
         return res.status(500).json({
           message: "Failed to create payment request",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
+    "/api/direct-connect/jobs/:jobWorkspaceId/payment-requests/:paymentRequestId",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const jobWorkspaceId = String(req.params.jobWorkspaceId || "").trim();
+        const paymentRequestId = String(req.params.paymentRequestId || "").trim();
+        if (!jobWorkspaceId || !paymentRequestId) {
+          return res
+            .status(400)
+            .json({ message: "jobWorkspaceId and paymentRequestId are required" });
+        }
+        const rows = await db.execute(sql`
+          SELECT
+            id, workspace_id, request_id, requester_user_id, payment_type, amount, currency,
+            description, due_date, status, note, sent_at, responded_at, created_at, updated_at
+          FROM job_payment_requests
+          WHERE id = ${paymentRequestId}
+            AND workspace_id = ${jobWorkspaceId}
+          LIMIT 1
+        `);
+        const paymentRequest = ((rows.rows || []) as any[])[0] || null;
+        if (!paymentRequest) return res.status(404).json({ message: "Payment request not found" });
+        const requesterUserId = String(paymentRequest.requester_user_id || "").trim();
+        const isRequester = requesterUserId === userId;
+        if (!isRequester) {
+          const contractor = await storage.getContractorByUserId(userId);
+          const workerProfile = await db
+            .select({ id: (workers as any).id })
+            .from(workers as any)
+            .where(eq((workers as any).userId, userId))
+            .limit(1);
+          const workerId = workerProfile[0]?.id ? String(workerProfile[0].id) : null;
+          const contractorId = contractor?.id ? String(contractor.id) : null;
+          const eligibilityResult = contractorId
+            ? await db.execute(sql`
+                SELECT c.request_id
+                FROM direct_connect_dispatch_candidates c
+                WHERE c.request_id = ${String(paymentRequest.request_id)}
+                  AND c.eligibility_state = 'eligible'
+                  AND (
+                    c.contractor_id = ${contractorId}
+                    OR c.responder_user_id = ${userId}
+                    OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  )
+                LIMIT 1
+              `)
+            : await db.execute(sql`
+                SELECT c.request_id
+                FROM direct_connect_dispatch_candidates c
+                WHERE c.request_id = ${String(paymentRequest.request_id)}
+                  AND c.eligibility_state = 'eligible'
+                  AND (
+                    c.responder_user_id = ${userId}
+                    OR (${workerId} IS NOT NULL AND c.worker_id = ${workerId})
+                  )
+                LIMIT 1
+              `);
+          if (!((eligibilityResult.rows || []) as any[])[0]) {
+            return res
+              .status(403)
+              .json({ message: "Payment request not available for this account." });
+          }
+        }
+        return res.status(200).json({
+          paymentRequestId: String(paymentRequest.id),
+          jobWorkspaceId: String(paymentRequest.workspace_id),
+          requestId: String(paymentRequest.request_id || ""),
+          type: String(paymentRequest.payment_type || "other"),
+          amount: toNumber(paymentRequest.amount),
+          description: String(paymentRequest.description || ""),
+          dueDate: paymentRequest.due_date || null,
+          status: String(paymentRequest.status || "sent"),
+          note: paymentRequest.note ? String(paymentRequest.note) : null,
+          sentAt: paymentRequest.sent_at || null,
+          respondedAt: paymentRequest.responded_at || null,
+        });
+      } catch (error) {
+        console.error("Error fetching payment request:", error);
+        return res.status(500).json({
+          message: "Failed to load payment request",
           requestId: (req as any).requestId || null,
         });
       }

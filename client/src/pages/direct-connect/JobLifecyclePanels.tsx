@@ -7,6 +7,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value || 0);
@@ -522,6 +529,209 @@ export function ReviewInvoicePanel({
                 disabled={respondMutation.isPending}
               >
                 Dispute
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+const PAYMENT_TYPES = ["deposit", "prepayment", "milestone", "final", "other"] as const;
+
+export function CreatePaymentRequestPanel({
+  jobWorkspaceId,
+  estimateId,
+}: {
+  jobWorkspaceId: string;
+  estimateId: string;
+}) {
+  const { toast } = useToast();
+  const [type, setType] = useState<(typeof PAYMENT_TYPES)[number]>("deposit");
+  const [amount, setAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("POST", `/api/direct-connect/jobs/${jobWorkspaceId}/payment-requests`, {
+        estimateId,
+        type,
+        amount: Number(amount),
+        description: description.trim(),
+      }),
+    onSuccess: () => {
+      setSent(true);
+      toast({ title: "Payment request sent" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not send payment request",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Card className="border-ts-orange/35 bg-[color:var(--surface-card)]">
+      <CardHeader>
+        <CardTitle className="text-base">Request deposit or payment</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {sent ? (
+          <p className="text-sm text-emerald-400">Payment request sent.</p>
+        ) : (
+          <>
+            <Select
+              value={type}
+              onValueChange={(v) => setType(v as (typeof PAYMENT_TYPES)[number])}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PAYMENT_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Amount"
+              type="number"
+            />
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="What is this payment for?"
+              className="min-h-[80px]"
+            />
+            <Button
+              onClick={() => createMutation.mutate()}
+              disabled={
+                createMutation.isPending ||
+                !amount ||
+                Number(amount) <= 0 ||
+                description.trim().length < 3
+              }
+              className="w-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
+            >
+              Send payment request
+            </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+type PaymentRequestDetail = {
+  paymentRequestId: string;
+  type: string;
+  amount: number;
+  description: string;
+  status: "sent" | "acknowledged" | "paid_outside_platform" | "waived" | "declined";
+};
+
+export function ReviewPaymentRequestPanel({
+  jobWorkspaceId,
+  paymentRequestId,
+}: {
+  jobWorkspaceId: string;
+  paymentRequestId: string;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [note, setNote] = useState("");
+
+  const { data: paymentRequest, isLoading } = useQuery<PaymentRequestDetail>({
+    queryKey: ["/api/direct-connect/jobs", jobWorkspaceId, "payment-requests", paymentRequestId],
+    queryFn: () =>
+      apiRequest(
+        "GET",
+        `/api/direct-connect/jobs/${jobWorkspaceId}/payment-requests/${paymentRequestId}`
+      ),
+  });
+
+  const respondMutation = useMutation({
+    mutationFn: (decision: "acknowledge" | "paid_outside_platform" | "waive" | "decline") =>
+      apiRequest(
+        "POST",
+        `/api/direct-connect/jobs/${jobWorkspaceId}/payment-requests/${paymentRequestId}/respond`,
+        { decision, note: note.trim() || undefined }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          "/api/direct-connect/jobs",
+          jobWorkspaceId,
+          "payment-requests",
+          paymentRequestId,
+        ],
+      });
+      toast({ title: "Response sent" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Could not send response",
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive",
+      });
+    },
+  });
+
+  if (isLoading) return <LoadingCard label="Loading payment request..." />;
+  if (!paymentRequest) return null;
+
+  const canRespond = paymentRequest.status === "sent";
+
+  return (
+    <Card className="border-ts-orange/35 bg-[color:var(--surface-card)]">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base">
+            {paymentRequest.type.charAt(0).toUpperCase() + paymentRequest.type.slice(1)} requested
+          </CardTitle>
+          <Badge variant="outline">{paymentRequest.status.replace(/_/g, " ")}</Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-[color:var(--text-secondary)]">{paymentRequest.description}</p>
+        <p className="text-lg font-semibold">{formatMoney(paymentRequest.amount)}</p>
+        {canRespond && (
+          <>
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Optional note"
+              className="min-h-[70px]"
+            />
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                onClick={() => respondMutation.mutate("acknowledge")}
+                disabled={respondMutation.isPending}
+                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+              >
+                Acknowledge
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => respondMutation.mutate("paid_outside_platform")}
+                disabled={respondMutation.isPending}
+              >
+                Mark paid
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => respondMutation.mutate("decline")}
+                disabled={respondMutation.isPending}
+              >
+                Decline
               </Button>
             </div>
           </>

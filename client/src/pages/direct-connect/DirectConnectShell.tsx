@@ -15,6 +15,8 @@ import {
   ReviewCompletionPanel,
   CreateInvoicePanel,
   ReviewInvoicePanel,
+  CreatePaymentRequestPanel,
+  ReviewPaymentRequestPanel,
 } from "./JobLifecyclePanels";
 import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -5473,6 +5475,7 @@ export default function DirectConnectShell() {
       scheduleProposalId: params.get("scheduleProposalId") || undefined,
       completionRequestId: params.get("completionRequestId") || undefined,
       invoiceId: params.get("invoiceId") || undefined,
+      paymentRequestId: params.get("paymentRequestId") || undefined,
       action: params.get("action") || undefined,
     };
   }, [location]);
@@ -5762,6 +5765,14 @@ export default function DirectConnectShell() {
           {jobPanelParams?.action === "create_invoice" && (
             <CreateInvoicePanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
           )}
+          {jobPanelParams?.action === "create_payment_request" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.estimateId && (
+              <CreatePaymentRequestPanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                estimateId={jobPanelParams.estimateId}
+              />
+            )}
           <DirectConnectInbox />
         </div>
       );
@@ -5798,6 +5809,14 @@ export default function DirectConnectShell() {
               <ReviewInvoicePanel
                 jobWorkspaceId={jobPanelParams.jobWorkspaceId}
                 invoiceId={jobPanelParams.invoiceId}
+              />
+            )}
+          {jobPanelParams?.action === "review_payment_request" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.paymentRequestId && (
+              <ReviewPaymentRequestPanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                paymentRequestId={jobPanelParams.paymentRequestId}
               />
             )}
           <MyDirectConnectRequests />
