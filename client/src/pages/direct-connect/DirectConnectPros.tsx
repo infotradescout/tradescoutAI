@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Search, X } from "lucide-react";
+import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import ContractorCard from "@/components/contractor-card";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,78 @@ type DirectoryResponse = {
   items: DirectoryBusinessFallback[];
 };
 
+function toFiniteNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function getProviderDistance(provider: any): number | null {
+  return toFiniteNumber(provider?.distanceMiles);
+}
+
+function getProviderCvs(provider: any): number {
+  return (
+    toFiniteNumber(provider?.trustScore) ??
+    toFiniteNumber(provider?.cvsScore) ??
+    toFiniteNumber(provider?.recommendationScore) ??
+    0
+  );
+}
+
+function compareByDistanceThenCvs(a: any, b: any): number {
+  const aDistance = getProviderDistance(a);
+  const bDistance = getProviderDistance(b);
+  if (aDistance !== null && bDistance !== null && aDistance !== bDistance) {
+    return aDistance - bDistance;
+  }
+  if (aDistance !== null) return -1;
+  if (bDistance !== null) return 1;
+  return getProviderCvs(b) - getProviderCvs(a);
+}
+
+function compareByCvsThenDistance(a: any, b: any): number {
+  const cvsDiff = getProviderCvs(b) - getProviderCvs(a);
+  if (cvsDiff !== 0) return cvsDiff;
+  return compareByDistanceThenCvs(a, b);
+}
+
+function DirectoryRail({
+  title,
+  subtitle,
+  providers,
+}: {
+  title: string;
+  subtitle: string;
+  providers: any[];
+}) {
+  if (providers.length === 0) return null;
+
+  return (
+    <section className="space-y-2">
+      <div className="flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">{title}</h3>
+          <p className="text-xs text-[color:var(--text-secondary)]">{subtitle}</p>
+        </div>
+      </div>
+      <div className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2">
+        {providers.map((contractor) => (
+          <div
+            key={`${title}-${contractor.id}`}
+            className="w-[min(82vw,340px)] shrink-0 snap-start md:w-[360px]"
+          >
+            <ContractorCard contractor={contractor} compact requestOnly />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function DirectConnectPros() {
   const location = useLocationContext();
 
@@ -88,6 +160,7 @@ export default function DirectConnectPros() {
   );
   const [tradeSlug, setTradeSlug] = useState(routePrefill.tradeSlug || "");
   const [searchQuery, setSearchQuery] = useState(routePrefill.searchQuery || "");
+  const [showOutsideArea, setShowOutsideArea] = useState(false);
 
   const effectiveStateCode = String(stateCode || location.stateCode || "").toUpperCase();
   const effectiveCountyFips = String(countyFips || location.countyFips || "").trim();
@@ -151,6 +224,21 @@ export default function DirectConnectPros() {
 
   const hasResults = (contractors as any[])?.length > 0;
   const showEmptyState = canQueryDirectory && !isLoading && !hasResults;
+  const areaLabel = effectiveCountyFips
+    ? formatCountyLabel(effectiveCountyFips, effectiveStateCode)
+    : effectiveStateCode || "your area";
+  const searchActive = Boolean(searchQuery.trim() || effectiveTradeSlug);
+  const distanceFirstProviders = useMemo(
+    () => [...((contractors as any[]) || [])].sort(compareByDistanceThenCvs),
+    [contractors]
+  );
+  const cvsFirstProviders = useMemo(
+    () => [...((contractors as any[]) || [])].sort(compareByCvsThenDistance),
+    [contractors]
+  );
+  const localRail = distanceFirstProviders.slice(0, 14);
+  const trustedRail = cvsFirstProviders.slice(0, 14);
+  const resultRail = searchActive ? distanceFirstProviders.slice(0, 24) : [];
 
   const { data: directoryFallback = [], isLoading: directoryFallbackLoading } = useQuery<
     DirectoryBusinessFallback[]
@@ -219,6 +307,7 @@ export default function DirectConnectPros() {
 
   const handleStateChange = (value: string) => {
     setStateCode(value);
+    setCountyFips("");
   };
 
   const handleCountyChange = (value: string) => {
@@ -240,26 +329,53 @@ export default function DirectConnectPros() {
     <div className="space-y-4">
       <Card className="rounded-2xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] shadow-[0_12px_34px_rgba(0,0,0,0.35)]">
         <CardHeader className="pb-1">
-          <CardTitle className="text-sm">Local Directory</CardTitle>
-          <p className="text-xs text-[color:var(--text-secondary)]">
-            {localCommitted
-              ? `${(contractors as any[])?.length || 0} result(s)`
-              : "Choose a local area to start"}
-          </p>
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <CardTitle className="text-sm">Nearby Directory</CardTitle>
+              <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                {localCommitted
+                  ? `${(contractors as any[])?.length || 0} local profile(s), sorted by distance and CVS`
+                  : "Set your area once, then TradeScout keeps the directory local by default."}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {localCommitted && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-primary)]"
+                >
+                  <MapPin className="h-3.5 w-3.5 text-[color:var(--theme-accent-primary)]" />
+                  {areaLabel}
+                </Badge>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="gap-2 border-[color:var(--border-subtle)]"
+                onClick={() => setShowOutsideArea((value) => !value)}
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                {showOutsideArea || !localCommitted ? "Hide area picker" : "Search outside area"}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <StateCountySelector
-            selectedState={stateCode}
-            selectedCounty={countyFips}
-            onStateChange={handleStateChange}
-            onCountyChange={handleCountyChange}
-            className="mt-2"
-          />
+          {(showOutsideArea || !localCommitted) && (
+            <StateCountySelector
+              selectedState={stateCode}
+              selectedCounty={countyFips}
+              onStateChange={handleStateChange}
+              onCountyChange={handleCountyChange}
+              className="mt-2"
+            />
+          )}
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             <Select value={tradeSlug} onValueChange={setTradeSlug}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a trade" />
+                <SelectValue placeholder="Filter by trade" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
                 {trades.map((trade) => (
@@ -276,7 +392,7 @@ export default function DirectConnectPros() {
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 className="pl-10 pr-10"
-                placeholder="Search by name or keyword"
+                placeholder="Search by name, trade, or keyword"
               />
               {searchQuery.trim().length > 0 && (
                 <Button
@@ -295,6 +411,12 @@ export default function DirectConnectPros() {
           {!tradeSlug && inferredTradeSlug && (
             <p className="text-[11px] text-[color:var(--text-secondary)]">
               Inferred trade from search: <span className="text-white">{inferredTradeSlug}</span>
+            </p>
+          )}
+          {!localCommitted && (
+            <p className="text-[11px] text-[color:var(--text-secondary)]">
+              TradeScout will use your saved local area when available. Pick a county only when you
+              want to browse somewhere else.
             </p>
           )}
         </CardContent>
@@ -452,10 +574,24 @@ export default function DirectConnectPros() {
       )}
 
       {hasResults && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {(contractors as any[]).map((contractor) => (
-            <ContractorCard key={contractor.id} contractor={contractor} compact requestOnly />
-          ))}
+        <div className="space-y-5">
+          <DirectoryRail
+            title={searchActive ? "Best nearby matches" : "Closest businesses near you"}
+            subtitle="Distance first, CVS breaks the tie."
+            providers={searchActive ? resultRail : localRail}
+          />
+          <DirectoryRail
+            title="Strongest CVS nearby"
+            subtitle="Trust and recommendation signals first, distance as the tie-breaker."
+            providers={trustedRail}
+          />
+          {!searchActive && (
+            <DirectoryRail
+              title="Keep browsing"
+              subtitle="More local profiles from the same directory feed."
+              providers={distanceFirstProviders.slice(14, 30)}
+            />
+          )}
         </div>
       )}
     </div>

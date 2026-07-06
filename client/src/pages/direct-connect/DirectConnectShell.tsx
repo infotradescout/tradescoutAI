@@ -163,21 +163,21 @@ const DIRECT_CONNECT_TABS: Section[] = [
 ];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "Start",
-  board: "Board",
-  employment: "Jobs",
+  post: "New Request",
+  board: "Public Requests",
+  employment: "Hiring",
   inbox: "Replies",
-  pros: "Directory",
-  engagements: "Requests",
+  pros: "Nearby Directory",
+  engagements: "My Requests",
 };
 
 const SECTION_SHORT_LABELS: Record<Section, string> = {
-  post: "Start",
-  board: "Board",
-  employment: "Jobs",
+  post: "New",
+  board: "Public",
+  employment: "Hiring",
   inbox: "Replies",
-  pros: "Directory",
-  engagements: "Requests",
+  pros: "Nearby",
+  engagements: "Mine",
 };
 
 const REQUEST_FIELD_CLASS =
@@ -296,14 +296,15 @@ const SECTION_META: Record<
     actionTarget: "engagements",
   },
   board: {
-    title: "Local requests",
-    description: "See open requests in your area.",
+    title: "Public Requests",
+    description:
+      "See local requests that are open to the public board without exposing contact first.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   employment: {
-    title: "Jobs",
-    description: "Post a request or profile and keep replies in Direct Connect.",
+    title: "Hiring",
+    description: "Post work or hiring needs and keep replies in Direct Connect.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
@@ -314,13 +315,13 @@ const SECTION_META: Record<
     actionTarget: "engagements",
   },
   pros: {
-    title: "Local Directory",
-    description: "Look through local businesses, then send a request when you're ready.",
+    title: "Nearby Directory",
+    description: "Browse businesses near you, ranked by distance and CVS before you search.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   engagements: {
-    title: "My requests",
+    title: "My Requests",
     description: "Follow-up mode keeps request updates and replies together.",
     actionLabel: "See replies",
     actionTarget: "inbox",
@@ -1938,15 +1939,13 @@ function DirectConnectRequestComposer({
 
   const rankedCandidates = useMemo(() => {
     return [...localDirectoryCandidates].sort((a, b) => {
-      // Recommendation-first: CVS score is the composite trust/recommendation
-      // signal (recommendations + user activity + trust categories). Location
-      // is the tiebreak so equally-trusted providers surface the closest first.
-      const cvsDiff = getCandidateCvsScore(b) - getCandidateCvsScore(a);
-      if (cvsDiff !== 0) return cvsDiff;
-      return (
+      // Local-directory posture: nearest viable providers first, with CVS as
+      // the trust/recommendation tiebreaker.
+      const locationDiff =
         getCandidateLocationScore(b, defaultCountyFips) -
-        getCandidateLocationScore(a, defaultCountyFips)
-      );
+        getCandidateLocationScore(a, defaultCountyFips);
+      if (locationDiff !== 0) return locationDiff;
+      return getCandidateCvsScore(b) - getCandidateCvsScore(a);
     });
   }, [defaultCountyFips, localDirectoryCandidates]);
 
@@ -3383,16 +3382,16 @@ function DirectConnectRequestComposer({
 
               <div className="space-y-2">
                 <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                  Local Directory shortlist
+                  Nearby Directory shortlist
                 </p>
                 <Input
                   value={directorySearch}
                   onChange={(event) => setDirectorySearch(event.target.value)}
-                  placeholder="Search local companies"
+                  placeholder="Search outside your area or by company name"
                   className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
                 />
                 <p className="text-[11px] text-[color:var(--text-secondary)]">
-                  Ordered by local fit first, then trust score.
+                  Using your local area by default. Ordered by distance first, then CVS.
                 </p>
               </div>
 
@@ -5251,7 +5250,7 @@ function MyDirectConnectRequests() {
 
             <div className="space-y-2">
               <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                Local Directory shortlist
+                Nearby Directory shortlist
               </p>
               <Input
                 value={routeDirectorySearch}
@@ -5860,14 +5859,14 @@ export default function DirectConnectShell() {
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Waiting</span>
+                  <span className="text-[color:var(--text-secondary)]">Waiting on businesses</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {requestSummary.waitingOnPros}
                   </span>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <MessageCircle className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Conversation</span>
+                  <span className="text-[color:var(--text-secondary)]">In conversation</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {requestSummary.inConversation}
                   </span>
@@ -5884,7 +5883,7 @@ export default function DirectConnectShell() {
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <TrendingUp className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Requests</span>
+                  <span className="text-[color:var(--text-secondary)]">My Requests</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {navCounts.engagements || 0}
                   </span>
