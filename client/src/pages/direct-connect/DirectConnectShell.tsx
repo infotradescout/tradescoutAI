@@ -166,7 +166,7 @@ const SECTION_LABELS: Record<Section, string> = {
   post: "New Request",
   board: "Public Requests",
   employment: "Hiring",
-  inbox: "Replies",
+  inbox: "Messages",
   pros: "Nearby Directory",
   engagements: "My Requests",
 };
@@ -175,7 +175,7 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
   post: "New",
   board: "Public",
   employment: "Hiring",
-  inbox: "Replies",
+  inbox: "Msgs",
   pros: "Nearby",
   engagements: "Mine",
 };
@@ -309,8 +309,8 @@ const SECTION_META: Record<
     actionTarget: "post",
   },
   inbox: {
-    title: "Replies",
-    description: "Review who has responded and move accepted work into conversation.",
+    title: "Messages",
+    description: "Review responses and open accepted Direct Connect conversations in Messages.",
     actionLabel: "Review my requests",
     actionTarget: "engagements",
   },
@@ -3679,7 +3679,7 @@ function DirectConnectInbox() {
           status: res.status,
           blocked: true,
         });
-        throw new Error("Failed to load replies");
+        throw new Error("Failed to load Direct Connect messages");
       }
       return res.json();
     },
@@ -3741,7 +3741,7 @@ function DirectConnectInbox() {
     onSuccess: (data: any, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/inbox"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      // After accepting, navigate to the conversation thread so both parties can communicate
+      // Accept opens the real Messages thread between the requester and provider.
       if (variables?.decision === "accept" && data?.conversationId) {
         window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
       }
@@ -3788,7 +3788,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in to view your inbox.
+          Sign in to view Direct Connect messages.
         </CardContent>
       </Card>
     );
@@ -3810,7 +3810,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No inbox items yet.
+          No Direct Connect messages yet.
         </CardContent>
       </Card>
     );
@@ -4113,7 +4113,7 @@ function DirectConnectInbox() {
                         : "/messages?tab=requests";
                     }}
                   >
-                    {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Ask follow-up"}
+                    {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Open Messages"}
                   </Button>
 
                   <Button
@@ -5822,8 +5822,8 @@ export default function DirectConnectShell() {
   return (
     <div className="w-full max-w-full overflow-x-hidden">
       <SEOHelmet
-        title="Direct Connect | Request Local Help and Manage Replies"
-        description="Use TradeScout Direct Connect to post local requests, review replies, and choose the next step."
+        title="Direct Connect | Request Local Help and Open Messages"
+        description="Use TradeScout Direct Connect to post local requests, review responses, and open Messages after acceptance."
         canonical="https://www.thetradescout.com/direct-connect"
         structuredData={DIRECT_CONNECT_STRUCTURED_DATA}
       />
@@ -5876,7 +5876,7 @@ export default function DirectConnectShell() {
               <>
                 <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
                   <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Replies</span>
+                  <span className="text-[color:var(--text-secondary)]">Messages</span>
                   <span className="font-semibold text-[color:var(--text-primary)]">
                     {navCounts.inbox || 0}
                   </span>

@@ -227,10 +227,11 @@ describe("direct-connect gate regressions", () => {
     );
 
     expect(directConnectShellFile).toContain("Structured reply");
-    expect(directConnectShellFile).toContain("Ask follow-up");
+    expect(directConnectShellFile).toContain("Open Messages");
     expect(directConnectShellFile).toContain("Archive");
     expect(directConnectShellFile).toContain("direct_connect_reply_accepted");
     expect(directConnectShellFile).toContain("direct_connect_moved_to_conversation");
+    expect(directConnectShellFile).toContain('inbox: "Messages"');
   });
 
   it("shows a request lifecycle rail and neutral local directory language", () => {

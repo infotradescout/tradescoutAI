@@ -105,10 +105,16 @@ describe("Gap 1 – Schema: provider_self_selected event type", () => {
 
 describe("Gap 4 – Inbox accept navigates to conversation thread", () => {
   const src = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+  const routeSrc = read("server/routes/direct-connect.ts");
 
   it("navigates to conversation after accept when conversationId is returned", () => {
     expect(src).toContain('variables?.decision === "accept" && data?.conversationId');
     expect(src).toContain("`/messages?thread=${encodeURIComponent(String(data.conversationId))}`");
+  });
+
+  it("sends requester accepted notifications to the same Messages thread", () => {
+    expect(routeSrc).toContain("`/messages?thread=${encodeURIComponent(String(convId))}`");
+    expect(routeSrc).toContain('actionText: isAccept ? "Open conversation" : "View request"');
   });
 });
 

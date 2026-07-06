@@ -140,11 +140,11 @@ export function getPageTutorial(path: string): TutorialContent {
     return {
       title: "Direct Connect quick guide",
       description:
-        "This page helps you request local help, review replies, and move work forward in one place.",
+        "This page helps you request local help, review responses, and move accepted work into Messages.",
       bullets: [
         "Use New request to describe what you need in plain language.",
         "Pick businesses yourself, or let Scout decide.",
-        "Check My requests and Replies to track what needs action.",
+        "Check My Requests and Messages to track what needs action.",
       ],
       primaryAction: "Got it",
     };

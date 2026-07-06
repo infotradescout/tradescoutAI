@@ -11919,7 +11919,9 @@ export function registerDirectConnectRoutes(app: Express) {
                 ? `A provider accepted your Direct Connect request: ${reqRow.title}`
                 : `A provider declined your Direct Connect request: ${reqRow.title}`,
               actionUrl:
-                isAccept && convId ? `/direct-connect?conversation=${convId}` : "/direct-connect",
+                isAccept && convId
+                  ? `/messages?thread=${encodeURIComponent(String(convId))}`
+                  : "/direct-connect",
               actionText: isAccept ? "Open conversation" : "View request",
               iconName: isAccept ? "check-circle" : "x-circle",
               iconColor: isAccept ? "green" : "gray",

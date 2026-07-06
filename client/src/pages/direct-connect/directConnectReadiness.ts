@@ -144,7 +144,7 @@ export function getDirectConnectInboxNextStepCopy(
   if (assignmentStatus === "accepted" || contactUnlocked) {
     return {
       label: "Coordination active",
-      summary: "This accepted request is ready for conversation in Direct Connect.",
+      summary: "This accepted request is ready for its Messages conversation.",
       actionHint: "Open conversation",
       contactUnlocked,
     };
@@ -162,8 +162,8 @@ export function getDirectConnectInboxNextStepCopy(
   return {
     label: "Saved request",
     summary:
-      "Review the request details. Contact stays tied to accepted Direct Connect conversations.",
-    actionHint: contactUnlocked ? "Open conversation" : "Review details",
+      "Review the request details. Message threads open only after an accepted Direct Connect path.",
+    actionHint: contactUnlocked ? "Open conversation" : "Open Messages",
     contactUnlocked,
   };
 }
