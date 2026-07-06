@@ -4695,6 +4695,210 @@ export function registerDirectConnectRoutes(app: Express) {
   );
 
   app.get(
+    "/api/direct-connect/messages/threads/:threadId/job",
+    isAuthenticated,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const userId = String(req.user?.id || req.user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Unauthorized" });
+        const threadId = String(req.params.threadId || "").trim();
+        if (!threadId) return res.status(400).json({ message: "Thread id is required" });
+
+        const [conversation] = await db
+          .select()
+          .from(conversations)
+          .where(eq(conversations.id, threadId))
+          .limit(1);
+        if (!conversation) return res.status(404).json({ message: "Conversation not found" });
+
+        const contractor = await storage.getContractorByUserId(userId).catch(() => null);
+        const providerKey = String(conversation.contractorId || "").trim();
+        const requesterUserId = String(conversation.homeownerId || "").trim();
+        const viewerIsRequester = requesterUserId === userId;
+        const viewerIsProvider =
+          providerKey === userId ||
+          (contractor?.id ? providerKey === String(contractor.id) : false);
+        if (!viewerIsRequester && !viewerIsProvider) {
+          return res.status(403).json({ message: "Thread not available for this user" });
+        }
+
+        const acceptedRows = await db.execute(sql`
+          SELECT
+            wr.id AS request_id,
+            wr.title,
+            wr.description,
+            wr.status AS request_status,
+            wr.created_at AS request_created_at,
+            a.id AS assignment_id,
+            a.status AS assignment_status,
+            a.response_summary
+          FROM work_requests wr
+          INNER JOIN work_request_assignments a ON a.work_request_id = wr.id
+          WHERE wr.created_by_user_id = ${requesterUserId}
+            AND wr.source = 'direct_connect'
+            AND a.status = 'accepted'
+            AND (
+              a.contractor_id = ${providerKey}
+              OR a.responder_user_id = ${providerKey}
+            )
+          ORDER BY a.updated_at DESC NULLS LAST, a.created_at DESC NULLS LAST
+          LIMIT 1
+        `);
+        const accepted = ((acceptedRows.rows || []) as any[])[0] || null;
+        if (!accepted) {
+          return res.status(404).json({ message: "No accepted Direct Connect job for thread" });
+        }
+
+        const requestId = String(accepted.request_id || "");
+        const jobWorkspace = await getJobWorkspaceByRequestId(requestId).catch(() => null);
+        const workspaceId = jobWorkspace?.id ? String(jobWorkspace.id) : null;
+        const workspaceStage = String(jobWorkspace?.active_stage || "contact") as any;
+        const allowedLifecycleActions = jobWorkspace
+          ? getAllowedLifecycleActions({
+              stage: workspaceStage,
+              role: viewerIsRequester ? "requester" : "contractor",
+            })
+          : [];
+
+        const summarizeOne = async (label: string, query: () => Promise<any>) => {
+          try {
+            const result = await query();
+            return ((result.rows || []) as any[])[0] || null;
+          } catch (error) {
+            console.warn(`[direct-connect] Message job ${label} summary unavailable`, error);
+            return null;
+          }
+        };
+
+        const estimateSummary = workspaceId
+          ? await summarizeOne("estimate", () =>
+              db.execute(sql`
+                SELECT COUNT(id)::int AS count,
+                  (SELECT status FROM job_estimates WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                FROM job_estimates
+                WHERE workspace_id = ${workspaceId}
+              `)
+            )
+          : null;
+        const invoiceSummary = workspaceId
+          ? await summarizeOne("invoice", () =>
+              db.execute(sql`
+                SELECT COUNT(id)::int AS count,
+                  (SELECT status FROM job_invoices WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                FROM job_invoices
+                WHERE workspace_id = ${workspaceId}
+              `)
+            )
+          : null;
+        const scheduleSummary = workspaceId
+          ? await summarizeOne("schedule", () =>
+              db.execute(sql`
+                SELECT COUNT(id)::int AS count,
+                  (SELECT status FROM job_schedule_proposals WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                FROM job_schedule_proposals
+                WHERE workspace_id = ${workspaceId}
+              `)
+            )
+          : null;
+        const paymentSummary = workspaceId
+          ? await summarizeOne("payment", () =>
+              db.execute(sql`
+                SELECT COUNT(id)::int AS count,
+                  (SELECT status FROM job_payment_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                FROM job_payment_requests
+                WHERE workspace_id = ${workspaceId}
+              `)
+            )
+          : null;
+        const punchSummary = workspaceId
+          ? await summarizeOne("punch", () =>
+              db.execute(sql`
+                SELECT COUNT(id)::int AS count,
+                  COUNT(id) FILTER (WHERE status NOT IN ('resolved', 'waived', 'canceled'))::int AS open_count,
+                  (SELECT status FROM job_punch_list_items WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                FROM job_punch_list_items
+                WHERE workspace_id = ${workspaceId}
+              `)
+            )
+          : null;
+        const completionSummary = workspaceId
+          ? await summarizeOne("completion", () =>
+              db.execute(sql`
+                SELECT
+                  (SELECT status FROM job_completion_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+              `)
+            )
+          : null;
+
+        res.status(200).json({
+          threadId,
+          requestId,
+          jobWorkspaceId: workspaceId,
+          viewerRole: viewerIsRequester ? "requester" : "provider",
+          request: {
+            title: String(accepted.title || "Direct Connect job"),
+            description: String(accepted.description || ""),
+            status: String(accepted.request_status || "in_progress"),
+            createdAt: accepted.request_created_at || null,
+          },
+          assignment: {
+            id: String(accepted.assignment_id || ""),
+            status: String(accepted.assignment_status || "accepted"),
+            responseSummary: accepted.response_summary || null,
+          },
+          job: {
+            status: jobWorkspace?.status ? String(jobWorkspace.status) : null,
+            activeStage: jobWorkspace?.active_stage ? String(jobWorkspace.active_stage) : null,
+            allowedLifecycleActions,
+          },
+          summaries: {
+            estimates: {
+              count: Number(estimateSummary?.count || 0),
+              latestStatus: estimateSummary?.latest_status
+                ? String(estimateSummary.latest_status)
+                : null,
+            },
+            invoices: {
+              count: Number(invoiceSummary?.count || 0),
+              latestStatus: invoiceSummary?.latest_status
+                ? String(invoiceSummary.latest_status)
+                : null,
+            },
+            schedules: {
+              count: Number(scheduleSummary?.count || 0),
+              latestStatus: scheduleSummary?.latest_status
+                ? String(scheduleSummary.latest_status)
+                : null,
+            },
+            payments: {
+              count: Number(paymentSummary?.count || 0),
+              latestStatus: paymentSummary?.latest_status
+                ? String(paymentSummary.latest_status)
+                : null,
+            },
+            punch: {
+              count: Number(punchSummary?.count || 0),
+              openCount: Number(punchSummary?.open_count || 0),
+              latestStatus: punchSummary?.latest_status ? String(punchSummary.latest_status) : null,
+            },
+            completion: {
+              latestStatus: completionSummary?.latest_status
+                ? String(completionSummary.latest_status)
+                : null,
+            },
+          },
+        });
+      } catch (error) {
+        console.error("Error resolving Direct Connect job for message thread:", error);
+        res.status(500).json({
+          message: "Failed to resolve Direct Connect job for message thread",
+          requestId: (req as any).requestId || null,
+        });
+      }
+    }
+  );
+
+  app.get(
     "/api/direct-connect/jobs/:jobWorkspaceId/timeline",
     isAuthenticated,
     async (req: AuthedRequest, res: Response) => {
