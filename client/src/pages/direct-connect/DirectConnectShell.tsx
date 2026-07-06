@@ -9,6 +9,7 @@ import {
 } from "@shared/directConnectRoutingSpine";
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
+import { CreateEstimatePanel, ReviewEstimatePanel } from "./EstimatePanel";
 import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -5452,6 +5453,20 @@ export default function DirectConnectShell() {
     };
   }, [location]);
   const defaultCountyFips = requestPrefill?.countyFips;
+
+  // Deep links from the Messages job-assist card (e.g. ?jobWorkspaceId=...&action=create_estimate)
+  // land here with no handling; surface the matching panel above the section content.
+  const jobPanelParams = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const jobWorkspaceId = params.get("jobWorkspaceId") || undefined;
+    if (!jobWorkspaceId) return null;
+    return {
+      jobWorkspaceId,
+      estimateId: params.get("estimateId") || undefined,
+      action: params.get("action") || undefined,
+    };
+  }, [location]);
   const isPensacolaLaunchPath = defaultCountyFips === PENSACOLA_COUNTY_CODE;
   const createPensacolaAccountHref = useMemo(() => {
     const nextPath = encodeURIComponent(location || "/direct-connect");
@@ -5730,13 +5745,32 @@ export default function DirectConnectShell() {
       centerContent = <EmploymentBoard defaultCountyFips={defaultCountyFips} />;
       break;
     case "inbox":
-      centerContent = <DirectConnectInbox />;
+      centerContent = (
+        <div className="space-y-4">
+          {jobPanelParams?.action === "create_estimate" && (
+            <CreateEstimatePanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
+          )}
+          <DirectConnectInbox />
+        </div>
+      );
       break;
     case "pros":
       centerContent = <DirectConnectPros />;
       break;
     case "engagements":
-      centerContent = <MyDirectConnectRequests />;
+      centerContent = (
+        <div className="space-y-4">
+          {jobPanelParams?.action === "review_estimate" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.estimateId && (
+              <ReviewEstimatePanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                estimateId={jobPanelParams.estimateId}
+              />
+            )}
+          <MyDirectConnectRequests />
+        </div>
+      );
       break;
   }
 
