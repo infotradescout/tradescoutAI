@@ -1,4 +1,4 @@
-﻿import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+﻿import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { WorkRequest } from "@shared/schema";
@@ -27,6 +27,10 @@ import {
 } from "@/components/ui/DecisionContactGatePanel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  GooglePlacesLocationInput,
+  type PlaceResult as GooglePlaceResult,
+} from "@/components/GooglePlacesLocationInput";
 import { ToastAction } from "@/components/ui/toast";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -2587,6 +2591,25 @@ function DirectConnectRequestComposer({
     setDescribeStep(1);
   };
 
+  const handleWherePlaceSelected = useCallback(
+    (result: GooglePlaceResult) => {
+      const city = String(result.city || "").trim();
+      const stateCode = String(result.stateCode || "").trim();
+      const county = String(result.countyName || "").trim();
+      const formattedAddress = String(result.formattedAddress || "").trim();
+
+      const fallback = [city, stateCode].filter(Boolean).join(", ");
+      const countySegment = county ? `${county} County` : "";
+      const composed = [formattedAddress, fallback, countySegment].filter(Boolean)[0] || fallback;
+
+      if (!composed) return;
+
+      markRequestStarted("title");
+      setDetailAnswers((current) => ({ ...current, where: composed }));
+    },
+    [markRequestStarted]
+  );
+
   return (
     <div
       className="mx-auto w-full max-w-xl space-y-6 px-0 pb-5 md:max-w-3xl"
@@ -2782,17 +2805,42 @@ function DirectConnectRequestComposer({
                   </>
                 ) : (
                   <>
-                    <Input
-                      value={detailAnswers[question.key]}
-                      onChange={(event) => {
-                        markRequestStarted("title");
-                        const next = event.target.value;
-                        setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                        if (question.key === "what") setTitle(next);
-                      }}
-                      placeholder={question.placeholder}
-                      className={REQUEST_FIELD_CLASS}
-                    />
+                    {question.key === "where" ? (
+                      <div className="space-y-2">
+                        <GooglePlacesLocationInput
+                          defaultValue={detailAnswers.where}
+                          onPlaceSelected={handleWherePlaceSelected}
+                          placeholder="Search location with Google (optional)"
+                          types={["geocode"]}
+                          className="w-full"
+                          data-testid="direct-connect-google-where"
+                        />
+                        <Input
+                          value={detailAnswers.where}
+                          onChange={(event) => {
+                            markRequestStarted("title");
+                            setDetailAnswers((current) => ({
+                              ...current,
+                              where: event.target.value,
+                            }));
+                          }}
+                          placeholder={question.placeholder}
+                          className={REQUEST_FIELD_CLASS}
+                        />
+                      </div>
+                    ) : (
+                      <Input
+                        value={detailAnswers[question.key]}
+                        onChange={(event) => {
+                          markRequestStarted("title");
+                          const next = event.target.value;
+                          setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                          if (question.key === "what") setTitle(next);
+                        }}
+                        placeholder={question.placeholder}
+                        className={REQUEST_FIELD_CLASS}
+                      />
+                    )}
                     {reviewAttempted && isQuestionMissing(question) && (
                       <p className="text-[11px] text-ts-orange">Add this detail.</p>
                     )}
@@ -2839,6 +2887,14 @@ function DirectConnectRequestComposer({
                 </div>
                 <div className="space-y-2.5">
                   <label className={REQUEST_LABEL_CLASS}>Where is the job?</label>
+                  <GooglePlacesLocationInput
+                    defaultValue={detailAnswers.where}
+                    onPlaceSelected={handleWherePlaceSelected}
+                    placeholder="Search location with Google (optional)"
+                    types={["geocode"]}
+                    className="w-full"
+                    data-testid="direct-connect-google-where"
+                  />
                   <Input
                     value={detailAnswers.where}
                     onChange={(event) => {
