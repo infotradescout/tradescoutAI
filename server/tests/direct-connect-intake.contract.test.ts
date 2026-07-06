@@ -46,7 +46,7 @@ describe("direct connect intake contracts", () => {
   it("adds request ready finalization state before sharing", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     expect(source).toContain("Ready to submit");
-    expect(source).toContain("Submit when ready");
+    expect(source).toContain("Send when ready");
     expect(source).toContain("Edit request");
     expect(source).toContain("Check the request before you send it.");
   });

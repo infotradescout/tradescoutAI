@@ -132,7 +132,7 @@ describe("DirectConnectShell — requester detail panel provider response card",
   it("renders the provider response card in the expanded detail section", () => {
     const idx = DC_SHELL.indexOf("r.dcAcceptedResponseSummary");
     expect(idx).toBeGreaterThan(0);
-    const window = DC_SHELL.slice(idx, idx + 1600);
+    const window = DC_SHELL.slice(idx, idx + 2400);
     expect(window).toContain("Provider Response");
     expect(window).toContain("r.dcAcceptedResponseSummary.availabilityWindow");
     expect(window).toContain("r.dcAcceptedResponseSummary.priceBand");

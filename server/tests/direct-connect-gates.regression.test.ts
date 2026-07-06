@@ -184,7 +184,7 @@ describe("direct-connect gate regressions", () => {
 
     expect(directConnectShellFile).toContain("Post a request");
     expect(directConnectShellFile).toContain("Manage requests");
-    expect(directConnectShellFile).toContain("My Requests");
+    expect(directConnectShellFile).toContain('engagements: "Requests"');
     expect(directConnectShellFile).toContain(
       "Follow-up mode keeps request updates and replies together."
     );
@@ -240,7 +240,7 @@ describe("direct-connect gate regressions", () => {
     const directoryFile = readRepoFile("client/src/pages/direct-connect/DirectConnectPros.tsx");
 
     expect(directConnectShellFile).toContain("Request lifecycle");
-    expect(directConnectShellFile).toContain('pros: "Local Directory"');
+    expect(directConnectShellFile).toContain('pros: "Directory"');
     expect(directoryFile).toContain("Local Directory");
     expect(directoryFile).toContain("No local businesses found for that search yet.");
   });

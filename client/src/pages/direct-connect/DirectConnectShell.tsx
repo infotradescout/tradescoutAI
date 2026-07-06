@@ -118,6 +118,19 @@ type DirectConnectIntent =
   | "browse_activity"
   | "browse_only";
 
+// Intents whose "when" detail question is genuinely about timing (see
+// DIRECT_CONNECT_INTENT_CONFIG). find_person_business ("Any must-haves?") and
+// sell_list ("Price or unsure?") repurpose the "when" key for other data, so a
+// timing quick-pick would write the wrong value there.
+const INTENTS_WITH_TIMING_WHEN = new Set<DirectConnectIntent>([
+  "fix_improve",
+  "vehicle_service",
+  "property_real_estate",
+  "offer_services",
+  "browse_activity",
+  "browse_only",
+]);
+
 type DirectConnectIntentConfig = {
   heading: string;
   prompt: string;
@@ -150,17 +163,17 @@ const DIRECT_CONNECT_TABS: Section[] = [
 ];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "New Request",
-  board: "Local Requests",
+  post: "Start",
+  board: "Board",
   employment: "Jobs",
   inbox: "Replies",
-  pros: "Local Directory",
-  engagements: "My Requests",
+  pros: "Directory",
+  engagements: "Requests",
 };
 
 const SECTION_SHORT_LABELS: Record<Section, string> = {
-  post: "Request",
-  board: "Local",
+  post: "Start",
+  board: "Board",
   employment: "Jobs",
   inbox: "Replies",
   pros: "Directory",
@@ -2622,43 +2635,51 @@ function DirectConnectRequestComposer({
       </div>
 
       <div
-        className="grid grid-cols-3 gap-2 rounded-2xl border border-[color:var(--theme-accent-primary)]/18 bg-[color:var(--surface-intermediate)]/55 p-2.5"
+        className="rounded-2xl border border-white/70 bg-[linear-gradient(180deg,rgba(8,13,24,0.95),rgba(5,10,20,0.95))] px-3 py-3"
         aria-label="Request progress"
       >
-        {(["Describe", "Review", "Send"] as const).map((step, index) => {
-          const active =
-            (showDispatchSheet && index === 2) ||
-            (!showDispatchSheet && describeStep === 0 && index === 0) ||
-            (!showDispatchSheet && describeStep === 1 && index === 1);
-          const complete =
-            (!showDispatchSheet && describeStep === 1 && index === 0) ||
-            (showDispatchSheet && index < 2);
-          return (
-            <span
-              key={step}
-              className={cn(
-                "inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors",
-                active || complete
-                  ? "bg-[color:var(--theme-accent-primary)]/18 text-[color:var(--text-primary)]"
-                  : "text-[color:var(--text-secondary)]/72"
-              )}
-            >
-              <span
+        <div className="flex items-center gap-1.5">
+          {(["Describe", "Review", "Send"] as const).map((step, index) => {
+            const active =
+              (showDispatchSheet && index === 2) ||
+              (!showDispatchSheet && describeStep === 0 && index === 0) ||
+              (!showDispatchSheet && describeStep === 1 && index === 1);
+            const complete =
+              (!showDispatchSheet && describeStep === 1 && index === 0) ||
+              (showDispatchSheet && index < 2);
+            return (
+              <div
+                key={step}
                 className={cn(
-                  "inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px]",
-                  active
-                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)] text-text-black"
-                    : complete
-                      ? "border-[color:var(--text-primary)]/55 bg-[color:var(--text-primary)]/22 text-[color:var(--text-primary)]"
-                      : "border-[color:var(--border-subtle)] bg-transparent text-[color:var(--text-secondary)]/65"
+                  "relative flex flex-1 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-semibold transition-colors",
+                  active || complete
+                    ? "bg-[color:var(--theme-accent-primary)]/18 text-[color:var(--text-primary)]"
+                    : "text-[color:var(--text-secondary)]/72"
                 )}
               >
-                {index + 1}
-              </span>
-              {step}
-            </span>
-          );
-        })}
+                <span
+                  className={cn(
+                    "inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px]",
+                    active
+                      ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)] text-text-black"
+                      : complete
+                        ? "border-[color:var(--text-primary)]/55 bg-[color:var(--text-primary)]/22 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)] bg-transparent text-[color:var(--text-secondary)]/65"
+                  )}
+                >
+                  {index + 1}
+                </span>
+                {step}
+                {index < 2 && (
+                  <span
+                    className="absolute -right-1.5 top-1/2 h-px w-3 bg-white/18"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className="space-y-5">
@@ -2700,7 +2721,7 @@ function DirectConnectRequestComposer({
                 </p>
               </div>
             )}
-            <div className="space-y-4">
+            <div className="space-y-4 rounded-xl border border-white/8 bg-[linear-gradient(180deg,rgba(14,20,33,0.72),rgba(8,13,24,0.8))] p-3.5">
               {intentConfig ? (
                 <div className="rounded-lg bg-[color:var(--surface-intermediate)]/35 px-3 py-3">
                   <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
@@ -2742,6 +2763,29 @@ function DirectConnectRequestComposer({
                   </option>
                 ))}
               </select>
+              {directConnectIntent && INTENTS_WITH_TIMING_WHEN.has(directConnectIntent) && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {[
+                    {
+                      label: "Within 2-3 days",
+                      onClick: () => setDetailAnswers((c) => ({ ...c, when: "Within 2-3 days" })),
+                    },
+                    {
+                      label: "Anytime",
+                      onClick: () => setDetailAnswers((c) => ({ ...c, when: "Anytime" })),
+                    },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={chip.onClick}
+                      className="rounded-lg border border-white/18 bg-[#101C31] px-2.5 py-2 text-left text-xs font-medium text-white/80 transition-colors hover:border-ts-orange/45 hover:text-white"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {intentConfig?.detailQuestions?.map((question) => (
               <div key={question.key} className="space-y-2.5">
@@ -2835,7 +2879,7 @@ function DirectConnectRequestComposer({
                 </div>
               </>
             )}
-            <div className="pt-1">
+            <div className="space-y-3 pt-1">
               <Button
                 type="button"
                 onClick={handleDescribeReviewRequest}
@@ -2849,6 +2893,9 @@ function DirectConnectRequestComposer({
               >
                 Review request
               </Button>
+              <p className="text-center text-[11px] text-white/62">
+                Your contact details stay private until you choose the next step.
+              </p>
               <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
                 Prefer browsing first?{" "}
                 <button
