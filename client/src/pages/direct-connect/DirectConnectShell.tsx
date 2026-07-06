@@ -168,9 +168,9 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
 };
 
 const REQUEST_FIELD_CLASS =
-  "min-h-12 rounded-xl border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 px-3.5 text-[15px] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
-const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[128px] resize-y py-3 leading-6");
-const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-12 w-full");
+  "min-h-11 rounded-lg border-[color:var(--border-subtle)]/65 bg-[color:var(--surface-card)]/55 px-3.5 text-[15px] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
+const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[116px] resize-y py-3 leading-6");
+const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-11 w-full");
 const REQUEST_LABEL_CLASS = "text-sm font-medium text-[color:var(--text-primary)]";
 const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secondary)]";
 
@@ -1382,6 +1382,7 @@ function DirectConnectRequestComposer({
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
+  const [reviewAttempted, setReviewAttempted] = useState(false);
   const [autofillSources, setAutofillSources] = useState<string[]>([]);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
@@ -2397,6 +2398,19 @@ function DirectConnectRequestComposer({
     sourceSurface: "direct_connect",
   };
   const selectedContractorCount = selectedContractorIds.length;
+  const missingLabels = new Set(completeness.missing.map((item) => item.toLowerCase()));
+  const isQuestionMissing = (question: {
+    label: string;
+    key: "what" | "where" | "when" | "details";
+    required?: boolean;
+  }) =>
+    question.required &&
+    (detailAnswers[question.key].trim().length < 2 ||
+      missingLabels.has(question.label.replace(/\s*\*$/, "").toLowerCase()));
+  const showTitleMissingHint =
+    !reviewCardReady && title.trim().length < 3 && detailAnswers.what.trim().length < 3;
+  const showDescriptionMissingHint =
+    !reviewCardReady && description.trim().length < 10 && detailAnswers.details.trim().length < 10;
 
   const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const remaining = Math.max(0, 6 - attachmentsRef.current.length);
@@ -2579,51 +2593,76 @@ function DirectConnectRequestComposer({
       homeContextIntent,
     });
   };
+  const handleDescribeReviewRequest = () => {
+    if (!reviewCardReady) {
+      setReviewAttempted(true);
+      return;
+    }
+    setReviewAttempted(false);
+    setDescribeStep(1);
+  };
 
   return (
-    <Card className="overflow-hidden rounded-2xl border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
-      <CardContent className="space-y-6 px-4 py-5 sm:px-6 sm:py-6">
-        <div className="space-y-2">
-          <h1 className="text-base font-semibold text-[color:var(--text-primary)]">
-            {describeStep === 0 ? "What do you need done?" : "Review your request"}
-          </h1>
-          <p className="max-w-[44ch] text-sm leading-snug text-[color:var(--text-secondary)]">
-            {describeStep === 0
-              ? "Tell us the essentials first. Add photos and extra detail on the next step."
-              : "Confirm details, then choose who receives this request. You review before anything is shared."}
-          </p>
-          <div className="grid grid-cols-3 gap-1 pt-1" aria-label="Request progress">
-            <button
-              type="button"
-              onClick={() => setDescribeStep(0)}
+    <div
+      className="mx-auto w-full max-w-xl space-y-5 px-0 pb-4 md:max-w-3xl"
+      data-testid="direct-connect-mobile-composer"
+    >
+      <div className="space-y-1 px-1">
+        <p className="text-sm font-semibold text-[color:var(--theme-accent-primary)]">
+          Direct Connect
+        </p>
+        <h1 className="text-[1.35rem] font-semibold leading-tight text-[color:var(--text-primary)]">
+          {describeStep === 0 ? "What do you need done?" : "Review your request"}
+        </h1>
+        <p className="max-w-[36ch] text-sm leading-5 text-[color:var(--text-secondary)]">
+          {describeStep === 0
+            ? "Tell local businesses what you need. Add photos on the next step."
+            : "Check the details, add photos if useful, then choose who receives it."}
+        </p>
+      </div>
+
+      <div
+        className="flex items-center gap-2 px-1 text-xs font-medium text-[color:var(--text-secondary)]"
+        aria-label="Request progress"
+      >
+        {(["Describe", "Review", "Send"] as const).map((step, index) => {
+          const active =
+            (showDispatchSheet && index === 2) ||
+            (!showDispatchSheet && describeStep === 0 && index === 0) ||
+            (!showDispatchSheet && describeStep === 1 && index === 1);
+          const complete =
+            (!showDispatchSheet && describeStep === 1 && index === 0) ||
+            (showDispatchSheet && index < 2);
+          return (
+            <span
+              key={step}
               className={cn(
-                "rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
-                describeStep === 0
-                  ? "bg-ts-orange text-text-black"
-                  : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
+                "inline-flex items-center gap-1.5",
+                active || complete
+                  ? "text-[color:var(--text-primary)]"
+                  : "text-[color:var(--text-secondary)]/70"
               )}
             >
-              Describe
-            </button>
-            <button
-              type="button"
-              onClick={() => reviewCardReady && setDescribeStep(1)}
-              disabled={!reviewCardReady}
-              className={cn(
-                "rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45",
-                describeStep === 1
-                  ? "bg-ts-orange text-text-black"
-                  : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
-              )}
-            >
-              Review
-            </button>
-            <span className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-[color:var(--text-secondary)]">
-              Submit
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full",
+                  active
+                    ? "bg-ts-orange"
+                    : complete
+                      ? "bg-[color:var(--text-primary)]"
+                      : "bg-[color:var(--text-secondary)]/35"
+                )}
+              />
+              {step}
             </span>
-          </div>
-          {describeStep === 0 && autofillSources.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+          );
+        })}
+      </div>
+
+      <div className="space-y-5">
+        {describeStep === 0 && autofillSources.length > 0 && (
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] text-[color:var(--text-secondary)]">Autofilled:</span>
               {autofillSources.map((source) => (
                 <span
@@ -2641,10 +2680,10 @@ function DirectConnectRequestComposer({
                 Clear autofill
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         {describeStep === 0 && (
-          <div className="space-y-6">
+          <div className="space-y-5">
             {prefillTargetUserId && (
               <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
@@ -2661,7 +2700,7 @@ function DirectConnectRequestComposer({
             )}
             <div className="space-y-4">
               {intentConfig ? (
-                <div className="rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 px-3 py-3.5">
+                <div className="rounded-lg bg-[color:var(--surface-intermediate)]/35 px-3 py-3">
                   <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
                     {intentConfig.heading}
                   </h2>
@@ -2686,7 +2725,7 @@ function DirectConnectRequestComposer({
                   </div>
                 </div>
               ) : null}
-              <label className={REQUEST_LABEL_CLASS}>What do you need?</label>
+              <label className={REQUEST_LABEL_CLASS}>Project type</label>
               <select
                 value={requestType}
                 onChange={(event) => {
@@ -2704,42 +2743,49 @@ function DirectConnectRequestComposer({
             </div>
             {intentConfig?.detailQuestions?.map((question) => (
               <div key={question.key} className="space-y-2.5">
-                <label className={REQUEST_LABEL_CLASS}>
-                  {question.label}
-                  {question.required ? " *" : ""}
-                </label>
+                <label className={REQUEST_LABEL_CLASS}>{question.label}</label>
                 {question.key === "details" ? (
-                  <Textarea
-                    value={detailAnswers[question.key]}
-                    onChange={(event) => {
-                      markRequestStarted("description");
-                      const next = event.target.value;
-                      setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                      setDescription(next);
-                    }}
-                    placeholder={question.placeholder}
-                    rows={4}
-                    className={REQUEST_TEXTAREA_CLASS}
-                  />
+                  <>
+                    <Textarea
+                      value={detailAnswers[question.key]}
+                      onChange={(event) => {
+                        markRequestStarted("description");
+                        const next = event.target.value;
+                        setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                        setDescription(next);
+                      }}
+                      placeholder={question.placeholder}
+                      rows={4}
+                      className={REQUEST_TEXTAREA_CLASS}
+                    />
+                    {reviewAttempted && isQuestionMissing(question) && (
+                      <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
+                    )}
+                  </>
                 ) : (
-                  <Input
-                    value={detailAnswers[question.key]}
-                    onChange={(event) => {
-                      markRequestStarted("title");
-                      const next = event.target.value;
-                      setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                      if (question.key === "what") setTitle(next);
-                    }}
-                    placeholder={question.placeholder}
-                    className={REQUEST_FIELD_CLASS}
-                  />
+                  <>
+                    <Input
+                      value={detailAnswers[question.key]}
+                      onChange={(event) => {
+                        markRequestStarted("title");
+                        const next = event.target.value;
+                        setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                        if (question.key === "what") setTitle(next);
+                      }}
+                      placeholder={question.placeholder}
+                      className={REQUEST_FIELD_CLASS}
+                    />
+                    {reviewAttempted && isQuestionMissing(question) && (
+                      <p className="text-[11px] text-ts-orange">Add this detail.</p>
+                    )}
+                  </>
                 )}
               </div>
             ))}
             {!intentConfig && (
               <>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>What do you need help with? *</label>
+                  <label className={REQUEST_LABEL_CLASS}>What do you need help with?</label>
                   <Input
                     value={title}
                     onChange={(event) => {
@@ -2748,12 +2794,15 @@ function DirectConnectRequestComposer({
                       setTitle(next);
                       setDetailAnswers((current) => ({ ...current, what: next }));
                     }}
-                    placeholder="e.g. Fix a leaking kitchen faucet"
+                    placeholder="Fix a leaking kitchen faucet"
                     className={REQUEST_FIELD_CLASS}
                   />
+                  {reviewAttempted && showTitleMissingHint && (
+                    <p className="text-[11px] text-ts-orange">Add what you need.</p>
+                  )}
                 </div>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Describe the job *</label>
+                  <label className={REQUEST_LABEL_CLASS}>Details</label>
                   <Textarea
                     value={description}
                     onChange={(event) => {
@@ -2762,13 +2811,16 @@ function DirectConnectRequestComposer({
                       setDescription(next);
                       setDetailAnswers((current) => ({ ...current, details: next }));
                     }}
-                    placeholder="What's happening, what you've tried, and any deadlines"
+                    placeholder="What is happening? What have you tried? Any deadline?"
                     rows={4}
                     className={REQUEST_TEXTAREA_CLASS}
                   />
+                  {reviewAttempted && showDescriptionMissingHint && (
+                    <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
+                  )}
                 </div>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Where is the job? *</label>
+                  <label className={REQUEST_LABEL_CLASS}>Where is the job?</label>
                   <Input
                     value={detailAnswers.where}
                     onChange={(event) => {
@@ -2784,20 +2836,27 @@ function DirectConnectRequestComposer({
             <div className="pt-1">
               <Button
                 type="button"
-                onClick={() => reviewCardReady && setDescribeStep(1)}
-                disabled={!reviewCardReady}
-                className="h-auto w-full rounded-full bg-ts-orange py-4 text-base font-semibold text-text-black hover:bg-ts-orange/90"
+                onClick={handleDescribeReviewRequest}
+                aria-disabled={!reviewCardReady}
+                className={cn(
+                  "h-auto w-full rounded-full py-3.5 text-base font-semibold",
+                  reviewCardReady
+                    ? "bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                    : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                )}
               >
-                Continue
+                Review request
               </Button>
-              {!reviewCardReady && (
-                <p className="mt-2 text-center text-xs text-[color:var(--text-secondary)]">
-                  Add required details to continue:{" "}
-                  {completeness.missing.length > 0
-                    ? completeness.missing.join(" · ")
-                    : "request details"}
-                </p>
-              )}
+              <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
+                Prefer browsing first?{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/direct-connect/pros")}
+                  className="font-medium text-[color:var(--theme-accent-primary)] hover:underline"
+                >
+                  Open directory
+                </button>
+              </p>
             </div>
           </div>
         )}
@@ -2885,7 +2944,7 @@ function DirectConnectRequestComposer({
                     disabled={!reviewCardReady || createMutation.isPending}
                     className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
-                    Submit when ready
+                    Send when ready
                   </Button>
                   <Button
                     type="button"
@@ -3418,8 +3477,8 @@ function DirectConnectRequestComposer({
             </div>
           </SheetContent>
         </Sheet>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -5873,41 +5932,6 @@ export default function DirectConnectShell() {
               >
                 Create account
               </Button>
-            </div>
-          </div>
-        ) : null}
-
-        {activeSection === "post" ? (
-          <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-3 md:px-4">
-            <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-                  Want the directory instead?
-                </p>
-                <p className="text-xs text-[color:var(--text-secondary)]">
-                  Browse local businesses first. Calling opens from the profile after the contact
-                  gate.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="border-[color:var(--border-subtle)]"
-                  onClick={() => navigate("/direct-connect/pros")}
-                >
-                  <Users className="mr-2 h-4 w-4" />
-                  Browse directory
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="text-[color:var(--text-secondary)]"
-                  onClick={() => navigate("/contractors")}
-                >
-                  Open full directory
-                </Button>
-              </div>
             </div>
           </div>
         ) : null}
