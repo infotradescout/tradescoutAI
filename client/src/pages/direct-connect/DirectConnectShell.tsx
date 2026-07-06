@@ -168,10 +168,10 @@ const SECTION_SHORT_LABELS: Record<Section, string> = {
 };
 
 const REQUEST_FIELD_CLASS =
-  "min-h-11 rounded-lg border-[color:var(--border-subtle)]/65 bg-[color:var(--surface-card)]/55 px-3.5 text-[15px] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
-const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[116px] resize-y py-3 leading-6");
-const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-11 w-full");
-const REQUEST_LABEL_CLASS = "text-sm font-medium text-[color:var(--text-primary)]";
+  "min-h-12 rounded-xl border border-[color:var(--theme-accent-primary)]/22 bg-[#071832]/78 px-3.5 text-[15px] text-[color:var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] placeholder:text-[color:var(--text-secondary)]/70 focus:border-[color:var(--theme-accent-primary)]/60 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/26";
+const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[124px] resize-y py-3 leading-6");
+const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-12 w-full");
+const REQUEST_LABEL_CLASS = "text-sm font-semibold text-[color:var(--text-primary)]";
 const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secondary)]";
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
@@ -2604,17 +2604,17 @@ function DirectConnectRequestComposer({
 
   return (
     <div
-      className="mx-auto w-full max-w-xl space-y-5 px-0 pb-4 md:max-w-3xl"
+      className="mx-auto w-full max-w-xl space-y-6 px-0 pb-5 md:max-w-3xl"
       data-testid="direct-connect-mobile-composer"
     >
-      <div className="space-y-1 px-1">
-        <p className="text-sm font-semibold text-[color:var(--theme-accent-primary)]">
+      <div className="space-y-2 rounded-2xl border border-ts-orange/25 bg-[radial-gradient(circle_at_18%_20%,rgba(255,149,40,0.22),rgba(1,8,20,0.92)_62%)] px-4 py-4 shadow-[0_18px_48px_rgba(2,9,21,0.45)]">
+        <p className="text-sm font-semibold tracking-wide text-[color:var(--theme-accent-primary)]">
           Direct Connect
         </p>
-        <h1 className="text-[1.35rem] font-semibold leading-tight text-[color:var(--text-primary)]">
+        <h1 className="text-[1.9rem] font-semibold leading-[1.1] text-[color:var(--text-primary)]">
           {describeStep === 0 ? "What do you need done?" : "Review your request"}
         </h1>
-        <p className="max-w-[36ch] text-sm leading-5 text-[color:var(--text-secondary)]">
+        <p className="max-w-[36ch] text-[0.95rem] leading-6 text-[color:var(--text-secondary)]">
           {describeStep === 0
             ? "Tell local businesses what you need. Add photos on the next step."
             : "Check the details, add photos if useful, then choose who receives it."}
@@ -2622,7 +2622,7 @@ function DirectConnectRequestComposer({
       </div>
 
       <div
-        className="flex items-center gap-2 px-1 text-xs font-medium text-[color:var(--text-secondary)]"
+        className="grid grid-cols-3 gap-2 rounded-2xl border border-[color:var(--theme-accent-primary)]/18 bg-[color:var(--surface-intermediate)]/55 p-2.5"
         aria-label="Request progress"
       >
         {(["Describe", "Review", "Send"] as const).map((step, index) => {
@@ -2637,22 +2637,24 @@ function DirectConnectRequestComposer({
             <span
               key={step}
               className={cn(
-                "inline-flex items-center gap-1.5",
+                "inline-flex items-center justify-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold transition-colors",
                 active || complete
-                  ? "text-[color:var(--text-primary)]"
-                  : "text-[color:var(--text-secondary)]/70"
+                  ? "bg-[color:var(--theme-accent-primary)]/18 text-[color:var(--text-primary)]"
+                  : "text-[color:var(--text-secondary)]/72"
               )}
             >
               <span
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full",
+                  "inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px]",
                   active
-                    ? "bg-ts-orange"
+                    ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)] text-text-black"
                     : complete
-                      ? "bg-[color:var(--text-primary)]"
-                      : "bg-[color:var(--text-secondary)]/35"
+                      ? "border-[color:var(--text-primary)]/55 bg-[color:var(--text-primary)]/22 text-[color:var(--text-primary)]"
+                      : "border-[color:var(--border-subtle)] bg-transparent text-[color:var(--text-secondary)]/65"
                 )}
-              />
+              >
+                {index + 1}
+              </span>
               {step}
             </span>
           );
@@ -2683,7 +2685,7 @@ function DirectConnectRequestComposer({
           </div>
         )}
         {describeStep === 0 && (
-          <div className="space-y-5">
+          <div className="space-y-5 rounded-2xl border border-ts-orange/25 bg-[linear-gradient(180deg,rgba(29,19,7,0.62),rgba(7,13,27,0.92))] p-4 shadow-[0_20px_50px_rgba(2,8,22,0.55)]">
             {prefillTargetUserId && (
               <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
@@ -2839,10 +2841,10 @@ function DirectConnectRequestComposer({
                 onClick={handleDescribeReviewRequest}
                 aria-disabled={!reviewCardReady}
                 className={cn(
-                  "h-auto w-full rounded-full py-3.5 text-base font-semibold",
+                  "h-auto w-full rounded-xl py-3.5 text-base font-semibold",
                   reviewCardReady
-                    ? "bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                    : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                    ? "bg-ts-orange text-text-black shadow-[0_10px_24px_rgba(255,145,20,0.28)] hover:bg-ts-orange/90"
+                    : "border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
                 )}
               >
                 Review request
@@ -2852,7 +2854,7 @@ function DirectConnectRequestComposer({
                 <button
                   type="button"
                   onClick={() => navigate("/direct-connect/pros")}
-                  className="font-medium text-[color:var(--theme-accent-primary)] hover:underline"
+                  className="font-semibold text-[color:var(--theme-accent-primary)] hover:underline"
                 >
                   Open directory
                 </button>
