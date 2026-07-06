@@ -13,6 +13,9 @@ describe("Direct Connect Messages job bridge", () => {
     expect(routeSource).toContain("Thread not available for this user");
     expect(routeSource).toContain("a.status = 'accepted'");
     expect(routeSource).toContain("getJobWorkspaceByRequestId(requestId)");
+    expect(routeSource).toContain("buildMessageJobAssist");
+    expect(routeSource).toContain("learningSignals");
+    expect(routeSource).toContain("primaryAction");
     expect(routeSource).not.toContain("messages/threads/:threadId/job/share");
   });
 
@@ -22,6 +25,9 @@ describe("Direct Connect Messages job bridge", () => {
     expect(panelSource).toContain("/api/direct-connect/messages/threads/");
     expect(panelSource).toContain('data-testid="direct-connect-thread-job-panel"');
     expect(panelSource).toContain("Accepted job");
+    expect(panelSource).toContain("Next step");
+    expect(panelSource).toContain("Autofill context");
+    expect(panelSource).toContain("directConnectJobActionMutation");
     expect(panelSource).toContain("Open Direct Connect job");
     expect(panelSource).toContain("allowedLifecycleActions");
   });

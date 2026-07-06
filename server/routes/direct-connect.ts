@@ -319,6 +319,198 @@ function nextActionForBusiness(args: {
   return "continue_workflow";
 }
 
+function labelLifecycleAction(value: string | null | undefined): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "Review job";
+  return raw
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function buildMessageJobAssist(args: {
+  viewerRole: "requester" | "provider";
+  requestId: string;
+  workspaceId: string | null;
+  requestTitle: string;
+  requestDescription: string;
+  category: string | null;
+  county: string | null;
+  cityArea: string | null;
+  responseSummary: any;
+  allowedLifecycleActions: string[];
+  latestEstimateStatus: string | null;
+  latestScheduleStatus: string | null;
+  latestPaymentStatus: string | null;
+  latestCompletionStatus: string | null;
+  latestInvoiceStatus: string | null;
+  latestReceiptStatus: string | null;
+  openPunchItemCount: number;
+  latestEstimateId: string | null;
+  latestScheduleProposalId: string | null;
+  latestPaymentRequestId: string | null;
+  latestInvoiceId: string | null;
+  activeCompletionRequestId: string | null;
+  latestEstimateTotal: number | null;
+  latestInvoiceTotal: number | null;
+  latestPaymentAmount: number | null;
+}) {
+  const requesterAction = nextActionForRequester({
+    contactGateState: "released",
+    latestEstimateStatus: args.latestEstimateStatus,
+    latestScheduleStatus: args.latestScheduleStatus,
+    latestCompletionStatus: args.latestCompletionStatus,
+    latestInvoiceStatus: args.latestInvoiceStatus,
+  });
+  const providerAction = nextActionForBusiness({
+    contactGateState: "released",
+    latestEstimateStatus: args.latestEstimateStatus,
+    latestCompletionStatus: args.latestCompletionStatus,
+    latestInvoiceStatus: args.latestInvoiceStatus,
+  });
+  const primaryActionKey = args.viewerRole === "requester" ? requesterAction : providerAction;
+  const detailHref =
+    args.viewerRole === "requester"
+      ? `/direct-connect/engagements?requestId=${encodeURIComponent(args.requestId)}`
+      : `/direct-connect/inbox?requestId=${encodeURIComponent(args.requestId)}`;
+  const workspaceQuery = args.workspaceId
+    ? `&jobWorkspaceId=${encodeURIComponent(args.workspaceId)}`
+    : "";
+  const prefillQuery = [
+    `requestId=${encodeURIComponent(args.requestId)}`,
+    args.workspaceId ? `jobWorkspaceId=${encodeURIComponent(args.workspaceId)}` : "",
+    args.category ? `category=${encodeURIComponent(args.category)}` : "",
+    args.county ? `county=${encodeURIComponent(args.county)}` : "",
+    args.cityArea ? `cityArea=${encodeURIComponent(args.cityArea)}` : "",
+    `title=${encodeURIComponent(args.requestTitle)}`,
+  ]
+    .filter(Boolean)
+    .join("&");
+
+  const actionHrefByKey: Record<string, string> = {
+    create_estimate: `/direct-connect/inbox?${prefillQuery}&action=create_estimate`,
+    revise_estimate: `/direct-connect/inbox?${prefillQuery}&estimateId=${encodeURIComponent(
+      args.latestEstimateId || ""
+    )}&action=revise_estimate`,
+    create_invoice: `/direct-connect/inbox?${prefillQuery}&invoiceId=${encodeURIComponent(
+      args.latestInvoiceId || ""
+    )}&action=create_invoice`,
+    review_invoice_dispute: `/direct-connect/inbox?${prefillQuery}&invoiceId=${encodeURIComponent(
+      args.latestInvoiceId || ""
+    )}&action=review_invoice_dispute`,
+    continue_workflow: `/direct-connect/inbox?${prefillQuery}&action=continue_workflow`,
+    review_estimate: `${detailHref}${workspaceQuery}&estimateId=${encodeURIComponent(
+      args.latestEstimateId || ""
+    )}&action=review_estimate`,
+    review_schedule: `${detailHref}${workspaceQuery}&scheduleProposalId=${encodeURIComponent(
+      args.latestScheduleProposalId || ""
+    )}&action=review_schedule`,
+    review_completion_request: `${detailHref}${workspaceQuery}&completionRequestId=${encodeURIComponent(
+      args.activeCompletionRequestId || ""
+    )}&action=review_completion_request`,
+    review_invoice: `${detailHref}${workspaceQuery}&invoiceId=${encodeURIComponent(
+      args.latestInvoiceId || ""
+    )}&action=review_invoice`,
+    wait_for_business: detailHref,
+  };
+  const oneClickAction =
+    args.viewerRole === "provider" &&
+    args.workspaceId &&
+    args.allowedLifecycleActions.includes("start_work") &&
+    args.latestEstimateStatus === "accepted"
+      ? {
+          key: "start_work",
+          label: "Mark work started",
+          method: "POST",
+          endpoint: `/api/direct-connect/jobs/${args.workspaceId}/start-work`,
+        }
+      : args.viewerRole === "provider" &&
+          args.workspaceId &&
+          args.allowedLifecycleActions.includes("mark_ready_for_punchout")
+        ? {
+            key: "mark_ready_for_punchout",
+            label: "Ready for punch list",
+            method: "POST",
+            endpoint: `/api/direct-connect/jobs/${args.workspaceId}/ready-for-punchout`,
+          }
+        : null;
+  const primaryAction = {
+    key: primaryActionKey,
+    label:
+      primaryActionKey === "wait_for_business"
+        ? "Waiting on business"
+        : labelLifecycleAction(primaryActionKey),
+    href: actionHrefByKey[primaryActionKey] || detailHref,
+    oneClick: oneClickAction,
+  };
+  const costSignal =
+    args.latestInvoiceTotal ?? args.latestEstimateTotal ?? args.latestPaymentAmount ?? null;
+  const timelineSignal =
+    args.responseSummary?.estimatedTiming ||
+    args.responseSummary?.availabilityWindow ||
+    args.responseSummary?.availability ||
+    null;
+  const satisfactionSignal =
+    args.latestCompletionStatus === "confirmed"
+      ? "Completion confirmed"
+      : args.openPunchItemCount > 0
+        ? `${args.openPunchItemCount} punch item${args.openPunchItemCount === 1 ? "" : "s"} open`
+        : args.latestInvoiceStatus === "disputed"
+          ? "Invoice disputed"
+          : args.latestCompletionStatus === "rejected"
+            ? "Completion rejected"
+            : "In progress";
+
+  return {
+    primaryAction,
+    detailHref,
+    prefill: {
+      title: args.requestTitle,
+      scope: args.requestDescription,
+      category: args.category,
+      county: args.county,
+      cityArea: args.cityArea,
+      availabilityWindow:
+        args.responseSummary?.availabilityWindow || args.responseSummary?.availability || null,
+      estimatedTiming: timelineSignal,
+      priceBand: args.responseSummary?.priceBand || null,
+      scopeNote: args.responseSummary?.scopeNote || null,
+    },
+    learningSignals: {
+      cost: {
+        label: costSignal === null ? "Cost learning pending" : "Latest captured amount",
+        value: costSignal,
+        source:
+          args.latestInvoiceTotal !== null
+            ? "invoice"
+            : args.latestEstimateTotal !== null
+              ? "estimate"
+              : args.latestPaymentAmount !== null
+                ? "payment"
+                : null,
+      },
+      timeline: {
+        label: timelineSignal ? "Timeline signal captured" : "Timeline learning pending",
+        value: timelineSignal,
+      },
+      satisfaction: {
+        label: "Customer satisfaction signal",
+        value: satisfactionSignal,
+      },
+      trust: {
+        label: "Trust/CVS outcome signal",
+        value:
+          args.latestReceiptStatus ||
+          args.latestInvoiceStatus ||
+          args.latestCompletionStatus ||
+          args.latestEstimateStatus ||
+          "Collecting",
+      },
+    },
+  };
+}
+
 type DirectConnectBypassSource = "none" | "privileged" | "environment" | "manual";
 
 interface DirectConnectVerificationBypassContext {
@@ -4727,6 +4919,9 @@ export function registerDirectConnectRoutes(app: Express) {
             wr.id AS request_id,
             wr.title,
             wr.description,
+            wr.category,
+            wr.county,
+            wr.city_area,
             wr.status AS request_status,
             wr.created_at AS request_created_at,
             a.id AS assignment_id,
@@ -4774,7 +4969,9 @@ export function registerDirectConnectRoutes(app: Express) {
           ? await summarizeOne("estimate", () =>
               db.execute(sql`
                 SELECT COUNT(id)::int AS count,
-                  (SELECT status FROM job_estimates WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                  (SELECT id FROM job_estimates WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_id,
+                  (SELECT status FROM job_estimates WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status,
+                  (SELECT total_estimate FROM job_estimates WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_total
                 FROM job_estimates
                 WHERE workspace_id = ${workspaceId}
               `)
@@ -4784,7 +4981,9 @@ export function registerDirectConnectRoutes(app: Express) {
           ? await summarizeOne("invoice", () =>
               db.execute(sql`
                 SELECT COUNT(id)::int AS count,
-                  (SELECT status FROM job_invoices WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                  (SELECT id FROM job_invoices WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_id,
+                  (SELECT status FROM job_invoices WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status,
+                  (SELECT total_due FROM job_invoices WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_total
                 FROM job_invoices
                 WHERE workspace_id = ${workspaceId}
               `)
@@ -4794,6 +4993,7 @@ export function registerDirectConnectRoutes(app: Express) {
           ? await summarizeOne("schedule", () =>
               db.execute(sql`
                 SELECT COUNT(id)::int AS count,
+                  (SELECT id FROM job_schedule_proposals WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_id,
                   (SELECT status FROM job_schedule_proposals WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
                 FROM job_schedule_proposals
                 WHERE workspace_id = ${workspaceId}
@@ -4804,7 +5004,9 @@ export function registerDirectConnectRoutes(app: Express) {
           ? await summarizeOne("payment", () =>
               db.execute(sql`
                 SELECT COUNT(id)::int AS count,
-                  (SELECT status FROM job_payment_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                  (SELECT id FROM job_payment_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_id,
+                  (SELECT status FROM job_payment_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status,
+                  (SELECT amount FROM job_payment_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_amount
                 FROM job_payment_requests
                 WHERE workspace_id = ${workspaceId}
               `)
@@ -4825,19 +5027,96 @@ export function registerDirectConnectRoutes(app: Express) {
           ? await summarizeOne("completion", () =>
               db.execute(sql`
                 SELECT
+                  (SELECT id FROM job_completion_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_id,
                   (SELECT status FROM job_completion_requests WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
               `)
             )
           : null;
+        const receiptSummary = workspaceId
+          ? await summarizeOne("receipt", () =>
+              db.execute(sql`
+                SELECT COUNT(id)::int AS count,
+                  (SELECT status FROM job_receipts WHERE workspace_id = ${workspaceId} ORDER BY created_at DESC LIMIT 1) AS latest_status
+                FROM job_receipts
+                WHERE workspace_id = ${workspaceId}
+              `)
+            )
+          : null;
+        const latestEstimateStatus = estimateSummary?.latest_status
+          ? String(estimateSummary.latest_status)
+          : null;
+        const latestScheduleStatus = scheduleSummary?.latest_status
+          ? String(scheduleSummary.latest_status)
+          : null;
+        const latestPaymentStatus = paymentSummary?.latest_status
+          ? String(paymentSummary.latest_status)
+          : null;
+        const latestCompletionStatus = completionSummary?.latest_status
+          ? String(completionSummary.latest_status)
+          : null;
+        const latestInvoiceStatus = invoiceSummary?.latest_status
+          ? String(invoiceSummary.latest_status)
+          : null;
+        const latestReceiptStatus = receiptSummary?.latest_status
+          ? String(receiptSummary.latest_status)
+          : null;
+        const requestTitle = String(accepted.title || "Direct Connect job");
+        const requestDescription = String(accepted.description || "");
+        const viewerRole = viewerIsRequester ? "requester" : "provider";
+        const assist = buildMessageJobAssist({
+          viewerRole,
+          requestId,
+          workspaceId,
+          requestTitle,
+          requestDescription,
+          category: accepted.category ? String(accepted.category) : null,
+          county: accepted.county ? String(accepted.county) : null,
+          cityArea: accepted.city_area ? String(accepted.city_area) : null,
+          responseSummary: accepted.response_summary || null,
+          allowedLifecycleActions,
+          latestEstimateStatus,
+          latestScheduleStatus,
+          latestPaymentStatus,
+          latestCompletionStatus,
+          latestInvoiceStatus,
+          latestReceiptStatus,
+          openPunchItemCount: Number(punchSummary?.open_count || 0),
+          latestEstimateId: estimateSummary?.latest_id ? String(estimateSummary.latest_id) : null,
+          latestScheduleProposalId: scheduleSummary?.latest_id
+            ? String(scheduleSummary.latest_id)
+            : null,
+          latestPaymentRequestId: paymentSummary?.latest_id
+            ? String(paymentSummary.latest_id)
+            : null,
+          latestInvoiceId: invoiceSummary?.latest_id ? String(invoiceSummary.latest_id) : null,
+          activeCompletionRequestId: completionSummary?.latest_id
+            ? String(completionSummary.latest_id)
+            : null,
+          latestEstimateTotal:
+            estimateSummary?.latest_total === null || estimateSummary?.latest_total === undefined
+              ? null
+              : Number(estimateSummary.latest_total),
+          latestInvoiceTotal:
+            invoiceSummary?.latest_total === null || invoiceSummary?.latest_total === undefined
+              ? null
+              : Number(invoiceSummary.latest_total),
+          latestPaymentAmount:
+            paymentSummary?.latest_amount === null || paymentSummary?.latest_amount === undefined
+              ? null
+              : Number(paymentSummary.latest_amount),
+        });
 
         res.status(200).json({
           threadId,
           requestId,
           jobWorkspaceId: workspaceId,
-          viewerRole: viewerIsRequester ? "requester" : "provider",
+          viewerRole,
           request: {
-            title: String(accepted.title || "Direct Connect job"),
-            description: String(accepted.description || ""),
+            title: requestTitle,
+            description: requestDescription,
+            category: accepted.category ? String(accepted.category) : null,
+            county: accepted.county ? String(accepted.county) : null,
+            cityArea: accepted.city_area ? String(accepted.city_area) : null,
             status: String(accepted.request_status || "in_progress"),
             createdAt: accepted.request_created_at || null,
           },
@@ -4854,27 +5133,37 @@ export function registerDirectConnectRoutes(app: Express) {
           summaries: {
             estimates: {
               count: Number(estimateSummary?.count || 0),
-              latestStatus: estimateSummary?.latest_status
-                ? String(estimateSummary.latest_status)
-                : null,
+              latestId: estimateSummary?.latest_id ? String(estimateSummary.latest_id) : null,
+              latestStatus: latestEstimateStatus,
+              latestTotal:
+                estimateSummary?.latest_total === null ||
+                estimateSummary?.latest_total === undefined
+                  ? null
+                  : Number(estimateSummary.latest_total),
             },
             invoices: {
               count: Number(invoiceSummary?.count || 0),
-              latestStatus: invoiceSummary?.latest_status
-                ? String(invoiceSummary.latest_status)
-                : null,
+              latestId: invoiceSummary?.latest_id ? String(invoiceSummary.latest_id) : null,
+              latestStatus: latestInvoiceStatus,
+              latestTotal:
+                invoiceSummary?.latest_total === null || invoiceSummary?.latest_total === undefined
+                  ? null
+                  : Number(invoiceSummary.latest_total),
             },
             schedules: {
               count: Number(scheduleSummary?.count || 0),
-              latestStatus: scheduleSummary?.latest_status
-                ? String(scheduleSummary.latest_status)
-                : null,
+              latestId: scheduleSummary?.latest_id ? String(scheduleSummary.latest_id) : null,
+              latestStatus: latestScheduleStatus,
             },
             payments: {
               count: Number(paymentSummary?.count || 0),
-              latestStatus: paymentSummary?.latest_status
-                ? String(paymentSummary.latest_status)
-                : null,
+              latestId: paymentSummary?.latest_id ? String(paymentSummary.latest_id) : null,
+              latestStatus: latestPaymentStatus,
+              latestAmount:
+                paymentSummary?.latest_amount === null ||
+                paymentSummary?.latest_amount === undefined
+                  ? null
+                  : Number(paymentSummary.latest_amount),
             },
             punch: {
               count: Number(punchSummary?.count || 0),
@@ -4882,11 +5171,15 @@ export function registerDirectConnectRoutes(app: Express) {
               latestStatus: punchSummary?.latest_status ? String(punchSummary.latest_status) : null,
             },
             completion: {
-              latestStatus: completionSummary?.latest_status
-                ? String(completionSummary.latest_status)
-                : null,
+              latestId: completionSummary?.latest_id ? String(completionSummary.latest_id) : null,
+              latestStatus: latestCompletionStatus,
+            },
+            receipts: {
+              count: Number(receiptSummary?.count || 0),
+              latestStatus: latestReceiptStatus,
             },
           },
+          assist,
         });
       } catch (error) {
         console.error("Error resolving Direct Connect job for message thread:", error);
