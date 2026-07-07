@@ -76,9 +76,11 @@ test("Public landing CTA says Start a Request and opens the request composer", a
   await page.waitForURL("**/direct-connect**");
   expect(new URL(page.url()).pathname).toBe("/direct-connect");
 
-  await expect(page.getByText(/Post a request|New request/i).first()).toBeVisible();
-  await expect(page.getByText("Home record (optional)", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Skip for now" })).toBeVisible();
+  await expect(page.getByTestId("direct-connect-mobile-composer")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Review request/i })).toBeVisible();
+  await expect(
+    page.getByText(/Your contact details stay private until you choose the next step/i)
+  ).toBeVisible();
 });
 
 test("Public landing mobile first viewport fits without horizontal clipping", async ({ page }) => {
@@ -119,7 +121,7 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
 
   await expect(
     page
-      .getByRole("heading", { name: /Local decisions, shared context/i })
+      .getByRole("heading", { name: /Local activity/i })
       .or(page.getByText(/Set your county/i).first())
   ).toBeVisible();
   await expect(page.getByRole("link", { name: /Direct Connect/i }).first()).toBeVisible();
@@ -136,7 +138,9 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
       ).toBeVisible();
     } else {
       await expect(
-        page.getByText(/Community feed is live|No posts yet for this view/i).first()
+        page
+          .getByText(/Community feed is live|No posts here yet|No posts yet for this view/i)
+          .first()
       ).toBeVisible();
     }
   }
