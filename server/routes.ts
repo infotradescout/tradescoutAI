@@ -6635,7 +6635,8 @@ export async function registerRoutes(app: any) {
         ).trim();
         const resolvedPresenceType = String((draft as any)?.presenceType || "personal").trim();
         const resolvedStartIntent = String(
-          (currentUser as any)?.preferences?.startIntent || ""
+          (currentUser as any)?.preferences?.startIntent ||
+            (resolvedPresenceType === "represent_business" ? "business" : "services")
         ).trim();
 
         const missing: string[] = [];
