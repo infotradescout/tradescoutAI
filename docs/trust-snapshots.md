@@ -38,6 +38,19 @@ node scripts/backfill-trust-snapshots.mjs --force
   - +20 if `verification_status = approved`
   - +15 if license approved
   - +15 if insurance approved
+  - + external trust bonus (up to +10) from imported place/review evidence
+    - +5 if `average_rating >= 4.5` and `review_count >= 50`
+    - +3 if `average_rating >= 4.2` and `review_count >= 20`
+    - +1 if `average_rating >= 4.0` and `review_count >= 5`
+    - +2 if place identity is confirmed (`google_place_id`/`place_id`/maps url)
   - Capped at 100
 
 This is intentionally conservative and should be refined as full CVS logic is wired.
+
+### External signal bootstrap
+
+- For non-contractor entities that are still unverified on-platform (`address_verified = false`),
+  strong imported place/review evidence can produce a limited bootstrap score:
+  - Requires confirmed place identity + `review_count >= 5` + `average_rating >= 3.5`
+  - Score is capped at 45 and tagged with risk flag `external_signal_bootstrap`
+- Contractor verification gates are unchanged: missing required license/insurance still yields CVS 0.

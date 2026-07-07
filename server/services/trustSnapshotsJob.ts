@@ -33,6 +33,31 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
       WHERE verification_type IN ('license', 'insurance')
       ORDER BY provider_user_id, verification_type, COALESCE(verified_at, created_at) DESC
     ),
+    business_external_signals AS (
+      SELECT
+        b.user_id,
+        MAX(
+          CASE
+            WHEN COALESCE(b.profile_data -> 'importExtras' ->> 'average_rating', '') ~ '^[0-9]+(\\.[0-9]+)?$'
+              THEN (b.profile_data -> 'importExtras' ->> 'average_rating')::numeric
+            ELSE NULL
+          END
+        ) AS external_avg_rating,
+        MAX(
+          CASE
+            WHEN COALESCE(b.profile_data -> 'importExtras' ->> 'review_count', '') ~ '^[0-9]+$'
+              THEN (b.profile_data -> 'importExtras' ->> 'review_count')::int
+            ELSE NULL
+          END
+        ) AS external_review_count,
+        BOOL_OR(
+          COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'google_place_id', ''), '') <> ''
+          OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'place_id', ''), '') <> ''
+          OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'google_maps_url', ''), '') <> ''
+        ) AS external_place_confirmed
+      FROM businesses b
+      GROUP BY b.user_id
+    ),
     source AS (
       SELECT
         u.id AS user_id,
@@ -58,9 +83,13 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
         lv_license.status AS license_status_raw,
         lv_license.expires_at AS license_expires_at,
         lv_insurance.status AS insurance_status_raw,
-        lv_insurance.expires_at AS insurance_expires_at
+        lv_insurance.expires_at AS insurance_expires_at,
+        bes.external_avg_rating,
+        bes.external_review_count,
+        COALESCE(bes.external_place_confirmed, FALSE) AS external_place_confirmed
       FROM users u
       LEFT JOIN contractors c ON c.user_id = u.id
+      LEFT JOIN business_external_signals bes ON bes.user_id = u.id
       LEFT JOIN latest_verifications lv_license
         ON lv_license.provider_user_id = u.id
        AND lv_license.verification_type = 'license'
@@ -76,6 +105,9 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
         address_verified,
         verification_status,
         is_contractor,
+        external_avg_rating,
+        external_review_count,
+        external_place_confirmed,
         CASE
           WHEN license_status_raw IS NOT NULL THEN license_status_raw
           WHEN contractor_license_verified IS TRUE THEN 'approved'
@@ -85,7 +117,17 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
           WHEN insurance_status_raw IS NOT NULL THEN insurance_status_raw
           WHEN contractor_insurance_verified IS TRUE THEN 'approved'
           ELSE NULL
-        END AS insurance_status
+        END AS insurance_status,
+        LEAST(
+          10,
+          (CASE
+            WHEN external_avg_rating >= 4.5 AND COALESCE(external_review_count, 0) >= 50 THEN 5
+            WHEN external_avg_rating >= 4.2 AND COALESCE(external_review_count, 0) >= 20 THEN 3
+            WHEN external_avg_rating >= 4.0 AND COALESCE(external_review_count, 0) >= 5 THEN 1
+            ELSE 0
+          END)
+          + CASE WHEN external_place_confirmed IS TRUE THEN 2 ELSE 0 END
+        ) AS external_trust_bonus
       FROM source
     ),
     scored AS (
@@ -95,8 +137,17 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
         n.verification_status,
         n.license_status,
         n.insurance_status,
+        n.external_trust_bonus,
         CASE
-          WHEN n.address_verified IS NOT TRUE THEN 0
+          WHEN n.address_verified IS NOT TRUE THEN
+            CASE
+              WHEN n.is_contractor IS TRUE THEN 0
+              WHEN n.external_place_confirmed IS TRUE
+                AND COALESCE(n.external_review_count, 0) >= 5
+                AND COALESCE(n.external_avg_rating, 0) >= 3.5
+              THEN LEAST(45, 25 + n.external_trust_bonus)
+              ELSE 0
+            END
           WHEN n.is_contractor IS TRUE
             AND (n.license_status IS DISTINCT FROM 'approved'
               OR n.insurance_status IS DISTINCT FROM 'approved') THEN 0
@@ -106,6 +157,7 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
             + CASE WHEN n.verification_status = 'approved' THEN 20 ELSE 0 END
             + CASE WHEN n.license_status = 'approved' THEN 15 ELSE 0 END
             + CASE WHEN n.insurance_status = 'approved' THEN 15 ELSE 0 END
+            + n.external_trust_bonus
           )
         END AS cvs_score,
         ARRAY_REMOVE(ARRAY[
@@ -115,7 +167,15 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
           CASE WHEN n.verification_status = 'rejected' THEN 'verification_rejected' END,
           CASE WHEN n.verification_status = 'suspended' THEN 'verification_suspended' END,
           CASE WHEN n.license_status = 'expired' THEN 'license_expired' END,
-          CASE WHEN n.insurance_status = 'expired' THEN 'insurance_expired' END
+          CASE WHEN n.insurance_status = 'expired' THEN 'insurance_expired' END,
+          CASE
+            WHEN n.address_verified IS NOT TRUE
+             AND n.is_contractor IS NOT TRUE
+             AND n.external_place_confirmed IS TRUE
+             AND COALESCE(n.external_review_count, 0) >= 5
+             AND COALESCE(n.external_avg_rating, 0) >= 3.5
+            THEN 'external_signal_bootstrap'
+          END
         ], NULL) AS risk_flags
       FROM normalized n
     ),
@@ -140,7 +200,7 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
         s.insurance_status,
         s.risk_flags,
         NOW(),
-        1
+        2
       FROM scored s
       WHERE NOT EXISTS (
         SELECT 1

@@ -1,0 +1,30 @@
+import { describe, expect, it } from "vitest";
+import fs from "node:fs";
+import path from "node:path";
+
+const read = (relativePath: string) =>
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
+
+describe("trust snapshots external bootstrap contracts", () => {
+  it("includes bounded external place/review signals in trust snapshot scoring", () => {
+    const source = read("server/services/trustSnapshotsJob.ts");
+
+    expect(source).toContain("business_external_signals");
+    expect(source).toContain("external_avg_rating");
+    expect(source).toContain("external_review_count");
+    expect(source).toContain("external_place_confirmed");
+    expect(source).toContain("LEAST(");
+    expect(source).toContain("10,");
+  });
+
+  it("keeps contractor verification gates authoritative over external bootstrap", () => {
+    const source = read("server/services/trustSnapshotsJob.ts");
+
+    expect(source).toContain("WHEN n.is_contractor IS TRUE");
+    expect(source).toContain("n.license_status IS DISTINCT FROM 'approved'");
+    expect(source).toContain("n.insurance_status IS DISTINCT FROM 'approved'");
+    expect(source).toContain("THEN 0");
+    expect(source).toContain("external_signal_bootstrap");
+    expect(source).toContain("n.is_contractor IS NOT TRUE");
+  });
+});
