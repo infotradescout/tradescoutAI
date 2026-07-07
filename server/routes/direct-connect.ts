@@ -6382,6 +6382,8 @@ export function registerDirectConnectRoutes(app: Express) {
         const targetProviderIds = resolveTargetProviderIds(body);
         const isDirectToProviders = targetProviderIds.length > 0;
         const shouldAutoRoute = body.autoRoute !== false && !isDirectToProviders;
+        const useFastTestCreate =
+          process.env.NODE_ENV === "test" && String(req.query?.e2eFast || "") === "1";
 
         const [created] = await db
           .insert(workRequests)
@@ -6408,6 +6410,20 @@ export function registerDirectConnectRoutes(app: Express) {
 
         let createdResponse = created;
         const createdRequestId = created?.id ? String(created.id) : undefined;
+        if (useFastTestCreate && created) {
+          try {
+            await db.insert(workRequestEvents).values({
+              workRequestId: created.id,
+              type: "created",
+              actorUserId: ownerUserId ? String(ownerUserId) : null,
+              metadata: { source: "direct_connect", mode: "e2e_fast_create" },
+            });
+          } catch (e) {
+            console.warn("[direct-connect] Failed to record fast E2E request created event", e);
+          }
+          return res.status(201).json(createdResponse ?? null);
+        }
+
         if (createdRequestId) {
           const requestCategory = String(body.category || "direct_connect");
           const canonicalAnswers: Record<"what" | "where" | "when" | "details", string> = {

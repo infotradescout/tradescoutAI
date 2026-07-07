@@ -5689,7 +5689,7 @@ export default function DirectConnectShell() {
   let centerContent: ReactNode = null;
   switch (activeSection) {
     case "post":
-      centerContent = isAuthenticated ? (
+      centerContent = (
         <DirectConnectRequestComposer
           defaultCountyFips={defaultCountyFips}
           prefillTargetUserId={requestPrefill?.targetUserId}
@@ -5701,52 +5701,6 @@ export default function DirectConnectShell() {
           prefillBudgetMax={requestPrefill?.budgetMax}
           prefillTradeId={requestPrefill?.tradeId}
         />
-      ) : (
-        <Card className="mx-auto max-w-3xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-          <CardContent className="space-y-5 p-5 md:p-7">
-            <div className="space-y-2">
-              <Badge className="bg-ts-orange/15 text-ts-orange">Account required</Badge>
-              <h2 className="text-2xl font-bold text-[color:var(--text-primary)]">
-                Sign in before starting a request
-              </h2>
-              <p className="text-sm text-[color:var(--text-secondary)]">
-                Direct Connect requests create private job records, gated replies, Messages, and
-                lifecycle history. Create an account first so the customer and business stay tied to
-                the same request from start to finish.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Button
-                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                onClick={() =>
-                  navigate(
-                    `/pre-scout-setup?mode=signup&next=${encodeURIComponent("/direct-connect")}`
-                  )
-                }
-              >
-                Create free account
-              </Button>
-              <Button
-                variant="outline"
-                className="border-[color:var(--border-subtle)]"
-                onClick={() =>
-                  navigate(
-                    `/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect")}`
-                  )
-                }
-              >
-                Sign in
-              </Button>
-              <Button
-                variant="outline"
-                className="border-[color:var(--border-subtle)]"
-                onClick={() => navigate("/direct-connect/pros")}
-              >
-                Browse directory
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
       );
       break;
     case "board":

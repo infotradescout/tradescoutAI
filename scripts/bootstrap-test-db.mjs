@@ -572,6 +572,19 @@ async function ensureCriticalSchema() {
       ADD COLUMN IF NOT EXISTS attachments jsonb NOT NULL DEFAULT '[]'::jsonb
     `);
 
+    await queryIfTableExists(
+      client,
+      "promotions",
+      `
+        ALTER TABLE promotions
+          ADD COLUMN IF NOT EXISTS tier varchar DEFAULT 'free_directory',
+          ADD COLUMN IF NOT EXISTS placement_community_snapshot boolean NOT NULL DEFAULT false,
+          ADD COLUMN IF NOT EXISTS placement_community_feed boolean NOT NULL DEFAULT false,
+          ADD COLUMN IF NOT EXISTS placement_scout boolean NOT NULL DEFAULT false,
+          ADD COLUMN IF NOT EXISTS placement_marketplace boolean NOT NULL DEFAULT false
+      `
+    );
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS trust_ledger_events (
         id varchar PRIMARY KEY DEFAULT gen_random_uuid(),

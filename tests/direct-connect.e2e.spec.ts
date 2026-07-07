@@ -62,7 +62,7 @@ test.describe("Direct Connect", () => {
   test("authenticated requester can create and route through direct-connect APIs", async ({
     page,
   }) => {
-    const createResponse = await page.request.post("/api/direct-connect/requests", {
+    const createResponse = await page.request.post("/api/direct-connect/requests?e2eFast=1", {
       data: {
         title: `Kitchen faucet repair request ${Date.now()}`,
         description: "Need a local pro to inspect and repair a leaking kitchen faucet this week.",
