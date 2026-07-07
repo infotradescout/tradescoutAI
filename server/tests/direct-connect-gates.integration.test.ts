@@ -903,7 +903,9 @@ describeWithDb("direct-connect gate integration (no mocks)", () => {
     const outOfCounty = inserted.find((row: any) => String(row.title).includes("other county"));
     const staleLocal = inserted.find((row: any) => String(row.title).includes("stale local"));
 
-    const res = await agent.get(`/api/direct-connect/board?countyFips=${localCounty.fips}`);
+    const res = await agent.get(
+      `/api/direct-connect/board?countyFips=${localCounty.fips}&limit=25`
+    );
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
 

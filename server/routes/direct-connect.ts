@@ -3139,11 +3139,20 @@ export function registerDirectConnectRoutes(app: Express) {
         const category =
           typeof req.query?.category === "string" ? String(req.query.category).trim() : "";
         const activeStatuses = ["open", "routed", "in_progress"] as const;
+        const requestedLimit = Number.parseInt(String((req.query as any)?.limit || ""), 10);
+        const boardLimit =
+          Number.isFinite(requestedLimit) && requestedLimit > 0
+            ? Math.min(Math.max(requestedLimit, 1), 100)
+            : null;
+        const currentCutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
 
         const filters: any[] = [
           eq(workRequests.source, "direct_connect" as any),
           inArray(workRequests.countyFips, effectiveCountyFipsList as any),
           inArray(workRequests.status, activeStatuses as any),
+          sql`coalesce(${workRequests.visibility}, '') <> 'private'`,
+          sql`coalesce(${workRequests.scope}, '') <> 'personal'`,
+          sql`coalesce(${workRequests.updatedAt}, ${workRequests.createdAt}) >= ${currentCutoff}`,
         ];
 
         if (category) {
@@ -3154,11 +3163,12 @@ export function registerDirectConnectRoutes(app: Express) {
 
         let rows: any[] = [];
         try {
-          rows = await db
+          const query = db
             .select()
             .from(workRequests)
             .where(whereClause)
             .orderBy(desc(workRequests.updatedAt), desc(workRequests.createdAt));
+          rows = boardLimit ? await query.limit(boardLimit) : await query;
         } catch (error) {
           if (isSchemaMismatchError(error)) {
             console.warn(
