@@ -42,7 +42,7 @@ jobs:
         run: npm run build
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install chromium
 
       - name: Run Playwright E2E tests (chromium, targeted)
         run: node scripts/with-test-db-lane-lock.mjs -- npx playwright test tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium

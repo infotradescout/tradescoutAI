@@ -86,7 +86,7 @@ jobs:
         run: npm run build
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install chromium
 
       - name: Run release gate tests
         run: node scripts/with-test-db-lane-lock.mjs -- npm run test:release-gates

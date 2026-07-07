@@ -69,7 +69,7 @@ jobs:
         run: npm run seed:e2e-user
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install chromium
 
       - name: Start test server
         run: |
