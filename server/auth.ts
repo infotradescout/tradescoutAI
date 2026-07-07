@@ -607,7 +607,12 @@ export const isCommunityModerator: RequestHandler = requireRole([
 
 // Password hashing utilities
 export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12;
+  const configuredRounds = Number(process.env.BCRYPT_SALT_ROUNDS);
+  const saltRounds = Number.isFinite(configuredRounds)
+    ? Math.max(4, Math.min(15, Math.trunc(configuredRounds)))
+    : process.env.NODE_ENV === "test"
+      ? 4
+      : 12;
   return bcrypt.hash(password, saltRounds);
 }
 

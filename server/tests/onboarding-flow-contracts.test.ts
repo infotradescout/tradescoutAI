@@ -43,10 +43,8 @@ describe("onboarding flow contracts", () => {
     expect(intentSource).toContain('labelKey: "onboarding.assets.business"');
     expect(intentSource).toContain('labelKey: "onboarding.assets.savedSearch"');
     expect(intentSource).toContain('t("onboarding.nothingYet")');
-    expect(intentSource).toContain(
-      "navigate(`/direct-connect?intent=${encodeURIComponent(intent)}`);"
-    );
-    expect(intentSource).not.toContain("contractor");
+    expect(intentSource).toContain('resolveDirectConnectLandingRoute({ entry: "intent" })');
+    expect(intentSource).toContain("service_provider");
   });
 
   it("enforces onboarding on authenticated routing until both completion + profile version are satisfied", () => {

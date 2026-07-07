@@ -46,8 +46,8 @@ describe("trade and county hub SEO contracts", () => {
     expect(countyDirectory).toContain("County Directory");
     expect(countyDirectory).toContain("community activity");
     expect(countyDirectory).toContain("verified business discovery");
-    expect(countyDirectory).toContain("Browse counties by state");
-    expect(countyDirectory).toContain("local market page");
+    expect(countyDirectory).toContain("Choose the county container first");
+    expect(countyDirectory).toContain("open the local market");
 
     expect(countyPage).toContain("Direct Connect for");
     expect(countyPage).toContain("Open Direct Connect");

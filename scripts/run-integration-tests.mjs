@@ -13,6 +13,19 @@ dotenv.config({ path: path.join(repoRoot, ".env.local") });
 dotenv.config({ path: path.join(repoRoot, ".env") });
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+const defaultIntegrationTestFiles = [
+  "server/tests/community-causes-allocation.integration.test.ts",
+  "server/tests/community-causes-route-integration.test.ts",
+  "server/tests/community-feed-api.test.ts",
+  "server/tests/direct-connect-gates.integration.test.ts",
+  "server/tests/groups-api.test.ts",
+  "server/tests/hoa-api.test.ts",
+  "server/tests/marketplace-api.test.ts",
+  "server/tests/messages-api.test.ts",
+  "server/tests/notifications-api.test.ts",
+  "server/tests/phase2b-ingress.integration.test.ts",
+  "server/tests/phase2c-privileged.integration.test.ts",
+];
 
 if (!testDatabaseUrl) {
   console.error("Missing TEST_DATABASE_URL. Run `node scripts/ensure-test-db.mjs` first.");
@@ -75,6 +88,7 @@ async function main() {
     DATABASE_URL: testDatabaseUrl,
     TEST_DATABASE_URL: testDatabaseUrl,
     RUN_INTEGRATION_TESTS: "true",
+    VITEST_SERIAL: "true",
     PORT: String(port),
     INTEGRATION_TEST_BASE_URL: baseUrl,
     GOOGLE_CALLBACK_URL: `${baseUrl}/api/auth/google/callback`,
@@ -95,7 +109,7 @@ async function main() {
   let testExitCode = 1;
   try {
     await waitForHealth(`http://localhost:${port}/api/health`);
-    const vitestArgs = ["vitest", "run"];
+    const vitestArgs = ["vitest", "run", ...defaultIntegrationTestFiles, "--no-file-parallelism"];
     if (process.env.RUN_STRICT_INTEGRATION !== "true") {
       vitestArgs.push(
         "--exclude",

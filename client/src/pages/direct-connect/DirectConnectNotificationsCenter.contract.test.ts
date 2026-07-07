@@ -8,27 +8,14 @@ const read = (relativePath: string) => {
 };
 
 describe("direct connect notification center ui contract", () => {
-  it("uses direct connect notification endpoints", () => {
+  it("keeps Direct Connect shell free of duplicate notification-center ownership", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("/api/direct-connect/notifications");
-    expect(source).toContain("/api/direct-connect/notifications/read-all");
-    expect(source).toContain("/notifications/${encodeURIComponent(notificationId)}/read");
-    expect(source).toContain("/notifications/${encodeURIComponent(notificationId)}/archive");
-  });
+    const appShell = read("client/src/components/layout/AppShell.tsx");
 
-  it("keeps unread badge and archive behavior in shell", () => {
-    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("unreadDirectConnectNotificationCount");
-    expect(source).toContain('status !== "archived"');
-    expect(source).toContain("Mark reviewed");
-    expect(source).toContain("Hide update");
-  });
-
-  it("contains optimistic update rollback paths", () => {
-    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(source).toContain("onMutate");
-    expect(source).toContain("onError");
-    expect(source).toContain("onSettled");
-    expect(source).toContain("context?.previous");
+    expect(source).not.toContain("/api/direct-connect/notifications");
+    expect(source).not.toContain("unreadDirectConnectNotificationCount");
+    expect(source).not.toContain("showNotificationCenter");
+    expect(appShell).toContain("<NotificationCenter />");
+    expect(appShell).toContain('aria-label="Notifications"');
   });
 });

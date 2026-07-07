@@ -6,14 +6,15 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
 
 describe("Direct Connect shell hierarchy", () => {
-  it("requires an account before rendering the request composer", () => {
+  it("renders the request composer for guests while preserving submit-time auth gating", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const postCase = source.slice(source.indexOf('case "post":'), source.indexOf('case "board":'));
 
-    expect(postCase).toContain("centerContent = isAuthenticated ?");
-    expect(postCase).toContain("Sign in before starting a request");
-    expect(postCase).toContain("Account required");
-    expect(postCase).toContain("Browse directory");
+    expect(postCase).toContain("DirectConnectRequestComposer");
+    expect(source).toContain("if (!isAuthenticated) {");
+    expect(source).toContain("persistDirectConnectDraft");
+    expect(source).toContain("direct-connect-auth-handoff-submit");
+    expect(source).toContain("auth_required_before_submit");
   });
 
   it("does not duplicate app-level Messages and Notifications controls in the page header", () => {

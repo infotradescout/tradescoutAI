@@ -33,7 +33,7 @@ describe("trade county page SEO contract", () => {
       "Start with the local market, then narrow by city or neighborhood."
     );
     expect(tradeCountyPage).toContain('"/api/businesses"');
-    expect(tradeCountyPage).toContain("Link href={`/business/${encodeURIComponent(biz.slug)}`}");
+    expect(tradeCountyPage).toContain("href={`/business/${encodeURIComponent(biz.slug)}`}");
     expect(tradeCountyPage).toContain("Claimed");
     expect(tradeCountyPage).toContain("Unclaimed");
     expect(tradeCountyPage).toContain("const scoutEstimateHref = `/scout?intent=estimate");

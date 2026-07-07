@@ -19,7 +19,7 @@ describe("localIntents", () => {
 
     it("routes explicit create-account intents", () => {
       const intent = resolveExplicitNavigationIntent("Take me to create account");
-      expect(intent?.to).toBe("/pre-scout-setup?mode=create");
+      expect(intent?.to).toBe("/pre-scout-setup?mode=create&next=%2Fonboarding%2Fprofile");
     });
 
     it("routes explicit support navigation to help center", () => {
@@ -74,7 +74,7 @@ describe("localIntents", () => {
       const action = resolveQuickActionIntent("Create account now");
       expect(action).toEqual({
         kind: "navigate",
-        to: "/pre-scout-setup?mode=create",
+        to: "/pre-scout-setup?mode=create&next=%2Fonboarding%2Fprofile",
         label: "Create account now",
       });
     });
