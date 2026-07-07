@@ -376,8 +376,9 @@ const About = memo(function About() {
                 Join the TradeScout Community
               </h2>
               <p className="text-white/60 mb-6 max-w-xl mx-auto">
-                Whether you're a resident, contractor, local business, organizer, or civic leader,
-                TradeScout is here to help you and your community succeed.
+                Whether you're a resident looking for verified local providers, a local business,
+                organizer, or civic leader, TradeScout is here to help you and your community
+                succeed.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
