@@ -90,6 +90,7 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       actionHint: "Open conversation",
       contactUnlocked: true,
     });
+    expect(copy.summary).toContain("Messages conversation");
   });
 
   it("keeps declined responses archived and contact-gated", () => {
@@ -103,5 +104,19 @@ describe("getDirectConnectInboxNextStepCopy", () => {
       actionHint: "Review details",
       contactUnlocked: false,
     });
+  });
+
+  it("keeps saved request follow-up pointed at Messages without unlocking contact", () => {
+    const copy = getDirectConnectInboxNextStepCopy({
+      assignmentStatus: "saved",
+      requestStatus: "routed",
+    });
+
+    expect(copy).toMatchObject({
+      label: "Saved request",
+      actionHint: "Open Messages",
+      contactUnlocked: false,
+    });
+    expect(copy.summary).toContain("Message threads open only after an accepted");
   });
 });

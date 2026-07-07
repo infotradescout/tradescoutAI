@@ -19,8 +19,8 @@ describe("Direct Connect replies mobile control surface contracts", () => {
   it("renders compact status filters in replies", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
-    expect(source).toContain('<div className="space-y-2.5">');
-    expect(source).toContain('CardContent className="flex gap-2 overflow-x-auto p-1.5"');
+    expect(source).toContain('<div className="space-y-3">');
+    expect(source).toContain('<div className="flex gap-2 overflow-x-auto pb-0.5">');
     expect(source).toContain(
       'className="shrink-0 rounded-xl border px-3.5 text-[13px] font-medium transition-all h-10"'
     );

@@ -9,7 +9,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Search, Inbox, MessageCircle, UserCheck, UserX, Send, CornerDownLeft } from "lucide-react";
+import {
+  Activity,
+  BriefcaseBusiness,
+  CheckCircle2,
+  CornerDownLeft,
+  DollarSign,
+  Inbox,
+  MessageCircle,
+  Search,
+  Send,
+  Sparkles,
+  Timer,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
@@ -102,6 +116,110 @@ type SharedHomeReportPayload = {
     };
   }>;
 };
+
+type DirectConnectThreadJob = {
+  threadId: string;
+  requestId: string;
+  jobWorkspaceId: string | null;
+  viewerRole: "requester" | "provider";
+  request: {
+    title: string;
+    description: string;
+    category?: string | null;
+    county?: string | null;
+    cityArea?: string | null;
+    status: string;
+    createdAt: string | null;
+  };
+  assignment: {
+    id: string;
+    status: string;
+    responseSummary?: {
+      availabilityWindow?: string;
+      priceBand?: string;
+      scopeNote?: string;
+    } | null;
+  };
+  job: {
+    status: string | null;
+    activeStage: string | null;
+    allowedLifecycleActions: string[];
+  };
+  summaries: {
+    estimates: {
+      count: number;
+      latestId?: string | null;
+      latestStatus: string | null;
+      latestTotal?: number | null;
+    };
+    invoices: {
+      count: number;
+      latestId?: string | null;
+      latestStatus: string | null;
+      latestTotal?: number | null;
+    };
+    schedules: { count: number; latestId?: string | null; latestStatus: string | null };
+    payments: {
+      count: number;
+      latestId?: string | null;
+      latestStatus: string | null;
+      latestAmount?: number | null;
+    };
+    punch: { count: number; openCount: number; latestStatus: string | null };
+    completion: { latestId?: string | null; latestStatus: string | null };
+    receipts?: { count: number; latestStatus: string | null };
+  };
+  assist?: {
+    primaryAction: {
+      key: string;
+      label: string;
+      href: string;
+      oneClick?: {
+        key: string;
+        label: string;
+        method: "POST";
+        endpoint: string;
+      } | null;
+    };
+    detailHref: string;
+    prefill: {
+      title: string;
+      scope: string;
+      category: string | null;
+      county: string | null;
+      cityArea: string | null;
+      availabilityWindow: string | null;
+      estimatedTiming: string | null;
+      priceBand: string | null;
+      scopeNote: string | null;
+    };
+    learningSignals: {
+      cost: { label: string; value: number | null; source: string | null };
+      timeline: { label: string; value: string | null };
+      satisfaction: { label: string; value: string | null };
+      trust: { label: string; value: string | null };
+    };
+  };
+};
+
+function formatJobStatus(value: string | null | undefined): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "Not started";
+  return raw
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatMoney(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "Pending";
+  return Number(value).toLocaleString(undefined, {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
 
 export default function MessagesPanel() {
   const { user } = useAuth();
@@ -201,6 +319,47 @@ export default function MessagesPanel() {
     queryKey: ["/api/messages/threads", activeThreadId, "home-report"],
     enabled: Boolean(activeThreadId && user && activeView === "threads"),
     queryFn: () => apiRequest("GET", `/api/messages/threads/${activeThreadId}/home-report`),
+  });
+
+  const directConnectThreadJobQuery = useQuery<DirectConnectThreadJob | null>({
+    queryKey: ["/api/direct-connect/messages/threads", activeThreadId, "job"],
+    enabled: Boolean(activeThreadId && user && activeView === "threads"),
+    retry: false,
+    queryFn: async () => {
+      try {
+        return await apiRequest(
+          "GET",
+          `/api/direct-connect/messages/threads/${activeThreadId}/job`
+        );
+      } catch (error: any) {
+        if (Number(error?.status) === 404) return null;
+        throw error;
+      }
+    },
+  });
+  const directConnectThreadJob = directConnectThreadJobQuery.data || null;
+
+  const directConnectJobActionMutation = useMutation({
+    mutationFn: (payload: { endpoint: string }) => apiRequest("POST", payload.endpoint, {}),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/direct-connect/messages/threads", activeThreadId, "job"],
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["/api/messages/threads", activeThreadId],
+      });
+      toast({
+        title: "Job updated",
+        description: "The thread now reflects the latest Direct Connect job status.",
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Could not update job",
+        description: formatUserFacingErrorMessage(err, "This job step could not be completed."),
+        variant: "destructive",
+      });
+    },
   });
 
   const shareHomeReportMutation = useMutation({
@@ -563,6 +722,260 @@ export default function MessagesPanel() {
           <>
             {activeThreadId && (
               <div className="px-5 py-4 border-b border-white/10 space-y-3">
+                {directConnectThreadJobQuery.isLoading ? (
+                  <div className="rounded-xl border border-white/10 bg-tsCard/95 p-4">
+                    <div className="h-4 w-44 rounded bg-white/10" />
+                    <div className="mt-3 h-3 w-64 rounded bg-white/10" />
+                  </div>
+                ) : directConnectThreadJob ? (
+                  <div
+                    className="rounded-xl border border-ts-orange/30 bg-tsCard/95 p-4"
+                    data-testid="direct-connect-thread-job-panel"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <BriefcaseBusiness className="h-4 w-4 text-ts-orange" />
+                          <div className="text-sm font-semibold text-white">Accepted job</div>
+                        </div>
+                        <div className="mt-1 truncate text-sm text-white">
+                          {directConnectThreadJob.request.title}
+                        </div>
+                        <div className="mt-1 line-clamp-2 text-xs text-white/60">
+                          {directConnectThreadJob.request.description ||
+                            "This Messages thread is tied to an accepted Direct Connect request."}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 md:justify-end">
+                        <Badge className="bg-ts-orange/15 text-ts-orange text-[10px]">
+                          {formatJobStatus(
+                            directConnectThreadJob.job.activeStage ||
+                              directConnectThreadJob.request.status
+                          )}
+                        </Badge>
+                        <Badge className="bg-white/5 text-white/70 text-[10px]">
+                          {directConnectThreadJob.viewerRole === "requester"
+                            ? "Requester view"
+                            : "Provider view"}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {directConnectThreadJob.assist && (
+                      <div className="mt-3 rounded-lg border border-ts-orange/20 bg-black/25 p-3">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ts-orange">
+                              <Sparkles className="h-3.5 w-3.5" />
+                              Next step
+                            </div>
+                            <div className="mt-1 text-sm font-semibold text-white">
+                              {directConnectThreadJob.assist.primaryAction.label}
+                            </div>
+                            <div className="mt-1 text-xs text-white/60">
+                              Site context is attached so the job form can prefill scope, location,
+                              timing, price band, and cycle history.
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {directConnectThreadJob.assist.primaryAction.oneClick ? (
+                              <Button
+                                size="sm"
+                                className="h-8 bg-ts-orange text-xs text-black hover:bg-ts-orange/90"
+                                disabled={directConnectJobActionMutation.isPending}
+                                onClick={() =>
+                                  directConnectJobActionMutation.mutate({
+                                    endpoint:
+                                      directConnectThreadJob.assist?.primaryAction.oneClick
+                                        ?.endpoint || "",
+                                  })
+                                }
+                              >
+                                <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                                {directConnectThreadJob.assist.primaryAction.oneClick.label}
+                              </Button>
+                            ) : (
+                              <Button
+                                size="sm"
+                                className="h-8 bg-ts-orange text-xs text-black hover:bg-ts-orange/90"
+                                onClick={() => {
+                                  window.location.href =
+                                    directConnectThreadJob.assist?.primaryAction.href ||
+                                    directConnectThreadJob.assist?.detailHref ||
+                                    "/direct-connect";
+                                }}
+                              >
+                                {directConnectThreadJob.assist.primaryAction.label}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-white/70 md:grid-cols-4">
+                      {[
+                        {
+                          label: "Estimate",
+                          value:
+                            directConnectThreadJob.summaries.estimates.count > 0
+                              ? formatJobStatus(
+                                  directConnectThreadJob.summaries.estimates.latestStatus
+                                )
+                              : "None",
+                        },
+                        {
+                          label: "Schedule",
+                          value:
+                            directConnectThreadJob.summaries.schedules.count > 0
+                              ? formatJobStatus(
+                                  directConnectThreadJob.summaries.schedules.latestStatus
+                                )
+                              : "None",
+                        },
+                        {
+                          label: "Invoice",
+                          value:
+                            directConnectThreadJob.summaries.invoices.count > 0
+                              ? formatJobStatus(
+                                  directConnectThreadJob.summaries.invoices.latestStatus
+                                )
+                              : "None",
+                        },
+                        {
+                          label: "Punch",
+                          value:
+                            directConnectThreadJob.summaries.punch.openCount > 0
+                              ? `${directConnectThreadJob.summaries.punch.openCount} open`
+                              : formatJobStatus(
+                                  directConnectThreadJob.summaries.completion.latestStatus
+                                ),
+                        },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="rounded-lg border border-white/10 bg-black/25 px-3 py-2"
+                        >
+                          <div className="text-white/50">{item.label}</div>
+                          <div className="mt-0.5 font-medium text-white">{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {directConnectThreadJob.assist && (
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-white/70 md:grid-cols-4">
+                        {[
+                          {
+                            icon: DollarSign,
+                            label: directConnectThreadJob.assist.learningSignals.cost.label,
+                            value: formatMoney(
+                              directConnectThreadJob.assist.learningSignals.cost.value
+                            ),
+                          },
+                          {
+                            icon: Timer,
+                            label: directConnectThreadJob.assist.learningSignals.timeline.label,
+                            value:
+                              directConnectThreadJob.assist.learningSignals.timeline.value ||
+                              "Pending",
+                          },
+                          {
+                            icon: Activity,
+                            label: directConnectThreadJob.assist.learningSignals.satisfaction.label,
+                            value:
+                              directConnectThreadJob.assist.learningSignals.satisfaction.value ||
+                              "Collecting",
+                          },
+                          {
+                            icon: CheckCircle2,
+                            label: directConnectThreadJob.assist.learningSignals.trust.label,
+                            value: formatJobStatus(
+                              directConnectThreadJob.assist.learningSignals.trust.value
+                            ),
+                          },
+                        ].map((item) => {
+                          const Icon = item.icon;
+                          return (
+                            <div
+                              key={item.label}
+                              className="rounded-lg border border-white/10 bg-black/25 px-3 py-2"
+                            >
+                              <div className="flex items-center gap-1.5 text-white/50">
+                                <Icon className="h-3.5 w-3.5 text-ts-orange" />
+                                <span>{item.label}</span>
+                              </div>
+                              <div className="mt-0.5 font-medium text-white line-clamp-1">
+                                {item.value}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {directConnectThreadJob.assist?.prefill && (
+                      <div className="mt-3 rounded-lg border border-white/10 bg-black/20 p-3 text-xs text-white/65">
+                        <div className="font-semibold text-white">Autofill context</div>
+                        <div className="mt-2 grid gap-1.5 md:grid-cols-2">
+                          {[
+                            ["Scope", directConnectThreadJob.assist.prefill.scope],
+                            ["Category", directConnectThreadJob.assist.prefill.category],
+                            ["Area", directConnectThreadJob.assist.prefill.cityArea],
+                            ["County", directConnectThreadJob.assist.prefill.county],
+                            ["Timing", directConnectThreadJob.assist.prefill.estimatedTiming],
+                            ["Price band", directConnectThreadJob.assist.prefill.priceBand],
+                          ]
+                            .filter(([, value]) => Boolean(value))
+                            .slice(0, 6)
+                            .map(([label, value]) => (
+                              <div key={label} className="min-w-0">
+                                <span className="text-white/45">{label}: </span>
+                                <span className="text-white/75 line-clamp-1">{value}</span>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {directConnectThreadJob.job.allowedLifecycleActions.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-1.5">
+                        {directConnectThreadJob.job.allowedLifecycleActions
+                          .slice(0, 5)
+                          .map((action) => (
+                            <span
+                              key={action}
+                              className="rounded-full border border-white/10 bg-black/25 px-2 py-0.5 text-[11px] text-white/60"
+                            >
+                              {formatJobStatus(action)}
+                            </span>
+                          ))}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8 border-white/10 text-xs text-white/70"
+                        onClick={() => {
+                          window.location.href =
+                            directConnectThreadJob.assist?.detailHref ||
+                            (directConnectThreadJob.viewerRole === "requester"
+                              ? "/direct-connect/engagements"
+                              : "/direct-connect/inbox");
+                        }}
+                      >
+                        Open Direct Connect job
+                      </Button>
+                      {directConnectThreadJob.jobWorkspaceId && (
+                        <Badge className="bg-white/5 text-white/60 text-[10px]">
+                          Job lane active
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-sm font-semibold text-white">Shared home context</div>

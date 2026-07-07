@@ -184,7 +184,7 @@ describe("direct-connect gate regressions", () => {
 
     expect(directConnectShellFile).toContain("Post a request");
     expect(directConnectShellFile).toContain("Manage requests");
-    expect(directConnectShellFile).toContain("My Requests");
+    expect(directConnectShellFile).toContain('engagements: "My Requests"');
     expect(directConnectShellFile).toContain(
       "Follow-up mode keeps request updates and replies together."
     );
@@ -227,10 +227,11 @@ describe("direct-connect gate regressions", () => {
     );
 
     expect(directConnectShellFile).toContain("Structured reply");
-    expect(directConnectShellFile).toContain("Ask follow-up");
+    expect(directConnectShellFile).toContain("Open Messages");
     expect(directConnectShellFile).toContain("Archive");
     expect(directConnectShellFile).toContain("direct_connect_reply_accepted");
     expect(directConnectShellFile).toContain("direct_connect_moved_to_conversation");
+    expect(directConnectShellFile).toContain('inbox: "Messages"');
   });
 
   it("shows a request lifecycle rail and neutral local directory language", () => {
@@ -240,8 +241,10 @@ describe("direct-connect gate regressions", () => {
     const directoryFile = readRepoFile("client/src/pages/direct-connect/DirectConnectPros.tsx");
 
     expect(directConnectShellFile).toContain("Request lifecycle");
-    expect(directConnectShellFile).toContain('pros: "Local Directory"');
-    expect(directoryFile).toContain("Local Directory");
+    expect(directConnectShellFile).toContain('pros: "Nearby Directory"');
+    expect(directConnectShellFile).toContain('board: "Public Requests"');
+    expect(directoryFile).toContain("Nearby Directory");
+    expect(directoryFile).toContain("Closest businesses near you");
     expect(directoryFile).toContain("No local businesses found for that search yet.");
   });
 
@@ -256,7 +259,7 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Choose who can receive this request");
     expect(directConnectShellFile).toContain("Send to top local companies");
     expect(directConnectShellFile).toContain("How many companies should receive this request?");
-    expect(directConnectShellFile).toContain("Ordered by local fit first, then trust score.");
+    expect(directConnectShellFile).toContain("Ordered by distance first, then CVS.");
     expect(directConnectShellFile).toContain("Continue without selection");
     expect(directConnectShellFile).toContain("targetProviderIds");
   });

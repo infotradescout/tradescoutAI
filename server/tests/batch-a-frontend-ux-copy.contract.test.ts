@@ -78,10 +78,10 @@ describe("Batch A frontend UX copy contract", () => {
       expect(source).not.toContain(phrase);
     }
 
-    expect(source).toContain("Post a request or profile");
+    expect(source).toContain("Post work or hiring needs");
     expect(source).toContain("Where should this request focus?");
     expect(source).toContain("Add more detail before review");
     expect(source).toContain("Send to more pros");
-    expect(source).toContain("Review replies");
+    expect(source).toContain("Open Messages");
   });
 });

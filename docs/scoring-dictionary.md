@@ -41,6 +41,10 @@ These are operational states, not popularity ranks.
   - professional verification status
   - license status
   - insurance status
+  - imported external trust evidence (bounded):
+    - place identity confirmation
+    - review count
+    - average rating
   - risk flags (stored with snapshot)
 - Dynamic behavior:
   - recomputed by scheduled job
@@ -52,6 +56,7 @@ These are operational states, not popularity ranks.
 - Not allowed to influence:
   - pricing/pay-to-play boosts
   - ad spend-based rank overrides
+  - contractor hard verification gates (license/insurance requirements)
 
 ## 2) Verification State (Gate Layer)
 

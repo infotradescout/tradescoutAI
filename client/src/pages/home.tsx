@@ -1,25 +1,12 @@
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { Bolt, Calculator, ChevronRight, ClipboardList, Hammer, Leaf, Wrench } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useQuery } from "@tanstack/react-query";
-import {
-  Calendar,
-  MapPin,
-  Star,
-  Clock,
-  Calculator,
-  Users,
-  ChevronRight,
-  Zap,
-  Target,
-  Award,
-  TrendingUp,
-  ClipboardList,
-} from "lucide-react";
-import { AdDisplay, useUserLocation } from "@/components/AdDisplay";
 import { InteractiveCountyMap } from "@/components/InteractiveCountyMap";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
@@ -31,12 +18,38 @@ import {
   TRADE_SCOUT_PRODUCT_EXPLANATION,
 } from "@/lib/firstUseGuidance";
 import { trackFirstUseGuidanceViewed } from "@/lib/firstUseAnalytics";
-import { useEffect } from "react";
+
+const SERVICE_SHORTCUTS = [
+  {
+    label: "Plumbing",
+    icon: Wrench,
+    href: "/direct-connect?source=home_action_surface&category=plumbing",
+  },
+  {
+    label: "Electrical",
+    icon: Bolt,
+    href: "/direct-connect?source=home_action_surface&category=electrical",
+  },
+  {
+    label: "Handyman",
+    icon: Hammer,
+    href: "/direct-connect?source=home_action_surface&category=handyman",
+  },
+  {
+    label: "Roofing",
+    icon: ChevronRight,
+    href: "/direct-connect?source=home_action_surface&category=roofing",
+  },
+  {
+    label: "Landscaping",
+    icon: Leaf,
+    href: "/direct-connect?source=home_action_surface&category=landscaping",
+  },
+] as const;
 
 export default function Home() {
   const { user } = useAuth();
   const firstUseUserState = user ? "authenticated" : "anonymous";
-  const userLocation = useUserLocation();
 
   useEffect(() => {
     trackFirstUseGuidanceViewed("home", firstUseUserState);
@@ -74,18 +87,87 @@ export default function Home() {
       pageHeight={window.innerHeight - 80}
       scrollToTop={false}
     >
-      <div className="max-w-7xl mx-auto ts-surface px-4 sm:px-6 lg:px-8 py-4 md:py-8">
-        <div className="mb-4 md:mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.firstName || "User"}
+      <div className="mx-auto w-full max-w-4xl px-4 py-4 md:px-6 md:py-7">
+        <section className="rounded-3xl border border-ts-orange/35 bg-[radial-gradient(circle_at_18%_12%,rgba(255,145,30,0.28),rgba(6,17,36,0.96)_58%)] p-4 shadow-[0_22px_60px_rgba(0,0,0,0.45)] md:p-6">
+          <h1 className="text-[2rem] font-semibold leading-[1.05] text-white md:text-[2.4rem]">
+            What do you need done?
           </h1>
-          <p className="text-white/70">Here's what's happening in your area</p>
-        </div>
+          <p className="mt-2 max-w-[34ch] text-base leading-6 text-white/78">
+            Describe the job and send it to local pros who match the work.
+          </p>
 
-        <div className="mb-4 grid grid-cols-1 gap-2 md:mb-5">
-          <Card className="border-ts-orange/30 bg-tsCard">
+          <Card className="mt-5 rounded-2xl border-ts-orange/35 bg-[color:var(--surface-card)] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <CardContent className="p-4">
+              <p className="text-[0.95rem] font-medium text-ts-orange">Describe your job...</p>
+              <p className="mt-2 text-base leading-7 text-white/62">
+                Replace kitchen faucet, fix drywall, install backyard lighting...
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <Badge className="rounded-xl border border-white/20 bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-white/80">
+                  Add timeline
+                </Badge>
+                <Badge className="rounded-xl border border-white/20 bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-xs text-white/80">
+                  Set budget
+                </Badge>
+                <Button
+                  asChild
+                  className="ml-auto rounded-xl bg-ts-orange px-5 text-base font-semibold text-text-black hover:bg-ts-orange-dark"
+                >
+                  <Link href="/direct-connect?source=home_action_surface">Describe the job</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="mt-5">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Popular services</h2>
+              <Link href="/direct-connect/pros" className="text-sm font-medium text-ts-orange">
+                View all
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5">
+              {SERVICE_SHORTCUTS.map((service) => {
+                const Icon = service.icon;
+                return (
+                  <Link
+                    key={service.label}
+                    href={service.href}
+                    className="rounded-2xl border border-ts-orange/30 bg-[color:var(--surface-card)] p-3.5 transition-colors hover:border-ts-orange/55"
+                  >
+                    <Icon className="h-4 w-4 text-ts-orange" />
+                    <p className="mt-2 text-sm font-medium text-white">{service.label}</p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-4 rounded-2xl border border-ts-orange/35 bg-[color:var(--surface-card)] p-4 shadow-[0_14px_32px_rgba(0,0,0,0.35)] md:p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-white">Start a Direct Connect request</h2>
+              <p className="mt-1.5 max-w-[42ch] text-sm leading-6 text-white/75">
+                Send your job details to local pros who match this work.
+              </p>
+              <p className="mt-2 text-xs text-white/70">
+                Your contact details stay private until you choose the next step.
+              </p>
+            </div>
+            <Button
+              asChild
+              className="h-12 rounded-xl bg-ts-orange px-6 text-base font-semibold text-black hover:bg-ts-orange/90"
+            >
+              <Link href="/direct-connect?source=home_direct_connect_cta">Start request</Link>
+            </Button>
+          </div>
+        </section>
+
+        <div className="mt-4 grid grid-cols-1 gap-2">
+          <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
             <CardContent className="p-3.5 md:p-5">
-              <p className="text-sm text-white/80">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
+              <p className="text-sm text-white/78">{TRADE_SCOUT_PRODUCT_EXPLANATION}</p>
             </CardContent>
           </Card>
           <FirstUsefulStepLauncher surface="home" userState={firstUseUserState} />
@@ -105,286 +187,56 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card className="bg-gradient-to-r from-slate-800 to-navy-700 border-white/10 card-enhanced">
             <CardContent className="p-4 md:p-6">
-              <div className="flex items-start justify-between mb-4">
+              <div className="mb-4 flex items-start justify-between">
                 <div>
                   <p className="text-sm text-white/60">Community Vault</p>
                   <h2 className="text-xl font-semibold text-white">{countyLabel}</h2>
                 </div>
                 <Badge className="bg-ts-orange text-white">Local Impact</Badge>
               </div>
-              <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 md:gap-4">
+              <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end md:gap-4">
                 <div>
-                  <p className="text-2xl md:text-3xl font-bold text-white">
+                  <p className="text-2xl font-bold text-white md:text-3xl">
                     {vaultLoading
                       ? "Loading..."
                       : formatCurrency(vaultSnapshot?.vault?.currentBalance ?? 0)}
                   </p>
                   <p className="text-sm text-white/60">Local reinvestment balance</p>
-                  <div className="mt-3 text-sm text-green-400 flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4" />
-                    <span>
-                      Last 30d inflow: {formatCurrency(vaultSnapshot?.last30dInflow ?? 0)}
-                    </span>
-                  </div>
                 </div>
-                <div className="space-y-2 text-right">
-                  {vaultSnapshot?.sourcesBreakdown &&
-                  Object.keys(vaultSnapshot.sourcesBreakdown).length > 0 ? (
-                    Object.entries(vaultSnapshot.sourcesBreakdown).map(([source, amount]) => (
-                      <Badge
-                        key={source}
-                        variant="outline"
-                        className="border-white/15 text-white/70"
-                      >
-                        {source.replace(/_/g, " ")} - {formatCurrency(amount as number)}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-sm text-white/60">No contributions yet</span>
-                  )}
-                </div>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="border-white/20 text-white hover:border-ts-orange/40"
+                >
+                  <Link href="/foundation">Open Community Builders</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-tsCard border-white/10 card-enhanced">
-            <CardContent className="p-4 md:p-6 h-full flex flex-col justify-between">
+            <CardContent className="flex h-full flex-col justify-between p-4 md:p-6">
               <div>
-                <p className="text-sm text-white/70 mb-1">Transparency</p>
-                <h2 className="text-xl font-semibold text-white mb-2">See where dollars go</h2>
-                <p className="text-white/60 text-sm">
+                <p className="mb-1 text-sm text-white/70">Transparency</p>
+                <h2 className="mb-2 text-xl font-semibold text-white">See where dollars go</h2>
+                <p className="text-sm text-white/60">
                   Track TradeScout contributions flowing back into your county across Exchange fees,
                   contractor programs, and Community Builders donations.
                 </p>
               </div>
-              <div className="flex items-center space-x-3 pt-4 flex-wrap gap-2">
+              <div className="pt-4">
                 <Button asChild className="bg-ts-orange hover:bg-ts-orange-dark">
-                  <Link href="/foundation">Open Community Builders</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-white/15 text-white hover:border-ts-orange/30"
-                >
-                  <Link href="/community-builder/dashboard">Community Builder badge</Link>
-                </Button>
-                <Button
-                  asChild
-                  variant="outline"
-                  className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange/10"
-                >
-                  <a
-                    href="https://buy.stripe.com/cNi28r74reaSg392IV8N200"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Donate to Builder Fund
-                  </a>
+                  <Link href="/community-builder/dashboard">Open transparency dashboard</Link>
                 </Button>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </section>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 mb-6 md:mb-8">
-          <Link href="/direct-connect">
-            <Card className="bg-tsCard border-white/10 card-enhanced cursor-pointer">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center glow-orange">
-                      <ClipboardList className="h-6 w-6 text-ts-orange" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-semibold">Open Direct Connect</h3>
-                      <p className="text-white/60 text-sm">
-                        Start and manage Direct Connect requests
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-white/60" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-          <Link href="/contractors">
-            <Card className="bg-tsCard border-white/10 card-enhanced cursor-pointer">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center glow-orange">
-                      <MapPin className="h-6 w-6 text-ts-orange" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-semibold">Find Local Help</h3>
-                      <p className="text-white/60 text-sm">
-                        Search verified local providers in your area
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-white/60" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link href="/quote">
-            <Card className="bg-tsCard border-white/10 card-enhanced cursor-pointer">
-              <CardContent className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-ts-orange/20 rounded-lg flex items-center justify-center glow-orange">
-                      <Calculator className="h-6 w-6 text-ts-orange" />
-                    </div>
-                    <div>
-                      <h3 className="text-white font-semibold">Get Estimate</h3>
-                      <p className="text-white/60 text-sm">Calculate project estimates</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-white/60" />
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        </div>
-
-        {/* Platform Statistics */}
-        <div className="mb-5 md:mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">Platform Updates</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <Card className="bg-tsCard border-white/10 text-center card-enhanced">
-              <CardContent className="p-4">
-                <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Zap className="h-4 w-4 text-green-500" />
-                </div>
-                <p className="text-2xl font-bold text-white">100%</p>
-                <p className="text-sm text-white/60">Loading Speed</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-tsCard border-white/10 text-center card-enhanced">
-              <CardContent className="p-4">
-                <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Target className="h-4 w-4 text-blue-500" />
-                </div>
-                <p className="text-2xl font-bold text-white">Enhanced</p>
-                <p className="text-sm text-white/60">User Experience</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-tsCard border-white/10 text-center card-enhanced">
-              <CardContent className="p-4">
-                <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Award className="h-4 w-4 text-purple-500" />
-                </div>
-                <p className="text-2xl font-bold text-white">New</p>
-                <p className="text-sm text-white/60">Visual Design</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-tsCard border-white/10 text-center card-enhanced">
-              <CardContent className="p-4">
-                <div className="w-8 h-8 bg-ts-orange/20 rounded-lg flex items-center justify-center mx-auto mb-2">
-                  <Users className="h-4 w-4 text-ts-orange" />
-                </div>
-                <p className="text-2xl font-bold text-white">Fixed</p>
-                <p className="text-sm text-white/60">TypeScript Issues</p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
-          <Card className="bg-tsCard border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white">Recent Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
-                  <div>
-                    <p className="text-white font-medium">Roof Replacement Estimate</p>
-                    <p className="text-white/60 text-sm">Requested 2 days ago</p>
-                  </div>
-                  <Badge variant="secondary">Pending</Badge>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-tsCard rounded-lg">
-                  <div>
-                    <p className="text-white font-medium">Plumbing Repair</p>
-                    <p className="text-white/60 text-sm">Completed 1 week ago</p>
-                  </div>
-                  <Badge className="bg-green-600">Completed</Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-tsCard border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white">Top Contractors</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-ts-orange rounded-lg flex items-center justify-center text-white font-bold">
-                    AC
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">Apex Construction</p>
-                    <div className="flex items-center space-x-2">
-                      <div className="flex text-yellow-400">
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                      </div>
-                      <span className="text-white/60 text-sm">4.9 (42 recommendations)</span>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-green-400 border-green-400">
-                    Licensed
-                  </Badge>
-                </div>
-
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-ts-orange rounded-lg flex items-center justify-center text-white font-bold">
-                    EP
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-medium">Elite Plumbing Co.</p>
-                    <div className="flex items-center space-x-2">
-                      <div className="flex text-yellow-400">
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4 fill-current" />
-                        <Star className="h-4 w-4" />
-                      </div>
-                      <span className="text-white/60 text-sm">4.7 (28 recommendations)</span>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-green-400 border-green-400">
-                    Licensed
-                  </Badge>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Location-aware Advertisement - DISABLED TEMPORARILY */}
-        {/* <div className="mt-6 md:mt-8">
-          <AdDisplay className="max-w-2xl mx-auto" userLocation={userLocation} />
-        </div> */}
-
-        {/* Interactive County Map */}
-        <div className="mt-8 md:mt-12">
+        <div className="mt-8 md:mt-10">
           <InteractiveCountyMap variant="homeowner" showTitle={true} className="max-w-full" />
         </div>
       </div>

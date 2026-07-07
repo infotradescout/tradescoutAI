@@ -1,4 +1,4 @@
-﻿import { ReactNode, useEffect, useMemo, useRef, useState } from "react";
+﻿import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import type { WorkRequest } from "@shared/schema";
@@ -9,6 +9,16 @@ import {
 } from "@shared/directConnectRoutingSpine";
 import TasksHub from "../tasks";
 import DirectConnectPros from "./DirectConnectPros";
+import { CreateEstimatePanel, ReviewEstimatePanel } from "./EstimatePanel";
+import {
+  ReviewSchedulePanel,
+  ReviewCompletionPanel,
+  CreateInvoicePanel,
+  ReviewInvoicePanel,
+  CreatePaymentRequestPanel,
+  ReviewPaymentRequestPanel,
+  WorkTrackingPanel,
+} from "./JobLifecyclePanels";
 import { EmploymentBoard } from "./EmploymentBoard";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,6 +37,10 @@ import {
 } from "@/components/ui/DecisionContactGatePanel";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  GooglePlacesLocationInput,
+  type PlaceResult as GooglePlaceResult,
+} from "@/components/GooglePlacesLocationInput";
 import { ToastAction } from "@/components/ui/toast";
 import { formatDistanceToNow } from "date-fns";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -91,7 +105,6 @@ import {
   ChevronRight,
   Zap,
   TrendingUp,
-  Bell,
   Paperclip,
   UploadCloud,
   FolderKanban,
@@ -117,6 +130,19 @@ type DirectConnectIntent =
   | "offer_services"
   | "browse_activity"
   | "browse_only";
+
+// Intents whose "when" detail question is genuinely about timing (see
+// DIRECT_CONNECT_INTENT_CONFIG). find_person_business ("Any must-haves?") and
+// sell_list ("Price or unsure?") repurpose the "when" key for other data, so a
+// timing quick-pick would write the wrong value there.
+const INTENTS_WITH_TIMING_WHEN = new Set<DirectConnectIntent>([
+  "fix_improve",
+  "vehicle_service",
+  "property_real_estate",
+  "offer_services",
+  "browse_activity",
+  "browse_only",
+]);
 
 type DirectConnectIntentConfig = {
   heading: string;
@@ -151,27 +177,27 @@ const DIRECT_CONNECT_TABS: Section[] = [
 
 const SECTION_LABELS: Record<Section, string> = {
   post: "New Request",
-  board: "Local Requests",
-  employment: "Jobs",
-  inbox: "Replies",
-  pros: "Local Directory",
+  board: "Public Requests",
+  employment: "Hiring",
+  inbox: "Messages",
+  pros: "Nearby Directory",
   engagements: "My Requests",
 };
 
 const SECTION_SHORT_LABELS: Record<Section, string> = {
-  post: "Request",
-  board: "Local",
-  employment: "Jobs",
-  inbox: "Replies",
-  pros: "Directory",
-  engagements: "Requests",
+  post: "New",
+  board: "Public",
+  employment: "Hiring",
+  inbox: "Msgs",
+  pros: "Nearby",
+  engagements: "Mine",
 };
 
 const REQUEST_FIELD_CLASS =
-  "min-h-12 rounded-xl border-[color:var(--border-subtle)]/75 bg-[color:var(--surface-intermediate)]/70 px-3.5 text-[15px] text-[color:var(--text-primary)] placeholder:text-[color:var(--text-secondary)]/75 focus:border-[color:var(--theme-accent-primary)]/55 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/22";
-const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[128px] resize-y py-3 leading-6");
+  "min-h-12 rounded-xl border border-[color:var(--theme-accent-primary)]/22 bg-[color:var(--surface-input)] px-3.5 text-[15px] text-[color:var(--text-primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] placeholder:text-[color:var(--text-secondary)]/70 focus:border-[color:var(--theme-accent-primary)]/60 focus:ring-2 focus:ring-[color:var(--theme-accent-primary)]/26";
+const REQUEST_TEXTAREA_CLASS = cn(REQUEST_FIELD_CLASS, "min-h-[124px] resize-y py-3 leading-6");
 const REQUEST_SELECT_CLASS = cn(REQUEST_FIELD_CLASS, "h-12 w-full");
-const REQUEST_LABEL_CLASS = "text-sm font-medium text-[color:var(--text-primary)]";
+const REQUEST_LABEL_CLASS = "text-sm font-semibold text-[color:var(--text-primary)]";
 const REQUEST_HELPER_CLASS = "text-[11px] leading-4 text-[color:var(--text-secondary)]";
 
 const DIRECT_CONNECT_DRAFT_DRAFT_KEY = "ts_direct_connect_draft_v1";
@@ -243,8 +269,6 @@ type DirectConnectDraftSnapshot = {
   detailAnswers?: Record<"what" | "where" | "when" | "details", string>;
 };
 
-type FlowMode = "start" | "manage";
-
 function toCleanHomeLabel(home: any): string {
   const nickname = String(home?.nickname || home?.name || home?.title || "").trim();
   if (nickname && !GENERATED_HOME_LABEL_PATTERN.test(nickname.replace(/\s+/g, " "))) {
@@ -283,31 +307,32 @@ const SECTION_META: Record<
     actionTarget: "engagements",
   },
   board: {
-    title: "Local requests",
-    description: "See open requests in your area.",
+    title: "Public Requests",
+    description:
+      "See local requests that are open to the public board without exposing contact first.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   employment: {
-    title: "Jobs",
-    description: "Post a request or profile and keep replies in Direct Connect.",
+    title: "Hiring",
+    description: "Post work or hiring needs and keep replies in Direct Connect.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   inbox: {
-    title: "Replies",
-    description: "Review who has responded and move accepted work into conversation.",
+    title: "Messages",
+    description: "Review responses and open accepted Direct Connect conversations in Messages.",
     actionLabel: "Review my requests",
     actionTarget: "engagements",
   },
   pros: {
-    title: "Local Directory",
-    description: "Look through local businesses, then send a request when you're ready.",
+    title: "Nearby Directory",
+    description: "Browse businesses near you, ranked by distance and CVS before you search.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   engagements: {
-    title: "My requests",
+    title: "My Requests",
     description: "Follow-up mode keeps request updates and replies together.",
     actionLabel: "See replies",
     actionTarget: "inbox",
@@ -372,6 +397,8 @@ function getDirectConnectIntent(path: string): DirectConnectIntent | null {
     browse_activity: "browse_activity",
     community: "browse_activity",
     browse_only: "browse_only",
+    local_search: "find_person_business",
+    directory: "find_person_business",
     business: "find_person_business",
   };
   return map[value] || null;
@@ -385,7 +412,25 @@ function getSectionFromPath(path: string): Section {
   const pathOnly = getPathOnly(path);
   const match = pathOnly.match(/^\/direct-connect(?:\/(.+))?/);
   const raw = match?.[1]?.split("/")[0] ?? "";
-  if (!raw) return "post";
+  if (!raw) {
+    const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
+    const params = new URLSearchParams(query);
+    const mode = String(params.get("mode") || "")
+      .trim()
+      .toLowerCase();
+    const intent = String(params.get("intent") || "")
+      .trim()
+      .toLowerCase();
+    if (
+      ["directory", "pros", "browse", "browse_only", "local_search"].includes(mode) ||
+      ["directory", "browse_only", "local_search", "find_help", "find_person_business"].includes(
+        intent
+      )
+    ) {
+      return "pros";
+    }
+    return "post";
+  }
   if (SECTIONS.includes(raw as Section)) return raw as Section;
   return "post";
 }
@@ -718,10 +763,6 @@ function localizeIntentConfig(
   };
 }
 
-function getFlowMode(section: Section): FlowMode {
-  return section === "engagements" || section === "inbox" ? "manage" : "start";
-}
-
 function statusTone(status: string) {
   const value = String(status || "").toLowerCase();
   if (value === "accepted" || value === "in_progress") {
@@ -867,19 +908,6 @@ type DirectConnectInboxItem = {
     attachmentCount?: number | null;
   } | null;
   conversationThreadId?: string | null;
-};
-
-type DirectConnectNotification = {
-  id: string;
-  request_id: string;
-  notification_type: string;
-  title: string;
-  message: string;
-  action_url?: string | null;
-  action_key?: string | null;
-  status: "unread" | "read" | "archived" | "dismissed";
-  priority: "low" | "normal" | "high";
-  created_at: string;
 };
 
 type DirectConnectRequest = {
@@ -1127,13 +1155,6 @@ function isCurrentRequest(request: DirectConnectRequest): boolean {
   return Number.isFinite(ageMs) && ageMs <= 120 * 24 * 60 * 60 * 1000;
 }
 
-function countRequestsByStage(
-  requests: DirectConnectRequest[] | undefined,
-  stage: RequestWorkflowStage
-): number {
-  return (requests || []).filter((request) => getRequestWorkflowStage(request) === stage).length;
-}
-
 type DraftAttachment = {
   file: File;
   previewUrl: string;
@@ -1362,6 +1383,7 @@ function DirectConnectRequestComposer({
   const [showHomeRecordDetails, setShowHomeRecordDetails] = useState(false);
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
+  const [reviewAttempted, setReviewAttempted] = useState(false);
   const [autofillSources, setAutofillSources] = useState<string[]>([]);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
@@ -1904,15 +1926,13 @@ function DirectConnectRequestComposer({
 
   const rankedCandidates = useMemo(() => {
     return [...localDirectoryCandidates].sort((a, b) => {
-      // Recommendation-first: CVS score is the composite trust/recommendation
-      // signal (recommendations + user activity + trust categories). Location
-      // is the tiebreak so equally-trusted providers surface the closest first.
-      const cvsDiff = getCandidateCvsScore(b) - getCandidateCvsScore(a);
-      if (cvsDiff !== 0) return cvsDiff;
-      return (
+      // Local-directory posture: nearest viable providers first, with CVS as
+      // the trust/recommendation tiebreaker.
+      const locationDiff =
         getCandidateLocationScore(b, defaultCountyFips) -
-        getCandidateLocationScore(a, defaultCountyFips)
-      );
+        getCandidateLocationScore(a, defaultCountyFips);
+      if (locationDiff !== 0) return locationDiff;
+      return getCandidateCvsScore(b) - getCandidateCvsScore(a);
     });
   }, [defaultCountyFips, localDirectoryCandidates]);
 
@@ -2377,6 +2397,19 @@ function DirectConnectRequestComposer({
     sourceSurface: "direct_connect",
   };
   const selectedContractorCount = selectedContractorIds.length;
+  const missingLabels = new Set(completeness.missing.map((item) => item.toLowerCase()));
+  const isQuestionMissing = (question: {
+    label: string;
+    key: "what" | "where" | "when" | "details";
+    required?: boolean;
+  }) =>
+    question.required &&
+    (detailAnswers[question.key].trim().length < 2 ||
+      missingLabels.has(question.label.replace(/\s*\*$/, "").toLowerCase()));
+  const showTitleMissingHint =
+    !reviewCardReady && title.trim().length < 3 && detailAnswers.what.trim().length < 3;
+  const showDescriptionMissingHint =
+    !reviewCardReady && description.trim().length < 10 && detailAnswers.details.trim().length < 10;
 
   const handleAttachmentSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const remaining = Math.max(0, 6 - attachmentsRef.current.length);
@@ -2559,51 +2592,105 @@ function DirectConnectRequestComposer({
       homeContextIntent,
     });
   };
+  const handleDescribeReviewRequest = () => {
+    if (!reviewCardReady) {
+      setReviewAttempted(true);
+      return;
+    }
+    setReviewAttempted(false);
+    setDescribeStep(1);
+  };
+
+  const handleWherePlaceSelected = useCallback(
+    (result: GooglePlaceResult) => {
+      const city = String(result.city || "").trim();
+      const stateCode = String(result.stateCode || "").trim();
+      const county = String(result.countyName || "").trim();
+      const formattedAddress = String(result.formattedAddress || "").trim();
+
+      const fallback = [city, stateCode].filter(Boolean).join(", ");
+      const countySegment = county ? `${county} County` : "";
+      const composed = [formattedAddress, fallback, countySegment].filter(Boolean)[0] || fallback;
+
+      if (!composed) return;
+
+      markRequestStarted("title");
+      setDetailAnswers((current) => ({ ...current, where: composed }));
+    },
+    [markRequestStarted]
+  );
 
   return (
-    <Card className="overflow-hidden rounded-2xl border-[color:var(--border-subtle)]/80 bg-[color:var(--surface-card)] shadow-[0_12px_32px_rgba(0,0,0,0.16)]">
-      <CardContent className="space-y-6 px-4 py-5 sm:px-6 sm:py-6">
-        <div className="space-y-2">
-          <h1 className="text-base font-semibold text-[color:var(--text-primary)]">
-            {describeStep === 0 ? "What do you need done?" : "Review your request"}
-          </h1>
-          <p className="max-w-[44ch] text-sm leading-snug text-[color:var(--text-secondary)]">
-            {describeStep === 0
-              ? "Tell us the essentials first. Add photos and extra detail on the next step."
-              : "Confirm details, then choose who receives this request. You review before anything is shared."}
-          </p>
-          <div className="grid grid-cols-3 gap-1 pt-1" aria-label="Request progress">
-            <button
-              type="button"
-              onClick={() => setDescribeStep(0)}
-              className={cn(
-                "rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
-                describeStep === 0
-                  ? "bg-ts-orange text-text-black"
-                  : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
-              )}
-            >
-              Describe
-            </button>
-            <button
-              type="button"
-              onClick={() => reviewCardReady && setDescribeStep(1)}
-              disabled={!reviewCardReady}
-              className={cn(
-                "rounded-lg px-3 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45",
-                describeStep === 1
-                  ? "bg-ts-orange text-text-black"
-                  : "text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-intermediate)]"
-              )}
-            >
-              Review
-            </button>
-            <span className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-xs font-semibold text-[color:var(--text-secondary)]">
-              Submit
-            </span>
-          </div>
-          {describeStep === 0 && autofillSources.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+    <div
+      className="mx-auto w-full max-w-xl space-y-6 px-0 pb-5 md:max-w-3xl"
+      data-testid="direct-connect-mobile-composer"
+    >
+      <div className="space-y-2 rounded-2xl border border-ts-orange/25 bg-[radial-gradient(circle_at_18%_20%,rgba(255,149,40,0.22),rgba(1,8,20,0.92)_62%)] px-4 py-4 shadow-[0_18px_48px_rgba(2,9,21,0.45)]">
+        <p className="text-sm font-semibold tracking-wide text-[color:var(--theme-accent-primary)]">
+          Direct Connect
+        </p>
+        <h1 className="text-[1.9rem] font-semibold leading-[1.1] text-[color:var(--text-primary)]">
+          {describeStep === 0 ? "What do you need done?" : "Review your request"}
+        </h1>
+        <p className="max-w-[36ch] text-[0.95rem] leading-6 text-[color:var(--text-secondary)]">
+          {describeStep === 0
+            ? "Tell local businesses what you need. Add photos on the next step."
+            : "Check the details, add photos if useful, then choose who receives it."}
+        </p>
+      </div>
+
+      <div
+        className="rounded-2xl border border-white/70 bg-[linear-gradient(180deg,rgba(8,13,24,0.95),rgba(5,10,20,0.95))] px-3 py-3"
+        aria-label="Request progress"
+      >
+        <div className="flex items-center gap-1.5">
+          {(["Describe", "Review", "Send"] as const).map((step, index) => {
+            const active =
+              (showDispatchSheet && index === 2) ||
+              (!showDispatchSheet && describeStep === 0 && index === 0) ||
+              (!showDispatchSheet && describeStep === 1 && index === 1);
+            const complete =
+              (!showDispatchSheet && describeStep === 1 && index === 0) ||
+              (showDispatchSheet && index < 2);
+            return (
+              <div
+                key={step}
+                className={cn(
+                  "relative flex flex-1 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-semibold transition-colors",
+                  active || complete
+                    ? "bg-[color:var(--theme-accent-primary)]/18 text-[color:var(--text-primary)]"
+                    : "text-[color:var(--text-secondary)]/72"
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px]",
+                    active
+                      ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)] text-text-black"
+                      : complete
+                        ? "border-[color:var(--text-primary)]/55 bg-[color:var(--text-primary)]/22 text-[color:var(--text-primary)]"
+                        : "border-[color:var(--border-subtle)] bg-transparent text-[color:var(--text-secondary)]/65"
+                  )}
+                >
+                  {index + 1}
+                </span>
+                {step}
+                {index < 2 && (
+                  <span
+                    className="absolute -right-1.5 top-1/2 h-px w-3 bg-white/18"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {describeStep === 0 && autofillSources.length > 0 && (
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] text-[color:var(--text-secondary)]">Autofilled:</span>
               {autofillSources.map((source) => (
                 <span
@@ -2621,10 +2708,10 @@ function DirectConnectRequestComposer({
                 Clear autofill
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         {describeStep === 0 && (
-          <div className="space-y-6">
+          <div className="space-y-5 rounded-2xl border border-ts-orange/25 bg-[linear-gradient(180deg,rgba(29,19,7,0.62),rgba(7,13,27,0.92))] p-4 shadow-[0_20px_50px_rgba(2,8,22,0.55)]">
             {prefillTargetUserId && (
               <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
@@ -2639,9 +2726,9 @@ function DirectConnectRequestComposer({
                 </p>
               </div>
             )}
-            <div className="space-y-4">
+            <div className="space-y-4 rounded-xl border border-white/8 bg-[linear-gradient(180deg,rgba(14,20,33,0.72),rgba(8,13,24,0.8))] p-3.5">
               {intentConfig ? (
-                <div className="rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/45 px-3 py-3.5">
+                <div className="rounded-lg bg-[color:var(--surface-intermediate)]/35 px-3 py-3">
                   <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
                     {intentConfig.heading}
                   </h2>
@@ -2666,7 +2753,7 @@ function DirectConnectRequestComposer({
                   </div>
                 </div>
               ) : null}
-              <label className={REQUEST_LABEL_CLASS}>What do you need?</label>
+              <label className={REQUEST_LABEL_CLASS}>Project type</label>
               <select
                 value={requestType}
                 onChange={(event) => {
@@ -2681,45 +2768,100 @@ function DirectConnectRequestComposer({
                   </option>
                 ))}
               </select>
+              {directConnectIntent && INTENTS_WITH_TIMING_WHEN.has(directConnectIntent) && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  {[
+                    {
+                      label: "Within 2-3 days",
+                      onClick: () => setDetailAnswers((c) => ({ ...c, when: "Within 2-3 days" })),
+                    },
+                    {
+                      label: "Anytime",
+                      onClick: () => setDetailAnswers((c) => ({ ...c, when: "Anytime" })),
+                    },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={chip.onClick}
+                      className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2 text-left text-xs font-medium text-white/80 transition-colors hover:border-ts-orange/45 hover:text-white"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {intentConfig?.detailQuestions?.map((question) => (
               <div key={question.key} className="space-y-2.5">
-                <label className={REQUEST_LABEL_CLASS}>
-                  {question.label}
-                  {question.required ? " *" : ""}
-                </label>
+                <label className={REQUEST_LABEL_CLASS}>{question.label}</label>
                 {question.key === "details" ? (
-                  <Textarea
-                    value={detailAnswers[question.key]}
-                    onChange={(event) => {
-                      markRequestStarted("description");
-                      const next = event.target.value;
-                      setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                      setDescription(next);
-                    }}
-                    placeholder={question.placeholder}
-                    rows={4}
-                    className={REQUEST_TEXTAREA_CLASS}
-                  />
+                  <>
+                    <Textarea
+                      value={detailAnswers[question.key]}
+                      onChange={(event) => {
+                        markRequestStarted("description");
+                        const next = event.target.value;
+                        setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                        setDescription(next);
+                      }}
+                      placeholder={question.placeholder}
+                      rows={4}
+                      className={REQUEST_TEXTAREA_CLASS}
+                    />
+                    {reviewAttempted && isQuestionMissing(question) && (
+                      <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
+                    )}
+                  </>
                 ) : (
-                  <Input
-                    value={detailAnswers[question.key]}
-                    onChange={(event) => {
-                      markRequestStarted("title");
-                      const next = event.target.value;
-                      setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                      if (question.key === "what") setTitle(next);
-                    }}
-                    placeholder={question.placeholder}
-                    className={REQUEST_FIELD_CLASS}
-                  />
+                  <>
+                    {question.key === "where" ? (
+                      <div className="space-y-2">
+                        <GooglePlacesLocationInput
+                          defaultValue={detailAnswers.where}
+                          onPlaceSelected={handleWherePlaceSelected}
+                          placeholder="Search location with Google (optional)"
+                          types={["geocode"]}
+                          className="w-full"
+                          data-testid="direct-connect-google-where"
+                        />
+                        <Input
+                          value={detailAnswers.where}
+                          onChange={(event) => {
+                            markRequestStarted("title");
+                            setDetailAnswers((current) => ({
+                              ...current,
+                              where: event.target.value,
+                            }));
+                          }}
+                          placeholder={question.placeholder}
+                          className={REQUEST_FIELD_CLASS}
+                        />
+                      </div>
+                    ) : (
+                      <Input
+                        value={detailAnswers[question.key]}
+                        onChange={(event) => {
+                          markRequestStarted("title");
+                          const next = event.target.value;
+                          setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                          if (question.key === "what") setTitle(next);
+                        }}
+                        placeholder={question.placeholder}
+                        className={REQUEST_FIELD_CLASS}
+                      />
+                    )}
+                    {reviewAttempted && isQuestionMissing(question) && (
+                      <p className="text-[11px] text-ts-orange">Add this detail.</p>
+                    )}
+                  </>
                 )}
               </div>
             ))}
             {!intentConfig && (
               <>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>What do you need help with? *</label>
+                  <label className={REQUEST_LABEL_CLASS}>What do you need help with?</label>
                   <Input
                     value={title}
                     onChange={(event) => {
@@ -2728,12 +2870,15 @@ function DirectConnectRequestComposer({
                       setTitle(next);
                       setDetailAnswers((current) => ({ ...current, what: next }));
                     }}
-                    placeholder="e.g. Fix a leaking kitchen faucet"
+                    placeholder="Fix a leaking kitchen faucet"
                     className={REQUEST_FIELD_CLASS}
                   />
+                  {reviewAttempted && showTitleMissingHint && (
+                    <p className="text-[11px] text-ts-orange">Add what you need.</p>
+                  )}
                 </div>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Describe the job *</label>
+                  <label className={REQUEST_LABEL_CLASS}>Details</label>
                   <Textarea
                     value={description}
                     onChange={(event) => {
@@ -2742,13 +2887,24 @@ function DirectConnectRequestComposer({
                       setDescription(next);
                       setDetailAnswers((current) => ({ ...current, details: next }));
                     }}
-                    placeholder="What's happening, what you've tried, and any deadlines"
+                    placeholder="What is happening? What have you tried? Any deadline?"
                     rows={4}
                     className={REQUEST_TEXTAREA_CLASS}
                   />
+                  {reviewAttempted && showDescriptionMissingHint && (
+                    <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
+                  )}
                 </div>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Where is the job? *</label>
+                  <label className={REQUEST_LABEL_CLASS}>Where is the job?</label>
+                  <GooglePlacesLocationInput
+                    defaultValue={detailAnswers.where}
+                    onPlaceSelected={handleWherePlaceSelected}
+                    placeholder="Search location with Google (optional)"
+                    types={["geocode"]}
+                    className="w-full"
+                    data-testid="direct-connect-google-where"
+                  />
                   <Input
                     value={detailAnswers.where}
                     onChange={(event) => {
@@ -2761,23 +2917,33 @@ function DirectConnectRequestComposer({
                 </div>
               </>
             )}
-            <div className="pt-1">
+            <div className="space-y-3 pt-1">
               <Button
                 type="button"
-                onClick={() => reviewCardReady && setDescribeStep(1)}
-                disabled={!reviewCardReady}
-                className="h-auto w-full rounded-full bg-ts-orange py-4 text-base font-semibold text-text-black hover:bg-ts-orange/90"
+                onClick={handleDescribeReviewRequest}
+                aria-disabled={!reviewCardReady}
+                className={cn(
+                  "h-auto w-full rounded-xl py-3.5 text-base font-semibold",
+                  reviewCardReady
+                    ? "bg-ts-orange text-text-black shadow-[0_10px_24px_rgba(255,145,20,0.28)] hover:bg-ts-orange/90"
+                    : "border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                )}
               >
-                Continue
+                Review request
               </Button>
-              {!reviewCardReady && (
-                <p className="mt-2 text-center text-xs text-[color:var(--text-secondary)]">
-                  Add required details to continue:{" "}
-                  {completeness.missing.length > 0
-                    ? completeness.missing.join(" · ")
-                    : "request details"}
-                </p>
-              )}
+              <p className="text-center text-[11px] text-white/62">
+                Your contact details stay private until you choose the next step.
+              </p>
+              <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
+                Prefer browsing first?{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate("/direct-connect/pros")}
+                  className="font-semibold text-[color:var(--theme-accent-primary)] hover:underline"
+                >
+                  Open directory
+                </button>
+              </p>
             </div>
           </div>
         )}
@@ -2865,7 +3031,7 @@ function DirectConnectRequestComposer({
                     disabled={!reviewCardReady || createMutation.isPending}
                     className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
-                    Submit when ready
+                    Send when ready
                   </Button>
                   <Button
                     type="button"
@@ -3255,16 +3421,16 @@ function DirectConnectRequestComposer({
 
               <div className="space-y-2">
                 <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                  Local Directory shortlist
+                  Nearby Directory shortlist
                 </p>
                 <Input
                   value={directorySearch}
                   onChange={(event) => setDirectorySearch(event.target.value)}
-                  placeholder="Search local companies"
+                  placeholder="Search outside your area or by company name"
                   className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
                 />
                 <p className="text-[11px] text-[color:var(--text-secondary)]">
-                  Ordered by local fit first, then trust score.
+                  Using your local area by default. Ordered by distance first, then CVS.
                 </p>
               </div>
 
@@ -3398,8 +3564,8 @@ function DirectConnectRequestComposer({
             </div>
           </SheetContent>
         </Sheet>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -3552,7 +3718,7 @@ function DirectConnectInbox() {
           status: res.status,
           blocked: true,
         });
-        throw new Error("Failed to load replies");
+        throw new Error("Failed to load Direct Connect messages");
       }
       return res.json();
     },
@@ -3614,7 +3780,7 @@ function DirectConnectInbox() {
     onSuccess: (data: any, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/inbox"] });
       queryClient.invalidateQueries({ queryKey: ["/api/direct-connect/requests"] });
-      // After accepting, navigate to the conversation thread so both parties can communicate
+      // Accept opens the real Messages thread between the requester and provider.
       if (variables?.decision === "accept" && data?.conversationId) {
         window.location.href = `/messages?thread=${encodeURIComponent(String(data.conversationId))}`;
       }
@@ -3661,7 +3827,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          Sign in to view your inbox.
+          Sign in to view Direct Connect messages.
         </CardContent>
       </Card>
     );
@@ -3683,7 +3849,7 @@ function DirectConnectInbox() {
     return (
       <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
         <CardContent className="p-6 md:p-8 text-center text-sm text-[color:var(--text-secondary)]">
-          No inbox items yet.
+          No Direct Connect messages yet.
         </CardContent>
       </Card>
     );
@@ -3986,7 +4152,7 @@ function DirectConnectInbox() {
                         : "/messages?tab=requests";
                     }}
                   >
-                    {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Ask follow-up"}
+                    {inboxNextStepCopy.contactUnlocked ? "Open conversation" : "Open Messages"}
                   </Button>
 
                   <Button
@@ -5123,7 +5289,7 @@ function MyDirectConnectRequests() {
 
             <div className="space-y-2">
               <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                Local Directory shortlist
+                Nearby Directory shortlist
               </p>
               <Input
                 value={routeDirectorySearch}
@@ -5270,7 +5436,6 @@ export default function DirectConnectShell() {
   const pathOnly = useMemo(() => getPathOnly(location), [location]);
   const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
-  const activeFlowMode = useMemo<FlowMode>(() => getFlowMode(activeSection), [activeSection]);
 
   const requestPrefill = useMemo(() => {
     if (typeof window === "undefined") return undefined;
@@ -5297,6 +5462,24 @@ export default function DirectConnectShell() {
     };
   }, [location]);
   const defaultCountyFips = requestPrefill?.countyFips;
+
+  // Deep links from the Messages job-assist card (e.g. ?jobWorkspaceId=...&action=create_estimate)
+  // land here with no handling; surface the matching panel above the section content.
+  const jobPanelParams = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const jobWorkspaceId = params.get("jobWorkspaceId") || undefined;
+    if (!jobWorkspaceId) return null;
+    return {
+      jobWorkspaceId,
+      estimateId: params.get("estimateId") || undefined,
+      scheduleProposalId: params.get("scheduleProposalId") || undefined,
+      completionRequestId: params.get("completionRequestId") || undefined,
+      invoiceId: params.get("invoiceId") || undefined,
+      paymentRequestId: params.get("paymentRequestId") || undefined,
+      action: params.get("action") || undefined,
+    };
+  }, [location]);
   const isPensacolaLaunchPath = defaultCountyFips === PENSACOLA_COUNTY_CODE;
   const createPensacolaAccountHref = useMemo(() => {
     const nextPath = encodeURIComponent(location || "/direct-connect");
@@ -5396,152 +5579,7 @@ export default function DirectConnectShell() {
   });
 
   const hasHomeIdContext = Boolean(Array.isArray(homesData?.homes) && homesData.homes.length > 0);
-  const [showNotificationCenter, setShowNotificationCenter] = useState(false);
   const replyViewedEventKeyRef = useRef<string | null>(null);
-  const queryClient = useQueryClient();
-  const userRole = String((user as any)?.role || "").toLowerCase();
-  const notificationRole = ["contractor", "business", "worker", "provider"].includes(userRole)
-    ? "business"
-    : "requester";
-
-  const notificationsQueryKey = useMemo(
-    () => ["/api/direct-connect/notifications", notificationRole] as const,
-    [notificationRole]
-  );
-
-  const {
-    data: notificationsPayload,
-    isLoading: notificationsLoading,
-    isError: notificationsError,
-  } = useQuery<{
-    notifications: DirectConnectNotification[];
-    unreadDirectConnectNotificationCount: number;
-    latestNotification: DirectConnectNotification | null;
-    pendingActionKey: string | null;
-  }>({
-    queryKey: notificationsQueryKey,
-    queryFn: async () => {
-      const res = await fetch(`/api/direct-connect/notifications?role=${notificationRole}`);
-      if (!res.ok) {
-        trackDirectConnectApiFailure({
-          source: "/api/direct-connect/notifications",
-          section: "notifications",
-          status: res.status,
-          blocked: false,
-        });
-        throw new Error("Failed to load Direct Connect notifications");
-      }
-      return res.json();
-    },
-    enabled: isAuthenticated,
-  });
-
-  const notifications = notificationsPayload?.notifications || [];
-  const activeNotifications = notifications.filter((n) => n.status !== "archived");
-  const unreadDirectConnectNotificationCount = activeNotifications.filter(
-    (n) => n.status === "unread"
-  ).length;
-
-  const markReadMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const response = await fetch(
-        `/api/direct-connect/notifications/${encodeURIComponent(notificationId)}/read?role=${notificationRole}`,
-        { method: "POST" }
-      );
-      if (!response.ok) throw new Error("Failed to mark notification as read");
-      return response.json();
-    },
-    onMutate: async (notificationId) => {
-      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
-      const previous = queryClient.getQueryData(notificationsQueryKey);
-      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
-        if (!current?.notifications) return current;
-        return {
-          ...current,
-          notifications: current.notifications.map((item: DirectConnectNotification) =>
-            item.id === notificationId ? { ...item, status: "read" } : item
-          ),
-        };
-      });
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(notificationsQueryKey, context.previous);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
-    },
-  });
-
-  const markAllReadMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(
-        `/api/direct-connect/notifications/read-all?role=${notificationRole}`,
-        {
-          method: "POST",
-        }
-      );
-      if (!response.ok) throw new Error("Failed to mark all notifications as read");
-      return response.json();
-    },
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
-      const previous = queryClient.getQueryData(notificationsQueryKey);
-      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
-        if (!current?.notifications) return current;
-        return {
-          ...current,
-          notifications: current.notifications.map((item: DirectConnectNotification) =>
-            item.status === "unread" ? { ...item, status: "read" } : item
-          ),
-        };
-      });
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(notificationsQueryKey, context.previous);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
-    },
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: async (notificationId: string) => {
-      const response = await fetch(
-        `/api/direct-connect/notifications/${encodeURIComponent(notificationId)}/archive?role=${notificationRole}`,
-        { method: "POST" }
-      );
-      if (!response.ok) throw new Error("Failed to archive notification");
-      return response.json();
-    },
-    onMutate: async (notificationId) => {
-      await queryClient.cancelQueries({ queryKey: notificationsQueryKey });
-      const previous = queryClient.getQueryData(notificationsQueryKey);
-      queryClient.setQueryData(notificationsQueryKey, (current: any) => {
-        if (!current?.notifications) return current;
-        return {
-          ...current,
-          notifications: current.notifications.map((item: DirectConnectNotification) =>
-            item.id === notificationId ? { ...item, status: "archived" } : item
-          ),
-        };
-      });
-      return { previous };
-    },
-    onError: (_err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(notificationsQueryKey, context.previous);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsQueryKey });
-    },
-  });
 
   const navCounts: Partial<Record<Section, number>> = useMemo(
     () => ({
@@ -5549,14 +5587,6 @@ export default function DirectConnectShell() {
       engagements: (requestsData || []).filter((r) => r.status !== "cancelled").length,
     }),
     [inboxData, requestsData]
-  );
-  const requestSummary = useMemo(
-    () => ({
-      readyToSend: countRequestsByStage(requestsData, "ready_to_send"),
-      waitingOnPros: countRequestsByStage(requestsData, "waiting_on_pros"),
-      inConversation: countRequestsByStage(requestsData, "active_conversation"),
-    }),
-    [requestsData]
   );
 
   useEffect(() => {
@@ -5659,7 +5689,7 @@ export default function DirectConnectShell() {
   let centerContent: ReactNode = null;
   switch (activeSection) {
     case "post":
-      centerContent = (
+      centerContent = isAuthenticated ? (
         <DirectConnectRequestComposer
           defaultCountyFips={defaultCountyFips}
           prefillTargetUserId={requestPrefill?.targetUserId}
@@ -5671,6 +5701,52 @@ export default function DirectConnectShell() {
           prefillBudgetMax={requestPrefill?.budgetMax}
           prefillTradeId={requestPrefill?.tradeId}
         />
+      ) : (
+        <Card className="mx-auto max-w-3xl border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="space-y-5 p-5 md:p-7">
+            <div className="space-y-2">
+              <Badge className="bg-ts-orange/15 text-ts-orange">Account required</Badge>
+              <h2 className="text-2xl font-bold text-[color:var(--text-primary)]">
+                Sign in before starting a request
+              </h2>
+              <p className="text-sm text-[color:var(--text-secondary)]">
+                Direct Connect requests create private job records, gated replies, Messages, and
+                lifecycle history. Create an account first so the customer and business stay tied to
+                the same request from start to finish.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                onClick={() =>
+                  navigate(
+                    `/pre-scout-setup?mode=signup&next=${encodeURIComponent("/direct-connect")}`
+                  )
+                }
+              >
+                Create free account
+              </Button>
+              <Button
+                variant="outline"
+                className="border-[color:var(--border-subtle)]"
+                onClick={() =>
+                  navigate(
+                    `/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect")}`
+                  )
+                }
+              >
+                Sign in
+              </Button>
+              <Button
+                variant="outline"
+                className="border-[color:var(--border-subtle)]"
+                onClick={() => navigate("/direct-connect/pros")}
+              >
+                Browse directory
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       );
       break;
     case "board":
@@ -5682,21 +5758,91 @@ export default function DirectConnectShell() {
       centerContent = <EmploymentBoard defaultCountyFips={defaultCountyFips} />;
       break;
     case "inbox":
-      centerContent = <DirectConnectInbox />;
+      centerContent = (
+        <div className="space-y-4">
+          {jobPanelParams?.action === "create_estimate" && (
+            <CreateEstimatePanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
+          )}
+          {jobPanelParams?.action === "create_invoice" && (
+            <CreateInvoicePanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
+          )}
+          {jobPanelParams?.action === "create_payment_request" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.estimateId && (
+              <CreatePaymentRequestPanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                estimateId={jobPanelParams.estimateId}
+              />
+            )}
+          {jobPanelParams?.jobWorkspaceId && (
+            <WorkTrackingPanel
+              jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+              viewerRole="provider"
+            />
+          )}
+          <DirectConnectInbox />
+        </div>
+      );
       break;
     case "pros":
       centerContent = <DirectConnectPros />;
       break;
     case "engagements":
-      centerContent = <MyDirectConnectRequests />;
+      centerContent = (
+        <div className="space-y-4">
+          {jobPanelParams?.action === "review_estimate" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.estimateId && (
+              <ReviewEstimatePanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                estimateId={jobPanelParams.estimateId}
+              />
+            )}
+          {jobPanelParams?.action === "review_schedule" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.scheduleProposalId && (
+              <ReviewSchedulePanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                scheduleProposalId={jobPanelParams.scheduleProposalId}
+              />
+            )}
+          {jobPanelParams?.action === "review_completion_request" &&
+            jobPanelParams.jobWorkspaceId && (
+              <ReviewCompletionPanel jobWorkspaceId={jobPanelParams.jobWorkspaceId} />
+            )}
+          {jobPanelParams?.action === "review_invoice" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.invoiceId && (
+              <ReviewInvoicePanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                invoiceId={jobPanelParams.invoiceId}
+              />
+            )}
+          {jobPanelParams?.action === "review_payment_request" &&
+            jobPanelParams.jobWorkspaceId &&
+            jobPanelParams.paymentRequestId && (
+              <ReviewPaymentRequestPanel
+                jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+                paymentRequestId={jobPanelParams.paymentRequestId}
+              />
+            )}
+          {jobPanelParams?.jobWorkspaceId && (
+            <WorkTrackingPanel
+              jobWorkspaceId={jobPanelParams.jobWorkspaceId}
+              viewerRole="requester"
+            />
+          )}
+          <MyDirectConnectRequests />
+        </div>
+      );
       break;
   }
 
   return (
     <div className="w-full max-w-full overflow-x-hidden">
       <SEOHelmet
-        title="Direct Connect | Request Local Help and Manage Replies"
-        description="Use TradeScout Direct Connect to post local requests, review replies, and choose the next step."
+        title="Direct Connect | Request Local Help and Open Messages"
+        description="Use TradeScout Direct Connect to post local requests, review responses, and open Messages after acceptance."
         canonical="https://www.thetradescout.com/direct-connect"
         structuredData={DIRECT_CONNECT_STRUCTURED_DATA}
       />
@@ -5708,62 +5854,6 @@ export default function DirectConnectShell() {
               <span className="hidden md:inline">Direct Connect</span>
             </h1>
           )}
-
-          <div className="hidden flex-wrap justify-end gap-2 md:flex">
-            <button
-              type="button"
-              onClick={() => setShowNotificationCenter(true)}
-              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm"
-            >
-              <Bell className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-              <span className="text-[color:var(--text-secondary)]">Notifications</span>
-              <span className="font-semibold text-[color:var(--text-primary)]">
-                {unreadDirectConnectNotificationCount}
-              </span>
-            </button>
-            {activeFlowMode === "manage" ? (
-              <>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <Zap className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Open</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {requestSummary.readyToSend}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Waiting</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {requestSummary.waitingOnPros}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <MessageCircle className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Conversation</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {requestSummary.inConversation}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <Inbox className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Replies</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {navCounts.inbox || 0}
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-1.5 text-sm">
-                  <TrendingUp className="h-4 w-4 text-[color:var(--theme-accent-primary)]" />
-                  <span className="text-[color:var(--text-secondary)]">Requests</span>
-                  <span className="font-semibold text-[color:var(--text-primary)]">
-                    {navCounts.engagements || 0}
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
         </div>
 
         <div className={cn(activeSection === "post" ? "hidden md:block" : "")}>
@@ -5896,108 +5986,6 @@ export default function DirectConnectShell() {
         </div>
 
         <div className="min-w-0 space-y-3">{centerContent}</div>
-        <Sheet open={showNotificationCenter} onOpenChange={setShowNotificationCenter}>
-          <SheetContent
-            side="right"
-            className="w-full max-w-md border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-primary)]"
-          >
-            <SheetHeader>
-              <SheetTitle>Direct Connect notifications</SheetTitle>
-            </SheetHeader>
-            <div className="mt-4 flex items-center justify-between">
-              <p className="text-xs text-[color:var(--text-secondary)]">
-                {unreadDirectConnectNotificationCount} unread
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-[color:var(--border-subtle)]"
-                onClick={() => markAllReadMutation.mutate()}
-                disabled={markAllReadMutation.isPending || unreadDirectConnectNotificationCount < 1}
-              >
-                Mark reviewed
-              </Button>
-            </div>
-            <div className="mt-3 space-y-2 overflow-y-auto pr-1 max-h-[74vh]">
-              {!isAuthenticated ? (
-                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                  Sign in to view Direct Connect notifications.
-                </div>
-              ) : notificationsLoading ? (
-                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                  Loading Direct Connect updates...
-                </div>
-              ) : notificationsError ? (
-                <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-3 text-xs text-rose-200">
-                  Could not load notifications right now.
-                </div>
-              ) : activeNotifications.length < 1 ? (
-                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                  No Direct Connect updates yet.
-                </div>
-              ) : (
-                activeNotifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={cn(
-                      "rounded-xl border px-3 py-3",
-                      notification.status === "unread"
-                        ? "border-ts-orange/45 bg-ts-orange/10"
-                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold">{notification.title}</p>
-                        <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                          {notification.message}
-                        </p>
-                        <p className="mt-1 text-[11px] text-[color:var(--text-secondary)]">
-                          {formatDistanceToNow(new Date(notification.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "text-[10px]",
-                          notification.status === "unread"
-                            ? "border-ts-orange/40 text-ts-orange"
-                            : "border-[color:var(--border-subtle)] text-[color:var(--text-secondary)]"
-                        )}
-                      >
-                        {notification.status === "unread" ? "Unread" : "Read"}
-                      </Badge>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {notification.status === "unread" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 border-[color:var(--border-subtle)] text-[11px]"
-                          onClick={() => markReadMutation.mutate(notification.id)}
-                          disabled={markReadMutation.isPending}
-                        >
-                          Mark read
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 border-[color:var(--border-subtle)] text-[11px]"
-                        onClick={() => archiveMutation.mutate(notification.id)}
-                        disabled={archiveMutation.isPending}
-                      >
-                        Hide update
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
       </div>
     </div>
   );

@@ -37,9 +37,7 @@ describe("direct connect notification/email delivery safety contracts", () => {
     expect(source).toContain('type: isAccept ? "dc_provider_accepted" : "dc_provider_declined"');
     expect(source).toContain("title: isAccept");
     expect(source).toContain("actionUrl:");
-    expect(source).toContain(
-      'isAccept && convId ? `/direct-connect?conversation=${convId}` : "/direct-connect"'
-    );
+    expect(source).toContain("`/messages?thread=${encodeURIComponent(String(convId))}`");
     expect(source).toContain("await recordContractorResponse({");
     expect(source).toContain(
       'contactRequestState: responseType === "interested" ? "contractor_requested" : "locked"'

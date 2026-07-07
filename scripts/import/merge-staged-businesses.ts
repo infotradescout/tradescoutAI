@@ -9,6 +9,19 @@ type StageRow = typeof listingImportStaging.$inferSelect;
 
 dotenv.config();
 
+type MergePreflight = {
+  pendingRows: number;
+  missingCountyFips: number;
+  missingCountyRecords: number;
+  duplicateKeyGroups: number;
+  duplicateExtraRows: number;
+};
+
+function toInt(value: unknown): number {
+  const parsed = Number.parseInt(String(value ?? "0"), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function readRawValue(row: StageRow, keys: string[]): string {
   const payload: any = (row as any).rawPayload || {};
   for (const key of keys) {
@@ -105,6 +118,44 @@ async function findCountyId(countyFips: string | null): Promise<string | null> {
     .where(eq(counties.fips, countyFips))
     .limit(1);
   return rows[0]?.id ?? null;
+}
+
+async function getMergePreflight(batchId: string): Promise<MergePreflight> {
+  const rows = await db.execute(sql`
+    with pending as (
+      select *
+      from listing_import_staging
+      where batch_id = ${batchId}
+        and status = 'pending'
+    ),
+    duplicate_keys as (
+      select dedupe_key, count(*) as dup_count
+      from pending
+      group by dedupe_key
+      having count(*) > 1
+    )
+    select
+      (select count(*) from pending)::int as pending_rows,
+      (select count(*) from pending where county_fips is null)::int as missing_county_fips,
+      (
+        select count(*)
+        from pending p
+        left join counties c on c.fips = p.county_fips
+        where p.county_fips is not null
+          and c.id is null
+      )::int as missing_county_records,
+      (select count(*) from duplicate_keys)::int as duplicate_key_groups,
+      coalesce((select sum(dup_count - 1) from duplicate_keys), 0)::int as duplicate_extra_rows
+  `);
+
+  const row = rows.rows[0] || {};
+  return {
+    pendingRows: toInt((row as any).pending_rows),
+    missingCountyFips: toInt((row as any).missing_county_fips),
+    missingCountyRecords: toInt((row as any).missing_county_records),
+    duplicateKeyGroups: toInt((row as any).duplicate_key_groups),
+    duplicateExtraRows: toInt((row as any).duplicate_extra_rows),
+  };
 }
 
 async function findExistingBusiness(row: StageRow): Promise<any | null> {
@@ -264,6 +315,52 @@ async function main() {
     .toLowerCase();
   const licenseStatusDefault = String(args.licenseStatus || "").trim();
   const licenseSource = String(args.licenseSource || "").trim();
+  const allowMissingCounty = String(args.allowMissingCounty || "false").toLowerCase() === "true";
+  const preflightOnly = String(args.preflightOnly || "false").toLowerCase() === "true";
+  const expectedPendingRaw = args.expectedPending
+    ? Number.parseInt(String(args.expectedPending), 10)
+    : null;
+  const expectedPending =
+    expectedPendingRaw != null && Number.isFinite(expectedPendingRaw) ? expectedPendingRaw : null;
+
+  const preflight = await getMergePreflight(batchId);
+
+  if (preflightOnly) {
+    console.log(
+      JSON.stringify(
+        {
+          batchId,
+          preflight,
+          dryRun,
+          allowMissingCounty,
+        },
+        null,
+        2
+      )
+    );
+    return;
+  }
+
+  if (expectedPending != null && preflight.pendingRows !== expectedPending) {
+    throw new Error(
+      `Pending row count mismatch for ${batchId}: expected ${expectedPending}, found ${preflight.pendingRows}`
+    );
+  }
+
+  if (
+    !dryRun &&
+    !allowMissingCounty &&
+    (preflight.missingCountyFips > 0 || preflight.missingCountyRecords > 0)
+  ) {
+    throw new Error(
+      [
+        `Unsafe merge blocked for ${batchId}: county assignment is incomplete.`,
+        `missingCountyFips=${preflight.missingCountyFips}`,
+        `missingCountyRecords=${preflight.missingCountyRecords}`,
+        "Resolve county routing first, or pass --allowMissingCounty=true only for a documented temporary exception.",
+      ].join(" ")
+    );
+  }
 
   const rows = await db
     .select()
@@ -283,6 +380,7 @@ async function main() {
     skippedDuplicates: 0,
     failed: 0,
     dryRun,
+    preflight,
   };
 
   for (const row of rows) {

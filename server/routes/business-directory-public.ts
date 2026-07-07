@@ -89,6 +89,21 @@ function normalizeClaimed(raw: unknown): "claimed" | "unclaimed" | "any" {
 
 function toPublicProfile(profileData: Business["profileData"] | null | undefined) {
   const raw = profileData && typeof profileData === "object" ? (profileData as any) : {};
+  const importExtras =
+    raw.importExtras && typeof raw.importExtras === "object" ? (raw.importExtras as any) : {};
+  const averageRating =
+    typeof importExtras.average_rating === "string" ||
+    typeof importExtras.average_rating === "number"
+      ? Number(importExtras.average_rating)
+      : null;
+  const reviewCount =
+    typeof importExtras.review_count === "string" || typeof importExtras.review_count === "number"
+      ? Number(importExtras.review_count)
+      : null;
+  const safeAverageRating = Number.isFinite(averageRating) ? Number(averageRating) : null;
+  const safeReviewCount = Number.isFinite(reviewCount)
+    ? Math.max(0, Math.trunc(Number(reviewCount)))
+    : null;
   return {
     tagline: typeof raw.tagline === "string" ? raw.tagline : undefined,
     description: typeof raw.description === "string" ? raw.description : undefined,
@@ -96,6 +111,22 @@ function toPublicProfile(profileData: Business["profileData"] | null | undefined
     services: Array.isArray(raw.services)
       ? raw.services.filter((s: any) => typeof s === "string")
       : undefined,
+    city: typeof raw.city === "string" ? raw.city : undefined,
+    stateCode: typeof raw.stateCode === "string" ? raw.stateCode : undefined,
+    address: typeof raw.address === "string" ? raw.address : undefined,
+    zipCode: typeof raw.zipCode === "string" ? raw.zipCode : undefined,
+    importExtras: {
+      countyFips:
+        typeof importExtras.county_fips === "string" ? importExtras.county_fips : undefined,
+      countyName:
+        typeof importExtras.county_name === "string" ? importExtras.county_name : undefined,
+      averageRating: safeAverageRating,
+      reviewCount: safeReviewCount,
+      googleMapsUrl:
+        typeof importExtras.google_maps_url === "string" ? importExtras.google_maps_url : undefined,
+      reviewUrl: typeof importExtras.review_url === "string" ? importExtras.review_url : undefined,
+      source: "google_import",
+    },
   };
 }
 
@@ -349,7 +380,9 @@ router.get("/api/businesses/:id", async (req, res, next) => {
       rules,
       now
     );
-    if (!pub.ok) return res.status(410).json({ message: "Listing inactive/out of date" });
+    if (!first.publicDiscoveryEnabled) {
+      return res.status(404).json({ message: "Business not found" });
+    }
 
     res.json({
       id: first.id,
@@ -361,9 +394,118 @@ router.get("/api/businesses/:id", async (req, res, next) => {
       claimStatus: first.claimStatus,
       profile: toPublicProfile(first.profileData),
       counties: countiesList,
+      publication: {
+        crawlable: pub.ok,
+        reason: pub.reason || null,
+      },
     });
   } catch (error: any) {
     console.error("Error fetching public business:", error);
+    res.status(500).json({ message: "Failed to fetch business" });
+  }
+});
+
+// Public-safe directory detail by slug for /business/:slug fallback pages.
+router.get("/api/public/businesses/:slug", async (req, res) => {
+  try {
+    const businessSlug = coerceString(req.params.slug);
+    if (!businessSlug) return res.status(400).json({ message: "Invalid business slug" });
+
+    const rows = await db
+      .select({
+        id: businesses.id,
+        ownerUserId: businesses.ownerUserId,
+        name: businesses.name,
+        slug: businesses.slug,
+        type: businesses.type,
+        roleContext: businesses.roleContext,
+        status: businesses.status,
+        claimStatus: businesses.claimStatus,
+        profileData: businesses.profileData,
+        updatedAt: businesses.updatedAt,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+        ownerVerificationStatus: users.verificationStatus,
+        ownerAddressVerified: users.addressVerified,
+        county: {
+          fips: counties.fips,
+          stateCode: counties.stateCode,
+          name: counties.name,
+        },
+      })
+      .from(businesses)
+      .leftJoin(businessCounties, eq(businessCounties.businessId, businesses.id))
+      .leftJoin(counties, eq(counties.id, businessCounties.countyId))
+      .leftJoin(users, eq(users.id, businesses.ownerUserId))
+      .where(eq(businesses.slug, businessSlug));
+
+    if (!rows.length) return res.status(404).json({ message: "Business not found" });
+    const first = rows[0];
+    if (first.status !== ("active" as any)) {
+      return res.status(404).json({ message: "Business not found" });
+    }
+
+    const countiesList = rows
+      .map((r) => r.county)
+      .filter(Boolean)
+      .reduce((acc: any[], c: any) => {
+        if (!acc.some((x) => x?.fips === c.fips)) acc.push(c);
+        return acc;
+      }, []);
+
+    const rules = await getPublicationRules();
+    const now = new Date();
+    const profileData: any = (first as any).profileData || {};
+    const tradeSlug = deriveTradeSlugFromProfileData(profileData);
+    const city = typeof profileData.city === "string" ? profileData.city : null;
+    const tier = derivePublicationTier({
+      ownerUserId: (first as any).ownerUserId ? String((first as any).ownerUserId) : null,
+      claimStatus: String((first as any).claimStatus || ""),
+      ownerVerificationStatus: (first as any).ownerVerificationStatus
+        ? String((first as any).ownerVerificationStatus)
+        : null,
+      ownerAddressVerified:
+        typeof (first as any).ownerAddressVerified === "boolean"
+          ? (first as any).ownerAddressVerified
+          : null,
+    });
+    const countyPrimary = countiesList[0] || null;
+    const pub = isPublicAndCrawlableBusiness(
+      buildPublicBusinessSignals({
+        id: String((first as any).id),
+        name: String((first as any).name || ""),
+        slug: String((first as any).slug || ""),
+        updatedAt: (first as any).updatedAt instanceof Date ? (first as any).updatedAt : new Date(),
+        publicDiscoveryEnabled: Boolean((first as any).publicDiscoveryEnabled),
+        stateCode: countyPrimary?.stateCode ? String(countyPrimary.stateCode) : null,
+        countyName: countyPrimary?.name ? String(countyPrimary.name) : null,
+        city,
+        tradeSlug,
+        tier,
+      }),
+      rules,
+      now
+    );
+    if (!first.publicDiscoveryEnabled) {
+      return res.status(404).json({ message: "Business not found" });
+    }
+
+    res.json({
+      id: first.id,
+      name: first.name,
+      slug: first.slug,
+      type: first.type,
+      roleContext: first.roleContext,
+      status: first.status,
+      claimStatus: first.claimStatus,
+      profile: toPublicProfile(first.profileData),
+      counties: countiesList,
+      publication: {
+        crawlable: pub.ok,
+        reason: pub.reason || null,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error fetching public business by slug:", error);
     res.status(500).json({ message: "Failed to fetch business" });
   }
 });

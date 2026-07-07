@@ -366,6 +366,7 @@ const FinancesReports = React.lazy(() => import("./pages/finances-reports"));
 const FinancesRecords = React.lazy(() => import("./pages/finances-records"));
 const FinancesSettings = React.lazy(() => import("./pages/finances-settings"));
 const DirectConnectShell = React.lazy(() => import("./pages/direct-connect/DirectConnectShell"));
+const DirectConnectPros = React.lazy(() => import("./pages/direct-connect/DirectConnectPros"));
 const DirectConnectSharePage = React.lazy(() => import("./pages/direct-connect-share"));
 // NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
 // and should not be routed. This lazy import is intentionally removed.
@@ -884,15 +885,15 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/contractors/top">
                 <LazyPage Component={ContractorsTop} />
               </Route>
-              {/* Legacy alias: older pages link to /contractors/board for contractor search */}
+              {/* Legacy contractor routes now land on browse-first directory search. */}
               <Route path="/contractors/board">
-                <RedirectTo to="/direct-connect" />
+                <LazyPage Component={DirectConnectPros} />
               </Route>
               <Route path="/contractors/:slug">
                 <LazyPage Component={ContractorProfile} />
               </Route>
               <Route path="/contractors">
-                <RedirectTo to="/direct-connect" />
+                <LazyPage Component={DirectConnectPros} />
               </Route>
 
               {/* Business/provider project requests. Legacy contractor paths remain compatibility aliases. */}

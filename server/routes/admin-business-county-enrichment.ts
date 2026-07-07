@@ -14,11 +14,11 @@ function parseImportAddress(
   ).trim();
   const street = String(extras.gmb_street || extras.street || "").trim();
   const municipality = String(extras.gmb_municipality || extras.municipality || "").trim();
-  const stateCode = String(extras.state_code || "")
+  const stateCode = String(extras.state_code || extras.license_jurisdiction || "")
     .trim()
     .toUpperCase();
   const zip = String(extras.zip_code || "").trim();
-  const address = full || [street, municipality].filter(Boolean).join(", ");
+  const address = full || [street, municipality, stateCode].filter(Boolean).join(", ");
   if (!address) return null;
   return { address, stateCode: stateCode || undefined, zip: zip || undefined };
 }

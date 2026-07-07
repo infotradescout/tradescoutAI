@@ -61,6 +61,42 @@ export type ThemeTokens = {
 };
 
 export const THEME_IDS: ThemeId[] = ["charcoal", "graphite", "sand", "sage", "midnight", "ember"];
+export const LOCKED_TRADESCOUT_THEME_ID: ThemeId = "charcoal";
+
+const TRADESCOUT_LOCKED_TOKENS: ThemeTokens = {
+  "--ts-bg": "#050607",
+  "--ts-surface": "#0C1015",
+  "--ts-surface-strong": "#07090C",
+  "--ts-surface-hover": "#171D25",
+  "--ts-border-subtle": "rgba(255,255,255,0.10)",
+  "--ts-border-strong": "rgba(255,255,255,0.18)",
+  "--ts-text": "#FAFAFA",
+  "--ts-text-muted": "rgba(250,250,250,0.66)",
+  "--ts-accent": "#FF6A00",
+  "--ts-accent-strong": "#FF7A1A",
+  "--ts-accent-soft": "rgba(255,106,0,0.16)",
+  "--ts-text-on-accent": "#050607",
+  "--ts-input-bg": "#182131",
+  "--ts-input-border": "rgba(255,255,255,0.13)",
+  "--ts-focus-ring": "rgba(255,106,0,0.58)",
+  "--ts-success": "#22C55E",
+  "--ts-warning": "#F59E0B",
+  "--ts-danger": "#EF4444",
+  "--ts-shadow-soft": "0 18px 52px rgba(0,0,0,0.42)",
+};
+
+const TRADESCOUT_LOCKED_COLORS: ThemeColors = {
+  bgPrimary: TRADESCOUT_LOCKED_TOKENS["--ts-bg"],
+  bgSecondary: TRADESCOUT_LOCKED_TOKENS["--ts-surface"],
+  bgTertiary: TRADESCOUT_LOCKED_TOKENS["--ts-surface-strong"],
+  textPrimary: TRADESCOUT_LOCKED_TOKENS["--ts-text"],
+  textSecondary: TRADESCOUT_LOCKED_TOKENS["--ts-text-muted"],
+  accentPrimary: TRADESCOUT_LOCKED_TOKENS["--ts-accent"],
+  accentSecondary: TRADESCOUT_LOCKED_TOKENS["--ts-accent-strong"],
+  accentTertiary: TRADESCOUT_LOCKED_TOKENS["--ts-accent-soft"],
+  borderPrimary: TRADESCOUT_LOCKED_TOKENS["--ts-border-subtle"],
+  borderSecondary: "rgba(255,255,255,0.06)",
+};
 
 export const THEME_LABELS: Record<ThemeId, string> = {
   charcoal: "Charcoal",
@@ -73,27 +109,7 @@ export const THEME_LABELS: Record<ThemeId, string> = {
 
 export const THEMES: Record<ThemeId, ThemeTokens> = {
   charcoal: {
-    // Neutral charcoals (less navy/blue cast) with restored separation between
-    // canvas vs cards so Scout doesn't feel "flat".
-    "--ts-bg": "#07090B",
-    "--ts-surface": "#111418",
-    "--ts-surface-strong": "#0B0D10",
-    "--ts-surface-hover": "#1A1F26",
-    "--ts-border-subtle": "rgba(255,255,255,0.10)",
-    "--ts-border-strong": "rgba(255,255,255,0.18)",
-    "--ts-text": "#ffffff",
-    "--ts-text-muted": "rgba(255,255,255,0.70)",
-    "--ts-accent": "#f97316",
-    "--ts-accent-strong": "#fb923c",
-    "--ts-accent-soft": "rgba(249,115,22,0.16)",
-    "--ts-text-on-accent": "#000000",
-    "--ts-input-bg": "rgba(0,0,0,0.30)",
-    "--ts-input-border": "rgba(255,255,255,0.10)",
-    "--ts-focus-ring": "rgba(249,115,22,0.55)",
-    "--ts-success": "#22C55E",
-    "--ts-warning": "#F59E0B",
-    "--ts-danger": "#EF4444",
-    "--ts-shadow-soft": "0 18px 52px rgba(0,0,0,0.36)",
+    ...TRADESCOUT_LOCKED_TOKENS,
   },
   graphite: {
     "--ts-bg": "#10141B",
@@ -218,20 +234,10 @@ export const PRESET_THEMES: Theme[] = [
     name: "Charcoal (Default)",
     description: "Default: charcoal system with orange accents. Fully customizable.",
     colors: {
-      // Palette: charcoal background + white text + orange accents
-      bgPrimary: "#07090B", // Background (neutral charcoal)
-      bgSecondary: "#111418", // UI surface (card)
-      bgTertiary: "#0B0D10", // Chrome/frame surface
-      textPrimary: "#ffffff", // White
-      textSecondary: "rgba(255,255,255,0.70)", // Muted
-      accentPrimary: "#f97316", // ts-orange accent
-      accentSecondary: "#fb923c", // ts-orange-light
-      accentTertiary: "rgba(249,115,22,0.16)",
-      borderPrimary: "rgba(255,255,255,0.10)",
-      borderSecondary: "rgba(255,255,255,0.06)",
+      ...TRADESCOUT_LOCKED_COLORS,
     },
     backgroundGradient:
-      "radial-gradient(1200px 800px at 20% 10%, rgba(249,115,22,0.16), transparent 60%), linear-gradient(180deg, #07090B, #07090B)",
+      "radial-gradient(1200px 800px at 20% 10%, rgba(255,106,0,0.16), transparent 60%), linear-gradient(180deg, #050607, #050607)",
   },
 
   // ======== ALTERNATIVE THEMES (users can customize all colors) ========
@@ -328,18 +334,19 @@ export const PRESET_THEMES: Theme[] = [
  * Call this in App.tsx useEffect to initialize or when user changes theme
  * Users can customize ALL colors including backgrounds, text, borders, and accents.
  */
-export function applyTheme(theme: Theme) {
+export function applyTheme(_theme: Theme) {
   const root = document.documentElement;
+  const lockedTheme = getThemeById(LOCKED_TRADESCOUT_THEME_ID);
 
   // Drive semantic tokens from the actual active colors (including custom/user themes).
   // This ensures the new UI token layer stays in sync with user customization.
-  const bg = theme.colors.bgPrimary;
-  const surface = theme.colors.bgSecondary;
-  const surfaceStrong = theme.colors.bgTertiary;
-  const text = theme.colors.textPrimary;
-  const textMuted = theme.colors.textSecondary;
-  const accent = theme.colors.accentPrimary;
-  const accentStrong = theme.colors.accentSecondary;
+  const bg = lockedTheme.colors.bgPrimary;
+  const surface = lockedTheme.colors.bgSecondary;
+  const surfaceStrong = lockedTheme.colors.bgTertiary;
+  const text = lockedTheme.colors.textPrimary;
+  const textMuted = lockedTheme.colors.textSecondary;
+  const accent = lockedTheme.colors.accentPrimary;
+  const accentStrong = lockedTheme.colors.accentSecondary;
 
   const derivedTokens: Partial<ThemeTokens> = {
     "--ts-bg": bg,
@@ -353,7 +360,7 @@ export function applyTheme(theme: Theme) {
     "--ts-accent": accent,
     "--ts-accent-strong": accentStrong,
     "--ts-accent-soft": `color-mix(in oklab, ${accent} 18%, transparent)`,
-    "--ts-text-on-accent": "#0B0F14",
+    "--ts-text-on-accent": TRADESCOUT_LOCKED_TOKENS["--ts-text-on-accent"],
     "--ts-input-bg": surfaceStrong,
     "--ts-input-border": `color-mix(in oklab, ${text} 14%, transparent)`,
     "--ts-focus-ring": `color-mix(in oklab, ${accent} 55%, transparent)`,
@@ -364,46 +371,68 @@ export function applyTheme(theme: Theme) {
   };
 
   // Fill any missing tokens from a built-in theme when available.
-  const fallbackThemeId: ThemeId = isThemeId(theme.id) ? theme.id : "charcoal";
+  const fallbackThemeId: ThemeId = LOCKED_TRADESCOUT_THEME_ID;
   const fallback = THEMES[fallbackThemeId];
   const tokens: ThemeTokens = { ...fallback, ...derivedTokens } as ThemeTokens;
 
   Object.entries(tokens).forEach(([key, value]) => root.style.setProperty(key, value));
 
+  // shadcn/Tailwind legacy tokens. These are HSL component strings because
+  // Tailwind reads them as hsl(var(--token)).
+  root.style.setProperty("--background", "210 17% 2%");
+  root.style.setProperty("--foreground", "0 0% 98%");
+  root.style.setProperty("--card", "214 27% 6%");
+  root.style.setProperty("--card-foreground", "0 0% 98%");
+  root.style.setProperty("--popover", "214 27% 6%");
+  root.style.setProperty("--popover-foreground", "0 0% 98%");
+  root.style.setProperty("--primary", "25 100% 50%");
+  root.style.setProperty("--primary-foreground", "210 17% 2%");
+  root.style.setProperty("--secondary", "216 24% 12%");
+  root.style.setProperty("--secondary-foreground", "0 0% 98%");
+  root.style.setProperty("--muted", "216 18% 14%");
+  root.style.setProperty("--muted-foreground", "0 0% 66%");
+  root.style.setProperty("--accent", "25 100% 50%");
+  root.style.setProperty("--accent-foreground", "210 17% 2%");
+  root.style.setProperty("--destructive", "0 84% 60%");
+  root.style.setProperty("--destructive-foreground", "0 0% 98%");
+  root.style.setProperty("--border", "0 0% 100% / 0.10");
+  root.style.setProperty("--input", "0 0% 100% / 0.13");
+  root.style.setProperty("--ring", "25 100% 50%");
+
   // Maintain legacy --theme-* variables for existing CSS that still
   // references them (e.g. scout-suggestion styles).
-  root.style.setProperty("--theme-bg-primary", theme.colors.bgPrimary);
-  root.style.setProperty("--theme-bg-secondary", theme.colors.bgSecondary);
-  root.style.setProperty("--theme-bg-quaternary", theme.colors.bgTertiary);
-  root.style.setProperty("--theme-text-primary", theme.colors.textPrimary);
-  root.style.setProperty("--theme-text-secondary", theme.colors.textSecondary);
-  root.style.setProperty("--theme-text-muted", theme.colors.textSecondary);
-  root.style.setProperty("--theme-accent-primary", theme.colors.accentPrimary);
-  root.style.setProperty("--theme-accent-secondary", theme.colors.accentSecondary);
-  if (theme.colors.accentTertiary) {
-    root.style.setProperty("--theme-accent-tertiary", theme.colors.accentTertiary);
+  root.style.setProperty("--theme-bg-primary", lockedTheme.colors.bgPrimary);
+  root.style.setProperty("--theme-bg-secondary", lockedTheme.colors.bgSecondary);
+  root.style.setProperty("--theme-bg-quaternary", lockedTheme.colors.bgTertiary);
+  root.style.setProperty("--theme-text-primary", lockedTheme.colors.textPrimary);
+  root.style.setProperty("--theme-text-secondary", lockedTheme.colors.textSecondary);
+  root.style.setProperty("--theme-text-muted", lockedTheme.colors.textSecondary);
+  root.style.setProperty("--theme-accent-primary", lockedTheme.colors.accentPrimary);
+  root.style.setProperty("--theme-accent-secondary", lockedTheme.colors.accentSecondary);
+  if (lockedTheme.colors.accentTertiary) {
+    root.style.setProperty("--theme-accent-tertiary", lockedTheme.colors.accentTertiary);
   }
-  root.style.setProperty("--theme-border-primary", theme.colors.borderPrimary);
+  root.style.setProperty("--theme-border-primary", lockedTheme.colors.borderPrimary);
   root.style.setProperty(
     "--theme-border-secondary",
-    theme.colors.borderSecondary || theme.colors.bgSecondary
+    lockedTheme.colors.borderSecondary || lockedTheme.colors.bgSecondary
   );
 
-  if (theme.backgroundGradient) {
-    root.style.setProperty("--theme-bg-gradient", theme.backgroundGradient);
-  } else if (theme.colors.bgGradient) {
-    root.style.setProperty("--theme-bg-gradient", theme.colors.bgGradient);
+  if (lockedTheme.backgroundGradient) {
+    root.style.setProperty("--theme-bg-gradient", lockedTheme.backgroundGradient);
+  } else if (lockedTheme.colors.bgGradient) {
+    root.style.setProperty("--theme-bg-gradient", lockedTheme.colors.bgGradient);
   } else {
     root.style.setProperty(
       "--theme-bg-gradient",
-      `linear-gradient(135deg, ${theme.colors.bgPrimary}, ${theme.colors.bgSecondary})`
+      `linear-gradient(135deg, ${lockedTheme.colors.bgPrimary}, ${lockedTheme.colors.bgSecondary})`
     );
   }
 
   // Save to localStorage for persistence
   try {
-    localStorage.setItem("ts-active-theme", theme.id);
-  } catch (e) {
+    localStorage.setItem("ts-active-theme", LOCKED_TRADESCOUT_THEME_ID);
+  } catch {
     // Ignore localStorage errors (might be disabled or full)
   }
 }
@@ -412,6 +441,7 @@ export function applyTheme(theme: Theme) {
  * Get a theme by ID
  */
 export function getThemeById(id: string): Theme {
+  if (id === "default" || id === "custom") return PRESET_THEMES[0];
   return PRESET_THEMES.find((t) => t.id === id) || PRESET_THEMES[0];
 }
 
@@ -424,7 +454,7 @@ export function getActiveThemeId(): string {
     if (stored && PRESET_THEMES.find((t) => t.id === stored)) {
       return stored;
     }
-  } catch (e) {
+  } catch {
     // Ignore
   }
   return "charcoal"; // Always default to charcoal

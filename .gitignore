@@ -17,6 +17,7 @@ ssl
 # AI packs / large logs
 repo-pack.md
 logs/repo-pack.md
+artifacts/import/
 logs/eslint-warnings*.json
 scout-dev*.log
 *.log
