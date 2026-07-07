@@ -145,8 +145,11 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
   await page.goto(`/direct-connect?entry=cta-smoke&county=${encodeURIComponent(countyFips)}`);
 
   await expect(page.getByText(/Direct Connect/i).first()).toBeVisible();
-  await expect(page.getByPlaceholder(/Need help with|I need help with/i)).toBeVisible();
-  await expect(page.getByRole("button", { name: /Send request/i })).toBeVisible();
+  await expect(page.getByTestId("direct-connect-mobile-composer")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Review request/i })).toBeVisible();
+  await expect(
+    page.getByText(/Your contact details stay private until you choose the next step/i)
+  ).toBeVisible();
 
   // TradeDeals page: stable county CTA routes projects back into Direct Connect.
   await page.goto("/trade-deals");

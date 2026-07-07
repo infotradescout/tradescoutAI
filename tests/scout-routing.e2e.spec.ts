@@ -28,8 +28,13 @@ test.describe("Scout routing explainer", () => {
 
     await page.goto(DIRECT_CONNECT_ENTRY_URL);
 
-    await expect(page.getByPlaceholder(/Need help with/i)).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByRole("button", { name: /Send request/i })).toBeVisible();
+    const composer = page.getByTestId("direct-connect-mobile-composer");
+    await expect(composer).toBeVisible({ timeout: 45_000 });
+    await expect(composer.getByText("Direct Connect", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Review request/i })).toBeVisible();
+    await expect(
+      page.getByText(/Your contact details stay private until you choose the next step/i)
+    ).toBeVisible();
   });
 
   test("guest action requests include account-gated next step", async ({ baseURL }) => {
