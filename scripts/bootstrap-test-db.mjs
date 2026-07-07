@@ -95,6 +95,7 @@ async function tryAcquireLease(client, lockName, owner) {
           expires_at = EXCLUDED.expires_at,
           updated_at = now()
       WHERE test_db_locks.expires_at < now()
+         OR test_db_locks.updated_at < now() - interval '2 minutes'
       RETURNING owner
     `,
     [lockName, owner]
