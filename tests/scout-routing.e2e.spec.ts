@@ -26,7 +26,7 @@ test.describe("Scout routing explainer", () => {
       `onboarding completion failed: ${onboardingRes.status()}`
     ).toBeTruthy();
 
-    await page.goto(DIRECT_CONNECT_ENTRY_URL);
+    await page.goto(DIRECT_CONNECT_ENTRY_URL, { waitUntil: "domcontentloaded" });
 
     const composer = page.getByTestId("direct-connect-mobile-composer");
     await expect(composer).toBeVisible({ timeout: 45_000 });

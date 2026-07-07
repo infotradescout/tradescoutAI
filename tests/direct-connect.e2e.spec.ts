@@ -67,6 +67,7 @@ test.describe("Direct Connect", () => {
         title: `Kitchen faucet repair request ${Date.now()}`,
         description: "Need a local pro to inspect and repair a leaking kitchen faucet this week.",
         category: "service_request",
+        autoRoute: false,
       },
     });
     expect(createResponse.ok(), `create failed: ${createResponse.status()}`).toBeTruthy();
