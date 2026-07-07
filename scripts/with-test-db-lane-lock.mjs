@@ -20,7 +20,7 @@ const separatorIndex = rawArgs.indexOf("--");
 const commandArgs = separatorIndex >= 0 ? rawArgs.slice(separatorIndex + 1) : rawArgs;
 const [command, ...args] = commandArgs;
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
-const laneLockName = "tradescout_test_db_lane_v3";
+const laneLockName = process.env.TEST_DB_LANE_LOCK_NAME || "tradescout_test_db_lane_v3";
 const laneLockOwner = `${process.env.GITHUB_RUN_ID || "local"}:${process.pid}:${randomUUID()}`;
 
 if (!testDatabaseUrl) {

@@ -20,6 +20,7 @@ jobs:
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD || secrets.MASTER_ADMIN_PASSWORD }}
       MASTER_ADMIN_EMAIL: ${{ secrets.MASTER_ADMIN_EMAIL }}
       MASTER_ADMIN_PASSWORD: ${{ secrets.MASTER_ADMIN_PASSWORD }}
+      TEST_DB_LANE_LOCK_NAME: tradescout_test_db_browser_lane_v1
 
     strategy:
       fail-fast: false
