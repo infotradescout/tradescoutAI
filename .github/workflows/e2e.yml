@@ -45,7 +45,7 @@ jobs:
         run: npx playwright install chromium
 
       - name: Run Playwright E2E tests (chromium, targeted)
-        run: node scripts/with-test-db-lane-lock.mjs -- npx playwright test tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium
+        run: node scripts/with-test-db-lane-lock.mjs -- npx playwright test tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium --workers=1
 
       - name: Run CTA Playwright smoke test (chromium, required)
-        run: node scripts/with-test-db-lane-lock.mjs -- npx playwright test tests/cta-smoke.spec.ts --project=chromium
+        run: node scripts/with-test-db-lane-lock.mjs -- npx playwright test tests/cta-smoke.spec.ts --project=chromium --workers=1

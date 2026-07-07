@@ -124,6 +124,7 @@ jobs:
           tests/scout-routing.e2e.spec.ts
           tests/cta-smoke.spec.ts
           --project=chromium
+          --workers=1
         env:
           BASE_URL: http://localhost:5000
           AGENT_IDENTITY_EMAIL: ${{ secrets.AGENT_IDENTITY_EMAIL || secrets.E2E_EMAIL || secrets.MASTER_ADMIN_EMAIL }}
