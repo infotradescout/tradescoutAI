@@ -71,15 +71,23 @@ async function queryIfTableExists(client, tableName, sql) {
   }
 }
 
+async function waitForAdvisoryLock(client, lockName) {
+  for (;;) {
+    const result = await client.query("SELECT pg_try_advisory_lock(hashtext($1)) AS locked", [
+      lockName,
+    ]);
+    if (result.rows[0]?.locked === true) return;
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+}
+
 async function withBootstrapLock(task) {
   const client = new Client({ connectionString: testDatabaseUrl });
   await client.connect();
   let lockAcquired = false;
   try {
     console.log("[bootstrap-test-db] Waiting for test DB bootstrap lock...");
-    await client.query(`
-      SELECT pg_advisory_lock(hashtext('tradescout_test_db_bootstrap_v2'))
-    `);
+    await waitForAdvisoryLock(client, "tradescout_test_db_bootstrap_v2");
     lockAcquired = true;
     console.log("[bootstrap-test-db] Test DB bootstrap lock acquired.");
     return await task();
