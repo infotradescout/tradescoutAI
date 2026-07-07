@@ -13,6 +13,7 @@ test.describe("Scout routing explainer", () => {
       data: {
         firstName: "Playwright",
         lastName: "E2E",
+        phone: "+15555550123",
         stateCode: "AZ",
         countyFips: "04013",
       },

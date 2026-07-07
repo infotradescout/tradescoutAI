@@ -41,6 +41,11 @@ const SEARCH_ROOTS = [
 
 const SKIP_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico", ".pdf"]);
 
+// Test files legitimately reference forbidden brand terms to assert their absence
+// elsewhere (e.g. `expect(source).not.toContain("mealscout")`); they aren't shipped
+// copy, so they're exempt from the brand-leak scan itself.
+const TEST_FILE_PATTERN = /\.(test|spec)\.[jt]sx?$/i;
+
 async function pathExists(rel) {
   try {
     await fs.access(path.join(REPO_ROOT, rel));
@@ -66,7 +71,10 @@ async function collectFiles(relPath) {
       if (entry.isDirectory()) {
         stack.push(childRel);
       } else if (entry.isFile()) {
-        if (!SKIP_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) {
+        if (
+          !SKIP_EXTENSIONS.has(path.extname(entry.name).toLowerCase()) &&
+          !TEST_FILE_PATTERN.test(entry.name)
+        ) {
           out.push(childRel);
         }
       }
