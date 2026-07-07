@@ -15,6 +15,8 @@ dotenv.config({ path: path.join(repoRoot, ".env.local") });
 dotenv.config({ path: path.join(repoRoot, ".env") });
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+const bootstrapLockScope = String(process.env.GITHUB_SHA || "local").slice(0, 80);
+const bootstrapLockName = `tradescout_test_db_bootstrap_v3:${bootstrapLockScope}`;
 
 if (!testDatabaseUrl) {
   console.error("Missing TEST_DATABASE_URL. Run `node scripts/ensure-test-db.mjs` first.");
@@ -72,11 +74,16 @@ async function queryIfTableExists(client, tableName, sql) {
 }
 
 async function waitForAdvisoryLock(client, lockName) {
+  let attempts = 0;
   for (;;) {
     const result = await client.query("SELECT pg_try_advisory_lock(hashtext($1)) AS locked", [
       lockName,
     ]);
     if (result.rows[0]?.locked === true) return;
+    attempts += 1;
+    if (attempts % 30 === 0) {
+      console.log(`[bootstrap-test-db] Still waiting for test DB bootstrap lock (${attempts}s).`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
@@ -87,15 +94,15 @@ async function withBootstrapLock(task) {
   let lockAcquired = false;
   try {
     console.log("[bootstrap-test-db] Waiting for test DB bootstrap lock...");
-    await waitForAdvisoryLock(client, "tradescout_test_db_bootstrap_v2");
+    await waitForAdvisoryLock(client, bootstrapLockName);
     lockAcquired = true;
     console.log("[bootstrap-test-db] Test DB bootstrap lock acquired.");
     return await task();
   } finally {
     if (lockAcquired) {
-      await client.query(`
-        SELECT pg_advisory_unlock(hashtext('tradescout_test_db_bootstrap_v2'))
-      `).catch(() => {});
+      await client
+        .query("SELECT pg_advisory_unlock(hashtext($1))", [bootstrapLockName])
+        .catch(() => {});
     }
     await client.end();
   }

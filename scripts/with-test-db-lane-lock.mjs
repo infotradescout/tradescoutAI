@@ -19,6 +19,8 @@ const separatorIndex = rawArgs.indexOf("--");
 const commandArgs = separatorIndex >= 0 ? rawArgs.slice(separatorIndex + 1) : rawArgs;
 const [command, ...args] = commandArgs;
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+const laneLockScope = String(process.env.GITHUB_SHA || "local").slice(0, 80);
+const laneLockName = `tradescout_test_db_lane_v2:${laneLockScope}`;
 
 if (!testDatabaseUrl) {
   console.error("[test-db-lane-lock] Missing TEST_DATABASE_URL.");
@@ -31,11 +33,16 @@ if (!command) {
 }
 
 async function waitForAdvisoryLock(client, lockName) {
+  let attempts = 0;
   for (;;) {
     const result = await client.query("SELECT pg_try_advisory_lock(hashtext($1)) AS locked", [
       lockName,
     ]);
     if (result.rows[0]?.locked === true) return;
+    attempts += 1;
+    if (attempts % 30 === 0) {
+      console.log(`[test-db-lane-lock] Still waiting for shared test DB lane (${attempts}s).`);
+    }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
@@ -47,7 +54,7 @@ async function runLocked() {
 
   try {
     console.log("[test-db-lane-lock] Waiting for shared test DB lane...");
-    await waitForAdvisoryLock(client, "tradescout_test_db_lane_v1");
+    await waitForAdvisoryLock(client, laneLockName);
     lockAcquired = true;
     console.log("[test-db-lane-lock] Shared test DB lane acquired.");
 
@@ -64,9 +71,7 @@ async function runLocked() {
     });
   } finally {
     if (lockAcquired) {
-      await client.query(`
-        SELECT pg_advisory_unlock(hashtext('tradescout_test_db_lane_v1'))
-      `).catch(() => {});
+      await client.query("SELECT pg_advisory_unlock(hashtext($1))", [laneLockName]).catch(() => {});
     }
     await client.end();
   }
