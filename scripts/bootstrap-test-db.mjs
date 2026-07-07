@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
 import pg from "pg";
@@ -15,8 +16,8 @@ dotenv.config({ path: path.join(repoRoot, ".env.local") });
 dotenv.config({ path: path.join(repoRoot, ".env") });
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
-const bootstrapLockScope = String(process.env.GITHUB_SHA || "local").slice(0, 80);
-const bootstrapLockName = `tradescout_test_db_bootstrap_v3:${bootstrapLockScope}`;
+const bootstrapLockName = "tradescout_test_db_bootstrap_v4";
+const bootstrapLockOwner = `${process.env.GITHUB_RUN_ID || "local"}:${process.pid}:${randomUUID()}`;
 
 if (!testDatabaseUrl) {
   console.error("Missing TEST_DATABASE_URL. Run `node scripts/ensure-test-db.mjs` first.");
@@ -73,13 +74,38 @@ async function queryIfTableExists(client, tableName, sql) {
   }
 }
 
-async function waitForAdvisoryLock(client, lockName) {
+async function ensureLeaseTable(client) {
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS test_db_locks (
+      name text PRIMARY KEY,
+      owner text NOT NULL,
+      expires_at timestamptz NOT NULL,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )
+  `);
+}
+
+async function tryAcquireLease(client, lockName, owner) {
+  const result = await client.query(
+    `
+      INSERT INTO test_db_locks (name, owner, expires_at, updated_at)
+      VALUES ($1, $2, now() + interval '10 minutes', now())
+      ON CONFLICT (name) DO UPDATE
+      SET owner = EXCLUDED.owner,
+          expires_at = EXCLUDED.expires_at,
+          updated_at = now()
+      WHERE test_db_locks.expires_at < now()
+      RETURNING owner
+    `,
+    [lockName, owner]
+  );
+  return result.rows[0]?.owner === owner;
+}
+
+async function waitForLeaseLock(client, lockName, owner) {
   let attempts = 0;
   for (;;) {
-    const result = await client.query("SELECT pg_try_advisory_lock(hashtext($1)) AS locked", [
-      lockName,
-    ]);
-    if (result.rows[0]?.locked === true) return;
+    if (await tryAcquireLease(client, lockName, owner)) return;
     attempts += 1;
     if (attempts % 30 === 0) {
       console.log(`[bootstrap-test-db] Still waiting for test DB bootstrap lock (${attempts}s).`);
@@ -92,16 +118,35 @@ async function withBootstrapLock(task) {
   const client = new Client({ connectionString: testDatabaseUrl });
   await client.connect();
   let lockAcquired = false;
+  let heartbeat;
   try {
     console.log("[bootstrap-test-db] Waiting for test DB bootstrap lock...");
-    await waitForAdvisoryLock(client, bootstrapLockName);
+    await ensureLeaseTable(client);
+    await waitForLeaseLock(client, bootstrapLockName, bootstrapLockOwner);
     lockAcquired = true;
     console.log("[bootstrap-test-db] Test DB bootstrap lock acquired.");
+    heartbeat = setInterval(() => {
+      client
+        .query(
+          `
+            UPDATE test_db_locks
+            SET expires_at = now() + interval '10 minutes',
+                updated_at = now()
+            WHERE name = $1 AND owner = $2
+          `,
+          [bootstrapLockName, bootstrapLockOwner]
+        )
+        .catch(() => {});
+    }, 30_000);
     return await task();
   } finally {
+    if (heartbeat) clearInterval(heartbeat);
     if (lockAcquired) {
       await client
-        .query("SELECT pg_advisory_unlock(hashtext($1))", [bootstrapLockName])
+        .query("DELETE FROM test_db_locks WHERE name = $1 AND owner = $2", [
+          bootstrapLockName,
+          bootstrapLockOwner,
+        ])
         .catch(() => {});
     }
     await client.end();

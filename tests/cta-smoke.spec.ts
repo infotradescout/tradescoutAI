@@ -117,7 +117,7 @@ test("Public landing mobile first viewport fits without horizontal clipping", as
 test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs render", async ({
   page,
 }) => {
-  await page.goto("/community-feed");
+  await page.goto("/community-feed", { waitUntil: "domcontentloaded" });
 
   await expect(
     page
