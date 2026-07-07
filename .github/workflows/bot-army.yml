@@ -9,10 +9,6 @@ on:
     # Run nightly at 3am UTC
     - cron: '0 3 * * *'
 
-concurrency:
-  group: tradescout-test-db-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   test:
     name: Bot Army Regression Suite
@@ -120,6 +116,7 @@ jobs:
         id: bot-army-tests
         if: github.event_name != 'schedule'
         run: >
+          node scripts/with-test-db-lane-lock.mjs --
           npx playwright test
           tests/journeys/auth_buttons_present.spec.ts
           tests/journeys/pre_scout_auth_integrity.spec.ts
@@ -139,7 +136,7 @@ jobs:
       - name: Run Bot Army full sweep
         id: bot-army-full-sweep
         if: github.event_name == 'schedule'
-        run: npm run test:e2e
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:e2e
         env:
           BASE_URL: http://localhost:5000
           AGENT_IDENTITY_EMAIL: ${{ secrets.AGENT_IDENTITY_EMAIL || secrets.E2E_EMAIL || secrets.MASTER_ADMIN_EMAIL }}

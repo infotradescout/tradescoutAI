@@ -5,10 +5,6 @@ on:
     - cron: "30 6 * * *"
   workflow_dispatch:
 
-concurrency:
-  group: tradescout-test-db-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   db-verify:
     runs-on: ubuntu-latest
@@ -35,14 +31,14 @@ jobs:
         run: npm run db:bootstrap:test
 
       - name: Run strict DB tests with JSON output
-        run: node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run -- --reporter=json --outputFile=test-results/vitest-results.db-strict.json
+        run: node scripts/with-test-db-lane-lock.mjs -- node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run -- --reporter=json --outputFile=test-results/vitest-results.db-strict.json
 
       - name: Build skip delta report
         if: always()
         run: npm run report:test-skip-delta -- --report test-results/vitest-results.db-strict.json --out artifacts/test-skip-delta.json --markdown artifacts/test-skip-delta.md --baseline .github/test-baselines/nightly-db-skip-baseline.json --fail-on-increase
 
       - name: Run full DB verify lane
-        run: npm run verify:db
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run verify:db
 
       - name: Upload DB verify artifacts
         if: always()

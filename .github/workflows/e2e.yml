@@ -5,10 +5,6 @@ on:
   push:
     branches: [ main ]
 
-concurrency:
-  group: tradescout-test-db-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   e2e:
     runs-on: ubuntu-latest
@@ -49,7 +45,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run Playwright E2E tests (chromium, targeted)
-        run: npx playwright test tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium
+        run: node scripts/with-test-db-lane-lock.mjs -- npx playwright test tests/direct-connect.e2e.spec.ts tests/scout-routing.e2e.spec.ts --project=chromium
 
       - name: Run CTA Playwright smoke test (chromium, required)
-        run: npx playwright test tests/cta-smoke.spec.ts --project=chromium
+        run: node scripts/with-test-db-lane-lock.mjs -- npx playwright test tests/cta-smoke.spec.ts --project=chromium

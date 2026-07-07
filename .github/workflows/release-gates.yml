@@ -5,10 +5,6 @@ on:
   push:
     branches: [main]
 
-concurrency:
-  group: tradescout-test-db-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   release-gates:
     runs-on: ubuntu-latest
@@ -75,13 +71,13 @@ jobs:
         run: npm run db:push:test
 
       - name: Direct Connect gate integration
-        run: npm run test:direct-connect:gates:db
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:direct-connect:gates:db
 
       - name: Run integration tests (default)
-        run: npm run test:integration
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:integration
 
       - name: Run integration tests (strict)
-        run: npm run test:integration:strict
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:integration:strict
 
       - name: Seed E2E user
         run: npm run seed:e2e-user
@@ -93,7 +89,7 @@ jobs:
         run: npx playwright install --with-deps
 
       - name: Run release gate tests
-        run: npm run test:release-gates
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:release-gates
 
       - name: Compute release gate metrics
         run: npm run report:release-gates
