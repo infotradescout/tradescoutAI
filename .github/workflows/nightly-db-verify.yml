@@ -5,6 +5,10 @@ on:
     - cron: "30 6 * * *"
   workflow_dispatch:
 
+concurrency:
+  group: tradescout-test-db-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   db-verify:
     runs-on: ubuntu-latest

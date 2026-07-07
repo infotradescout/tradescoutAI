@@ -114,6 +114,7 @@ async function main() {
 
   const businessSlug = buildStableBusinessSlug(email);
   const profileDraft = buildE2EProfileDraft();
+  const password = await hashPassword(plaintext);
 
   const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
@@ -122,6 +123,7 @@ async function main() {
     await db
       .update(users)
       .set({
+        password,
         businessSlug,
         role: "business_owner",
         activeRole: "business_owner",
@@ -149,8 +151,6 @@ async function main() {
     console.log(`[seed-e2e-user] Updated user ${email} with business profile '${businessSlug}'.`);
     return;
   }
-
-  const password = await hashPassword(plaintext);
 
   // Create user with business profile data for E2E tests
   const [createdUser] = await db
