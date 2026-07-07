@@ -35,28 +35,43 @@ export async function runTrustSnapshotsJob(): Promise<JobResult> {
     ),
     business_external_signals AS (
       SELECT
-        b.user_id,
+        b.owner_user_id AS user_id,
         MAX(
           CASE
-            WHEN COALESCE(b.profile_data -> 'importExtras' ->> 'average_rating', '') ~ '^[0-9]+(\\.[0-9]+)?$'
-              THEN (b.profile_data -> 'importExtras' ->> 'average_rating')::numeric
+            WHEN COALESCE(
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_average_rating', ''),
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'average_rating', '')
+                 ) ~ '^[0-9]+(\\.[0-9]+)?$'
+              THEN COALESCE(
+                     NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_average_rating', ''),
+                     NULLIF(b.profile_data -> 'importExtras' ->> 'average_rating', '')
+                   )::numeric
             ELSE NULL
           END
         ) AS external_avg_rating,
         MAX(
           CASE
-            WHEN COALESCE(b.profile_data -> 'importExtras' ->> 'review_count', '') ~ '^[0-9]+$'
-              THEN (b.profile_data -> 'importExtras' ->> 'review_count')::int
+            WHEN COALESCE(
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_review_count', ''),
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'review_count', '')
+                 ) ~ '^[0-9]+$'
+              THEN COALESCE(
+                     NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_review_count', ''),
+                     NULLIF(b.profile_data -> 'importExtras' ->> 'review_count', '')
+                   )::int
             ELSE NULL
           END
         ) AS external_review_count,
         BOOL_OR(
           COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'google_place_id', ''), '') <> ''
           OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'place_id', ''), '') <> ''
+          OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'places_place_id', ''), '') <> ''
+          OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_maps_url', ''), '') <> ''
           OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'google_maps_url', ''), '') <> ''
         ) AS external_place_confirmed
       FROM businesses b
-      GROUP BY b.user_id
+      WHERE b.owner_user_id IS NOT NULL
+      GROUP BY b.owner_user_id
     ),
     source AS (
       SELECT
