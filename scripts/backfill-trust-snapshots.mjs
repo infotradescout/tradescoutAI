@@ -20,6 +20,46 @@ const insertSql = `
     WHERE verification_type IN ('license', 'insurance')
     ORDER BY provider_user_id, verification_type, COALESCE(verified_at, created_at) DESC
   ),
+  business_external_signals AS (
+    SELECT
+      b.owner_user_id AS user_id,
+      MAX(
+        CASE
+          WHEN COALESCE(
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_average_rating', ''),
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'average_rating', '')
+               ) ~ '^[0-9]+(\\.[0-9]+)?$'
+            THEN COALESCE(
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_average_rating', ''),
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'average_rating', '')
+                 )::numeric
+          ELSE NULL
+        END
+      ) AS external_avg_rating,
+      MAX(
+        CASE
+          WHEN COALESCE(
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_review_count', ''),
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'review_count', '')
+               ) ~ '^[0-9]+$'
+            THEN COALESCE(
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_review_count', ''),
+                   NULLIF(b.profile_data -> 'importExtras' ->> 'review_count', '')
+                 )::int
+          ELSE NULL
+        END
+      ) AS external_review_count,
+      BOOL_OR(
+        COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'google_place_id', ''), '') <> ''
+        OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'place_id', ''), '') <> ''
+        OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'places_place_id', ''), '') <> ''
+        OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_maps_url', ''), '') <> ''
+        OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'google_maps_url', ''), '') <> ''
+      ) AS external_place_confirmed
+    FROM businesses b
+    WHERE b.owner_user_id IS NOT NULL
+    GROUP BY b.owner_user_id
+  ),
   source AS (
     SELECT
       u.id AS user_id,
@@ -45,9 +85,13 @@ const insertSql = `
       lv_license.status AS license_status_raw,
       lv_license.expires_at AS license_expires_at,
       lv_insurance.status AS insurance_status_raw,
-      lv_insurance.expires_at AS insurance_expires_at
+      lv_insurance.expires_at AS insurance_expires_at,
+      bes.external_avg_rating,
+      bes.external_review_count,
+      COALESCE(bes.external_place_confirmed, FALSE) AS external_place_confirmed
     FROM users u
     LEFT JOIN contractors c ON c.user_id = u.id
+    LEFT JOIN business_external_signals bes ON bes.user_id = u.id
     LEFT JOIN latest_verifications lv_license
       ON lv_license.provider_user_id = u.id
      AND lv_license.verification_type = 'license'
@@ -63,6 +107,9 @@ const insertSql = `
       address_verified,
       verification_status,
       is_contractor,
+      external_avg_rating,
+      external_review_count,
+      external_place_confirmed,
       CASE
         WHEN license_status_raw IS NOT NULL THEN license_status_raw
         WHEN contractor_license_verified IS TRUE THEN 'approved'
@@ -72,7 +119,17 @@ const insertSql = `
         WHEN insurance_status_raw IS NOT NULL THEN insurance_status_raw
         WHEN contractor_insurance_verified IS TRUE THEN 'approved'
         ELSE NULL
-      END AS insurance_status
+      END AS insurance_status,
+      LEAST(
+        10,
+        (CASE
+          WHEN external_avg_rating >= 4.5 AND COALESCE(external_review_count, 0) >= 50 THEN 5
+          WHEN external_avg_rating >= 4.2 AND COALESCE(external_review_count, 0) >= 20 THEN 3
+          WHEN external_avg_rating >= 4.0 AND COALESCE(external_review_count, 0) >= 5 THEN 1
+          ELSE 0
+        END)
+        + CASE WHEN external_place_confirmed IS TRUE THEN 2 ELSE 0 END
+      ) AS external_trust_bonus
     FROM source
   ),
   scored AS (
@@ -82,8 +139,17 @@ const insertSql = `
       n.verification_status,
       n.license_status,
       n.insurance_status,
+      n.external_trust_bonus,
       CASE
-        WHEN n.address_verified IS NOT TRUE THEN 0
+        WHEN n.address_verified IS NOT TRUE THEN
+          CASE
+            WHEN n.is_contractor IS TRUE THEN 0
+            WHEN n.external_place_confirmed IS TRUE
+              AND COALESCE(n.external_review_count, 0) >= 5
+              AND COALESCE(n.external_avg_rating, 0) >= 3.5
+            THEN LEAST(45, 25 + n.external_trust_bonus)
+            ELSE 0
+          END
         WHEN n.is_contractor IS TRUE
           AND (n.license_status IS DISTINCT FROM 'approved'
             OR n.insurance_status IS DISTINCT FROM 'approved') THEN 0
@@ -93,6 +159,7 @@ const insertSql = `
           + CASE WHEN n.verification_status = 'approved' THEN 20 ELSE 0 END
           + CASE WHEN n.license_status = 'approved' THEN 15 ELSE 0 END
           + CASE WHEN n.insurance_status = 'approved' THEN 15 ELSE 0 END
+          + n.external_trust_bonus
         )
       END AS cvs_score,
       ARRAY_REMOVE(ARRAY[
@@ -102,7 +169,15 @@ const insertSql = `
         CASE WHEN n.verification_status = 'rejected' THEN 'verification_rejected' END,
         CASE WHEN n.verification_status = 'suspended' THEN 'verification_suspended' END,
         CASE WHEN n.license_status = 'expired' THEN 'license_expired' END,
-        CASE WHEN n.insurance_status = 'expired' THEN 'insurance_expired' END
+        CASE WHEN n.insurance_status = 'expired' THEN 'insurance_expired' END,
+        CASE
+          WHEN n.address_verified IS NOT TRUE
+           AND n.is_contractor IS NOT TRUE
+           AND n.external_place_confirmed IS TRUE
+           AND COALESCE(n.external_review_count, 0) >= 5
+           AND COALESCE(n.external_avg_rating, 0) >= 3.5
+          THEN 'external_signal_bootstrap'
+        END
       ], NULL) AS risk_flags
     FROM normalized n
   ),
@@ -127,7 +202,7 @@ const insertSql = `
       s.insurance_status,
       s.risk_flags,
       NOW(),
-      1
+      2
     FROM scored s
     WHERE ${isForce ? "TRUE" : `NOT EXISTS (
         SELECT 1
