@@ -25,4 +25,17 @@ describe("Direct Connect shell hierarchy", () => {
     expect(source).not.toContain(">Notifications</span>");
     expect(source).not.toContain(">Messages</span>");
   });
+
+  it("opens the post screen into the request task without first-use intro panels", () => {
+    const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+
+    expect(source).toContain("What do you need help with?");
+    expect(source).toContain("Describe the job. You can review before anything is sent.");
+    expect(source).toContain("No one is contacted until you send.");
+    expect(source).not.toContain("FirstUseGuidanceCard");
+    expect(source).not.toContain("DIRECT_CONNECT_GUIDANCE_TEXT");
+    expect(source).not.toContain("resolveDirectConnectFirstUseTaskPrompt");
+    expect(source).not.toContain("Start your request.");
+    expect(source).not.toContain("Start a local work request.");
+  });
 });

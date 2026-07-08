@@ -31,7 +31,7 @@ describe("first-use guidance production smoke", () => {
     expect(source).toContain("window.localStorage.removeItem(DISMISS_KEY)");
   });
 
-  it("shows state-based prompts on HomeID, Direct Connect, and Scout surfaces", () => {
+  it("shows state-based prompts while Direct Connect opens directly into the request task", () => {
     const resolverSource = read("client/src/lib/firstUseTaskPrompts.ts");
     expect(resolverSource).toContain("Add one home detail.");
     expect(resolverSource).toContain("Add a system or component.");
@@ -47,7 +47,11 @@ describe("first-use guidance production smoke", () => {
     const directConnectSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const scoutSource = read("client/src/scout/ScoutHome.tsx");
     expect(homesSource).toContain("homeIdFirstTaskPrompt.message");
-    expect(directConnectSource).toContain("directConnectFirstTaskPrompt.message");
+    expect(directConnectSource).toContain("What do you need help with?");
+    expect(directConnectSource).toContain(
+      "Describe the job. You can review before anything is sent."
+    );
+    expect(directConnectSource).not.toContain("directConnectFirstTaskPrompt.message");
     expect(scoutSource).toContain("scoutFirstTaskPrompt.message");
   });
 

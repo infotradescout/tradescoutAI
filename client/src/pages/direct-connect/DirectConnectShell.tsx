@@ -56,14 +56,6 @@ import {
   trackOncePerSession,
   trackRepeatedFrictionSignal,
 } from "@/lib/telemetry";
-import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
-import { DIRECT_CONNECT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
-import { resolveDirectConnectFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
-import {
-  trackFirstUseGuidanceViewed,
-  trackFirstUseTaskPromptClicked,
-  trackFirstUseTaskPromptViewed,
-} from "@/lib/firstUseAnalytics";
 import {
   trackDirectConnectHomeRecordCreateSelected,
   trackDirectConnectHomeRecordLinkSelected,
@@ -2097,7 +2089,7 @@ function DirectConnectRequestComposer({
     if (!detailAnswers.where.trim() && locationSuggestion) {
       setDetailAnswers((current) => ({ ...current, where: locationSuggestion }));
       changed = true;
-      nextSources.push("Location profile");
+      nextSources.push("Saved location");
       nextSnapshot.where = locationSuggestion;
     }
 
@@ -2622,949 +2614,922 @@ function DirectConnectRequestComposer({
 
   return (
     <div
-      className="mx-auto w-full max-w-xl space-y-6 px-0 pb-5 md:max-w-3xl"
+      className="mx-auto w-full max-w-6xl space-y-3 px-0 pb-5"
       data-testid="direct-connect-mobile-composer"
     >
-      <div className="space-y-2 rounded-2xl border border-ts-orange/25 bg-[radial-gradient(circle_at_18%_20%,rgba(255,149,40,0.22),rgba(1,8,20,0.92)_62%)] px-4 py-4 shadow-[0_18px_48px_rgba(2,9,21,0.45)]">
-        <p className="text-sm font-semibold tracking-wide text-[color:var(--theme-accent-primary)]">
-          Direct Connect
-        </p>
-        <h1 className="text-[1.9rem] font-semibold leading-[1.1] text-[color:var(--text-primary)]">
-          {describeStep === 0 ? "What do you need done?" : "Review your request"}
+      <div className="flex flex-col gap-1.5 px-1 md:px-0">
+        <h1 className="text-2xl font-semibold leading-tight text-[color:var(--text-primary)] md:text-3xl">
+          {describeStep === 0 ? "What do you need help with?" : "Review your request"}
         </h1>
-        <p className="max-w-[36ch] text-[0.95rem] leading-6 text-[color:var(--text-secondary)]">
+        <p className="max-w-2xl text-sm leading-5 text-[color:var(--text-secondary)] md:text-base">
           {describeStep === 0
-            ? "Tell local businesses what you need. Add photos on the next step."
+            ? "Describe the job. You can review before anything is sent."
             : "Check the details, add photos if useful, then choose who receives it."}
         </p>
       </div>
 
-      <div
-        className="rounded-2xl border border-white/70 bg-[linear-gradient(180deg,rgba(8,13,24,0.95),rgba(5,10,20,0.95))] px-3 py-3"
-        aria-label="Request progress"
-      >
-        <div className="flex items-center gap-1.5">
-          {(["Describe", "Review", "Send"] as const).map((step, index) => {
-            const active =
-              (showDispatchSheet && index === 2) ||
-              (!showDispatchSheet && describeStep === 0 && index === 0) ||
-              (!showDispatchSheet && describeStep === 1 && index === 1);
-            const complete =
-              (!showDispatchSheet && describeStep === 1 && index === 0) ||
-              (showDispatchSheet && index < 2);
-            return (
-              <div
-                key={step}
-                className={cn(
-                  "relative flex flex-1 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-semibold transition-colors",
-                  active || complete
-                    ? "bg-[color:var(--theme-accent-primary)]/18 text-[color:var(--text-primary)]"
-                    : "text-[color:var(--text-secondary)]/72"
-                )}
-              >
-                <span
-                  className={cn(
-                    "inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px]",
-                    active
-                      ? "border-[color:var(--theme-accent-primary)] bg-[color:var(--theme-accent-primary)] text-text-black"
-                      : complete
-                        ? "border-[color:var(--text-primary)]/55 bg-[color:var(--text-primary)]/22 text-[color:var(--text-primary)]"
-                        : "border-[color:var(--border-subtle)] bg-transparent text-[color:var(--text-secondary)]/65"
-                  )}
-                >
-                  {index + 1}
-                </span>
-                {step}
-                {index < 2 && (
-                  <span
-                    className="absolute -right-1.5 top-1/2 h-px w-3 bg-white/18"
-                    aria-hidden="true"
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="space-y-5">
-        {describeStep === 0 && autofillSources.length > 0 && (
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-[color:var(--text-secondary)]">Autofilled:</span>
-              {autofillSources.map((source) => (
-                <span
-                  key={source}
-                  className="inline-flex items-center rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]"
-                >
-                  {source}
-                </span>
-              ))}
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+        <div className="space-y-4">
+          {describeStep === 0 && autofillSources.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/40 px-3 py-2 text-xs text-[color:var(--text-secondary)]">
+              <span>Using your saved details.</span>
               <button
                 type="button"
                 onClick={clearContextualAutofill}
-                className="text-[11px] font-medium text-[color:var(--theme-accent-primary)] hover:underline"
+                className="font-medium text-[color:var(--theme-accent-primary)] hover:underline"
               >
-                Clear autofill
+                Edit
               </button>
             </div>
-          </div>
-        )}
-        {describeStep === 0 && (
-          <div className="space-y-5 rounded-2xl border border-ts-orange/25 bg-[linear-gradient(180deg,rgba(29,19,7,0.62),rgba(7,13,27,0.92))] p-4 shadow-[0_20px_50px_rgba(2,8,22,0.55)]">
-            {prefillTargetUserId && (
-              <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
-                  From Community
-                </p>
-                <p className="mt-1 text-xs text-[color:var(--text-primary)]">
-                  This request is scoped to{" "}
-                  <span className="font-semibold">{prefillTargetLabel}</span>.
-                  {prefillSource === "community_active_now"
-                    ? " They will see it in Direct Connect if they are eligible to respond."
-                    : " The selected member context has been prefilled for you."}
-                </p>
-              </div>
-            )}
-            <div className="space-y-4 rounded-xl border border-white/8 bg-[linear-gradient(180deg,rgba(14,20,33,0.72),rgba(8,13,24,0.8))] p-3.5">
-              {intentConfig ? (
-                <div className="rounded-lg bg-[color:var(--surface-intermediate)]/35 px-3 py-3">
-                  <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
-                    {intentConfig.heading}
-                  </h2>
-                  <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                    {intentConfig.prompt}
+          )}
+          {describeStep === 0 && (
+            <div className="space-y-4 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3.5 md:p-4">
+              {prefillTargetUserId && (
+                <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
+                    From Community
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {intentConfig.chips.map((chip) => (
-                      <button
-                        key={chip}
-                        type="button"
-                        onClick={() => {
-                          markRequestStarted("title");
-                          setTitle(chip);
-                          setDetailAnswers((current) => ({ ...current, what: chip }));
-                        }}
-                        className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                      >
-                        {chip}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              <label className={REQUEST_LABEL_CLASS}>Project type</label>
-              <select
-                value={requestType}
-                onChange={(event) => {
-                  markRequestStarted("type");
-                  setRequestType(event.target.value as keyof typeof requestTypeMeta);
-                }}
-                className={REQUEST_SELECT_CLASS}
-              >
-                {requestTypeOrder.map((key) => (
-                  <option key={key} value={key}>
-                    {requestTypeMeta[key].label}
-                  </option>
-                ))}
-              </select>
-              {directConnectIntent && INTENTS_WITH_TIMING_WHEN.has(directConnectIntent) && (
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  {[
-                    {
-                      label: "Within 2-3 days",
-                      onClick: () => setDetailAnswers((c) => ({ ...c, when: "Within 2-3 days" })),
-                    },
-                    {
-                      label: "Anytime",
-                      onClick: () => setDetailAnswers((c) => ({ ...c, when: "Anytime" })),
-                    },
-                  ].map((chip) => (
-                    <button
-                      key={chip.label}
-                      type="button"
-                      onClick={chip.onClick}
-                      className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2 text-left text-xs font-medium text-white/80 transition-colors hover:border-ts-orange/45 hover:text-white"
-                    >
-                      {chip.label}
-                    </button>
-                  ))}
+                  <p className="mt-1 text-xs text-[color:var(--text-primary)]">
+                    This request is scoped to{" "}
+                    <span className="font-semibold">{prefillTargetLabel}</span>.
+                    {prefillSource === "community_active_now"
+                      ? " They will see it in Direct Connect if they are eligible to respond."
+                      : " The selected member context has been prefilled for you."}
+                  </p>
                 </div>
               )}
-            </div>
-            {intentConfig?.detailQuestions?.map((question) => (
-              <div key={question.key} className="space-y-2.5">
-                <label className={REQUEST_LABEL_CLASS}>{question.label}</label>
-                {question.key === "details" ? (
-                  <>
-                    <Textarea
-                      value={detailAnswers[question.key]}
-                      onChange={(event) => {
-                        markRequestStarted("description");
-                        const next = event.target.value;
-                        setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                        setDescription(next);
-                      }}
-                      placeholder={question.placeholder}
-                      rows={4}
-                      className={REQUEST_TEXTAREA_CLASS}
-                    />
-                    {reviewAttempted && isQuestionMissing(question) && (
-                      <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {question.key === "where" ? (
-                      <div className="space-y-2">
-                        <GooglePlacesLocationInput
-                          defaultValue={detailAnswers.where}
-                          onPlaceSelected={handleWherePlaceSelected}
-                          placeholder="Search location with Google (optional)"
-                          types={["geocode"]}
-                          className="w-full"
-                          data-testid="direct-connect-google-where"
-                        />
+              {intentConfig ? (
+                <div className="space-y-4 rounded-xl border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
+                  <div className="rounded-lg bg-[color:var(--surface-intermediate)]/35 px-3 py-3">
+                    <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
+                      {intentConfig.heading}
+                    </h2>
+                    <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                      {intentConfig.prompt}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {intentConfig.chips.map((chip) => (
+                        <button
+                          key={chip}
+                          type="button"
+                          onClick={() => {
+                            markRequestStarted("title");
+                            setTitle(chip);
+                            setDetailAnswers((current) => ({ ...current, what: chip }));
+                          }}
+                          className="rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+                        >
+                          {chip}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {directConnectIntent && INTENTS_WITH_TIMING_WHEN.has(directConnectIntent) && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {[
+                        {
+                          label: "Within 2-3 days",
+                          onClick: () =>
+                            setDetailAnswers((c) => ({ ...c, when: "Within 2-3 days" })),
+                        },
+                        {
+                          label: "Anytime",
+                          onClick: () => setDetailAnswers((c) => ({ ...c, when: "Anytime" })),
+                        },
+                      ].map((chip) => (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          onClick={chip.onClick}
+                          className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2 text-left text-xs font-medium text-white/80 transition-colors hover:border-ts-orange/45 hover:text-white"
+                        >
+                          {chip.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+              {intentConfig?.detailQuestions?.map((question) => (
+                <div key={question.key} className="space-y-2.5">
+                  <label className={REQUEST_LABEL_CLASS}>{question.label}</label>
+                  {question.key === "details" ? (
+                    <>
+                      <Textarea
+                        value={detailAnswers[question.key]}
+                        onChange={(event) => {
+                          markRequestStarted("description");
+                          const next = event.target.value;
+                          setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                          setDescription(next);
+                        }}
+                        placeholder={question.placeholder}
+                        rows={4}
+                        className={REQUEST_TEXTAREA_CLASS}
+                      />
+                      {reviewAttempted && isQuestionMissing(question) && (
+                        <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {question.key === "where" ? (
+                        <div className="space-y-2">
+                          <GooglePlacesLocationInput
+                            defaultValue={detailAnswers.where}
+                            onPlaceSelected={handleWherePlaceSelected}
+                            placeholder="Search location with Google (optional)"
+                            types={["geocode"]}
+                            className="w-full"
+                            data-testid="direct-connect-google-where"
+                          />
+                          <Input
+                            value={detailAnswers.where}
+                            onChange={(event) => {
+                              markRequestStarted("title");
+                              setDetailAnswers((current) => ({
+                                ...current,
+                                where: event.target.value,
+                              }));
+                            }}
+                            placeholder={question.placeholder}
+                            className={REQUEST_FIELD_CLASS}
+                          />
+                        </div>
+                      ) : (
                         <Input
-                          value={detailAnswers.where}
+                          value={detailAnswers[question.key]}
                           onChange={(event) => {
                             markRequestStarted("title");
-                            setDetailAnswers((current) => ({
-                              ...current,
-                              where: event.target.value,
-                            }));
+                            const next = event.target.value;
+                            setDetailAnswers((current) => ({ ...current, [question.key]: next }));
+                            if (question.key === "what") setTitle(next);
                           }}
                           placeholder={question.placeholder}
                           className={REQUEST_FIELD_CLASS}
                         />
-                      </div>
-                    ) : (
-                      <Input
-                        value={detailAnswers[question.key]}
-                        onChange={(event) => {
-                          markRequestStarted("title");
-                          const next = event.target.value;
-                          setDetailAnswers((current) => ({ ...current, [question.key]: next }));
-                          if (question.key === "what") setTitle(next);
-                        }}
-                        placeholder={question.placeholder}
-                        className={REQUEST_FIELD_CLASS}
-                      />
-                    )}
-                    {reviewAttempted && isQuestionMissing(question) && (
-                      <p className="text-[11px] text-ts-orange">Add this detail.</p>
-                    )}
-                  </>
-                )}
-              </div>
-            ))}
-            {!intentConfig && (
-              <>
-                <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>What do you need help with?</label>
-                  <Input
-                    value={title}
-                    onChange={(event) => {
-                      markRequestStarted("title");
-                      const next = event.target.value;
-                      setTitle(next);
-                      setDetailAnswers((current) => ({ ...current, what: next }));
-                    }}
-                    placeholder="Fix a leaking kitchen faucet"
-                    className={REQUEST_FIELD_CLASS}
-                  />
-                  {reviewAttempted && showTitleMissingHint && (
-                    <p className="text-[11px] text-ts-orange">Add what you need.</p>
+                      )}
+                      {reviewAttempted && isQuestionMissing(question) && (
+                        <p className="text-[11px] text-ts-orange">Add this detail.</p>
+                      )}
+                    </>
                   )}
                 </div>
-                <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Details</label>
-                  <Textarea
-                    value={description}
-                    onChange={(event) => {
-                      markRequestStarted("description");
-                      const next = event.target.value;
-                      setDescription(next);
-                      setDetailAnswers((current) => ({ ...current, details: next }));
-                    }}
-                    placeholder="What is happening? What have you tried? Any deadline?"
-                    rows={4}
-                    className={REQUEST_TEXTAREA_CLASS}
-                  />
-                  {reviewAttempted && showDescriptionMissingHint && (
-                    <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
-                  )}
-                </div>
-                <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Where is the job?</label>
-                  <GooglePlacesLocationInput
-                    defaultValue={detailAnswers.where}
-                    onPlaceSelected={handleWherePlaceSelected}
-                    placeholder="Search location with Google (optional)"
-                    types={["geocode"]}
-                    className="w-full"
-                    data-testid="direct-connect-google-where"
-                  />
-                  <Input
-                    value={detailAnswers.where}
-                    onChange={(event) => {
-                      markRequestStarted("title");
-                      setDetailAnswers((current) => ({ ...current, where: event.target.value }));
-                    }}
-                    placeholder="City, county, ZIP, or service area"
-                    className={REQUEST_FIELD_CLASS}
-                  />
-                </div>
-              </>
-            )}
-            <div className="space-y-3 pt-1">
-              <Button
-                type="button"
-                onClick={handleDescribeReviewRequest}
-                aria-disabled={!reviewCardReady}
-                className={cn(
-                  "h-auto w-full rounded-xl py-3.5 text-base font-semibold",
-                  reviewCardReady
-                    ? "bg-ts-orange text-text-black shadow-[0_10px_24px_rgba(255,145,20,0.28)] hover:bg-ts-orange/90"
-                    : "border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
-                )}
-              >
-                Review request
-              </Button>
-              <p className="text-center text-[11px] text-white/62">
-                Your contact details stay private until you choose the next step.
-              </p>
-              <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
-                Prefer browsing first?{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate("/direct-connect/pros")}
-                  className="font-semibold text-[color:var(--theme-accent-primary)] hover:underline"
-                >
-                  Open directory
-                </button>
-              </p>
-            </div>
-          </div>
-        )}
-        {describeStep === 1 && (
-          <div className="space-y-5">
-            {reviewCardReady && (
-              <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div className="min-w-0">
-                    <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
-                      Request details review
-                    </p>
-                    <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
-                      {reviewTitle}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                      {reviewSummary}
-                    </p>
-                  </div>
-                  <div className="grid shrink-0 grid-cols-2 gap-3 text-xs md:w-[260px]">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
-                        Location
-                      </p>
-                      <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
-                        {reviewLocation}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
-                        Timing
-                      </p>
-                      <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
-                        {reviewTiming}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <p className="mt-3 text-[11px] text-[color:var(--text-secondary)]">
-                  Check the request before you send it. {completeness.message} ·{" "}
-                  {reviewCardReady ? "Ready for review" : "Add details to review"}
-                </p>
-                {completeness.missing.length > 0 && (
-                  <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
-                    Add: {completeness.missing.join(" · ")}
-                  </p>
-                )}
-              </div>
-            )}
-            {showRequestReady && (
-              <div className="space-y-3 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3 shadow-[0_14px_42px_rgba(0,0,0,0.2)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
-                      Ready to submit
-                    </h3>
-                    <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
-                      Your request is ready to review.
-                    </p>
-                  </div>
-                  <Badge className="bg-[color:var(--theme-accent-primary)] text-text-black">
-                    Private
-                  </Badge>
-                </div>
-                <div className="grid gap-2.5 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
-                  {[
-                    ["Request type", activeRequestMeta.label],
-                    ["Location / county", reviewLocation],
-                    ["Urgency", reviewTiming],
-                    ["Summary", reviewSummary],
-                    ["Next step", "Choose who receives it"],
-                  ].map(([label, value]) => (
-                    <div key={label}>
-                      <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
-                        {label}
-                      </p>
-                      <p className="mt-1 text-[color:var(--text-primary)]">{value}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    onClick={handleOpenDispatchSheet}
-                    disabled={!reviewCardReady || createMutation.isPending}
-                    className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                  >
-                    Send when ready
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowRequestReady(false)}
-                    className="rounded-full"
-                  >
-                    Edit request
-                  </Button>
-                </div>
-                <DirectConnectGiveawayDisclosure />
-              </div>
-            )}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <label className={REQUEST_LABEL_CLASS}>Request photos</label>
-                <span className="rounded-full bg-[color:var(--surface-intermediate)] px-2 py-1 text-[11px] text-[color:var(--text-secondary)]">
-                  {attachments.length}/6 added
-                </span>
-              </div>
-              <label className="flex cursor-pointer flex-col gap-3 rounded-lg border border-dashed border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)]/45 px-4 py-4 transition-colors hover:border-[color:var(--theme-accent-primary)]/65 hover:bg-[color:var(--surface-intermediate)]/65 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--theme-accent-primary)]">
-                    <UploadCloud className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <div className="text-sm font-medium text-[color:var(--text-primary)]">
-                      Add photos to this request
-                    </div>
-                    <div className={REQUEST_HELPER_CLASS}>
-                      Pros respond faster and quote more accurately when they can see the job.
-                    </div>
-                  </div>
-                </div>
-                <span className="text-xs font-medium text-[color:var(--text-secondary)]">
-                  JPG, PNG, WEBP
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(event) => {
-                    markRequestStarted("attachment");
-                    handleAttachmentSelect(event);
-                  }}
-                />
-              </label>
-              {attachments.length > 0 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {attachments.map((attachment, index) => (
-                    <div
-                      key={`${attachment.file.name}-${index}`}
-                      className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)]"
-                    >
-                      <img
-                        src={attachment.previewUrl}
-                        alt={attachment.file.name}
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
-                        onClick={() => removeAttachmentAt(index)}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/65 bg-[color:var(--surface-intermediate)]/35 p-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-                    Save to HomeID
-                  </p>
-                  <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                    Save it so the next repair starts with this history already on file.
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-col items-end gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 border-[color:var(--border-subtle)]/80 px-2.5 text-xs text-[color:var(--text-primary)]"
-                    onClick={() => setShowHomeRecordDetails((current) => !current)}
-                  >
-                    {showHomeRecordDetails ? "Hide options" : "Add HomeID details"}
-                  </Button>
-                  {!showHomeRecordDetails && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs text-[color:var(--text-secondary)]"
-                      onClick={() =>
-                        selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected")
-                      }
-                    >
-                      Skip for now
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {showHomeRecordDetails && (
-                <div className="grid gap-2 md:grid-cols-3">
-                  <Button
-                    type="button"
-                    variant={homeContextIntent === "link_existing" ? "default" : "outline"}
-                    onClick={() => {
-                      setShowHomeRecordDetails(true);
-                      selectHomeRecordIntent("link_existing", "home_record_compact_link_selected");
-                    }}
-                    className={
-                      homeContextIntent === "link_existing" ? "bg-ts-orange text-text-black" : ""
-                    }
-                  >
-                    Use saved home details
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={homeContextIntent === "create_from_request" ? "default" : "outline"}
-                    onClick={() => {
-                      setShowHomeRecordDetails(true);
-                      selectHomeRecordIntent(
-                        "create_from_request",
-                        "home_record_compact_create_selected"
-                      );
-                    }}
-                    className={
-                      homeContextIntent === "create_from_request"
-                        ? "bg-ts-orange text-text-black"
-                        : ""
-                    }
-                  >
-                    Create a home record
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={homeContextIntent === "skip_for_now" ? "default" : "outline"}
-                    onClick={() => {
-                      setShowHomeRecordDetails(false);
-                      selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected");
-                    }}
-                    className={
-                      homeContextIntent === "skip_for_now" ? "bg-ts-orange text-text-black" : ""
-                    }
-                  >
-                    Skip for now
-                  </Button>
-                </div>
-              )}
-              {showHomeRecordDetails && homeContextIntent === "link_existing" && (
-                <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-card)]/70 p-3">
+              ))}
+              {!intentConfig && (
+                <>
                   <div className="space-y-2.5">
-                    <label className={REQUEST_LABEL_CLASS}>Use saved home details</label>
-                    <select
-                      value={selectedHomeId}
+                    <label className={REQUEST_LABEL_CLASS} htmlFor="direct-connect-request-title">
+                      What do you need help with?
+                    </label>
+                    <Input
+                      id="direct-connect-request-title"
+                      value={title}
                       onChange={(event) => {
-                        const nextHomeId = event.target.value;
-                        setSelectedHomeId(nextHomeId);
-                        const userState = user?.id ? "authenticated" : "anonymous";
-                        if (nextHomeId) {
-                          selectHomeRecordIntent(
-                            "link_existing",
-                            "home_record_select_saved_home_auto_link"
-                          );
-                          trackDirectConnectHomeRecordLinkSelected({
-                            userState,
-                            source: "home_record_select_saved_home",
-                            homeId: nextHomeId,
-                            componentType: assetComponentType || undefined,
-                          });
-                        }
+                        markRequestStarted("title");
+                        const next = event.target.value;
+                        setTitle(next);
+                        setDetailAnswers((current) => ({ ...current, what: next }));
+                      }}
+                      placeholder="Fix a leaking kitchen faucet"
+                      className={REQUEST_FIELD_CLASS}
+                    />
+                    {reviewAttempted && showTitleMissingHint && (
+                      <p className="text-[11px] text-ts-orange">Add what you need.</p>
+                    )}
+                  </div>
+                  <div className="space-y-2.5">
+                    <label className={REQUEST_LABEL_CLASS} htmlFor="direct-connect-request-details">
+                      Details
+                    </label>
+                    <Textarea
+                      id="direct-connect-request-details"
+                      value={description}
+                      onChange={(event) => {
+                        markRequestStarted("description");
+                        const next = event.target.value;
+                        setDescription(next);
+                        setDetailAnswers((current) => ({ ...current, details: next }));
+                      }}
+                      placeholder="What is happening? What have you tried? Any deadline?"
+                      rows={4}
+                      className={REQUEST_TEXTAREA_CLASS}
+                    />
+                    {reviewAttempted && showDescriptionMissingHint && (
+                      <p className="text-[11px] text-ts-orange">Add one useful detail.</p>
+                    )}
+                  </div>
+                  <div className="space-y-2.5">
+                    <label className={REQUEST_LABEL_CLASS} htmlFor="direct-connect-request-where">
+                      Where is the job?
+                    </label>
+                    <GooglePlacesLocationInput
+                      defaultValue={detailAnswers.where}
+                      onPlaceSelected={handleWherePlaceSelected}
+                      placeholder="Search location with Google (optional)"
+                      types={["geocode"]}
+                      className="w-full"
+                      data-testid="direct-connect-google-where"
+                    />
+                    <Input
+                      id="direct-connect-request-where"
+                      value={detailAnswers.where}
+                      onChange={(event) => {
+                        markRequestStarted("title");
+                        setDetailAnswers((current) => ({ ...current, where: event.target.value }));
+                      }}
+                      placeholder="City, county, ZIP, or service area"
+                      className={REQUEST_FIELD_CLASS}
+                    />
+                  </div>
+                  <div className="space-y-2.5">
+                    <label className={REQUEST_LABEL_CLASS} htmlFor="direct-connect-request-type">
+                      Project type
+                    </label>
+                    <select
+                      id="direct-connect-request-type"
+                      value={requestType}
+                      onChange={(event) => {
+                        markRequestStarted("type");
+                        setRequestType(event.target.value as keyof typeof requestTypeMeta);
                       }}
                       className={REQUEST_SELECT_CLASS}
                     >
-                      <option value="">
-                        {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
-                      </option>
-                      {homes.map((home: any) => (
-                        <option key={String(home?.id || "")} value={String(home?.id || "")}>
-                          {toCleanHomeLabel(home)}
+                      {requestTypeOrder.map((key) => (
+                        <option key={key} value={key}>
+                          {requestTypeMeta[key].label}
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <div className="space-y-2.5">
-                      <label className={REQUEST_LABEL_CLASS}>System or component</label>
-                      <select
-                        value={assetComponentType}
-                        onChange={(event) =>
-                          setAssetComponentType(
-                            event.target.value as
-                              | "roof"
-                              | "hvac"
-                              | "plumbing"
-                              | "electrical"
-                              | "foundation"
-                              | "exterior"
-                              | "interior"
-                              | "appliance"
-                              | "permit_document"
-                              | "other"
+                </>
+              )}
+              <div className="space-y-3 pt-1">
+                <Button
+                  type="button"
+                  onClick={handleDescribeReviewRequest}
+                  aria-disabled={!reviewCardReady}
+                  className={cn(
+                    "h-auto w-full rounded-xl py-3.5 text-base font-semibold",
+                    reviewCardReady
+                      ? "bg-ts-orange text-text-black shadow-[0_10px_24px_rgba(255,145,20,0.28)] hover:bg-ts-orange/90"
+                      : "border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
+                  )}
+                >
+                  Review request
+                </Button>
+                <p className="text-center text-[11px] text-white/62">
+                  Your contact details stay private until you choose the next step.
+                </p>
+                <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
+                  Prefer browsing first?{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/direct-connect/pros")}
+                    className="font-semibold text-[color:var(--theme-accent-primary)] hover:underline"
+                  >
+                    Open directory
+                  </button>
+                </p>
+              </div>
+            </div>
+          )}
+          {describeStep === 1 && (
+            <div className="space-y-5">
+              {reviewCardReady && (
+                <div className="rounded-xl border border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-[11px] uppercase tracking-[0.16em] text-[color:var(--theme-accent-primary)]">
+                        Request details review
+                      </p>
+                      <h3 className="mt-1 text-sm font-semibold text-[color:var(--text-primary)]">
+                        {reviewTitle}
+                      </h3>
+                      <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+                        {reviewSummary}
+                      </p>
+                    </div>
+                    <div className="grid shrink-0 grid-cols-2 gap-3 text-xs md:w-[260px]">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                          Location
+                        </p>
+                        <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
+                          {reviewLocation}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                          Timing
+                        </p>
+                        <p className="mt-1 truncate font-medium text-[color:var(--text-primary)]">
+                          {reviewTiming}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[11px] text-[color:var(--text-secondary)]">
+                    Check the request before you send it. {completeness.message} ·{" "}
+                    {reviewCardReady ? "Ready for review" : "Add details to review"}
+                  </p>
+                  {completeness.missing.length > 0 && (
+                    <p className="mt-2 text-[11px] text-[color:var(--text-secondary)]">
+                      Add: {completeness.missing.join(" · ")}
+                    </p>
+                  )}
+                </div>
+              )}
+              {showRequestReady && (
+                <div className="space-y-3 rounded-xl border border-[color:var(--theme-accent-primary)]/40 bg-[color:var(--surface-intermediate)] p-3 shadow-[0_14px_42px_rgba(0,0,0,0.2)]">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[color:var(--text-primary)]">
+                        Ready to submit
+                      </h3>
+                      <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
+                        Your request is ready to review.
+                      </p>
+                    </div>
+                    <Badge className="bg-[color:var(--theme-accent-primary)] text-text-black">
+                      Private
+                    </Badge>
+                  </div>
+                  <div className="grid gap-2.5 text-xs text-[color:var(--text-secondary)] md:grid-cols-2">
+                    {[
+                      ["Request type", activeRequestMeta.label],
+                      ["Location / county", reviewLocation],
+                      ["Urgency", reviewTiming],
+                      ["Summary", reviewSummary],
+                      ["Next step", "Choose who receives it"],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
+                          {label}
+                        </p>
+                        <p className="mt-1 text-[color:var(--text-primary)]">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleOpenDispatchSheet}
+                      disabled={!reviewCardReady || createMutation.isPending}
+                      className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                    >
+                      Send when ready
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowRequestReady(false)}
+                      className="rounded-full"
+                    >
+                      Edit request
+                    </Button>
+                  </div>
+                  <DirectConnectGiveawayDisclosure />
+                </div>
+              )}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <label className={REQUEST_LABEL_CLASS}>Request photos</label>
+                  <span className="rounded-full bg-[color:var(--surface-intermediate)] px-2 py-1 text-[11px] text-[color:var(--text-secondary)]">
+                    {attachments.length}/6 added
+                  </span>
+                </div>
+                <label className="flex cursor-pointer flex-col gap-3 rounded-lg border border-dashed border-[color:var(--theme-accent-primary)]/35 bg-[color:var(--surface-intermediate)]/45 px-4 py-4 transition-colors hover:border-[color:var(--theme-accent-primary)]/65 hover:bg-[color:var(--surface-intermediate)]/65 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[color:var(--theme-accent-primary)]/12 text-[color:var(--theme-accent-primary)]">
+                      <UploadCloud className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <div className="text-sm font-medium text-[color:var(--text-primary)]">
+                        Add photos to this request
+                      </div>
+                      <div className={REQUEST_HELPER_CLASS}>
+                        Pros respond faster and quote more accurately when they can see the job.
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-[color:var(--text-secondary)]">
+                    JPG, PNG, WEBP
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(event) => {
+                      markRequestStarted("attachment");
+                      handleAttachmentSelect(event);
+                    }}
+                  />
+                </label>
+                {attachments.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {attachments.map((attachment, index) => (
+                      <div
+                        key={`${attachment.file.name}-${index}`}
+                        className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[color:var(--border-subtle)]"
+                      >
+                        <img
+                          src={attachment.previewUrl}
+                          alt={attachment.file.name}
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 py-0.5 text-[10px] text-white"
+                          onClick={() => removeAttachmentAt(index)}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/65 bg-[color:var(--surface-intermediate)]/35 p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                      Save to HomeID
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
+                      Save it so the next repair starts with this history already on file.
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-1.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-[color:var(--border-subtle)]/80 px-2.5 text-xs text-[color:var(--text-primary)]"
+                      onClick={() => setShowHomeRecordDetails((current) => !current)}
+                    >
+                      {showHomeRecordDetails ? "Hide options" : "Add HomeID details"}
+                    </Button>
+                    {!showHomeRecordDetails && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-[color:var(--text-secondary)]"
+                        onClick={() =>
+                          selectHomeRecordIntent(
+                            "skip_for_now",
+                            "home_record_compact_skip_selected"
                           )
                         }
+                      >
+                        Skip for now
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                {showHomeRecordDetails && (
+                  <div className="grid gap-2 md:grid-cols-3">
+                    <Button
+                      type="button"
+                      variant={homeContextIntent === "link_existing" ? "default" : "outline"}
+                      onClick={() => {
+                        setShowHomeRecordDetails(true);
+                        selectHomeRecordIntent(
+                          "link_existing",
+                          "home_record_compact_link_selected"
+                        );
+                      }}
+                      className={
+                        homeContextIntent === "link_existing" ? "bg-ts-orange text-text-black" : ""
+                      }
+                    >
+                      Use saved home details
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={homeContextIntent === "create_from_request" ? "default" : "outline"}
+                      onClick={() => {
+                        setShowHomeRecordDetails(true);
+                        selectHomeRecordIntent(
+                          "create_from_request",
+                          "home_record_compact_create_selected"
+                        );
+                      }}
+                      className={
+                        homeContextIntent === "create_from_request"
+                          ? "bg-ts-orange text-text-black"
+                          : ""
+                      }
+                    >
+                      Create a home record
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={homeContextIntent === "skip_for_now" ? "default" : "outline"}
+                      onClick={() => {
+                        setShowHomeRecordDetails(false);
+                        selectHomeRecordIntent("skip_for_now", "home_record_compact_skip_selected");
+                      }}
+                      className={
+                        homeContextIntent === "skip_for_now" ? "bg-ts-orange text-text-black" : ""
+                      }
+                    >
+                      Skip for now
+                    </Button>
+                  </div>
+                )}
+                {showHomeRecordDetails && homeContextIntent === "link_existing" && (
+                  <div className="space-y-3 rounded-lg border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-card)]/70 p-3">
+                    <div className="space-y-2.5">
+                      <label className={REQUEST_LABEL_CLASS}>Use saved home details</label>
+                      <select
+                        value={selectedHomeId}
+                        onChange={(event) => {
+                          const nextHomeId = event.target.value;
+                          setSelectedHomeId(nextHomeId);
+                          const userState = user?.id ? "authenticated" : "anonymous";
+                          if (nextHomeId) {
+                            selectHomeRecordIntent(
+                              "link_existing",
+                              "home_record_select_saved_home_auto_link"
+                            );
+                            trackDirectConnectHomeRecordLinkSelected({
+                              userState,
+                              source: "home_record_select_saved_home",
+                              homeId: nextHomeId,
+                              componentType: assetComponentType || undefined,
+                            });
+                          }
+                        }}
                         className={REQUEST_SELECT_CLASS}
                       >
-                        {assetComponentTypeOptions.map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
+                        <option value="">
+                          {hasExistingHomes ? "Select a saved home" : "No saved homes yet"}
+                        </option>
+                        {homes.map((home: any) => (
+                          <option key={String(home?.id || "")} value={String(home?.id || "")}>
+                            {toCleanHomeLabel(home)}
                           </option>
                         ))}
                       </select>
                     </div>
-                    <div className="space-y-2.5">
-                      <label className={REQUEST_LABEL_CLASS}>Component label</label>
-                      <Input
-                        value={assetLabel}
-                        onChange={(event) => setAssetLabel(event.target.value)}
-                        placeholder="Upstairs AC, main panel, etc."
-                        className={REQUEST_FIELD_CLASS}
-                      />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2.5">
+                        <label className={REQUEST_LABEL_CLASS}>System or component</label>
+                        <select
+                          value={assetComponentType}
+                          onChange={(event) =>
+                            setAssetComponentType(
+                              event.target.value as
+                                | "roof"
+                                | "hvac"
+                                | "plumbing"
+                                | "electrical"
+                                | "foundation"
+                                | "exterior"
+                                | "interior"
+                                | "appliance"
+                                | "permit_document"
+                                | "other"
+                            )
+                          }
+                          className={REQUEST_SELECT_CLASS}
+                        >
+                          {assetComponentTypeOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2.5">
+                        <label className={REQUEST_LABEL_CLASS}>Component label</label>
+                        <Input
+                          value={assetLabel}
+                          onChange={(event) => setAssetLabel(event.target.value)}
+                          placeholder="Upstairs AC, main panel, etc."
+                          className={REQUEST_FIELD_CLASS}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
-            <div className="space-y-3">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-8 px-1 text-xs text-[color:var(--text-secondary)]"
-                onClick={() => setShowOptional((current) => !current)}
-              >
-                {showOptional ? "Hide optional budget" : "Add optional budget"}
-              </Button>
-              {showOptional && (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div className="space-y-2.5">
-                    <label className={REQUEST_LABEL_CLASS}>
-                      {activeRequestMeta.budgetLabelMin}
-                    </label>
-                    <Input
-                      value={budgetMin}
-                      onChange={(event) => {
-                        markRequestStarted("budget");
-                        setBudgetMin(event.target.value);
-                      }}
-                      inputMode="numeric"
-                      placeholder={activeRequestMeta.budgetPlaceholderMin}
-                      className={REQUEST_FIELD_CLASS}
-                    />
-                  </div>
-                  <div className="space-y-2.5">
-                    <label className={REQUEST_LABEL_CLASS}>
-                      {activeRequestMeta.budgetLabelMax}
-                    </label>
-                    <Input
-                      value={budgetMax}
-                      onChange={(event) => {
-                        markRequestStarted("budget");
-                        setBudgetMax(event.target.value);
-                      }}
-                      inputMode="numeric"
-                      placeholder={activeRequestMeta.budgetPlaceholderMax}
-                      className={REQUEST_FIELD_CLASS}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="space-y-3 rounded-xl border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
-              <DirectConnectGiveawayDisclosure />
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-[color:var(--text-secondary)]">
-                  Review your request before sending it.
-                </p>
-                <Button
-                  onClick={openRequestReadyState}
-                  disabled={createMutation.isPending || !reviewCardReady}
-                  className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                >
-                  {createMutation.isPending
-                    ? "Sending..."
-                    : isAuthenticated
-                      ? "Review request details"
-                      : "Sign in to send"}
-                </Button>
-              </div>
-            </div>
-            {!reviewCardReady && (
-              <p className="text-xs text-[color:var(--text-secondary)]">
-                Add required details to continue:{" "}
-                {completeness.missing.length > 0
-                  ? completeness.missing.join(" · ")
-                  : "request details"}
-              </p>
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setDescribeStep(0)}
-              className="w-full text-sm text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-            >
-              Back to details
-            </Button>
-          </div>
-        )}
-
-        <Sheet open={showDispatchSheet} onOpenChange={setShowDispatchSheet}>
-          <SheetContent
-            side="right"
-            className="w-full overflow-y-auto border-l-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-4 sm:max-w-xl"
-          >
-            <SheetHeader>
-              <SheetTitle>Choose who can receive this request</SheetTitle>
-            </SheetHeader>
-
-            <div className="mt-4 space-y-4">
-              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
-                <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                  Request send mode
-                </p>
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setDispatchMode("top_count")}
-                    className={cn(
-                      "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
-                      dispatchMode === "top_count"
-                        ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
-                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
-                    )}
-                  >
-                    <p className="font-medium">Send to top local companies</p>
-                    <p className="mt-1 text-[11px]">
-                      Pick 1-3 based on local fit and trust checks.
-                    </p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDispatchMode("direct_pick")}
-                    className={cn(
-                      "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
-                      dispatchMode === "direct_pick"
-                        ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
-                        : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
-                    )}
-                  >
-                    <p className="font-medium">Send directly to a company</p>
-                    <p className="mt-1 text-[11px]">Choose a company you already have in mind.</p>
-                  </button>
-                </div>
-              </div>
-
-              {dispatchMode === "top_count" && (
-                <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
-                  <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                    How many companies should receive this request?
-                  </p>
-                  <div className="mt-2 flex gap-2">
-                    {[1, 2, 3].map((count) => (
-                      <Button
-                        key={count}
-                        type="button"
-                        size="sm"
-                        variant={dispatchCount === count ? "default" : "outline"}
-                        onClick={() => setDispatchCount(count as 1 | 2 | 3)}
-                        className={cn(
-                          dispatchCount === count
-                            ? "bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                            : "border-[color:var(--border-subtle)]"
-                        )}
-                      >
-                        {count}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <p className="text-xs font-medium text-[color:var(--text-primary)]">
-                  Nearby Directory shortlist
-                </p>
-                <Input
-                  value={directorySearch}
-                  onChange={(event) => setDirectorySearch(event.target.value)}
-                  placeholder="Search outside your area or by company name"
-                  className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
-                />
-                <p className="text-[11px] text-[color:var(--text-secondary)]">
-                  Using your local area by default. Ordered by distance first, then CVS.
-                </p>
-              </div>
-
-              {!defaultCountyFips && (
-                <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                  County context is missing, so local ranking may be broader than usual.
-                </div>
-              )}
-
-              <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
-                {isDirectoryLoading && (
-                  <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                    Finding local businesses...
-                  </div>
                 )}
-
-                {!isDirectoryLoading && rankedCandidates.length === 0 && (
-                  <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
-                    No local companies found right now. You can still send this request with none
-                    selected.
-                  </div>
-                )}
-
-                {!isDirectoryLoading &&
-                  rankedCandidates.map((candidate, index) => {
-                    const isSelected = selectedContractorIds.includes(candidate.id);
-                    const distance = parseNumberOrNull(candidate.distanceMiles);
-                    const cvsScore = getCandidateCvsScore(candidate);
-                    const locationScore = getCandidateLocationScore(candidate, defaultCountyFips);
-                    const candidateLabel =
-                      candidate.companyName || candidate.name || "Local company";
-
-                    return (
-                      <button
-                        key={candidate.id}
-                        type="button"
-                        onClick={() => toggleCandidateSelection(candidate.id)}
-                        className={cn(
-                          "w-full rounded-xl border px-3 py-3 text-left transition-colors",
-                          isSelected
-                            ? "border-ts-orange bg-ts-orange/15"
-                            : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-start gap-2.5">
-                            <Avatar className="h-9 w-9 border border-[color:var(--border-subtle)]">
-                              <AvatarFallback
-                                className={cn(
-                                  "text-[11px] font-semibold",
-                                  getProviderAvatarClass(candidateLabel)
-                                )}
-                              >
-                                {getProviderInitials(candidateLabel)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="space-y-1">
-                              <p className="text-xs font-semibold text-[color:var(--text-primary)]">
-                                {index + 1}. {candidateLabel}
-                              </p>
-                              <p className="text-[11px] text-[color:var(--text-secondary)]">
-                                {distance !== null
-                                  ? `${distance.toFixed(1)} mi away`
-                                  : candidate.serviceAreas?.length
-                                    ? candidate.serviceAreas.slice(0, 2).join(", ")
-                                    : "Local service area"}
-                              </p>
-                              <p className="text-[11px] text-[color:var(--text-secondary)]">
-                                CVS {Math.round(cvsScore)} • Location score{" "}
-                                {Math.round(locationScore)}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge
-                            variant={isSelected ? "default" : "outline"}
-                            className={cn(
-                              "shrink-0 text-[10px]",
-                              isSelected
-                                ? "bg-ts-orange text-text-black"
-                                : "border-[color:var(--border-subtle)]"
-                            )}
-                          >
-                            {isSelected ? "Selected" : "Select"}
-                          </Badge>
-                        </div>
-                      </button>
-                    );
-                  })}
               </div>
-
-              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 px-3 py-2">
-                <p className="text-xs text-[color:var(--text-secondary)]">
-                  {selectedContractorCount > 0
-                    ? `${selectedContractorCount} compan${selectedContractorCount === 1 ? "y" : "ies"} selected.`
-                    : "No companies selected yet. You can still continue, and direct contact stays locked until you approve."}
-                </p>
-              </div>
-
-              <DirectConnectGiveawayDisclosure />
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="space-y-3">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setSelectedContractorIds([])}
-                  className="text-xs text-[color:var(--text-secondary)]"
+                  className="h-8 px-1 text-xs text-[color:var(--text-secondary)]"
+                  onClick={() => setShowOptional((current) => !current)}
                 >
-                  Clear selection
+                  {showOptional ? "Hide optional budget" : "Add optional budget"}
                 </Button>
-                <div className="flex items-center gap-2">
+                {showOptional && (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="space-y-2.5">
+                      <label className={REQUEST_LABEL_CLASS}>
+                        {activeRequestMeta.budgetLabelMin}
+                      </label>
+                      <Input
+                        value={budgetMin}
+                        onChange={(event) => {
+                          markRequestStarted("budget");
+                          setBudgetMin(event.target.value);
+                        }}
+                        inputMode="numeric"
+                        placeholder={activeRequestMeta.budgetPlaceholderMin}
+                        className={REQUEST_FIELD_CLASS}
+                      />
+                    </div>
+                    <div className="space-y-2.5">
+                      <label className={REQUEST_LABEL_CLASS}>
+                        {activeRequestMeta.budgetLabelMax}
+                      </label>
+                      <Input
+                        value={budgetMax}
+                        onChange={(event) => {
+                          markRequestStarted("budget");
+                          setBudgetMax(event.target.value);
+                        }}
+                        inputMode="numeric"
+                        placeholder={activeRequestMeta.budgetPlaceholderMax}
+                        className={REQUEST_FIELD_CLASS}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-3 rounded-xl border border-[color:var(--border-subtle)]/70 bg-[color:var(--surface-intermediate)]/35 p-3.5">
+                <DirectConnectGiveawayDisclosure />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-[color:var(--text-secondary)]">
+                    Review your request before sending it.
+                  </p>
                   <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleSkipAndAutoRoute}
-                    disabled={createMutation.isPending}
-                    className="border-[color:var(--border-subtle)] text-xs"
+                    onClick={openRequestReadyState}
+                    disabled={createMutation.isPending || !reviewCardReady}
+                    className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
-                    {createMutation.isPending ? "Sending..." : "Continue without selection"}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleSendWithSelection}
-                    disabled={createMutation.isPending}
-                    className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                  >
-                    {createMutation.isPending ? "Sending..." : "Send with my selection"}
+                    {createMutation.isPending
+                      ? "Sending..."
+                      : isAuthenticated
+                        ? "Review request details"
+                        : "Sign in to send"}
                   </Button>
                 </div>
               </div>
+              {!reviewCardReady && (
+                <p className="text-xs text-[color:var(--text-secondary)]">
+                  Add required details to continue:{" "}
+                  {completeness.missing.length > 0
+                    ? completeness.missing.join(" · ")
+                    : "request details"}
+                </p>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setDescribeStep(0)}
+                className="w-full text-sm text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
+              >
+                Back to details
+              </Button>
             </div>
-          </SheetContent>
-        </Sheet>
+          )}
+        </div>
+
+        <aside className="space-y-3 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3.5 text-sm lg:sticky lg:top-4">
+          <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
+            What happens next
+          </h2>
+          <div className="space-y-3 text-xs leading-5 text-[color:var(--text-secondary)]">
+            <p>1. Describe the job.</p>
+            <p>2. Review the details and add photos if useful.</p>
+            <p>3. Send when you are ready.</p>
+          </div>
+          <p className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2 text-xs font-medium text-[color:var(--text-primary)]">
+            No one is contacted until you send.
+          </p>
+        </aside>
       </div>
+
+      <Sheet open={showDispatchSheet} onOpenChange={setShowDispatchSheet}>
+        <SheetContent
+          side="right"
+          className="w-full overflow-y-auto border-l-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-4 sm:max-w-xl"
+        >
+          <SheetHeader>
+            <SheetTitle>Choose who can receive this request</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-4 space-y-4">
+            <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
+              <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                Request send mode
+              </p>
+              <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setDispatchMode("top_count")}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                    dispatchMode === "top_count"
+                      ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
+                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                  )}
+                >
+                  <p className="font-medium">Send to top local companies</p>
+                  <p className="mt-1 text-[11px]">Pick 1-3 based on local fit and trust checks.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDispatchMode("direct_pick")}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-left text-xs transition-colors",
+                    dispatchMode === "direct_pick"
+                      ? "border-ts-orange bg-ts-orange/20 text-[color:var(--text-primary)]"
+                      : "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-[color:var(--text-secondary)]"
+                  )}
+                >
+                  <p className="font-medium">Send directly to a company</p>
+                  <p className="mt-1 text-[11px]">Choose a company you already have in mind.</p>
+                </button>
+              </div>
+            </div>
+
+            {dispatchMode === "top_count" && (
+              <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 p-3">
+                <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                  How many companies should receive this request?
+                </p>
+                <div className="mt-2 flex gap-2">
+                  {[1, 2, 3].map((count) => (
+                    <Button
+                      key={count}
+                      type="button"
+                      size="sm"
+                      variant={dispatchCount === count ? "default" : "outline"}
+                      onClick={() => setDispatchCount(count as 1 | 2 | 3)}
+                      className={cn(
+                        dispatchCount === count
+                          ? "bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                          : "border-[color:var(--border-subtle)]"
+                      )}
+                    >
+                      {count}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-[color:var(--text-primary)]">
+                Nearby Directory shortlist
+              </p>
+              <Input
+                value={directorySearch}
+                onChange={(event) => setDirectorySearch(event.target.value)}
+                placeholder="Search outside your area or by company name"
+                className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
+              />
+              <p className="text-[11px] text-[color:var(--text-secondary)]">
+                Using your local area by default. Ordered by distance first, then CVS.
+              </p>
+            </div>
+
+            {!defaultCountyFips && (
+              <div className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                County context is missing, so local ranking may be broader than usual.
+              </div>
+            )}
+
+            <div className="max-h-[50vh] space-y-2 overflow-y-auto pr-1">
+              {isDirectoryLoading && (
+                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
+                  Finding local businesses...
+                </div>
+              )}
+
+              {!isDirectoryLoading && rankedCandidates.length === 0 && (
+                <div className="px-1 py-2 text-xs text-[color:var(--text-secondary)]">
+                  No local companies found right now. You can still send this request with none
+                  selected.
+                </div>
+              )}
+
+              {!isDirectoryLoading &&
+                rankedCandidates.map((candidate, index) => {
+                  const isSelected = selectedContractorIds.includes(candidate.id);
+                  const distance = parseNumberOrNull(candidate.distanceMiles);
+                  const cvsScore = getCandidateCvsScore(candidate);
+                  const locationScore = getCandidateLocationScore(candidate, defaultCountyFips);
+                  const candidateLabel = candidate.companyName || candidate.name || "Local company";
+
+                  return (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      onClick={() => toggleCandidateSelection(candidate.id)}
+                      className={cn(
+                        "w-full rounded-xl border px-3 py-3 text-left transition-colors",
+                        isSelected
+                          ? "border-ts-orange bg-ts-orange/15"
+                          : "border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-2.5">
+                          <Avatar className="h-9 w-9 border border-[color:var(--border-subtle)]">
+                            <AvatarFallback
+                              className={cn(
+                                "text-[11px] font-semibold",
+                                getProviderAvatarClass(candidateLabel)
+                              )}
+                            >
+                              {getProviderInitials(candidateLabel)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="space-y-1">
+                            <p className="text-xs font-semibold text-[color:var(--text-primary)]">
+                              {index + 1}. {candidateLabel}
+                            </p>
+                            <p className="text-[11px] text-[color:var(--text-secondary)]">
+                              {distance !== null
+                                ? `${distance.toFixed(1)} mi away`
+                                : candidate.serviceAreas?.length
+                                  ? candidate.serviceAreas.slice(0, 2).join(", ")
+                                  : "Local service area"}
+                            </p>
+                            <p className="text-[11px] text-[color:var(--text-secondary)]">
+                              CVS {Math.round(cvsScore)} • Location score{" "}
+                              {Math.round(locationScore)}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge
+                          variant={isSelected ? "default" : "outline"}
+                          className={cn(
+                            "shrink-0 text-[10px]",
+                            isSelected
+                              ? "bg-ts-orange text-text-black"
+                              : "border-[color:var(--border-subtle)]"
+                          )}
+                        >
+                          {isSelected ? "Selected" : "Select"}
+                        </Badge>
+                      </div>
+                    </button>
+                  );
+                })}
+            </div>
+
+            <div className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]/70 px-3 py-2">
+              <p className="text-xs text-[color:var(--text-secondary)]">
+                {selectedContractorCount > 0
+                  ? `${selectedContractorCount} compan${selectedContractorCount === 1 ? "y" : "ies"} selected.`
+                  : "No companies selected yet. You can still continue, and direct contact stays locked until you approve."}
+              </p>
+            </div>
+
+            <DirectConnectGiveawayDisclosure />
+
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedContractorIds([])}
+                className="text-xs text-[color:var(--text-secondary)]"
+              >
+                Clear selection
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleSkipAndAutoRoute}
+                  disabled={createMutation.isPending}
+                  className="border-[color:var(--border-subtle)] text-xs"
+                >
+                  {createMutation.isPending ? "Sending..." : "Continue without selection"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSendWithSelection}
+                  disabled={createMutation.isPending}
+                  className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
+                >
+                  {createMutation.isPending ? "Sending..." : "Send with my selection"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -5432,7 +5397,6 @@ function MyDirectConnectRequests() {
 export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
-  const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
   const pathOnly = useMemo(() => getPathOnly(location), [location]);
   const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
   const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
@@ -5560,25 +5524,6 @@ export default function DirectConnectShell() {
     }
   );
 
-  const { data: homesData } = useQuery<{ homes?: Array<{ id: string }> }>({
-    queryKey: ["/api/homes", "first-use-context"],
-    queryFn: async () => {
-      const res = await fetch("/api/homes");
-      if (!res.ok) {
-        trackDirectConnectApiFailure({
-          source: "/api/homes",
-          section: "home_context",
-          status: res.status,
-          blocked: false,
-        });
-        return { homes: [] };
-      }
-      return res.json();
-    },
-    enabled: isAuthenticated,
-  });
-
-  const hasHomeIdContext = Boolean(Array.isArray(homesData?.homes) && homesData.homes.length > 0);
   const replyViewedEventKeyRef = useRef<string | null>(null);
 
   const navCounts: Partial<Record<Section, number>> = useMemo(
@@ -5613,32 +5558,6 @@ export default function DirectConnectShell() {
       ts: new Date().toISOString(),
     });
   }, [activeSection, inboxData, isAuthenticated, isInboxCountLoading]);
-
-  const directConnectFirstTaskPrompt = useMemo(
-    () =>
-      resolveDirectConnectFirstUseTaskPrompt({
-        requestCount: requestsData?.length || 0,
-        hasHomeIdContext,
-      }),
-    [hasHomeIdContext, requestsData]
-  );
-
-  useEffect(() => {
-    trackFirstUseGuidanceViewed("direct_connect", firstUseUserState);
-  }, [firstUseUserState]);
-
-  useEffect(() => {
-    trackFirstUseTaskPromptViewed({
-      surface: "direct_connect",
-      promptMessage: directConnectFirstTaskPrompt.message,
-      ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-      userState: firstUseUserState,
-    });
-  }, [
-    directConnectFirstTaskPrompt.ctaLabel,
-    directConnectFirstTaskPrompt.message,
-    firstUseUserState,
-  ]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -5809,79 +5728,6 @@ export default function DirectConnectShell() {
             </h1>
           )}
         </div>
-
-        <div className={cn(activeSection === "post" ? "hidden md:block" : "")}>
-          <FirstUseGuidanceCard
-            title="Start your request."
-            description={DIRECT_CONNECT_GUIDANCE_TEXT}
-          />
-        </div>
-        <Card
-          className={cn(
-            "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
-            activeSection === "post" ? "hidden md:block" : ""
-          )}
-        >
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <p className="text-sm text-[color:var(--text-primary)]">
-              {directConnectFirstTaskPrompt.message}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-[color:var(--border-subtle)]"
-              onClick={() => {
-                let targetRoute = "/direct-connect";
-                trackRepeatedFrictionSignal({
-                  key: `direct-connect-first-task:${directConnectFirstTaskPrompt.ctaLabel}`,
-                  type: "direct_connect_repeated_cta_click",
-                  threshold: 3,
-                  windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
-                  payload: {
-                    source: location || "/direct-connect",
-                    section: "first_task_prompt",
-                    reason: directConnectFirstTaskPrompt.ctaLabel,
-                    blocked: false,
-                  },
-                });
-                if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
-                  targetRoute = "/homes";
-                  trackFirstUseTaskPromptClicked({
-                    surface: "direct_connect",
-                    promptMessage: directConnectFirstTaskPrompt.message,
-                    ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                    targetRoute,
-                    userState: firstUseUserState,
-                  });
-                  navigate("/homes");
-                  return;
-                }
-                if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
-                  targetRoute = "/direct-connect/engagements";
-                  trackFirstUseTaskPromptClicked({
-                    surface: "direct_connect",
-                    promptMessage: directConnectFirstTaskPrompt.message,
-                    ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                    targetRoute,
-                    userState: firstUseUserState,
-                  });
-                  navigate("/direct-connect/engagements");
-                  return;
-                }
-                trackFirstUseTaskPromptClicked({
-                  surface: "direct_connect",
-                  promptMessage: directConnectFirstTaskPrompt.message,
-                  ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                  targetRoute,
-                  userState: firstUseUserState,
-                });
-                navigate("/direct-connect");
-              }}
-            >
-              {directConnectFirstTaskPrompt.ctaLabel}
-            </Button>
-          </CardContent>
-        </Card>
 
         {!isAuthenticated && isPensacolaLaunchPath ? (
           <div className="rounded-lg border border-ts-orange/35 bg-ts-orange/10 px-3 py-2.5 md:px-4 md:py-3">
