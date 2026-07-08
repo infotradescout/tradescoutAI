@@ -109,7 +109,13 @@ async function main() {
   let testExitCode = 1;
   try {
     await waitForHealth(`http://localhost:${port}/api/health`);
-    const vitestArgs = ["vitest", "run", ...defaultIntegrationTestFiles, "--no-file-parallelism"];
+    const vitestArgs = [
+      "vitest",
+      "run",
+      "--no-file-parallelism",
+      "--maxWorkers=1",
+      ...defaultIntegrationTestFiles,
+    ];
     if (process.env.RUN_STRICT_INTEGRATION !== "true") {
       vitestArgs.push(
         "--exclude",
