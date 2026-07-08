@@ -12620,6 +12620,9 @@ export function registerDirectConnectRoutes(app: Express) {
           if (!requestRow) {
             return { status: 404 as const, body: { message: "Work request not found" } };
           }
+          const requestOwnerUserId = String(
+            requestRow.createdByUserId ?? requestRow.created_by_user_id ?? ""
+          ).trim();
 
           const canRespond = assignmentStatus === "suggested" || assignmentStatus === "invited";
           if (!canRespond) {
@@ -12682,7 +12685,14 @@ export function registerDirectConnectRoutes(app: Express) {
               // Ensure there is exactly one conversation between requester and provider for this engagement.
               // For contractor-profile providers, use contractor.id;
               // for business/worker providers, use userId as the contractorId key.
-              const homeownerId = String(requestRow.createdByUserId);
+              const homeownerId = requestOwnerUserId;
+              if (!homeownerId) {
+                throw new Error(
+                  `Cannot link Direct Connect conversation without requester user id for request ${String(
+                    requestRow.id
+                  )}`
+                );
+              }
               const providerContractorId = isContractorAssignment ? contractor!.id : String(userId);
 
               const existing = await tx
@@ -12733,7 +12743,7 @@ export function registerDirectConnectRoutes(app: Express) {
               await proposeAccountingAutomationFromDirectConnect(tx, {
                 workRequestId: String(requestRow.id),
                 assignmentId: String(updatedAssignment.id),
-                requesterUserId: String(requestRow.createdByUserId),
+                requesterUserId: requestOwnerUserId,
                 providerUserId: String(userId),
                 actorUserId: String(userId),
                 conversationId,

@@ -736,6 +736,13 @@
       "when": 1780854120000,
       "tag": "0101_user_profiles_verification_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1783482000000,
+      "tag": "0102_dc_notification_enum_values",
+      "breakpoints": true
     }
   ]
 }

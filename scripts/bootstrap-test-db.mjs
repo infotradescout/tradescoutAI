@@ -485,6 +485,18 @@ async function ensureCriticalSchema() {
     `);
 
     await client.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'notification_type') THEN
+          ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'dc_provider_accepted';
+          ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'dc_provider_declined';
+          ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'dc_provider_interested';
+          ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'dc_request_completed';
+        END IF;
+      END $$;
+    `);
+
+    await client.query(`
       DO $$ BEGIN
         CREATE TYPE observation_subject_type AS ENUM (
           'property',
