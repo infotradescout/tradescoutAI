@@ -14,7 +14,7 @@ const notificationSafetySource = read(
 
 describe("HomeID and Direct Connect cohesion contract", () => {
   it("keeps request creation action-first with HomeID below required request inputs", () => {
-    const requestTypeIndex = shellSource.indexOf("What do you need done?");
+    const requestTypeIndex = shellSource.indexOf("What do you need help with?");
     const photosIndex = shellSource.indexOf("Request photos");
     const homeRecordIndex = shellSource.indexOf("Save to HomeID");
 

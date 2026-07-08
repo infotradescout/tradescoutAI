@@ -30,8 +30,11 @@ test.describe("Scout routing explainer", () => {
 
     const composer = page.getByTestId("direct-connect-mobile-composer");
     await expect(composer).toBeVisible({ timeout: 45_000 });
-    await expect(composer.getByText("Direct Connect", { exact: true })).toBeVisible();
+    await expect(
+      composer.getByRole("heading", { name: "What do you need help with?" })
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: /Review request/i })).toBeVisible();
+    await expect(page.getByText(/No one is contacted until you send/i)).toBeVisible();
     await expect(
       page.getByText(/Your contact details stay private until you choose the next step/i)
     ).toBeVisible();

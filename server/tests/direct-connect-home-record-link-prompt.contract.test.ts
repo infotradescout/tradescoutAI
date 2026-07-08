@@ -71,7 +71,7 @@ describe("direct connect home record link prompt conversion contract", () => {
 
   it("keeps core request fields before home record controls", () => {
     const source = fs.readFileSync(shellPath, "utf8");
-    const requestTypeIndex = source.indexOf("What do you need done?");
+    const requestTypeIndex = source.indexOf("What do you need help with?");
     const homeRecordIndex = source.indexOf("Save to HomeID");
     const requestPhotosIndex = source.indexOf("Request photos");
     expect(requestTypeIndex).toBeGreaterThan(-1);
