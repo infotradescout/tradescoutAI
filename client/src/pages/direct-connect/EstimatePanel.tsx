@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type LineItem = {
   id: string;
@@ -76,7 +77,7 @@ export function CreateEstimatePanel({
     onError: (error: any) => {
       toast({
         title: "Could not start estimate",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not start estimate."),
         variant: "destructive",
       });
     },
@@ -118,7 +119,7 @@ export function CreateEstimatePanel({
     onError: (error: any) => {
       toast({
         title: "Could not add line item",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not add line item."),
         variant: "destructive",
       });
     },
@@ -139,7 +140,7 @@ export function CreateEstimatePanel({
     onError: (error: any) => {
       toast({
         title: "Could not send estimate",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not send estimate."),
         variant: "destructive",
       });
     },
@@ -278,7 +279,7 @@ export function ReviewEstimatePanel({
     onError: (error: any) => {
       toast({
         title: "Could not send response",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not send response."),
         variant: "destructive",
       });
     },

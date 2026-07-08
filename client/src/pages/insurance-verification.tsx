@@ -8,6 +8,7 @@ import { Upload, Shield, CheckCircle, AlertTriangle, FileText } from "lucide-rea
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type VerificationStatusResponse = {
   submissions?: { insuranceDocObjectKey?: string };
@@ -35,7 +36,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
     onError: (error: any) => {
       toast({
         title: "Failed to submit certificate",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Failed to submit certificate."),
         variant: "destructive",
       });
     },
@@ -52,7 +53,7 @@ const InsuranceVerification = memo(function InsuranceVerification() {
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Upload failed."),
         variant: "destructive",
       });
     } finally {
