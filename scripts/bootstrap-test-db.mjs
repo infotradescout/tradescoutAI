@@ -18,6 +18,7 @@ dotenv.config({ path: path.join(repoRoot, ".env") });
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const bootstrapLockName = "tradescout_test_db_bootstrap_v4";
 const bootstrapLockOwner = `${process.env.GITHUB_RUN_ID || "local"}:${process.pid}:${randomUUID()}`;
+const bootstrapLockTimeoutMs = Number(process.env.TEST_DB_BOOTSTRAP_LOCK_TIMEOUT_MS || 20 * 60 * 1000);
 
 if (!testDatabaseUrl) {
   console.error("Missing TEST_DATABASE_URL. Run `node scripts/ensure-test-db.mjs` first.");
@@ -105,11 +106,37 @@ async function tryAcquireLease(client, lockName, owner) {
 
 async function waitForLeaseLock(client, lockName, owner) {
   let attempts = 0;
+  const deadline = Date.now() + bootstrapLockTimeoutMs;
   for (;;) {
     if (await tryAcquireLease(client, lockName, owner)) return;
     attempts += 1;
     if (attempts % 30 === 0) {
       console.log(`[bootstrap-test-db] Still waiting for test DB bootstrap lock (${attempts}s).`);
+    }
+    if (Date.now() > deadline) {
+      const current = await client
+        .query(
+          `
+            SELECT owner, expires_at, updated_at
+            FROM test_db_locks
+            WHERE name = $1
+          `,
+          [lockName]
+        )
+        .catch(() => null);
+      const holder = current?.rows?.[0];
+      const holderSummary = holder
+        ? [
+            ` owner=${holder.owner}`,
+            `expires_at=${holder.expires_at?.toISOString?.() ?? holder.expires_at}`,
+            `updated_at=${holder.updated_at?.toISOString?.() ?? holder.updated_at}`,
+          ].join(" ")
+        : " no current lock row";
+      throw new Error(
+        `[bootstrap-test-db] Timed out after ${Math.round(
+          bootstrapLockTimeoutMs / 1000
+        )}s waiting for test DB bootstrap lock.${holderSummary}`
+      );
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
