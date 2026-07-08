@@ -51,5 +51,5 @@ jobs:
       - name: Sitemap integrity guard
         run: npm run guard:sitemap-integrity
 
-      - name: Tests (with test DB schema push)
-        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:run:db
+      - name: Tests (source/contracts without DB)
+        run: npx cross-env TEST_DATABASE_URL= DATABASE_URL= RUN_INTEGRATION_TESTS= npm run test:run

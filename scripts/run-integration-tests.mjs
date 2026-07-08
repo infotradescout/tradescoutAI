@@ -26,6 +26,11 @@ const defaultIntegrationTestFiles = [
   "server/tests/phase2b-ingress.integration.test.ts",
   "server/tests/phase2c-privileged.integration.test.ts",
 ];
+const strictIntegrationTestFiles = [
+  "server/tests/d3-messaging-authority.test.ts",
+  "server/tests/auth-account-flow.test.ts",
+  "server/tests/acceptance-realignment.test.ts",
+];
 
 if (!testDatabaseUrl) {
   console.error("Missing TEST_DATABASE_URL. Run `node scripts/ensure-test-db.mjs` first.");
@@ -109,12 +114,16 @@ async function main() {
   let testExitCode = 1;
   try {
     await waitForHealth(`http://localhost:${port}/api/health`);
+    const integrationTestFiles =
+      process.env.RUN_STRICT_INTEGRATION === "true"
+        ? strictIntegrationTestFiles
+        : defaultIntegrationTestFiles;
     const vitestArgs = [
       "vitest",
       "run",
       "--no-file-parallelism",
       "--maxWorkers=1",
-      ...defaultIntegrationTestFiles,
+      ...integrationTestFiles,
     ];
     if (process.env.RUN_STRICT_INTEGRATION !== "true") {
       vitestArgs.push(
