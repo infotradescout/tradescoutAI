@@ -51,6 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import { share } from "@/utils/share";
 import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 import { apiRequest } from "@/lib/queryClient";
+import { buildOneLevelCommentThreads } from "@/lib/communityComments";
 import { uploadObject } from "@/lib/objectUpload";
 import { recordActivity } from "@/agent/activity";
 import { TradeScoutIcon, TradeScoutLogo } from "@/components/TradeScoutIcons";
@@ -60,6 +61,8 @@ import { useLocation } from "wouter";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
 import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
+import { CommunityPostCard } from "@/components/community/CommunityPostCard";
+import { CommunitySidebar } from "@/components/community/CommunitySidebar";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
@@ -130,6 +133,7 @@ interface DailyDealSnapshot {
 interface CommunityComment {
   id: string;
   content: string;
+  parentCommentId?: string | null;
   author?: {
     id: string;
     name?: string | null;
@@ -137,13 +141,31 @@ interface CommunityComment {
     verified?: boolean;
   };
   createdAt: string;
+  replies?: CommunityComment[];
 }
+
+const FEED_CATEGORY_FILTERS = [
+  { key: "all", label: "All", icon: MessageSquare },
+  { key: "general", label: "General", icon: MessageSquare },
+  { key: "questions", label: "Questions", icon: HelpCircle },
+  { key: "recommendations", label: "Recommendations", icon: Award },
+  { key: "projects", label: "Projects", icon: Wrench },
+  { key: "marketplace", label: "Marketplace", icon: DollarSign },
+  { key: "events", label: "Events", icon: Calendar },
+  { key: "announcements", label: "Announcements", icon: Flag },
+] as const;
+
+const COMPOSER_CATEGORIES = FEED_CATEGORY_FILTERS.filter((category) => category.key !== "all");
+
+type FeedCategory = (typeof FEED_CATEGORY_FILTERS)[number]["key"];
 
 function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: boolean }) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [content, setContent] = useState("");
+  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState("");
 
   const { data: comments = [], isLoading } = useQuery<CommunityComment[]>({
     queryKey: ["/api/community/posts", postId, "comments"],
@@ -160,8 +182,14 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
   });
 
   const createComment = useMutation({
-    mutationFn: async () => {
-      const trimmed = content.trim();
+    mutationFn: async ({
+      body,
+      parentCommentId,
+    }: {
+      body: string;
+      parentCommentId?: string | null;
+    }) => {
+      const trimmed = body.trim();
       if (!trimmed) {
         throw new Error("Comment cannot be empty.");
       }
@@ -172,7 +200,7 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify({ content: trimmed }),
+        body: JSON.stringify({ content: trimmed, parentCommentId: parentCommentId || null }),
       });
       if (res.status === 202) {
         return res.json();
@@ -185,6 +213,8 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
     },
     onSuccess: (data: any) => {
       setContent("");
+      setReplyContent("");
+      setReplyToCommentId(null);
       if (data?.pending) {
         toast({
           title: "Contact request sent",
@@ -222,8 +252,31 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
       });
       return;
     }
-    createComment.mutate();
+    createComment.mutate({ body: content });
   };
+
+  const handleReplySubmit = (e: React.FormEvent, parentCommentId: string) => {
+    e.preventDefault();
+    if (readOnly) {
+      toast({
+        title: "Read-only view",
+        description: "Switch back to Local to reply to posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to reply to community posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createComment.mutate({ body: replyContent, parentCommentId });
+  };
+
+  const threadedComments = useMemo(() => buildOneLevelCommentThreads(comments), [comments]);
 
   return (
     <div className="mt-3 space-y-3">
@@ -273,39 +326,100 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
         ) : comments.length === 0 ? (
           <p className="text-[11px] text-white/60">No comments yet. Be the first to reply.</p>
         ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="flex items-start gap-2 text-xs md:text-sm">
-              <Avatar className="w-7 h-7">
-                <AvatarImage src={comment.author?.avatar || undefined} />
-                <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
-                  <TradeScoutLogo size="sm" className="h-5 w-5 bg-transparent ring-0" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-white mb-0.5 text-[11px] md:text-xs">
-                    {comment.author?.name || "Neighbor"}
+          threadedComments.map((comment) => (
+            <div key={comment.id} className="space-y-2" data-testid="comment-thread">
+              <div className="flex items-start gap-2 text-xs md:text-sm">
+                <Avatar className="w-7 h-7">
+                  <AvatarImage src={comment.author?.avatar || undefined} />
+                  <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                    <TradeScoutLogo size="sm" className="h-5 w-5 bg-transparent ring-0" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-white mb-0.5 text-[11px] md:text-xs">
+                      {comment.author?.name || "Neighbor"}
+                    </p>
+                    {comment.author?.verified !== undefined && (
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] px-1.5 py-0.5 ${
+                          comment.author?.verified ? "text-green-300" : "text-white/70"
+                        }`}
+                        title={
+                          comment.author?.verified
+                            ? "Verified profile"
+                            : "Unverified profile. Verified members are more likely to be accepted."
+                        }
+                      >
+                        {comment.author?.verified ? "Verified" : "Unverified"}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-white/70 text-[11px] md:text-xs whitespace-pre-line">
+                    {comment.content}
                   </p>
-                  {comment.author?.verified !== undefined && (
-                    <Badge
-                      variant="secondary"
-                      className={`text-[10px] px-1.5 py-0.5 ${
-                        comment.author?.verified ? "text-green-300" : "text-white/70"
-                      }`}
-                      title={
-                        comment.author?.verified
-                          ? "Verified profile"
-                          : "Unverified profile. Verified members are more likely to be accepted."
+                  {!readOnly && (
+                    <button
+                      type="button"
+                      className="mt-1 text-[11px] font-medium text-ts-orange hover:underline"
+                      onClick={() =>
+                        setReplyToCommentId((current) =>
+                          current === comment.id ? null : comment.id
+                        )
                       }
                     >
-                      {comment.author?.verified ? "Verified" : "Unverified"}
-                    </Badge>
+                      Reply
+                    </button>
                   )}
                 </div>
-                <p className="text-white/70 text-[11px] md:text-xs whitespace-pre-line">
-                  {comment.content}
-                </p>
               </div>
+
+              {(comment.replies || []).map((reply) => (
+                <div
+                  key={reply.id}
+                  className="ml-9 flex items-start gap-2 border-l border-white/10 pl-3 text-xs md:text-sm"
+                  data-testid="comment-reply"
+                >
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={reply.author?.avatar || undefined} />
+                    <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                      <TradeScoutLogo size="sm" className="h-4 w-4 bg-transparent ring-0" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2">
+                    <p className="font-medium text-white mb-0.5 text-[11px] md:text-xs">
+                      {reply.author?.name || "Neighbor"}
+                    </p>
+                    <p className="text-white/70 text-[11px] md:text-xs whitespace-pre-line">
+                      {reply.content}
+                    </p>
+                  </div>
+                </div>
+              ))}
+
+              {replyToCommentId === comment.id && (
+                <form
+                  onSubmit={(event) => handleReplySubmit(event, comment.id)}
+                  className="ml-9 flex items-start gap-2"
+                >
+                  <Textarea
+                    value={replyContent}
+                    onChange={(event) => setReplyContent(event.target.value)}
+                    rows={1}
+                    placeholder="Write a reply..."
+                    className="min-h-9 text-xs"
+                  />
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="h-9 px-3 text-xs"
+                    disabled={createComment.isPending || !replyContent.trim()}
+                  >
+                    Reply
+                  </Button>
+                </form>
+              )}
             </div>
           ))
         )}
@@ -364,6 +478,18 @@ type TrendingTopic = {
   source?: "community" | "news";
 };
 
+function formatTimeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+
+  if (diffInHours < 1) return "Just now";
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 const CommunityFeed = memo(function CommunityFeed() {
   type FeedTab = "forYou" | "recent" | "vault";
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
@@ -373,7 +499,8 @@ const CommunityFeed = memo(function CommunityFeed() {
   const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
   const [lastCreatedPostId, setLastCreatedPostId] = useState<string | null>(null);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>("general");
+  const [selectedCategory, setSelectedCategory] = useState<FeedCategory>("general");
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<FeedCategory>("all");
   const [searchState, setSearchState] = useState<string>(() =>
     typeof window !== "undefined" ? window.location.search : ""
   );
@@ -418,8 +545,12 @@ const CommunityFeed = memo(function CommunityFeed() {
   const rawGeoParam = queryParams.get("geo");
   const rawFeedParam = queryParams.get("feed");
   const rawTagParam = queryParams.get("tag");
+  const rawCategoryParam = queryParams.get("category");
   const topicTagKey = toContextTagKey(rawTagParam);
   const topicTagLabel = topicTagKey ? formatContextTag(topicTagKey) : "";
+  const routeCategory = FEED_CATEGORY_FILTERS.some((category) => category.key === rawCategoryParam)
+    ? (rawCategoryParam as FeedCategory)
+    : "all";
 
   const normalizeFeed = (value?: string | null): FeedTab | null => {
     if (!value) return null;
@@ -460,6 +591,12 @@ const CommunityFeed = memo(function CommunityFeed() {
     }
   }, [feedFromRoute, activeTab]);
 
+  useEffect(() => {
+    if (routeCategory !== activeCategoryFilter) {
+      setActiveCategoryFilter(routeCategory);
+    }
+  }, [routeCategory, activeCategoryFilter]);
+
   const currentPath =
     typeof window !== "undefined" ? window.location.pathname : route.split("?")[0];
   const handleScopeToggle = (newScope: "local" | "global") => {
@@ -493,6 +630,16 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (normalized) nextParams.set("tag", normalized);
     else nextParams.delete("tag");
     const nextSearch = `?${nextParams.toString()}`;
+    setSearchState(nextSearch);
+    navigate(`${currentPath}${nextSearch}`);
+  };
+
+  const handleCategoryFilterChange = (category: FeedCategory) => {
+    setActiveCategoryFilter(category);
+    const nextParams = new URLSearchParams(queryParams);
+    if (category === "all") nextParams.delete("category");
+    else nextParams.set("category", category);
+    const nextSearch = nextParams.toString() ? `?${nextParams.toString()}` : "";
     setSearchState(nextSearch);
     navigate(`${currentPath}${nextSearch}`);
   };
@@ -563,7 +710,13 @@ const CommunityFeed = memo(function CommunityFeed() {
 
   // Fetch posts from the API scoped to the user's county and nav scope
   const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
-    queryKey: ["/api/community/posts", stateCode, countyFips, serverScopeForFeed],
+    queryKey: [
+      "/api/community/posts",
+      stateCode,
+      countyFips,
+      serverScopeForFeed,
+      activeCategoryFilter,
+    ],
     // Phase 1: Global view doesn't require county commitment
     enabled: isGlobalView || countyCommitted,
     queryFn: async () => {
@@ -577,6 +730,9 @@ const CommunityFeed = memo(function CommunityFeed() {
       if (!isGlobalView && stateCode && countyFips) {
         params.set("stateCode", stateCode);
         params.set("countyFips", countyFips);
+      }
+      if (activeCategoryFilter !== "all") {
+        params.set("category", activeCategoryFilter);
       }
 
       const response = await fetch(`/api/community/posts?${params.toString()}`);
@@ -1045,352 +1201,43 @@ const CommunityFeed = memo(function CommunityFeed() {
         </Card>
       ) : (
         <>
-          {tabSortedPosts.map((post: any) => {
-            const isSystemPost = post.category === "system";
-            const locationLabel = post.location || post.author?.location;
-
-            return (
-              <Card
-                key={post.id}
-                className={`rounded-xl border border-[color:var(--border-subtle)] hover:border-[color:var(--border-active)] transition-colors ${
-                  isSystemPost
-                    ? "bg-[color:var(--surface-intermediate)]"
-                    : "bg-[color:var(--surface-card)]"
-                }`}
-                data-testid={`card-post-${post.id}`}
-                data-post-id={post.id}
-              >
-                <CardContent className="p-3 md:p-4">
-                  {/* Post Header */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex gap-3">
-                      {isSystemPost ? (
-                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-ts-orange/20 border border-ts-orange/30 flex items-center justify-center">
-                          <TradeScoutIcon size="sm" variant="gradient" className="text-black" />
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
-                          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange/70"
-                          title="View public profile"
-                          aria-label={`View ${getAuthorName(post)} profile`}
-                        >
-                          <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-ts-orange/70">
-                            <AvatarImage className="object-cover" src={getAuthorAvatar(post)} />
-                            <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
-                              <TradeScoutLogo size="sm" className="h-8 w-8 bg-transparent ring-0" />
-                            </AvatarFallback>
-                          </Avatar>
-                        </button>
-                      )}
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {isSystemPost ? (
-                            <h3 className="text-white font-semibold text-sm md:text-base">
-                              TradeScout
-                            </h3>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
-                              className="text-white font-semibold text-sm md:text-base hover:text-ts-orange text-left"
-                              title="View public profile"
-                            >
-                              {getAuthorName(post)}
-                            </button>
-                          )}
-                          {!isSystemPost && post.author?.verified !== undefined && (
-                            <Badge
-                              variant="outline"
-                              className={`h-5 px-1.5 text-[10px] ${
-                                post.author?.verified
-                                  ? "border-emerald-500/50 text-emerald-300"
-                                  : "border-white/15 text-white/70"
-                              }`}
-                              title={
-                                post.author?.verified
-                                  ? "Verified profile"
-                                  : "Unverified profile. Verified members are more likely to be accepted."
-                              }
-                            >
-                              {post.author?.verified ? "Verified" : "Unverified"}
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 text-xs md:text-sm text-white/60 mt-1">
-                          <span>
-                            {post.timestamp || new Date(post.createdAt).toLocaleDateString()}
-                          </span>
-                          {locationLabel && (
-                            <>
-                              <span>•</span>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {locationLabel}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-xs md:text-sm">
-                      <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-subtle)] px-2 py-0.5">
-                        {getPostTypeIcon(post.type || post.postType)}
-                        <span className="text-xs text-[color:var(--text-secondary)]">
-                          {getPostTypeLabel(post.type || post.postType)}
-                        </span>
-                      </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          {!isSystemPost && post.author?.id && (
-                            <DropdownMenuItem
-                              onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
-                            >
-                              View public profile
-                            </DropdownMenuItem>
-                          )}
-                          {!isSystemPost && post.author?.id && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleOpenDirectConnectForCommunityMember(
-                                  post.author?.id,
-                                  getAuthorName(post)
-                                )
-                              }
-                            >
-                              Start a Request
-                            </DropdownMenuItem>
-                          )}
-                          {!isSystemPost && post.author?.id && (
-                            <DropdownMenuItem
-                              onClick={() => handleRequestCommunityMemberConnection(post)}
-                            >
-                              Send Connection Request
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem>
-                            <Flag className="h-4 w-4 mr-2" />
-                            Report
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleSharePost(post)}>
-                            <Share className="h-4 w-4 mr-2" />
-                            Share
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-
-                  {/* Post Content */}
-                  <div className="mb-3 md:mb-4">
-                    {post.title && (
-                      <h4 className="text-base md:text-lg font-semibold text-white mb-2">
-                        {post.title}
-                      </h4>
-                    )}
-                    <p className="text-white/70 text-sm md:text-[15px] mb-3 leading-relaxed whitespace-pre-line">
-                      {post.content}
-                    </p>
-
-                    {Array.isArray(post.tags) && post.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {post.tags
-                          .map((raw: string) => ({
-                            key: toContextTagKey(raw),
-                            label: formatContextTag(raw),
-                          }))
-                          .filter((t: { key: string; label: string }) => t.key && t.label)
-                          .slice(0, 12)
-                          .map((tag: { key: string; label: string }, index: number) => (
-                            <button
-                              key={`${tag.key}-${index}`}
-                              type="button"
-                              onClick={() => setActiveTopic(tag.key)}
-                              className="text-ts-orange text-sm hover:text-ts-orange cursor-pointer underline-offset-4 hover:underline"
-                              aria-label={`View topic ${tag.label}`}
-                              title={`View topic: ${tag.label}`}
-                            >
-                              {tag.label}
-                            </button>
-                          ))}
-                      </div>
-                    )}
-
-                    {Array.isArray(post.imageUrls) && post.imageUrls.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        {post.imageUrls.map((image: string, index: number) => (
-                          <img
-                            key={index}
-                            src={image}
-                            alt={`Post image ${index + 1}`}
-                            className="rounded-lg w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                            onError={(event) => handleCommunityImageError(event.currentTarget)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Post Actions */}
-                  <div className="flex items-center justify-between pt-3 border-t border-[color:var(--border-subtle)] text-xs md:text-sm">
-                    <div className="flex items-center gap-4 md:gap-6">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isGlobalView}
-                        className={`text-[color:var(--text-secondary)] hover:text-red-400 disabled:opacity-50 disabled:pointer-events-none ${post.liked ? "text-red-400" : ""}`}
-                        onClick={() => handleLikePost(post.id)}
-                        data-testid={`button-like-${post.id}`}
-                      >
-                        <Heart className={`h-4 w-4 mr-1 ${post.liked ? "fill-current" : ""}`} />
-                        <span className="mr-1">Like</span>
-                        {post.likeCount || post.likes || 0}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isGlobalView}
-                        className="text-[color:var(--text-secondary)] hover:text-ts-orange disabled:opacity-50 disabled:pointer-events-none"
-                        data-testid={`button-comment-${post.id}`}
-                        onClick={() => {
-                          if (!isAuthenticated) {
-                            toast({
-                              title: "Sign In Required",
-                              description: "Please sign in to discuss community posts.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          if (isGlobalView) {
-                            toast({
-                              title: "Read-only view",
-                              description: "Switch back to Local to comment on posts.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          setOpenCommentsForPostId((current) =>
-                            current === post.id ? null : post.id
-                          );
-                        }}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        <span className="mr-1">Comment</span>
-                        {post.commentCount || post.comments || 0}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-[color:var(--text-secondary)] hover:text-green-400"
-                        onClick={() => handleSharePost(post)}
-                        data-testid={`button-share-${post.id}`}
-                      >
-                        <Share className="h-4 w-4 mr-1" />
-                        <span className="mr-1">Share</span>
-                        {post.shareCount || post.shares || 0}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isGlobalView}
-                        className={`text-[color:var(--text-secondary)] hover:text-ts-orange disabled:opacity-50 disabled:pointer-events-none ${post.saved ? "text-ts-orange" : ""}`}
-                        onClick={() => handleToggleSavePost(post.id)}
-                        data-testid={`button-save-${post.id}`}
-                      >
-                        <Bookmark className={`h-4 w-4 mr-1 ${post.saved ? "fill-current" : ""}`} />
-                        <span className="mr-1">{post.saved ? "Saved" : "Save"}</span>
-                      </Button>
-                    </div>
-
-                    {post.type === "recommendation_request" && (
-                      <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
-                        Recommend Someone
-                      </Button>
-                    )}
-
-                    {post.type === "promotion" && (
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                        View TradeDeal
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Lightweight social proof */}
-                  {(() => {
-                    const agreeCount = post.likeCount || post.likes || 0;
-                    const commentCount = post.commentCount || post.comments || 0;
-                    const shareCount = post.shareCount || post.shares || 0;
-
-                    if (!agreeCount && !commentCount && !shareCount) return null;
-
-                    const parts: string[] = [];
-                    if (agreeCount) {
-                      parts.push(
-                        `${agreeCount} ${agreeCount === 1 ? "neighbor agrees" : "neighbors agree"}`
-                      );
-                    }
-                    if (commentCount) {
-                      parts.push(`${commentCount} ${commentCount === 1 ? "reply" : "replies"}`);
-                    }
-
-                    return (
-                      <div className="mt-2 text-[11px] text-white/60">{parts.join(" | ")}</div>
-                    );
-                  })()}
-
-                  {/* Comment teaser row */}
-                  <div className="mt-3 flex items-center gap-2">
-                    <Avatar className="w-7 h-7">
-                      <AvatarImage src={user?.avatar as string | undefined} />
-                      <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
-                        <TradeScoutLogo size="sm" className="h-5 w-5 bg-transparent ring-0" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <button
-                      type="button"
-                      className="flex-1 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-input)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)]"
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          toast({
-                            title: "Sign In Required",
-                            description: "Please sign in to comment on community posts.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setOpenCommentsForPostId((current) =>
-                          current === post.id ? null : post.id
-                        );
-                      }}
-                    >
-                      Write a comment...
-                    </button>
-                  </div>
-
-                  {openCommentsForPostId === post.id && (
-                    <CommunityComments postId={post.id} readOnly={isGlobalView} />
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          {tabSortedPosts.map((post: any) => (
+            <div key={post.id} data-testid={`card-post-${post.id}`} data-post-id={post.id}>
+              <CommunityPostCard
+                post={{
+                  ...post,
+                  upvotes: post.upvotes ?? post.likeCount ?? 0,
+                  comments: post.comments ?? post.commentCount ?? 0,
+                  pinned: post.pinned ?? post.isPinned ?? false,
+                  trending: post.trending ?? false,
+                }}
+                onLike={() => handleLikePost(post.id)}
+                onComment={() => {
+                  if (!isAuthenticated) {
+                    toast({
+                      title: "Sign In Required",
+                      description: "Please sign in to discuss community posts.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  if (isGlobalView) {
+                    toast({
+                      title: "Read-only view",
+                      description: "Switch back to Local to comment on posts.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  setOpenCommentsForPostId((current) => (current === post.id ? null : post.id));
+                }}
+                formatTimeAgo={formatTimeAgo}
+              />
+              {openCommentsForPostId === post.id && (
+                <CommunityComments postId={post.id} readOnly={isGlobalView} />
+              )}
+            </div>
+          ))}
         </>
       )}
     </div>
@@ -1593,6 +1440,24 @@ const CommunityFeed = memo(function CommunityFeed() {
         description="Stay connected to local activity on TradeScout Community. Ask questions, share updates, follow neighborhood conversations, and keep up with what is happening nearby."
         keywords="tradescout community, local community feed, neighborhood activity, ask neighbors online, local updates"
         canonical="https://www.thetradescout.com/community-feed"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Home",
+              item: "https://www.thetradescout.com/",
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Community",
+              item: "https://www.thetradescout.com/community-feed",
+            },
+          ],
+        }}
       />
       <div className="community-feed-page">
         <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
@@ -1917,6 +1782,28 @@ const CommunityFeed = memo(function CommunityFeed() {
                         </TabsTrigger>
                       </TabsList>
                     </div>
+                    <div
+                      className="mt-3 flex gap-1.5 overflow-x-auto pb-1"
+                      data-testid="community-category-filter-bar"
+                    >
+                      {FEED_CATEGORY_FILTERS.map(({ key, label, icon: Icon }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handleCategoryFilterChange(key)}
+                          data-testid={`community-category-filter-${key}`}
+                          aria-pressed={activeCategoryFilter === key}
+                          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            activeCategoryFilter === key
+                              ? "border-ts-orange bg-ts-orange text-white"
+                              : "border-white/10 bg-black/15 text-white/65 hover:border-ts-orange/40 hover:text-white"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   {/* Inline composer (local-only; global view is read-only) */}
                   {!isGlobalView ? (
@@ -1953,15 +1840,15 @@ const CommunityFeed = memo(function CommunityFeed() {
                             <Textarea
                               ref={composerRef}
                               placeholder={
-                                selectedCategory === "request"
+                                selectedCategory === "projects"
                                   ? "What do you need help with? (e.g., 'Need someone to fix my fence')"
-                                  : selectedCategory === "question"
+                                  : selectedCategory === "questions"
                                     ? "What do you want to know? Ask your neighbors..."
-                                    : selectedCategory === "forsale"
+                                    : selectedCategory === "marketplace"
                                       ? "What are you selling? Include price and condition..."
-                                      : selectedCategory === "alert"
+                                      : selectedCategory === "announcements"
                                         ? "What should everyone know about right now?"
-                                        : selectedCategory === "event"
+                                        : selectedCategory === "events"
                                           ? "What's happening? When and where?"
                                           : "What's happening in your community today?"
                               }
@@ -1990,61 +1877,12 @@ const CommunityFeed = memo(function CommunityFeed() {
 
                             {/* Category selection keeps outcome-first language while preserving routing behavior. */}
                             <div className="-mx-0.5 flex gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible md:pb-0">
-                              {[
-                                {
-                                  key: "general",
-                                  label: "General",
-                                  icon: MessageSquare,
-                                  intent: "Share with neighbors",
-                                },
-                                {
-                                  key: "question",
-                                  label: "Question",
-                                  icon: HelpCircle,
-                                  intent: "Ask neighbors",
-                                },
-                                {
-                                  key: "recommendation",
-                                  label: "Recommend",
-                                  icon: Award,
-                                  intent: "Recommend someone you trust",
-                                },
-                                {
-                                  key: "event",
-                                  label: "Event",
-                                  icon: Calendar,
-                                  intent: "Let people know about an event",
-                                },
-                                {
-                                  key: "tip",
-                                  label: "Tip",
-                                  icon: Lightbulb,
-                                  intent: "Share something useful",
-                                },
-                                {
-                                  key: "request",
-                                  label: "Need Help",
-                                  icon: Wrench,
-                                  intent: "Find someone to do work",
-                                },
-                                {
-                                  key: "alert",
-                                  label: "Alert",
-                                  icon: AlertTriangle,
-                                  intent: "Important: everyone should see this",
-                                },
-                                {
-                                  key: "forsale",
-                                  label: "For Sale",
-                                  icon: DollarSign,
-                                  intent: "Sell something locally",
-                                },
-                              ].map(({ key, label, icon: Icon, intent }) => (
+                              {COMPOSER_CATEGORIES.map(({ key, label, icon: Icon }) => (
                                 <button
                                   key={key}
                                   type="button"
                                   onClick={() => setSelectedCategory(key)}
-                                  title={intent}
+                                  title={label}
                                   className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-2 text-xs font-medium transition-all md:rounded-md md:px-2.5 md:py-1 ${
                                     selectedCategory === key
                                       ? "bg-ts-orange text-white"
@@ -2171,6 +2009,7 @@ const CommunityFeed = memo(function CommunityFeed() {
 
               {/* Right column: community snapshot + signals */}
               <div className="lg:col-span-1 space-y-4">
+                <CommunitySidebar />
                 {countyFips ? (
                   <CommunitySnapshotRail
                     countyFips={countyFips}

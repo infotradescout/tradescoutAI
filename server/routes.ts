@@ -20315,7 +20315,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       try {
         const userId = req.user?.claims?.sub;
         const { id: postId } = req.params;
-        const { content } = req.body;
+        const { content, parentCommentId } = req.body;
 
         if (!userId) {
           return res.status(401).json({ message: "Unauthorized" });
@@ -20394,10 +20394,25 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           }
         }
 
+        let normalizedParentCommentId: string | null = null;
+        if (parentCommentId) {
+          normalizedParentCommentId = String(parentCommentId);
+          const [parentComment] = await db
+            .select({ id: postComments.id, postId: postComments.postId })
+            .from(postComments)
+            .where(eq(postComments.id, normalizedParentCommentId))
+            .limit(1);
+
+          if (!parentComment || String(parentComment.postId) !== String(postId)) {
+            return res.status(400).json({ message: "Parent comment does not belong to this post" });
+          }
+        }
+
         const comment = await storage.createPostComment({
           postId,
           authorId: userId,
           content,
+          parentCommentId: normalizedParentCommentId,
         });
 
         res.status(201).json(comment);

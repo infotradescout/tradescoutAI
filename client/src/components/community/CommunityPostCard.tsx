@@ -94,6 +94,7 @@ export interface CommunityPostCardData {
 export interface CommunityPostCardProps {
   post: CommunityPostCardData;
   onLike?: (postId: string) => void;
+  onComment?: (postId: string) => void;
   formatTimeAgo: (dateString: string) => string;
 }
 
@@ -155,7 +156,12 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
   } as const;
 }
 
-export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPostCardProps) {
+export function CommunityPostCard({
+  post,
+  onLike,
+  onComment,
+  formatTimeAgo,
+}: CommunityPostCardProps) {
   const { toast } = useToast();
   const { data: authoritySurfaces } = useCommunityAuthoritySurfaces();
   const { user, isAuthenticated } = useAuth();
@@ -691,17 +697,24 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               </div>
               <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-white/10 rounded-lg bg-tsBg/40">
                 <button
+                  type="button"
                   onClick={handleLikeClick}
                   className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors"
                 >
                   <Heart className="w-4 h-4" />
                   <span>Like</span>
                 </button>
-                <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10">
+                <button
+                  type="button"
+                  onClick={() => onComment?.(post.id)}
+                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10"
+                  data-testid={`button-comment-${post.id}`}
+                >
                   <MessageSquare className="w-4 h-4" />
                   <span>Comment</span>
                 </button>
                 <button
+                  type="button"
                   className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10"
                   onClick={handleShareClick}
                 >

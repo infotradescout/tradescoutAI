@@ -10,7 +10,6 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 const communitySurfaceFiles = [
-  "client/src/pages/community.tsx",
   "client/src/pages/community-feed.tsx",
   "client/src/components/community/CommunityCTA.tsx",
   "client/src/components/community/CommunityComposerInline.tsx",
@@ -57,7 +56,6 @@ describe("Community app surface UX contract", () => {
 
   it("keeps the Community app surface anchored to local activity actions", () => {
     const feed = read("client/src/pages/community-feed.tsx");
-    const community = read("client/src/pages/community.tsx");
 
     expect(feed).toContain("Local activity");
     expect(feed).toContain("See what neighbors and local businesses are sharing, then start");
@@ -67,8 +65,6 @@ describe("Community app surface UX contract", () => {
     expect(feed).toContain("Local hub");
     expect(feed).toContain("Share a local update");
     expect(feed).toContain("Start a post");
-    expect(community).toContain("Local updates, questions, and projects.");
-    expect(community).toContain("Draft ready");
   });
 
   it("keeps default recommendation cards out of system-level framing", () => {

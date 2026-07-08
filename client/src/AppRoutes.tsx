@@ -368,7 +368,7 @@ const FinancesSettings = React.lazy(() => import("./pages/finances-settings"));
 const DirectConnectShell = React.lazy(() => import("./pages/direct-connect/DirectConnectShell"));
 const DirectConnectPros = React.lazy(() => import("./pages/direct-connect/DirectConnectPros"));
 const DirectConnectSharePage = React.lazy(() => import("./pages/direct-connect-share"));
-// NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
+// NOTE: Community canonical route is client/src/pages/community-feed.tsx.
 // and should not be routed. This lazy import is intentionally removed.
 const CommunityModerationDemo = React.lazy(() => import("./pages/CommunityModerationDemo"));
 const Checkout = React.lazy(() => import("./pages/checkout"));

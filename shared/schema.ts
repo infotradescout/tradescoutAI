@@ -2344,7 +2344,7 @@ export const postComments = pgTable(
       .default(sql`gen_random_uuid()`),
     postId: varchar("post_id")
       .notNull()
-      .references(() => socialPosts.id, { onDelete: "cascade" }),
+      .references(() => communityPosts.id, { onDelete: "cascade" }),
     authorId: varchar("author_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
@@ -2707,7 +2707,7 @@ export const postReactionsRelations = relations(postReactions, ({ one }) => ({
 }));
 
 export const postCommentsRelations = relations(postComments, ({ one, many }) => ({
-  post: one(socialPosts, { fields: [postComments.postId], references: [socialPosts.id] }),
+  post: one(communityPosts, { fields: [postComments.postId], references: [communityPosts.id] }),
   author: one(users, { fields: [postComments.authorId], references: [users.id] }),
   parentComment: one(postComments, {
     fields: [postComments.parentCommentId],
