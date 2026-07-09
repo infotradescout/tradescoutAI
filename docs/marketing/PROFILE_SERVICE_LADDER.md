@@ -9,9 +9,37 @@ TradeScout Profiles should be positioned as a website alternative and working bu
 
 ## Core Offer
 
-TradeScout Profiles replace the old static website with a working business hub.
+TradeScout Profiles are free to create and use.
 
-Businesses can build their own profile, have TradeScout set it up for a one-time launch fee, add branding support, or add monthly management when they want the profile handled for them.
+The free standard TradeScout Profile is the product. Done-for-you setup is an optional service for businesses that want TradeScout to set up, customize, polish, and connect the profile for them.
+
+Core public framing:
+
+```text
+Create your TradeScout Profile for free.
+
+Use the tools for free.
+
+Need help? We can professionally set it up, customize it, and connect your domain. Most profile setups are $100.
+```
+
+Use this distinction everywhere:
+
+```text
+Free = standard TradeScout Profile + available TradeScout tools + self-setup.
+
+Most $100 = done-for-you setup, customization, and domain linking.
+
+Custom quote = complex catalog, retailer/seller profile, advanced branding, multi-location, heavy content, or ongoing management.
+```
+
+Key phrase:
+
+```text
+Free to use. Optional setup help.
+```
+
+Do not position the setup fee as required access. Do not imply a business must pay before it can create or use a standard TradeScout Profile.
 
 ## Default Public Profile Experience
 
@@ -166,64 +194,122 @@ Incomplete cards should still look intentional. Use available public data, categ
 
 ## Offer Ladder
 
-### Self-Serve Profile
+### Free Standard Profile
 
-The business creates and manages its own TradeScout Profile.
+The business creates and manages its own standard TradeScout Profile for free.
 
-Use this for low-friction adoption and beta onboarding.
+Use this as the primary adoption path for contractors, landscapers, cleaners, retailers, online sellers, local service businesses, food vendors, shops, makers, consultants, and independent operators.
 
 Public CTA:
 
 ```text
-Create My Profile
+Create Free Profile
 ```
+
+Included:
+
+- Standard business profile
+- Service or product listings
+- Profile link
+- Scout discovery where available
+- Direct Connect request path where applicable
+- Community visibility
+- Business tools
+- CRM/customer organization tools where available
+- Calendar tools where available
+- Online payment paths where available
+- Marketing tools where available
+- Optional domain connection
 
 ### Done-For-You Profile Launch
 
-TradeScout sets up the profile for:
+TradeScout sets up and customizes the profile for the business.
+
+Use this pricing language:
 
 ```text
-$100 + domain cost
+Most profile setups are $100.
 ```
 
-The setup can include profile structure, services, photos, clean business copy, contact paths, Direct Connect readiness, and custom-domain connection help when needed.
+Support copy:
+
+```text
+Simple business profiles are usually $100. Larger catalogs, advanced customization, multiple locations, custom branding work, or complex domain/email setup may require a custom quote.
+```
+
+The setup can include profile structure, category and service/product organization, photos, logo/avatar/image setup, clean business copy, visual customization, CTA setup, contact paths, Direct Connect readiness where applicable, domain connection help, mobile polish, and a launch checklist.
 
 Public CTA:
 
 ```text
-Have TradeScout Set It Up
+Get Setup Help
 ```
 
-### Branding Packages
+### Custom Profile Build
 
-Optional add-on support for businesses that want a stronger customer-facing look.
+Some profiles need more than the standard done-for-you setup.
 
-Branding support can include logo cleanup, colors, profile graphics, service copy, social images, and general profile polish.
+Use custom quotes for:
 
-Do not lock public pricing until pricing is approved. Use "ask about packages" or "starting at" only when approved.
+- Large product catalogs
+- Multiple locations
+- Online seller storefront-style profiles
+- Advanced visual customization
+- Heavy copywriting
+- Brand package work
+- Lots of photo/content cleanup
+- Domain/email complications
+- Ongoing monthly management
 
 Public CTA:
 
 ```text
-Add Branding Help
+Request a Quote
 ```
 
-### Monthly Management
+### Square One Brand Package
 
-Optional ongoing profile management for businesses that do not want to maintain the profile themselves.
+Square One should be positioned as an upsell, not as part of the base free profile or the standard $100 setup unless explicitly approved for a specific offer.
 
-Monthly management can include business info updates, service changes, new photos, seasonal offers, profile copy updates, and ongoing polish.
-
-Do not publish a fixed monthly price until approved. Internal working range for later validation:
+Use this framing:
 
 ```text
-$49-$99/month
+Need your profile to look sharper? Square One helps turn a rough business presence into something clean, credible, and ready to share.
+```
+
+Available support:
+
+- Logo cleanup or direction
+- Brand colors
+- Profile styling
+- Service/product wording
+- Short business description
+- Social-ready copy
+- Photo and content guidance
+- Launch polish
+
+Public CTA:
+
+```text
+Ask About Square One
+```
+
+### ScoutFitters Perks
+
+ScoutFitters should be positioned carefully as an expanding perks program, not as a guaranteed discount promise.
+
+Use this wording:
+
+```text
+TradeScout businesses may be eligible for ScoutFitters offers, vendor discounts, gear deals, and business-building perks as the program expands.
+
+Availability may vary by category, location, vendor, and offer.
 ```
 
 Public CTA:
 
 ```text
-Ask About Monthly Management
+View Available Perks
 ```
 
 ## Primary Public Section
@@ -231,35 +317,158 @@ Ask About Monthly Management
 Headline:
 
 ```text
-Your website alternative, built to do more
+Free to create. Done-for-you setup available.
 ```
 
 Body:
 
 ```text
-A traditional website gives your business a place online. A TradeScout Profile gives your business a working hub.
+Every business can create a standard TradeScout Profile for free and use TradeScout's built-in tools. If you want us to set it up, customize it, and connect your domain, most profile setups are $100.
 
-Show your services, photos, work examples, coverage area, business info, contact options, Direct Connect access, Scout visibility, community presence, CRM tools, calendar tools, online payments, finance tools, and more from one clean profile.
+A TradeScout Profile is a better first business page because it does more than sit online.
 
-Use your TradeScout link or connect your own custom domain.
+It helps people discover you, understand what you offer, request your services, view your products, connect through protected flows, and use business tools from one profile.
 
-Set it up yourself, or have TradeScout launch it for you.
+For many businesses, a TradeScout Profile is the better first step. You can still use a full website later, but your profile gives you a practical business page customers can act on right away.
 ```
 
 ## Short Sales Version
 
 ```text
-TradeScout Profiles replace the old static website with a working business hub.
+Create your standard TradeScout Profile for free and use the built-in tools. Need help getting it ready? TradeScout can set it up, customize it, and connect your domain for you.
 
-You can build it yourself, or we can set it up for $100 plus domain cost. Your profile can include your services, photos, contact options, Direct Connect, Scout visibility, community presence, CRM tools, calendar tools, online payments, finance tools, and your own custom domain.
+Most profile setups are $100.
 
-Add branding or monthly management whenever you want TradeScout to keep it polished for you.
+For larger catalogs, online seller profiles, retailers, multi-location businesses, advanced branding, heavy content cleanup, or ongoing management, custom quotes may apply.
 ```
 
 ## Best One-Line Positioning
 
 ```text
-Your TradeScout Profile can be your website, customer intake hub, local discovery page, Direct Connect profile, business toolkit, and custom-domain destination all in one.
+Free to use. Optional setup help.
+```
+
+## Landing Page First Screen
+
+Use this first-screen copy when the profile setup offer becomes a public page:
+
+```text
+TradeScout Profile Setup
+
+Your business profile, built to do more than a website.
+
+Create your standard TradeScout Profile for free and use the built-in tools. Need help getting it ready? We can set it up, customize it, and connect your domain for you.
+
+Most profile setups are $100.
+
+[Create Free Profile]
+[Get Setup Help]
+```
+
+Support line:
+
+```text
+For service businesses, retailers, online sellers, makers, local shops, and independent operators.
+```
+
+## Comparison Section
+
+Traditional website:
+
+- Usually static
+- Takes longer to launch
+- Often needs a designer or developer
+- May not connect to customer requests
+- Contact forms can get ignored
+- Tools are usually separate
+- Updates often cost more money
+
+TradeScout Profile:
+
+- Free standard profile
+- Done-for-you setup available
+- Search and discovery through Scout
+- Direct Connect request flow where applicable
+- Services, products, photos, and profile details
+- Customer actions built in
+- CRM, calendar, payment, and marketing tools where available
+- Community visibility
+- Custom domain support
+
+## Pricing Cards
+
+Use these pricing cards when the offer becomes a public page.
+
+### Standard Profile
+
+```text
+Free
+
+Create and manage your own TradeScout Profile.
+```
+
+Includes:
+
+- Business profile
+- Services or products
+- Profile tools
+- Scout discovery where available
+- Community visibility
+- Customer action paths
+- CRM, calendar, payment, and marketing tools where available
+
+CTA:
+
+```text
+Create Free Profile
+```
+
+### Done-For-You Setup
+
+```text
+Most profiles are $100
+
+We set it up and customize it for you.
+```
+
+Includes:
+
+- Profile setup
+- Service/product organization
+- Visual customization
+- Profile copy cleanup
+- Domain connection help
+- CTA setup
+- Mobile polish
+- Launch checklist
+
+CTA:
+
+```text
+Get Setup Help
+```
+
+### Custom Profile Build
+
+```text
+Quoted when needed
+
+For larger or more complex profiles.
+```
+
+Good for:
+
+- Online sellers
+- Retailers with catalogs
+- Multi-location businesses
+- Heavy customization
+- Brand package work
+- Monthly management
+
+CTA:
+
+```text
+Request a Quote
 ```
 
 ## Home-Screen App Positioning
