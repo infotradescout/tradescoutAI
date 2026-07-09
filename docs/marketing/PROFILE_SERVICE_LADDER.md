@@ -13,6 +13,157 @@ TradeScout Profiles replace the old static website with a working business hub.
 
 Businesses can build their own profile, have TradeScout set it up for a one-time launch fee, add branding support, or add monthly management when they want the profile handled for them.
 
+## Default Public Profile Experience
+
+The first visitor view should feel like a premium business profile, not a plain directory record.
+
+Use this as the default public profile model:
+
+```text
+More than a website
+Professional profiles for local businesses
+Your online home, customer hub, and business tools in one place.
+```
+
+The public profile should open with a strong business card surface that shows the business clearly before asking the visitor to do anything.
+
+Default first-screen elements:
+
+- Business name
+- Business category
+- Logo or primary photo
+- Rating or trust summary when available and compliant
+- Short positioning line
+- Service chips or key services
+- Recent work photos or project previews
+- Primary protected action path
+- Secondary safe actions
+- Claim/profile-owner CTA when the business is unclaimed
+
+For claimed profiles, the first-screen CTA should prioritize the protected customer action path:
+
+```text
+Start a Request
+```
+
+For unclaimed profiles, the owner CTA should be visible without making the visitor experience feel unfinished:
+
+```text
+Claim Your Profile
+```
+
+The profile can show familiar action icons such as:
+
+- Call
+- Message
+- Schedule
+- Pay
+- Email
+
+These icons are presentation affordances only. They must not bypass TradeScout law. Contact and power still flow through:
+
+```text
+Intent -> Decision Card -> Contact
+```
+
+If a listed action is not yet live or is not allowed for that profile, render it as unavailable, protected, or setup-required. Do not create dead buttons or direct contact bypasses.
+
+### Visitor-First Copy
+
+Use polished, business-specific language:
+
+```text
+Creating beautiful outdoor spaces with quality, care, and lasting value.
+```
+
+Avoid admin-like empty-state language on the public profile:
+
+```text
+This business has not completed setup.
+```
+
+If the profile is unclaimed or incomplete, keep the public surface useful while clearly inviting the owner to claim it.
+
+### Public Profile Guardrails
+
+- A public profile is not proof of direct access to the business.
+- Visibility must not expose private contact data.
+- Claiming must remain claim-first with adaptive/contextual verification.
+- Unclaimed profiles may be discoverable, but owner-only tools must remain locked.
+- Payment, scheduling, messaging, and contact actions must route through approved TradeScout flows.
+- Default profile copy must remain TradeScout-only.
+- Do not make public profiles look broken simply because the owner has not claimed them yet.
+
+## Business Card Surface Standard
+
+Business cards should use the same premium profile language anywhere a business appears, including directories, search results, Scout recommendations, category pages, county views, saved lists, and admin previews.
+
+The card is the portable version of the public profile. It should look like a real business presence, not a database row.
+
+Default card elements:
+
+- Logo, business photo, or strongest available image
+- Business name
+- Category or service type
+- Rating, trust marker, or verification marker when available and compliant
+- Short business value line
+- Key service chips or icons
+- Location or service area
+- Recent work thumbnail when space allows
+- Protected primary action
+- Claim CTA when unclaimed and owner-facing context is plausible
+
+Recommended card CTAs by context:
+
+```text
+View Profile
+Start a Request
+Claim Your Profile
+```
+
+Cards may show quick-action icons such as call, message, schedule, pay, and email, but those icons must behave like protected entry points. They can open the appropriate TradeScout intent, decision, setup, or availability flow. They must not expose raw phone numbers, private email addresses, or direct messaging access outside the approved gate.
+
+### Card States
+
+Claimed profile:
+
+```text
+Primary: Start a Request
+Secondary: View Profile
+```
+
+Unclaimed public profile:
+
+```text
+Primary: View Profile
+Secondary: Claim Your Profile
+```
+
+Owner/admin context:
+
+```text
+Primary: Open Dashboard
+Secondary: Edit Profile
+```
+
+Incomplete profile:
+
+```text
+Primary: View Profile
+Secondary: Claim or Complete Profile
+```
+
+Incomplete cards should still look intentional. Use available public data, category defaults, or a tasteful fallback image. Do not punish the visitor with broken empty states.
+
+### Card Guardrails
+
+- Business cards are visibility surfaces, not contact grants.
+- Every action icon must preserve Intent -> Decision Card -> Contact.
+- Card-level contact must route through the same protected flows as the full profile.
+- Trust, rating, verification, and claim markers must not imply unearned verification.
+- Directory cards must not become pay-to-play placements.
+- Card design should be reusable across public, owner, and admin contexts without changing platform law.
+
 ## Offer Ladder
 
 ### Self-Serve Profile
