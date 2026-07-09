@@ -9,6 +9,11 @@ on:
     # Run nightly at 3am UTC
     - cron: '0 3 * * *'
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
 jobs:
   test:
     name: Bot Army Regression Suite
