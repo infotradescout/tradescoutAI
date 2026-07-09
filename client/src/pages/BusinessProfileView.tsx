@@ -32,17 +32,24 @@ import {
   BadgeCheck,
   Building2,
   BriefcaseBusiness,
+  Calendar,
   CheckCircle2,
   Compass,
+  CreditCard,
   Edit,
   FileCheck2,
   Globe,
+  Images,
   Loader2,
+  Mail,
   MapPin,
   MessageSquare,
   Search,
   Shield,
   ShieldCheck,
+  Star,
+  Store,
+  Wrench,
 } from "lucide-react";
 import type { BusinessProfile } from "@/../../shared/businessProfile";
 import type { MarketplaceListing } from "@shared/schema";
@@ -290,10 +297,11 @@ export default function BusinessProfileView() {
     .filter(Boolean)
     .join(", ");
   const primaryServiceLabelRaw = String(serviceList[0] || profile.headline || "Local business");
+  const formatDisplayText = (value: string) => value.replace(/,\s*/g, ", ").trim();
   const primaryServiceLabel =
-    primaryServiceLabelRaw.length > 44
-      ? `${primaryServiceLabelRaw.slice(0, 41).trim()}...`
-      : primaryServiceLabelRaw;
+    formatDisplayText(primaryServiceLabelRaw).length > 44
+      ? `${formatDisplayText(primaryServiceLabelRaw).slice(0, 41).trim()}...`
+      : formatDisplayText(primaryServiceLabelRaw);
   const profilePlaceholderSrc = getCategoryPlaceholderSrc([
     ...serviceList.slice(0, 4),
     profile.headline,
@@ -318,25 +326,14 @@ export default function BusinessProfileView() {
     (block: any) => String(block?.type || "").toLowerCase() === "cta"
   );
   const businessPromise =
-    profile.headline ||
+    (profile.headline ? formatDisplayText(profile.headline) : null) ||
     (serviceList.length > 0
-      ? `${serviceList.slice(0, 2).join(" + ")} in ${localArea}.`
+      ? `${serviceList.slice(0, 2).map(formatDisplayText).join(" + ")} in ${localArea}.`
       : profile.description
         ? `${profile.name} serves ${localArea}.`
         : `${profile.name} is building its TradeScout profile in ${localArea}.`);
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
-  const verificationTone = (() => {
-    if (verificationStatus === "approved") return "bg-emerald-600 text-white";
-    if (verificationStatus === "under_review" || verificationStatus === "pending") {
-      return "bg-amber-500 text-black";
-    }
-    if (verificationStatus === "rejected" || verificationStatus === "expired") {
-      return "bg-red-600 text-white";
-    }
-    if (verificationStatus === "suspended") return "bg-white/10 text-white";
-    return "bg-white/10 text-white";
-  })();
   const verificationLabel = (() => {
     if (verificationStatus === "approved") return "Professional Verified";
     if (verificationStatus === "under_review") return "Verification Review";
@@ -551,7 +548,6 @@ export default function BusinessProfileView() {
     Number.isFinite(Number((profile as any).googleReviewCount))
       ? Number((profile as any).googleReviewCount)
       : null;
-  const directoryPublication = (profile as any).directoryPublication || null;
   const importedAddress = [profile.address, profile.zipCode].filter(Boolean).join(" ");
   const directConnectParams = new URLSearchParams({
     prefill_businessName: profile.name,
@@ -606,7 +602,7 @@ export default function BusinessProfileView() {
     },
     {
       label: "Source",
-      value: profileSource === "directory" ? "Imported" : "Published",
+      value: profileSource === "directory" ? "Imported directory profile" : "Published profile",
       icon: Search,
     },
   ];
@@ -620,9 +616,33 @@ export default function BusinessProfileView() {
     category: null,
     verifiedLabel: verificationLabel || null,
   });
+  const actionTiles = [
+    { label: "Request", icon: MessageSquare, onClick: handleDirectConnect, emphasis: true },
+    { label: "Message", icon: MessageSquare, onClick: handleDirectConnect },
+    { label: "Schedule", icon: Calendar, onClick: handleDirectConnect },
+    { label: "Pay", icon: CreditCard, onClick: handleDirectConnect },
+    showClaimCta
+      ? { label: "Claim", icon: BadgeCheck, onClick: () => setLocation(claimUrl) }
+      : { label: "Email", icon: Mail, onClick: handleDirectConnect },
+  ].filter(Boolean) as Array<{
+    label: string;
+    icon: typeof MessageSquare;
+    onClick: () => void;
+    emphasis?: boolean;
+  }>;
+  const featuredServices =
+    serviceList.length > 0
+      ? serviceList.slice(0, 4).map(formatDisplayText)
+      : [primaryServiceLabelRaw, "Direct Connect", "Fit review", "Local request"]
+          .filter(Boolean)
+          .map(formatDisplayText);
+  const recentWorkPlaceholders = [
+    { label: "Work photos", detail: "Owner media" },
+    { label: "Before / after", detail: "Portfolio updates" },
+  ];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-5 text-white sm:py-8">
+    <div className="min-h-screen bg-black px-0 py-0 text-white sm:px-4 sm:py-8">
       {/* SEO Metadata */}
       <SEOHelmet
         title={pageTitle}
@@ -632,58 +652,104 @@ export default function BusinessProfileView() {
         structuredData={structuredData}
       />
 
-      <section className="ts-card mb-4 overflow-hidden" style={themeStyle}>
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
-          <div className="min-w-0 p-5 sm:p-7">
-            <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
-              {showUnclaimedBadge ? <Badge variant="secondary">Unclaimed</Badge> : null}
-              <Badge className={verificationTone}>
-                <Shield className="h-3 w-3 mr-1" />
-                {verificationLabel}
-              </Badge>
-              <Badge variant="outline" className="border-white/15 bg-white/5 text-white">
-                {primaryServiceLabel}
-              </Badge>
-              {googleRating !== null ? (
-                <Badge variant="outline" className="border-white/15 bg-white/5 text-white">
-                  Google {googleRating.toFixed(1)}
-                  {googleReviewCount !== null ? ` (${googleReviewCount})` : ""}
-                </Badge>
-              ) : null}
-              {profileSource === "directory" && directoryPublication?.crawlable === false ? (
-                <Badge variant="outline" className="border-white/15 bg-white/5 text-white/80">
-                  Directory shell
-                </Badge>
-              ) : null}
+      <section
+        className="mx-auto min-h-screen max-w-[430px] overflow-hidden bg-[color:var(--surface-card)] shadow-2xl shadow-black/70 sm:min-h-0 sm:rounded-[28px] sm:border sm:border-white/10 lg:max-w-6xl"
+        style={themeStyle}
+      >
+        <div className="flex h-14 items-center justify-between border-b border-white/10 bg-black/80 px-4">
+          <button
+            type="button"
+            aria-label="Back"
+            onClick={() => {
+              if (window.history.length > 1) window.history.back();
+              else setLocation("/");
+            }}
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
+          >
+            <ArrowRight className="h-5 w-5 rotate-180" />
+          </button>
+          <div className="text-sm font-black uppercase tracking-[0.18em]">
+            TRADE<span className="text-ts-orange">SCOUT</span>
+          </div>
+          <button
+            type="button"
+            aria-label="Share profile"
+            onClick={() => {
+              void navigator.clipboard?.writeText(window.location.href);
+              toast({ title: "Profile link copied" });
+            }}
+            className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
+          >
+            <Globe className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="relative min-h-[176px] overflow-hidden border-b border-white/10 bg-black sm:min-h-[228px]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,107,0,0.32),transparent_34%),linear-gradient(135deg,rgba(255,107,0,0.32),transparent_32%),linear-gradient(315deg,rgba(255,107,0,0.2),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.07),rgba(0,0,0,0.76))]" />
+          <div className="absolute left-0 top-0 h-full w-1/3 bg-[repeating-linear-gradient(135deg,rgba(255,107,0,0.34)_0_4px,transparent_4px_12px)] opacity-55" />
+          <img
+            src={profilePlaceholderSrc}
+            alt=""
+            aria-hidden="true"
+            className="absolute right-4 top-8 h-32 w-32 object-contain opacity-35 sm:right-12 sm:top-10 sm:h-44 sm:w-44"
+            loading="lazy"
+          />
+          <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[color:var(--surface-card)] to-transparent" />
+          <div className="relative flex h-full min-h-[176px] items-start justify-between p-5 sm:min-h-[228px] sm:p-7">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/40 px-3 py-1 text-xs text-white/75 backdrop-blur">
+                {googleRating !== null ? (
+                  <>
+                    <Star className="h-3.5 w-3.5 fill-ts-orange text-ts-orange" />
+                    <span>
+                      {googleRating.toFixed(1)}
+                      {googleReviewCount !== null ? ` (${googleReviewCount})` : ""}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <Shield className="h-3.5 w-3.5 text-ts-orange" />
+                    <span>{verificationLabel}</span>
+                  </>
+                )}
+              </div>
             </div>
+          </div>
+        </div>
 
-            <h1
-              className="max-w-3xl text-3xl font-bold leading-tight text-white sm:text-5xl"
-              data-testid="bp-headline"
-            >
-              {profile.name}
-            </h1>
-
-            <div className="mt-4 inline-flex items-center gap-3 rounded-[var(--ts-radius-control)] border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-3 py-2">
-              <img
-                src={profilePlaceholderSrc}
-                alt={`${primaryServiceLabelRaw} category placeholder illustration`}
-                className="h-10 w-10 rounded bg-white/10 p-1"
-                loading="lazy"
-                onError={(event) => {
-                  event.currentTarget.src = "/images/tradescout/categories/general-contractor.svg";
-                }}
-              />
-              <div className="text-xs text-white/70">
-                Placeholder image shown until this profile adds real media.
+        <div className="grid lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-w-0 p-4 sm:p-7">
+            <div className="-mt-16 mb-4 flex flex-col gap-4 sm:-mt-20 sm:flex-row sm:items-end">
+              <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-2 border-ts-orange bg-black shadow-xl shadow-black/40 sm:h-32 sm:w-32">
+                <img
+                  src={profilePlaceholderSrc}
+                  alt={`${primaryServiceLabelRaw} category placeholder illustration`}
+                  className="h-full w-full object-contain p-5"
+                  loading="lazy"
+                  onError={(event) => {
+                    event.currentTarget.src =
+                      "/images/tradescout/categories/general-contractor.svg";
+                  }}
+                />
+              </div>
+              <div className="min-w-0 rounded-[var(--ts-radius-control)] border border-white/10 bg-black/35 px-3 py-2 text-xs text-white/70 backdrop-blur">
+                {primaryServiceLabel}
               </div>
             </div>
 
-            <p className="mt-3 max-w-2xl text-base leading-7 text-white/72 sm:text-lg">
-              {businessPromise}
-            </p>
+            <div className="mb-5">
+              <h1
+                className="text-3xl font-black leading-tight text-white sm:text-5xl"
+                data-testid="bp-headline"
+              >
+                {profile.name}
+              </h1>
+              <p className="mt-2 max-w-2xl text-base leading-6 text-white/78 sm:text-lg">
+                {businessPromise}
+              </p>
+            </div>
 
-            <div className="mt-5 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <div className="mt-4 flex flex-col gap-2 text-sm text-white/70 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               {importedAddress ? (
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-ts-orange" />
@@ -737,24 +803,83 @@ export default function BusinessProfileView() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              {trustHighlights.slice(0, 4).map((item) => (
+              {trustHighlights.slice(0, 3).map((item) => (
                 <Badge key={item} variant="secondary" className="bg-white/8 text-white">
                   {item}
                 </Badge>
               ))}
-              {profileSource === "directory" ? (
-                <Badge variant="secondary" className="bg-white/8 text-white">
-                  Google-imported fields queued for enrichment
-                </Badge>
-              ) : null}
+            </div>
+
+            <div className="mt-6 grid grid-cols-5 gap-2" data-testid="bp-action-tiles">
+              {actionTiles.map(({ label, icon: Icon, onClick, emphasis }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={onClick}
+                  className={`flex min-h-[74px] flex-col items-center justify-center gap-2 rounded-[var(--ts-radius-control)] border px-2 text-center text-xs font-medium transition hover:-translate-y-0.5 ${
+                    emphasis
+                      ? "border-ts-orange bg-ts-orange text-black hover:bg-ts-orange-dark hover:text-white"
+                      : "border-white/12 bg-white/[0.045] text-white hover:border-ts-orange/50 hover:bg-ts-orange/10"
+                  }`}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="leading-tight">{label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-6 border-t border-white/10 pt-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold">Services</h2>
+                <span className="text-xs font-medium text-ts-orange">All services</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {featuredServices.map((service, idx) => (
+                  <div
+                    key={`${service}-${idx}`}
+                    className="min-h-[92px] rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-3"
+                  >
+                    <Wrench className="mb-3 h-5 w-5 text-ts-orange" />
+                    <div className="text-sm font-medium leading-tight text-white">{service}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {hasDescription ? (
+              <div className="mt-6 border-t border-white/10 pt-5">
+                <h2 className="mb-2 text-lg font-semibold">About</h2>
+                <p className="max-w-3xl text-sm leading-6 text-white/72" data-testid="bp-mission">
+                  <span data-testid="bp-description">{profile.description}</span>
+                </p>
+              </div>
+            ) : null}
+
+            <div className="mt-6 border-t border-white/10 pt-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h2 className="text-lg font-semibold">Recent Work</h2>
+                <span className="text-xs font-medium text-ts-orange">Owner media</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {recentWorkPlaceholders.map((item) => (
+                  <div
+                    key={item.label}
+                    className="aspect-[1.55] rounded-[var(--ts-radius-control)] border border-white/10 bg-[radial-gradient(circle_at_30%_20%,rgba(255,107,0,0.18),transparent_34%),rgba(255,255,255,0.045)] p-3"
+                  >
+                    <Images className="mb-2 h-5 w-5 text-ts-orange" />
+                    <div className="text-sm font-semibold">{item.label}</div>
+                    <div className="text-xs text-white/55">{item.detail}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <aside className="border-t border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-5 lg:border-l lg:border-t-0">
+          <aside className="border-t border-white/10 bg-white/[0.045] p-5 lg:border-l lg:border-t-0">
             <div className="space-y-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-white/48">
-                  Lead action
+                  TradeScout action
                 </div>
                 <div className="mt-1 text-lg font-semibold text-white">
                   {showClaimCta ? "Claim or connect" : "Direct Connect"}
@@ -862,6 +987,16 @@ export default function BusinessProfileView() {
                   </div>
                 ))}
               </div>
+
+              <div className="rounded-[var(--ts-radius-control)] border border-white/10 bg-black/25 p-3">
+                <Store className="mb-2 h-4 w-4 text-ts-orange" />
+                <div className="text-xs font-semibold uppercase tracking-[0.12em] text-white/44">
+                  Profile home
+                </div>
+                <div className="mt-1 text-sm leading-5 text-white/72">
+                  Save this TradeScout profile to your home screen for one-tap access.
+                </div>
+              </div>
             </div>
           </aside>
         </div>
@@ -897,7 +1032,7 @@ export default function BusinessProfileView() {
             <span data-testid="bp-description">{profile.description}</span>
           </p>
         </div>
-      ) : isOwner ? (
+      ) : isOwner && !hasDescription ? (
         <div className="ts-panel mb-6 p-5">
           <div className="text-sm font-semibold text-white">Add a short profile intro</div>
           <Button
@@ -1010,43 +1145,6 @@ export default function BusinessProfileView() {
       ) : null}
 
       <Separator className="my-6" />
-
-      {visibleSections.services && serviceList.length > 0 ? (
-        <Card className="mb-6" style={themeStyle}>
-          <CardHeader>
-            <CardTitle>Services</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {serviceList.map((service, idx) => (
-                <div key={`${service}-${idx}`} className="rounded-lg border bg-background/40 p-4">
-                  <div className="font-medium">{service}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Available through this TradeScout business page.
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {visibleSections.about && hasDescription ? (
-        <Card className="mb-6" style={themeStyle}>
-          <CardHeader>
-            <CardTitle>About</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
-              className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground"
-              data-testid="bp-mission"
-              data-description={profile.description}
-            >
-              <span data-testid="bp-description">{profile.description}</span>
-            </p>
-          </CardContent>
-        </Card>
-      ) : null}
 
       {contentBlocks.length > 0 ? (
         <div className="mb-6 space-y-4">

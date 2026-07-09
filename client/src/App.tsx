@@ -103,6 +103,7 @@ const AppLayout = memo(function AppLayout() {
     pathOnly.startsWith("/collections/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
+  const isPublicBusinessProfileSurface = /^\/business\/[^/]+$/.test(pathOnly);
 
   const { user, isAuthenticated, isLoading } = useAuth();
   const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;
@@ -263,7 +264,8 @@ const AppLayout = memo(function AppLayout() {
     !isPublicCampaignRoute &&
     !isShareRoute &&
     !isAuthSurface &&
-    !isDirectConnectSurface;
+    !isDirectConnectSurface &&
+    !isPublicBusinessProfileSurface;
 
   const appBackgroundClass = "";
   const mainClassName = "flex-1 relative w-full";
@@ -345,6 +347,7 @@ const AppLayout = memo(function AppLayout() {
         !isLandingRoute &&
         !isPublicCampaignRoute &&
         !isShareRoute &&
+        !isPublicBusinessProfileSurface &&
         !FEATURE_EDUCATION_REPLACEMENT && (
           <div className="hidden md:block">
             <Suspense fallback={null}>
@@ -354,7 +357,7 @@ const AppLayout = memo(function AppLayout() {
         )}
 
       {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
-      {!isLlmRoute && !isLandingRoute && !isShareRoute && (
+      {!isLlmRoute && !isLandingRoute && !isShareRoute && !isPublicBusinessProfileSurface && (
         <div className="hidden md:block">
           <Suspense fallback={null}>
             <ProfileCompletionBanner />

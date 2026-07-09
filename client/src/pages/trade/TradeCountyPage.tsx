@@ -4,7 +4,7 @@ import { Link, useLocation, useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Building2, MapPinned, Search, ShieldCheck } from "lucide-react";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -288,33 +288,63 @@ const TradeCountyPage = memo(function TradeCountyPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-hidden rounded-[var(--ts-radius-panel)] border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-              <div className="grid grid-cols-[minmax(0,1fr)_112px] border-b border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/45 sm:grid-cols-[minmax(0,1fr)_132px_44px]">
-                <div>Business</div>
-                <div>Status</div>
-                <div className="hidden sm:block" />
-              </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {items.map((biz) => (
                 <Link key={biz.id} href={`/business/${encodeURIComponent(biz.slug)}`}>
-                  <a className="group grid grid-cols-[minmax(0,1fr)_112px] items-center border-b border-[color:var(--border-subtle)] px-4 py-3 transition-colors last:border-b-0 hover:bg-white/[0.055] sm:grid-cols-[minmax(0,1fr)_132px_44px]">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ts-radius-control)] border border-ts-orange/25 bg-ts-orange/10 text-ts-orange">
-                        <Building2 className="h-4 w-4" />
-                      </span>
-                      <span className="truncate font-semibold group-hover:text-ts-orange">
-                        {biz.name}
-                      </span>
+                  <a className="group overflow-hidden rounded-[var(--ts-radius-panel)] border border-white/10 bg-[color:var(--surface-card)] shadow-xl shadow-black/25 transition hover:-translate-y-0.5 hover:border-ts-orange/40">
+                    <div className="relative h-20 border-b border-white/10 bg-black">
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_0%,rgba(255,107,0,0.26),transparent_34%),linear-gradient(135deg,rgba(255,107,0,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.72))]" />
+                      <div className="absolute bottom-3 left-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/58">
+                        <Building2 className="h-3.5 w-3.5 text-ts-orange" />
+                        Business home
+                      </div>
                     </div>
-                    <Badge
-                      variant={biz.claimStatus === "claimed" ? "default" : "secondary"}
-                      className="w-fit shrink-0"
-                    >
-                      {biz.claimStatus === "claimed" ? (
-                        <ShieldCheck className="mr-1 h-3 w-3" />
-                      ) : null}
-                      {biz.claimStatus === "claimed" ? "Claimed" : "Unclaimed"}
-                    </Badge>
-                    <ArrowRight className="hidden h-4 w-4 justify-self-end text-white/30 transition group-hover:translate-x-0.5 group-hover:text-ts-orange sm:block" />
+                    <div className="p-4">
+                      <div className="-mt-10 mb-3 flex items-end justify-between gap-3">
+                        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-ts-orange bg-black text-lg font-bold text-white shadow-lg shadow-black/40">
+                          {biz.name
+                            .split(/\s+/)
+                            .map((word) => word[0])
+                            .join("")
+                            .slice(0, 2)
+                            .toUpperCase()}
+                        </span>
+                        <Badge
+                          variant={biz.claimStatus === "claimed" ? "default" : "secondary"}
+                          className="w-fit shrink-0"
+                        >
+                          {biz.claimStatus === "claimed" ? (
+                            <ShieldCheck className="mr-1 h-3 w-3" />
+                          ) : null}
+                          {biz.claimStatus === "claimed" ? "Claimed" : "Unclaimed"}
+                        </Badge>
+                      </div>
+                      <div className="truncate text-lg font-semibold text-white group-hover:text-ts-orange">
+                        {biz.name}
+                      </div>
+                      <p className="mt-2 text-sm leading-5 text-white/62">
+                        {trade.name} profile in {marketLabel}. Contact stays protected through
+                        Direct Connect.
+                      </p>
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-white/70">
+                        <div className="rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-2">
+                          <div className="font-semibold uppercase tracking-[0.12em] text-white/44">
+                            Trade
+                          </div>
+                          <div className="mt-1 truncate">{trade.name}</div>
+                        </div>
+                        <div className="rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-2">
+                          <div className="font-semibold uppercase tracking-[0.12em] text-white/44">
+                            Contact
+                          </div>
+                          <div className="mt-1">Protected</div>
+                        </div>
+                      </div>
+                      <div className="mt-4 inline-flex items-center text-sm font-semibold text-ts-orange">
+                        View Profile
+                        <ArrowRight className="ml-1 h-4 w-4 transition group-hover:translate-x-0.5" />
+                      </div>
+                    </div>
                   </a>
                 </Link>
               ))}

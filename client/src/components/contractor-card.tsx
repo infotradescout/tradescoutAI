@@ -13,6 +13,7 @@ import {
   Shield,
   ExternalLink,
   Users,
+  ArrowRight,
 } from "lucide-react";
 import type { Contractor } from "@shared/schema";
 
@@ -89,19 +90,29 @@ export default function ContractorCard({
       : `/business/${encodeURIComponent(contractor.slug)}`;
 
   return (
-    <Card className="ts-card" data-testid={`contractor-card`}>
-      <CardContent className={`${compact ? "p-4" : "p-3 md:p-6"}`}>
+    <Card
+      className="group overflow-hidden border-white/10 bg-[color:var(--surface-card)] shadow-xl shadow-black/25 transition hover:-translate-y-0.5 hover:border-ts-orange/40"
+      data-testid={`contractor-card`}
+    >
+      <div className="relative h-20 overflow-hidden border-b border-white/10 bg-black">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_10%,rgba(255,107,0,0.28),transparent_34%),linear-gradient(135deg,rgba(255,107,0,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.72))]" />
+        <div className="absolute bottom-3 left-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/58">
+          <Shield className="h-3.5 w-3.5 text-ts-orange" />
+          TradeScout profile
+        </div>
+      </div>
+      <CardContent className={`${compact ? "p-4" : "p-4 md:p-5"}`}>
         {/* Company Avatar + Trust */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="-mt-12 mb-4 flex items-end justify-between gap-3">
           <div
             className={`${
-              compact ? "w-12 h-12 text-lg" : "w-16 h-16 text-xl"
-            } ts-accent-btn rounded-lg flex items-center justify-center font-bold`}
+              compact ? "h-14 w-14 text-lg" : "h-20 w-20 text-xl"
+            } flex shrink-0 items-center justify-center rounded-full border-2 border-ts-orange bg-black font-bold text-white shadow-lg shadow-black/40`}
           >
             {companyInitials}
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <div className="flex items-center space-x-1">
               <ThumbsUp className={`${compact ? "h-3 w-3" : "h-4 w-4"} text-green-400`} />
               <span className={`text-green-400 font-medium ${compact ? "text-xs" : "text-sm"}`}>
@@ -120,7 +131,7 @@ export default function ContractorCard({
               className={`text-white/70 ${compact ? "text-xs" : "text-sm"}`}
               data-testid="recommendation-count"
             >
-              ({contractor.totalRecommendations || 0} total)
+              {contractor.totalRecommendations || 0} total
             </span>
             {connectionRecommendationCount !== null && (
               <span
@@ -136,7 +147,7 @@ export default function ContractorCard({
         {/* Company Name */}
         <Link href={profileHref}>
           <h3
-            className={`font-semibold mb-2 transition-colors cursor-pointer text-[color:var(--text-primary)] hover:text-[color:var(--theme-accent-primary)] ${
+            className={`mb-2 cursor-pointer font-semibold text-white transition-colors hover:text-ts-orange ${
               compact ? "text-base" : "text-lg"
             }`}
           >
@@ -177,7 +188,7 @@ export default function ContractorCard({
         </div>
 
         {/* Service Areas */}
-        <p className={`text-white/70 mb-4 flex items-center ${compact ? "text-xs" : "text-sm"}`}>
+        <p className={`mb-4 flex items-center text-white/70 ${compact ? "text-xs" : "text-sm"}`}>
           <MapPin
             className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
             style={{ color: "var(--theme-accent-primary)" }}
@@ -187,30 +198,28 @@ export default function ContractorCard({
 
         {/* Business Info */}
         <div
-          className={`flex items-center justify-between text-white/70 mb-4 ${
-            compact ? "text-xs" : "text-sm"
-          }`}
+          className={`mb-4 grid grid-cols-3 gap-2 text-white/70 ${compact ? "text-xs" : "text-sm"}`}
         >
-          <span className="flex items-center">
+          <span className="min-w-0 rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-2">
             <Calendar
-              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
+              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mb-1`}
               style={{ color: "var(--theme-accent-primary)" }}
             />
-            {yearsInBusinessLabel}
+            <span className="block truncate">{yearsInBusinessLabel}</span>
           </span>
-          <span className="flex items-center">
+          <span className="min-w-0 rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-2">
             <Clock
-              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
+              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mb-1`}
               style={{ color: "var(--theme-accent-primary)" }}
             />
-            {responseTimeLabel}
+            <span className="block truncate">{responseTimeLabel}</span>
           </span>
-          <span className="flex items-center">
+          <span className="min-w-0 rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-2">
             <ThumbsUp
-              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mr-1`}
+              className={`${compact ? "h-3 w-3" : "h-4 w-4"} mb-1`}
               style={{ color: "var(--theme-accent-primary)" }}
             />
-            {recommendationLabel}
+            <span className="block truncate">{recommendationLabel}</span>
           </span>
         </div>
 
@@ -243,10 +252,10 @@ export default function ContractorCard({
 
         {/* Action Buttons */}
         {showCallToAction ? (
-          <div className="flex space-x-2">
+          <div className="grid grid-cols-2 gap-2">
             <Link
               href={`/direct-connect?intent=hire&contractor=${encodeURIComponent(contractor.slug)}`}
-              className={requestOnly ? "w-full" : "flex-1"}
+              className={requestOnly ? "col-span-2" : ""}
             >
               <Button className="w-full ts-accent-btn transition-all duration-300">
                 <MessageSquare className="h-4 w-4 mr-1" />
@@ -254,13 +263,13 @@ export default function ContractorCard({
               </Button>
             </Link>
 
-            <Link href={profileHref} className={requestOnly ? "w-full" : "flex-1"}>
+            <Link href={profileHref} className={requestOnly ? "col-span-2" : ""}>
               <Button
                 variant="outline"
                 className="w-full border-white/10 text-white hover:bg-white/10"
               >
-                <ExternalLink className="h-4 w-4 mr-1" />
                 View Profile
+                <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
           </div>

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Search } from "lucide-react";
+import { ArrowRight, Building2, MapPin, Search, ShieldCheck, Store } from "lucide-react";
 import { Link } from "wouter";
 import { Page, Section } from "@/components/layout/PagePrimitives";
 
@@ -108,119 +108,163 @@ export default function BusinessDirectoryPage() {
             Business Directory{titleSuffix ? ` (${titleSuffix})` : ""}
           </span>
         }
-        subtitle={<>Seeded listings are labeled <span className="font-medium text-white">Unclaimed</span>. Contact stays Scout-gated.</>}
+        subtitle={
+          <>
+            Seeded listings are labeled <span className="font-medium text-white">Unclaimed</span>.
+            Contact stays Scout-gated.
+          </>
+        }
       >
-      <Card className="mb-6">
-        <CardContent className="grid gap-3 md:grid-cols-4 pt-6">
-          <div className="md:col-span-1">
-            <div className="text-xs text-muted-foreground mb-1">County FIPS</div>
-            <Input
-              value={countyFips}
-              onChange={(e) => setCountyFips(e.target.value.replace(/\D/g, "").slice(0, 5))}
-              placeholder="12033"
-              inputMode="numeric"
-            />
-          </div>
-          <div className="md:col-span-1">
-            <div className="text-xs text-muted-foreground mb-1">State (optional)</div>
-            <Input
-              value={stateCode}
-              onChange={(e) =>
-                setStateCode(
-                  e.target.value
-                    .toUpperCase()
-                    .replace(/[^A-Z]/g, "")
-                    .slice(0, 2)
-                )
-              }
-              placeholder="FL"
-            />
-          </div>
-          <div className="md:col-span-1">
-            <div className="text-xs text-muted-foreground mb-1">Status</div>
-            <Select value={claimed} onValueChange={(v) => setClaimed(v as any)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unclaimed">Unclaimed</SelectItem>
-                <SelectItem value="claimed">Claimed</SelectItem>
-                <SelectItem value="any">Any</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="md:col-span-1">
-            <div className="text-xs text-muted-foreground mb-1">Search</div>
-            <div className="flex gap-2">
+        <Card className="mb-6">
+          <CardContent className="grid gap-3 md:grid-cols-4 pt-6">
+            <div className="md:col-span-1">
+              <div className="text-xs text-muted-foreground mb-1">County FIPS</div>
               <Input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search by name"
+                value={countyFips}
+                onChange={(e) => setCountyFips(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                placeholder="12033"
+                inputMode="numeric"
               />
-              <Button onClick={applyFilters} variant="default">
-                <Search className="h-4 w-4" />
-              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="md:col-span-1">
+              <div className="text-xs text-muted-foreground mb-1">State (optional)</div>
+              <Input
+                value={stateCode}
+                onChange={(e) =>
+                  setStateCode(
+                    e.target.value
+                      .toUpperCase()
+                      .replace(/[^A-Z]/g, "")
+                      .slice(0, 2)
+                  )
+                }
+                placeholder="FL"
+              />
+            </div>
+            <div className="md:col-span-1">
+              <div className="text-xs text-muted-foreground mb-1">Status</div>
+              <Select value={claimed} onValueChange={(v) => setClaimed(v as any)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unclaimed">Unclaimed</SelectItem>
+                  <SelectItem value="claimed">Claimed</SelectItem>
+                  <SelectItem value="any">Any</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-1">
+              <div className="text-xs text-muted-foreground mb-1">Search</div>
+              <div className="flex gap-2">
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search by name"
+                />
+                <Button onClick={applyFilters} variant="default">
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-      {isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading directory…</div>
-      ) : error ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-sm text-red-500">Failed to load directory.</div>
-          </CardContent>
-        </Card>
-      ) : !enabled ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-sm text-muted-foreground">
-              Enter a county FIPS to view businesses.
-            </div>
-          </CardContent>
-        </Card>
-      ) : items.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-sm text-muted-foreground">
-              No businesses found for that county/filter.
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-3">
-          {items.map((b) => (
-            <Card key={b.id}>
-              <CardContent className="pt-6 flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="font-semibold truncate">{b.name}</div>
-                    {String(b.claimStatus) === "unclaimed" ? (
-                      <Badge variant="secondary">Unclaimed</Badge>
-                    ) : (
-                      <Badge variant="outline">Claimed</Badge>
-                    )}
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Loading directory…</div>
+        ) : error ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-red-500">Failed to load directory.</div>
+            </CardContent>
+          </Card>
+        ) : !enabled ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-muted-foreground">
+                Enter a county FIPS to view businesses.
+              </div>
+            </CardContent>
+          </Card>
+        ) : items.length === 0 ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="text-sm text-muted-foreground">
+                No businesses found for that county/filter.
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {items.map((b) => (
+              <Card
+                key={b.id}
+                className="group overflow-hidden border-white/10 bg-[color:var(--surface-card)] shadow-xl shadow-black/25 transition hover:-translate-y-0.5 hover:border-ts-orange/40"
+              >
+                <CardContent className="p-0">
+                  <div className="relative h-20 border-b border-white/10 bg-black">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,107,0,0.26),transparent_34%),linear-gradient(135deg,rgba(255,107,0,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.72))]" />
+                    <div className="absolute bottom-3 left-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-white/58">
+                      <Store className="h-3.5 w-3.5 text-ts-orange" />
+                      Business home
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {b.counties?.[0]
-                      ? `${b.counties[0].name}, ${b.counties[0].stateCode} (FIPS ${b.counties[0].fips})`
-                      : "County unknown"}
+                  <div className="p-4">
+                    <div className="-mt-10 mb-3 flex items-end justify-between gap-3">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-ts-orange bg-black text-lg font-bold text-white shadow-lg shadow-black/40">
+                        {b.name
+                          .split(/\s+/)
+                          .map((word) => word[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </div>
+                      {String(b.claimStatus) === "unclaimed" ? (
+                        <Badge variant="secondary">Unclaimed</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-emerald-400/40 text-emerald-300">
+                          <ShieldCheck className="mr-1 h-3 w-3" />
+                          Claimed
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-lg font-semibold text-white">{b.name}</div>
+                      <div className="mt-2 flex items-center gap-2 text-xs text-white/62">
+                        <MapPin className="h-3.5 w-3.5 text-ts-orange" />
+                        <span className="truncate">
+                          {b.counties?.[0]
+                            ? `${b.counties[0].name}, ${b.counties[0].stateCode}`
+                            : "County unknown"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-white/70">
+                      <div className="rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-2">
+                        <div className="font-semibold uppercase tracking-[0.12em] text-white/44">
+                          Source
+                        </div>
+                        <div className="mt-1">Directory</div>
+                      </div>
+                      <div className="rounded-[var(--ts-radius-control)] border border-white/10 bg-white/[0.045] p-2">
+                        <div className="font-semibold uppercase tracking-[0.12em] text-white/44">
+                          Contact
+                        </div>
+                        <div className="mt-1">Protected</div>
+                      </div>
+                    </div>
+                    <Link href={`/business/${encodeURIComponent(b.slug)}`}>
+                      <Button className="mt-4 w-full ts-accent-btn">
+                        View Profile
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
-                </div>
-                <div className="shrink-0">
-                  <Link href={`/business/${encodeURIComponent(b.slug)}`}>
-                    <Button variant="outline" size="sm">
-                      View
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </Section>
     </Page>
   );
