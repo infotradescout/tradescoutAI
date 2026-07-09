@@ -6,6 +6,8 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
       TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+      TEST_DB_LANE_LOCK_NAME: tradescout_test_db_integration_lane_v1
+      TEST_DB_BOOTSTRAP_LOCK_TIMEOUT_MS: "2700000"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,4 +23,6 @@ jobs:
       - run: npm ci
       - name: Validate required test DB env
         run: test -n "$TEST_DATABASE_URL"
+      - name: Push schema to test DB
+        run: npm run db:push:test
       - run: npm run verify
