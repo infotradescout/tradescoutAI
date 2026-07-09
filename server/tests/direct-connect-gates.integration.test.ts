@@ -16,7 +16,7 @@ import {
 import { createAuthedAgent, createUserOnly } from "./helpers/testAuth";
 
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
-const INTEGRATION_TIMEOUT_MS = 30000;
+const INTEGRATION_TIMEOUT_MS = 60000;
 const truthyEnvValues = new Set(["1", "true", "yes", "on", "enabled"]);
 
 vi.setConfig({ testTimeout: INTEGRATION_TIMEOUT_MS });

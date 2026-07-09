@@ -16,7 +16,8 @@ dotenv.config({ path: path.join(repoRoot, ".env.local") });
 dotenv.config({ path: path.join(repoRoot, ".env") });
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
-const bootstrapLockName = "tradescout_test_db_bootstrap_v4";
+const bootstrapLockName =
+  String(process.env.TEST_DB_LANE_LOCK_NAME || "").trim() || "tradescout_test_db_bootstrap_v4";
 const bootstrapLockOwner = `${process.env.GITHUB_RUN_ID || "local"}:${process.pid}:${randomUUID()}`;
 const defaultBootstrapLockTimeoutMs = 20 * 60 * 1000;
 
@@ -155,7 +156,7 @@ async function waitForLeaseLock(client, lockName, owner) {
       throw new Error(
         `[bootstrap-test-db] Timed out after ${Math.round(
           bootstrapLockTimeoutMs / 1000
-        )}s waiting for test DB bootstrap lock.${holderSummary}`
+        )}s waiting for test DB bootstrap lock ${lockName}.${holderSummary}`
       );
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -168,11 +169,11 @@ async function withBootstrapLock(task) {
   let lockAcquired = false;
   let heartbeat;
   try {
-    console.log("[bootstrap-test-db] Waiting for test DB bootstrap lock...");
+    console.log(`[bootstrap-test-db] Waiting for test DB bootstrap lock ${bootstrapLockName}...`);
     await ensureLeaseTable(client);
     await waitForLeaseLock(client, bootstrapLockName, bootstrapLockOwner);
     lockAcquired = true;
-    console.log("[bootstrap-test-db] Test DB bootstrap lock acquired.");
+    console.log(`[bootstrap-test-db] Test DB bootstrap lock ${bootstrapLockName} acquired.`);
     heartbeat = setInterval(() => {
       client
         .query(

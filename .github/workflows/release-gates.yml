@@ -17,6 +17,7 @@ jobs:
       MASTER_ADMIN_EMAIL: ${{ secrets.MASTER_ADMIN_EMAIL }}
       MASTER_ADMIN_PASSWORD: ${{ secrets.MASTER_ADMIN_PASSWORD }}
       TEST_DB_LANE_LOCK_NAME: tradescout_test_db_integration_lane_v1
+      TEST_DB_BOOTSTRAP_LOCK_TIMEOUT_MS: "2700000"
 
     steps:
       - name: Checkout repository
