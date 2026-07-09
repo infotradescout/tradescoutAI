@@ -2128,8 +2128,9 @@ async function ensureCriticalSchema() {
 async function main() {
   const env = { ...process.env, DATABASE_URL: testDatabaseUrl, TEST_DATABASE_URL: testDatabaseUrl };
   const fullSync = process.argv.includes("--full-sync");
+  const laneLockAlreadyHeld = process.env.TEST_DB_LANE_LOCK_HELD === bootstrapLockName;
 
-  await withBootstrapLock(async () => {
+  const bootstrap = async () => {
     if (fullSync) {
       const pushCode = await runWithInput(
         "npx",
@@ -2144,7 +2145,16 @@ async function main() {
     }
 
     await ensureCriticalSchema();
-  });
+  };
+
+  if (laneLockAlreadyHeld) {
+    console.log(
+      `[bootstrap-test-db] Reusing already-held test DB lane lock ${bootstrapLockName}.`
+    );
+    await bootstrap();
+  } else {
+    await withBootstrapLock(bootstrap);
+  }
   console.log("[bootstrap-test-db] Test DB schema is ready.");
 }
 

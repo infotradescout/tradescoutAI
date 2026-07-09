@@ -100,7 +100,12 @@ async function runLocked() {
         .catch(() => {});
     }, 30_000);
 
-    const env = { ...process.env, DATABASE_URL: testDatabaseUrl, TEST_DATABASE_URL: testDatabaseUrl };
+    const env = {
+      ...process.env,
+      DATABASE_URL: testDatabaseUrl,
+      TEST_DATABASE_URL: testDatabaseUrl,
+      TEST_DB_LANE_LOCK_HELD: laneLockName,
+    };
     const child = await spawnCommand(command, args, {
       cwd: repoRoot,
       stdio: "inherit",
