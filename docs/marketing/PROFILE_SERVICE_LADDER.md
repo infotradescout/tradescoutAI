@@ -111,6 +111,130 @@ Add branding or monthly management whenever you want TradeScout to keep it polis
 Your TradeScout Profile can be your website, customer intake hub, local discovery page, Direct Connect profile, business toolkit, and custom-domain destination all in one.
 ```
 
+## Home-Screen App Positioning
+
+TradeScout should support two install experiences:
+
+1. Install TradeScout as the main app.
+2. Save a specific profile or business dashboard as its own home-screen app shortcut.
+
+The main TradeScout app should open the broad TradeScout experience. A profile home-screen app should open directly to the business owner's profile dashboard or profile management surface, so the owner gets one-tap access to their business hub.
+
+Use this product framing:
+
+```text
+Add your TradeScout Profile to your home screen so your business hub is one tap away.
+```
+
+For business owners:
+
+```text
+Save your profile as an app icon and jump straight back to your dashboard whenever you need to update services, photos, offers, contact settings, or profile details.
+```
+
+For public/customer-facing profile pages:
+
+```text
+Customers can save your TradeScout Profile to their home screen for quick access to your services, updates, and protected contact path.
+```
+
+### Expected Behavior
+
+- TradeScout app install opens the normal TradeScout entry point.
+- Profile install opens that specific profile or profile dashboard.
+- Business-owner shortcut should prefer the authenticated dashboard path.
+- Public profile shortcut should prefer the public profile path.
+- The installed icon name should use the business/profile name when possible.
+- The installed icon should use the business logo when available, falling back to TradeScout identity assets.
+- Contact still remains gated. A saved icon must not bypass intent, decision, verification, or contact rules.
+
+### Browser Reality
+
+Use careful wording because install behavior differs by platform.
+
+Chrome and other Chromium browsers can support a true install prompt when the current page has a valid manifest and service worker.
+
+iOS Safari does not support the same one-click install prompt. It uses the Share sheet and "Add to Home Screen." The UX should still make this feel simple, but copy should not promise literal one-click install on iPhone.
+
+Production-safe copy:
+
+```text
+Add this profile to your home screen.
+```
+
+Avoid overpromising:
+
+```text
+One-click install on every phone.
+```
+
+### Technical Requirement
+
+The profile install flow should use a profile-specific web app manifest or manifest endpoint so each saved profile can have its own:
+
+- app name
+- short name
+- start URL
+- app ID
+- icon
+- theme color where appropriate
+
+Example shape:
+
+```text
+/manifest/profile/:profileSlug.webmanifest
+```
+
+The profile manifest should set:
+
+```json
+{
+  "name": "{Business Name} on TradeScout",
+  "short_name": "{Business Name}",
+  "start_url": "/business/{slug}?entry=profile_app",
+  "id": "/business/{slug}",
+  "scope": "/",
+  "display": "standalone"
+}
+```
+
+For authenticated owners, the install CTA can point the user at a dashboard start URL when appropriate:
+
+```text
+/business/{slug}/edit?entry=profile_app
+```
+
+or the canonical owner dashboard path if the repo standardizes one.
+
+### Owner Dashboard CTA
+
+Use this CTA for authenticated business owners:
+
+```text
+Add My Profile App
+```
+
+Alternate compact label:
+
+```text
+Save to Home Screen
+```
+
+Support copy:
+
+```text
+Create a home-screen icon that opens straight to your TradeScout Profile dashboard.
+```
+
+### Guardrails For Profile Apps
+
+- Do not create a contact bypass.
+- Do not expose private dashboard routes to public users.
+- Do not claim iOS supports browser-native one-click install.
+- Do not fork profile identity away from TradeScout. Use "{Business Name} on TradeScout" where space allows.
+- Do not create a separate native app promise. This is a PWA/home-screen shortcut flow unless native app work is explicitly scoped.
+- Do not imply customers can globally act from saved profile shortcuts. Any action must stay inside TradeScout's gated flows.
+
 ## Production-Safe Wording
 
 Use this wording until every named tool is confirmed live in production:
