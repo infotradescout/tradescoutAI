@@ -18,7 +18,27 @@ dotenv.config({ path: path.join(repoRoot, ".env") });
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 const bootstrapLockName = "tradescout_test_db_bootstrap_v4";
 const bootstrapLockOwner = `${process.env.GITHUB_RUN_ID || "local"}:${process.pid}:${randomUUID()}`;
-const bootstrapLockTimeoutMs = Number(process.env.TEST_DB_BOOTSTRAP_LOCK_TIMEOUT_MS || 20 * 60 * 1000);
+const defaultBootstrapLockTimeoutMs = 20 * 60 * 1000;
+
+function parseBootstrapLockTimeoutMs(rawValue) {
+  if (typeof rawValue === "undefined" || String(rawValue).trim() === "") {
+    return defaultBootstrapLockTimeoutMs;
+  }
+
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    console.error(
+      "Invalid TEST_DB_BOOTSTRAP_LOCK_TIMEOUT_MS. Expected a positive finite millisecond value."
+    );
+    process.exit(2);
+  }
+
+  return parsed;
+}
+
+const bootstrapLockTimeoutMs = parseBootstrapLockTimeoutMs(
+  process.env.TEST_DB_BOOTSTRAP_LOCK_TIMEOUT_MS
+);
 
 if (!testDatabaseUrl) {
   console.error("Missing TEST_DATABASE_URL. Run `node scripts/ensure-test-db.mjs` first.");
