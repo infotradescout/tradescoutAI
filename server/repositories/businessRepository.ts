@@ -19,7 +19,7 @@ export type PublicBusinessRecord = {
   serviceAreas: string[];
   contactEmail?: string;
   contactPhone?: string;
-  premiumProfile: boolean;
+  tradePartner: boolean;
   brandColors?: {
     primary?: string;
     primaryDark?: string;
@@ -213,7 +213,7 @@ export class BusinessRepository {
       name: business.name,
       categories,
       serviceAreas: countyRows.map((r) => r.countyId),
-      premiumProfile: business.profileData?.premiumProfile === true,
+      tradePartner: business.profileData?.tradePartner === true,
       ...(business.profileData?.brandColors
         ? { brandColors: business.profileData.brandColors }
         : {}),

@@ -19,11 +19,11 @@ import {
 import { Page } from "@/components/layout/PagePrimitives";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 
-// Premium profile theme is a paid tier: any business with `premiumProfile: true`
-// gets the richer branded layout, regardless of category. It is not tied to
-// being a wholesaler/supplier specifically -- that's just who's bought it so far.
-function hasPremiumProfile(business: PublicBusinessSubset): boolean {
-  return Boolean(business?.premiumProfile);
+// TradePartner is a paid tier: any business with `tradePartner: true` gets the
+// richer branded layout, regardless of category. It is not tied to being a
+// wholesaler/supplier specifically -- that's just who's bought it so far.
+function isTradePartner(business: PublicBusinessSubset): boolean {
+  return Boolean(business?.tradePartner);
 }
 
 type ProfileSections = {
@@ -81,7 +81,7 @@ type PublicBusinessSubset = {
   name: string;
   categories: string[];
   serviceAreas: string[];
-  premiumProfile?: boolean;
+  tradePartner?: boolean;
   brandColors?: {
     primary?: string;
     primaryDark?: string;
@@ -322,7 +322,7 @@ export default function ProfileSiteView() {
     })
     .filter((item) => item.body.length > 0);
 
-  if (hasPremiumProfile(business)) {
+  if (isTradePartner(business)) {
     return (
       <>
         <SEOHelmet

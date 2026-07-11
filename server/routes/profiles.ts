@@ -641,7 +641,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         name: business.name,
         categories: business.categories || [],
         serviceAreas: business.serviceAreas || [],
-        premiumProfile: business.premiumProfile === true,
+        tradePartner: business.tradePartner === true,
         ...(business.brandColors ? { brandColors: business.brandColors } : {}),
       }
     : null;

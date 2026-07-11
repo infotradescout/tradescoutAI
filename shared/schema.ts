@@ -727,7 +727,7 @@ export const businesses = pgTable(
         zipCode?: string;
         contactPreference?: "call" | "email" | "message";
         importExtras?: Record<string, string>;
-        premiumProfile?: boolean;
+        tradePartner?: boolean;
         brandColors?: {
           primary?: string;
           primaryDark?: string;
