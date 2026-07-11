@@ -54,7 +54,7 @@ import { buildPublicLandingHtml } from "./publicLandingHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { detectActorFromUserAgent } from "./utils/requestActor";
-import { affiliateAccounts, profiles, users } from "@shared/schema";
+import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
@@ -883,6 +883,29 @@ app.use(landingContractHeaders);
 
                 const origin = resolvePublicOrigin(req);
                 const slug = String(req.params.slug || "");
+
+                // SEO: if this business has its own published, richer profile site
+                // (/u/:slug), consolidate authority there instead of serving a
+                // competing, self-canonicalized duplicate at /business/:slug.
+                try {
+                  const [linkedProfile] = await db
+                    .select({ slug: profiles.slug })
+                    .from(profiles)
+                    .innerJoin(businesses, eq(businesses.id, profiles.businessId))
+                    .where(and(eq(businesses.slug, slug), eq(profiles.status, "published" as any)))
+                    .limit(1);
+                  if (linkedProfile?.slug) {
+                    return res.redirect(
+                      301,
+                      `${origin}/u/${encodeURIComponent(linkedProfile.slug)}`
+                    );
+                  }
+                } catch (redirectCheckErr) {
+                  console.error(
+                    "Error checking for linked profile on /business/:slug",
+                    redirectCheckErr
+                  );
+                }
 
                 const html = await buildPublicBusinessHtml({ slug, origin, templateHtml });
                 if (!html) {
