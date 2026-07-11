@@ -619,7 +619,14 @@ async function queryWebsite(
       messageLower.includes("retail") ||
       messageLower.includes("store") ||
       messageLower.includes("tool") ||
-      messageLower.includes("equipment rental")
+      messageLower.includes("equipment rental") ||
+      messageLower.includes("stone") ||
+      messageLower.includes("granite") ||
+      messageLower.includes("marble") ||
+      messageLower.includes("quartzite") ||
+      messageLower.includes("quartz") ||
+      messageLower.includes("countertop") ||
+      messageLower.includes("slab")
     ) {
       // Directory businesses: awareness-only. Return links to business profiles, not phone/email.
       const seen = new Set<string>();
