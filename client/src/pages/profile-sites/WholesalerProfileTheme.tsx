@@ -185,7 +185,7 @@ export default function WholesalerProfileTheme({
               {displayName}
             </span>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-accent)]">
-              Verified Premium Profile
+              TradeScout TradePartner
             </p>
           </div>
           <Link href={ctaHref}>
