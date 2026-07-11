@@ -82,6 +82,13 @@ type PublicBusinessSubset = {
   categories: string[];
   serviceAreas: string[];
   premiumProfile?: boolean;
+  brandColors?: {
+    primary?: string;
+    primaryDark?: string;
+    accent?: string;
+    background?: string;
+    surface?: string;
+  };
 } | null;
 
 type PublicProfileResponse = {
@@ -332,6 +339,7 @@ export default function ProfileSiteView() {
           contentBlocks={contentBlocks}
           categories={business?.categories || []}
           serviceAreas={business?.serviceAreas || []}
+          brandColors={business?.brandColors}
           contactReason={profile.contactPolicy?.reason}
           hasViewerSession={hasViewerSession}
           isSuperAdminViewer={isSuperAdminViewer}

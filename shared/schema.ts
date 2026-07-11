@@ -728,6 +728,13 @@ export const businesses = pgTable(
         contactPreference?: "call" | "email" | "message";
         importExtras?: Record<string, string>;
         premiumProfile?: boolean;
+        brandColors?: {
+          primary?: string;
+          primaryDark?: string;
+          accent?: string;
+          background?: string;
+          surface?: string;
+        };
       }>()
       .default(sql`'{}'::jsonb`),
     claimStatus: varchar("claim_status", { length: 32 }).notNull().default("unclaimed"),
