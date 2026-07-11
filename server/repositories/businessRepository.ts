@@ -19,6 +19,7 @@ export type PublicBusinessRecord = {
   serviceAreas: string[];
   contactEmail?: string;
   contactPhone?: string;
+  premiumProfile: boolean;
 };
 
 type BusinessMutation = Omit<InsertBusiness, "id" | "ownerUserId" | "createdAt" | "updatedAt"> & {
@@ -205,6 +206,7 @@ export class BusinessRepository {
       name: business.name,
       categories,
       serviceAreas: countyRows.map((r) => r.countyId),
+      premiumProfile: business.profileData?.premiumProfile === true,
       ...(contactEmail ? { contactEmail } : {}),
       ...(contactPhone ? { contactPhone } : {}),
     };

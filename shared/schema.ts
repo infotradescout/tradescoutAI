@@ -727,6 +727,7 @@ export const businesses = pgTable(
         zipCode?: string;
         contactPreference?: "call" | "email" | "message";
         importExtras?: Record<string, string>;
+        premiumProfile?: boolean;
       }>()
       .default(sql`'{}'::jsonb`),
     claimStatus: varchar("claim_status", { length: 32 }).notNull().default("unclaimed"),

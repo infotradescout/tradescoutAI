@@ -49,7 +49,7 @@ const SUBTYPE_CATALOG: Record<PrimaryUserType, string[]> = {
   ],
   realtor: ["residential_realtor", "commercial_realtor", "buyer_agent", "listing_agent"],
   notary: ["mobile_notary", "remote_notary"],
-  business_owner: ["local_retail", "restaurant", "service_firm", "ecommerce"],
+  business_owner: ["local_retail", "restaurant", "service_firm", "ecommerce", "wholesaler"],
   community_builder: ["county_builder", "nonprofit_builder", "cause_builder"],
   platform_admin: ["ops_admin", "super_admin"],
 };
@@ -94,7 +94,18 @@ const PRIMARY_ROLE_HINTS: Array<{ type: PrimaryUserType; roles: string[] }> = [
   { type: "realtor", roles: ["realtor"] },
   { type: "contractor", roles: ["contractor", "contractor_user"] },
   { type: "community_builder", roles: ["community_builder"] },
-  { type: "business_owner", roles: ["business_owner", "restaurant_owner", "food_truck_owner"] },
+  {
+    type: "business_owner",
+    roles: [
+      "business_owner",
+      "restaurant_owner",
+      "food_truck_owner",
+      "wholesaler",
+      "distributor",
+      "supplier",
+      "vendor",
+    ],
+  },
   { type: "homeowner", roles: ["homeowner"] },
 ];
 
