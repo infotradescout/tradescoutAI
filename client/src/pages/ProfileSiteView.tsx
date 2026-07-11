@@ -17,6 +17,14 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { Page } from "@/components/layout/PagePrimitives";
+import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
+
+// Premium profile theme is a paid tier: any business with `premiumProfile: true`
+// gets the richer branded layout, regardless of category. It is not tied to
+// being a wholesaler/supplier specifically -- that's just who's bought it so far.
+function hasPremiumProfile(business: PublicBusinessSubset): boolean {
+  return Boolean(business?.premiumProfile);
+}
 
 type ProfileSections = {
   about?: boolean;
@@ -73,6 +81,7 @@ type PublicBusinessSubset = {
   name: string;
   categories: string[];
   serviceAreas: string[];
+  premiumProfile?: boolean;
 } | null;
 
 type PublicProfileResponse = {
@@ -305,6 +314,36 @@ export default function ProfileSiteView() {
       return { title, body: body.trim() };
     })
     .filter((item) => item.body.length > 0);
+
+  if (hasPremiumProfile(business)) {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          description={seoDescription}
+          canonical={`${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`}
+          ogType="profile"
+          ogImage={seoImage}
+          structuredData={structuredData}
+        />
+        <WholesalerProfileTheme
+          displayName={displayName}
+          headline={profile.headline}
+          contentBlocks={contentBlocks}
+          categories={business?.categories || []}
+          serviceAreas={business?.serviceAreas || []}
+          contactReason={profile.contactPolicy?.reason}
+          hasViewerSession={hasViewerSession}
+          isSuperAdminViewer={isSuperAdminViewer}
+          directConnectHref={directConnectHref}
+          preScoutCreateHref={preScoutCreateHref}
+          preScoutSignInHref={preScoutSignInHref}
+          recommendationsDirectory={recommendationsDirectory}
+          recommendationDirectorySummary={recommendationDirectorySummary}
+        />
+      </>
+    );
+  }
 
   return (
     <Page className="max-w-6xl space-y-6">

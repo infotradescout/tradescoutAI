@@ -641,6 +641,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         name: business.name,
         categories: business.categories || [],
         serviceAreas: business.serviceAreas || [],
+        premiumProfile: business.premiumProfile === true,
       }
     : null;
   const effectiveSeoMeta = buildAutoSeoMeta({
