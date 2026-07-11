@@ -23,11 +23,19 @@ type PublicProfileData = {
       pricingTableEnabled?: boolean;
       pricingRows?: Array<{ name?: string; priceLabel?: string }>;
     } | null;
+    contentBlocks?: Array<{ type: string; data?: Record<string, any> }> | null;
   };
   business?: {
     name?: string;
     categories?: string[];
     serviceAreas?: string[];
+    tradePartner?: boolean;
+    website?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    stateCode?: string;
+    zipCode?: string;
   } | null;
 };
 
@@ -57,6 +65,29 @@ function injectProfileSummary(html: string, summaryHtml: string) {
   return html.replace(/<div id="root"><\/div>/i, `<div id="root">${summaryHtml}</div>`);
 }
 
+function buildFaqJsonLd(profile: PublicProfileData) {
+  const faqBlock = (profile.profile.contentBlocks || []).find((block) => block?.type === "faq");
+  const faqs: Array<{ question?: string; answer?: string }> = Array.isArray(faqBlock?.data?.faqs)
+    ? faqBlock!.data!.faqs
+    : [];
+  const validFaqs = faqs.filter(
+    (faq) => typeof faq.question === "string" && typeof faq.answer === "string"
+  );
+  if (validFaqs.length === 0) return null;
+
+  return {
+    "@type": "FAQPage",
+    mainEntity: validFaqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+}
+
 function buildJsonLd(profile: PublicProfileData, origin: string) {
   const profileUrl = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
@@ -67,15 +98,45 @@ function buildJsonLd(profile: PublicProfileData, origin: string) {
     profile.profile.roleContext ||
     "TradeScout public profile";
 
+  const faqJsonLd = buildFaqJsonLd(profile);
+
   if (profile.business?.name) {
-    return {
-      "@context": "https://schema.org",
+    const isTradePartner = profile.business.tradePartner === true;
+    const localBusiness: Record<string, any> = {
       "@type": "LocalBusiness",
       name: displayName,
       description,
       url: profileUrl,
       areaServed: profile.business.serviceAreas?.slice(0, 10) || undefined,
       category: profile.business.categories?.slice(0, 5) || undefined,
+    };
+
+    // TradePartners have opted into public promotion, so their business
+    // contact details (distinct from anti-spam-gated Direct Connect DM
+    // contact) can power richer LocalBusiness structured data.
+    if (isTradePartner) {
+      if (profile.business.website) {
+        localBusiness.sameAs = [profile.business.website];
+      }
+      if (profile.business.phone) {
+        localBusiness.telephone = profile.business.phone;
+      }
+      if (profile.business.address || profile.business.city || profile.business.stateCode) {
+        localBusiness.address = {
+          "@type": "PostalAddress",
+          streetAddress: profile.business.address || undefined,
+          addressLocality: profile.business.city || undefined,
+          addressRegion: profile.business.stateCode || undefined,
+          postalCode: profile.business.zipCode || undefined,
+          addressCountry: "US",
+        };
+      }
+    }
+
+    if (!faqJsonLd) return { "@context": "https://schema.org", ...localBusiness };
+    return {
+      "@context": "https://schema.org",
+      "@graph": [localBusiness, faqJsonLd],
     };
   }
 
@@ -146,12 +207,22 @@ export async function buildPublicProfileHtml({
       servicesDescription: profileRecord.servicesDescription || undefined,
       seoMeta: profileRecord.seoMeta || undefined,
       profileBooking: profileRecord.profileBooking || undefined,
+      contentBlocks: Array.isArray(profileRecord.contentBlocks)
+        ? profileRecord.contentBlocks
+        : undefined,
     },
     business: businessRecord
       ? {
           name: businessRecord.name,
           categories: businessRecord.categories || [],
           serviceAreas: businessRecord.serviceAreas || [],
+          tradePartner: businessRecord.tradePartner === true,
+          website: businessRecord.website,
+          phone: businessRecord.phone,
+          address: businessRecord.address,
+          city: businessRecord.city,
+          stateCode: businessRecord.stateCode,
+          zipCode: businessRecord.zipCode,
         }
       : null,
   };

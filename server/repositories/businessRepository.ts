@@ -27,6 +27,12 @@ export type PublicBusinessRecord = {
     background?: string;
     surface?: string;
   };
+  website?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  stateCode?: string;
+  zipCode?: string;
 };
 
 type BusinessMutation = Omit<InsertBusiness, "id" | "ownerUserId" | "createdAt" | "updatedAt"> & {
@@ -207,18 +213,33 @@ export class BusinessRepository {
     const categories = business.profileData?.category ? [business.profileData.category] : [];
     const contactEmail = business.profileData?.email || undefined;
     const contactPhone = business.profileData?.phone || undefined;
+    const isTradePartner = business.profileData?.tradePartner === true;
 
     return {
       id: business.id,
       name: business.name,
       categories,
       serviceAreas: countyRows.map((r) => r.countyId),
-      tradePartner: business.profileData?.tradePartner === true,
+      tradePartner: isTradePartner,
       ...(business.profileData?.brandColors
         ? { brandColors: business.profileData.brandColors }
         : {}),
       ...(contactEmail ? { contactEmail } : {}),
       ...(contactPhone ? { contactPhone } : {}),
+      // TradePartners have opted into public promotion -- their business contact
+      // details (distinct from the anti-spam-gated Direct Connect DM contact
+      // used elsewhere) can power richer SEO structured data (LocalBusiness
+      // address/telephone/sameAs).
+      ...(isTradePartner
+        ? {
+            website: business.profileData?.website || undefined,
+            phone: business.profileData?.phone || undefined,
+            address: business.profileData?.address || undefined,
+            city: business.profileData?.city || undefined,
+            stateCode: business.profileData?.stateCode || undefined,
+            zipCode: business.profileData?.zipCode || undefined,
+          }
+        : {}),
     };
   }
 
