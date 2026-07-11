@@ -98,6 +98,7 @@ import {
 import { getMessagingService } from "./messaging-service";
 import { emailService } from "./services/emailService";
 import { passwordResetService } from "./services/passwordResetService";
+import { getRelatedBusinessSuggestions } from "./services/relatedBusinessSuggestions";
 import { emailVerificationService } from "./services/emailVerificationService";
 import { computeVerificationRequirements } from "./services/profileVerificationService";
 import { logAdminAction } from "./services/adminAuditLogService";
@@ -19556,6 +19557,29 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             : post?.author;
         return { ...post, author, tags: merged };
       });
+
+      // Attach related, verified, on-platform businesses to posts that mention a
+      // supplier/materials need (e.g. natural stone work), scoped to the same
+      // county/state context already used to filter this feed request.
+      // Response-only, contact-gated (profile link only) -- does not mutate posts in the DB.
+      try {
+        posts = await Promise.all(
+          posts.map(async (post: any) => {
+            const text = `${post?.title || ""} ${post?.content || ""}`;
+            const suggestions = await getRelatedBusinessSuggestions({
+              text,
+              countyFips: filters.countyFips,
+              stateCode: filters.stateCode,
+            });
+            return suggestions.length > 0 ? { ...post, relatedBusinesses: suggestions } : post;
+          })
+        );
+      } catch (relatedBusinessError) {
+        console.warn(
+          "Failed to attach related business suggestions to community posts",
+          relatedBusinessError
+        );
+      }
 
       // Phase 1: Fail-safe field stripping for global scope (posts-only)
       // Strip contact fields, profile shortcuts, action-enabling metadata

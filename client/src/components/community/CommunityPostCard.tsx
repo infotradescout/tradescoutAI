@@ -29,6 +29,7 @@ import {
   EyeOff,
   Trash2,
   MessagesSquare,
+  Store,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -89,6 +90,12 @@ export interface CommunityPostCardData {
   hasWorkRequest?: boolean;
   workRequestId?: string | null;
   authorityLabel?: string; // Scout authority interpretive label
+  relatedBusinesses?: Array<{
+    id: string;
+    name: string;
+    category: string | null;
+    profileUrl: string;
+  }>;
 }
 
 export interface CommunityPostCardProps {
@@ -678,6 +685,24 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                       </button>
                     );
                   })}
+              </div>
+            )}
+            {post.relatedBusinesses && post.relatedBusinesses.length > 0 && (
+              <div className="mt-3 space-y-1.5 rounded-md border border-ts-orange/20 bg-ts-orange/5 p-2.5">
+                <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-ts-orange">
+                  <Store className="h-3 w-3" />
+                  Related verified business
+                </p>
+                {post.relatedBusinesses.map((business) => (
+                  <Link key={business.id} href={business.profileUrl}>
+                    <span className="block text-xs text-white/80 hover:text-ts-orange">
+                      {business.name}
+                      {business.category ? (
+                        <span className="text-white/50"> — {business.category}</span>
+                      ) : null}
+                    </span>
+                  </Link>
+                ))}
               </div>
             )}
           </div>
