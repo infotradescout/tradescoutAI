@@ -278,10 +278,13 @@ function buildAutoSeoMeta(args: {
     ? args.business?.serviceAreas.length
     : 0;
 
+  // Google typically truncates title tags around ~60 chars and description
+  // snippets around ~155-160 chars in search results -- keep both under those
+  // limits so neither gets cut mid-word.
   const fallbackTitleParts = [displayName];
   if (roleContext) fallbackTitleParts.push(roleContext.replace(/_/g, " "));
   fallbackTitleParts.push("TradeScout");
-  const fallbackTitle = fallbackTitleParts.join(" | ").slice(0, 120);
+  const fallbackTitle = fallbackTitleParts.join(" | ").slice(0, 60);
 
   const descriptionCandidates = [
     headline,
@@ -295,15 +298,15 @@ function buildAutoSeoMeta(args: {
     `${displayName} profile on TradeScout with protected Direct Connect contact.`,
   ].filter((value) => value && value.trim().length > 0);
 
-  const fallbackDescription = descriptionCandidates.join(" ").slice(0, 320);
+  const fallbackDescription = descriptionCandidates.join(" ").slice(0, 160);
 
   const title =
     typeof args.seoMeta?.title === "string" && args.seoMeta.title.trim().length > 0
-      ? args.seoMeta.title.trim().slice(0, 120)
+      ? args.seoMeta.title.trim().slice(0, 60)
       : fallbackTitle;
   const description =
     typeof args.seoMeta?.description === "string" && args.seoMeta.description.trim().length > 0
-      ? args.seoMeta.description.trim().slice(0, 320)
+      ? args.seoMeta.description.trim().slice(0, 160)
       : fallbackDescription;
   const imageUrl =
     typeof args.seoMeta?.imageUrl === "string" && args.seoMeta.imageUrl.trim().length > 0

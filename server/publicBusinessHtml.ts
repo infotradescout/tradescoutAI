@@ -92,9 +92,11 @@ function buildBusinessMeta(args: {
     .filter(Boolean)
     .join(" ");
 
+  // Google typically truncates meta description snippets around ~155-160
+  // characters -- cap so descriptions never get cut off mid-word.
   const description = (rawDescription.length > 0 ? rawDescription : fallbackBits)
     .replace(/\s+/g, " ")
-    .slice(0, 300);
+    .slice(0, 160);
 
   const canonical = `${args.origin}/business/${encodeURIComponent(args.slug)}`;
   const imageUrl = args.seoMeta?.imageUrl || `${args.origin}/tradescout-social-preview.png?v=11`;
