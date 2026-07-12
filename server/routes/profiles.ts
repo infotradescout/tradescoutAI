@@ -623,6 +623,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const business = profile.businessId
     ? await storage.getBusinessPublicById(profile.businessId)
     : undefined;
+  let verifiedOwnerUserId: string | undefined;
   if (business) {
     const [profileOwner] = await db
       .select({ ownerUserId: profiles.ownerUserId })
@@ -637,6 +638,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     if (!isBusinessDiscoverable(ownerUser)) {
       return res.status(404).json({ message: "Profile not found" });
     }
+    verifiedOwnerUserId = ownerUserId;
   }
   const safeBusiness = business
     ? {
@@ -646,6 +648,12 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         serviceAreas: business.serviceAreas || [],
         tradePartner: business.tradePartner === true,
         ...(business.brandColors ? { brandColors: business.brandColors } : {}),
+        // TradePartners have opted into public promotion, so it's safe to let
+        // their profile CTA target Direct Connect straight at the business's
+        // own account instead of the anonymous, business-agnostic flow.
+        ...(business.tradePartner === true && verifiedOwnerUserId
+          ? { directConnectOwnerUserId: verifiedOwnerUserId }
+          : {}),
       }
     : null;
   const effectiveSeoMeta = buildAutoSeoMeta({
