@@ -1,6 +1,16 @@
 import { storage } from "./storage";
 import { formatTradeScoutTitle } from "@shared/brand";
 
+// Google typically truncates meta description snippets around ~155-160
+// characters -- cap so descriptions never get cut off mid-word.
+const MAX_DESCRIPTION_LENGTH = 160;
+
+function capDescriptionLength(description: string): string {
+  if (description.length <= MAX_DESCRIPTION_LENGTH) return description;
+  const truncated = description.slice(0, MAX_DESCRIPTION_LENGTH - 1).trimEnd();
+  return `${truncated}…`;
+}
+
 type PublicProfileHtmlOptions = {
   slug: string;
   origin: string;
@@ -155,12 +165,13 @@ function buildMeta(profile: PublicProfileData, origin: string) {
   const title = formatTradeScoutTitle(
     profile.profile.seoMeta?.title || `${displayName} | TradeScout`
   );
-  const description =
+  const description = capDescriptionLength(
     profile.profile.seoMeta?.description ||
-    profile.profile.headline ||
-    profile.profile.servicesDescription ||
-    profile.profile.roleContext ||
-    "TradeScout public profile";
+      profile.profile.headline ||
+      profile.profile.servicesDescription ||
+      profile.profile.roleContext ||
+      "TradeScout public profile"
+  );
   const imageUrl =
     profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-social-preview.png?v=11`;
   const canonical = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;

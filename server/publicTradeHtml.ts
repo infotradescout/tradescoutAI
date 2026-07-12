@@ -103,8 +103,8 @@ function buildTradeMeta(args: {
   const canonical = `${args.origin}${args.canonicalPath}`;
   const imageUrl = `${args.origin}/tradescout-social-preview.png?v=11`;
   return {
-    title: args.title.slice(0, 120),
-    description: args.description.replace(/\s+/g, " ").trim().slice(0, 300),
+    title: args.title.slice(0, 60),
+    description: args.description.replace(/\s+/g, " ").trim().slice(0, 160),
     canonical,
     imageUrl,
     keywords: args.keywords
