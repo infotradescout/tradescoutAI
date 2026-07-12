@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import {
   ChevronRight,
@@ -14,6 +14,7 @@ import {
   Building2,
   Compass,
   Home,
+  X,
 } from "lucide-react";
 
 /**
@@ -51,6 +52,18 @@ type RecommendationDirectorySummary = {
   total: number;
   positive: number;
   negative: number;
+};
+
+type InventoryStone = {
+  name: string;
+  slug: string;
+  images: string[];
+};
+
+type InventoryCategory = {
+  category: string;
+  categorySlug: string;
+  stones: InventoryStone[];
 };
 
 export type WholesalerBrandColors = {
@@ -227,6 +240,7 @@ export default function WholesalerProfileTheme({
   const galleryBlock = findBlock(contentBlocks, "gallery");
   const trustBlock = findBlock(contentBlocks, "trust");
   const differentiatorsBlock = findBlock(contentBlocks, "differentiators");
+  const inventoryCatalogBlock = findBlock(contentBlocks, "inventoryCatalog");
 
   const aboutText = blockText(aboutBlock);
   const inventoryItems = blockItems(servicesBlock);
@@ -254,7 +268,21 @@ export default function WholesalerProfileTheme({
           body: item.body || "",
         }))
       : DEFAULT_DIFFERENTIATORS;
-  const heroImage = galleryImages[0];
+  // Real, named inventory grouped by material category -- no pricing here by
+  // design; priced/featured stones are a separate, later concern.
+  const inventoryCatalog: InventoryCategory[] = Array.isArray(
+    inventoryCatalogBlock?.data?.categories
+  )
+    ? inventoryCatalogBlock.data.categories
+    : [];
+  const [activeCategorySlug, setActiveCategorySlug] = useState(
+    inventoryCatalog[0]?.categorySlug || ""
+  );
+  const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
+  const activeCategory =
+    inventoryCatalog.find((c) => c.categorySlug === activeCategorySlug) || inventoryCatalog[0];
+  const heroImage =
+    inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] || galleryImages[0];
   // The hero is a glance, not a read -- keep it to one sentence and let the
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
   const heroTeaser = aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
@@ -370,7 +398,67 @@ export default function WholesalerProfileTheme({
       ) : null}
 
       {/* Live stone collection */}
-      {inventoryItems.length > 0 ? (
+      {inventoryCatalog.length > 0 ? (
+        <section id="collection" className="scroll-mt-28 py-10 md:py-14">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="mb-6">
+              <h2
+                className={`mb-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+              >
+                Live Stone Collection
+              </h2>
+              <p className="text-sm text-[#241d0f]/70">
+                Sorted by material. Tap a stone to see the full gallery -- no pricing shown here.
+              </p>
+            </div>
+
+            <div className={`${SCROLL_ROW} mb-6`}>
+              {inventoryCatalog.map((cat) => {
+                const active = cat.categorySlug === activeCategory?.categorySlug;
+                return (
+                  <button
+                    key={cat.categorySlug}
+                    onClick={() => setActiveCategorySlug(cat.categorySlug)}
+                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-5 py-2 text-sm font-semibold transition-colors ${
+                      active
+                        ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
+                        : "border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] text-[#241d0f]/70 hover:border-[var(--brand-primary)]/40"
+                    }`}
+                  >
+                    {cat.category}
+                    <span className="ml-1.5 opacity-70">({cat.stones.length})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className={SCROLL_ROW}>
+              {(activeCategory?.stones || []).map((stone) => (
+                <button
+                  key={stone.slug}
+                  onClick={() => setOpenStone(stone)}
+                  className={`${SCROLL_CARD} overflow-hidden rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] text-left shadow-sm transition-colors hover:border-[var(--brand-accent)]/40`}
+                >
+                  {stone.images[0] ? (
+                    <img
+                      src={stone.images[0]}
+                      alt={stone.name}
+                      loading="lazy"
+                      className="h-40 w-full object-cover"
+                    />
+                  ) : null}
+                  <div className="p-4">
+                    <p className="font-semibold text-[#241d0f]">{stone.name}</p>
+                    {stone.images.length > 1 ? (
+                      <p className="mt-1 text-xs text-[#241d0f]/50">{stone.images.length} photos</p>
+                    ) : null}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : inventoryItems.length > 0 ? (
         <section id="collection" className="scroll-mt-28 py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -400,6 +488,49 @@ export default function WholesalerProfileTheme({
             </div>
           </div>
         </section>
+      ) : null}
+
+      {/* Stone gallery modal */}
+      {openStone ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setOpenStone(null)}
+        >
+          <div
+            className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className={`text-xl font-bold text-[var(--brand-primary)] ${DISPLAY_FONT}`}>
+                {openStone.name}
+              </h3>
+              <button
+                onClick={() => setOpenStone(null)}
+                aria-label="Close gallery"
+                className="rounded-full p-2 text-[#241d0f]/60 hover:bg-black/5"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {openStone.images.map((url, i) => (
+                <img
+                  key={i}
+                  src={url}
+                  alt={`${openStone.name} ${i + 1}`}
+                  className="w-full rounded-lg object-cover"
+                />
+              ))}
+            </div>
+            <div className="mt-4 flex justify-center">
+              <Link href={ctaHref}>
+                <button className="rounded-full bg-[var(--brand-accent)] px-6 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
+                  Ask about this stone
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {/* Why us */}
