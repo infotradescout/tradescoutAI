@@ -230,7 +230,17 @@ export default function AdminUsers() {
     String(user?.role || "")
       .trim()
       .toLowerCase() === "ops_admin";
-  const currentUserLevel = roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
+  // roleHierarchy only has a "super_admin" key, but isSuperAdminLike also
+  // treats legacy "owner"/"head_admin" role values as super-admin-equivalent.
+  // Without this normalization, an admin whose role field is literally
+  // "owner" would have isSuperAdmin=true but currentUserLevel silently
+  // fall back to 0, breaking the canManage permission check below and
+  // hiding most of the per-user action menu.
+  const currentUserLevel = isSuperAdmin
+    ? roleHierarchy.super_admin.level
+    : isOpsAdmin
+      ? roleHierarchy.ops_admin.level
+      : roleHierarchy[user?.role as keyof typeof roleHierarchy]?.level || 0;
   const currentAdminId = String((user as any)?.id || "");
   const currentAdminRole = String((user as any)?.role || "");
   const buildAdminSafety = (reason: string) => ({

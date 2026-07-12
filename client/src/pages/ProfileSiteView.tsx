@@ -86,6 +86,7 @@ type PublicBusinessSubset = {
     primary?: string;
     primaryDark?: string;
     accent?: string;
+    secondary?: string;
     background?: string;
     surface?: string;
   };
