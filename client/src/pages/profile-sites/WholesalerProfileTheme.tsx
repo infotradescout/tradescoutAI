@@ -265,14 +265,14 @@ export default function WholesalerProfileTheme({
     <div className="min-h-screen bg-[var(--brand-bg)] text-[#241d0f]" style={themeVars}>
       {/* Sticky header */}
       <header className="sticky top-0 z-30 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]/95 backdrop-blur-md">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4 md:px-6">
+        <div className="container mx-auto flex items-center justify-between gap-4 px-5 py-5 md:px-8">
           <div>
             <span
               className={`block text-xl font-bold leading-tight text-[var(--brand-primary)] md:text-2xl ${DISPLAY_FONT}`}
             >
               {displayName}
             </span>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-accent)]">
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-accent)]">
               TradeScout TradePartner
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function WholesalerProfileTheme({
             </button>
           </Link>
         </div>
-        <div className="scrollbar-hide flex gap-5 overflow-x-auto border-t border-[var(--brand-primary)]/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#241d0f]/70 [-ms-overflow-style:none] [scrollbar-width:none] md:px-6 [&::-webkit-scrollbar]:hidden">
+        <div className="scrollbar-hide flex gap-6 overflow-x-auto px-5 pb-3.5 text-xs font-semibold uppercase tracking-wide text-[#241d0f]/70 [-ms-overflow-style:none] [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden">
           {[
             ["Collection", "#collection"],
             ["Why Us", "#why-us"],
