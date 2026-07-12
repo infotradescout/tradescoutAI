@@ -195,7 +195,6 @@ export default function WholesalerProfileTheme({
   brandColors,
   contactReason,
   hasViewerSession,
-  isSuperAdminViewer,
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
@@ -256,6 +255,9 @@ export default function WholesalerProfileTheme({
         }))
       : DEFAULT_DIFFERENTIATORS;
   const heroImage = galleryImages[0];
+  // The hero is a glance, not a read -- keep it to one sentence and let the
+  // "Why Us" section carry the fuller story for anyone who scrolls that far.
+  const heroTeaser = aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
 
@@ -276,7 +278,7 @@ export default function WholesalerProfileTheme({
           </div>
           <Link href={ctaHref}>
             <button className="rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-primary-dark)]">
-              Request Quote
+              Direct Connect
             </button>
           </Link>
         </div>
@@ -321,10 +323,8 @@ export default function WholesalerProfileTheme({
           >
             {headline || "Hand-selected stone. Direct from the source."}
           </h1>
-          {aboutText ? (
-            <p className="mx-auto mb-10 max-w-2xl whitespace-pre-wrap text-lg text-white/85">
-              {aboutText}
-            </p>
+          {heroTeaser ? (
+            <p className="mx-auto mb-10 max-w-xl text-lg text-white/85">{heroTeaser}</p>
           ) : null}
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
             <a href="#collection">
@@ -334,7 +334,7 @@ export default function WholesalerProfileTheme({
             </a>
             <Link href={ctaHref}>
               <button className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-7 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
-                {isSuperAdminViewer ? "Open Direct Connect" : "Start a Project"}
+                Direct Connect
                 <ChevronRight className="h-4 w-4" />
               </button>
             </Link>
@@ -406,10 +406,15 @@ export default function WholesalerProfileTheme({
       <section id="why-us" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
         <div className="container mx-auto px-4 md:px-6">
           <h2
-            className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+            className={`mb-3 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
           >
             Why {displayName}
           </h2>
+          {aboutText ? (
+            <p className="mb-6 max-w-2xl whitespace-pre-wrap text-sm text-[#241d0f]/70">
+              {aboutText}
+            </p>
+          ) : null}
           <div className={SCROLL_ROW}>
             {differentiators.map((item, i) => {
               const Icon = item.icon;
@@ -605,7 +610,7 @@ export default function WholesalerProfileTheme({
             <Link href={ctaHref}>
               <button className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-8 py-4 text-base font-bold text-white transition-opacity hover:opacity-90">
                 <MessageCircle className="h-5 w-5" />
-                {isSuperAdminViewer ? "Open Direct Connect" : "Start Direct Connect"}
+                Direct Connect
               </button>
             </Link>
             {!hasViewerSession ? (

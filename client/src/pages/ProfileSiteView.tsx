@@ -90,6 +90,7 @@ type PublicBusinessSubset = {
     background?: string;
     surface?: string;
   };
+  directConnectOwnerUserId?: string;
 } | null;
 
 type PublicProfileResponse = {
@@ -242,7 +243,13 @@ export default function ProfileSiteView() {
   const isSuperAdminViewer =
     Boolean((user as any)?.isSuperAdmin === true) || normalizedViewerRole === "super_admin";
   const hasViewerSession = isAuthenticated || Boolean((user as any)?.id);
-  const directConnectHref = `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
+  // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
+  // Connect targeted straight at their own account (via the target/targetName
+  // prefill params DirectConnectShell already reads), instead of the
+  // anonymous, business-agnostic request flow every other profile uses.
+  const directConnectHref = business?.directConnectOwnerUserId
+    ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=tradepartner_profile`
+    : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
   const contentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
