@@ -141,6 +141,12 @@ const DIRECT_CONNECT_OPTIONS = [
   "Schedule a showroom visit",
 ] as const;
 
+// Horizontal, scroll-snapped rows keep the page short and let visitors jump
+// straight to what they came for instead of scrolling past every section.
+const SCROLL_ROW =
+  "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
+const SCROLL_CARD = "w-[240px] flex-shrink-0 snap-start sm:w-[260px]";
+
 function useWholesalerThemeFonts() {
   useEffect(() => {
     const id = "wholesaler-theme-fonts";
@@ -274,6 +280,23 @@ export default function WholesalerProfileTheme({
             </button>
           </Link>
         </div>
+        <div className="scrollbar-hide flex gap-5 overflow-x-auto border-t border-[var(--brand-primary)]/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[#241d0f]/70 [-ms-overflow-style:none] [scrollbar-width:none] md:px-6 [&::-webkit-scrollbar]:hidden">
+          {[
+            ["Collection", "#collection"],
+            ["Why Us", "#why-us"],
+            ["Who We Serve", "#audience"],
+            ["Materials", "#materials"],
+            ["Connect", "#connect"],
+          ].map(([label, href]) => (
+            <a
+              key={href}
+              href={href}
+              className="flex-shrink-0 whitespace-nowrap transition-colors hover:text-[var(--brand-accent)]"
+            >
+              {label}
+            </a>
+          ))}
+        </div>
       </header>
 
       {/* Hero */}
@@ -348,23 +371,25 @@ export default function WholesalerProfileTheme({
 
       {/* Live stone collection */}
       {inventoryItems.length > 0 ? (
-        <section id="collection" className="py-16 md:py-24">
+        <section id="collection" className="scroll-mt-28 py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="mb-12 text-center">
-              <h2
-                className={`mb-3 text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
-              >
-                Live Stone Collection
-              </h2>
-              <p className="text-[#241d0f]/70">
-                Direct sourcing, hands-on quality control, material by material.
-              </p>
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2
+                  className={`mb-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+                >
+                  Live Stone Collection
+                </h2>
+                <p className="text-sm text-[#241d0f]/70">
+                  Direct sourcing, hands-on quality control, material by material.
+                </p>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+            <div className={SCROLL_ROW}>
               {inventoryItems.map((item, i) => (
                 <div
                   key={i}
-                  className="rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-6 shadow-sm"
+                  className={`${SCROLL_CARD} rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-6 shadow-sm`}
                 >
                   <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-secondary)]/15">
                     <Package className="h-6 w-6 text-[var(--brand-secondary)]" />
@@ -378,20 +403,23 @@ export default function WholesalerProfileTheme({
       ) : null}
 
       {/* Why us */}
-      <section className="bg-[var(--brand-surface)] py-16 md:py-24">
+      <section id="why-us" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
         <div className="container mx-auto px-4 md:px-6">
           <h2
-            className={`mb-12 text-center text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
+            className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
           >
             Why {displayName}
           </h2>
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
+          <div className={SCROLL_ROW}>
             {differentiators.map((item, i) => {
               const Icon = item.icon;
               return (
-                <div key={i} className="text-center">
-                  <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-primary)]/10">
-                    <Icon className="h-7 w-7 text-[var(--brand-primary)]" />
+                <div
+                  key={i}
+                  className={`${SCROLL_CARD} rounded-xl border-2 border-[var(--brand-primary)]/10 bg-white p-5 shadow-sm`}
+                >
+                  <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)]/10">
+                    <Icon className="h-6 w-6 text-[var(--brand-primary)]" />
                   </div>
                   <p className="mb-2 font-semibold text-[#241d0f]">{item.title}</p>
                   {item.body ? <p className="text-sm text-[#241d0f]/70">{item.body}</p> : null}
@@ -403,18 +431,18 @@ export default function WholesalerProfileTheme({
       </section>
 
       {/* Audience paths */}
-      <section className="py-16 md:py-24">
+      <section id="audience" className="scroll-mt-28 py-10 md:py-14">
         <div className="container mx-auto px-4 md:px-6">
           <h2
-            className={`mb-12 text-center text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
+            className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
           >
             Who We Work With
           </h2>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
+          <div className={SCROLL_ROW}>
             {AUDIENCE_PATHS.map((path, i) => {
               const Icon = path.icon;
               return (
-                <Link key={i} href={ctaHref}>
+                <Link key={i} href={ctaHref} className={SCROLL_CARD}>
                   <div className="h-full cursor-pointer rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand-accent)]/40">
                     <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)]/10">
                       <Icon className="h-6 w-6 text-[var(--brand-primary)]" />
@@ -431,20 +459,20 @@ export default function WholesalerProfileTheme({
 
       {/* Featured materials */}
       {galleryImages.length > 0 ? (
-        <section className="bg-[var(--brand-surface)] py-16 md:py-24">
+        <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <h2
-              className={`mb-8 text-center text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
+              className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
             >
               Featured Materials
             </h2>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
-              {galleryImages.slice(0, 9).map((url, i) => (
+            <div className={SCROLL_ROW}>
+              {galleryImages.map((url, i) => (
                 <img
                   key={i}
                   src={url}
                   alt={`${displayName} inventory ${i + 1}`}
-                  className="h-48 w-full rounded-xl object-cover shadow-md"
+                  className={`${SCROLL_CARD} h-64 rounded-xl object-cover shadow-md`}
                   loading="lazy"
                 />
               ))}
@@ -455,10 +483,10 @@ export default function WholesalerProfileTheme({
 
       {/* FAQ */}
       {faqItems.length > 0 ? (
-        <section className="py-16 md:py-24">
+        <section className="py-10 md:py-14">
           <div className="container mx-auto max-w-3xl px-4 md:px-6">
             <h2
-              className={`mb-8 text-center text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
+              className={`mb-6 text-center text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
             >
               Frequently Asked
             </h2>
@@ -478,11 +506,11 @@ export default function WholesalerProfileTheme({
 
       {/* Recommendations Directory */}
       {recommendationsDirectory.length > 0 ? (
-        <section className="bg-[var(--brand-surface)] py-16 md:py-24">
+        <section className="bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto max-w-3xl px-4 md:px-6">
-            <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <h2
-                className={`text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
+                className={`text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
               >
                 Recommendations Directory
               </h2>
@@ -547,9 +575,9 @@ export default function WholesalerProfileTheme({
       ) : null}
 
       {/* Contact / CTA */}
-      <section className="bg-[var(--brand-primary)] py-16 md:py-24">
+      <section id="connect" className="scroll-mt-28 bg-[var(--brand-primary)] py-12 md:py-16">
         <div className="container mx-auto px-4 text-center md:px-6">
-          <h2 className={`mb-4 text-3xl font-bold text-white md:text-4xl ${DISPLAY_FONT}`}>
+          <h2 className={`mb-4 text-2xl font-bold text-white md:text-4xl ${DISPLAY_FONT}`}>
             Start a Direct Connect Request
           </h2>
           <p className="mx-auto mb-8 max-w-xl text-white/80">
