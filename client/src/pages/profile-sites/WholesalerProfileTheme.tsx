@@ -9,6 +9,11 @@ import {
   MessageCircle,
   ThumbsDown,
   ThumbsUp,
+  Gem,
+  Wrench,
+  Building2,
+  Compass,
+  Home,
 } from "lucide-react";
 
 /**
@@ -52,6 +57,7 @@ export type WholesalerBrandColors = {
   primary?: string;
   primaryDark?: string;
   accent?: string;
+  secondary?: string;
   background?: string;
   surface?: string;
 };
@@ -77,9 +83,63 @@ const DEFAULT_BRAND_COLORS: Required<WholesalerBrandColors> = {
   primary: "#0e3a5c",
   primaryDark: "#08283f",
   accent: "#b3892b",
+  secondary: "#7a7466",
   background: "#ffffff",
   surface: "#f7f4ec",
 };
+
+const AUDIENCE_PATHS = [
+  {
+    icon: Wrench,
+    label: "Fabricators",
+    body: "Bookmatched slabs and bundle sourcing for shops running production schedules.",
+  },
+  {
+    icon: Building2,
+    label: "Builders & Developers",
+    body: "Project-volume material for developments that need consistent supply and delivery windows.",
+  },
+  {
+    icon: Compass,
+    label: "Architects & Designers",
+    body: "One-off slab selection for specified projects, with direct access to what's actually in stock.",
+  },
+  {
+    icon: Home,
+    label: "Homeowners",
+    body: "Hand-selected stone for a single kitchen, bath, or feature -- no minimum order.",
+  },
+] as const;
+
+const DEFAULT_DIFFERENTIATORS = [
+  {
+    icon: Gem,
+    title: "Material selection",
+    body: "Slabs are chosen individually, not bought sight-unseen by the container.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Processing & finish oversight",
+    body: "Each order is reviewed through fabrication and finishing before it ships.",
+  },
+  {
+    icon: Truck,
+    title: "Logistics & delivery",
+    body: "Delivery is coordinated directly, not handed off to a third party.",
+  },
+  {
+    icon: Package,
+    title: "Project-specific sourcing",
+    body: "When the right slab isn't in stock, it gets sourced for the specific project.",
+  },
+] as const;
+
+const DIRECT_CONNECT_OPTIONS = [
+  "Request material",
+  "Match a project",
+  "Ask about a bundle",
+  "Schedule a showroom visit",
+] as const;
 
 function useWholesalerThemeFonts() {
   useEffect(() => {
@@ -143,6 +203,7 @@ export default function WholesalerProfileTheme({
     "--brand-primary": colors.primary,
     "--brand-primary-dark": colors.primaryDark,
     "--brand-accent": colors.accent,
+    "--brand-secondary": colors.secondary,
     "--brand-bg": colors.background,
     "--brand-surface": colors.surface,
   } as React.CSSProperties;
@@ -159,6 +220,8 @@ export default function WholesalerProfileTheme({
   const servicesBlock = findBlock(contentBlocks, "services");
   const faqBlock = findBlock(contentBlocks, "faq");
   const galleryBlock = findBlock(contentBlocks, "gallery");
+  const trustBlock = findBlock(contentBlocks, "trust");
+  const differentiatorsBlock = findBlock(contentBlocks, "differentiators");
 
   const aboutText = blockText(aboutBlock);
   const inventoryItems = blockItems(servicesBlock);
@@ -170,6 +233,23 @@ export default function WholesalerProfileTheme({
   )
     ? faqBlock.data.faqs
     : [];
+  // Only confirmed facts belong here -- this is rendered as verified trust
+  // signal, not marketing copy, so it must come from data, not a default.
+  const trustFacts = blockItems(trustBlock);
+  const differentiatorItems: Array<{ title?: string; body?: string }> = Array.isArray(
+    differentiatorsBlock?.data?.items
+  )
+    ? differentiatorsBlock.data.items
+    : [];
+  const differentiators =
+    differentiatorItems.length > 0
+      ? differentiatorItems.map((item, i) => ({
+          icon: DEFAULT_DIFFERENTIATORS[i % DEFAULT_DIFFERENTIATORS.length].icon,
+          title: item.title || DEFAULT_DIFFERENTIATORS[i % DEFAULT_DIFFERENTIATORS.length].title,
+          body: item.body || "",
+        }))
+      : DEFAULT_DIFFERENTIATORS;
+  const heroImage = galleryImages[0];
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
 
@@ -197,84 +277,87 @@ export default function WholesalerProfileTheme({
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[var(--brand-primary)] via-[var(--brand-primary)] to-[var(--brand-primary-dark)] py-16 md:py-24">
-        <div className="container mx-auto grid grid-cols-1 gap-10 px-4 md:grid-cols-2 md:px-6">
-          <div>
-            {categories.length > 0 ? (
-              <span className="mb-5 inline-block rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
-                {categories.slice(0, 3).join(" · ")}
-              </span>
-            ) : null}
-            <h1
-              className={`mb-5 text-4xl font-bold leading-tight text-white md:text-6xl ${DISPLAY_FONT}`}
-            >
-              {headline || `Quarry-direct sourcing from ${displayName}`}
-            </h1>
-            {aboutText ? (
-              <p className="mb-8 max-w-xl whitespace-pre-wrap text-lg text-white/85">{aboutText}</p>
-            ) : null}
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link href={ctaHref}>
-                <button className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-7 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
-                  {isSuperAdminViewer ? "Open Direct Connect" : "Request Volume Quote"}
-                  <ChevronRight className="h-4 w-4" />
+      <section
+        className="relative overflow-hidden bg-[var(--brand-primary)] bg-cover bg-center py-20 md:py-32"
+        style={
+          heroImage
+            ? {
+                backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.72)), url(${heroImage})`,
+              }
+            : undefined
+        }
+      >
+        <div className="container mx-auto px-4 text-center md:px-6">
+          {categories.length > 0 ? (
+            <span className="mb-6 inline-block rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
+              {categories.slice(0, 3).join(" · ")}
+            </span>
+          ) : null}
+          <h1
+            className={`mx-auto mb-6 max-w-3xl text-4xl font-bold leading-tight text-white md:text-6xl ${DISPLAY_FONT}`}
+          >
+            {headline || "Hand-selected stone. Direct from the source."}
+          </h1>
+          {aboutText ? (
+            <p className="mx-auto mb-10 max-w-2xl whitespace-pre-wrap text-lg text-white/85">
+              {aboutText}
+            </p>
+          ) : null}
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a href="#collection">
+              <button className="flex items-center justify-center gap-2 rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                Explore Inventory
+              </button>
+            </a>
+            <Link href={ctaHref}>
+              <button className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-7 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
+                {isSuperAdminViewer ? "Open Direct Connect" : "Start a Project"}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </Link>
+            {!hasViewerSession ? (
+              <Link href={preScoutSignInHref}>
+                <button className="rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                  Sign in
                 </button>
               </Link>
-              {!hasViewerSession ? (
-                <Link href={preScoutSignInHref}>
-                  <button className="rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
-                    Sign in
-                  </button>
-                </Link>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="hidden md:block">
-            <div className="rounded-2xl border border-white/20 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
-              <p className="mb-1 text-xs font-bold uppercase tracking-wider text-white/70">
-                Our Guarantee
-              </p>
-              <h3
-                className={`mb-6 border-b border-white/20 pb-6 text-2xl font-bold text-white ${DISPLAY_FONT}`}
-              >
-                Best Pricing, Availability &amp; Delivery
-              </h3>
-              <div className="space-y-4 text-sm text-white/85">
-                {serviceAreas.length > 0 ? (
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
-                    <span>Serving {serviceAreas.slice(0, 4).join(", ")}</span>
-                  </div>
-                ) : null}
-                {inventoryItems.length > 0 ? (
-                  <div className="flex items-center gap-3">
-                    <Package className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
-                    <span>{inventoryItems.length}+ product lines in stock</span>
-                  </div>
-                ) : null}
-                <div className="flex items-center gap-3">
-                  <Truck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
-                  <span>Direct logistics, on-time delivery</span>
-                </div>
-              </div>
-            </div>
+            ) : null}
           </div>
         </div>
       </section>
 
-      {/* Inventory / services */}
+      {/* Trust strip -- confirmed facts only, sourced from the "trust" content block */}
+      {trustFacts.length > 0 || serviceAreas.length > 0 ? (
+        <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
+          <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-medium text-[#241d0f]/80 md:px-6">
+            {trustFacts.map((fact, i) => (
+              <span key={i} className="inline-flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
+                {fact}
+              </span>
+            ))}
+            {trustFacts.length === 0 && serviceAreas.length > 0 ? (
+              <span className="inline-flex items-center gap-2">
+                <MapPin className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
+                Serving {serviceAreas.slice(0, 4).join(", ")}
+              </span>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {/* Live stone collection */}
       {inventoryItems.length > 0 ? (
-        <section className="py-16 md:py-24">
+        <section id="collection" className="py-16 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-12 text-center">
               <h2
                 className={`mb-3 text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
               >
-                Inventory &amp; Materials
+                Live Stone Collection
               </h2>
               <p className="text-[#241d0f]/70">
-                Direct sourcing, bulk availability, hands-on quality control
+                Direct sourcing, hands-on quality control, material by material.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
@@ -283,8 +366,8 @@ export default function WholesalerProfileTheme({
                   key={i}
                   className="rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-6 shadow-sm"
                 >
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)]/10">
-                    <Package className="h-6 w-6 text-[var(--brand-primary)]" />
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-secondary)]/15">
+                    <Package className="h-6 w-6 text-[var(--brand-secondary)]" />
                   </div>
                   <p className="font-semibold text-[#241d0f]">{item}</p>
                 </div>
@@ -294,14 +377,66 @@ export default function WholesalerProfileTheme({
         </section>
       ) : null}
 
-      {/* Gallery */}
+      {/* Why us */}
+      <section className="bg-[var(--brand-surface)] py-16 md:py-24">
+        <div className="container mx-auto px-4 md:px-6">
+          <h2
+            className={`mb-12 text-center text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
+          >
+            Why {displayName}
+          </h2>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
+            {differentiators.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <div key={i} className="text-center">
+                  <div className="mx-auto mb-4 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[var(--brand-primary)]/10">
+                    <Icon className="h-7 w-7 text-[var(--brand-primary)]" />
+                  </div>
+                  <p className="mb-2 font-semibold text-[#241d0f]">{item.title}</p>
+                  {item.body ? <p className="text-sm text-[#241d0f]/70">{item.body}</p> : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Audience paths */}
+      <section className="py-16 md:py-24">
+        <div className="container mx-auto px-4 md:px-6">
+          <h2
+            className={`mb-12 text-center text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
+          >
+            Who We Work With
+          </h2>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
+            {AUDIENCE_PATHS.map((path, i) => {
+              const Icon = path.icon;
+              return (
+                <Link key={i} href={ctaHref}>
+                  <div className="h-full cursor-pointer rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand-accent)]/40">
+                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)]/10">
+                      <Icon className="h-6 w-6 text-[var(--brand-primary)]" />
+                    </div>
+                    <p className="mb-2 font-semibold text-[#241d0f]">{path.label}</p>
+                    <p className="text-sm text-[#241d0f]/70">{path.body}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured materials */}
       {galleryImages.length > 0 ? (
         <section className="bg-[var(--brand-surface)] py-16 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
             <h2
               className={`mb-8 text-center text-3xl font-bold text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
             >
-              Showroom &amp; Inventory
+              Featured Materials
             </h2>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
               {galleryImages.slice(0, 9).map((url, i) => (
@@ -415,16 +550,27 @@ export default function WholesalerProfileTheme({
       <section className="bg-[var(--brand-primary)] py-16 md:py-24">
         <div className="container mx-auto px-4 text-center md:px-6">
           <h2 className={`mb-4 text-3xl font-bold text-white md:text-4xl ${DISPLAY_FONT}`}>
-            Ready to Partner?
+            Start a Direct Connect Request
           </h2>
-          <p className="mx-auto mb-4 max-w-xl text-white/80">
-            Contact {displayName} for wholesale accounts, volume quotes, or partnership inquiries.
+          <p className="mx-auto mb-8 max-w-xl text-white/80">
+            Contact {displayName} to request material, match a project, or schedule a visit.
           </p>
+          <div className="mx-auto mb-10 flex max-w-2xl flex-wrap items-center justify-center gap-3">
+            {DIRECT_CONNECT_OPTIONS.map((option) => (
+              <span
+                key={option}
+                className="rounded-full border border-white/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/85"
+              >
+                {option}
+              </span>
+            ))}
+          </div>
           <div className="mx-auto mb-10 flex max-w-md items-center justify-center gap-2 text-sm text-white/70">
             <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
             <span>
               Contact is protected to prevent spam
-              {contactReason ? ` (${contactReason.toLowerCase()})` : "."}
+              {contactReason ? ` (${contactReason.toLowerCase()})` : "."} A team member reviews
+              every request before it's sent.
             </span>
           </div>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
@@ -449,7 +595,7 @@ export default function WholesalerProfileTheme({
       <footer className="bg-[#241d0f] py-10 text-white/70">
         <div className="container mx-auto px-4 text-center text-sm md:px-6">
           <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
-          <p>Quarry-direct supplier. Guaranteed best pricing, availability &amp; delivery.</p>
+          <p>Quarry-direct sourcing. Contact protected through TradeScout Direct Connect.</p>
         </div>
       </footer>
     </div>
