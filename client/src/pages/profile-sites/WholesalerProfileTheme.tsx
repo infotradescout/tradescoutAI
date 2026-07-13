@@ -292,7 +292,7 @@ export default function WholesalerProfileTheme({
   return (
     <div className="min-h-screen bg-[var(--brand-bg)] text-[#241d0f]" style={themeVars}>
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]/95 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]">
         <div className="container mx-auto flex items-center justify-between gap-4 px-5 py-5 md:px-8">
           <div>
             <span
@@ -380,7 +380,7 @@ export default function WholesalerProfileTheme({
       {/* Trust strip -- confirmed facts only, sourced from the "trust" content block */}
       {trustFacts.length > 0 || serviceAreas.length > 0 ? (
         <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
-          <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-medium text-[#241d0f]/80 md:px-6">
+          <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold text-[#241d0f] md:px-6">
             {trustFacts.map((fact, i) => (
               <span key={i} className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
