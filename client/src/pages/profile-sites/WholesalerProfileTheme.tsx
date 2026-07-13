@@ -418,7 +418,7 @@ export default function WholesalerProfileTheme({
             ["Collection", "#collection"],
             ["Why Us", "#why-us"],
             ["Who We Serve", "#audience"],
-            ["Materials", "#materials"],
+            ...(profileSlug === "jw-stone" ? [] : [["Materials", "#materials"]]),
             ["Connect", "#connect"],
           ].map(([label, href]) => (
             <a
@@ -879,7 +879,7 @@ export default function WholesalerProfileTheme({
       </section>
 
       {/* Featured materials */}
-      {galleryImages.length > 0 ? (
+      {profileSlug !== "jw-stone" && galleryImages.length > 0 ? (
         <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <h2
