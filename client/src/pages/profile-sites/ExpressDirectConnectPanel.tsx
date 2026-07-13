@@ -11,6 +11,13 @@ import {
   X,
 } from "lucide-react";
 
+export type ExpressDirectConnectRequestType =
+  | "request_material"
+  | "match_project"
+  | "ask_about_bundle"
+  | "schedule_showroom"
+  | "other";
+
 type ExpressDirectConnectPanelProps = {
   open: boolean;
   onClose: () => void;
@@ -18,6 +25,7 @@ type ExpressDirectConnectPanelProps = {
   businessName: string;
   hasViewerSession: boolean;
   initialStoneName?: string | null;
+  initialRequestType?: ExpressDirectConnectRequestType | null;
 };
 
 type PanelView = "choice" | "request" | "call_started" | "success";
@@ -37,6 +45,7 @@ export default function ExpressDirectConnectPanel({
   businessName,
   hasViewerSession,
   initialStoneName,
+  initialRequestType,
 }: ExpressDirectConnectPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<PanelView>("choice");
@@ -49,7 +58,7 @@ export default function ExpressDirectConnectPanel({
     name: "",
     email: "",
     phone: "",
-    requestType: initialStoneName ? "request_material" : "match_project",
+    requestType: initialRequestType || (initialStoneName ? "request_material" : "match_project"),
     message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
     website: "",
   });
@@ -71,7 +80,7 @@ export default function ExpressDirectConnectPanel({
 
   useEffect(() => {
     if (!open) return;
-    setView(initialStoneName ? "request" : "choice");
+    setView(initialStoneName || initialRequestType ? "request" : "choice");
     setBusy(false);
     setError("");
     setCallPhone("");
@@ -79,10 +88,11 @@ export default function ExpressDirectConnectPanel({
     setAccountCreated(false);
     setForm((current) => ({
       ...current,
-      requestType: initialStoneName ? "request_material" : current.requestType,
+      requestType:
+        initialRequestType || (initialStoneName ? "request_material" : current.requestType),
       message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
     }));
-  }, [open, initialStoneName]);
+  }, [open, initialRequestType, initialStoneName]);
 
   if (!open) return null;
 
