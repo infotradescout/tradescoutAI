@@ -29,7 +29,6 @@ export type PublicBusinessRecord = {
     surface?: string;
   };
   website?: string;
-  phone?: string;
   address?: string;
   city?: string;
   stateCode?: string;
@@ -227,14 +226,12 @@ export class BusinessRepository {
         : {}),
       ...(contactEmail ? { contactEmail } : {}),
       ...(contactPhone ? { contactPhone } : {}),
-      // TradePartners have opted into public promotion -- their business contact
-      // details (distinct from the anti-spam-gated Direct Connect DM contact
-      // used elsewhere) can power richer SEO structured data (LocalBusiness
-      // address/telephone/sameAs).
+      // TradePartner location/website data can power richer public SEO. Phone
+      // remains intentionally absent: Express Direct Connect reveals it only
+      // after a visitor clicks the profile CTA and chooses Call.
       ...(isTradePartner
         ? {
             website: business.profileData?.website || undefined,
-            phone: business.profileData?.phone || undefined,
             address: business.profileData?.address || undefined,
             city: business.profileData?.city || undefined,
             stateCode: business.profileData?.stateCode || undefined,

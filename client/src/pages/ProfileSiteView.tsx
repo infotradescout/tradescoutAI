@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Page } from "@/components/layout/PagePrimitives";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
+import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -243,6 +244,10 @@ export default function ProfileSiteView() {
   const isSuperAdminViewer =
     Boolean((user as any)?.isSuperAdmin === true) || normalizedViewerRole === "super_admin";
   const hasViewerSession = isAuthenticated || Boolean((user as any)?.id);
+  // The boundary is the surface, not the referrer. A CTA on an individual
+  // TradePartner business profile is an express connection to that exact
+  // business. The /direct-connect portal retains the full discovery path.
+  const useExpressDirectConnect = true;
   // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
   // Connect targeted straight at their own account (via the target/targetName
   // prefill params DirectConnectShell already reads), instead of the
@@ -252,7 +257,21 @@ export default function ProfileSiteView() {
     : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
-  const contentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
+  const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
+  // JW Stone's reconciled catalog is versioned with the profile experience so
+  // the public page cannot silently fall back to an older database seed. Drive
+  // folder placement is evidence, not an assertion: uncertain materials stay
+  // in "Material to Confirm" and finishes only appear when the source says so.
+  const contentBlocks =
+    profile.slug === "jw-stone"
+      ? [
+          ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
+          {
+            type: "inventoryCatalog",
+            data: { categories: JW_STONE_INVENTORY_CATEGORIES },
+          },
+        ]
+      : storedContentBlocks;
   const aboutText = contentBlocks
     .filter((block) => block && typeof block === "object")
     .map((block: any) => {
@@ -342,6 +361,7 @@ export default function ProfileSiteView() {
           structuredData={structuredData}
         />
         <WholesalerProfileTheme
+          profileSlug={profile.slug}
           displayName={displayName}
           headline={profile.headline}
           contentBlocks={contentBlocks}
@@ -351,6 +371,7 @@ export default function ProfileSiteView() {
           contactReason={profile.contactPolicy?.reason}
           hasViewerSession={hasViewerSession}
           isSuperAdminViewer={isSuperAdminViewer}
+          useExpressDirectConnect={useExpressDirectConnect}
           directConnectHref={directConnectHref}
           preScoutCreateHref={preScoutCreateHref}
           preScoutSignInHref={preScoutSignInHref}

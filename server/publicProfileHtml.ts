@@ -41,7 +41,6 @@ type PublicProfileData = {
     serviceAreas?: string[];
     tradePartner?: boolean;
     website?: string;
-    phone?: string;
     address?: string;
     city?: string;
     stateCode?: string;
@@ -121,15 +120,12 @@ function buildJsonLd(profile: PublicProfileData, origin: string) {
       category: profile.business.categories?.slice(0, 5) || undefined,
     };
 
-    // TradePartners have opted into public promotion, so their business
-    // contact details (distinct from anti-spam-gated Direct Connect DM
-    // contact) can power richer LocalBusiness structured data.
+    // Website and location may remain crawlable, but phone is deliberately
+    // excluded. Express Direct Connect reveals it only after an explicit CTA
+    // click and Call decision, preventing passive scraping from page source.
     if (isTradePartner) {
       if (profile.business.website) {
         localBusiness.sameAs = [profile.business.website];
-      }
-      if (profile.business.phone) {
-        localBusiness.telephone = profile.business.phone;
       }
       if (profile.business.address || profile.business.city || profile.business.stateCode) {
         localBusiness.address = {
@@ -229,7 +225,6 @@ export async function buildPublicProfileHtml({
           serviceAreas: businessRecord.serviceAreas || [],
           tradePartner: businessRecord.tradePartner === true,
           website: businessRecord.website,
-          phone: businessRecord.phone,
           address: businessRecord.address,
           city: businessRecord.city,
           stateCode: businessRecord.stateCode,
