@@ -104,11 +104,11 @@ const AppLayout = memo(function AppLayout() {
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
   const isPublicProfileRoute =
-    (/^\\/u\\/[^/]+$/.test(pathOnly) ||
-      /^\\/business\\/[^/]+$/.test(pathOnly) ||
-      /^\\/contractors\\/[^/]+$/.test(pathOnly) ||
-      /^\\/helpers\\/[^/]+$/.test(pathOnly) ||
-      /^\\/profile\\/[^/]+$/.test(pathOnly)) &&
+    (/^\/u\/[^/]+$/.test(pathOnly) ||
+      /^\/business\/[^/]+$/.test(pathOnly) ||
+      /^\/contractors\/[^/]+$/.test(pathOnly) ||
+      /^\/helpers\/[^/]+$/.test(pathOnly) ||
+      /^\/profile\/[^/]+$/.test(pathOnly)) &&
     !pathOnly.endsWith("/edit");
 
   const { user, isAuthenticated, isLoading } = useAuth();
