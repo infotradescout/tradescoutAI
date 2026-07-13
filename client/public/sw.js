@@ -9,7 +9,7 @@
  */
 
 // Bump this whenever caching behavior changes to guarantee clients drop old caches.
-const CACHE_VERSION = "v9-2026-03-15";
+const CACHE_VERSION = "v10-2026-07-13";
 const STATIC_CACHE = `tradescout-static-${CACHE_VERSION}`;
 const OFFLINE_URL = "/offline.html";
 
@@ -53,10 +53,16 @@ async function navigationNetworkOnly(request) {
   // IMPORTANT: Do not cache HTML navigations.
   // Stale cached HTML can reference removed hashed assets after deploys, causing "old version" lock-in.
   // We prefer correctness over offline support here.
+  //
+  // A plain fetch(request) here is still subject to the browser's own HTTP
+  // cache -- including any stale-while-revalidate directive on the document
+  // response -- so it can silently hand back a stale page even though this
+  // handler's whole intent is "always hit the network." Force cache: "no-store"
+  // so navigations genuinely bypass HTTP caching, not just this cache API.
   const cache = await caches.open(STATIC_CACHE);
 
   try {
-    return await fetch(request);
+    return await fetch(request, { cache: "no-store" });
   } catch {
     const offline = await cache.match(OFFLINE_URL);
     if (offline) return offline;
