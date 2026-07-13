@@ -6,7 +6,7 @@ Scope: Phase 1 convergence work following the route, object, Direct Connect, and
 
 ## Outcome
 
-Phase 1 now has executable contracts for canonical Direct Connect entry context, request and provider presentation, task routes, employment handoff, inbox ownership, community ownership, notification ownership, and the no-star trust doctrine. This change set deliberately does not perform destructive database convergence without production counts, writer telemetry, integrity checks, and rollback proof.
+Phase 1 now has executable contracts for canonical Direct Connect entry context, request and provider presentation, task routes, employment handoff, inbox ownership, community ownership, notification ownership, and the no-star trust doctrine. Customer-facing trust surfaces use concrete evidence and qualitative states instead of internal numeric composites. This change set deliberately does not perform destructive database convergence without production counts, writer telemetry, integrity checks, and rollback proof.
 
 ## Law reality
 
@@ -33,7 +33,7 @@ Phase 1 now has executable contracts for canonical Direct Connect entry context,
 | Conversation context | The unified inbox now labels Community, Exchange, TradeScout Support, and Direct Connect context without changing thread identity or unread counts. Synthetic approved-contact threads no longer require a listing row; selected threads use one authorized mark-read endpoint. Procurement messages remain read-only and order-scoped. | `conversationContextAdapter.test.ts`, `conversation-context-presentation.test.ts`, `conversation-context-parity.contract.test.ts` |
 | Notifications | AppShell's global Notification Center owns user notification UI; Direct Connect shell has no duplicate client notification center. | `DirectConnectNotificationsCenter.contract.test.ts` |
 | Community | `community-feed.tsx` is the only routed feed; `CommunityPostCard` is its canonical post representation, while the sample `CommunityFeed.tsx` and unused `SocialFeed` remain explicitly quarantined. | `canonical-surface-ownership.contract.test.ts`, `community-post-card-parity.contract.test.ts` |
-| Trust presentation | Rendered stars, “Highest Rated,” and average-rating labels are removed from the primary provider/helper/exchange/community-adjacent surfaces touched by this phase. | `no-star-rating-doctrine.contract.test.ts` |
+| Trust presentation | Rendered stars, “Highest Rated,” average-rating labels, public CVS values, location scores, and synthetic confidence percentages are removed from active provider, profile, Direct Connect, deal, realtor, analytics, and Scout decision surfaces. Stored compatibility fields and outcome feedback remain intact. | `no-star-rating-doctrine.contract.test.ts` |
 
 ## Data-system disposition
 
@@ -62,8 +62,18 @@ No table rename, merge, backfill, or drop is authorized by static repository evi
 
 Until all six exist, destructive convergence is classified `policy_target`, not `enforced`.
 
+Static schema review found **zero data families ready for destructive convergence**. The ordered instrumentation sequence is:
+
+1. `socialPosts`: add reader/writer telemetry, relation counts, retention review, and a presentation adapter before considering a backfill.
+2. Direct Connect notification compatibility: measure endpoint and event consumers, then prove generic-notification parity.
+3. Messaging: inventory participant, authority, unread, attachment, export, and socket semantics before proposing any storage convergence.
+4. Procurement and employment: evaluate as separate bounded contexts with their original lifecycle writers preserved.
+5. Estimates, invoices, payments, and other money-bearing records: last, behind reconciliation, idempotency, legal-retention, and rollback gates.
+
+The repository does not yet contain the production telemetry, transform checksums, orphan reports, or rollback rehearsal evidence required to advance any of these to migration-ready.
+
 ## Remaining ordered work
 
-1. Move remaining rating remnants outside the guarded primary surfaces to trust evidence, distinguishing historical admin-only data from customer-visible ranking.
-2. Consolidate the compatibility redirect registry without changing any legacy URL behavior.
+1. Consolidate the compatibility redirect registry without changing any legacy URL behavior.
+2. Extend the trust doctrine guard to newly activated customer surfaces as they leave quarantine; keep historical admin data and explicit outcome feedback distinguishable from public reputation.
 3. Begin each deep schema proposal as a separate reversible migration only after the deep-schema gate is complete.

@@ -63,7 +63,6 @@ export function TrustAwareDecisionCard({
   summary,
   primaryAction,
   alternativeActions,
-  confidence,
   confidenceBand,
   riskLevel,
   trust,
@@ -100,7 +99,8 @@ export function TrustAwareDecisionCard({
     return null;
   }, [primaryAllowed, normalizedScore, signal.requiredReview, trust.minRequiredScore]);
 
-  const displayedConfidence = Math.round(clamp(Number(confidence ?? 0.65) * 100, 0, 100));
+  const displayedConfidence =
+    confidenceBand === "high" ? "Strong" : confidenceBand === "medium" ? "Review" : "Limited";
   const finalAlt = (alternativeActions ?? []).slice(0, 3);
   const visibleAlternatives = showAllAlternatives ? finalAlt : finalAlt.slice(0, 1);
 
@@ -135,7 +135,7 @@ export function TrustAwareDecisionCard({
                 color: confidenceColor(confidenceBand),
               }}
             >
-              Match {displayedConfidence}%
+              Match {displayedConfidence}
             </span>
 
             <span

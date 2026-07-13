@@ -18,7 +18,33 @@ const trustSurfaces = [
   "client/src/pages/exchange/ExchangeCategoryPage.tsx",
   "client/src/pages/find-contractors.tsx",
   "client/src/pages/BusinessProfileView.tsx",
+  "client/src/pages/PublicProfileView.tsx",
+  "client/src/pages/ProfilePage.tsx",
+  "client/src/pages/SimpleHome.tsx",
+  "client/src/pages/analytics.tsx",
+  "client/src/pages/contractor-profile.tsx",
+  "client/src/pages/daily-deals.tsx",
+  "client/src/pages/trade-deals-lucky.tsx",
+  "client/src/pages/trust-model.tsx",
+  "client/src/pages/realtor-contacts.tsx",
+  "client/src/pages/realtor-connections.tsx",
+  "client/src/pages/direct-connect/DirectConnectPros.tsx",
+  "client/src/pages/direct-connect/DirectConnectShell.tsx",
+  "client/src/scout/TrustAwareDecisionCard.tsx",
+  "client/src/scout/TrustSignalCard.tsx",
+  "client/src/scout/modules/EventDiscoveryModule.tsx",
   "client/src/scout/modules/ServiceDirectoryModule.tsx",
+];
+
+const forbiddenNumericTrustCopy = [
+  "Avg. CVS",
+  "Top CVS",
+  "Trust (CVS)",
+  "CVS Pending",
+  "CVS pending",
+  "Location score",
+  '"Signal:"',
+  "Match {displayedConfidence}%",
 ];
 
 describe("TradeScout trust presentation doctrine", () => {
@@ -28,7 +54,19 @@ describe("TradeScout trust presentation doctrine", () => {
       expect(source, file).not.toContain("<Star");
       expect(source, file).not.toContain("Highest Rated");
       expect(source, file).not.toContain("Avg Rating");
+      for (const copy of forbiddenNumericTrustCopy) {
+        expect(source, `${file}: ${copy}`).not.toContain(copy);
+      }
     }
+  });
+
+  it("keeps internal trust composites qualitative on customer-facing decision cards", () => {
+    const source = read("client/src/scout/TrustSignalCard.tsx");
+    expect(source).toContain('"Strong"');
+    expect(source).toContain('"Review"');
+    expect(source).toContain('"Limited"');
+    expect(source).not.toContain("confidencePct");
+    expect(source).not.toContain("Math.round(cvsScore)");
   });
 
   it("uses business language in primary navigation", () => {

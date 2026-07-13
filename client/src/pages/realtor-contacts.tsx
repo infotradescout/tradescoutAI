@@ -35,7 +35,7 @@ export default function RealtorContacts() {
       tags: ["Buyer", "First-time"],
       notes: "Looking for family home under $500k",
       source: "Referral",
-      rating: 5,
+      trustEvidence: "Relationship history on file",
     },
     {
       id: 2,
@@ -48,7 +48,7 @@ export default function RealtorContacts() {
       tags: ["Seller", "Investment"],
       notes: "Selling rental property, may buy another",
       source: "Website",
-      rating: 4,
+      trustEvidence: "Relationship history on file",
     },
     {
       id: 3,
@@ -61,7 +61,7 @@ export default function RealtorContacts() {
       tags: ["Buyer", "Luxury"],
       notes: "High-end property buyer, budget 800k+",
       source: "Open House",
-      rating: null,
+      trustEvidence: "Verification pending",
     },
     {
       id: 4,
@@ -74,7 +74,7 @@ export default function RealtorContacts() {
       tags: ["Contractor", "Referral Source"],
       notes: "Kitchen remodeling specialist",
       source: "Networking Event",
-      rating: 5,
+      trustEvidence: "Relationship history on file",
     },
   ];
 
@@ -106,9 +106,8 @@ export default function RealtorContacts() {
     }
   };
 
-  const renderTrust = (cvs: number | null | undefined) => {
-    if (typeof cvs !== "number") return <span className="text-white/60 text-sm">CVS pending</span>;
-    return <span className="font-medium">CVS {Math.round(cvs)}</span>;
+  const renderTrust = (trustEvidence: string) => {
+    return <span className="font-medium">{trustEvidence}</span>;
   };
 
   return (
@@ -214,8 +213,8 @@ export default function RealtorContacts() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">Trust (CVS):</span>
-                              {renderTrust(contact.rating)}
+                              <span className="text-sm text-muted-foreground">Trust evidence:</span>
+                              {renderTrust(contact.trustEvidence)}
                             </div>
                           </div>
 
@@ -344,7 +343,7 @@ export default function RealtorContacts() {
                                 {contact.email} • {contact.phone}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
-                                {renderTrust(contact.rating)}
+                                {renderTrust(contact.trustEvidence)}
                               </div>
                             </div>
                           </div>

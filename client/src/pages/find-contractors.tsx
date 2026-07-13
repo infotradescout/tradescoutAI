@@ -38,7 +38,6 @@ type Contractor = {
   id: string;
   name?: string;
   businessName?: string;
-  rating?: number;
   reviewCount?: number;
   recommendationCount?: number;
   connectionRecommendationCount?: number | null;
@@ -103,7 +102,7 @@ const FindContractors = memo(function FindContractors({
       if (aTier !== bTier) return aTier - bTier;
       const aScore = a.localCredibilityScore ?? 0;
       const bScore = b.localCredibilityScore ?? 0;
-      // Recommendations are the transparent tie-breaker when canonical CVS is equal.
+      // Recommendations are the transparent tie-breaker when internal trust evidence is equal.
       if (aScore === bScore) {
         const aRec = a.recommendationCount ?? a.reviewCount ?? 0;
         const bRec = b.recommendationCount ?? b.reviewCount ?? 0;
@@ -114,21 +113,18 @@ const FindContractors = memo(function FindContractors({
   }, [topContractors]);
 
   const snapshot = useMemo(() => {
-    const scored = ranked.filter((c) => typeof c.localCredibilityScore === "number");
-    const avgCvs =
-      scored.length > 0
-        ? scored.reduce((sum, c) => sum + (c.localCredibilityScore ?? 0), 0) / scored.length
-        : null;
     const totalRecs = ranked.reduce(
       (sum, c) => sum + (c.recommendationCount ?? c.reviewCount ?? 0),
       0
     );
-    const topCvs = scored.reduce((max, c) => Math.max(max, c.localCredibilityScore ?? 0), 0);
     return {
       results: ranked.length,
-      avgCvs,
       totalRecs,
-      topCvs: scored.length > 0 ? topCvs : null,
+      licensedResults: ranked.filter((contractor) => Boolean(contractor.licenseNumber)).length,
+      completedJobs: ranked.reduce(
+        (sum, contractor) => sum + (contractor.localStats?.jobsCompleted ?? 0),
+        0
+      ),
     };
   }, [ranked]);
 
@@ -299,14 +295,7 @@ const FindContractors = memo(function FindContractors({
                 <div className="flex items-center gap-4 text-sm text-white/70">
                   <div className="flex items-center gap-1">
                     <ShieldCheck className="h-4 w-4 text-ts-orange" />
-                    <span>
-                      CVS{" "}
-                      {typeof (contractor as any).cvsScore === "number"
-                        ? Math.round((contractor as any).cvsScore)
-                        : typeof contractor.rating === "number"
-                          ? Math.round(contractor.rating)
-                          : "pending"}
-                    </span>
+                    <span>{contractor.licenseNumber ? "License on file" : "Trust details"}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <ThumbsUp className="h-4 w-4 text-emerald-400" />
@@ -357,25 +346,21 @@ const FindContractors = memo(function FindContractors({
               </div>
             </div>
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-white/60">Avg. CVS</div>
-              <div className="text-2xl font-semibold text-ts-orange">
-                {countyFips && tradeSlug && snapshot.avgCvs !== null
-                  ? snapshot.avgCvs.toFixed(0)
-                  : "-"}
-              </div>
-            </div>
-            <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-white/60">Total Recs</div>
+              <div className="text-xs uppercase tracking-wide text-white/60">Recommendations</div>
               <div className="text-2xl font-semibold text-ts-orange">
                 {countyFips && tradeSlug ? snapshot.totalRecs : "-"}
               </div>
             </div>
             <div className="ts-tile p-4">
-              <div className="text-xs uppercase tracking-wide text-white/60">Top CVS</div>
+              <div className="text-xs uppercase tracking-wide text-white/60">Licensed results</div>
               <div className="text-2xl font-semibold text-ts-orange">
-                {countyFips && tradeSlug && snapshot.topCvs !== null
-                  ? snapshot.topCvs.toFixed(0)
-                  : "-"}
+                {countyFips && tradeSlug ? snapshot.licensedResults : "-"}
+              </div>
+            </div>
+            <div className="ts-tile p-4">
+              <div className="text-xs uppercase tracking-wide text-white/60">Completed jobs</div>
+              <div className="text-2xl font-semibold text-ts-orange">
+                {countyFips && tradeSlug ? snapshot.completedJobs : "-"}
               </div>
             </div>
           </div>
@@ -399,16 +384,16 @@ const FindContractors = memo(function FindContractors({
 
       <section className="ts-section">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold">Top trust matches</h2>
+          <h2 className="text-2xl font-semibold">Local matches</h2>
           <span className="text-sm text-white/60">Verified and community-backed</span>
         </div>
         {!countyFips || !tradeSlug ? (
           <div className="ts-tile p-6 text-sm text-white/60">
-            Select a location and trade to see trust-ranked contractors.
+            Select a location and trade to see matching contractors.
           </div>
         ) : featured.length === 0 ? (
           <div className="ts-tile p-6 text-sm text-white/70">
-            No trust-ranked contractors available for this selection yet.
+            No matching contractors are available for this selection yet.
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -422,12 +407,7 @@ const FindContractors = memo(function FindContractors({
                 </p>
                 <div className="flex justify-between items-center text-sm">
                   <span className="ts-accent-text">
-                    Trust (CVS):{" "}
-                    {typeof (contractor as any).cvsScore === "number"
-                      ? (contractor as any).cvsScore.toFixed(0)
-                      : typeof contractor.localCredibilityScore === "number"
-                        ? contractor.localCredibilityScore.toFixed(0)
-                        : "pending"}
+                    {contractor.recommendationCount ?? contractor.reviewCount ?? 0} recommendations
                   </span>
                   <a
                     className="ts-accent-btn px-3 py-2 rounded-lg transition-colors"

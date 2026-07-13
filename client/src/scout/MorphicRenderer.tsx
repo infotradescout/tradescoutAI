@@ -237,7 +237,7 @@ export const MorphicRenderer: React.FC<MorphicRendererProps> = ({
           description: c.body || "",
           time: (c.items || [])[0]?.label || "Time not listed",
           location: (c.items || [])[1]?.label || "",
-          rating: 0,
+          organizerVerified: false,
           imageUrl: "",
           tags: [c.kind],
         }));

@@ -122,17 +122,13 @@ const SimpleHome = memo(function SimpleHome() {
                   <div className="flex items-center justify-between mb-2">
                     <ShieldCheck className="h-5 w-5 text-ts-orange" />
                     <Badge variant="secondary" className="text-xs">
-                      {typeof (user as any)?.cvsScore === "number"
-                        ? Math.round((user as any).cvsScore)
-                        : "—"}
+                      On file
                     </Badge>
                   </div>
-                  <div className="text-2xl font-bold text-white mb-1">
-                    {typeof (user as any)?.cvsScore === "number"
-                      ? Math.round((user as any).cvsScore)
-                      : "—"}
-                  </div>
-                  <p className="text-xs text-white/70">Trust (CVS)</p>
+                  <div className="text-lg font-bold text-white mb-1">Trust evidence</div>
+                  <p className="text-xs text-white/70">
+                    Review verification details on your profile
+                  </p>
                 </CardContent>
               </Card>
             </>

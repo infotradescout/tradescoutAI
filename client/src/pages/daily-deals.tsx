@@ -34,37 +34,37 @@ const DailyDeals = memo(function DailyDeals() {
                 title: "Plumbing Repair",
                 discount: "20% Off",
                 contractor: "Pro Plumbers LLC",
-                rating: "4.9",
+                evidence: "Verification pending",
               },
               {
                 title: "Electrical Installation",
                 discount: "15% Off",
                 contractor: "Bright Electric Co",
-                rating: "4.8",
+                evidence: "Verification pending",
               },
               {
                 title: "Roofing Inspection",
                 discount: "Free",
                 contractor: "Roof Masters Inc",
-                rating: "5.0",
+                evidence: "Verification pending",
               },
               {
                 title: "HVAC Maintenance",
                 discount: "$100 Off",
                 contractor: "Climate Control Pro",
-                rating: "4.7",
+                evidence: "Verification pending",
               },
               {
                 title: "Flooring Installation",
                 discount: "25% Off",
                 contractor: "Floor Experts",
-                rating: "4.9",
+                evidence: "Verification pending",
               },
               {
                 title: "Painting Services",
                 discount: "$200 Off",
                 contractor: "Perfect Paint Co",
-                rating: "4.6",
+                evidence: "Verification pending",
               },
             ].map((deal, i) => (
               <div key={i} data-testid={`deal-card-${i}`} className="bg-tsCard p-6 rounded-lg">
@@ -74,7 +74,7 @@ const DailyDeals = memo(function DailyDeals() {
                 <h3 className="text-xl font-semibold mb-2 text-ts-orange">{deal.title}</h3>
                 <p className="text-white/70 mb-2">by {deal.contractor}</p>
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-white/70">Signal: {deal.rating}</span>
+                  <span className="text-white/70">{deal.evidence}</span>
                   <span className="text-sm text-white/60">Expires today</span>
                 </div>
                 <button

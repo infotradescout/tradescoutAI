@@ -25,7 +25,7 @@ export default function RealtorConnections() {
       phone: "(555) 123-4567",
       email: "mike@elitehome.com",
       specialty: "Kitchen & Bath Remodeling",
-      rating: 88,
+      trustEvidence: "Project history on file",
       completedProjects: 45,
       location: "Downtown Area",
       status: "Preferred Partner",
@@ -38,7 +38,7 @@ export default function RealtorConnections() {
       phone: "(555) 234-5678",
       email: "sarah@precisionroofing.com",
       specialty: "Roofing & Gutters",
-      rating: 92,
+      trustEvidence: "Project history on file",
       completedProjects: 78,
       location: "Citywide",
       status: "Active Partner",
@@ -51,7 +51,7 @@ export default function RealtorConnections() {
       phone: "(555) 345-6789",
       email: "david@gardenstatescape.com",
       specialty: "Landscaping & Outdoor Living",
-      rating: 84,
+      trustEvidence: "Project history on file",
       completedProjects: 32,
       location: "Suburban Areas",
       status: "New Partner",
@@ -67,7 +67,7 @@ export default function RealtorConnections() {
       phone: "(555) 456-7890",
       email: "afoster@firstnational.com",
       specialty: "Conventional & FHA Loans",
-      rating: 90,
+      trustEvidence: "Credential details on file",
       avgCloseTime: "28 days",
       approvalRate: "94%",
       status: "Preferred Lender",
@@ -79,7 +79,7 @@ export default function RealtorConnections() {
       phone: "(555) 567-8901",
       email: "jwilson@communitycu.org",
       specialty: "First-Time Buyers",
-      rating: 87,
+      trustEvidence: "Credential details on file",
       avgCloseTime: "25 days",
       approvalRate: "91%",
       status: "Partner",
@@ -94,7 +94,7 @@ export default function RealtorConnections() {
       phone: "(555) 678-9012",
       email: "lisa@metroinspect.com",
       specialty: "Residential Inspections",
-      rating: 93,
+      trustEvidence: "Certification details on file",
       avgTurnaround: "24 hours",
       certifications: ["ASHI", "NAHI"],
       status: "Trusted Partner",
@@ -118,11 +118,11 @@ export default function RealtorConnections() {
     }
   };
 
-  const renderTrust = (cvs: number) => {
+  const renderTrust = (trustEvidence: string) => {
     return (
       <div className="flex items-center gap-2 text-muted-foreground">
         <ShieldCheck className="h-4 w-4" />
-        <span className="font-medium">CVS {Math.round(cvs)}</span>
+        <span className="font-medium">{trustEvidence}</span>
       </div>
     );
   };
@@ -201,8 +201,8 @@ export default function RealtorConnections() {
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Trust (CVS)</p>
-                            {renderTrust(contractor.rating)}
+                            <p className="text-sm text-muted-foreground">Trust evidence</p>
+                            {renderTrust(contractor.trustEvidence)}
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Completed Projects</p>
@@ -283,8 +283,8 @@ export default function RealtorConnections() {
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Trust (CVS)</p>
-                            {renderTrust(lender.rating)}
+                            <p className="text-sm text-muted-foreground">Trust evidence</p>
+                            {renderTrust(lender.trustEvidence)}
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Avg. Close Time</p>
@@ -364,8 +364,8 @@ export default function RealtorConnections() {
 
                         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <p className="text-sm text-muted-foreground">Trust (CVS)</p>
-                            {renderTrust(inspector.rating)}
+                            <p className="text-sm text-muted-foreground">Trust evidence</p>
+                            {renderTrust(inspector.trustEvidence)}
                           </div>
                           <div>
                             <p className="text-sm text-muted-foreground">Turnaround</p>

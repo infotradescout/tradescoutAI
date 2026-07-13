@@ -12,10 +12,6 @@ export interface TrustSignalCardProps {
   compact?: boolean;
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
 function statusLabel(status?: TrustSignalCardProps["verificationStatus"]): string {
   if (status === "approved") return "Verification approved";
   if (status === "pending") return "Verification pending";
@@ -30,47 +26,11 @@ function confidenceColor(level: TrustSignalCardProps["confidenceLevel"]): string
   return "var(--status-error)";
 }
 
-function scoreColor(score: number | null): string {
-  if (score === null) return "var(--text-secondary)";
-  if (score >= 80) return "var(--status-success)";
-  if (score >= 50) return "var(--status-warning)";
-  return "var(--status-error)";
-}
-
-function Ring({ score }: { score: number | null }) {
-  const bounded = score === null ? 0 : clamp(score, 0, 100);
-  const sweep = (bounded / 100) * 251.2;
-  const stroke = scoreColor(score);
-
-  return (
-    <svg width="66" height="66" viewBox="0 0 66 66" role="img" aria-label="Safety score">
-      <circle cx="33" cy="33" r="20" fill="none" stroke="var(--border-subtle)" strokeWidth="6" />
-      <circle
-        cx="33"
-        cy="33"
-        r="20"
-        fill="none"
-        stroke={stroke}
-        strokeWidth="6"
-        strokeLinecap="round"
-        strokeDasharray="251.2"
-        strokeDashoffset={251.2 - sweep}
-        transform="rotate(-90 33 33)"
-      />
-      <text x="33" y="37" textAnchor="middle" fontSize="12" fontWeight="700" fill="currentColor">
-        {score === null ? "--" : Math.round(score)}
-      </text>
-    </svg>
-  );
-}
-
 /**
  * Displays safety context for Scout result cards.
  */
 export function TrustSignalCard({
-  cvsScore,
   confidenceLevel,
-  confidenceNumeric,
   verifiedActivityProof,
   verificationStatus,
   riskFlags,
@@ -78,7 +38,6 @@ export function TrustSignalCard({
   requiredReview,
   compact = false,
 }: TrustSignalCardProps) {
-  const confidencePct = Math.round(clamp((confidenceNumeric ?? 0.65) * 100, 0, 100));
   const flags = Array.isArray(riskFlags) ? riskFlags : [];
 
   return (
@@ -103,7 +62,14 @@ export function TrustSignalCard({
           </div>
         </div>
 
-        {!compact && <Ring score={cvsScore} />}
+        {!compact && (
+          <div
+            className="rounded-full border px-3 py-1 text-xs"
+            style={{ borderColor: "var(--border-subtle)" }}
+          >
+            Evidence checked
+          </div>
+        )}
       </header>
 
       <div className="rounded-md border px-2 py-2" style={{ borderColor: "var(--border-subtle)" }}>
@@ -130,7 +96,11 @@ export function TrustSignalCard({
             className="text-sm font-semibold"
             style={{ color: confidenceColor(confidenceLevel) }}
           >
-            {confidenceLevel.toUpperCase()} ({confidencePct}%)
+            {confidenceLevel === "high"
+              ? "Strong"
+              : confidenceLevel === "medium"
+                ? "Review"
+                : "Limited"}
           </div>
         </div>
 
@@ -147,27 +117,6 @@ export function TrustSignalCard({
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
             {statusLabel(verificationStatus)}
           </div>
-        </div>
-      </div>
-
-      <div className="mt-2">
-        <div className="mb-1 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-          Match profile
-        </div>
-        <div
-          className="h-1.5 rounded"
-          style={{
-            background: "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)",
-          }}
-        >
-          <div
-            className="h-full rounded"
-            style={{
-              width: `${confidencePct}%`,
-              background: confidenceColor(confidenceLevel),
-              transition: "width 180ms ease",
-            }}
-          />
         </div>
       </div>
 
