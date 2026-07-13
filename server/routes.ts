@@ -32,7 +32,7 @@ import { registerEmploymentRoutes } from "./routes/employment";
 import { registerIdentityVerificationRoutes } from "./routes/identity-verification";
 import { registerObjectivesRoutes } from "./routes/objectives";
 import { registerBusinessProfileRoutes } from "./routes/business-profile";
-import { registerBusinessContactRoutes } from "./routes/business-contact";
+import { registerBusinessContactRoutes } from "./routes/business-contact";\nimport { registerTradePartnerExpressRoutes } from "./routes/tradepartner-express";
 import { registerBusinessClaimRoutes } from "./routes/business-claim";
 import { registerWorkerTasksRoutes } from "./routes/worker-tasks";
 import { registerAdminBusinessCountyEnrichmentRoutes } from "./routes/admin-business-county-enrichment";
@@ -26300,7 +26300,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   // Register business profile routes (PHASE 3d-C: Published Presence)
   registerBusinessProfileRoutes(app);
-  registerBusinessContactRoutes(app);
+  registerBusinessContactRoutes(app);\n  registerTradePartnerExpressRoutes(app);
   registerBusinessClaimRoutes(app);
   registerAdminBusinessCountyEnrichmentRoutes(app);
   registerContractorPromoRoutes(app);
