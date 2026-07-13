@@ -71,7 +71,7 @@ export default function ExpressDirectConnectPanel({
 
   useEffect(() => {
     if (!open) return;
-    setView("choice");
+    setView(initialStoneName ? "request" : "choice");
     setBusy(false);
     setError("");
     setCallPhone("");
@@ -256,7 +256,7 @@ export default function ExpressDirectConnectPanel({
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900">
-                  What are you looking for?
+                  {initialStoneName ? `Ask about ${initialStoneName}` : "What are you looking for?"}
                 </h3>
                 <p className="mt-1 text-sm text-stone-600">
                   Send your project details directly to {businessName}.
