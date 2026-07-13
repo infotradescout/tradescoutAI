@@ -103,6 +103,13 @@ const AppLayout = memo(function AppLayout() {
     pathOnly.startsWith("/collections/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
+  const isPublicProfileRoute =
+    (/^\\/u\\/[^/]+$/.test(pathOnly) ||
+      /^\\/business\\/[^/]+$/.test(pathOnly) ||
+      /^\\/contractors\\/[^/]+$/.test(pathOnly) ||
+      /^\\/helpers\\/[^/]+$/.test(pathOnly) ||
+      /^\\/profile\\/[^/]+$/.test(pathOnly)) &&
+    !pathOnly.endsWith("/edit");
 
   const { user, isAuthenticated, isLoading } = useAuth();
   const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;
@@ -263,7 +270,8 @@ const AppLayout = memo(function AppLayout() {
     !isPublicCampaignRoute &&
     !isShareRoute &&
     !isAuthSurface &&
-    !isDirectConnectSurface;
+    !isDirectConnectSurface &&
+    !isPublicProfileRoute;
 
   const appBackgroundClass = "";
   const mainClassName = "flex-1 relative w-full";
