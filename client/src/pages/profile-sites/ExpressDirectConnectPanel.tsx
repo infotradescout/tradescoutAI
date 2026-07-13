@@ -168,9 +168,9 @@ export default function ExpressDirectConnectPanel({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-[#f7f3e9] text-[#171717] shadow-2xl outline-none sm:max-w-xl sm:rounded-3xl"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-3xl bg-stone-50 text-neutral-900 shadow-2xl outline-none sm:max-w-xl sm:rounded-3xl"
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-[#f7f3e9] px-5 py-4">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-stone-50 px-5 py-4">
           <div className="flex items-center gap-3">
             {view === "request" ? (
               <button
@@ -179,19 +179,19 @@ export default function ExpressDirectConnectPanel({
                   setError("");
                   setView("choice");
                 }}
-                className="rounded-full p-2 text-[#171717] hover:bg-black/5"
+                className="rounded-full p-2 text-neutral-900 hover:bg-black/5"
                 aria-label="Back to contact options"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
             ) : null}
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#52664a]">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
                 Direct Connect
               </p>
               <h2
                 id="express-direct-connect-title"
-                className="text-xl font-bold text-[#171717]"
+                className="text-xl font-bold text-neutral-900"
               >
                 {businessName}
               </h2>
@@ -200,7 +200,7 @@ export default function ExpressDirectConnectPanel({
           <button
             type="button"
             onClick={close}
-            className="rounded-full p-2 text-[#171717]/60 hover:bg-black/5"
+            className="rounded-full p-2 text-neutral-900/60 hover:bg-black/5"
             aria-label="Close Direct Connect"
           >
             <X className="h-5 w-5" />
@@ -210,7 +210,7 @@ export default function ExpressDirectConnectPanel({
         <div className="p-5 sm:p-7">
           {view === "choice" ? (
             <div>
-              <p className="mb-6 text-[#454038]">
+              <p className="mb-6 text-stone-700">
                 Call now or tell us what you’re looking for.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -218,7 +218,7 @@ export default function ExpressDirectConnectPanel({
                   type="button"
                   onClick={startCall}
                   disabled={busy}
-                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-[#1d2023] p-5 text-left text-white transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-neutral-900 p-5 text-left text-white transition-transform hover:-translate-y-0.5 disabled:opacity-60"
                 >
                   {busy ? (
                     <Loader2 className="h-6 w-6 animate-spin" />
@@ -236,17 +236,17 @@ export default function ExpressDirectConnectPanel({
                     setError("");
                     setView("request");
                   }}
-                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-black/10 bg-white p-5 text-left text-[#171717] transition-transform hover:-translate-y-0.5 hover:border-black/25"
+                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-black/10 bg-white p-5 text-left text-neutral-900 transition-transform hover:-translate-y-0.5 hover:border-black/25"
                 >
                   <MessageCircle className="h-6 w-6" />
                   <span>
                     <strong className="block text-lg">Request stone</strong>
-                    <span className="text-sm font-medium text-[#5b554c]">Phone number required</span>
+                    <span className="text-sm font-medium text-stone-600">Phone number required</span>
                   </span>
                 </button>
               </div>
-              <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-[#514b42]">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#52664a]" />
+              <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
+                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-800" />
                 A phone number is required to send a request. No text code needed.
               </div>
             </div>
@@ -255,39 +255,39 @@ export default function ExpressDirectConnectPanel({
           {view === "request" ? (
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
-                <h3 className="text-2xl font-bold text-[#171717]">
+                <h3 className="text-2xl font-bold text-neutral-900">
                   What are you looking for?
                 </h3>
-                <p className="mt-1 text-sm text-[#5b554c]">
+                <p className="mt-1 text-sm text-stone-600">
                   Send your project details directly to {businessName}.
                 </p>
               </div>
 
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-[#171717]">Name</span>
+                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Name</span>
                 <input
                   required
                   autoComplete="name"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-[#171717] outline-none focus:border-black/45"
+                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1.5 block text-sm font-semibold text-[#171717]">Email</span>
+                  <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Email</span>
                   <input
                     required
                     type="email"
                     autoComplete="email"
                     value={form.email}
                     onChange={(event) => setForm({ ...form, email: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-[#171717] outline-none focus:border-black/45"
+                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
                   />
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-[#171717]">
-                    Phone <span className="text-xs font-normal text-[#5b554c]">Required</span>
+                  <span className="mb-1.5 flex items-center gap-2 text-sm font-semibold text-neutral-900">
+                    Phone <span className="text-xs font-normal text-stone-600">Required</span>
                   </span>
                   <input
                     required
@@ -297,18 +297,18 @@ export default function ExpressDirectConnectPanel({
                     placeholder="(555) 555-5555"
                     value={form.phone}
                     onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-[#171717] outline-none focus:border-black/45"
+                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
                   />
                 </label>
               </div>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-[#171717]">
+                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
                   What do you need?
                 </span>
                 <select
                   value={form.requestType}
                   onChange={(event) => setForm({ ...form, requestType: event.target.value })}
-                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-[#171717] outline-none focus:border-black/45"
+                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
                 >
                   {REQUEST_TYPES.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -318,7 +318,7 @@ export default function ExpressDirectConnectPanel({
                 </select>
               </label>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-[#171717]">Details</span>
+                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">Details</span>
                 <textarea
                   required
                   rows={5}
@@ -326,7 +326,7 @@ export default function ExpressDirectConnectPanel({
                   value={form.message}
                   onChange={(event) => setForm({ ...form, message: event.target.value })}
                   placeholder="Tell them what material, quantity, project, or timing you have in mind."
-                  className="w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-[#171717] outline-none focus:border-black/45"
+                  className="w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
                 />
               </label>
               <input
@@ -337,14 +337,14 @@ export default function ExpressDirectConnectPanel({
                 onChange={(event) => setForm({ ...form, website: event.target.value })}
                 className="absolute -left-[10000px] h-px w-px opacity-0"
               />
-              <p className="text-xs leading-relaxed text-[#5b554c]">
+              <p className="text-xs leading-relaxed text-stone-600">
                 We’ll also create your free TradeScout account so you can follow the request and
                 contact other businesses.
               </p>
               <button
                 type="submit"
                 disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#1d2023] px-7 py-3.5 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-7 py-3.5 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
               >
                 {busy ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
@@ -358,29 +358,29 @@ export default function ExpressDirectConnectPanel({
 
           {view === "call_started" ? (
             <div className="text-center">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-black/5 text-[#171717]">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-black/5 text-neutral-900">
                 <Phone className="h-7 w-7" />
               </div>
-              <h3 className="text-2xl font-bold text-[#171717]">
+              <h3 className="text-2xl font-bold text-neutral-900">
                 Calling {businessName}
               </h3>
               {callTel ? (
                 <a
                   href={callTel}
-                  className="mt-3 inline-block text-lg font-bold text-[#171717] underline underline-offset-4"
+                  className="mt-3 inline-block text-lg font-bold text-neutral-900 underline underline-offset-4"
                 >
                   {callPhone || "Call again"}
                 </a>
               ) : null}
               {!hasViewerSession ? (
                 <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <Search className="mb-3 h-6 w-6 text-[#52664a]" />
-                  <p className="font-bold text-[#171717]">Keep this connection</p>
-                  <p className="mt-1 text-sm text-[#5b554c]">
+                  <Search className="mb-3 h-6 w-6 text-emerald-800" />
+                  <p className="font-bold text-neutral-900">Keep this connection</p>
+                  <p className="mt-1 text-sm text-stone-600">
                     Create a free TradeScout account to save this business and find more businesses you can contact directly.
                   </p>
                   <Link href={membershipHref}>
-                    <button className="mt-4 w-full rounded-xl bg-[#1d2023] px-6 py-3 font-semibold text-white">
+                    <button className="mt-4 w-full rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white">
                       Create free account
                     </button>
                   </Link>
@@ -392,18 +392,18 @@ export default function ExpressDirectConnectPanel({
           {view === "success" ? (
             <div className="text-center">
               <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
-              <h3 className="text-2xl font-bold text-[#171717]">Request sent</h3>
-              <p className="mx-auto mt-2 max-w-md text-[#5b554c]">
+              <h3 className="text-2xl font-bold text-neutral-900">Request sent</h3>
+              <p className="mx-auto mt-2 max-w-md text-stone-600">
                 {businessName} received your project details.
               </p>
               {!hasViewerSession ? (
                 <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <p className="font-bold text-[#171717]">
+                  <p className="font-bold text-neutral-900">
                     {accountCreated
                       ? "Your TradeScout account is ready"
                       : "Follow it in TradeScout"}
                   </p>
-                  <p className="mt-1 text-sm text-[#5b554c]">
+                  <p className="mt-1 text-sm text-stone-600">
                     {accountCreated
                       ? "Check your email to set up access. Then you can follow this request and find more businesses to Direct Connect with."
                       : "Sign in to follow this request and continue the conversation."}
@@ -411,14 +411,14 @@ export default function ExpressDirectConnectPanel({
                   <Link
                     href={`/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect")}`}
                   >
-                    <button className="mt-4 w-full rounded-xl bg-[#1d2023] px-6 py-3 font-semibold text-white">
+                    <button className="mt-4 w-full rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white">
                       Open TradeScout
                     </button>
                   </Link>
                 </div>
               ) : (
                 <Link href="/direct-connect">
-                  <button className="mt-6 rounded-xl bg-[#1d2023] px-7 py-3 font-semibold text-white">
+                  <button className="mt-6 rounded-xl bg-neutral-900 px-7 py-3 font-semibold text-white">
                     View in Direct Connect
                   </button>
                 </Link>
