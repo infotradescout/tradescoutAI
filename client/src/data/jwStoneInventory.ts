@@ -142,7 +142,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   onyx: "Onyx",
   soapstone: "Soapstone",
   basalt: "Basalt",
-  unconfirmed: "Material to Confirm",
+  unconfirmed: "Trending at JW Stone",
 };
 
 const CATEGORY_ORDER = [
