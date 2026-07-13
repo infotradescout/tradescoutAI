@@ -16,24 +16,24 @@ import {
 } from "lucide-react";
 import type { Contractor } from "@shared/schema";
 
-type ContractorCardContractor = Contractor & {
+export type ProviderCardProvider = Contractor & {
   serviceAreas?: string[];
   canonicalBusinessProfileUrl?: string | null;
 };
 
-interface ContractorCardProps {
-  contractor: ContractorCardContractor;
+export interface ProviderCardProps {
+  contractor: ProviderCardProvider;
   showCallToAction?: boolean;
   compact?: boolean;
   requestOnly?: boolean;
 }
 
-export default function ContractorCard({
+export function ProviderCard({
   contractor,
   showCallToAction = true,
   compact = false,
   requestOnly = false,
-}: ContractorCardProps) {
+}: ProviderCardProps) {
   // Generate company initials for avatar
   const companyInitials =
     contractor.companyName
@@ -245,7 +245,7 @@ export default function ContractorCard({
         {showCallToAction ? (
           <div className="flex space-x-2">
             <Link
-              href={`/direct-connect?intent=hire&contractor=${encodeURIComponent(contractor.slug)}`}
+              href={`/direct-connect?intent=hire&targetProviderId=${encodeURIComponent(contractor.id)}&targetName=${encodeURIComponent(contractor.companyName || contractor.slug)}&contractor=${encodeURIComponent(contractor.slug)}`}
               className={requestOnly ? "w-full" : "flex-1"}
             >
               <Button className="w-full ts-accent-btn transition-all duration-300">
@@ -279,3 +279,6 @@ export default function ContractorCard({
     </Card>
   );
 }
+
+// Compatibility default: existing imports keep working while new surfaces use ProviderCard.
+export default ProviderCard;

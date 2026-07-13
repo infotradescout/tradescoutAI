@@ -9,7 +9,6 @@ import {
   Search,
   Phone,
   Mail,
-  Star,
   Calendar,
   DollarSign,
   Car,
@@ -156,12 +155,8 @@ export default function CarSalesCustomers() {
                           variant={customer.status === "Hot Lead" ? "default" : "secondary"}
                           className={customer.status === "Hot Lead" ? "bg-green-600" : ""}
                         >
-                          {customer.status}
+                          {customer.status === "Hot Lead" ? "Priority" : customer.status}
                         </Badge>
-                        <div className="flex items-center gap-1 mt-2">
-                          <Star className="h-4 w-4 text-yellow-400" />
-                          <span className="text-sm">{customer.rating}</span>
-                        </div>
                       </div>
                     </div>
 

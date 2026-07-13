@@ -6,6 +6,7 @@ import {
   getDisplayLatestStatus,
   getDisplayRequestDescription,
   getDisplayRequestTitle,
+  buildDirectConnectRequestCardView,
   looksLikeHiddenOrTestRequest,
   normalizeDirectConnectContactState,
 } from "./requestCardPresentation";
@@ -49,6 +50,40 @@ describe("requestCardPresentation", () => {
         description: "Leak over garage. Looking for licensed local pros.",
       })
     ).toBe(false);
+  });
+
+  it("builds one safe request-card view for compact and full surfaces", () => {
+    expect(
+      buildDirectConnectRequestCardView({
+        id: "request-1",
+        title: "Roof repair",
+        description: "Leak above the garage",
+        status: "routed",
+        countyLabel: "Escambia County, FL",
+        budgetMin: "1000",
+        budgetMax: 2500,
+        updatedAt: "2026-07-13T12:00:00.000Z",
+      })
+    ).toMatchObject({
+      id: "request-1",
+      title: "Roof repair",
+      description: "Leak above the garage",
+      statusLabel: "Waiting on pros",
+      countyLabel: "Escambia County, FL",
+      budgetLabel: "$1,000–$2,500",
+    });
+  });
+
+  it("keeps released contact out of the base request-card view", () => {
+    const view = buildDirectConnectRequestCardView({
+      id: "request-2",
+      title: "Electrical work",
+      contactGateState: "contact_released",
+      releasedContact: rawReleasedContact,
+    });
+    expect(JSON.stringify(view)).not.toContain(rawReleasedContact.phone);
+    expect(JSON.stringify(view)).not.toContain(rawReleasedContact.email);
+    expect(JSON.stringify(view)).not.toContain(rawReleasedContact.address);
   });
 
   it("uses non-contradictory status copy for ready-to-send and routed states", () => {

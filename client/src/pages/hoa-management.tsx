@@ -18,7 +18,6 @@ import {
   TrendingUp,
   Phone,
   Mail,
-  Star,
   CheckCircle,
   XCircle,
 } from "lucide-react";
@@ -841,7 +840,7 @@ export default function HOAManagement() {
               <Card className="bg-white/5 border-white/10">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center space-x-2">
-                    <Star className="w-5 h-5 text-yellow-400" />
+                    <Building className="w-5 h-5 text-ts-orange" />
                     <span>Amenities</span>
                   </CardTitle>
                 </CardHeader>
@@ -1060,10 +1059,9 @@ export default function HOAManagement() {
                         {vendor.category}
                       </Badge>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-white font-semibold">{vendor.rating}</span>
-                    </div>
+                    <Badge variant="outline" className="border-white/15 text-white/70">
+                      Vendor profile
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">

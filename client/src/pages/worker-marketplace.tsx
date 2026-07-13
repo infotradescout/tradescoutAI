@@ -16,17 +16,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Search,
-  MapPin,
-  Clock,
-  DollarSign,
-  Star,
-  Shield,
-  Users,
-  Briefcase,
-  Plus,
-} from "lucide-react";
+import { Search, MapPin, Clock, DollarSign, Shield, Users, Briefcase, Plus } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -48,7 +38,7 @@ export default function WorkerMarketplace() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
-  const [sortBy, setSortBy] = useState("rating");
+  const [sortBy, setSortBy] = useState("jobs-completed");
   const [selectedHelper, setSelectedHelper] = useState<Worker | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
@@ -282,7 +272,6 @@ export default function WorkerMarketplace() {
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="rating">Highest Rated</SelectItem>
                   <SelectItem value="price-low">Price: Low to High</SelectItem>
                   <SelectItem value="price-high">Price: High to Low</SelectItem>
                   <SelectItem value="jobs-completed">Most Jobs Completed</SelectItem>
@@ -623,7 +612,7 @@ export default function WorkerMarketplace() {
             bio: selectedHelper.bio || undefined,
             skills: selectedHelper.skills || undefined,
             hourlyRate: selectedHelper.hourlyRate || undefined,
-            averageRating: selectedHelper.averageRating || undefined,
+            averageRating: undefined,
             totalJobsCompleted: selectedHelper.totalJobsCompleted || 0,
             isIdVerified: selectedHelper.isIdVerified || false,
             isBackgroundChecked: selectedHelper.isBackgroundChecked || false,
@@ -665,14 +654,8 @@ function HelperCard({ worker, onViewProfile }: HelperCardProps) {
                 {worker.firstName} {worker.lastName}
               </h3>
               <div className="flex items-center text-sm text-white/60">
-                {worker.averageRating && (
-                  <>
-                    <Star className="h-4 w-4 text-yellow-500 mr-1" />
-                    <span className="mr-2">{parseFloat(worker.averageRating).toFixed(1)}</span>
-                  </>
-                )}
-                <span className="text-white/60">|</span>
-                <span className="ml-2">{worker.totalJobsCompleted} jobs completed</span>
+                <Briefcase className="mr-1 h-4 w-4" />
+                <span>{worker.totalJobsCompleted} jobs completed</span>
               </div>
             </div>
           </div>

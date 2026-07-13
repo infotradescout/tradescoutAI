@@ -18,7 +18,6 @@ import {
   MapPin,
   MessageSquare,
   Shield,
-  Star,
   User,
   Wrench,
   Zap,
@@ -53,20 +52,6 @@ function AvailabilityGrid({ hours }: { hours: Record<string, { start: string; en
           </span>
         </div>
       ))}
-    </div>
-  );
-}
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((i) => (
-        <Star
-          key={i}
-          className={`w-4 h-4 ${i <= Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-white/20"}`}
-        />
-      ))}
-      <span className="ml-1 text-sm text-white/60">{rating.toFixed(1)}</span>
     </div>
   );
 }
@@ -166,7 +151,6 @@ export default function HelperPublicProfile() {
 
           {/* Stats row */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-white/50 mb-3">
-            {profile.averageRating && <StarRating rating={Number(profile.averageRating)} />}
             <div className="flex items-center gap-1">
               <Briefcase className="w-4 h-4" />
               {profile.totalJobsCompleted ?? 0} jobs completed
@@ -354,7 +338,7 @@ export default function HelperPublicProfile() {
             <Card className="bg-white/5 border-white/10">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium text-white/70 flex items-center gap-2">
-                  <Star className="w-4 h-4" /> Portfolio
+                  <Award className="w-4 h-4" /> Portfolio
                 </CardTitle>
               </CardHeader>
               <CardContent>

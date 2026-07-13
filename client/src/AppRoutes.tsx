@@ -1216,7 +1216,7 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/conversations">
                 <ProtectedRoute>
-                  <LazyPage Component={lazy(() => import("./components/messages/MessagesPanel"))} />
+                  <RedirectTo to="/messages" />
                 </ProtectedRoute>
               </Route>
 

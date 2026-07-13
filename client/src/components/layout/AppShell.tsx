@@ -200,7 +200,7 @@ const buildFeatureNav = (opts?: {
       description: "Open Scout to review what to do next.",
     },
     {
-      label: "Commercial",
+      label: "Businesses",
       href: "/commercial-directory",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
       description: "Find local business lanes.",

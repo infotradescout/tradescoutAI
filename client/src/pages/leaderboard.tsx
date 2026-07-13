@@ -14,7 +14,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Trophy,
-  Star,
   TrendingUp,
   Award,
   Crown,
@@ -36,7 +35,6 @@ interface ContractorRanking {
   profileImage?: string;
   monthlyRecommendations: number;
   lifetimeRecommendations: number;
-  averageRating: number;
   completedJobs: number;
   location: string;
   trades: string[];
@@ -237,8 +235,8 @@ export default function Leaderboard() {
                     {contractor.location}
                   </div>
                   <div className="flex items-center">
-                    <Star className="h-3 w-3 mr-1 text-yellow-500" />
-                    {contractor.averageRating.toFixed(1)}
+                    <Users className="h-3 w-3 mr-1 text-ts-orange" />
+                    {contractor.lifetimeRecommendations} recommendations
                   </div>
                   <div className="flex items-center">
                     <Target className="h-3 w-3 mr-1" />
@@ -292,121 +290,123 @@ export default function Leaderboard() {
         canonical="https://www.thetradescout.com/leaderboard"
       />
       <Page className="max-w-4xl">
-      <Section
-        actions={
-          countyName ? (
-            <div className="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-white/70 border border-white/10">
-              <span className="mr-1 h-1.5 w-1.5 rounded-full bg-ts-orange" />
-              Scoped to {countyName}
-            </div>
-          ) : undefined
-        }
-      >
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList
-            className="grid w-full grid-cols-2 mb-6 border-white/10"
-            style={{ backgroundColor: "var(--surface-frame)" }}
-          >
-            <TabsTrigger
-              value="monthly"
-              className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Monthly Rankings
-            </TabsTrigger>
-            <TabsTrigger
-              value="lifetime"
-              className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
-            >
-              <Trophy className="h-4 w-4 mr-2" />
-              Lifetime Rankings
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Filters */}
-          <Card className="border-white/10 mb-6" style={{ backgroundColor: "var(--surface-card)" }}>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Select value={selectedState} onValueChange={setSelectedState}>
-                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
-                    <SelectValue placeholder="All States" />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="border-white/10"
-                    style={{ backgroundColor: "var(--surface-card)" }}
-                  >
-                    <SelectItem value="all">All States</SelectItem>
-                    <SelectItem value="TX">Texas</SelectItem>
-                    <SelectItem value="CA">California</SelectItem>
-                    <SelectItem value="NY">New York</SelectItem>
-                    <SelectItem value="FL">Florida</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select value={selectedTrade} onValueChange={setSelectedTrade}>
-                  <SelectTrigger className="bg-white/10 border-white/15 text-white">
-                    <SelectValue placeholder="All contribution types" />
-                  </SelectTrigger>
-                  <SelectContent
-                    className="border-white/10"
-                    style={{ backgroundColor: "var(--surface-card)" }}
-                  >
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="services">Services</SelectItem>
-                    <SelectItem value="properties">Properties</SelectItem>
-                    <SelectItem value="marketplace">Marketplace</SelectItem>
-                    <SelectItem value="community">Community</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <div className="flex items-center space-x-2 text-sm text-white/60">
-                  <Users className="h-4 w-4" />
-                  <span>Updated hourly</span>
-                </div>
+        <Section
+          actions={
+            countyName ? (
+              <div className="inline-flex items-center rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-white/70 border border-white/10">
+                <span className="mr-1 h-1.5 w-1.5 rounded-full bg-ts-orange" />
+                Scoped to {countyName}
               </div>
+            ) : undefined
+          }
+        >
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList
+              className="grid w-full grid-cols-2 mb-6 border-white/10"
+              style={{ backgroundColor: "var(--surface-frame)" }}
+            >
+              <TabsTrigger
+                value="monthly"
+                className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Monthly Rankings
+              </TabsTrigger>
+              <TabsTrigger
+                value="lifetime"
+                className="text-white/70 data-[state=active]:text-white data-[state=active]:bg-white/10"
+              >
+                <Trophy className="h-4 w-4 mr-2" />
+                Lifetime Rankings
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Filters */}
+            <Card
+              className="border-white/10 mb-6"
+              style={{ backgroundColor: "var(--surface-card)" }}
+            >
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Select value={selectedState} onValueChange={setSelectedState}>
+                    <SelectTrigger className="bg-white/10 border-white/15 text-white">
+                      <SelectValue placeholder="All States" />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="border-white/10"
+                      style={{ backgroundColor: "var(--surface-card)" }}
+                    >
+                      <SelectItem value="all">All States</SelectItem>
+                      <SelectItem value="TX">Texas</SelectItem>
+                      <SelectItem value="CA">California</SelectItem>
+                      <SelectItem value="NY">New York</SelectItem>
+                      <SelectItem value="FL">Florida</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={selectedTrade} onValueChange={setSelectedTrade}>
+                    <SelectTrigger className="bg-white/10 border-white/15 text-white">
+                      <SelectValue placeholder="All contribution types" />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="border-white/10"
+                      style={{ backgroundColor: "var(--surface-card)" }}
+                    >
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="services">Services</SelectItem>
+                      <SelectItem value="properties">Properties</SelectItem>
+                      <SelectItem value="marketplace">Marketplace</SelectItem>
+                      <SelectItem value="community">Community</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex items-center space-x-2 text-sm text-white/60">
+                    <Users className="h-4 w-4" />
+                    <span>Updated hourly</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <TabsContent value="monthly" className="space-y-4">
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold text-white mb-2">This Month's Leaders</h2>
+                <p className="text-white/60 text-sm">
+                  Rankings reset automatically on the 1st of each month
+                </p>
+              </div>
+              {renderRankingsList(monthlyRankings || [], monthlyLoading)}
+            </TabsContent>
+
+            <TabsContent value="lifetime" className="space-y-4">
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold text-white mb-2">All-Time Champions</h2>
+                <p className="text-white/60 text-sm">
+                  Lifetime achievement rankings since joining TradeScout
+                </p>
+              </div>
+              {renderRankingsList(lifetimeRankings || [], lifetimeLoading)}
+            </TabsContent>
+          </Tabs>
+
+          {/* Info Card */}
+          <Card className="border-white/10 mt-8" style={{ backgroundColor: "var(--surface-card)" }}>
+            <CardHeader>
+              <CardTitle className="text-white flex items-center">
+                <Trophy className="h-5 w-5 mr-2 text-ts-orange" />
+                How Rankings Work
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-white/70">
+              <p>• Rankings are based on verified activity and community recommendations</p>
+              <p>• Monthly rankings reset on the 1st of each month</p>
+              <p>• Lifetime rankings track all-time contribution across TradeScout</p>
+              <p>• Only verified contributors with active status are included</p>
+              <p>• Rankings are updated regularly to reflect recent activity</p>
             </CardContent>
           </Card>
-
-          <TabsContent value="monthly" className="space-y-4">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white mb-2">This Month's Leaders</h2>
-              <p className="text-white/60 text-sm">
-                Rankings reset automatically on the 1st of each month
-              </p>
-            </div>
-            {renderRankingsList(monthlyRankings || [], monthlyLoading)}
-          </TabsContent>
-
-          <TabsContent value="lifetime" className="space-y-4">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold text-white mb-2">All-Time Champions</h2>
-              <p className="text-white/60 text-sm">
-                Lifetime achievement rankings since joining TradeScout
-              </p>
-            </div>
-            {renderRankingsList(lifetimeRankings || [], lifetimeLoading)}
-          </TabsContent>
-        </Tabs>
-
-        {/* Info Card */}
-        <Card className="border-white/10 mt-8" style={{ backgroundColor: "var(--surface-card)" }}>
-          <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Trophy className="h-5 w-5 mr-2 text-ts-orange" />
-              How Rankings Work
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-white/70">
-            <p>• Rankings are based on verified activity and community recommendations</p>
-            <p>• Monthly rankings reset on the 1st of each month</p>
-            <p>• Lifetime rankings track all-time contribution across TradeScout</p>
-            <p>• Only verified contributors with active status are included</p>
-            <p>• Rankings are updated regularly to reflect recent activity</p>
-          </CardContent>
-        </Card>
-      </Section>
-    </Page>
+        </Section>
+      </Page>
     </CountyRequiredGate>
   );
 }

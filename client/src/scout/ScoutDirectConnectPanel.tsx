@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import type { WorkRequest } from "@shared/schema";
 import { ArrowUpRight, ListChecks, LoaderCircle, Plus } from "lucide-react";
+import { DirectConnectRequestCard } from "@/pages/direct-connect/DirectConnectRequestCard";
 import {
   interpretWorkRequestStateForScout,
   isActiveCoordinationState,
@@ -22,23 +23,6 @@ type ActiveCoordinationItem = {
 
 interface ScoutDirectConnectPanelProps {
   isAuthenticated: boolean;
-}
-
-function formatRelativeTime(iso?: string | null): string {
-  if (!iso) return "Recently";
-  const ts = new Date(iso).getTime();
-  if (!Number.isFinite(ts)) return "Recently";
-
-  const now = Date.now();
-  const diffMs = Math.max(0, now - ts);
-  const diffMinutes = Math.floor(diffMs / (60 * 1000));
-  const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
-  const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
-
-  if (diffMinutes < 1) return "Just now";
-  if (diffMinutes < 60) return `${diffMinutes} min ago`;
-  if (diffHours < 24) return `${diffHours} hr${diffHours === 1 ? "" : "s"} ago`;
-  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
 }
 
 function ActiveCoordinationPanel({
@@ -166,66 +150,20 @@ function ActiveCoordinationPanel({
       ) : (
         <div className="space-y-2 flex-1 overflow-y-auto pr-1">
           {items.map((item) => (
-            <div
+            <DirectConnectRequestCard
               key={item.id}
-              className="rounded-md border px-2.5 py-2 text-xs flex flex-col gap-1.5"
-              style={{
-                borderColor: "var(--border-subtle)",
-                backgroundColor: "color-mix(in oklab, var(--surface-card) 92%, transparent)",
+              request={{
+                id: item.id,
+                title: item.title,
+                updatedAt: item.updatedAt,
               }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <span
-                    className="mt-1 h-1.5 w-1.5 rounded-full shrink-0"
-                    style={{ backgroundColor: "var(--theme-accent-primary)" }}
-                  />
-                  <div className="min-w-0">
-                    <div className="truncate font-medium" style={{ color: "var(--text-primary)" }}>
-                      {item.title}
-                    </div>
-                    <div className="mt-0.5 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-                      {item.primaryPhrase}
-                    </div>
-                    {item.secondaryPhrase && (
-                      <div
-                        className="mt-0.5 text-[11px]"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        {item.secondaryPhrase}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <span
-                  className="ml-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border whitespace-nowrap"
-                  style={{
-                    backgroundColor:
-                      "color-mix(in oklab, var(--theme-accent-primary) 16%, transparent)",
-                    color: "var(--theme-accent-primary)",
-                    borderColor:
-                      "color-mix(in oklab, var(--theme-accent-primary) 45%, transparent)",
-                  }}
-                >
-                  {item.state.replace("_", " ")}
-                </span>
-              </div>
-              <div
-                className="flex items-center justify-between text-[10px]"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                <span>Updated {formatRelativeTime(item.updatedAt)}</span>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 text-[10px] font-medium"
-                  style={{ color: "var(--theme-accent-primary)" }}
-                  onClick={onViewBoard}
-                >
-                  View
-                  <ArrowUpRight className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
+              statusLabel={item.state.replace("_", " ")}
+              summary={item.primaryPhrase}
+              secondarySummary={item.secondaryPhrase}
+              variant="compact"
+              openLabel="View"
+              onOpen={onViewBoard}
+            />
           ))}
         </div>
       )}

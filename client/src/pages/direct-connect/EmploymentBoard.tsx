@@ -303,7 +303,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
     },
   });
 
-  const openScout = (post: EmploymentPost) => {
+  const openDirectConnect = (post: EmploymentPost) => {
     if (!viewerVerified) {
       toast({
         title: "Verification required",
@@ -315,17 +315,15 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
       return;
     }
 
-    const prompt =
-      post.postType === "job"
-        ? `I want to apply to this job. Help me confirm intent and take the next step.\n\nJob: ${post.title}\n\nDetails: ${post.body}`
-        : `I want to reach out about this resume. Help me confirm intent and take the next step.\n\nResume headline: ${post.title}\n\nSummary: ${post.body}`;
-
     const params = new URLSearchParams();
     params.set("intent", "employment");
     params.set("source", "employment_post");
-    params.set("postId", post.id);
-    params.set("prompt", prompt);
-    navigate(`/scout?${params.toString()}`);
+    params.set("employmentPostId", post.id);
+    params.set("title", post.title);
+    params.set("description", post.body);
+    params.set("county", post.countyFips);
+    if (post.tradeId) params.set("trade", post.tradeId);
+    navigate(`/direct-connect?${params.toString()}`);
   };
 
   const headerCopy =
@@ -454,7 +452,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
           ) : (
             <PostList
               posts={posts}
-              onAskScout={openScout}
+              onOpenDirectConnect={openDirectConnect}
               onClose={(id) => closeMutation.mutate(id)}
               onApply={(post) => {
                 if (!isAuthenticated) {
@@ -484,7 +482,7 @@ export function EmploymentBoard({ defaultCountyFips }: { defaultCountyFips?: str
           ) : (
             <PostList
               posts={posts}
-              onAskScout={openScout}
+              onOpenDirectConnect={openDirectConnect}
               onClose={(id) => closeMutation.mutate(id)}
               onApply={(post) => {
                 if (!isAuthenticated) {
@@ -798,7 +796,7 @@ function ApplicationStatusBadge({ status }: { status: string }) {
 
 function PostList({
   posts,
-  onAskScout,
+  onOpenDirectConnect,
   onClose,
   onApply,
   onViewApplicants,
@@ -808,7 +806,7 @@ function PostList({
   myApplicationByPostId,
 }: {
   posts: EmploymentPost[];
-  onAskScout: (post: EmploymentPost) => void;
+  onOpenDirectConnect: (post: EmploymentPost) => void;
   onClose: (id: string) => void;
   onApply: (post: EmploymentPost) => void;
   onViewApplicants: (post: EmploymentPost) => void;
@@ -889,7 +887,7 @@ function PostList({
                       size="sm"
                       variant="outline"
                       disabled={!viewerVerified}
-                      onClick={() => onAskScout(post)}
+                      onClick={() => onOpenDirectConnect(post)}
                       title={
                         viewerVerified
                           ? "Start reply"

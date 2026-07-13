@@ -1,5 +1,16 @@
 import { memo, useState } from "react";
-import { Car, Search, Filter, MapPin, Calendar, Fuel, Users, Star, Heart, Eye } from "lucide-react";
+import {
+  Car,
+  Search,
+  Filter,
+  MapPin,
+  Calendar,
+  Fuel,
+  Users,
+  ShieldCheck,
+  Heart,
+  Eye,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -291,9 +302,9 @@ const VehicleMarketplace = memo(function VehicleMarketplace() {
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-ts-orange">{vehicle.price}</p>
-                      <div className="flex items-center gap-1 justify-end mt-1">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="text-yellow-400 text-sm">{vehicle.rating}</span>
+                      <div className="flex items-center gap-1 justify-end mt-1 text-emerald-300 text-sm">
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>Dealer profile</span>
                       </div>
                     </div>
                   </div>

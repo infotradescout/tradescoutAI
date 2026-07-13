@@ -17,7 +17,6 @@ import {
   DollarSign,
   ExternalLink,
   MapPin,
-  Star,
   User,
   Zap,
 } from "lucide-react";
@@ -114,9 +113,9 @@ function StatsRow({ profile }: { profile: any }) {
       value: profile?.totalJobsCompleted ?? 0,
     },
     {
-      icon: <Star className="w-4 h-4 text-yellow-400" />,
-      label: "Avg Rating",
-      value: profile?.averageRating ? Number(profile.averageRating).toFixed(1) : "—",
+      icon: <CheckCircle className="w-4 h-4 text-emerald-400" />,
+      label: "Identity",
+      value: profile?.isIdVerified ? "Verified" : "Pending",
     },
     {
       icon: <DollarSign className="w-4 h-4 text-emerald-400" />,

@@ -48,7 +48,6 @@ import {
   Plus,
   Search,
   ShieldCheck,
-  Star,
   Share2,
   MessageSquare,
   Copy,
@@ -1404,11 +1403,11 @@ export default function Exchange() {
                                     {item.seller.name}
                                   </p>
                                   <div className="flex items-center text-[10px] text-white/60">
-                                    <Star className="h-3 w-3 text-yellow-500 mr-1" />
-                                    <span>{item.seller.rating}</span>
                                     {item.seller.verified ? (
-                                      <span className="ml-1 text-emerald-400">• verified</span>
-                                    ) : null}
+                                      <span className="text-emerald-400">Verified seller</span>
+                                    ) : (
+                                      <span>Seller profile</span>
+                                    )}
                                   </div>
                                 </div>
                               </div>

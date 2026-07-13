@@ -27,6 +27,8 @@ import { useLocation } from "wouter";
 import { formatCountyLabel, getCountyStateCode } from "@/utils/countyFipsToName";
 import { StateCountySelector } from "@/components/state-county-selector";
 import { Page, Section } from "@/components/layout/PagePrimitives";
+import { DirectConnectRequestCard } from "@/pages/direct-connect/DirectConnectRequestCard";
+import { looksLikeHiddenOrTestRequest } from "@/pages/direct-connect/requestCardPresentation";
 
 type TopContractor = {
   id: string;
@@ -42,22 +44,6 @@ type TopContractor = {
 };
 
 type PostIntent = "work_request" | "job_listing";
-
-function looksLikeHiddenOrTestRequest(request: WorkRequest): boolean {
-  const title = String((request as any)?.title || "").toLowerCase();
-  const description = String((request as any)?.description || "").toLowerCase();
-  const body = `${title} ${description}`;
-  if (body.includes("[hidden]")) return true;
-  const markers = [
-    "playwright",
-    "smoke test",
-    "e2e test",
-    "qa test",
-    "test request",
-    "integration test",
-  ];
-  return markers.some((marker) => body.includes(marker));
-}
 
 function isCurrentLiveRequest(request: WorkRequest): boolean {
   const status = String((request as any)?.status || "").toLowerCase();
@@ -658,115 +644,57 @@ export default function TasksHub({
                 }
               >
                 {filteredRequests.map((request) => (
-                  <Card
+                  <DirectConnectRequestCard
                     key={request.id}
-                    className="border-white/10 bg-tsCard/90 transition-colors hover:border-ts-orange/50"
-                  >
-                    <CardContent className={embedded ? "p-3" : "p-4"}>
-                      <button
-                        type="button"
-                        className="w-full text-left"
-                        onClick={() => {
-                          const landingUrl = String(
-                            (request as any)?.dcMiniLandingUrl ||
-                              ((request as any)?.shareToken
-                                ? `/r/${encodeURIComponent(String((request as any).shareToken))}`
-                                : "")
-                          ).trim();
-                          if (landingUrl) {
-                            navigate(landingUrl);
-                            return;
-                          }
-                          setSelectedBoardRequest(request);
-                        }}
-                        aria-label={`Open request landing page for ${request.title}`}
-                      >
-                        <div
-                          className={
-                            embedded
-                              ? "mb-1.5 flex items-start justify-between"
-                              : "flex items-start justify-between mb-2"
-                          }
-                        >
-                          <div className="flex-1">
-                            <h3 className="text-sm font-semibold text-white mb-1">
-                              {request.title}
-                            </h3>
-                            <p className="text-white/60 text-xs line-clamp-1">
-                              {request.description}
-                            </p>
-                          </div>
-                          <span className="ml-3 text-xs px-2 py-1 rounded-full border border-white/10 text-white bg-black/25 capitalize">
-                            {request.status?.replace("_", " ") || "open"}
-                          </span>
-                        </div>
-
-                        <div
-                          className={
-                            embedded
-                              ? "mt-2 flex items-center justify-between text-[10px] text-white/60"
-                              : "flex items-center justify-between mt-3 text-[11px] text-white/60"
-                          }
-                        >
-                          <span>
-                            Budget:{" "}
-                            {request.budgetMin || request.budgetMax
-                              ? `$${request.budgetMin || request.budgetMax}`
-                              : "Not specified"}
-                          </span>
-                          <span>
-                            Updated{" "}
-                            {request.updatedAt
-                              ? new Date(request.updatedAt as any).toLocaleDateString()
-                              : request.createdAt
-                                ? new Date(request.createdAt as any).toLocaleDateString()
-                                : "recently"}
-                          </span>
-                        </div>
+                    request={{
+                      ...request,
+                      countyLabel: request.countyFips
+                        ? formatCountyLabel(request.countyFips, (request as any).stateCode)
+                        : null,
+                    }}
+                    variant={embedded ? "compact" : "default"}
+                    openLabel="Open request"
+                    onOpen={() => {
+                      const landingUrl = String(
+                        (request as any)?.dcMiniLandingUrl ||
+                          ((request as any)?.shareToken
+                            ? `/r/${encodeURIComponent(String((request as any).shareToken))}`
+                            : "")
+                      ).trim();
+                      if (landingUrl) {
+                        navigate(landingUrl);
+                        return;
+                      }
+                      setSelectedBoardRequest(request);
+                    }}
+                    footer={
+                      <>
                         {(request as any)?.viewerEligibility?.hasExplicitRequirements && (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {(request as any)?.canSelectForResponse ? (
-                              <span className="rounded-full border border-emerald-400/40 bg-emerald-500/15 px-2 py-1 text-[10px] text-emerald-200">
-                                Eligible to respond
-                              </span>
-                            ) : (
-                              <span className="rounded-full border border-amber-400/40 bg-amber-500/15 px-2 py-1 text-[10px] text-amber-100">
-                                Verification needed:{" "}
-                                {String(
+                          <div className="mb-2 text-[10px] text-[color:var(--text-secondary)]">
+                            {(request as any)?.canSelectForResponse
+                              ? "Eligible to respond"
+                              : `Verification needed: ${String(
                                   (
                                     (request as any)?.viewerEligibility?.missingRequirements || []
                                   ).join(", ")
-                                )}
-                              </span>
-                            )}
+                                )}`}
                           </div>
                         )}
-                        <div className="mt-2 flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-ts-orange/90">
-                            Tap to open landing page
-                          </span>
-                          <span className="inline-flex items-center rounded-md border border-ts-orange/40 bg-ts-orange/10 px-2 py-1 text-[10px] font-medium text-ts-orange">
-                            Open request page
-                          </span>
-                        </div>
-                      </button>
-                      {isAuthenticated && isMultiCountyProvider && (
-                        <div className="mt-2 border-t border-white/10 pt-2">
+                        {isAuthenticated && isMultiCountyProvider && (
                           <Button
                             size="sm"
-                            className="w-full bg-ts-orange text-text-black hover:bg-ts-orange/90 text-xs h-8"
+                            className="h-8 w-full bg-ts-orange text-xs text-text-black hover:bg-ts-orange/90"
                             disabled={expressInterestMutation.isPending}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              expressInterestMutation.mutate(String((request as any).id));
-                            }}
+                            onClick={() =>
+                              expressInterestMutation.mutate(String((request as any).id))
+                            }
                           >
-                            {expressInterestMutation.isPending ? "Sending..." : "Express Interest"}
+                            {expressInterestMutation.isPending ? "Sending..." : "Express interest"}
                           </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                        )}
+                      </>
+                    }
+                  />
                 ))}
                 {filteredRequests.length === 0 && (
                   <div className="col-span-full">

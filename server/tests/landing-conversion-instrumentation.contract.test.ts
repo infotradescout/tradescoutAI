@@ -8,10 +8,15 @@ describe("locked landing conversion instrumentation contract", () => {
     process.cwd(),
     "client/src/pages/direct-connect/DirectConnectShell.tsx"
   );
+  const directConnectEntryContextPath = path.resolve(
+    process.cwd(),
+    "client/src/pages/direct-connect/directConnectEntryContext.ts"
+  );
   const analyticsRoutesPath = path.resolve(process.cwd(), "server/routes/analytics-routes.ts");
 
   const landingSource = fs.readFileSync(landingPath, "utf8");
   const directConnectSource = fs.readFileSync(directConnectShellPath, "utf8");
+  const directConnectEntryContextSource = fs.readFileSync(directConnectEntryContextPath, "utf8");
   const analyticsRoutesSource = fs.readFileSync(analyticsRoutesPath, "utf8");
 
   it("tracks locked landing page views through demand analytics", () => {
@@ -30,7 +35,8 @@ describe("locked landing conversion instrumentation contract", () => {
   });
 
   it("attributes request composer starts back to the locked landing CTA", () => {
-    expect(directConnectSource).toContain('params.get("source")');
+    expect(directConnectEntryContextSource).toContain('readFirst(params, "source")');
+    expect(directConnectSource).toContain("parseDirectConnectEntryContext(location)");
     expect(directConnectSource).toContain("prefillSource={requestPrefill?.source}");
     expect(directConnectSource).toContain('"direct_connect_request_started"');
     expect(directConnectSource).toContain('source: prefillSource || "direct_connect_start"');
