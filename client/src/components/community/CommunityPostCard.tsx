@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   DropdownMenu,
@@ -26,6 +25,7 @@ import {
   Hammer,
   Info,
   Pin,
+  Bookmark,
   EyeOff,
   Trash2,
   MessagesSquare,
@@ -96,17 +96,40 @@ export interface CommunityPostCardData {
     category: string | null;
     profileUrl: string;
   }>;
+  liked?: boolean;
+  saved?: boolean;
+  shareCount?: number;
+  canonicalProfileUrl?: string;
+  systemPost?: boolean;
 }
 
 export interface CommunityPostCardProps {
   post: CommunityPostCardData;
   onLike?: (postId: string) => void;
+  onSave?: (postId: string) => void;
+  onComment?: (postId: string) => void;
+  onShare?: (post: CommunityPostCardData) => void | Promise<void>;
+  onTagSelect?: (tag: string) => void;
+  onStartRequest?: (post: CommunityPostCardData) => void;
+  onRequestConnection?: (post: CommunityPostCardData) => void;
+  commentsOpen?: boolean;
+  commentsSlot?: ReactNode;
+  readOnly?: boolean;
   formatTimeAgo: (dateString: string) => string;
 }
 
 function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: string) {
   const normalized = (postTypeRaw || category || "").toLowerCase();
   const isAdmin = (authorRole || "").toLowerCase().includes("admin");
+
+  if (normalized === "system") {
+    return {
+      label: "TradeScout Update",
+      icon: <Info className="w-3.5 h-3.5" />,
+      className: "bg-ts-orange/10 border-ts-orange/30 text-ts-orange",
+      accentClassName: "border-l-2 border-ts-orange/30 pl-4",
+    } as const;
+  }
 
   if (normalized === "admin_notice" || (isAdmin && normalized === "admin")) {
     return {
@@ -118,7 +141,11 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
     } as const;
   }
 
-  if (normalized === "recommendations" || normalized === "recommendation") {
+  if (
+    normalized === "recommendations" ||
+    normalized === "recommendation" ||
+    normalized === "recommendation_request"
+  ) {
     return {
       label: "Recommendation",
       icon: <ThumbsUp className="w-3.5 h-3.5" />,
@@ -127,7 +154,7 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
     } as const;
   }
 
-  if (normalized === "projects" || normalized === "project") {
+  if (normalized === "projects" || normalized === "project" || normalized === "project_showcase") {
     return {
       label: "Project",
       icon: <Hammer className="w-3.5 h-3.5" />,
@@ -154,6 +181,42 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
     } as const;
   }
 
+  if (normalized === "promotion" || normalized === "marketplace") {
+    return {
+      label: "Local Offer",
+      icon: <Store className="w-3.5 h-3.5" />,
+      className: "bg-emerald-500/10 border-emerald-500/40 text-emerald-300",
+      accentClassName: "border-l-2 border-emerald-500/60 pl-4",
+    } as const;
+  }
+
+  if (normalized === "events") {
+    return {
+      label: "Local Event",
+      icon: <MessageSquare className="w-3.5 h-3.5" />,
+      className: "bg-sky-500/10 border-sky-500/40 text-sky-300",
+      accentClassName: "border-l-2 border-sky-500/60 pl-4",
+    } as const;
+  }
+
+  if (normalized === "announcements" || normalized === "announcement") {
+    return {
+      label: "Announcement",
+      icon: <Info className="w-3.5 h-3.5" />,
+      className: "bg-ts-orange/10 border-ts-orange/30 text-ts-orange",
+      accentClassName: "border-l-2 border-ts-orange/30 pl-4",
+    } as const;
+  }
+
+  if (normalized === "service_available") {
+    return {
+      label: "Available for Work",
+      icon: <Hammer className="w-3.5 h-3.5" />,
+      className: "bg-purple-500/10 border-purple-500/40 text-purple-300",
+      accentClassName: "border-l-2 border-purple-500/60 pl-4",
+    } as const;
+  }
+
   return {
     label: "Update",
     icon: <MessageSquare className="w-3.5 h-3.5" />,
@@ -162,14 +225,27 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
   } as const;
 }
 
-export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPostCardProps) {
+export function CommunityPostCard({
+  post,
+  onLike,
+  onSave,
+  onComment,
+  onShare,
+  onTagSelect,
+  onStartRequest,
+  onRequestConnection,
+  commentsOpen,
+  commentsSlot,
+  readOnly = false,
+  formatTimeAgo,
+}: CommunityPostCardProps) {
   const { toast } = useToast();
   const { data: authoritySurfaces } = useCommunityAuthoritySurfaces();
   const { user, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
   const showAuthorityLabels = authoritySurfaces?.phase2bAuthorityLabelsEnabled === true;
   const isAuthor =
-    !!user && !!post.author?.id && String(post.author.id) === String((user as any).id);
+    !readOnly && !!user && !!post.author?.id && String(post.author.id) === String((user as any).id);
   const initialWorkBoardState = (() => {
     if (post.workRequestId) {
       return { sent: true, workRequestId: String(post.workRequestId) };
@@ -185,6 +261,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const role = (user as any)?.role as string | undefined;
   const canModerate =
+    !readOnly &&
     !!user &&
     ((user as any)?.isAdmin === true ||
       (role
@@ -198,10 +275,15 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
         : false));
 
   const handleLikeClick = () => {
+    if (readOnly) return;
     if (onLike) onLike(post.id);
   };
 
   const handleShareClick = async () => {
+    if (onShare) {
+      await onShare(post);
+      return;
+    }
     await share({
       path: `/community-feed?post=${encodeURIComponent(post.id)}`,
       title: post.title || "TradeScout community post",
@@ -230,7 +312,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   const isPinned = post.pinned === true;
   const isTrending = !isPinned && post.trending === true;
   const isAdminNotice = (categoryMeta as any).adminNotice === true;
-  const canOpenMessages = isAuthenticated && !!post.author?.id && !isAuthor;
+  const canOpenMessages = !readOnly && isAuthenticated && !!post.author?.id && !isAuthor;
 
   const invalidateCommunityQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
@@ -369,18 +451,21 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
   })();
 
   const canDirectConnect =
-    !!post.hasWorkRequest ||
-    post.category === "recommendation_request" ||
-    post.postType === "recommendation_request";
+    !readOnly &&
+    (!!post.hasWorkRequest ||
+      post.category === "recommendation_request" ||
+      post.postType === "recommendation_request");
 
   const isContractor = (role || "").toLowerCase().includes("contractor");
 
   return (
     <>
       <Card
+        data-testid={`card-post-${post.id}`}
+        data-post-id={post.id}
         className={`bg-tsCard border border-white/10 shadow-sm rounded-xl hover:border-ts-orange/30 transition-all ${isAdminNotice ? "ring-1 ring-ts-orange/70 bg-tsCard/95" : ""}`}
       >
-        <CardContent className="p-4 sm:p-5 space-y-3">
+        <CardContent data-testid="community-post-card" className="p-4 sm:p-5 space-y-3">
           {(isPinned || isTrending || isAdminNotice) && (
             <div className="-mx-4 sm:-mx-5 -mt-4 sm:-mt-5 px-4 sm:px-5 py-1.5 border-b border-ts-orange/30 bg-ts-orange/5 flex items-center gap-2 text-[11px] text-ts-orange">
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-ts-orange/30">
@@ -404,9 +489,11 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
 
           <div className="flex items-start justify-between">
             <div className="flex gap-3">
-              {post.author?.id ? (
+              {post.author?.id && !readOnly ? (
                 <Link
-                  href={`/community/u/${encodeURIComponent(post.author.id)}`}
+                  href={
+                    post.canonicalProfileUrl || `/community/u/${encodeURIComponent(post.author.id)}`
+                  }
                   className="flex gap-3 group cursor-pointer"
                 >
                   <Avatar className="h-11 w-11 sm:h-12 sm:w-12 ring-2 ring-ts-orange/70 group-hover:ring-ts-orange/70">
@@ -567,67 +654,84 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                 </>
               )}
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-tsBg transition-colors"
-                >
-                  <MoreHorizontal className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[190px] text-xs">
-                {canOpenMessages && (
-                  <DropdownMenuItem onClick={handleOpenMessages}>
-                    <MessagesSquare className="w-3.5 h-3.5 mr-2" />
-                    Open Messages
-                  </DropdownMenuItem>
-                )}
-                {canOpenMessages && <DropdownMenuSeparator />}
-                {isAuthor && (
-                  <>
-                    {!workBoardInfo.sent ? (
-                      <DropdownMenuItem onClick={handleSendToWorkBoard}>
-                        <Hammer className="w-3.5 h-3.5 mr-2" />
-                        Send to Direct Connect
-                      </DropdownMenuItem>
-                    ) : (
-                      <>
-                        <DropdownMenuItem disabled>
-                          <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
-                          <span className="text-emerald-300">✓ Sent to Direct Connect</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
-                          <Hammer className="w-3.5 h-3.5 mr-2" />
-                          Open Direct Connect
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {canModerate && <DropdownMenuSeparator />}
-                  </>
-                )}
-                {canModerate && (
-                  <>
-                    <DropdownMenuItem onClick={handleTogglePin}>
-                      <Pin className="w-3.5 h-3.5 mr-2" />
-                      {isPinned ? "Unpin post" : "Pin post"}
+            {!readOnly && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-tsBg transition-colors"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[190px] text-xs">
+                  {canOpenMessages && (
+                    <DropdownMenuItem onClick={handleOpenMessages}>
+                      <MessagesSquare className="w-3.5 h-3.5 mr-2" />
+                      Open Messages
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleHidePost}>
-                      <EyeOff className="w-3.5 h-3.5 mr-2" />
-                      Hide from feed
+                  )}
+                  {canOpenMessages && <DropdownMenuSeparator />}
+                  {!readOnly && onStartRequest && post.author?.id && (
+                    <DropdownMenuItem onClick={() => onStartRequest(post)}>
+                      <Hammer className="w-3.5 h-3.5 mr-2" />
+                      Start a Request
                     </DropdownMenuItem>
+                  )}
+                  {!readOnly && onRequestConnection && post.author?.id && (
+                    <DropdownMenuItem onClick={() => onRequestConnection(post)}>
+                      <MessagesSquare className="w-3.5 h-3.5 mr-2" />
+                      Send Connection Request
+                    </DropdownMenuItem>
+                  )}
+                  {!readOnly && (onStartRequest || onRequestConnection) && (
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleDeletePost}
-                      className="text-red-400 focus:text-red-500"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 mr-2" />
-                      Remove from feed
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  )}
+                  {isAuthor && (
+                    <>
+                      {!workBoardInfo.sent ? (
+                        <DropdownMenuItem onClick={handleSendToWorkBoard}>
+                          <Hammer className="w-3.5 h-3.5 mr-2" />
+                          Send to Direct Connect
+                        </DropdownMenuItem>
+                      ) : (
+                        <>
+                          <DropdownMenuItem disabled>
+                            <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
+                            <span className="text-emerald-300">✓ Sent to Direct Connect</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
+                            <Hammer className="w-3.5 h-3.5 mr-2" />
+                            Open Direct Connect
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                      {canModerate && <DropdownMenuSeparator />}
+                    </>
+                  )}
+                  {canModerate && (
+                    <>
+                      <DropdownMenuItem onClick={handleTogglePin}>
+                        <Pin className="w-3.5 h-3.5 mr-2" />
+                        {isPinned ? "Unpin post" : "Pin post"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleHidePost}>
+                        <EyeOff className="w-3.5 h-3.5 mr-2" />
+                        Hide from feed
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={handleDeletePost}
+                        className="text-red-400 focus:text-red-500"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-2" />
+                        Remove from feed
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           <div className={categoryMeta.accentClassName}>
@@ -639,7 +743,7 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
             </p>
             {post.imageUrls && post.imageUrls.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {post.imageUrls.slice(0, 6).map((url, index) => (
+                {post.imageUrls.slice(0, 8).map((url, index) => (
                   <div
                     key={url + index}
                     className="relative w-full overflow-hidden rounded-md border border-white/10 bg-tsBg/40"
@@ -670,7 +774,9 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
                         key={`${tag.key}-${idx}`}
                         type="button"
                         onClick={() =>
-                          navigate(`/community-feed?tag=${encodeURIComponent(tag.key)}`)
+                          onTagSelect
+                            ? onTagSelect(tag.key)
+                            : navigate(`/community-feed?tag=${encodeURIComponent(tag.key)}`)
                         }
                         className="focus:outline-none"
                         aria-label={`View topic ${tag.label}`}
@@ -713,37 +819,70 @@ export function CommunityPostCard({ post, onLike, formatTimeAgo }: CommunityPost
               <div className="flex items-center justify-between text-[11px] text-white/70 font-medium">
                 <span>{post.upvotes || 0} likes</span>
                 <span>{post.comments || 0} comments</span>
+                {(post.shareCount || 0) > 0 && <span>{post.shareCount} shares</span>}
               </div>
-              <div className="mt-1 grid grid-cols-3 text-[12px] overflow-hidden border border-white/10 rounded-lg bg-tsBg/40">
+              <div
+                className={`mt-1 grid ${onSave ? "grid-cols-4" : "grid-cols-3"} text-[12px] overflow-hidden border border-white/10 rounded-lg bg-tsBg/40`}
+              >
                 <button
                   onClick={handleLikeClick}
-                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors"
+                  disabled={readOnly}
+                  data-testid={`button-like-${post.id}`}
+                  className={`flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors disabled:pointer-events-none disabled:opacity-50 ${post.liked ? "text-red-400" : ""}`}
                 >
-                  <Heart className="w-4 h-4" />
+                  <Heart className={`w-4 h-4 ${post.liked ? "fill-current" : ""}`} />
                   <span>Like</span>
                 </button>
-                <button className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10">
+                <button
+                  type="button"
+                  disabled={readOnly}
+                  aria-expanded={commentsOpen}
+                  data-testid={`button-comment-${post.id}`}
+                  onClick={() => {
+                    if (!readOnly) onComment?.(post.id);
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10 disabled:pointer-events-none disabled:opacity-50"
+                >
                   <MessageSquare className="w-4 h-4" />
                   <span>Comment</span>
                 </button>
                 <button
                   className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10"
                   onClick={handleShareClick}
+                  data-testid={`button-share-${post.id}`}
                 >
                   <Share2 className="w-4 h-4" />
                   <span>Share</span>
                 </button>
+                {onSave && (
+                  <button
+                    type="button"
+                    disabled={readOnly}
+                    onClick={() => {
+                      if (!readOnly) onSave(post.id);
+                    }}
+                    data-testid={`button-save-${post.id}`}
+                    className={`flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10 disabled:pointer-events-none disabled:opacity-50 ${post.saved ? "text-ts-orange" : ""}`}
+                  >
+                    <Bookmark className={`w-4 h-4 ${post.saved ? "fill-current" : ""}`} />
+                    <span>{post.saved ? "Saved" : "Save"}</span>
+                  </button>
+                )}
               </div>
-              <CommunityCTA
-                layout="grid"
-                source="community_post"
-                contextId={post.id}
-                ownerUserId={post.author?.id ? String(post.author.id) : undefined}
-                canDirectConnect={canDirectConnect}
-                canMessage={canOpenMessages}
-                disableDirectConnect={isContractor}
-                scope={post.county} // Pass county for authority scope
-              />
+              {!readOnly && (
+                <CommunityCTA
+                  layout="grid"
+                  source="community_post"
+                  contextId={post.id}
+                  ownerUserId={post.author?.id ? String(post.author.id) : undefined}
+                  canDirectConnect={canDirectConnect}
+                  canMessage={canOpenMessages}
+                  disableDirectConnect={isContractor}
+                  scope={post.county} // Pass county for authority scope
+                />
+              )}
+
+              {commentsOpen && commentsSlot}
 
               {/* Authority label - interpretive guidance from Scout */}
               {showAuthorityLabels && post.authorityLabel && (
