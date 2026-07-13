@@ -59,7 +59,7 @@ export default function ExchangeRentalProperty() {
   const listings = Array.isArray(data) ? data.slice(0, 12) : [];
 
   return (
-    <div className="min-h-screen bg-tsDark text-white">
+    <div className="min-h-full text-white">
       <SEOHelmet
         title="Rental Property Portal | Residential & Commercial Rentals | TradeScout Exchange"
         description="Browse TradeScout Exchange rental property inventory for residential and commercial space. This rental property portal stays separate from HomeScout Listings."

@@ -173,7 +173,7 @@ const TradeCountyPage = memo(function TradeCountyPage() {
         noIndex={shouldNoIndex}
       />
 
-      <div className="min-h-screen bg-tsBg text-white">
+      <div className="min-h-full text-white">
         <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
           <div className="mb-5 flex flex-col gap-4 border-b border-[color:var(--border-subtle)] pb-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">

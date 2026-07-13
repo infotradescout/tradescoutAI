@@ -340,7 +340,7 @@ export default function ExchangeListingDetail() {
   // ── Loading / error states ─────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-tsBackground flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <div className="animate-pulse text-white/40 text-sm">Loading listing…</div>
       </div>
     );
@@ -348,7 +348,7 @@ export default function ExchangeListingDetail() {
 
   if (isError || !listing) {
     return (
-      <div className="min-h-screen bg-tsBackground flex flex-col items-center justify-center gap-4 px-4">
+      <div className="min-h-full flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-white/60 text-sm">
           This listing could not be found or has been removed.
         </p>
@@ -378,7 +378,7 @@ export default function ExchangeListingDetail() {
           .join(", ")}
       />
 
-      <div className="min-h-screen bg-tsBackground text-white">
+      <div className="min-h-full text-white">
         {/* ── Top nav bar ── */}
         <div className="sticky top-0 z-30 bg-tsBackground/95 backdrop-blur border-b border-white/10 px-4 py-3 flex items-center justify-between">
           <Button
