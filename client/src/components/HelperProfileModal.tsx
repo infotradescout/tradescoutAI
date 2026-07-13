@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Star,
   MapPin,
   Clock,
   DollarSign,
@@ -122,15 +121,10 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
               </DialogTitle>
 
               <div className="flex items-center gap-4 mb-3">
-                {helper.averageRating && (
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 text-warning fill-current mr-1" />
-                    <span className="text-foreground font-medium">{helper.averageRating}</span>
-                    <span className="text-muted-foreground ml-1">
-                      ({helper.totalJobsCompleted} jobs)
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center text-muted-foreground">
+                  <Briefcase className="mr-1 h-4 w-4" />
+                  <span>{helper.totalJobsCompleted} completed jobs</span>
+                </div>
 
                 <div className="flex items-center gap-2">
                   {helper.isIdVerified && (
@@ -473,7 +467,7 @@ export function HelperProfileModal({ helper, isOpen, onClose }: HelperProfileMod
             <div>
               <h3 className="text-lg font-semibold text-white mb-4">Recommendations & CVS</h3>
               <div className="text-center py-8">
-                <Star className="h-12 w-12 text-white/60 mx-auto mb-4" />
+                <Award className="h-12 w-12 text-white/60 mx-auto mb-4" />
                 <p className="text-white/60">Recommendations will be loaded here</p>
                 <p className="text-white/60 text-sm">
                   This feature connects to the worker recommendations system

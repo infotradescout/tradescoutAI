@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   Select,
   SelectContent,
@@ -83,7 +84,7 @@ export function ReviewSchedulePanel({
     onError: (error: any) => {
       toast({
         title: "Could not send response",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -175,7 +176,7 @@ export function ReviewCompletionPanel({ jobWorkspaceId }: { jobWorkspaceId: stri
     onError: (error: any) => {
       toast({
         title: "Could not send response",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -274,7 +275,7 @@ export function CreateInvoicePanel({ jobWorkspaceId }: { jobWorkspaceId: string 
     onError: (error: any) => {
       toast({
         title: "Could not start invoice",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -302,7 +303,7 @@ export function CreateInvoicePanel({ jobWorkspaceId }: { jobWorkspaceId: string 
     onError: (error: any) => {
       toast({
         title: "Could not save line items",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -325,7 +326,7 @@ export function CreateInvoicePanel({ jobWorkspaceId }: { jobWorkspaceId: string 
     onError: (error: any) => {
       toast({
         title: "Could not send invoice",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -465,7 +466,7 @@ export function ReviewInvoicePanel({
     onError: (error: any) => {
       toast({
         title: "Could not send response",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -568,7 +569,7 @@ export function CreatePaymentRequestPanel({
     onError: (error: any) => {
       toast({
         title: "Could not send payment request",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -679,7 +680,7 @@ export function ReviewPaymentRequestPanel({
     onError: (error: any) => {
       toast({
         title: "Could not send response",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not update this job."),
         variant: "destructive",
       });
     },
@@ -787,7 +788,7 @@ export function WorkTrackingPanel({
   const onError = (title: string) => (error: any) =>
     toast({
       title,
-      description: error instanceof Error ? error.message : undefined,
+      description: formatUserFacingErrorMessage(error, "Could not update this job."),
       variant: "destructive",
     });
 

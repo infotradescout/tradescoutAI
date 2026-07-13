@@ -16,6 +16,7 @@ import { Upload, Award, CheckCircle, AlertTriangle, FileCheck, ExternalLink } fr
 import { apiRequest } from "@/lib/queryClient";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 type VerificationStatusResponse = {
   requirements?: { license?: boolean };
@@ -45,7 +46,7 @@ const LicenseVerification = memo(function LicenseVerification() {
     onError: (error: any) => {
       toast({
         title: "Failed to submit",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not submit this license."),
         variant: "destructive",
       });
     },
@@ -65,7 +66,7 @@ const LicenseVerification = memo(function LicenseVerification() {
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: error instanceof Error ? error.message : undefined,
+        description: formatUserFacingErrorMessage(error, "Could not upload this license."),
         variant: "destructive",
       });
     } finally {

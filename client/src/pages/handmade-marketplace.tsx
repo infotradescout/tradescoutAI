@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link } from "wouter";
-import { Search, Heart, ShoppingBag, Star, MapPin, Filter, Grid, List } from "lucide-react";
+import { Search, Heart, ShoppingBag, MapPin, Filter, Grid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -193,7 +193,7 @@ export default function HandmadeMarketplace() {
 
         <div className="flex items-center justify-between text-sm text-white/60">
           <div className="flex items-center gap-1">
-            <Star className="w-3 h-3" />
+            <Heart className="w-3 h-3" />
             <span>{product.favoriteCount} favorites</span>
           </div>
           <div className="flex items-center gap-2">

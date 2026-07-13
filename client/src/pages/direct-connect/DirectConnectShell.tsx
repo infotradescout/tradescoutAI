@@ -111,9 +111,22 @@ import {
   Clock3,
   X,
 } from "lucide-react";
+import {
+  getDirectConnectContextLabel,
+  getDirectConnectIntent,
+  parseDirectConnectEntryContext,
+  type DirectConnectEntryContextType,
+  type DirectConnectIntent,
+} from "./directConnectEntryContext";
+import {
+  buildDirectConnectHref,
+  getDirectConnectEntry,
+  getDirectConnectPathOnly,
+  getDirectConnectSection,
+  shouldResolveDirectConnectEntry,
+  type DirectConnectSection as Section,
+} from "./directConnectRoutes";
 
-const SECTIONS = ["post", "board", "employment", "inbox", "pros", "engagements"] as const;
-type Section = (typeof SECTIONS)[number];
 type RequestType =
   | "service_request"
   | "business_request"
@@ -121,16 +134,6 @@ type RequestType =
   | "employment"
   | "buy_sell"
   | "other";
-type DirectConnectIntent =
-  | "fix_improve"
-  | "vehicle_service"
-  | "find_person_business"
-  | "sell_list"
-  | "property_real_estate"
-  | "offer_services"
-  | "browse_activity"
-  | "browse_only";
-
 // Intents whose "when" detail question is genuinely about timing (see
 // DIRECT_CONNECT_INTENT_CONFIG). find_person_business ("Any must-haves?") and
 // sell_list ("Price or unsure?") repurpose the "when" key for other data, so a
@@ -142,6 +145,7 @@ const INTENTS_WITH_TIMING_WHEN = new Set<DirectConnectIntent>([
   "offer_services",
   "browse_activity",
   "browse_only",
+  "employment",
 ]);
 
 type DirectConnectIntentConfig = {
@@ -176,20 +180,20 @@ const DIRECT_CONNECT_TABS: Section[] = [
 ];
 
 const SECTION_LABELS: Record<Section, string> = {
-  post: "New Request",
-  board: "Public Requests",
-  employment: "Hiring",
-  inbox: "Messages",
-  pros: "Nearby Directory",
+  post: "Post",
+  board: "Board",
+  employment: "Opportunities",
+  inbox: "Inbox",
+  pros: "Businesses",
   engagements: "My Requests",
 };
 
 const SECTION_SHORT_LABELS: Record<Section, string> = {
   post: "New",
   board: "Public",
-  employment: "Hiring",
-  inbox: "Msgs",
-  pros: "Nearby",
+  employment: "Work",
+  inbox: "Inbox",
+  pros: "Biz",
   engagements: "Mine",
 };
 
@@ -307,26 +311,26 @@ const SECTION_META: Record<
     actionTarget: "engagements",
   },
   board: {
-    title: "Public Requests",
+    title: "Board",
     description:
       "See local requests that are open to the public board without exposing contact first.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   employment: {
-    title: "Hiring",
-    description: "Post work or hiring needs and keep replies in Direct Connect.",
+    title: "Opportunities",
+    description: "Post work, share availability, and keep replies in Direct Connect.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
   inbox: {
-    title: "Messages",
+    title: "Inbox",
     description: "Review responses and open accepted Direct Connect conversations in Messages.",
     actionLabel: "Review my requests",
     actionTarget: "engagements",
   },
   pros: {
-    title: "Nearby Directory",
+    title: "Businesses",
     description: "Browse businesses near you, ranked by distance and CVS before you search.",
     actionLabel: "Post a new request",
     actionTarget: "post",
@@ -365,80 +369,6 @@ const SECTION_GROUPS: Array<{ title: string; sections: Section[]; icon?: ReactNo
     icon: <TrendingUp className="h-4 w-4" />,
   },
 ];
-
-function getPathOnly(path: string): string {
-  return path.split("?")[0].split("#")[0];
-}
-
-function getDirectConnectEntry(path: string): string | null {
-  const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
-  if (!query) return null;
-  return new URLSearchParams(query).get("entry");
-}
-
-function getDirectConnectIntent(path: string): DirectConnectIntent | null {
-  const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
-  if (!query) return null;
-  const raw = new URLSearchParams(query).get("intent");
-  if (!raw) return null;
-  const value = raw.trim().toLowerCase();
-
-  const map: Record<string, DirectConnectIntent> = {
-    fix_improve: "fix_improve",
-    manage_projects: "fix_improve",
-    vehicle_service: "vehicle_service",
-    find_help: "find_person_business",
-    find_person_business: "find_person_business",
-    sell_list: "sell_list",
-    sell_items: "sell_list",
-    property_real_estate: "property_real_estate",
-    real_estate: "property_real_estate",
-    offer_services: "offer_services",
-    browse_activity: "browse_activity",
-    community: "browse_activity",
-    browse_only: "browse_only",
-    local_search: "find_person_business",
-    directory: "find_person_business",
-    business: "find_person_business",
-  };
-  return map[value] || null;
-}
-
-function shouldResolveDirectConnectEntry(entry: string | null): entry is string {
-  return Boolean(entry && ["default", "auth", "setup", "onboarding", "intent"].includes(entry));
-}
-
-function getSectionFromPath(path: string): Section {
-  const pathOnly = getPathOnly(path);
-  const match = pathOnly.match(/^\/direct-connect(?:\/(.+))?/);
-  const raw = match?.[1]?.split("/")[0] ?? "";
-  if (!raw) {
-    const query = path.includes("?") ? path.split("?", 2)[1].split("#", 1)[0] : "";
-    const params = new URLSearchParams(query);
-    const mode = String(params.get("mode") || "")
-      .trim()
-      .toLowerCase();
-    const intent = String(params.get("intent") || "")
-      .trim()
-      .toLowerCase();
-    if (
-      ["directory", "pros", "browse", "browse_only", "local_search"].includes(mode) ||
-      ["directory", "browse_only", "local_search", "find_help", "find_person_business"].includes(
-        intent
-      )
-    ) {
-      return "pros";
-    }
-    return "post";
-  }
-  if (SECTIONS.includes(raw as Section)) return raw as Section;
-  return "post";
-}
-
-function buildHref(section: Section): string {
-  if (section === "post") return "/direct-connect";
-  return `/direct-connect/${section}`;
-}
 
 const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectIntentConfig> = {
   fix_improve: {
@@ -746,6 +676,92 @@ const DIRECT_CONNECT_INTENT_CONFIG: Record<DirectConnectIntent, DirectConnectInt
         key: "when",
         label: "When are you trying to do this?",
         placeholder: "Now, this week, flexible",
+      },
+    ],
+  },
+  support: {
+    heading: "TradeScout support",
+    prompt: "What do you need help with inside TradeScout?",
+    chips: ["Account access", "Business profile", "Direct Connect", "Verification", "Other"],
+    requestType: "customer_support",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What do you need help with?",
+        placeholder: "Account, profile, request, verification...",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "What happened?",
+        placeholder: "Describe what you expected and what happened instead",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "When did this start?",
+        placeholder: "Today, this week, or an approximate date",
+      },
+    ],
+  },
+  coordinate: {
+    heading: "Coordinate the next step",
+    prompt: "What outcome do you want with this person or business?",
+    chips: ["Follow up", "Make an introduction", "Collaborate", "Request information"],
+    requestType: "business_request",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What is the next step?",
+        placeholder: "Follow up, introduction, collaboration...",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "What outcome do you need?",
+        placeholder: "Add the context the other person or business needs",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "When should this happen?",
+        placeholder: "Today, this week, or flexible",
+      },
+      {
+        key: "where",
+        label: "Is a location relevant?",
+        placeholder: "City, county, remote, or not applicable",
+      },
+    ],
+  },
+  employment: {
+    heading: "Work opportunity",
+    prompt: "What work arrangement or next step do you need?",
+    chips: ["Apply for work", "Discuss availability", "Hire for a role", "Request more details"],
+    requestType: "employment",
+    detailQuestions: [
+      {
+        key: "what",
+        label: "What is the work opportunity?",
+        placeholder: "Role, project, or availability",
+        required: true,
+      },
+      {
+        key: "details",
+        label: "What should the other side know?",
+        placeholder: "Experience, responsibilities, requirements, or availability",
+        required: true,
+      },
+      {
+        key: "where",
+        label: "Where is the work?",
+        placeholder: "City, county, job site, or remote",
+        required: true,
+      },
+      {
+        key: "when",
+        label: "When should this start?",
+        placeholder: "Now, this week, or a target date",
       },
     ],
   },
@@ -1302,7 +1318,11 @@ function RequestAttachmentStrip({
 function DirectConnectRequestComposer({
   defaultCountyFips,
   prefillTargetUserId,
+  prefillTargetProviderId,
   prefillTargetName,
+  prefillTargetSelector,
+  prefillContextType,
+  prefillContextId,
   prefillSource,
   prefillTitle,
   prefillDescription,
@@ -1312,7 +1332,11 @@ function DirectConnectRequestComposer({
 }: {
   defaultCountyFips?: string;
   prefillTargetUserId?: string;
+  prefillTargetProviderId?: string;
   prefillTargetName?: string;
+  prefillTargetSelector?: string;
+  prefillContextType?: DirectConnectEntryContextType;
+  prefillContextId?: string;
   prefillSource?: string;
   prefillTitle?: string;
   prefillDescription?: string;
@@ -1331,7 +1355,20 @@ function DirectConnectRequestComposer({
     : null;
   const attachmentsRef = useRef<DraftAttachment[]>([]);
   const initialTargetName = String(prefillTargetName || "").trim();
-  const prefillTargetLabel = initialTargetName || "selected member";
+  const prefillTargetLabel =
+    getDirectConnectContextLabel({
+      targetName: initialTargetName || undefined,
+      targetSelector: prefillTargetSelector,
+      contextType: prefillContextType,
+      contextId: prefillContextId,
+    }) || "selected context";
+  const hasEntryContext = Boolean(
+    prefillTargetUserId ||
+    prefillTargetProviderId ||
+    prefillTargetSelector ||
+    prefillContextType ||
+    prefillContextId
+  );
   const isTradePartnerScoped = prefillSource === "tradepartner_profile";
   const [requestType, setRequestType] = useState<
     | "service_request"
@@ -1350,7 +1387,7 @@ function DirectConnectRequestComposer({
       (initialTargetName
         ? isTradePartnerScoped
           ? `Sent directly to ${initialTargetName} through their TradeScout profile.`
-          : `This request started from Community and is intended for ${initialTargetName}.`
+          : `This request is intended for ${initialTargetName}.`
         : "")
   );
   const [draftAttachmentKeys, setDraftAttachmentKeys] = useState<string[]>([]);
@@ -1361,10 +1398,16 @@ function DirectConnectRequestComposer({
   );
   const [attachments, setAttachments] = useState<DraftAttachment[]>([]);
   const [showDispatchSheet, setShowDispatchSheet] = useState(false);
-  const [dispatchMode, setDispatchMode] = useState<DispatchMode>("top_count");
+  const [dispatchMode, setDispatchMode] = useState<DispatchMode>(() =>
+    prefillTargetProviderId ? "direct_pick" : "top_count"
+  );
   const [dispatchCount, setDispatchCount] = useState<1 | 2 | 3>(3);
-  const [directorySearch, setDirectorySearch] = useState("");
-  const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>([]);
+  const [directorySearch, setDirectorySearch] = useState(
+    () => initialTargetName || String(prefillTargetSelector || "").replace(/[-_]+/g, " ")
+  );
+  const [selectedContractorIds, setSelectedContractorIds] = useState<string[]>(() =>
+    prefillTargetProviderId ? [prefillTargetProviderId] : []
+  );
   const [selectedHomeId, setSelectedHomeId] = useState<string>("");
   const [assetComponentType, setAssetComponentType] = useState<
     | "roof"
@@ -2715,10 +2758,10 @@ function DirectConnectRequestComposer({
         )}
         {describeStep === 0 && (
           <div className="space-y-5 rounded-2xl border border-ts-orange/25 bg-[linear-gradient(180deg,rgba(29,19,7,0.62),rgba(7,13,27,0.92))] p-4 shadow-[0_20px_50px_rgba(2,8,22,0.55)]">
-            {prefillTargetUserId && (
+            {hasEntryContext && (
               <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
-                  {isTradePartnerScoped ? "Direct Connect" : "From Community"}
+                  {isTradePartnerScoped ? "Direct Connect" : "Request context"}
                 </p>
                 <p className="mt-1 text-xs text-[color:var(--text-primary)]">
                   {isTradePartnerScoped ? (
@@ -2732,7 +2775,9 @@ function DirectConnectRequestComposer({
                       <span className="font-semibold">{prefillTargetLabel}</span>.
                       {prefillSource === "community_active_now"
                         ? " They will see it in Direct Connect if they are eligible to respond."
-                        : " The selected member context has been prefilled for you."}
+                        : prefillTargetProviderId
+                          ? " That provider is already selected. Contact stays locked until the request is accepted and approved."
+                          : " The selected context has been preserved. Choose the matching recipient before sending if one is not already selected."}
                     </>
                   )}
                 </p>
@@ -5447,34 +5492,11 @@ export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
   const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
-  const pathOnly = useMemo(() => getPathOnly(location), [location]);
+  const pathOnly = useMemo(() => getDirectConnectPathOnly(location), [location]);
   const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
-  const activeSection = useMemo<Section>(() => getSectionFromPath(location), [location]);
+  const activeSection = useMemo<Section>(() => getDirectConnectSection(location), [location]);
 
-  const requestPrefill = useMemo(() => {
-    if (typeof window === "undefined") return undefined;
-    const params = new URLSearchParams(window.location.search);
-    const countyFips = params.get("county") || undefined;
-    const targetUserId = params.get("target") || undefined;
-    const targetName = params.get("targetName") || undefined;
-    const source = params.get("source") || undefined;
-    const title = params.get("title") || undefined;
-    const description = params.get("description") || undefined;
-    const budgetMin = params.get("budgetMin") || undefined;
-    const budgetMax = params.get("budgetMax") || undefined;
-    const tradeId = params.get("trade") || params.get("tradeId") || undefined;
-    return {
-      countyFips,
-      targetUserId,
-      targetName,
-      source,
-      title,
-      description,
-      budgetMin,
-      budgetMax,
-      tradeId,
-    };
-  }, [location]);
+  const requestPrefill = useMemo(() => parseDirectConnectEntryContext(location), [location]);
   const defaultCountyFips = requestPrefill?.countyFips;
 
   // Deep links from the Messages job-assist card (e.g. ?jobWorkspaceId=...&action=create_estimate)
@@ -5533,7 +5555,7 @@ export default function DirectConnectShell() {
       deviceType: getDeviceType(),
       ts: new Date().toISOString(),
     });
-    navigate(buildHref(section));
+    navigate(buildDirectConnectHref(section));
   };
 
   const { data: inboxData, isLoading: isInboxCountLoading } = useQuery<DirectConnectInboxItem[]>({
@@ -5684,7 +5706,7 @@ export default function DirectConnectShell() {
     });
 
     if (targetSection !== activeSection) {
-      navigate(buildHref(targetSection));
+      navigate(buildDirectConnectHref(targetSection));
     }
   }, [
     activeSection,
@@ -5707,7 +5729,11 @@ export default function DirectConnectShell() {
         <DirectConnectRequestComposer
           defaultCountyFips={defaultCountyFips}
           prefillTargetUserId={requestPrefill?.targetUserId}
+          prefillTargetProviderId={requestPrefill?.targetProviderId}
           prefillTargetName={requestPrefill?.targetName}
+          prefillTargetSelector={requestPrefill?.targetSelector}
+          prefillContextType={requestPrefill?.contextType}
+          prefillContextId={requestPrefill?.contextId}
           prefillSource={requestPrefill?.source}
           prefillTitle={requestPrefill?.title}
           prefillDescription={requestPrefill?.description}
@@ -5871,7 +5897,7 @@ export default function DirectConnectShell() {
                   return;
                 }
                 if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
-                  targetRoute = "/direct-connect/engagements";
+                  targetRoute = "/direct-connect/active";
                   trackFirstUseTaskPromptClicked({
                     surface: "direct_connect",
                     promptMessage: directConnectFirstTaskPrompt.message,
@@ -5879,7 +5905,7 @@ export default function DirectConnectShell() {
                     targetRoute,
                     userState: firstUseUserState,
                   });
-                  navigate("/direct-connect/engagements");
+                  navigate("/direct-connect/active");
                   return;
                 }
                 trackFirstUseTaskPromptClicked({

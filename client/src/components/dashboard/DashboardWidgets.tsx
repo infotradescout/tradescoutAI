@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Activity,
   MessageSquare,
-  Star,
+  Heart,
   Briefcase,
   TrendingUp,
   Users2,
@@ -157,7 +157,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Star className="h-4 w-4 text-ts-orange" />
+            <Heart className="h-4 w-4 text-ts-orange" />
             Saved Providers
           </CardTitle>
           <Link href="/saved-contractors">
@@ -177,7 +177,7 @@ export function SavedContractorsWidget({ className }: WidgetProps) {
             <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-tsSurface p-3">
               <Avatar className="h-10 w-10">
                 <AvatarFallback className="bg-ts-orange text-white text-xs">
-                  <Star className="h-4 w-4" />
+                  <Heart className="h-4 w-4" />
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">

@@ -20,7 +20,7 @@ export const ROUTES = {
   // Protected routes (require auth)
   DASHBOARD: "/direct-connect",
   PROFILE: "/profile",
-  CONVERSATIONS: "/conversations",
+  CONVERSATIONS: "/messages",
   SETTINGS: "/settings",
 
   // Contractor routes
@@ -45,7 +45,8 @@ export const ROUTES = {
 
   // Route aliases for backward compatibility
   ALIASES: {
-    "/dashboard/messages": "/conversations",
+    "/dashboard/messages": "/messages",
+    "/conversations": "/messages",
     "/marketplace": "/exchange",
     "/exchange/list": "/exchange",
     "/business-owner-dashboard": "/business-dashboard",

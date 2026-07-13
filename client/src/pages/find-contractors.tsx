@@ -103,32 +103,32 @@ const FindContractors = memo(function FindContractors({
       if (aTier !== bTier) return aTier - bTier;
       const aScore = a.localCredibilityScore ?? 0;
       const bScore = b.localCredibilityScore ?? 0;
-      // Fallback to rating + recs as a tie-breaker
+      // Recommendations are the transparent tie-breaker when canonical CVS is equal.
       if (aScore === bScore) {
         const aRec = a.recommendationCount ?? a.reviewCount ?? 0;
         const bRec = b.recommendationCount ?? b.reviewCount ?? 0;
-        const aRatingScore = (a.rating ?? 0) * 100 + aRec;
-        const bRatingScore = (b.rating ?? 0) * 100 + bRec;
-        return bRatingScore - aRatingScore;
+        return bRec - aRec;
       }
       return bScore - aScore;
     });
   }, [topContractors]);
 
   const snapshot = useMemo(() => {
-    const rated = ranked.filter((c) => typeof c.rating === "number");
-    const avgRating =
-      rated.length > 0 ? rated.reduce((sum, c) => sum + (c.rating ?? 0), 0) / rated.length : null;
+    const scored = ranked.filter((c) => typeof c.localCredibilityScore === "number");
+    const avgCvs =
+      scored.length > 0
+        ? scored.reduce((sum, c) => sum + (c.localCredibilityScore ?? 0), 0) / scored.length
+        : null;
     const totalRecs = ranked.reduce(
       (sum, c) => sum + (c.recommendationCount ?? c.reviewCount ?? 0),
       0
     );
-    const topRating = rated.reduce((max, c) => Math.max(max, c.rating ?? 0), 0);
+    const topCvs = scored.reduce((max, c) => Math.max(max, c.localCredibilityScore ?? 0), 0);
     return {
       results: ranked.length,
-      avgRating,
+      avgCvs,
       totalRecs,
-      topRating: rated.length > 0 ? topRating : null,
+      topCvs: scored.length > 0 ? topCvs : null,
     };
   }, [ranked]);
 
@@ -359,8 +359,8 @@ const FindContractors = memo(function FindContractors({
             <div className="ts-tile p-4">
               <div className="text-xs uppercase tracking-wide text-white/60">Avg. CVS</div>
               <div className="text-2xl font-semibold text-ts-orange">
-                {countyFips && tradeSlug && snapshot.avgRating !== null
-                  ? snapshot.avgRating.toFixed(0)
+                {countyFips && tradeSlug && snapshot.avgCvs !== null
+                  ? snapshot.avgCvs.toFixed(0)
                   : "-"}
               </div>
             </div>
@@ -373,8 +373,8 @@ const FindContractors = memo(function FindContractors({
             <div className="ts-tile p-4">
               <div className="text-xs uppercase tracking-wide text-white/60">Top CVS</div>
               <div className="text-2xl font-semibold text-ts-orange">
-                {countyFips && tradeSlug && snapshot.topRating !== null
-                  ? snapshot.topRating.toFixed(0)
+                {countyFips && tradeSlug && snapshot.topCvs !== null
+                  ? snapshot.topCvs.toFixed(0)
                   : "-"}
               </div>
             </div>
@@ -425,8 +425,8 @@ const FindContractors = memo(function FindContractors({
                     Trust (CVS):{" "}
                     {typeof (contractor as any).cvsScore === "number"
                       ? (contractor as any).cvsScore.toFixed(0)
-                      : typeof (contractor as any).rating === "number"
-                        ? (contractor as any).rating.toFixed(0)
+                      : typeof contractor.localCredibilityScore === "number"
+                        ? contractor.localCredibilityScore.toFixed(0)
                         : "pending"}
                   </span>
                   <a

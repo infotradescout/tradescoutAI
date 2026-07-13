@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import ContractorCard from "@/components/contractor-card";
+import { ProviderCard } from "@/components/contractor-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -130,7 +130,7 @@ function DirectoryRail({
             key={`${title}-${contractor.id}`}
             className="w-[min(82vw,340px)] shrink-0 snap-start md:w-[360px]"
           >
-            <ContractorCard contractor={contractor} compact requestOnly />
+            <ProviderCard contractor={contractor} compact requestOnly />
           </div>
         ))}
       </div>

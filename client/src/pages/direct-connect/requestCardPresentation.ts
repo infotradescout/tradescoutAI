@@ -4,7 +4,8 @@ import type {
   ReleasedContactPayload,
 } from "@/components/ui/DecisionContactGatePanel";
 
-type DirectConnectRequestCardLike = {
+export type DirectConnectRequestCardLike = {
+  id?: string | null;
   title?: string | null;
   description?: string | null;
   latestStatus?: string | null;
@@ -13,6 +14,21 @@ type DirectConnectRequestCardLike = {
   releasedContact?: ReleasedContactPayload | null;
   dcConversationThreadId?: string | null;
   isHomeIdPreviewDraft?: boolean | null;
+  countyLabel?: string | null;
+  budgetMin?: string | number | null;
+  budgetMax?: string | number | null;
+  createdAt?: string | Date | null;
+  updatedAt?: string | Date | null;
+};
+
+export type DirectConnectRequestCardView = {
+  id: string;
+  title: string;
+  description: string;
+  statusLabel: string;
+  countyLabel?: string;
+  budgetLabel?: string;
+  updatedLabel: string;
 };
 
 export type DirectConnectContactPanelState = DecisionContactGateState | (string & {});
@@ -109,6 +125,38 @@ export function getDisplayLatestStatus(request: DirectConnectRequestCardLike): s
   if (!raw) return null;
   const cleaned = raw.replace(/local businesses/gi, "pros");
   return toTitleCase(humanizeEnumLikeText(cleaned));
+}
+
+function formatBudgetValue(value: string | number | null | undefined): string | null {
+  if (value == null || value === "") return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return `$${numeric.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
+
+function formatUpdatedLabel(value: string | Date | null | undefined): string {
+  if (!value) return "Recently";
+  const parsed = value instanceof Date ? value : new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return "Recently";
+  return parsed.toLocaleDateString();
+}
+
+export function buildDirectConnectRequestCardView(
+  request: DirectConnectRequestCardLike,
+  statusLabelOverride?: string | null
+): DirectConnectRequestCardView {
+  const min = formatBudgetValue(request.budgetMin);
+  const max = formatBudgetValue(request.budgetMax);
+  const budgetLabel = min && max ? `${min}–${max}` : min || max || undefined;
+  return {
+    id: String(request.id || "request"),
+    title: getDisplayRequestTitle(request),
+    description: getDisplayRequestDescription(request),
+    statusLabel: statusLabelOverride || getDisplayLatestStatus(request) || "Submitted",
+    countyLabel: String(request.countyLabel || "").trim() || undefined,
+    budgetLabel,
+    updatedLabel: formatUpdatedLabel(request.updatedAt || request.createdAt),
+  };
 }
 
 export function normalizeDirectConnectContactState(

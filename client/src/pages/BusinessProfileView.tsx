@@ -449,6 +449,8 @@ export default function BusinessProfileView() {
                   prefill_businessSlug: businessProfile.slug,
                   prefill_countyFips: businessProfile.countyFips || "",
                 });
+                if (directoryBusinessId) params.set("targetProviderId", directoryBusinessId);
+                if (businessProfile.userId) params.set("target", String(businessProfile.userId));
                 setLocation(`/direct-connect?${params.toString()}`);
               }}
             >
@@ -541,11 +543,6 @@ export default function BusinessProfileView() {
   const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
   const showUnclaimedBadge = profileSource === "directory" && directoryClaimStatus === "unclaimed";
   const showSuggestCta = profileSource === "directory" && Boolean(directoryBusinessId);
-  const googleRating =
-    typeof (profile as any).googleRating === "number" &&
-    Number.isFinite(Number((profile as any).googleRating))
-      ? Number((profile as any).googleRating)
-      : null;
   const googleReviewCount =
     typeof (profile as any).googleReviewCount === "number" &&
     Number.isFinite(Number((profile as any).googleReviewCount))
@@ -558,6 +555,8 @@ export default function BusinessProfileView() {
     prefill_businessSlug: profile.slug,
     prefill_countyFips: profile.countyFips || "",
   });
+  if (directoryBusinessId) directConnectParams.set("targetProviderId", directoryBusinessId);
+  if (profile.userId) directConnectParams.set("target", String(profile.userId));
   const directConnectUrl = `/direct-connect?${directConnectParams.toString()}`;
   const claimParams = new URLSearchParams({
     slug: profile.slug,
@@ -644,10 +643,10 @@ export default function BusinessProfileView() {
               <Badge variant="outline" className="border-white/15 bg-white/5 text-white">
                 {primaryServiceLabel}
               </Badge>
-              {googleRating !== null ? (
+              {googleReviewCount !== null && googleReviewCount > 0 ? (
                 <Badge variant="outline" className="border-white/15 bg-white/5 text-white">
-                  Google {googleRating.toFixed(1)}
-                  {googleReviewCount !== null ? ` (${googleReviewCount})` : ""}
+                  {googleReviewCount.toLocaleString()} Google review
+                  {googleReviewCount === 1 ? "" : "s"}
                 </Badge>
               ) : null}
               {profileSource === "directory" && directoryPublication?.crawlable === false ? (

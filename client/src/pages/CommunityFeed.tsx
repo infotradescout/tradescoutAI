@@ -1,3 +1,7 @@
+/**
+ * @deprecated Quarantined sample feed. The routed Community product is
+ * pages/community-feed.tsx; this module remains only for the playground.
+ */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";

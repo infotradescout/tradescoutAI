@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { useParams } from "wouter";
-import { Wrench, Phone, Mail, Star, CheckCircle, XCircle } from "lucide-react";
+import { Wrench, Phone, Mail, CheckCircle, XCircle } from "lucide-react";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import { HOAManagementShell } from "@/shells/HOAManagementShell";
 import { HOANextStepsCard } from "@/components/hoa/HOANextStepsCard";
@@ -381,12 +381,6 @@ const HOAMaintenance = memo(function HOAMaintenance() {
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4 text-white/60" />
                               <span>{vendor.email}</span>
-                            </div>
-                          )}
-                          {vendor.rating && (
-                            <div className="flex items-center gap-2">
-                              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                              <span>{vendor.rating.toFixed(1)}</span>
                             </div>
                           )}
                         </div>

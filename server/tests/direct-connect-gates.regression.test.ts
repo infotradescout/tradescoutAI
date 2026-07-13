@@ -231,7 +231,7 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Archive");
     expect(directConnectShellFile).toContain("direct_connect_reply_accepted");
     expect(directConnectShellFile).toContain("direct_connect_moved_to_conversation");
-    expect(directConnectShellFile).toContain('inbox: "Messages"');
+    expect(directConnectShellFile).toContain('inbox: "Inbox"');
   });
 
   it("shows a request lifecycle rail and neutral local directory language", () => {
@@ -241,8 +241,8 @@ describe("direct-connect gate regressions", () => {
     const directoryFile = readRepoFile("client/src/pages/direct-connect/DirectConnectPros.tsx");
 
     expect(directConnectShellFile).toContain("Request lifecycle");
-    expect(directConnectShellFile).toContain('pros: "Nearby Directory"');
-    expect(directConnectShellFile).toContain('board: "Public Requests"');
+    expect(directConnectShellFile).toContain('pros: "Businesses"');
+    expect(directConnectShellFile).toContain('board: "Board"');
     expect(directoryFile).toContain("Nearby Directory");
     expect(directoryFile).toContain("Closest businesses near you");
     expect(directoryFile).toContain("No local businesses found for that search yet.");

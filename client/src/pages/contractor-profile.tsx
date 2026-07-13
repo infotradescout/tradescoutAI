@@ -126,7 +126,7 @@ export default function ContractorProfile() {
   const cvsScore =
     typeof cvsScoreRaw === "number" && Number.isFinite(cvsScoreRaw) ? cvsScoreRaw : null;
   const seoDescription = `Review ${contractor.companyName} as a local provider on TradeScout. ${cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS pending"}${contractor.yearsInBusiness ? ` with ${contractor.yearsInBusiness} years experience` : ""}. Contact stays gated through TradeScout.`;
-  const directConnectHref = `/direct-connect?intent=hire&contractor=${encodeURIComponent(String(slug || contractor.id))}`;
+  const directConnectHref = `/direct-connect?intent=hire&targetProviderId=${encodeURIComponent(contractor.id)}&targetName=${encodeURIComponent(contractor.companyName || String(slug || contractor.id))}&contractor=${encodeURIComponent(String(slug || contractor.id))}`;
 
   return (
     <>

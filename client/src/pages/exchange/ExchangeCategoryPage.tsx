@@ -33,7 +33,6 @@ import {
   Plus,
   Search,
   Share2,
-  Star,
   Tag,
   MessageSquare,
   ChevronRight,
@@ -755,10 +754,10 @@ export function ExchangeCategoryPage({ config }: ExchangeCategoryPageProps) {
                                 {item.seller.name}
                               </p>
                               <div className="flex items-center text-[10px] text-white/50">
-                                <Star className="h-2.5 w-2.5 text-yellow-500 mr-0.5" />
-                                {item.seller.rating.toFixed(1)}
-                                {item.seller.verified && (
-                                  <span className="ml-1 text-emerald-400">· verified</span>
+                                {item.seller.verified ? (
+                                  <span className="text-emerald-400">Verified seller</span>
+                                ) : (
+                                  <span>Seller profile</span>
                                 )}
                               </div>
                             </div>

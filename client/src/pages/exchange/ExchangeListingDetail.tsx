@@ -33,7 +33,6 @@ import {
   Heart,
   Share2,
   MapPin,
-  Star,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -716,14 +715,13 @@ export default function ExchangeListingDetail() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white">{listing.seller.name}</p>
               <div className="flex items-center gap-1.5 text-[12px] text-white/50">
-                <Star className="h-3 w-3 text-yellow-500" />
-                <span>{listing.seller.rating.toFixed(1)}</span>
                 {listing.seller.verified && (
                   <span className="text-emerald-400 flex items-center gap-0.5">
                     <CheckCircle className="h-3 w-3" />
                     Verified
                   </span>
                 )}
+                {!listing.seller.verified && <span>Seller profile</span>}
               </div>
             </div>
           </div>

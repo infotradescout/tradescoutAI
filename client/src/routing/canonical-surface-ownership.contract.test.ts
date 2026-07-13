@@ -1,0 +1,50 @@
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+const read = (relativePath: string) =>
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
+
+describe("canonical surface ownership", () => {
+  it("routes all inbox aliases to the Messages workspace", () => {
+    const routes = read("client/src/AppRoutes.tsx");
+    const routeConfig = read("client/src/lib/routes.ts");
+
+    expect(routes).toMatch(
+      /<Route path="\/conversations">[\s\S]*?<RedirectTo to="\/messages" \/>[\s\S]*?<\/Route>/
+    );
+    expect(routeConfig).toContain('CONVERSATIONS: "/messages"');
+    expect(routeConfig).toContain('"/dashboard/messages": "/messages"');
+    expect(routeConfig).toContain('"/conversations": "/messages"');
+  });
+
+  it("keeps one routed Community feed and quarantines competing clients", () => {
+    const routes = read("client/src/AppRoutes.tsx");
+    const routedFeed = read("client/src/pages/community-feed.tsx");
+    const sampleFeed = read("client/src/pages/CommunityFeed.tsx");
+    const socialFeed = read("client/src/components/social/SocialFeed.tsx");
+
+    expect(routes).toContain('import("./pages/community-feed")');
+    expect(routedFeed).toContain('className="community-feed-page"');
+    expect(routedFeed).toContain("/api/community/posts");
+    expect(sampleFeed).toContain("@deprecated Quarantined sample feed");
+    expect(socialFeed).toContain("@deprecated Quarantined socialPosts client");
+
+    const clientFiles = fs
+      .readdirSync(path.resolve(process.cwd(), "client/src"), { recursive: true })
+      .filter((entry): entry is string => typeof entry === "string" && /\.(ts|tsx)$/.test(entry));
+    const socialFeedImporters = clientFiles.filter((entry) => {
+      const normalized = entry.replaceAll("\\", "/");
+      if (
+        normalized === "components/social/SocialFeed.tsx" ||
+        normalized === "routing/canonical-surface-ownership.contract.test.ts"
+      ) {
+        return false;
+      }
+      const source = read(`client/src/${normalized}`);
+      return /(?:from\s+["'][^"']*SocialFeed|import\(["'][^"']*SocialFeed)/.test(source);
+    });
+
+    expect(socialFeedImporters).toEqual([]);
+  });
+});

@@ -343,10 +343,14 @@ export default function RecommendationGenerator() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold" data-testid="text-recommendation-signal">
-                      {parseFloat(insights.averageRating).toFixed(1)}
+                      {insights.totalRecommendations > 0
+                        ? `${Math.round(
+                            (insights.positiveRecommendations / insights.totalRecommendations) * 100
+                          )}%`
+                        : "--"}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Based on verified recommendations
+                      Positive verified recommendations
                     </p>
                   </CardContent>
                 </Card>

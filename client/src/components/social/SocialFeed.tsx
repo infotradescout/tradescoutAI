@@ -1,3 +1,8 @@
+/**
+ * @deprecated Quarantined socialPosts client. Community activity is owned by
+ * pages/community-feed.tsx and CommunityPostCard. Keep this module until the
+ * socialPosts production reader/writer audit permits an adapter or retirement.
+ */
 import { useState } from "react";
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";

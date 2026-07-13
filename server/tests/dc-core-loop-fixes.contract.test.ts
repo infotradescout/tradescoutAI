@@ -141,7 +141,7 @@ describe("Gap 1 – Board UI: Express Interest button for providers", () => {
   });
 
   it("renders the Express Interest button for authenticated multi-county providers", () => {
-    expect(src).toContain("Express Interest");
+    expect(src).toContain("Express interest");
     expect(src).toContain("isMultiCountyProvider");
   });
 
