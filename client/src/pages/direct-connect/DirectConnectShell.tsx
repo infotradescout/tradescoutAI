@@ -1332,6 +1332,7 @@ function DirectConnectRequestComposer({
   const attachmentsRef = useRef<DraftAttachment[]>([]);
   const initialTargetName = String(prefillTargetName || "").trim();
   const prefillTargetLabel = initialTargetName || "selected member";
+  const isTradePartnerScoped = prefillSource === "tradepartner_profile";
   const [requestType, setRequestType] = useState<
     | "service_request"
     | "business_request"
@@ -1347,7 +1348,9 @@ function DirectConnectRequestComposer({
     () =>
       prefillDescription?.trim() ||
       (initialTargetName
-        ? `This request started from Community and is intended for ${initialTargetName}.`
+        ? isTradePartnerScoped
+          ? `Sent directly to ${initialTargetName} through their TradeScout profile.`
+          : `This request started from Community and is intended for ${initialTargetName}.`
         : "")
   );
   const [draftAttachmentKeys, setDraftAttachmentKeys] = useState<string[]>([]);
@@ -2715,14 +2718,23 @@ function DirectConnectRequestComposer({
             {prefillTargetUserId && (
               <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
                 <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
-                  From Community
+                  {isTradePartnerScoped ? "Direct Connect" : "From Community"}
                 </p>
                 <p className="mt-1 text-xs text-[color:var(--text-primary)]">
-                  This request is scoped to{" "}
-                  <span className="font-semibold">{prefillTargetLabel}</span>.
-                  {prefillSource === "community_active_now"
-                    ? " They will see it in Direct Connect if they are eligible to respond."
-                    : " The selected member context has been prefilled for you."}
+                  {isTradePartnerScoped ? (
+                    <>
+                      This request goes directly to{" "}
+                      <span className="font-semibold">{prefillTargetLabel}</span>.
+                    </>
+                  ) : (
+                    <>
+                      This request is scoped to{" "}
+                      <span className="font-semibold">{prefillTargetLabel}</span>.
+                      {prefillSource === "community_active_now"
+                        ? " They will see it in Direct Connect if they are eligible to respond."
+                        : " The selected member context has been prefilled for you."}
+                    </>
+                  )}
                 </p>
               </div>
             )}
@@ -2934,16 +2946,18 @@ function DirectConnectRequestComposer({
               <p className="text-center text-[11px] text-white/62">
                 Your contact details stay private until you choose the next step.
               </p>
-              <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
-                Prefer browsing first?{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate("/direct-connect/pros")}
-                  className="font-semibold text-[color:var(--theme-accent-primary)] hover:underline"
-                >
-                  Open directory
-                </button>
-              </p>
+              {!prefillTargetUserId && (
+                <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
+                  Prefer browsing first?{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/direct-connect/pros")}
+                    className="font-semibold text-[color:var(--theme-accent-primary)] hover:underline"
+                  >
+                    Open directory
+                  </button>
+                </p>
+              )}
             </div>
           </div>
         )}

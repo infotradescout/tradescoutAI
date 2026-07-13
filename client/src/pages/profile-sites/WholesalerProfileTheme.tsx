@@ -300,7 +300,7 @@ export default function WholesalerProfileTheme({
             >
               {displayName}
             </span>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-accent)]">
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
               TradeScout TradePartner
             </p>
           </div>
@@ -310,7 +310,7 @@ export default function WholesalerProfileTheme({
             </button>
           </Link>
         </div>
-        <div className="scrollbar-hide flex gap-6 overflow-x-auto px-5 pb-3.5 text-xs font-semibold uppercase tracking-wide text-[#241d0f]/70 [-ms-overflow-style:none] [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden">
+        <div className="scrollbar-hide flex gap-6 overflow-x-auto px-5 pb-3.5 text-xs font-semibold uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden">
           {[
             ["Collection", "#collection"],
             ["Why Us", "#why-us"],
