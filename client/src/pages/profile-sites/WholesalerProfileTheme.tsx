@@ -279,6 +279,7 @@ export default function WholesalerProfileTheme({
     inventoryCatalog[0]?.categorySlug || ""
   );
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
+  const [openImageIndex, setOpenImageIndex] = useState(0);
   const activeCategory =
     inventoryCatalog.find((c) => c.categorySlug === activeCategorySlug) || inventoryCatalog[0];
   const heroImage =
@@ -436,22 +437,30 @@ export default function WholesalerProfileTheme({
               {(activeCategory?.stones || []).map((stone) => (
                 <button
                   key={stone.slug}
-                  onClick={() => setOpenStone(stone)}
-                  className={`${SCROLL_CARD} overflow-hidden rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] text-left shadow-sm transition-colors hover:border-[var(--brand-accent)]/40`}
+                  onClick={() => {
+                    setOpenStone(stone);
+                    setOpenImageIndex(0);
+                  }}
+                  className="group w-[280px] flex-shrink-0 snap-start overflow-hidden rounded-2xl border border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] text-left shadow-sm transition-shadow hover:shadow-lg sm:w-[320px]"
                 >
                   {stone.images[0] ? (
-                    <img
-                      src={stone.images[0]}
-                      alt={stone.name}
-                      loading="lazy"
-                      className="h-40 w-full object-cover"
-                    />
+                    <div className="relative h-64 overflow-hidden sm:h-72">
+                      <img
+                        src={stone.images[0]}
+                        alt={stone.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {stone.images.length > 1 ? (
+                        <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white">
+                          {stone.images.length} photos
+                        </span>
+                      ) : null}
+                    </div>
                   ) : null}
-                  <div className="p-4">
+                  <div className="flex items-center justify-between px-4 py-3.5">
                     <p className="font-semibold text-[#241d0f]">{stone.name}</p>
-                    {stone.images.length > 1 ? (
-                      <p className="mt-1 text-xs text-[#241d0f]/50">{stone.images.length} photos</p>
-                    ) : null}
+                    <ChevronRight className="h-4 w-4 flex-shrink-0 text-[var(--brand-primary)]/50 transition-transform group-hover:translate-x-0.5" />
                   </div>
                 </button>
               ))}
@@ -490,39 +499,83 @@ export default function WholesalerProfileTheme({
         </section>
       ) : null}
 
-      {/* Stone gallery modal */}
+      {/* Stone gallery lightbox */}
       {openStone ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 sm:p-6"
           onClick={() => setOpenStone(null)}
         >
           <div
-            className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5"
+            className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#0f0d09]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className={`text-xl font-bold text-[var(--brand-primary)] ${DISPLAY_FONT}`}>
+            <div className="flex items-center justify-between px-5 py-4">
+              <h3 className={`text-lg font-bold text-white sm:text-xl ${DISPLAY_FONT}`}>
                 {openStone.name}
               </h3>
               <button
                 onClick={() => setOpenStone(null)}
                 aria-label="Close gallery"
-                className="rounded-full p-2 text-[#241d0f]/60 hover:bg-black/5"
+                className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {openStone.images.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt={`${openStone.name} ${i + 1}`}
-                  className="w-full rounded-lg object-cover"
-                />
-              ))}
+
+            <div className="relative flex-1 bg-black">
+              <img
+                src={openStone.images[openImageIndex]}
+                alt={`${openStone.name} ${openImageIndex + 1}`}
+                className="max-h-[55vh] w-full object-contain"
+              />
+              {openStone.images.length > 1 ? (
+                <>
+                  <button
+                    onClick={() =>
+                      setOpenImageIndex(
+                        (openImageIndex - 1 + openStone.images.length) % openStone.images.length
+                      )
+                    }
+                    aria-label="Previous photo"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+                  >
+                    <ChevronRight className="h-5 w-5 rotate-180" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setOpenImageIndex((openImageIndex + 1) % openStone.images.length)
+                    }
+                    aria-label="Next photo"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                  <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+                    {openImageIndex + 1} / {openStone.images.length}
+                  </span>
+                </>
+              ) : null}
             </div>
-            <div className="mt-4 flex justify-center">
+
+            {openStone.images.length > 1 ? (
+              <div className="scrollbar-hide flex gap-2 overflow-x-auto bg-[#0f0d09] px-5 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {openStone.images.map((url, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setOpenImageIndex(i)}
+                    className={`h-14 w-20 flex-shrink-0 overflow-hidden rounded-md border-2 transition-colors ${
+                      i === openImageIndex
+                        ? "border-[var(--brand-accent)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="flex justify-center bg-[#0f0d09] px-5 pb-5 pt-2">
               <Link href={ctaHref}>
                 <button className="rounded-full bg-[var(--brand-accent)] px-6 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
                   Ask about this stone
@@ -608,7 +661,7 @@ export default function WholesalerProfileTheme({
                   key={i}
                   src={url}
                   alt={`${displayName} inventory ${i + 1}`}
-                  className={`${SCROLL_CARD} h-64 rounded-xl object-cover shadow-md`}
+                  className="h-72 w-[300px] flex-shrink-0 snap-start rounded-2xl object-cover shadow-md sm:h-80 sm:w-[360px]"
                   loading="lazy"
                 />
               ))}
