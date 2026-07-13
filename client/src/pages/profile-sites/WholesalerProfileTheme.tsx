@@ -17,7 +17,9 @@ import {
   Search,
   X,
 } from "lucide-react";
-import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
+import ExpressDirectConnectPanel, {
+  type ExpressDirectConnectRequestType,
+} from "./ExpressDirectConnectPanel";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -155,12 +157,15 @@ const DEFAULT_DIFFERENTIATORS = [
   },
 ] as const;
 
-const DIRECT_CONNECT_OPTIONS = [
-  "Request material",
-  "Match a project",
-  "Ask about a bundle",
-  "Schedule a showroom visit",
-] as const;
+const DIRECT_CONNECT_OPTIONS: ReadonlyArray<{
+  label: string;
+  value: ExpressDirectConnectRequestType;
+}> = [
+  { label: "Request material", value: "request_material" },
+  { label: "Match a project", value: "match_project" },
+  { label: "Ask about a bundle", value: "ask_about_bundle" },
+  { label: "Schedule a showroom visit", value: "schedule_showroom" },
+];
 
 const JW_STONE_STORY_IMAGES = [
   {
@@ -327,6 +332,8 @@ export default function WholesalerProfileTheme({
   const [openImageIndex, setOpenImageIndex] = useState(0);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
   const [expressStoneName, setExpressStoneName] = useState<string | null>(null);
+  const [expressRequestType, setExpressRequestType] =
+    useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
   const selectedCategory = inventoryCatalog.find(
@@ -367,9 +374,13 @@ export default function WholesalerProfileTheme({
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
-  const startDirectConnect = (stoneName?: string | null) => {
+  const startDirectConnect = (
+    stoneName?: string | null,
+    requestType?: ExpressDirectConnectRequestType | null
+  ) => {
     if (useExpressDirectConnect) {
       setExpressStoneName(stoneName || null);
+      setExpressRequestType(requestType || (stoneName ? "request_material" : null));
       setExpressPanelOpen(true);
       return;
     }
@@ -378,11 +389,11 @@ export default function WholesalerProfileTheme({
 
   return (
     <div
-      className="min-h-full bg-[var(--brand-bg)] pb-[calc(var(--bottom-nav-h,72px)+env(safe-area-inset-bottom))] text-stone-900 md:pb-0"
+      className="jw-stone-public-profile min-h-full bg-[var(--brand-bg)] pb-[calc(var(--bottom-nav-h,72px)+env(safe-area-inset-bottom))] !text-stone-900 md:pb-0"
       style={themeVars}
     >
       {/* Sticky header */}
-      <header className="relative z-20 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)] md:sticky md:top-0">
+      <header className="relative z-20 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]">
         <div className="container mx-auto flex items-center justify-between gap-4 px-5 py-4 md:px-8 md:py-5">
           <div>
             <span
@@ -407,7 +418,7 @@ export default function WholesalerProfileTheme({
             ["Collection", "#collection"],
             ["Why Us", "#why-us"],
             ["Who We Serve", "#audience"],
-            ["Materials", "#materials"],
+            ...(profileSlug === "jw-stone" ? [] : [["Materials", "#materials"]]),
             ["Connect", "#connect"],
           ].map(([label, href]) => (
             <a
@@ -423,7 +434,7 @@ export default function WholesalerProfileTheme({
 
       {/* Hero */}
       <section
-        className="relative isolate flex min-h-[min(690px,calc(100svh-150px))] items-end overflow-hidden bg-[var(--brand-primary)] bg-cover bg-center py-10 md:min-h-0 md:items-center md:py-32"
+        className="relative isolate flex min-h-[min(690px,calc(100svh-150px))] items-end overflow-hidden bg-[var(--brand-primary)] bg-cover bg-center py-10 md:min-h-[500px] md:items-center md:py-20"
         style={
           heroImage
             ? {
@@ -476,7 +487,7 @@ export default function WholesalerProfileTheme({
       {/* Trust strip -- confirmed facts only, sourced from the "trust" content block */}
       {trustFacts.length > 0 || serviceAreas.length > 0 ? (
         <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
-          <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold text-stone-900 md:px-6">
+          <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold !text-stone-900 md:px-6">
             {trustFacts.map((fact, i) => (
               <span key={i} className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
@@ -503,10 +514,7 @@ export default function WholesalerProfileTheme({
               >
                 Live Stone Collection
               </h2>
-              <p className="text-sm text-[#241d0f]/70">
-                Browse JW Stone inventory. Photos without a confirmed material or stone name appear
-                under Trending at JW Stone instead of being placed in the wrong collection.
-              </p>
+              <p className="text-sm !text-[#625b50]">Browse current inventory and new arrivals.</p>
             </div>
 
             <div className="mb-6 rounded-2xl border border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-3 shadow-sm md:p-4">
@@ -519,7 +527,7 @@ export default function WholesalerProfileTheme({
                     value={inventorySearch}
                     onChange={(event) => setInventorySearch(event.target.value)}
                     placeholder="Search by stone name"
-                    className="w-full !bg-transparent text-sm text-stone-900 outline-none placeholder:text-stone-500"
+                    className="w-full !bg-transparent text-sm !text-stone-900 outline-none placeholder:!text-stone-500"
                   />
                 </label>
                 <label className="relative">
@@ -527,7 +535,7 @@ export default function WholesalerProfileTheme({
                   <select
                     value={activeCategorySlug}
                     onChange={(event) => setActiveCategorySlug(event.target.value)}
-                    className="min-h-12 w-full appearance-none rounded-xl border border-[var(--brand-primary)]/15 !bg-white px-4 pr-10 text-sm font-semibold text-stone-900 outline-none focus:border-[var(--brand-primary)]/50"
+                    className="min-h-12 w-full appearance-none rounded-xl border border-[var(--brand-primary)]/15 !bg-white px-4 pr-10 text-sm font-semibold !text-stone-900 outline-none focus:border-[var(--brand-primary)]/50"
                   >
                     <option value="all">All stone ({allInventoryStones.length})</option>
                     {profileSlug === "jw-stone" ? (
@@ -553,20 +561,20 @@ export default function WholesalerProfileTheme({
                     Clear filters
                   </button>
                 ) : (
-                  <p className="whitespace-nowrap px-2 text-sm font-semibold text-[#241d0f]/60">
+                  <p className="whitespace-nowrap px-2 text-sm font-semibold !text-[#6b645b]">
                     {visibleStones.length} stones
                   </p>
                 )}
               </div>
               {hasInventoryFilters ? (
-                <p className="mt-3 px-1 text-sm font-medium text-[#241d0f]/60">
+                <p className="mt-3 px-1 text-sm font-medium !text-[#6b645b]">
                   {visibleStones.length} {visibleStones.length === 1 ? "stone" : "stones"} shown
                 </p>
               ) : null}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {displayedStones.map((stone) => (
+              {displayedStones.map((stone, stoneIndex) => (
                 <button
                   key={stone.slug}
                   onClick={() => {
@@ -580,8 +588,9 @@ export default function WholesalerProfileTheme({
                       <img
                         src={stone.images[0]}
                         alt={stone.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading={stoneIndex < 8 ? "eager" : "lazy"}
+                        fetchPriority={stoneIndex < 4 ? "high" : "auto"}
+                        className="h-full w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-105"
                       />
                       {stone.images.length > 1 ? (
                         <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white">
@@ -591,8 +600,8 @@ export default function WholesalerProfileTheme({
                     </div>
                   ) : null}
                   <div className="p-4">
-                    <p className="font-semibold text-[#241d0f]">{stone.name}</p>
-                    <p className="mt-1 text-xs text-[#241d0f]/55">
+                    <p className="font-semibold !text-[#241d0f]">{stone.name}</p>
+                    <p className="mt-1 text-xs !text-[#71695f]">
                       {stone.finishes?.length
                         ? stone.finishes.join(" · ")
                         : "Finish: ask JW Stone"}
@@ -870,7 +879,7 @@ export default function WholesalerProfileTheme({
       </section>
 
       {/* Featured materials */}
-      {galleryImages.length > 0 ? (
+      {profileSlug !== "jw-stone" && galleryImages.length > 0 ? (
         <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <h2
@@ -997,12 +1006,14 @@ export default function WholesalerProfileTheme({
           </p>
           <div className="mx-auto mb-10 flex max-w-2xl flex-wrap items-center justify-center gap-3">
             {DIRECT_CONNECT_OPTIONS.map((option) => (
-              <span
-                key={option}
-                className="rounded-full border border-white/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/85"
+              <button
+                type="button"
+                key={option.value}
+                onClick={() => startDirectConnect(null, option.value)}
+                className="rounded-full border border-white/25 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/90 transition-colors hover:border-[var(--brand-accent)] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
               >
-                {option}
-              </span>
+                {option.label}
+              </button>
             ))}
           </div>
           <div className="mx-auto mb-10 flex max-w-md items-center justify-center gap-2 text-sm text-white/70">
@@ -1046,6 +1057,7 @@ export default function WholesalerProfileTheme({
         businessName={displayName}
         hasViewerSession={hasViewerSession}
         initialStoneName={expressStoneName}
+        initialRequestType={expressRequestType}
       />
     </div>
   );
