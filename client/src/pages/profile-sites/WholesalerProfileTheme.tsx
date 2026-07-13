@@ -17,7 +17,9 @@ import {
   Search,
   X,
 } from "lucide-react";
-import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
+import ExpressDirectConnectPanel, {
+  type ExpressDirectConnectRequestType,
+} from "./ExpressDirectConnectPanel";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -155,12 +157,15 @@ const DEFAULT_DIFFERENTIATORS = [
   },
 ] as const;
 
-const DIRECT_CONNECT_OPTIONS = [
-  "Request material",
-  "Match a project",
-  "Ask about a bundle",
-  "Schedule a showroom visit",
-] as const;
+const DIRECT_CONNECT_OPTIONS: ReadonlyArray<{
+  label: string;
+  value: ExpressDirectConnectRequestType;
+}> = [
+  { label: "Request material", value: "request_material" },
+  { label: "Match a project", value: "match_project" },
+  { label: "Ask about a bundle", value: "ask_about_bundle" },
+  { label: "Schedule a showroom visit", value: "schedule_showroom" },
+];
 
 const JW_STONE_STORY_IMAGES = [
   {
@@ -327,6 +332,8 @@ export default function WholesalerProfileTheme({
   const [openImageIndex, setOpenImageIndex] = useState(0);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
   const [expressStoneName, setExpressStoneName] = useState<string | null>(null);
+  const [expressRequestType, setExpressRequestType] =
+    useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
   const selectedCategory = inventoryCatalog.find(
@@ -367,9 +374,13 @@ export default function WholesalerProfileTheme({
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
-  const startDirectConnect = (stoneName?: string | null) => {
+  const startDirectConnect = (
+    stoneName?: string | null,
+    requestType?: ExpressDirectConnectRequestType | null
+  ) => {
     if (useExpressDirectConnect) {
       setExpressStoneName(stoneName || null);
+      setExpressRequestType(requestType || (stoneName ? "request_material" : null));
       setExpressPanelOpen(true);
       return;
     }
@@ -995,12 +1006,14 @@ export default function WholesalerProfileTheme({
           </p>
           <div className="mx-auto mb-10 flex max-w-2xl flex-wrap items-center justify-center gap-3">
             {DIRECT_CONNECT_OPTIONS.map((option) => (
-              <span
-                key={option}
-                className="rounded-full border border-white/25 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/85"
+              <button
+                type="button"
+                key={option.value}
+                onClick={() => startDirectConnect(null, option.value)}
+                className="rounded-full border border-white/25 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/90 transition-colors hover:border-[var(--brand-accent)] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
               >
-                {option}
-              </span>
+                {option.label}
+              </button>
             ))}
           </div>
           <div className="mx-auto mb-10 flex max-w-md items-center justify-center gap-2 text-sm text-white/70">
@@ -1044,6 +1057,7 @@ export default function WholesalerProfileTheme({
         businessName={displayName}
         hasViewerSession={hasViewerSession}
         initialStoneName={expressStoneName}
+        initialRequestType={expressRequestType}
       />
     </div>
   );
