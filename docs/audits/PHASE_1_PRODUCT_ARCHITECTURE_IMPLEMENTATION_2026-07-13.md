@@ -4,6 +4,10 @@ Date: 2026-07-13
 Owner: Product Engineering
 Scope: Phase 1 convergence work following the route, object, Direct Connect, and visual audits.
 
+Target architecture, terminology, dispositions, migration sequence, and representative screen
+specifications are consolidated in
+`docs/audits/PHASE_1_PRODUCT_ARCHITECTURE_BLUEPRINT_2026-07-13.md`.
+
 ## Outcome
 
 Phase 1 now has executable contracts for canonical Direct Connect entry context, request and provider presentation, task routes, employment handoff, inbox ownership, community ownership, notification ownership, and the no-star trust doctrine. Customer-facing trust surfaces use concrete evidence and qualitative states instead of internal numeric composites. This change set deliberately does not perform destructive database convergence without production counts, writer telemetry, integrity checks, and rollback proof.
