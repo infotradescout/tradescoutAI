@@ -686,7 +686,7 @@ export default function OfferServicesPage() {
         description="Complete your business profile, offers, verification, and finance setup so customers can start gated jobs or purchases on TradeScout."
       />
 
-      <div className="min-h-screen bg-tsBackground">
+      <div className="min-h-full">
         <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
           {/* ── Welcome header ─────────────────────────────────────────── */}
           <div className="space-y-1">

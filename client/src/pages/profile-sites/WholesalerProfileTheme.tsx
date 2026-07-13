@@ -290,7 +290,7 @@ export default function WholesalerProfileTheme({
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
 
   return (
-    <div className="min-h-screen bg-[var(--brand-bg)] text-[#241d0f]" style={themeVars}>
+    <div className="min-h-full text-[#241d0f]" style={themeVars}>
       {/* Sticky header */}
       <header className="sticky top-0 z-30 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]">
         <div className="container mx-auto flex items-center justify-between gap-4 px-5 py-5 md:px-8">
@@ -399,7 +399,7 @@ export default function WholesalerProfileTheme({
 
       {/* Live stone collection */}
       {inventoryCatalog.length > 0 ? (
-        <section id="collection" className="scroll-mt-28 py-10 md:py-14">
+        <section id="collection" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-6">
               <h2
@@ -459,7 +459,7 @@ export default function WholesalerProfileTheme({
           </div>
         </section>
       ) : inventoryItems.length > 0 ? (
-        <section id="collection" className="scroll-mt-28 py-10 md:py-14">
+        <section id="collection" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -567,7 +567,7 @@ export default function WholesalerProfileTheme({
       </section>
 
       {/* Audience paths */}
-      <section id="audience" className="scroll-mt-28 py-10 md:py-14">
+      <section id="audience" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
         <div className="container mx-auto px-4 md:px-6">
           <h2
             className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
@@ -619,7 +619,7 @@ export default function WholesalerProfileTheme({
 
       {/* FAQ */}
       {faqItems.length > 0 ? (
-        <section className="py-10 md:py-14">
+        <section className="bg-[var(--brand-bg)] py-10 md:py-14">
           <div className="container mx-auto max-w-3xl px-4 md:px-6">
             <h2
               className={`mb-6 text-center text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}

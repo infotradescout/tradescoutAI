@@ -35,6 +35,7 @@ Phase 1 now has executable contracts for canonical Direct Connect entry context,
 | Community | `community-feed.tsx` is the only routed feed; `CommunityPostCard` is its canonical post representation, while the sample `CommunityFeed.tsx` and unused `SocialFeed` remain explicitly quarantined. | `canonical-surface-ownership.contract.test.ts`, `community-post-card-parity.contract.test.ts` |
 | Trust presentation | Rendered stars, “Highest Rated,” average-rating labels, public CVS values, location scores, and synthetic confidence percentages are removed from active provider, profile, Direct Connect, deal, realtor, analytics, and Scout decision surfaces. Stored compatibility fields and outcome feedback remain intact. | `no-star-rating-doctrine.contract.test.ts` |
 | Compatibility redirects | One typed runtime registry now owns static legacy URL mappings, access posture, query/hash preservation, and ordered slots before dashboard, contractor-slug, admin-wildcard, and 404 routes. Previously inert `/dashboard/messages`, shadowed contractor dashboard/signup paths, missing admin contractor-settings aliases, and duplicate `/saved` ownership are resolved without changing canonical destinations. | `compatibilityRedirects.test.ts`, `admin-route-aliases.contract.test.ts`, `canonical-surface-ownership.contract.test.ts` |
+| Feature-surface ownership | All AppShell page roots now defer viewport height and canvas background to AppFrame. Eleven remaining page files were normalized to frame-relative transparent roots; the sole viewport-owning campaign is proved to render through the isolated pre-AppShell branch. | `featureSurfaceOwnership.contract.test.ts`, `UI_SURFACE_VIOLATION_REPORT.md` |
 
 ## Data-system disposition
 
@@ -76,5 +77,4 @@ The repository does not yet contain the production telemetry, transform checksum
 ## Remaining ordered work
 
 1. Extend the trust doctrine guard to newly activated customer surfaces as they leave quarantine; keep historical admin data and explicit outcome feedback distinguishable from public reputation.
-2. Work down the current visual root-surface violation inventory without changing routed ownership.
-3. Begin each deep schema proposal as a separate reversible migration only after the deep-schema gate is complete.
+2. Begin each deep schema proposal as a separate reversible migration only after the deep-schema gate is complete.

@@ -142,7 +142,7 @@ function Shell({
   action?: React.ReactNode;
 }) {
   return (
-    <main className="min-h-screen bg-neutral-950 text-white">
+    <main className="min-h-full text-white">
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>

@@ -119,7 +119,7 @@ export default function ProfilePurchaseStatus() {
         title="Profile Purchase Status | TradeScout"
         description="Review a TradeScout profile purchase, receipt, fulfillment, and accounting status."
       />
-      <div className="min-h-screen bg-tsBackground text-white">
+      <div className="min-h-full text-white">
         <div className="mx-auto max-w-3xl px-4 py-6 space-y-4">
           <Button
             variant="ghost"

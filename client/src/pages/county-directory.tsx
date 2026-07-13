@@ -121,7 +121,7 @@ const CountyDirectory = memo(function CountyDirectory() {
   );
 
   return (
-    <div className="min-h-screen bg-tsBg text-white">
+    <div className="min-h-full text-white">
       <SEOHelmet
         title="County Directory | Browse U.S. Counties on TradeScout"
         description="Browse TradeScout county pages by state and open local county hubs for community activity, trade partners, and verified business discovery."

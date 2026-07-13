@@ -192,7 +192,7 @@ export default function TradePartnersHub() {
   }, [campaigns]);
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-full text-foreground">
       <SEOHelmet
         title="TradePartners Hub | TradeScout"
         description="Browse active TradeScout TradePartners and county landing paths for TradeDeals promotion campaigns."

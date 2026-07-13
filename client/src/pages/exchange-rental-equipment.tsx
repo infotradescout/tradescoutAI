@@ -74,7 +74,7 @@ export default function ExchangeRentalEquipment() {
   const listings = Array.isArray(data) ? data : [];
 
   return (
-    <div className="min-h-screen bg-tsDark text-white">
+    <div className="min-h-full text-white">
       <SEOHelmet
         title="Rental Equipment Portal | Equipment Rentals in Exchange | TradeScout"
         description="Browse equipment rentals inside TradeScout Exchange, from construction and farm gear to commercial and pro tool inventory."
