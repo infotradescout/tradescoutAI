@@ -9,13 +9,12 @@ describe("canonical surface ownership", () => {
   it("routes all inbox aliases to the Messages workspace", () => {
     const routes = read("client/src/AppRoutes.tsx");
     const routeConfig = read("client/src/lib/routes.ts");
+    const redirects = read("client/src/routing/compatibilityRedirects.ts");
 
-    expect(routes).toMatch(
-      /<Route path="\/conversations">[\s\S]*?<RedirectTo to="\/messages" \/>[\s\S]*?<\/Route>/
-    );
+    expect(routes).toContain('renderCompatibilityRedirects("standard")');
     expect(routeConfig).toContain('CONVERSATIONS: "/messages"');
-    expect(routeConfig).toContain('"/dashboard/messages": "/messages"');
-    expect(routeConfig).toContain('"/conversations": "/messages"');
+    expect(redirects).toContain('from: "/dashboard/messages", to: "/messages"');
+    expect(redirects).toContain('from: "/conversations", to: "/messages"');
   });
 
   it("keeps one routed Community feed and quarantines competing clients", () => {

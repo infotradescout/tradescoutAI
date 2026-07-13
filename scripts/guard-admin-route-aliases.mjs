@@ -46,6 +46,8 @@ const ALLOWLIST_FILES = new Set([
   "client/src/admin/adminTools.tsx",
   "client/src/lib/postOnboardingRoute.ts",
   "client/src/lib/routes.ts",
+  "client/src/routing/compatibilityRedirects.ts",
+  "client/src/routing/compatibilityRedirects.test.ts",
 ]);
 
 function walk(dir, out) {

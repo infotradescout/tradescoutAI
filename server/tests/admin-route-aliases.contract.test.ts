@@ -27,17 +27,18 @@ const LEGACY_ALIAS_REDIRECTS: Array<{ legacy: string; canonical: string }> = [
 ];
 
 describe("admin route alias contracts", () => {
-  it("keeps legacy route redirects wired in AppRoutes", () => {
-    const source = read("client/src/AppRoutes.tsx");
+  it("keeps legacy route redirects in the runtime compatibility registry", () => {
+    const source = read("client/src/routing/compatibilityRedirects.ts");
 
     for (const entry of LEGACY_ALIAS_REDIRECTS) {
-      expect(source).toContain(`<Route path="${entry.legacy}">`);
-      expect(source).toContain(`<RedirectTo to="${entry.canonical}" />`);
+      expect(source).toContain(`from: "${entry.legacy}"`);
+      expect(source).toContain(`to: "${entry.canonical}"`);
     }
   });
 
   it("keeps centralized ROUTES.ALIASES mappings aligned with canonical admin paths", () => {
-    const source = read("client/src/lib/routes.ts");
+    const source = read("client/src/routing/compatibilityRedirects.ts");
+    const routeConfig = read("client/src/lib/routes.ts");
 
     const aliasPairs = [
       ...LEGACY_ALIAS_REDIRECTS,
@@ -45,10 +46,13 @@ describe("admin route alias contracts", () => {
     ];
 
     for (const entry of aliasPairs) {
-      expect(source).toContain(`"${entry.legacy}": "${entry.canonical}"`);
+      expect(source).toContain(`from: "${entry.legacy}"`);
+      expect(source).toContain(`to: "${entry.canonical}"`);
     }
-    expect(source).toContain('"/admin/contractors": "/admin/business-provider-settings"');
-    expect(source).toContain('"/admin/contractor-settings": "/admin/business-provider-settings"');
+    expect(source).toContain('from: "/admin/contractors"');
+    expect(source).toContain('from: "/admin/contractor-settings"');
+    expect(source).toContain('to: "/admin/business-provider-settings"');
+    expect(routeConfig).toContain("ALIASES: COMPATIBILITY_REDIRECT_ALIASES");
   });
 
   it("allows onboarding deep-links for approved legacy admin aliases", () => {
@@ -95,6 +99,7 @@ describe("admin route alias contracts", () => {
     expect(source).toContain('"client/src/admin/adminTools.tsx"');
     expect(source).toContain('"client/src/lib/postOnboardingRoute.ts"');
     expect(source).toContain('"client/src/lib/routes.ts"');
+    expect(source).toContain('"client/src/routing/compatibilityRedirects.ts"');
   });
 });
 
