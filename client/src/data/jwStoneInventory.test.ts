@@ -13,7 +13,7 @@ const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
 describe("JW Stone reconciled inventory", () => {
   it("publishes the full optimized inventory set", () => {
     expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(110);
-    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(313);
+    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(318);
     expect(new Set(stones.map((stone) => stone.slug)).size).toBe(110);
 
     for (const stone of stones) {
