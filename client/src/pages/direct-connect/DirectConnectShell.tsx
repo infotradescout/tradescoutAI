@@ -331,7 +331,8 @@ const SECTION_META: Record<
   },
   pros: {
     title: "Businesses",
-    description: "Browse businesses near you, ranked by distance and CVS before you search.",
+    description:
+      "Browse businesses near you, ordered by location fit and available trust evidence.",
     actionLabel: "Post a new request",
     actionTarget: "post",
   },
@@ -1972,8 +1973,8 @@ function DirectConnectRequestComposer({
 
   const rankedCandidates = useMemo(() => {
     return [...localDirectoryCandidates].sort((a, b) => {
-      // Local-directory posture: nearest viable providers first, with CVS as
-      // the trust/recommendation tiebreaker.
+      // Local-directory posture: nearest viable providers first, with the
+      // internal trust-evidence composite as the tiebreaker.
       const locationDiff =
         getCandidateLocationScore(b, defaultCountyFips) -
         getCandidateLocationScore(a, defaultCountyFips);
@@ -3489,7 +3490,8 @@ function DirectConnectRequestComposer({
                   className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
                 />
                 <p className="text-[11px] text-[color:var(--text-secondary)]">
-                  Using your local area by default. Ordered by distance first, then CVS.
+                  Using your local area by default. Ordered by distance, service fit, and available
+                  trust evidence.
                 </p>
               </div>
 
@@ -3517,8 +3519,6 @@ function DirectConnectRequestComposer({
                   rankedCandidates.map((candidate, index) => {
                     const isSelected = selectedContractorIds.includes(candidate.id);
                     const distance = parseNumberOrNull(candidate.distanceMiles);
-                    const cvsScore = getCandidateCvsScore(candidate);
-                    const locationScore = getCandidateLocationScore(candidate, defaultCountyFips);
                     const candidateLabel =
                       candidate.companyName || candidate.name || "Local company";
 
@@ -3558,8 +3558,7 @@ function DirectConnectRequestComposer({
                                     : "Local service area"}
                               </p>
                               <p className="text-[11px] text-[color:var(--text-secondary)]">
-                                CVS {Math.round(cvsScore)} • Location score{" "}
-                                {Math.round(locationScore)}
+                                Location fit and available trust evidence reviewed
                               </p>
                             </div>
                           </div>
@@ -4385,7 +4384,7 @@ function MyDirectConnectRequests() {
 
   const rankedRouteCandidates = useMemo(() => {
     return [...routeCandidates].sort((a, b) => {
-      // Recommendation-first (CVS composite), location as tiebreak. Mirrors the
+      // Trust-evidence composite first, location as tiebreak. Mirrors the
       // primary composer ranking so both entry points order providers the same way.
       const cvsDiff = getCandidateCvsScore(b) - getCandidateCvsScore(a);
       if (cvsDiff !== 0) return cvsDiff;
@@ -5302,7 +5301,9 @@ function MyDirectConnectRequests() {
                   )}
                 >
                   <p className="font-medium">Top local businesses</p>
-                  <p className="mt-1 text-[11px]">Preselect top matches by location + CVS.</p>
+                  <p className="mt-1 text-[11px]">
+                    Preselect top matches by location fit and available trust evidence.
+                  </p>
                 </button>
                 <button
                   type="button"
@@ -5357,7 +5358,7 @@ function MyDirectConnectRequests() {
                 className="bg-[color:var(--surface-intermediate)] border-[color:var(--border-subtle)]"
               />
               <p className="text-[11px] text-[color:var(--text-secondary)]">
-                Ordered by location fit first, then CVS score.
+                Ordered by location fit and available trust evidence.
               </p>
             </div>
 
@@ -5379,11 +5380,6 @@ function MyDirectConnectRequests() {
                 rankedRouteCandidates.map((candidate, index) => {
                   const selected = selectedRouteContractorIds.includes(candidate.id);
                   const distance = parseNumberOrNull(candidate.distanceMiles);
-                  const cvs = getCandidateCvsScore(candidate);
-                  const location = getCandidateLocationScore(
-                    candidate,
-                    activeRouteRequest?.countyFips || undefined
-                  );
                   const candidateLabel =
                     candidate.companyName || candidate.name || "Local business";
                   return (
@@ -5422,7 +5418,7 @@ function MyDirectConnectRequests() {
                                   : "Local service area"}
                             </p>
                             <p className="text-[11px] text-[color:var(--text-secondary)]">
-                              CVS {Math.round(cvs)} • Location score {Math.round(location)}
+                              Location fit and available trust evidence reviewed
                             </p>
                           </div>
                         </div>

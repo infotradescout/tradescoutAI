@@ -2,7 +2,7 @@ import { memo, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { Link } from "wouter";
 import { SEOHelmet, createFAQStructuredData } from "@/components/SEOHelmet";
-import { Shield, CheckCircle, Users, TrendingUp, Star, Lock, AlertCircle, Eye } from "lucide-react";
+import { Shield, CheckCircle, Users, TrendingUp, Lock, AlertCircle, Eye } from "lucide-react";
 
 function Reveal({
   children,
@@ -31,9 +31,9 @@ function Reveal({
 const TrustModelPage = memo(function TrustModelPage() {
   const faqs = [
     {
-      question: "What is the Community Verification Score (CVS)?",
+      question: "What trust evidence does TradeScout show?",
       answer:
-        "CVS is TradeScout's trust system. It looks at verified identity, license and insurance status, work history, community recommendations, and how problems were handled.",
+        "TradeScout shows the evidence behind a match: verified identity, license and insurance status, work history, community recommendations, and how problems were handled.",
     },
     {
       question: "How are contractors verified?",
@@ -46,21 +46,20 @@ const TrustModelPage = memo(function TrustModelPage() {
         "Because anonymous recommendations are easy to fake. TradeScout ties recommendations to real, verified people who actually worked with the pro.",
     },
     {
-      question: "Can contractors pay to change CVS or ranking?",
-      answer: "No. Paying more does not improve CVS or move someone ahead in ranking.",
+      question: "Can contractors pay to change their trust standing or ranking?",
+      answer: "No. Paying more does not improve trust standing or move someone ahead in ranking.",
     },
     {
       question: "What happens if a contractor's license expires?",
       answer:
-        "Their trust status drops right away, and they stop receiving new Direct Connect requests until the issue is fixed.",
+        "Their license evidence is marked expired right away, and they stop receiving new Direct Connect requests until the issue is fixed.",
     },
   ];
 
-  const cvsLayers = [
+  const trustLayers = [
     {
       icon: Shield,
       title: "1. Verified Identity",
-      points: 20,
       bullets: [
         "Real person with government-issued ID",
         "Registered business (LLC, sole proprietor, etc.)",
@@ -71,19 +70,17 @@ const TrustModelPage = memo(function TrustModelPage() {
     {
       icon: Lock,
       title: "2. License & Insurance",
-      points: 30,
       bullets: [
         "Active state license: Verified against state registry",
         "General liability insurance: Minimum $1M coverage",
         "Workers comp insurance: If applicable (employees)",
         "Expiration monitoring: Auto-alerts 30 days before expiry",
       ],
-      note: "If license or insurance lapses, CVS drops to 0 until restored.",
+      note: "If a license or insurance policy lapses, the profile shows that evidence as expired until it is restored.",
     },
     {
       icon: TrendingUp,
       title: "3. Work History",
-      points: 20,
       bullets: [
         "Number of completed jobs on TradeScout",
         "Timeline adherence (on-time completion rate)",
@@ -94,7 +91,6 @@ const TrustModelPage = memo(function TrustModelPage() {
     {
       icon: Users,
       title: "4. Community Recommendations",
-      points: 20,
       bullets: [
         "Neighbor endorsements: From verified community members",
         "Recommendation lineage: Every recommendation is tied to a real person who worked with the contractor",
@@ -105,12 +101,11 @@ const TrustModelPage = memo(function TrustModelPage() {
     {
       icon: Eye,
       title: "5. Dispute Resolution",
-      points: 10,
       bullets: [
         "How conflicts were resolved (mediation, refunds, repairs)",
         "Response time to complaints",
         "Willingness to fix issues vs. ghosting",
-        "Unresolved disputes penalize CVS heavily",
+        "Unresolved disputes are shown as evidence that needs review",
       ],
     },
   ];
@@ -119,8 +114,8 @@ const TrustModelPage = memo(function TrustModelPage() {
     <>
       <SEOHelmet
         title="TradeScout Trust Model | Verified Local Help and Public Trust Rules"
-        description="Learn how TradeScout uses verification, Community Verification Score, licensing, insurance, work history, and public trust rules to help users make safer local decisions."
-        keywords="tradescout trust model, community verification score, trusted local help, contractor verification, license verification, insurance verification, review lineage"
+        description="Learn how TradeScout uses identity and credential verification, work history, recommendations, and public trust rules to help users make safer local decisions."
+        keywords="tradescout trust model, trust evidence, trusted local help, contractor verification, license verification, insurance verification, recommendation lineage"
         canonical="https://www.thetradescout.com/trust-model"
         structuredData={createFAQStructuredData(faqs)}
       />
@@ -135,9 +130,7 @@ const TrustModelPage = memo(function TrustModelPage() {
               className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-4"
             >
               <Shield className="w-4 h-4 text-ts-orange" />
-              <span className="text-sm font-medium text-ts-orange">
-                Community Verification Score
-              </span>
+              <span className="text-sm font-medium text-ts-orange">Evidence-Based Trust</span>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
@@ -153,8 +146,8 @@ const TrustModelPage = memo(function TrustModelPage() {
               transition={{ duration: 0.6, delay: 0.3 }}
               className="text-lg text-white/70 max-w-2xl mx-auto leading-relaxed"
             >
-              Every pro has a Community Verification Score based on identity checks, active
-              credentials, work history, community recommendations, and dispute history.
+              See the identity checks, active credentials, work history, community recommendations,
+              and dispute history behind each match.
             </motion.p>
           </div>
         </section>
@@ -178,23 +171,22 @@ const TrustModelPage = memo(function TrustModelPage() {
             </div>
           </Reveal>
 
-          {/* CVS Layers */}
+          {/* Trust evidence layers */}
           <section>
             <Reveal className="text-center mb-6">
               <div className="inline-flex items-center gap-2 bg-ts-orange/10 border border-ts-orange/30 rounded-full px-3 py-1 mb-3">
-                <Star className="w-4 h-4 text-ts-orange" />
-                <span className="text-sm font-medium text-ts-orange">CVS Breakdown</span>
+                <Shield className="w-4 h-4 text-ts-orange" />
+                <span className="text-sm font-medium text-ts-orange">Trust Evidence</span>
               </div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-2">
                 Five Verification Layers
               </h2>
               <p className="text-sm text-white/60 max-w-xl mx-auto">
-                Each layer adds to a pro's CVS score. The goal is to show why someone is trusted,
-                not just that they are.
+                Each layer shows concrete evidence so you can understand why someone is a match.
               </p>
             </Reveal>
             <div className="space-y-4">
-              {cvsLayers.map((layer, i) => {
+              {trustLayers.map((layer, i) => {
                 const Icon = layer.icon;
                 return (
                   <Reveal key={i} delay={i * 0.07}>
@@ -204,12 +196,7 @@ const TrustModelPage = memo(function TrustModelPage() {
                           <Icon className="w-4 h-4 text-ts-orange" />
                         </div>
                         <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-semibold text-white text-sm">{layer.title}</h3>
-                            <span className="text-xs font-bold text-ts-orange bg-ts-orange/10 border border-ts-orange/30 rounded-full px-2 py-0.5">
-                              {layer.points} pts
-                            </span>
-                          </div>
+                          <h3 className="font-semibold text-white text-sm">{layer.title}</h3>
                         </div>
                       </div>
                       <ul className="space-y-1.5 ml-11">
@@ -251,7 +238,7 @@ const TrustModelPage = memo(function TrustModelPage() {
                 </p>
                 <ol className="space-y-1.5">
                   {[
-                    "CVS score",
+                    "Available identity and credential evidence",
                     "Fit for the job",
                     "Location and service area",
                     "Availability",

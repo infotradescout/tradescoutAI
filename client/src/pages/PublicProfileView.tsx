@@ -513,28 +513,6 @@ export default function PublicProfileView() {
     : [];
   const verificationStatus = String(profile.verificationStatus || "").toLowerCase();
   const addressVerified = Boolean(profile.addressVerified);
-  const rawCvs =
-    typeof profile.cvsScore === "number"
-      ? profile.cvsScore
-      : typeof profile.cvsScore === "string" && profile.cvsScore.trim().length > 0
-        ? Number(profile.cvsScore)
-        : null;
-  const cvsScore = Number.isFinite(rawCvs as number) ? Number(rawCvs) : null;
-  const roles = profile.roles || [];
-  const trustRoles = new Set([
-    "contractor",
-    "handyman",
-    "service_provider",
-    "specialty_tradesperson",
-    "realtor",
-    "mortgage_broker",
-    "insurance_agent",
-    "car_dealer",
-    "auto_service",
-    "business_owner",
-    "property_manager",
-  ]);
-  const showCvs = roles.some((role) => trustRoles.has(role));
   const verificationTone = (() => {
     if (verificationStatus === "approved") return "bg-emerald-600 text-white";
     if (verificationStatus === "under_review" || verificationStatus === "pending") {
@@ -787,14 +765,6 @@ export default function PublicProfileView() {
                   >
                     {addressVerified ? "Address Verified" : "Address Verification Required"}
                   </Badge>
-                  {showCvs && (
-                    <Badge
-                      variant="outline"
-                      className="border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)]"
-                    >
-                      {cvsScore !== null ? `CVS ${Math.round(cvsScore)}` : "CVS Pending"}
-                    </Badge>
-                  )}
                 </div>
 
                 {/* Roles exist for capabilities and layout, but are not shown as trust/status chips. */}

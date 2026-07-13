@@ -431,19 +431,16 @@ const Analytics = memo(function Analytics() {
 
               <Card className="bg-white/5 border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-white">Trust (CVS)</CardTitle>
+                  <CardTitle className="text-white">Trust evidence</CardTitle>
                   <CardDescription className="text-white/60">
-                    Trust authority snapshot (verification + performance signals)
+                    Verification and performance evidence available to customers
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-6">
-                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-emerald-600/10 border-4 border-emerald-600/20 mb-4">
-                      <div className="flex items-baseline">
-                        <span className="text-4xl font-bold text-emerald-400">82</span>
-                      </div>
-                    </div>
-                    <p className="text-white/70">Current CVS</p>
+                  <div className="space-y-2 py-4 text-sm text-white/70">
+                    <p>Identity and business verification status</p>
+                    <p>Current credentials and service history</p>
+                    <p>Traceable community recommendations</p>
                   </div>
                 </CardContent>
               </Card>

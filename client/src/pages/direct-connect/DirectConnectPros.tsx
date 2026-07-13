@@ -334,7 +334,7 @@ export default function DirectConnectPros() {
               <CardTitle className="text-sm">Nearby Directory</CardTitle>
               <p className="mt-1 text-xs text-[color:var(--text-secondary)]">
                 {localCommitted
-                  ? `${(contractors as any[])?.length || 0} local profile(s), sorted by distance and CVS`
+                  ? `${(contractors as any[])?.length || 0} local profile(s), sorted by location fit and available trust evidence`
                   : "Set your area once, then TradeScout keeps the directory local by default."}
               </p>
             </div>
@@ -577,12 +577,12 @@ export default function DirectConnectPros() {
         <div className="space-y-5">
           <DirectoryRail
             title={searchActive ? "Best nearby matches" : "Closest businesses near you"}
-            subtitle="Distance first, CVS breaks the tie."
+            subtitle="Distance first, then available trust evidence."
             providers={searchActive ? resultRail : localRail}
           />
           <DirectoryRail
-            title="Strongest CVS nearby"
-            subtitle="Trust and recommendation signals first, distance as the tie-breaker."
+            title="Strongest trust evidence nearby"
+            subtitle="Available verification and recommendation evidence first, then distance."
             providers={trustedRail}
           />
           {!searchActive && (

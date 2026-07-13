@@ -564,7 +564,7 @@ export default function ProfilePage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-ts-orange flex items-center justify-center gap-1">
                         {xpLoading ? (
@@ -582,14 +582,6 @@ export default function ProfilePage() {
                         {user?.stats?.reviews ?? "—"}
                       </div>
                       <div className="text-xs text-white/60">Recommendations</div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-ts-orange flex items-center justify-center gap-1">
-                        {typeof (user as any)?.cvsScore === "number"
-                          ? Math.round((user as any).cvsScore)
-                          : "—"}
-                      </div>
-                      <div className="text-xs text-white/60">CVS</div>
                     </div>
                   </div>
                   {xpError ? (

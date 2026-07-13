@@ -259,7 +259,10 @@ describe("direct-connect gate regressions", () => {
     expect(directConnectShellFile).toContain("Choose who can receive this request");
     expect(directConnectShellFile).toContain("Send to top local companies");
     expect(directConnectShellFile).toContain("How many companies should receive this request?");
-    expect(directConnectShellFile).toContain("Ordered by distance first, then CVS.");
+    expect(directConnectShellFile).toMatch(
+      /Ordered by distance, service fit, and available\s+trust evidence\./
+    );
+    expect(directConnectShellFile).not.toContain("Ordered by distance first, then CVS.");
     expect(directConnectShellFile).toContain("Continue without selection");
     expect(directConnectShellFile).toContain("targetProviderIds");
   });

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Star,
+  ShieldCheck,
   Sparkles,
   TrendingUp,
   Clock,
@@ -30,7 +30,6 @@ interface TradeDeal {
   location: string;
   expiresIn: string;
   featured: boolean;
-  rating: number;
   claimed: number;
   totalAvailable: number;
   scratched: boolean;
@@ -85,17 +84,6 @@ export default function TradeDealsLuckyPage() {
     });
 
     setSelectedDeal(null);
-  };
-
-  const handleRateDeal = (dealId: string, rating: number) => {
-    setDeals((prevDeals) =>
-      prevDeals.map((deal) => (deal.id === dealId ? { ...deal, rating } : deal))
-    );
-
-    toast({
-      title: "Thanks for rating!",
-      description: "Your feedback helps the community.",
-    });
   };
 
   const featuredDeals = deals.filter((d) => d.featured);
@@ -233,7 +221,10 @@ export default function TradeDealsLuckyPage() {
                           "color-mix(in oklab, var(--theme-accent-primary) 20%, transparent)",
                       }}
                     >
-                      <Star className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />
+                      <ShieldCheck
+                        className="h-5 w-5"
+                        style={{ color: "var(--theme-accent-primary)" }}
+                      />
                     </div>
                     <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>
                       Verified Partners
@@ -330,8 +321,8 @@ export default function TradeDealsLuckyPage() {
                       3
                     </div>
                     <div>
-                      <strong style={{ color: "var(--text-primary)" }}>Rate your experience</strong>{" "}
-                      - Help the community by rating deals after you use them.
+                      <strong style={{ color: "var(--text-primary)" }}>Confirm the terms</strong> -
+                      Review the source, availability, and final terms before you claim a deal.
                     </div>
                   </div>
                 </div>
@@ -487,7 +478,6 @@ export default function TradeDealsLuckyPage() {
                     deal={deal}
                     onScratch={handleScratch}
                     onClaim={handleClaimDeal}
-                    onRate={handleRateDeal}
                     onSelect={setSelectedDeal}
                   />
                 ))}
@@ -510,7 +500,6 @@ export default function TradeDealsLuckyPage() {
                   deal={deal}
                   onScratch={handleScratch}
                   onClaim={handleClaimDeal}
-                  onRate={handleRateDeal}
                   onSelect={setSelectedDeal}
                 />
               ))}
@@ -615,11 +604,10 @@ interface DealCardProps {
   deal: TradeDeal;
   onScratch: (id: string) => void;
   onClaim: (deal: TradeDeal) => void;
-  onRate: (id: string, rating: number) => void;
   onSelect: (deal: TradeDeal) => void;
 }
 
-function DealCard({ deal, onScratch, onClaim, onRate, onSelect }: DealCardProps) {
+function DealCard({ deal, onScratch, onClaim, onSelect }: DealCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const remainingPercentage = ((deal.totalAvailable - deal.claimed) / deal.totalAvailable) * 100;
@@ -777,31 +765,9 @@ function DealCard({ deal, onScratch, onClaim, onRate, onSelect }: DealCardProps)
                 >
                   Claim Deal
                 </Button>
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRate(deal.id, star);
-                      }}
-                      className="p-0.5"
-                    >
-                      <Star
-                        className="h-3 w-3"
-                        fill={
-                          star <= Math.round(deal.rating) ? "var(--theme-accent-primary)" : "none"
-                        }
-                        style={{
-                          color:
-                            star <= Math.round(deal.rating)
-                              ? "var(--theme-accent-primary)"
-                              : "var(--text-tertiary)",
-                        }}
-                      />
-                    </button>
-                  ))}
-                </div>
+                <Badge variant="outline" className="text-[10px]">
+                  Terms and availability shown
+                </Badge>
               </div>
             </>
           )}
