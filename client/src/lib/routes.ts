@@ -1,4 +1,5 @@
 import { buildAuthEntryRoute } from "@/lib/postOnboardingRoute";
+import { COMPATIBILITY_REDIRECT_ALIASES } from "@/routing/compatibilityRedirects";
 
 // Centralized route configuration to prevent drift
 export const ROUTES = {
@@ -44,38 +45,7 @@ export const ROUTES = {
   COOKIES: "/cookies",
 
   // Route aliases for backward compatibility
-  ALIASES: {
-    "/dashboard/messages": "/messages",
-    "/conversations": "/messages",
-    "/marketplace": "/exchange",
-    "/exchange/list": "/exchange",
-    "/business-owner-dashboard": "/business-dashboard",
-    "/contractor-dashboard": "/business-dashboard",
-    "/contractor/dashboard": "/business-dashboard",
-    "/contractors/dashboard": "/business-dashboard",
-    "/contractor-leads": "/business/requests",
-    "/contractor/leads": "/business/requests",
-    "/contractors/apply": "/businesses/apply",
-    "/contractor-apply": "/businesses/apply",
-    "/admin-observability": "/admin/live-stream",
-    "/staff/hardrock-directory": "/admin/commercial-directory",
-    "/staff/share-links": "/admin/share-links",
-    "/staff/inspection-intelligence": "/admin/inspection-intelligence",
-    "/contractor-verification": "/admin/professional-verification",
-    "/content-moderation": "/admin/moderation",
-    "/system-settings": "/admin/site-settings",
-    "/admin/contractors": "/admin/business-provider-settings",
-    "/admin/contractor-settings": "/admin/business-provider-settings",
-    "/support-tickets": "/admin/errors",
-    "/platform-analytics": "/admin/platform-analytics",
-    "/manage-users": "/admin/users",
-    "/payment-processing": "/admin/payment-model",
-    "/file-management": "/admin/attachments",
-    "/admin-dashboard": "/admin",
-    "/admin/dashboard": "/admin",
-    "/admin-users": "/admin/users",
-    "/admin-panel": "/admin/panel",
-  },
+  ALIASES: COMPATIBILITY_REDIRECT_ALIASES,
 } as const;
 
 export type RouteKey = keyof typeof ROUTES;

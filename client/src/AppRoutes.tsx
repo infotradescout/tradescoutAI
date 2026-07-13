@@ -24,6 +24,11 @@ import {
   type AdvancedFeatureId,
 } from "@/lib/progressiveFeatureUnlocks";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
+import {
+  getCompatibilityRedirectsForSlot,
+  mergeCompatibilityRedirectTarget,
+  type CompatibilityRedirectSlot,
+} from "@/routing/compatibilityRedirects";
 
 const PageLoader = memo(function PageLoader() {
   return <PageLoadingSpinner message="Loading TradeScout..." />;
@@ -47,35 +52,26 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
 
   useEffect(() => {
     const raw = String(location || "");
-    const restIdx = raw.search(/[?#]/);
-    const rest = restIdx >= 0 ? raw.slice(restIdx) : "";
-    const mergeTargetWithRest = (target: string, sourceRest: string) => {
-      if (!sourceRest) return target;
-      if (sourceRest.startsWith("#")) return `${target}${sourceRest}`;
-      if (!sourceRest.startsWith("?")) return target;
-
-      const [targetBase, targetHash = ""] = target.split("#", 2);
-      const [targetPath, targetQuery = ""] = targetBase.split("?", 2);
-      const targetParams = new URLSearchParams(targetQuery);
-      const sourceParams = new URLSearchParams(sourceRest.slice(1));
-
-      sourceParams.forEach((value, key) => {
-        if (!targetParams.has(key)) {
-          targetParams.set(key, value);
-        }
-      });
-
-      const mergedQuery = targetParams.toString();
-      const mergedBase = mergedQuery ? `${targetPath}?${mergedQuery}` : targetPath;
-      return targetHash ? `${mergedBase}#${targetHash}` : mergedBase;
-    };
-
-    const target = mergeTargetWithRest(to, rest);
+    const target = mergeCompatibilityRedirectTarget(to, raw);
     if (raw !== target) navigate(target);
   }, [location, navigate, to]);
 
   return null;
 });
+
+function renderCompatibilityRedirects(slot: CompatibilityRedirectSlot) {
+  return getCompatibilityRedirectsForSlot(slot).map((redirect) => (
+    <Route key={redirect.from} path={redirect.from}>
+      {redirect.access === "public" ? (
+        <RedirectTo to={redirect.to} />
+      ) : (
+        <ProtectedRoute adminOnly={redirect.access === "admin"}>
+          <RedirectTo to={redirect.to} />
+        </ProtectedRoute>
+      )}
+    </Route>
+  ));
+}
 
 const HardRedirectTo = memo(function HardRedirectTo({ to }: { to: string }) {
   useEffect(() => {
@@ -761,6 +757,7 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
 
               {/* Dashboard routes (auth required) */}
+              {renderCompatibilityRedirects("before-dashboard")}
               <Route path="/my-tradescout">
                 <ProtectedRoute>
                   <RedirectTo to="/direct-connect" />
@@ -879,9 +876,6 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/provider-setup">
                 <RedirectTo to="/onboarding?lane=offer_services" />
               </Route>
-              <Route path="/contractors/apply">
-                <RedirectTo to="/onboarding?lane=offer_services" />
-              </Route>
               <Route path="/contractors/top">
                 <LazyPage Component={ContractorsTop} />
               </Route>
@@ -889,6 +883,7 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/contractors/board">
                 <LazyPage Component={DirectConnectPros} />
               </Route>
+              {renderCompatibilityRedirects("before-contractor-slug")}
               <Route path="/contractors/:slug">
                 <LazyPage Component={ContractorProfile} />
               </Route>
@@ -901,12 +896,6 @@ export const AppRoutes = memo(function AppRoutes({
                 <ProtectedRoute>
                   <LazyPage Component={ContractorLeads} />
                 </ProtectedRoute>
-              </Route>
-              <Route path="/contractor-leads">
-                <RedirectTo to="/business/requests" />
-              </Route>
-              <Route path="/contractor/leads">
-                <RedirectTo to="/business/requests" />
               </Route>
 
               {/* Helpers + Direct Connect */}
@@ -985,9 +974,6 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
-              <Route path="/contractor-apply">
-                <RedirectTo to="/businesses/apply" />
-              </Route>
               <Route path="/offer-services">
                 <ProtectedRoute>
                   <LazyPage Component={OfferServices} />
@@ -1004,9 +990,6 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/business-dashboard">
                 <LazyPage Component={BusinessOwnerDashboard} />
               </Route>
-              <Route path="/business-owner-dashboard">
-                <RedirectTo to="/business-dashboard" />
-              </Route>
               <Route path="/contractor-promos">
                 <LazyPage Component={ContractorPromos} />
               </Route>
@@ -1015,16 +998,10 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/worker-marketplace">
                 <RedirectTo to="/direct-connect" />
               </Route>
-              <Route path="/marketplace">
-                <RedirectTo to="/exchange" />
-              </Route>
               <Route path="/marketplace/new">
                 <ProtectedRoute>
                   <LazyPage Component={MarketplaceListing} />
                 </ProtectedRoute>
-              </Route>
-              <Route path="/exchange/list">
-                <RedirectTo to="/exchange" />
               </Route>
               <Route path="/vehicle-marketplace">
                 <LazyPage Component={VehicleMarketplace} />
@@ -1214,11 +1191,6 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={lazy(() => import("./components/social/SocialDiscovery"))} />
                 </ProtectedRoute>
               </Route>
-              <Route path="/conversations">
-                <ProtectedRoute>
-                  <RedirectTo to="/messages" />
-                </ProtectedRoute>
-              </Route>
 
               {/* Community Builder routes */}
               <Route path="/profile/:profileId/community">
@@ -1265,43 +1237,14 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
-              <Route path="/admin-panel">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/panel" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/admin-dashboard">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/admin/dashboard">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/admin-users">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/users" />
-                </ProtectedRoute>
-              </Route>
+              {renderCompatibilityRedirects("before-admin-wildcard")}
               <Route path="/admin/:rest*">
                 <ProtectedRoute adminOnly>
                   <LazyPage Component={AdminShell} />
                 </ProtectedRoute>
               </Route>
 
-              {/* Admin Observability Dashboard (Phase 2) */}
-              <Route path="/admin-observability">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/live-stream" />
-                </ProtectedRoute>
-              </Route>
-
               {/* Dashboard routes (auth required) */}
-              <Route path="/contractor-dashboard">
-                <RedirectTo to="/business-dashboard" />
-              </Route>
               <Route path="/homeowner-dashboard">
                 <ProtectedRoute>
                   <LazyPage Component={HomeownerDashboard} />
@@ -1334,22 +1277,6 @@ export const AppRoutes = memo(function AppRoutes({
                   </Route>
                   */}
 
-              <Route path="/staff/hardrock-directory">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/commercial-directory" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/staff/share-links">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/share-links" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/staff/inspection-intelligence">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/inspection-intelligence" />
-                </ProtectedRoute>
-              </Route>
-
               {/* Common pages */}
               <Route path="/chat">
                 <ProtectedRoute>
@@ -1366,12 +1293,6 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/saved-ads">
                 <ProtectedRoute>
                   <LazyPage Component={SavedAds} />
-                </ProtectedRoute>
-              </Route>
-              {/* Back-compat: right panel links */}
-              <Route path="/saved">
-                <ProtectedRoute>
-                  <RedirectTo to="/saved-ads" />
                 </ProtectedRoute>
               </Route>
               <Route path="/saved-contractors">
@@ -1784,46 +1705,6 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
 
               {/* Advanced Admin */}
-              <Route path="/contractor-verification">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/professional-verification" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/content-moderation">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/moderation" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/system-settings">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/site-settings" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/support-tickets">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/errors" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/platform-analytics">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/platform-analytics" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/manage-users">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/users" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/payment-processing">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/payment-model" />
-                </ProtectedRoute>
-              </Route>
-              <Route path="/file-management">
-                <ProtectedRoute adminOnly>
-                  <RedirectTo to="/admin/attachments" />
-                </ProtectedRoute>
-              </Route>
 
               {/* Social & Integration */}
               <Route path="/social-integration">
@@ -1991,84 +1872,12 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={StoryGeneratorPage} />
               </Route>
 
-              {/* Back-compat aliases for legacy buttons/links */}
-              <Route path="/settings/profile">
-                <RedirectTo to="/profile-settings" />
-              </Route>
-              <Route path="/settings/location">
-                <RedirectTo to="/settings?tab=profile" />
-              </Route>
-              <Route path="/contractor/dashboard">
-                <RedirectTo to="/business-dashboard" />
-              </Route>
-              <Route path="/contractor-profile">
-                <RedirectTo to="/contractors" />
-              </Route>
-              <Route path="/payments/history">
-                <RedirectTo to="/payment-history" />
-              </Route>
-              <Route path="/saved">
-                <RedirectTo to="/saved-ads" />
-              </Route>
-              <Route path="/community-builder">
-                <RedirectTo to="/community-builder/dashboard" />
-              </Route>
-              <Route path="/county/transparency">
-                <RedirectTo to="/county-hub" />
-              </Route>
-              <Route path="/contractors/signup">
-                <RedirectTo to="/businesses/apply" />
-              </Route>
-              <Route path="/contractor-join">
-                <RedirectTo to="/businesses/apply" />
-              </Route>
-              <Route path="/contractors/accelerator">
-                <RedirectTo to="/businesses/apply" />
-              </Route>
-              <Route path="/payroll-helper">
-                <RedirectTo to="/finances/payroll" />
-              </Route>
-              <Route path="/cookie-preferences">
-                <RedirectTo to="/privacy" />
-              </Route>
+              {/* Hard redirects remain explicit because they leave the client router. */}
               <Route path="/auth/logout">
                 <HardRedirectTo to="/api/auth/logout" />
               </Route>
               <Route path="/logout">
                 <HardRedirectTo to="/api/auth/logout" />
-              </Route>
-              <Route path="/tools/estimate-calculator">
-                <RedirectTo to="/quote-calculator" />
-              </Route>
-              <Route path="/tools/invoice-calculator">
-                <RedirectTo to="/finances/invoices" />
-              </Route>
-              <Route path="/tools/expense-helper">
-                <RedirectTo to="/finances/expenses" />
-              </Route>
-              <Route path="/legal/privacy-policy">
-                <RedirectTo to="/privacy" />
-              </Route>
-              <Route path="/legal/giveaway-rules">
-                <RedirectTo to="/giveaway-rules" />
-              </Route>
-              <Route path="/legal/cookie-policy">
-                <RedirectTo to="/privacy" />
-              </Route>
-              <Route path="/legal/compliance">
-                <RedirectTo to="/compliance" />
-              </Route>
-              <Route path="/legal/accessibility">
-                <RedirectTo to="/compliance" />
-              </Route>
-              <Route path="/legal/seller-agreement">
-                <RedirectTo to="/terms" />
-              </Route>
-              <Route path="/legal/community-guidelines">
-                <RedirectTo to="/terms" />
-              </Route>
-              <Route path="/legal/dispute-resolution">
-                <RedirectTo to="/terms" />
               </Route>
               {/* Legacy commerce URL aliases (old storefront links). */}
               <Route path="/collections/:collectionSlug/products/:productSlug">
@@ -2080,6 +1889,8 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/products/:productSlug">
                 <RedirectTo to="/trade-deals" />
               </Route>
+
+              {renderCompatibilityRedirects("standard")}
 
               {/* 404 - this should be last */}
               <Route path="/:rest*">

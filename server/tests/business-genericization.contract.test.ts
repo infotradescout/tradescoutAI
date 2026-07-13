@@ -48,6 +48,7 @@ describe("generic business profile and tool contracts", () => {
     const audit = read("docs/audits/BUSINESS_PROFILE_GENERICIZATION_AUDIT.md");
     const scoutMatrix = read("docs/audits/SCOUT_2_CATCHUP_MATRIX.md");
     const routes = read("client/src/AppRoutes.tsx");
+    const redirects = read("client/src/routing/compatibilityRedirects.ts");
 
     expect(audit).toContain("contractor-specific language is allowed only");
     expect(audit).toContain("temporary_exception");
@@ -56,36 +57,36 @@ describe("generic business profile and tool contracts", () => {
     expect(routes).toContain('path="/businesses/apply"');
     expect(routes).toContain('path="/business-dashboard"');
     expect(routes).toContain('path="/business/requests"');
-    expect(routes).toContain('to="/businesses/apply"');
-    expect(routes).toContain('to="/business-dashboard"');
-    expect(routes).toContain('to="/business/requests"');
+    expect(redirects).toContain('to: "/businesses/apply"');
+    expect(redirects).toContain('to: "/business-dashboard"');
+    expect(redirects).toContain('to: "/business/requests"');
   });
 
   it("prefers generic business routes while preserving legacy contractor compatibility", () => {
     const routes = read("client/src/AppRoutes.tsx");
     const routeConstants = read("client/src/lib/routes.ts");
+    const redirects = read("client/src/routing/compatibilityRedirects.ts");
 
     expect(routes).toContain('path="/businesses/apply"');
     expect(routes).toContain("<LazyPage Component={ContractorApply} />");
-    expect(routes).toContain('path="/contractors/apply"');
-    expect(routes).toContain('<RedirectTo to="/businesses/apply" />');
-    expect(routes).toContain('path="/contractor-apply"');
+    expect(redirects).toContain('from: "/contractors/apply"');
+    expect(redirects).toContain('to: "/onboarding?lane=offer_services"');
+    expect(redirects).toContain('from: "/contractor-apply"');
+    expect(redirects).toContain('to: "/businesses/apply"');
     expect(routes).toContain('path="/business-dashboard"');
     expect(routes).toContain("<LazyPage Component={BusinessOwnerDashboard} />");
-    expect(routes).toContain('path="/business-owner-dashboard"');
-    expect(routes).toContain('<RedirectTo to="/business-dashboard" />');
+    expect(redirects).toContain('from: "/business-owner-dashboard"');
+    expect(redirects).toContain('to: "/business-dashboard"');
     expect(routes).toContain('path="/business/requests"');
     expect(routes).toContain("<LazyPage Component={ContractorLeads} />");
-    expect(routes).toContain('path="/contractor-leads"');
-    expect(routes).toContain('path="/contractor/leads"');
-    expect(routes).toContain('<RedirectTo to="/business/requests" />');
+    expect(redirects).toContain('from: "/contractor-leads"');
+    expect(redirects).toContain('from: "/contractor/leads"');
+    expect(redirects).toContain('to: "/business/requests"');
 
     expect(routeConstants).toContain('BUSINESS_DASHBOARD: "/business-dashboard"');
     expect(routeConstants).toContain('BUSINESS_APPLY: "/businesses/apply"');
     expect(routeConstants).toContain('BUSINESS_REQUESTS: "/business/requests"');
-    expect(routeConstants).toContain('"/contractors/apply": "/businesses/apply"');
-    expect(routeConstants).toContain('"/contractor-leads": "/business/requests"');
-    expect(routeConstants).toContain('"/business-owner-dashboard": "/business-dashboard"');
+    expect(routeConstants).toContain("ALIASES: COMPATIBILITY_REDIRECT_ALIASES");
   });
 
   it("genericizes visible business/provider navigation and admin labels", () => {
