@@ -12,9 +12,9 @@ const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
 
 describe("JW Stone reconciled inventory", () => {
   it("publishes the full optimized inventory set", () => {
-    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(110);
-    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(318);
-    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(110);
+    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(120);
+    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(468);
+    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(120);
 
     for (const stone of stones) {
       for (const image of stone.images) {
@@ -24,6 +24,13 @@ describe("JW Stone reconciled inventory", () => {
         ).toBe(true);
       }
     }
+  });
+
+  it("keeps every usable source image while isolating uncertain photos", () => {
+    const trending = stones.filter((stone) => stone.categorySlug === "unconfirmed");
+    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(156);
+    expect(stones.find((stone) => stone.slug === "honey-onyx")?.images).toHaveLength(6);
+    expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(25);
   });
 
   it("does not turn visual treatments into finishes", () => {
