@@ -336,6 +336,10 @@ export default function WholesalerProfileTheme({
     useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
+  const featuredStones = [...JW_STONE_PICK_SLUGS]
+    .map((slug) => allInventoryStones.find((stone) => stone.slug === slug))
+    .filter((stone): stone is InventoryStone => Boolean(stone))
+    .slice(0, 3);
   const selectedCategory = inventoryCatalog.find(
     (category) => category.categorySlug === activeCategorySlug
   );
@@ -418,7 +422,7 @@ export default function WholesalerProfileTheme({
             ["Collection", "#collection"],
             ["Why Us", "#why-us"],
             ["Who We Serve", "#audience"],
-            ...(profileSlug === "jw-stone" ? [] : [["Materials", "#materials"]]),
+            ["Materials", "#materials"],
             ["Connect", "#connect"],
           ].map(([label, href]) => (
             <a
@@ -879,12 +883,71 @@ export default function WholesalerProfileTheme({
       </section>
 
       {/* Featured materials */}
-      {profileSlug !== "jw-stone" && galleryImages.length > 0 ? (
+      {profileSlug === "jw-stone" && featuredStones.length > 0 ? (
         <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
-            <h2
-              className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
-            >
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+              <h2
+                className={`text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+              >
+                Featured Materials
+              </h2>
+              <a href="#collection" className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline">
+                View all inventory
+              </a>
+            </div>
+            <div className="grid gap-5 md:grid-cols-3">
+              {featuredStones.map((stone, index) => (
+                <article
+                  key={stone.slug}
+                  className="overflow-hidden rounded-2xl border border-[var(--brand-primary)]/10 bg-white shadow-sm"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpenStone(stone);
+                      setOpenImageIndex(0);
+                    }}
+                    className="block w-full text-left"
+                  >
+                    <div className="relative h-64 overflow-hidden bg-stone-200">
+                      <img
+                        src={stone.images[0]}
+                        alt={stone.name}
+                        loading={index === 0 ? "eager" : "lazy"}
+                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                      {stone.images.length > 1 ? (
+                        <span className="absolute bottom-3 right-3 rounded-full bg-black/70 px-2.5 py-1 text-xs font-semibold text-white">
+                          {stone.images.length} photos
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="px-5 pb-3 pt-4">
+                      <h3 className={`text-xl font-bold !text-[#241d0f] ${DISPLAY_FONT}`}>{stone.name}</h3>
+                      <p className="mt-1 text-sm !text-[#71695f]">
+                        {stone.finishes?.length ? stone.finishes.join(" · ") : "Current JW Stone inventory"}
+                      </p>
+                    </div>
+                  </button>
+                  <div className="px-5 pb-5">
+                    <button
+                      type="button"
+                      onClick={() => startDirectConnect(stone.name, "request_material")}
+                      className="w-full rounded-xl bg-[var(--brand-primary)] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)]"
+                    >
+                      Ask about {stone.name}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : galleryImages.length > 0 ? (
+        <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
+          <div className="container mx-auto px-4 md:px-6">
+            <h2 className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}>
               Featured Materials
             </h2>
             <div className={SCROLL_ROW}>
