@@ -241,7 +241,7 @@ export default function ExpressDirectConnectPanel({
                   <MessageCircle className="h-6 w-6" />
                   <span>
                     <strong className="block text-lg">Request stone</strong>
-                    <span className="text-sm font-medium text-[#5b554c]">Tell us what you need</span>
+                    <span className="text-sm font-medium text-[#5b554c]">Phone number required</span>
                   </span>
                 </button>
               </div>
@@ -377,7 +377,7 @@ export default function ExpressDirectConnectPanel({
                   <Search className="mb-3 h-6 w-6 text-[#52664a]" />
                   <p className="font-bold text-[#171717]">Keep this connection</p>
                   <p className="mt-1 text-sm text-[#5b554c]">
-                    Create a free TradeScout account to save this business and find others.
+                    Create a free TradeScout account to save this business and find more businesses you can contact directly.
                   </p>
                   <Link href={membershipHref}>
                     <button className="mt-4 w-full rounded-xl bg-[#1d2023] px-6 py-3 font-semibold text-white">
