@@ -235,7 +235,9 @@ function blockText(block: ContentBlock | undefined): string {
 function blockItems(block: ContentBlock | undefined): string[] {
   if (!block) return [];
   return Array.isArray(block.data?.items)
-    ? block.data.items.filter((i: unknown): i is string => typeof i === "string")
+    ? block.data.items.filter(
+        (i: unknown): i is string => typeof i === "string" && i.trim().length > 0
+      )
     : [];
 }
 
@@ -355,13 +357,13 @@ export default function WholesalerProfileTheme({
       : categories.slice(0, 3).join(" · ");
   const heroHeadline =
     profileSlug === "jw-stone"
-      ? "The slab you choose is the slab you get."
+      ? "Natural stone, selected at the source."
       : headline || "Hand-selected stone. Direct from the source.";
   // The hero is a glance, not a read -- keep it to one sentence and let the
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
   const heroTeaser =
     profileSlug === "jw-stone"
-      ? "JW Stone hand-selects natural stone at the quarry, oversees its processing, and delivers it without the usual chain of middlemen."
+      ? "Browse current inventory or contact JW Stone directly."
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
@@ -376,7 +378,7 @@ export default function WholesalerProfileTheme({
 
   return (
     <div
-      className="min-h-full pb-[calc(var(--bottom-nav-h,72px)+env(safe-area-inset-bottom))] text-[#241d0f] md:pb-0"
+      className="min-h-full bg-[var(--brand-bg)] pb-[calc(var(--bottom-nav-h,72px)+env(safe-area-inset-bottom))] text-stone-900 md:pb-0"
       style={themeVars}
     >
       {/* Sticky header */}
@@ -474,7 +476,7 @@ export default function WholesalerProfileTheme({
       {/* Trust strip -- confirmed facts only, sourced from the "trust" content block */}
       {trustFacts.length > 0 || serviceAreas.length > 0 ? (
         <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
-          <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold text-[#241d0f] md:px-6">
+          <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold text-stone-900 md:px-6">
             {trustFacts.map((fact, i) => (
               <span key={i} className="inline-flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
@@ -493,7 +495,7 @@ export default function WholesalerProfileTheme({
 
       {/* Live stone collection */}
       {inventoryCatalog.length > 0 ? (
-        <section id="collection" className="scroll-mt-28 py-10 md:py-14">
+        <section id="collection" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-6">
               <h2
@@ -502,9 +504,8 @@ export default function WholesalerProfileTheme({
                 Live Stone Collection
               </h2>
               <p className="text-sm text-[#241d0f]/70">
-                Browse the reconciled JW Stone photo catalog. Material and finish are only labeled
-                where the source supports them; current availability is confirmed through Direct
-                Connect.
+                Browse JW Stone inventory. Photos without a confirmed material or stone name appear
+                under Trending at JW Stone instead of being placed in the wrong collection.
               </p>
             </div>
 
@@ -518,7 +519,7 @@ export default function WholesalerProfileTheme({
                     value={inventorySearch}
                     onChange={(event) => setInventorySearch(event.target.value)}
                     placeholder="Search by stone name"
-                    className="w-full bg-transparent text-sm text-[#241d0f] outline-none placeholder:text-[#241d0f]/45"
+                    className="w-full !bg-transparent text-sm text-stone-900 outline-none placeholder:text-stone-500"
                   />
                 </label>
                 <label className="relative">
@@ -526,15 +527,13 @@ export default function WholesalerProfileTheme({
                   <select
                     value={activeCategorySlug}
                     onChange={(event) => setActiveCategorySlug(event.target.value)}
-                    className="min-h-12 w-full appearance-none rounded-xl border border-[var(--brand-primary)]/15 bg-white px-4 pr-10 text-sm font-semibold text-[#241d0f] outline-none focus:border-[var(--brand-primary)]/50"
+                    className="min-h-12 w-full appearance-none rounded-xl border border-[var(--brand-primary)]/15 !bg-white px-4 pr-10 text-sm font-semibold text-stone-900 outline-none focus:border-[var(--brand-primary)]/50"
                   >
                     <option value="all">All stone ({allInventoryStones.length})</option>
                     {profileSlug === "jw-stone" ? (
                       <option value="jw-picks">JW Stone Picks ({JW_STONE_PICK_SLUGS.size})</option>
                     ) : null}
-                    {inventoryCatalog
-                      .filter((category) => category.categorySlug !== "unconfirmed")
-                      .map((category) => (
+                    {inventoryCatalog.map((category) => (
                       <option key={category.categorySlug} value={category.categorySlug}>
                         {category.category} ({category.stones.length})
                       </option>
@@ -600,7 +599,7 @@ export default function WholesalerProfileTheme({
                     </p>
                     {stone.materialStatus === "unconfirmed" ? (
                       <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
-                        Material not confirmed
+                        Trending at JW Stone
                       </span>
                     ) : null}
                   </div>
