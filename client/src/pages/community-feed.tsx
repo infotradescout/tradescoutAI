@@ -4,24 +4,12 @@ import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { SEOHelmet } from "@/components/SEOHelmet";
 import {
   MessageSquare,
-  Zap,
-  TrendingUp,
-  MoreHorizontal,
   Image,
   Video,
   Calendar,
-  Crown,
   Award,
-  Flag,
-  Plus,
-  SlidersHorizontal,
-  Trophy,
   BarChart3,
-  Share,
-  Heart,
-  Bookmark,
   Send,
-  Tag,
   MapPin,
   HelpCircle,
   Wrench,
@@ -34,7 +22,6 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -46,42 +33,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
-import { useNotifications } from "@/hooks/useNotifications";
 import { useToast } from "@/hooks/use-toast";
 import { share } from "@/utils/share";
 import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 import { apiRequest } from "@/lib/queryClient";
 import { uploadObject } from "@/lib/objectUpload";
 import { recordActivity } from "@/agent/activity";
-import { TradeScoutIcon, TradeScoutLogo } from "@/components/TradeScoutIcons";
+import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { useLocationContext, hasCountyContext } from "@/hooks/useLocationContext";
 import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { useLocation } from "wouter";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityTopNav } from "@/components/community/CommunityTopNav";
 import { CommunitySnapshotRail } from "@/components/community/CommunitySnapshotRail";
+import { CommunityPostCard } from "@/components/community/CommunityPostCard";
+import { toCommunityPostCardData } from "@/components/community/communityPostCardAdapter";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
 } from "@/components/community/ContactOutcomeModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-
-const UPLOAD_ID_PATH_PATTERN = /\/uploads\/[0-9a-f-]{36}$/i;
-const UPLOAD_FALLBACK_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"] as const;
-
-function handleCommunityImageError(image: HTMLImageElement) {
-  const currentSrc = image.currentSrc || image.src || "";
-  const attempt = Number.parseInt(image.dataset.fallbackAttempt || "0", 10) || 0;
-  if (attempt < UPLOAD_FALLBACK_EXTENSIONS.length && UPLOAD_ID_PATH_PATTERN.test(currentSrc)) {
-    const base = currentSrc.replace(/([?#].*)$/, "");
-    const suffix = currentSrc.slice(base.length);
-    image.dataset.fallbackAttempt = String(attempt + 1);
-    image.src = `${base}${UPLOAD_FALLBACK_EXTENSIONS[attempt]}${suffix}`;
-    return;
-  }
-
-  image.style.display = "none";
-}
 
 interface Post {
   id: string;
@@ -112,19 +83,6 @@ interface Post {
   commentCount?: number;
   shareCount?: number;
   imageUrls?: string[];
-}
-
-interface DailyDealSnapshot {
-  id: string;
-  title: string;
-  description: string;
-  dealType?: string;
-  countyFips?: string;
-  discountPrice?: string;
-  discountPercentage?: number;
-  tags?: string[];
-  providerId?: string;
-  providerType?: string;
 }
 
 interface CommunityComment {
@@ -368,7 +326,6 @@ const CommunityFeed = memo(function CommunityFeed() {
   type FeedTab = "forYou" | "recent" | "vault";
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
   const [newPostContent, setNewPostContent] = useState("");
-  const [showSidebar, setShowSidebar] = useState(false);
   const [activeContactOutcome, setActiveContactOutcome] = useState<ContactOutcome | null>(null);
   const [openCommentsForPostId, setOpenCommentsForPostId] = useState<string | null>(null);
   const [lastCreatedPostId, setLastCreatedPostId] = useState<string | null>(null);
@@ -382,7 +339,6 @@ const CommunityFeed = memo(function CommunityFeed() {
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const [route, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const { unreadCount } = useNotifications();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const location = useLocationContext();
@@ -814,12 +770,6 @@ const CommunityFeed = memo(function CommunityFeed() {
     );
   }
 
-  function getAuthorAvatar(post: any) {
-    return (
-      post.author?.avatar || post.author?.profileImageUrl || post.author?.photoUrl || undefined
-    );
-  }
-
   const { data: connectionActivityData } = useQuery<ConnectionActivitySummary>({
     queryKey: ["/api/social/contact-connections/activity"],
     enabled: Boolean(isAuthenticated),
@@ -930,18 +880,6 @@ const CommunityFeed = memo(function CommunityFeed() {
     });
   };
 
-  const handleOpenCommunityMemberProfile = (userId?: string | null) => {
-    const targetUserId = String(userId || "").trim();
-    if (!targetUserId) return;
-    const connection = connectionByUserId.get(targetUserId);
-    const canonical = String(connection?.canonicalProfileUrl || "").trim();
-    if (canonical) {
-      navigate(canonical);
-      return;
-    }
-    navigate(`/community/u/${encodeURIComponent(targetUserId)}`);
-  };
-
   const handleOpenDirectConnectForCommunityMember = (
     userId?: string | null,
     displayName?: string | null
@@ -1027,6 +965,31 @@ const CommunityFeed = memo(function CommunityFeed() {
     return list;
   }, [displayPosts, activeTab]);
 
+  const formatCommunityPostTime = (value: string) => {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? "Recently" : date.toLocaleDateString();
+  };
+
+  const handleTogglePostComments = (postId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to discuss community posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (isGlobalView) {
+      toast({
+        title: "Read-only view",
+        description: "Switch back to Local to comment on posts.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setOpenCommentsForPostId((current) => (current === postId ? null : postId));
+  };
+
   const renderFeedList = () => (
     <div className="space-y-3 md:space-y-5">
       {postsLoading ? (
@@ -1046,349 +1009,34 @@ const CommunityFeed = memo(function CommunityFeed() {
       ) : (
         <>
           {tabSortedPosts.map((post: any) => {
-            const isSystemPost = post.category === "system";
-            const locationLabel = post.location || post.author?.location;
+            const authorId = String(post.author?.id || "").trim();
+            const canonicalProfileUrl = authorId
+              ? String(connectionByUserId.get(authorId)?.canonicalProfileUrl || "").trim() ||
+                undefined
+              : undefined;
+            const cardPost = toCommunityPostCardData(post, { canonicalProfileUrl });
 
             return (
-              <Card
-                key={post.id}
-                className={`rounded-xl border border-[color:var(--border-subtle)] hover:border-[color:var(--border-active)] transition-colors ${
-                  isSystemPost
-                    ? "bg-[color:var(--surface-intermediate)]"
-                    : "bg-[color:var(--surface-card)]"
-                }`}
-                data-testid={`card-post-${post.id}`}
-                data-post-id={post.id}
-              >
-                <CardContent className="p-3 md:p-4">
-                  {/* Post Header */}
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex gap-3">
-                      {isSystemPost ? (
-                        <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-ts-orange/20 border border-ts-orange/30 flex items-center justify-center">
-                          <TradeScoutIcon size="sm" variant="gradient" className="text-black" />
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
-                          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange/70"
-                          title="View public profile"
-                          aria-label={`View ${getAuthorName(post)} profile`}
-                        >
-                          <Avatar className="w-10 h-10 md:w-11 md:h-11 ring-1 ring-ts-orange/70">
-                            <AvatarImage className="object-cover" src={getAuthorAvatar(post)} />
-                            <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
-                              <TradeScoutLogo size="sm" className="h-8 w-8 bg-transparent ring-0" />
-                            </AvatarFallback>
-                          </Avatar>
-                        </button>
-                      )}
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {isSystemPost ? (
-                            <h3 className="text-white font-semibold text-sm md:text-base">
-                              TradeScout
-                            </h3>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
-                              className="text-white font-semibold text-sm md:text-base hover:text-ts-orange text-left"
-                              title="View public profile"
-                            >
-                              {getAuthorName(post)}
-                            </button>
-                          )}
-                          {!isSystemPost && post.author?.verified !== undefined && (
-                            <Badge
-                              variant="outline"
-                              className={`h-5 px-1.5 text-[10px] ${
-                                post.author?.verified
-                                  ? "border-emerald-500/50 text-emerald-300"
-                                  : "border-white/15 text-white/70"
-                              }`}
-                              title={
-                                post.author?.verified
-                                  ? "Verified profile"
-                                  : "Unverified profile. Verified members are more likely to be accepted."
-                              }
-                            >
-                              {post.author?.verified ? "Verified" : "Unverified"}
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 text-xs md:text-sm text-white/60 mt-1">
-                          <span>
-                            {post.timestamp || new Date(post.createdAt).toLocaleDateString()}
-                          </span>
-                          {locationLabel && (
-                            <>
-                              <span>•</span>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="h-3 w-3" />
-                                {locationLabel}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-xs md:text-sm">
-                      <div className="inline-flex items-center gap-1 rounded-full border border-[color:var(--border-subtle)] px-2 py-0.5">
-                        {getPostTypeIcon(post.type || post.postType)}
-                        <span className="text-xs text-[color:var(--text-secondary)]">
-                          {getPostTypeLabel(post.type || post.postType)}
-                        </span>
-                      </div>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          {!isSystemPost && post.author?.id && (
-                            <DropdownMenuItem
-                              onClick={() => handleOpenCommunityMemberProfile(post.author?.id)}
-                            >
-                              View public profile
-                            </DropdownMenuItem>
-                          )}
-                          {!isSystemPost && post.author?.id && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleOpenDirectConnectForCommunityMember(
-                                  post.author?.id,
-                                  getAuthorName(post)
-                                )
-                              }
-                            >
-                              Start a Request
-                            </DropdownMenuItem>
-                          )}
-                          {!isSystemPost && post.author?.id && (
-                            <DropdownMenuItem
-                              onClick={() => handleRequestCommunityMemberConnection(post)}
-                            >
-                              Send Connection Request
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem>
-                            <Flag className="h-4 w-4 mr-2" />
-                            Report
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleSharePost(post)}>
-                            <Share className="h-4 w-4 mr-2" />
-                            Share
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-
-                  {/* Post Content */}
-                  <div className="mb-3 md:mb-4">
-                    {post.title && (
-                      <h4 className="text-base md:text-lg font-semibold text-white mb-2">
-                        {post.title}
-                      </h4>
-                    )}
-                    <p className="text-white/70 text-sm md:text-[15px] mb-3 leading-relaxed whitespace-pre-line">
-                      {post.content}
-                    </p>
-
-                    {Array.isArray(post.tags) && post.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {post.tags
-                          .map((raw: string) => ({
-                            key: toContextTagKey(raw),
-                            label: formatContextTag(raw),
-                          }))
-                          .filter((t: { key: string; label: string }) => t.key && t.label)
-                          .slice(0, 12)
-                          .map((tag: { key: string; label: string }, index: number) => (
-                            <button
-                              key={`${tag.key}-${index}`}
-                              type="button"
-                              onClick={() => setActiveTopic(tag.key)}
-                              className="text-ts-orange text-sm hover:text-ts-orange cursor-pointer underline-offset-4 hover:underline"
-                              aria-label={`View topic ${tag.label}`}
-                              title={`View topic: ${tag.label}`}
-                            >
-                              {tag.label}
-                            </button>
-                          ))}
-                      </div>
-                    )}
-
-                    {Array.isArray(post.imageUrls) && post.imageUrls.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        {post.imageUrls.map((image: string, index: number) => (
-                          <img
-                            key={index}
-                            src={image}
-                            alt={`Post image ${index + 1}`}
-                            className="rounded-lg w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                            onError={(event) => handleCommunityImageError(event.currentTarget)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Post Actions */}
-                  <div className="flex items-center justify-between pt-3 border-t border-[color:var(--border-subtle)] text-xs md:text-sm">
-                    <div className="flex items-center gap-4 md:gap-6">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isGlobalView}
-                        className={`text-[color:var(--text-secondary)] hover:text-red-400 disabled:opacity-50 disabled:pointer-events-none ${post.liked ? "text-red-400" : ""}`}
-                        onClick={() => handleLikePost(post.id)}
-                        data-testid={`button-like-${post.id}`}
-                      >
-                        <Heart className={`h-4 w-4 mr-1 ${post.liked ? "fill-current" : ""}`} />
-                        <span className="mr-1">Like</span>
-                        {post.likeCount || post.likes || 0}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isGlobalView}
-                        className="text-[color:var(--text-secondary)] hover:text-ts-orange disabled:opacity-50 disabled:pointer-events-none"
-                        data-testid={`button-comment-${post.id}`}
-                        onClick={() => {
-                          if (!isAuthenticated) {
-                            toast({
-                              title: "Sign In Required",
-                              description: "Please sign in to discuss community posts.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          if (isGlobalView) {
-                            toast({
-                              title: "Read-only view",
-                              description: "Switch back to Local to comment on posts.",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          setOpenCommentsForPostId((current) =>
-                            current === post.id ? null : post.id
-                          );
-                        }}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        <span className="mr-1">Comment</span>
-                        {post.commentCount || post.comments || 0}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-[color:var(--text-secondary)] hover:text-green-400"
-                        onClick={() => handleSharePost(post)}
-                        data-testid={`button-share-${post.id}`}
-                      >
-                        <Share className="h-4 w-4 mr-1" />
-                        <span className="mr-1">Share</span>
-                        {post.shareCount || post.shares || 0}
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={isGlobalView}
-                        className={`text-[color:var(--text-secondary)] hover:text-ts-orange disabled:opacity-50 disabled:pointer-events-none ${post.saved ? "text-ts-orange" : ""}`}
-                        onClick={() => handleToggleSavePost(post.id)}
-                        data-testid={`button-save-${post.id}`}
-                      >
-                        <Bookmark className={`h-4 w-4 mr-1 ${post.saved ? "fill-current" : ""}`} />
-                        <span className="mr-1">{post.saved ? "Saved" : "Save"}</span>
-                      </Button>
-                    </div>
-
-                    {post.type === "recommendation_request" && (
-                      <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
-                        Recommend Someone
-                      </Button>
-                    )}
-
-                    {post.type === "promotion" && (
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                        View TradeDeal
-                      </Button>
-                    )}
-                  </div>
-
-                  {/* Lightweight social proof */}
-                  {(() => {
-                    const agreeCount = post.likeCount || post.likes || 0;
-                    const commentCount = post.commentCount || post.comments || 0;
-                    const shareCount = post.shareCount || post.shares || 0;
-
-                    if (!agreeCount && !commentCount && !shareCount) return null;
-
-                    const parts: string[] = [];
-                    if (agreeCount) {
-                      parts.push(
-                        `${agreeCount} ${agreeCount === 1 ? "neighbor agrees" : "neighbors agree"}`
-                      );
-                    }
-                    if (commentCount) {
-                      parts.push(`${commentCount} ${commentCount === 1 ? "reply" : "replies"}`);
-                    }
-
-                    return (
-                      <div className="mt-2 text-[11px] text-white/60">{parts.join(" | ")}</div>
-                    );
-                  })()}
-
-                  {/* Comment teaser row */}
-                  <div className="mt-3 flex items-center gap-2">
-                    <Avatar className="w-7 h-7">
-                      <AvatarImage src={user?.avatar as string | undefined} />
-                      <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
-                        <TradeScoutLogo size="sm" className="h-5 w-5 bg-transparent ring-0" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <button
-                      type="button"
-                      className="flex-1 rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-input)] px-3 py-2 text-left text-xs md:text-sm text-[color:var(--text-secondary)] hover:border-[color:var(--border-active)] hover:bg-[color:var(--surface-intermediate)]"
-                      onClick={() => {
-                        if (!isAuthenticated) {
-                          toast({
-                            title: "Sign In Required",
-                            description: "Please sign in to comment on community posts.",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
-                        setOpenCommentsForPostId((current) =>
-                          current === post.id ? null : post.id
-                        );
-                      }}
-                    >
-                      Write a comment...
-                    </button>
-                  </div>
-
-                  {openCommentsForPostId === post.id && (
-                    <CommunityComments postId={post.id} readOnly={isGlobalView} />
-                  )}
-                </CardContent>
-              </Card>
+              <CommunityPostCard
+                key={cardPost.id}
+                post={cardPost}
+                readOnly={isGlobalView}
+                formatTimeAgo={formatCommunityPostTime}
+                onLike={handleLikePost}
+                onSave={handleToggleSavePost}
+                onComment={handleTogglePostComments}
+                onShare={handleSharePost}
+                onTagSelect={setActiveTopic}
+                onStartRequest={(selected) =>
+                  handleOpenDirectConnectForCommunityMember(
+                    selected.author?.id,
+                    selected.author?.name
+                  )
+                }
+                onRequestConnection={handleRequestCommunityMemberConnection}
+                commentsOpen={openCommentsForPostId === cardPost.id}
+                commentsSlot={<CommunityComments postId={cardPost.id} readOnly={isGlobalView} />}
+              />
             );
           })}
         </>
@@ -1400,50 +1048,6 @@ const CommunityFeed = memo(function CommunityFeed() {
     setNewPostContent(prompt);
     if (composerRef.current) {
       composerRef.current.focus();
-    }
-  };
-
-  const getPostTypeIcon = (type: string) => {
-    switch (type) {
-      case "project_showcase":
-        return <Crown className="h-4 w-4 text-yellow-400" />;
-      case "recommendation_request":
-        return <MessageSquare className="h-4 w-4 text-ts-orange" />;
-      case "promotion":
-        return <TrendingUp className="h-4 w-4 text-green-400" />;
-      case "community_highlight":
-        return <Trophy className="h-4 w-4 text-ts-orange" />;
-      case "discussion":
-        return <MessageSquare className="h-4 w-4 text-ts-orange" />;
-      case "poll":
-        return <BarChart3 className="h-4 w-4 text-purple-400" />;
-      case "announcement":
-        return <Flag className="h-4 w-4 text-red-400" />;
-      default:
-        return <MessageSquare className="h-4 w-4 text-white/60" />;
-    }
-  };
-
-  const getPostTypeLabel = (type: string) => {
-    switch (type) {
-      case "project_showcase":
-        return "Project Showcase";
-      case "recommendation_request":
-        return "Looking for Help";
-      case "promotion":
-        return "Exclusive TradeDeal";
-      case "community_highlight":
-        return "Community Highlight";
-      case "service_available":
-        return "Available for Work";
-      case "discussion":
-        return "Discussion";
-      case "poll":
-        return "Poll";
-      case "announcement":
-        return "Announcement";
-      default:
-        return "Community Post";
     }
   };
 

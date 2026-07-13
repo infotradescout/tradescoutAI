@@ -27,6 +27,7 @@ describe("canonical surface ownership", () => {
     expect(routes).toContain('import("./pages/community-feed")');
     expect(routedFeed).toContain('className="community-feed-page"');
     expect(routedFeed).toContain("/api/community/posts");
+    expect(routedFeed).toContain("<CommunityPostCard");
     expect(sampleFeed).toContain("@deprecated Quarantined sample feed");
     expect(socialFeed).toContain("@deprecated Quarantined socialPosts client");
 
