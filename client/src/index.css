@@ -3859,9 +3859,9 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .text-xl {
   line-height: 1.34rem !important;
 }
 
-body.ts-mobile-density.ts-mobile-simplified .app-page p,
-body.ts-mobile-density.ts-mobile-simplified .app-page .text-sm,
-body.ts-mobile-density.ts-mobile-simplified .app-page .text-xs {
+body.ts-mobile-density.ts-mobile-simplified .app-page p:not(.jw-stone-public-profile *),
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-sm:not(.jw-stone-public-profile *),
+body.ts-mobile-density.ts-mobile-simplified .app-page .text-xs:not(.jw-stone-public-profile *) {
   color: color-mix(in oklab, var(--text-secondary) 92%, var(--text-primary) 8%);
 }
 
