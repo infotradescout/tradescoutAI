@@ -5,15 +5,21 @@
  * Confidence legitimacy comes from outcomes, not model feelings.
  */
 import { db } from "../db";
-import {
-  scoutOutcomeEvents,
-  scoutUserConfidenceState,
-} from "../../shared/schema";
+import { scoutOutcomeEvents, scoutUserConfidenceState } from "../../shared/schema";
 import { and, desc, eq, gte } from "drizzle-orm";
 import { isOutcomeLearningEnabled } from "../routes/admin-control";
 
 // NOTE: Drizzle type helpers may not be exported for these inserts; we guard with inline types.
-type OutcomeAction = "followed_advice" | "ignored_advice" | "completed_flow" | "canceled" | "dispute" | "refund" | "reported_spam" | "regret_reported" | "success_reported";
+type OutcomeAction =
+  | "followed_advice"
+  | "ignored_advice"
+  | "completed_flow"
+  | "canceled"
+  | "dispute"
+  | "refund"
+  | "reported_spam"
+  | "regret_reported"
+  | "success_reported";
 type OutcomeContext = "general" | "trade_deal" | "direct_connect" | "community" | "tool";
 
 type OutcomeEventInput = {
@@ -66,17 +72,20 @@ export async function recordOutcomeEvent(event: OutcomeEventInput): Promise<void
 /**
  * Load or initialize the user's confidence state.
  */
-export async function getUserConfidenceState(userId: string, scope: string = DEFAULT_SCOPE): Promise<ConfidenceState> {
+export async function getUserConfidenceState(
+  userId: string,
+  scope: string = DEFAULT_SCOPE
+): Promise<ConfidenceState> {
   const existing = await db.query.scoutUserConfidenceState.findFirst({
     where: and(
       eq(scoutUserConfidenceState.userId, userId),
-      eq(scoutUserConfidenceState.scope, scope),
+      eq(scoutUserConfidenceState.scope, scope)
     ),
   });
 
   if (existing) {
     return {
-      userId: existing.userId!,  // Non-null assertion: userId is primary key, always exists
+      userId: existing.userId!, // Non-null assertion: userId is primary key, always exists
       scope: existing.scope,
       baselineConfidence: Number(existing.baselineConfidence ?? DEFAULT_BASELINE),
       currentConfidence: Number(existing.currentConfidence ?? DEFAULT_BASELINE),
@@ -86,13 +95,22 @@ export async function getUserConfidenceState(userId: string, scope: string = DEF
 
   // Initialize state
   const now = new Date();
-  await db.insert(scoutUserConfidenceState).values({
-    userId,
-    scope,
-    baselineConfidence: DEFAULT_BASELINE as any,
-    currentConfidence: DEFAULT_BASELINE as any,
-    lastUpdatedAt: now,
-  });
+  try {
+    await db.insert(scoutUserConfidenceState).values({
+      userId,
+      scope,
+      baselineConfidence: DEFAULT_BASELINE as any,
+      currentConfidence: DEFAULT_BASELINE as any,
+      lastUpdatedAt: now,
+    });
+  } catch (error) {
+    // userId references a session for a user row that no longer exists
+    // (e.g. deleted account with a lingering session). Fall back to an
+    // unpersisted default rather than throwing on every CTA check.
+    if ((error as { code?: string })?.code !== "23503") {
+      throw error;
+    }
+  }
 
   return {
     userId,
@@ -107,11 +125,15 @@ export async function getUserConfidenceState(userId: string, scope: string = DEF
  * Apply time decay toward baseline.
  */
 function applyDecay(state: ConfidenceState, now: Date): ConfidenceState {
-  const daysElapsed = Math.max(0, Math.floor((now.getTime() - state.lastUpdatedAt.getTime()) / (1000 * 60 * 60 * 24)));
+  const daysElapsed = Math.max(
+    0,
+    Math.floor((now.getTime() - state.lastUpdatedAt.getTime()) / (1000 * 60 * 60 * 24))
+  );
   if (daysElapsed === 0) return state;
 
   const decayFactor = Math.pow(0.98, daysElapsed); // 2% decay per day toward baseline
-  const decayed = state.baselineConfidence + (state.currentConfidence - state.baselineConfidence) * decayFactor;
+  const decayed =
+    state.baselineConfidence + (state.currentConfidence - state.baselineConfidence) * decayFactor;
 
   return {
     ...state,
@@ -142,8 +164,19 @@ export async function updateUserConfidenceStateFromOutcome(
   state = applyDecay(state, now);
 
   // Positive / negative deltas
-  const positiveActions: OutcomeAction[] = ["followed_advice", "completed_flow", "success_reported"];
-  const negativeActions: OutcomeAction[] = ["ignored_advice", "canceled", "dispute", "refund", "reported_spam", "regret_reported"];
+  const positiveActions: OutcomeAction[] = [
+    "followed_advice",
+    "completed_flow",
+    "success_reported",
+  ];
+  const negativeActions: OutcomeAction[] = [
+    "ignored_advice",
+    "canceled",
+    "dispute",
+    "refund",
+    "reported_spam",
+    "regret_reported",
+  ];
 
   let next = state.currentConfidence;
 
@@ -160,22 +193,29 @@ export async function updateUserConfidenceStateFromOutcome(
     next = clamp(next + event.confidenceDeltaHint / 100, MIN_CONFIDENCE, MAX_CONFIDENCE);
   }
 
-  await db
-    .insert(scoutUserConfidenceState)
-    .values({
-      userId,
-      scope: resolvedScope,
-      baselineConfidence: state.baselineConfidence as any,
-      currentConfidence: next as any,
-      lastUpdatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: [scoutUserConfidenceState.userId, scoutUserConfidenceState.scope],
-      set: {
+  try {
+    await db
+      .insert(scoutUserConfidenceState)
+      .values({
+        userId,
+        scope: resolvedScope,
+        baselineConfidence: state.baselineConfidence as any,
         currentConfidence: next as any,
         lastUpdatedAt: now,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: [scoutUserConfidenceState.userId, scoutUserConfidenceState.scope],
+        set: {
+          currentConfidence: next as any,
+          lastUpdatedAt: now,
+        },
+      });
+  } catch (error) {
+    // Same stale-session/deleted-user case as getUserConfidenceState above.
+    if ((error as { code?: string })?.code !== "23503") {
+      throw error;
+    }
+  }
 
   return {
     ...state,
@@ -194,45 +234,66 @@ export function computeFinalConfidence(rawConfidence: number, stateConfidence: n
 /**
  * Convenience helper to fetch recent outcome stats for IMD.
  */
-export async function getOutcomeStats(args: { userId: string; contextType?: OutcomeContext; scope?: string }): Promise<{ successes: number; regrets: number; recentSuccesses: number; recentRegrets: number; }> {
+export async function getOutcomeStats(args: {
+  userId: string;
+  contextType?: OutcomeContext;
+  scope?: string;
+}): Promise<{
+  successes: number;
+  regrets: number;
+  recentSuccesses: number;
+  recentRegrets: number;
+}> {
   const windowStart = new Date();
   windowStart.setDate(windowStart.getDate() - 30);
 
   const scopeFilter = args.scope ? eq(scoutOutcomeEvents.scope, args.scope) : undefined;
 
-  const successes = await db.select().from(scoutOutcomeEvents).where(
-    and(
-      eq(scoutOutcomeEvents.userId, args.userId),
-      eq(scoutOutcomeEvents.action, "success_reported"),
-      ...(scopeFilter ? [scopeFilter] : []),
-    )
-  );
+  const successes = await db
+    .select()
+    .from(scoutOutcomeEvents)
+    .where(
+      and(
+        eq(scoutOutcomeEvents.userId, args.userId),
+        eq(scoutOutcomeEvents.action, "success_reported"),
+        ...(scopeFilter ? [scopeFilter] : [])
+      )
+    );
 
-  const regrets = await db.select().from(scoutOutcomeEvents).where(
-    and(
-      eq(scoutOutcomeEvents.userId, args.userId),
-      eq(scoutOutcomeEvents.action, "regret_reported"),
-      ...(scopeFilter ? [scopeFilter] : []),
-    )
-  );
+  const regrets = await db
+    .select()
+    .from(scoutOutcomeEvents)
+    .where(
+      and(
+        eq(scoutOutcomeEvents.userId, args.userId),
+        eq(scoutOutcomeEvents.action, "regret_reported"),
+        ...(scopeFilter ? [scopeFilter] : [])
+      )
+    );
 
-  const recentSuccesses = await db.select().from(scoutOutcomeEvents).where(
-    and(
-      eq(scoutOutcomeEvents.userId, args.userId),
-      eq(scoutOutcomeEvents.action, "success_reported"),
-      gte(scoutOutcomeEvents.createdAt, windowStart),
-      ...(scopeFilter ? [scopeFilter] : []),
-    )
-  );
+  const recentSuccesses = await db
+    .select()
+    .from(scoutOutcomeEvents)
+    .where(
+      and(
+        eq(scoutOutcomeEvents.userId, args.userId),
+        eq(scoutOutcomeEvents.action, "success_reported"),
+        gte(scoutOutcomeEvents.createdAt, windowStart),
+        ...(scopeFilter ? [scopeFilter] : [])
+      )
+    );
 
-  const recentRegrets = await db.select().from(scoutOutcomeEvents).where(
-    and(
-      eq(scoutOutcomeEvents.userId, args.userId),
-      eq(scoutOutcomeEvents.action, "regret_reported"),
-      gte(scoutOutcomeEvents.createdAt, windowStart),
-      ...(scopeFilter ? [scopeFilter] : []),
-    )
-  );
+  const recentRegrets = await db
+    .select()
+    .from(scoutOutcomeEvents)
+    .where(
+      and(
+        eq(scoutOutcomeEvents.userId, args.userId),
+        eq(scoutOutcomeEvents.action, "regret_reported"),
+        gte(scoutOutcomeEvents.createdAt, windowStart),
+        ...(scopeFilter ? [scopeFilter] : [])
+      )
+    );
 
   return {
     successes: successes.length,
