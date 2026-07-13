@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   ChevronRight,
   MapPin,
@@ -14,8 +14,10 @@ import {
   Building2,
   Compass,
   Home,
+  Search,
   X,
 } from "lucide-react";
+import ExpressDirectConnectPanel from "./ExpressDirectConnectPanel";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -58,6 +60,10 @@ type InventoryStone = {
   name: string;
   slug: string;
   images: string[];
+  materialStatus?: "user_confirmed" | "source_folder" | "filename" | "historical_assignment" | "unconfirmed";
+  finishes?: string[];
+  finishStatus?: "explicit" | "unconfirmed";
+  sourceNote?: string;
 };
 
 type InventoryCategory = {
@@ -76,6 +82,7 @@ export type WholesalerBrandColors = {
 };
 
 type WholesalerProfileThemeProps = {
+  profileSlug: string;
   displayName: string;
   headline: string | null;
   contentBlocks: ContentBlock[];
@@ -85,6 +92,7 @@ type WholesalerProfileThemeProps = {
   contactReason?: string | null;
   hasViewerSession: boolean;
   isSuperAdminViewer: boolean;
+  useExpressDirectConnect: boolean;
   directConnectHref: string;
   preScoutCreateHref: string;
   preScoutSignInHref: string;
@@ -200,6 +208,7 @@ function blockItems(block: ContentBlock | undefined): string[] {
 }
 
 export default function WholesalerProfileTheme({
+  profileSlug,
   displayName,
   headline,
   contentBlocks,
@@ -208,6 +217,7 @@ export default function WholesalerProfileTheme({
   brandColors,
   contactReason,
   hasViewerSession,
+  useExpressDirectConnect,
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
@@ -215,6 +225,7 @@ export default function WholesalerProfileTheme({
   recommendationDirectorySummary,
 }: WholesalerProfileThemeProps) {
   useWholesalerThemeFonts();
+  const [, navigate] = useLocation();
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
   const themeVars = {
@@ -278,9 +289,19 @@ export default function WholesalerProfileTheme({
   const [activeCategorySlug, setActiveCategorySlug] = useState(
     inventoryCatalog[0]?.categorySlug || ""
   );
+  const [inventorySearch, setInventorySearch] = useState("");
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
+  const [openImageIndex, setOpenImageIndex] = useState(0);
+  const [expressPanelOpen, setExpressPanelOpen] = useState(false);
+  const [expressStoneName, setExpressStoneName] = useState<string | null>(null);
   const activeCategory =
     inventoryCatalog.find((c) => c.categorySlug === activeCategorySlug) || inventoryCatalog[0];
+  const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
+  const visibleStones = normalizedInventorySearch
+    ? inventoryCatalog
+        .flatMap((category) => category.stones)
+        .filter((stone) => stone.name.toLowerCase().includes(normalizedInventorySearch))
+    : activeCategory?.stones || [];
   const heroImage =
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] || galleryImages[0];
   // The hero is a glance, not a read -- keep it to one sentence and let the
@@ -288,6 +309,14 @@ export default function WholesalerProfileTheme({
   const heroTeaser = aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
+  const startDirectConnect = (stoneName?: string | null) => {
+    if (useExpressDirectConnect) {
+      setExpressStoneName(stoneName || null);
+      setExpressPanelOpen(true);
+      return;
+    }
+    navigate(ctaHref);
+  };
 
   return (
     <div className="min-h-screen bg-[var(--brand-bg)] text-[#241d0f]" style={themeVars}>
@@ -304,11 +333,13 @@ export default function WholesalerProfileTheme({
               TradeScout TradePartner
             </p>
           </div>
-          <Link href={ctaHref}>
-            <button className="rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-primary-dark)]">
-              Direct Connect
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => startDirectConnect()}
+            className="rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-primary-dark)]"
+          >
+            Direct Connect
+          </button>
         </div>
         <div className="scrollbar-hide flex gap-6 overflow-x-auto px-5 pb-3.5 text-xs font-semibold uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden">
           {[
@@ -360,12 +391,14 @@ export default function WholesalerProfileTheme({
                 Explore Inventory
               </button>
             </a>
-            <Link href={ctaHref}>
-              <button className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-7 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
-                Direct Connect
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={() => startDirectConnect()}
+              className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-7 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Direct Connect
+              <ChevronRight className="h-4 w-4" />
+            </button>
             {!hasViewerSession ? (
               <Link href={preScoutSignInHref}>
                 <button className="rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
@@ -408,9 +441,23 @@ export default function WholesalerProfileTheme({
                 Live Stone Collection
               </h2>
               <p className="text-sm text-[#241d0f]/70">
-                Sorted by material. Tap a stone to see the full gallery -- no pricing shown here.
+                Browse the reconciled JW Stone photo catalog. Material and finish are only labeled
+                where the source supports them; current availability is confirmed through Direct
+                Connect.
               </p>
             </div>
+
+            <label className="mb-5 flex max-w-xl items-center gap-3 rounded-full border border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-4 py-3 shadow-sm focus-within:border-[var(--brand-primary)]/50">
+              <Search className="h-4 w-4 flex-shrink-0 text-[var(--brand-primary)]/60" />
+              <span className="sr-only">Search JW Stone inventory</span>
+              <input
+                type="search"
+                value={inventorySearch}
+                onChange={(event) => setInventorySearch(event.target.value)}
+                placeholder="Search stone names"
+                className="w-full bg-transparent text-sm text-[#241d0f] outline-none placeholder:text-[#241d0f]/45"
+              />
+            </label>
 
             <div className={`${SCROLL_ROW} mb-6`}>
               {inventoryCatalog.map((cat) => {
@@ -418,7 +465,10 @@ export default function WholesalerProfileTheme({
                 return (
                   <button
                     key={cat.categorySlug}
-                    onClick={() => setActiveCategorySlug(cat.categorySlug)}
+                    onClick={() => {
+                      setActiveCategorySlug(cat.categorySlug);
+                      setInventorySearch("");
+                    }}
                     className={`flex-shrink-0 whitespace-nowrap rounded-full border px-5 py-2 text-sm font-semibold transition-colors ${
                       active
                         ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
@@ -432,30 +482,61 @@ export default function WholesalerProfileTheme({
               })}
             </div>
 
-            <div className={SCROLL_ROW}>
-              {(activeCategory?.stones || []).map((stone) => (
+            {normalizedInventorySearch ? (
+              <p className="mb-4 text-sm font-medium text-[#241d0f]/65">
+                {visibleStones.length} {visibleStones.length === 1 ? "stone" : "stones"} found
+              </p>
+            ) : null}
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {visibleStones.map((stone) => (
                 <button
                   key={stone.slug}
-                  onClick={() => setOpenStone(stone)}
-                  className={`${SCROLL_CARD} overflow-hidden rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] text-left shadow-sm transition-colors hover:border-[var(--brand-accent)]/40`}
+                  onClick={() => {
+                    setOpenStone(stone);
+                    setOpenImageIndex(0);
+                  }}
+                  className="group overflow-hidden rounded-2xl border border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/40 hover:shadow-lg"
                 >
                   {stone.images[0] ? (
-                    <img
-                      src={stone.images[0]}
-                      alt={stone.name}
-                      loading="lazy"
-                      className="h-40 w-full object-cover"
-                    />
+                    <div className="relative h-56 overflow-hidden">
+                      <img
+                        src={stone.images[0]}
+                        alt={stone.name}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      {stone.images.length > 1 ? (
+                        <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white">
+                          {stone.images.length} photos
+                        </span>
+                      ) : null}
+                    </div>
                   ) : null}
                   <div className="p-4">
                     <p className="font-semibold text-[#241d0f]">{stone.name}</p>
-                    {stone.images.length > 1 ? (
-                      <p className="mt-1 text-xs text-[#241d0f]/50">{stone.images.length} photos</p>
+                    <p className="mt-1 text-xs text-[#241d0f]/55">
+                      {stone.finishes?.length
+                        ? stone.finishes.join(" · ")
+                        : "Finish: ask JW Stone"}
+                    </p>
+                    {stone.materialStatus === "unconfirmed" ? (
+                      <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
+                        Material not confirmed
+                      </span>
                     ) : null}
                   </div>
                 </button>
               ))}
             </div>
+            {visibleStones.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-5 py-10 text-center">
+                <p className="font-semibold text-[#241d0f]">No matching stone name</p>
+                <p className="mt-1 text-sm text-[#241d0f]/60">
+                  Try another spelling or Direct Connect with JW Stone for help.
+                </p>
+              </div>
+            ) : null}
           </div>
         </section>
       ) : inventoryItems.length > 0 ? (
@@ -490,44 +571,102 @@ export default function WholesalerProfileTheme({
         </section>
       ) : null}
 
-      {/* Stone gallery modal */}
+      {/* Stone gallery lightbox */}
       {openStone ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 sm:p-6"
           onClick={() => setOpenStone(null)}
         >
           <div
-            className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-5"
+            className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#0f0d09]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className={`text-xl font-bold text-[var(--brand-primary)] ${DISPLAY_FONT}`}>
-                {openStone.name}
-              </h3>
+            <div className="flex items-start justify-between gap-4 px-5 py-4">
+              <div>
+                <h3 className={`text-lg font-bold text-white sm:text-xl ${DISPLAY_FONT}`}>
+                  {openStone.name}
+                </h3>
+                <p className="mt-1 text-xs text-white/60">
+                  {openStone.finishes?.length
+                    ? `Finish: ${openStone.finishes.join(" · ")}`
+                    : "Finish not confirmed — ask JW Stone"}
+                </p>
+              </div>
               <button
                 onClick={() => setOpenStone(null)}
                 aria-label="Close gallery"
-                className="rounded-full p-2 text-[#241d0f]/60 hover:bg-black/5"
+                className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {openStone.images.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt={`${openStone.name} ${i + 1}`}
-                  className="w-full rounded-lg object-cover"
-                />
-              ))}
+
+            <div className="relative flex-1 bg-black">
+              <img
+                src={openStone.images[openImageIndex]}
+                alt={`${openStone.name} ${openImageIndex + 1}`}
+                className="max-h-[55vh] w-full object-contain"
+              />
+              {openStone.images.length > 1 ? (
+                <>
+                  <button
+                    onClick={() =>
+                      setOpenImageIndex(
+                        (openImageIndex - 1 + openStone.images.length) % openStone.images.length
+                      )
+                    }
+                    aria-label="Previous photo"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+                  >
+                    <ChevronRight className="h-5 w-5 rotate-180" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      setOpenImageIndex((openImageIndex + 1) % openStone.images.length)
+                    }
+                    aria-label="Next photo"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/50 p-2 text-white hover:bg-black/70"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                  <span className="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+                    {openImageIndex + 1} / {openStone.images.length}
+                  </span>
+                </>
+              ) : null}
             </div>
-            <div className="mt-4 flex justify-center">
-              <Link href={ctaHref}>
-                <button className="rounded-full bg-[var(--brand-accent)] px-6 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90">
-                  Ask about this stone
-                </button>
-              </Link>
+
+            {openStone.images.length > 1 ? (
+              <div className="flex gap-2 overflow-x-auto px-5 py-3">
+                {openStone.images.map((url, index) => (
+                  <button
+                    key={url}
+                    onClick={() => setOpenImageIndex(index)}
+                    className={`h-14 w-20 flex-shrink-0 overflow-hidden rounded-md border-2 transition-colors ${
+                      index === openImageIndex
+                        ? "border-[var(--brand-accent)]"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                    aria-label={`View photo ${index + 1}`}
+                  >
+                    <img src={url} alt="" className="h-full w-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="flex justify-center px-5 pb-5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const stoneName = openStone.name;
+                  setOpenStone(null);
+                  startDirectConnect(stoneName);
+                }}
+                className="rounded-full bg-[var(--brand-accent)] px-6 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              >
+                Ask about this stone
+              </button>
             </div>
           </div>
         </div>
@@ -578,7 +717,12 @@ export default function WholesalerProfileTheme({
             {AUDIENCE_PATHS.map((path, i) => {
               const Icon = path.icon;
               return (
-                <Link key={i} href={ctaHref} className={SCROLL_CARD}>
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => startDirectConnect()}
+                  className={`${SCROLL_CARD} text-left`}
+                >
                   <div className="h-full cursor-pointer rounded-xl border-2 border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-6 shadow-sm transition-colors hover:border-[var(--brand-accent)]/40">
                     <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-[var(--brand-primary)]/10">
                       <Icon className="h-6 w-6 text-[var(--brand-primary)]" />
@@ -586,7 +730,7 @@ export default function WholesalerProfileTheme({
                     <p className="mb-2 font-semibold text-[#241d0f]">{path.label}</p>
                     <p className="text-sm text-[#241d0f]/70">{path.body}</p>
                   </div>
-                </Link>
+                </button>
               );
             })}
           </div>
@@ -732,18 +876,19 @@ export default function WholesalerProfileTheme({
           <div className="mx-auto mb-10 flex max-w-md items-center justify-center gap-2 text-sm text-white/70">
             <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
             <span>
-              Contact is protected to prevent spam
-              {contactReason ? ` (${contactReason.toLowerCase()})` : "."} A team member reviews
-              every request before it's sent.
+              The phone number appears only after you choose Call. Written requests require your
+              phone number before they go directly to {displayName}.
             </span>
           </div>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <Link href={ctaHref}>
-              <button className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-8 py-4 text-base font-bold text-white transition-opacity hover:opacity-90">
-                <MessageCircle className="h-5 w-5" />
-                Direct Connect
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={() => startDirectConnect()}
+              className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-8 py-4 text-base font-bold text-white transition-opacity hover:opacity-90"
+            >
+              <MessageCircle className="h-5 w-5" />
+              Direct Connect
+            </button>
             {!hasViewerSession ? (
               <Link href={preScoutSignInHref}>
                 <button className="rounded-full border border-white/40 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-white/10">
@@ -762,6 +907,14 @@ export default function WholesalerProfileTheme({
           <p>Quarry-direct sourcing. Contact protected through TradeScout Direct Connect.</p>
         </div>
       </footer>
+      <ExpressDirectConnectPanel
+        open={expressPanelOpen}
+        onClose={() => setExpressPanelOpen(false)}
+        profileSlug={profileSlug}
+        businessName={displayName}
+        hasViewerSession={hasViewerSession}
+        initialStoneName={expressStoneName}
+      />
     </div>
   );
 }
