@@ -8747,13 +8747,12 @@ export class DatabaseStorage implements IStorage {
           price: marketplaceListings.price,
           images: marketplaceListings.images,
           status: marketplaceListings.status,
+          categoryName: marketplaceCategories.name,
         },
       })
       .from(marketplaceConversations)
-      .innerJoin(
-        marketplaceListings,
-        eq(marketplaceConversations.listingId, marketplaceListings.id)
-      )
+      .leftJoin(marketplaceListings, eq(marketplaceConversations.listingId, marketplaceListings.id))
+      .leftJoin(marketplaceCategories, eq(marketplaceListings.categoryId, marketplaceCategories.id))
       .where(
         or(
           eq(marketplaceConversations.buyerId, userId),

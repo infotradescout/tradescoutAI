@@ -135,6 +135,7 @@ import {
 } from "./services/propertyLifecycleService";
 import { recordAttributionConversionEvent } from "./utils/attributionConversionLedger";
 import { handleUniversalAttributionClick } from "./utils/universalAttributionRef";
+import { buildMarketplaceConversationPresentation } from "./utils/conversationContext";
 import {
   users,
   userRoleEnum,
@@ -13884,23 +13885,40 @@ export async function registerRoutes(app: any) {
         const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
 
         const marketplaceConversations = await storage.getUserMarketplaceConversations(userId);
-        const marketplaceThreads = marketplaceConversations.map((conv: any) => ({
-          id: conv.id,
-          subject: conv.listing?.title ?? "Conversation",
-          lastMessageSnippet: conv.lastMessage?.content ?? null,
-          lastMessageAt: conv.lastMessageAt ?? conv.createdAt ?? null,
-          unreadCount: Number(conv.unreadCount || 0),
-          participantCount: 2,
-        }));
+        const marketplaceThreads = marketplaceConversations.map((conv: any) => {
+          const presentation = buildMarketplaceConversationPresentation(conv, userId);
+          return {
+            id: conv.id,
+            subject: presentation.subject,
+            lastMessageSnippet: conv.lastMessage?.content ?? null,
+            lastMessageAt: conv.lastMessageAt ?? conv.createdAt ?? null,
+            unreadCount: Number(conv.unreadCount || 0),
+            participantCount: 2,
+            kind: presentation.kind,
+            context: presentation.context,
+            participant: presentation.participant,
+          };
+        });
         const legacyThreads = await storage.getThreadsForUser(userId, {
           limit: Math.max(limit * 3, 100),
           offset: 0,
         });
-        const merged = [...marketplaceThreads, ...legacyThreads].sort((a: any, b: any) => {
-          const left = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-          const right = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-          return right - left;
-        });
+        const contextualLegacyThreads = legacyThreads.map((thread: any) => ({
+          ...thread,
+          kind: "general" as const,
+          context: {
+            kind: "general" as const,
+            label: "Community",
+            title: thread.subject || "Conversation",
+          },
+        }));
+        const merged = [...marketplaceThreads, ...contextualLegacyThreads].sort(
+          (a: any, b: any) => {
+            const left = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+            const right = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+            return right - left;
+          }
+        );
         const threads = merged.slice(offset, offset + limit);
         res.json({ threads });
       } catch (error: any) {
@@ -13933,6 +13951,13 @@ export async function registerRoutes(app: any) {
           }
 
           const marketplaceMsgs = await storage.getMarketplaceMessages(req.params.threadId);
+          const enrichedConversation = (await storage.getUserMarketplaceConversations(userId)).find(
+            (conversation: any) => conversation.id === marketplaceConversation.id
+          );
+          const presentation = buildMarketplaceConversationPresentation(
+            enrichedConversation || marketplaceConversation,
+            userId
+          );
           const messages = marketplaceMsgs.map((m: any) => ({
             id: m.id,
             conversationId: m.conversationId,
@@ -13947,11 +13972,14 @@ export async function registerRoutes(app: any) {
 
           const thread = {
             id: marketplaceConversation.id,
-            subject: null as string | null,
+            subject: presentation.subject,
             lastMessageSnippet: messages.length ? messages[messages.length - 1].content : null,
             lastMessageAt: (marketplaceConversation.lastMessageAt as any) ?? null,
             unreadCount: messages.filter((m: any) => m.senderId !== userId && !m.readAt).length,
             participantCount: 2,
+            kind: presentation.kind,
+            context: presentation.context,
+            participant: presentation.participant,
           };
 
           return res.json({ thread, messages });
@@ -13977,11 +14005,61 @@ export async function registerRoutes(app: any) {
           lastMessageAt: (legacyConversation.lastMessageAt as any) ?? null,
           unreadCount: legacyMessages.filter((m: any) => m.senderId !== userId && !m.readAt).length,
           participantCount: 2,
+          kind: "general" as const,
+          context: {
+            kind: "general" as const,
+            label: "Community",
+            title: "Conversation",
+          },
         };
         res.json({ thread: legacyThread, messages: legacyMessages });
       } catch (error: any) {
         console.error("Error fetching thread messages:", error);
         res.status(500).json({ message: "Failed to fetch thread messages" });
+      }
+    }
+  );
+
+  app.put(
+    "/api/messages/threads/:threadId/read",
+    isAuthenticated,
+    requireOnboardingComplete,
+    async (req: any, res: any) => {
+      try {
+        const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+
+        const threadId = String(req.params.threadId || "").trim();
+        const marketplaceConversation = await storage.getMarketplaceConversation(threadId);
+        if (marketplaceConversation) {
+          if (
+            marketplaceConversation.buyerId !== userId &&
+            marketplaceConversation.sellerId !== userId
+          ) {
+            return res.status(403).json({ message: "Access denied" });
+          }
+          await storage.markMarketplaceMessagesAsRead(threadId, userId);
+          return res.json({ success: true, threadId });
+        }
+
+        const legacyConversation = await storage.getConversation(threadId);
+        if (!legacyConversation) return res.status(404).json({ message: "Thread not found" });
+        if (
+          legacyConversation.homeownerId !== userId &&
+          legacyConversation.contractorId !== userId
+        ) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+        const legacyMessages = await storage.getMessagesByConversation(threadId);
+        await Promise.all(
+          legacyMessages
+            .filter((message: any) => message.senderId !== userId && !message.readAt)
+            .map((message: any) => storage.markMessageAsRead(message.id))
+        );
+        return res.json({ success: true, threadId });
+      } catch (error: any) {
+        console.error("Error marking thread read:", error);
+        return res.status(500).json({ message: "Failed to mark thread read" });
       }
     }
   );
