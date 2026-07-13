@@ -30,6 +30,7 @@ Phase 1 now has executable contracts for canonical Direct Connect entry context,
 | Direct Connect navigation | Canonical task vocabulary and paths: Post, Board, Opportunities, Inbox, Businesses, My Requests, Active; legacy paths remain accepted. | `directConnectRoutes.test.ts`, `direct-connect-task-routes.contract.test.ts` |
 | Employment | Employment posts enter Direct Connect as typed `employment` intent with source post, title, description, county, and trade. | `employment-direct-connect-bridge.contract.test.ts` |
 | Inbox | `/messages` owns the inbox. `/conversations` and `/dashboard/messages` are compatibility aliases to it. | `canonical-surface-ownership.contract.test.ts` |
+| Conversation context | The unified inbox now labels Community, Exchange, TradeScout Support, and Direct Connect context without changing thread identity or unread counts. Synthetic approved-contact threads no longer require a listing row; selected threads use one authorized mark-read endpoint. Procurement messages remain read-only and order-scoped. | `conversationContextAdapter.test.ts`, `conversation-context-presentation.test.ts`, `conversation-context-parity.contract.test.ts` |
 | Notifications | AppShell's global Notification Center owns user notification UI; Direct Connect shell has no duplicate client notification center. | `DirectConnectNotificationsCenter.contract.test.ts` |
 | Community | `community-feed.tsx` is the only routed feed; `CommunityPostCard` is its canonical post representation, while the sample `CommunityFeed.tsx` and unused `SocialFeed` remain explicitly quarantined. | `canonical-surface-ownership.contract.test.ts`, `community-post-card-parity.contract.test.ts` |
 | Trust presentation | Rendered stars, “Highest Rated,” and average-rating labels are removed from the primary provider/helper/exchange/community-adjacent surfaces touched by this phase. | `no-star-rating-doctrine.contract.test.ts` |
@@ -63,7 +64,6 @@ Until all six exist, destructive convergence is classified `policy_target`, not 
 
 ## Remaining ordered work
 
-1. Add a generic conversation context adapter for marketplace and procurement labels after unread/deep-link parity fixtures are captured.
-2. Move remaining rating remnants outside the guarded primary surfaces to trust evidence, distinguishing historical admin-only data from customer-visible ranking.
-3. Consolidate the compatibility redirect registry without changing any legacy URL behavior.
-4. Begin each deep schema proposal as a separate reversible migration only after the deep-schema gate is complete.
+1. Move remaining rating remnants outside the guarded primary surfaces to trust evidence, distinguishing historical admin-only data from customer-visible ranking.
+2. Consolidate the compatibility redirect registry without changing any legacy URL behavior.
+3. Begin each deep schema proposal as a separate reversible migration only after the deep-schema gate is complete.

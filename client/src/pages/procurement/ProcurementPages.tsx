@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { uploadPrivateObject } from "@/lib/privateObjectUpload";
+import { normalizeConversationContext } from "@/components/messages/conversationContextAdapter";
 import {
   procurementModeLabels,
   procurementModes,
@@ -40,6 +41,7 @@ type OrderBundle = {
   quotes: any[];
   events: any[];
   proofs: any[];
+  messages?: any[];
   supplierQuotes?: any[];
 };
 
@@ -742,6 +744,15 @@ export function OrderDetail({
   const [proofType, setProofType] = useState<"receipt" | "pickup" | "delivery">("delivery");
   const [actionError, setActionError] = useState("");
   const latestQuote = data?.quotes?.[0];
+  const orderContext = normalizeConversationContext(
+    {
+      kind: "procurement",
+      label: "Supply Run",
+      title: data?.order?.order_number || "Order messages",
+      entityId: id,
+    },
+    "Order messages"
+  );
   const canOperate = portal === "admin" || portal === "grunt";
   const base =
     portal === "grunt"
@@ -935,6 +946,34 @@ export function OrderDetail({
                 <p className="text-sm text-neutral-400">No events yet.</p>
               )}
             </div>
+          </Card>
+          <Card data-testid="procurement-order-messages">
+            <div className="mb-3">
+              <div className="text-xs font-bold uppercase tracking-wide text-orange-300">
+                {orderContext.label}
+              </div>
+              <h2 className="text-lg font-bold">Order messages</h2>
+              <p className="text-xs text-neutral-400">
+                Updates shown here stay attached to this order and follow its access rules.
+              </p>
+            </div>
+            {data.messages?.length ? (
+              <div className="space-y-2">
+                {data.messages.map((message) => (
+                  <div key={message.id} className="rounded-md border border-white/10 p-3 text-sm">
+                    <div className="text-xs font-bold uppercase tracking-wide text-neutral-400">
+                      {message.sender_type === "customer" ? "Customer" : "Order team"}
+                    </div>
+                    <div className="mt-1 whitespace-pre-wrap text-neutral-200">{message.body}</div>
+                    <div className="mt-1 text-xs text-neutral-500">
+                      {new Date(message.created_at).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-400">No order messages yet.</p>
+            )}
           </Card>
         </div>
         <div className="space-y-4">

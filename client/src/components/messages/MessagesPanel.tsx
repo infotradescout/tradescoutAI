@@ -26,6 +26,12 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  adaptConversationThread,
+  type ApiConversationContext,
+  type ConversationContext,
+  type ConversationContextKind,
+} from "./conversationContextAdapter";
 
 type Thread = {
   id: string;
@@ -34,6 +40,10 @@ type Thread = {
   lastMessageAt: string;
   unreadCount: number;
   participantCount: number;
+  kind?: ConversationContextKind | string | null;
+  context: ConversationContext;
+  participant?: { id: string; name: string; profileImageUrl?: string | null } | null;
+  threadHref: string;
 };
 
 type ApiThread = {
@@ -43,6 +53,9 @@ type ApiThread = {
   lastMessageAt: string | null;
   unreadCount: number;
   participantCount: number;
+  kind?: ConversationContextKind | string | null;
+  context?: ApiConversationContext | null;
+  participant?: { id: string; name: string; profileImageUrl?: string | null } | null;
 };
 
 type ApiMessage = {
@@ -241,6 +254,7 @@ export default function MessagesPanel() {
   );
   const preselectedThreadId = searchParams.get("thread");
   const requestedTab = (searchParams.get("tab") || "").toLowerCase();
+  const preselectedRequestId = searchParams.get("requestId");
 
   useEffect(() => {
     if (requestedTab === "requests") {
@@ -254,9 +268,9 @@ export default function MessagesPanel() {
     queryFn: () => apiRequest("GET", "/api/messages/threads?limit=50&offset=0"),
   });
 
-  const threads: Thread[] = (threadsQuery.data?.threads || []).map((t) => ({
-    ...t,
-    lastMessageAt: t.lastMessageAt || new Date().toISOString(),
+  const threads: Thread[] = (threadsQuery.data?.threads || []).map((thread) => ({
+    ...adaptConversationThread(thread),
+    lastMessageAt: thread.lastMessageAt || new Date().toISOString(),
   }));
 
   const incomingRequestsQuery = useQuery<{ requests: IncomingRequest[] }>({
@@ -268,9 +282,12 @@ export default function MessagesPanel() {
 
   useEffect(() => {
     if (activeView === "requests" && incomingRequests.length > 0 && !activeRequestId) {
-      setActiveRequestId(incomingRequests[0].id);
+      const requested = preselectedRequestId
+        ? incomingRequests.find((request) => request.id === preselectedRequestId)
+        : null;
+      setActiveRequestId(requested?.id || incomingRequests[0].id);
     }
-  }, [activeView, incomingRequests, activeRequestId]);
+  }, [activeView, incomingRequests, activeRequestId, preselectedRequestId]);
 
   useEffect(() => {
     if (!activeThreadId && preselectedThreadId) {
@@ -284,7 +301,14 @@ export default function MessagesPanel() {
     return threads.filter((t) => {
       const subject = (t.subject || "").toLowerCase();
       const snippet = (t.lastMessageSnippet || "").toLowerCase();
-      return subject.includes(query) || snippet.includes(query);
+      const label = t.context.label.toLowerCase();
+      const participant = (t.participant?.name || "").toLowerCase();
+      return (
+        subject.includes(query) ||
+        snippet.includes(query) ||
+        label.includes(query) ||
+        participant.includes(query)
+      );
     });
   }, [threads, searchQuery]);
 
@@ -303,6 +327,20 @@ export default function MessagesPanel() {
     enabled: Boolean(activeThreadId && user),
     queryFn: () => apiRequest("GET", `/api/messages/threads/${activeThreadId}`),
   });
+
+  const markThreadReadMutation = useMutation({
+    mutationFn: (threadId: string) => apiRequest("PUT", `/api/messages/threads/${threadId}/read`),
+    onSuccess: async (_data, threadId) => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/messages/threads"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/messages/threads", threadId] });
+    },
+  });
+
+  useEffect(() => {
+    if (activeThreadId && user) markThreadReadMutation.mutate(activeThreadId);
+    // A thread is marked once when selection changes; query invalidation must not retrigger it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeThreadId, user?.id]);
 
   const homesQuery = useQuery<{ homes: UserHome[] }>({
     queryKey: ["/api/homes"],
@@ -464,8 +502,23 @@ export default function MessagesPanel() {
     });
   };
 
-  const activeThread = threads.find((t) => t.id === activeThreadId) || null;
+  const detailThread = messagesQuery.data?.thread
+    ? ({
+        ...adaptConversationThread(messagesQuery.data.thread),
+        lastMessageAt: messagesQuery.data.thread.lastMessageAt || new Date().toISOString(),
+      } as Thread)
+    : null;
+  const activeThread = threads.find((t) => t.id === activeThreadId) || detailThread;
   const activeRequest = incomingRequests.find((r) => r.id === activeRequestId) || null;
+  const activeContextLabel = directConnectThreadJob
+    ? "Direct Connect"
+    : activeThread?.context.label || "Conversation";
+  const activeTitle = directConnectThreadJob?.request.title || activeThread?.subject;
+
+  const selectThread = (thread: Thread) => {
+    setActiveThreadId(thread.id);
+    if (typeof window !== "undefined") window.history.replaceState(null, "", thread.threadHref);
+  };
 
   return (
     <div className="flex h-full gap-4">
@@ -592,7 +645,7 @@ export default function MessagesPanel() {
                     key={thread.id}
                     type="button"
                     data-testid="message-thread-card"
-                    onClick={() => setActiveThreadId(thread.id)}
+                    onClick={() => selectThread(thread)}
                     className={`w-full text-left rounded-xl px-3 py-3 text-sm transition-colors ${
                       activeThreadId === thread.id
                         ? "bg-tsCard border border-ts-orange/30"
@@ -600,9 +653,14 @@ export default function MessagesPanel() {
                     }`}
                   >
                     <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium text-white truncate">
-                        {thread.subject || "Conversation"}
-                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[10px] uppercase tracking-wide text-ts-orange">
+                          {thread.context.label}
+                        </div>
+                        <span className="block font-medium text-white truncate">
+                          {thread.subject || "Conversation"}
+                        </span>
+                      </div>
                       {thread.unreadCount > 0 && (
                         <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-500 text-white">
                           {thread.unreadCount}
@@ -631,14 +689,19 @@ export default function MessagesPanel() {
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-white/60">
-              {activeView === "requests" ? "Review request" : "Conversation"}
+              {activeView === "requests" ? "Review request" : activeContextLabel}
             </p>
             <h2 className="text-lg font-semibold text-white">
               {activeView === "requests"
                 ? activeRequest?.fromName || "Select a request"
-                : activeThread?.subject || "Select a thread"}
+                : activeTitle || "Select a thread"}
             </h2>
           </div>
+          {activeView === "threads" && activeThread?.context.href && (
+            <Button variant="outline" size="sm" className="border-white/10 text-white/70" asChild>
+              <a href={activeThread.context.href}>View {activeThread.context.label}</a>
+            </Button>
+          )}
           {activeView === "requests" && incomingRequests.length > 0 && (
             <Badge className="bg-ts-orange/20 text-ts-orange text-xs">
               {incomingRequests.length} waiting
