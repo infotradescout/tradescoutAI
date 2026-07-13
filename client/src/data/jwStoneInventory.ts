@@ -92,7 +92,7 @@ marble/versace|5
 marble/white-fantasy|3
 marble/white-silk|2
 marble/zucci-marble|3
-onyx/honey-onyx|1
+onyx/honey-onyx|6
 quartz/aj-quartz|8
 quartz/sparkling-white|2
 quartzite/amazonic-green|1
@@ -231,6 +231,12 @@ const DISPLAY_NAME: Record<string, string> = {
   "valle-nevada-luna-pearl": "Valle Nevada (Luna Pearl)",
 };
 
+function inventoryImageExtension(sourcePath: string, index: number): "webp" | "jpg" {
+  // The first Honey Onyx image was optimized during the initial import. Five companion
+  // photos in the same source folder had generic WhatsApp names and are preserved as JPEGs.
+  return sourcePath === "onyx/honey-onyx" && index > 0 ? "jpg" : "webp";
+}
+
 function titleFromSlug(slug: string): string {
   return (
     DISPLAY_NAME[slug] ||
@@ -263,7 +269,7 @@ const stones = ASSET_SPECS.split("\n").map((line): JwStoneInventoryStone & {
     images: Array.from(
       { length: Number(imageCountText) },
       (_, index) =>
-        `/images/businesses/jw-stone/inventory/${sourcePath}/${index + 1}.webp`
+        `/images/businesses/jw-stone/inventory/${sourcePath}/${index + 1}.${inventoryImageExtension(sourcePath, index)}`
     ),
     materialStatus: status,
     finishes,
