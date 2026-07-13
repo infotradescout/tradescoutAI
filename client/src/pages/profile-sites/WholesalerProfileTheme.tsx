@@ -162,6 +162,29 @@ const DIRECT_CONNECT_OPTIONS = [
   "Schedule a showroom visit",
 ] as const;
 
+const JW_STONE_STORY_IMAGES = [
+  {
+    src: "/images/businesses/jw-stone/story/quarry.webp",
+    alt: "Natural stone quarry represented on the JW Stone website",
+    label: "Direct quarry relationships",
+  },
+  {
+    src: "/images/businesses/jw-stone/story/taj-living-room.webp",
+    alt: "Light natural stone installation represented on the JW Stone website",
+    label: "Stone specified for the whole space",
+  },
+  {
+    src: "/images/businesses/jw-stone/story/fireplace.webp",
+    alt: "Dark and light stone interior represented on the JW Stone website",
+    label: "Material with architectural impact",
+  },
+  {
+    src: "/images/businesses/jw-stone/story/mont-blanc-bar.webp",
+    alt: "Illuminated stone bar represented on the JW Stone website",
+    label: "Finished-space inspiration",
+  },
+] as const;
+
 // Horizontal, scroll-snapped rows keep the page short and let visitors jump
 // straight to what they came for instead of scrolling past every section.
 const SCROLL_ROW =
@@ -302,8 +325,15 @@ export default function WholesalerProfileTheme({
         .flatMap((category) => category.stones)
         .filter((stone) => stone.name.toLowerCase().includes(normalizedInventorySearch))
     : activeCategory?.stones || [];
+  const cristalloHeroImage = inventoryCatalog
+    .flatMap((category) => category.stones)
+    .find((stone) => stone.slug === "cristallo")?.images[0];
   const heroImage =
-    inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] || galleryImages[0];
+    (profileSlug === "jw-stone" ? cristalloHeroImage : undefined) ||
+    inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
+    galleryImages[0];
+  const heroEyebrow =
+    profileSlug === "jw-stone" ? "Backlit Cristallo Quartzite" : categories.slice(0, 3).join(" · ");
   // The hero is a glance, not a read -- keep it to one sentence and let the
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
   const heroTeaser = aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
@@ -319,10 +349,13 @@ export default function WholesalerProfileTheme({
   };
 
   return (
-    <div className="min-h-full text-[#241d0f]" style={themeVars}>
+    <div
+      className="min-h-full pb-[calc(var(--bottom-nav-h,72px)+env(safe-area-inset-bottom))] text-[#241d0f] md:pb-0"
+      style={themeVars}
+    >
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]">
-        <div className="container mx-auto flex items-center justify-between gap-4 px-5 py-5 md:px-8">
+      <header className="relative z-20 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)] md:sticky md:top-0">
+        <div className="container mx-auto flex items-center justify-between gap-4 px-5 py-4 md:px-8 md:py-5">
           <div>
             <span
               className={`block text-xl font-bold leading-tight text-[var(--brand-primary)] md:text-2xl ${DISPLAY_FONT}`}
@@ -336,12 +369,12 @@ export default function WholesalerProfileTheme({
           <button
             type="button"
             onClick={() => startDirectConnect()}
-            className="rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-primary-dark)]"
+            className="hidden rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-primary-dark)] md:block"
           >
             Direct Connect
           </button>
         </div>
-        <div className="scrollbar-hide flex gap-6 overflow-x-auto px-5 pb-3.5 text-xs font-semibold uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] md:px-8 [&::-webkit-scrollbar]:hidden">
+        <div className="scrollbar-hide hidden gap-6 overflow-x-auto px-5 pb-3.5 text-xs font-semibold uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] md:flex md:px-8 [&::-webkit-scrollbar]:hidden">
           {[
             ["Collection", "#collection"],
             ["Why Us", "#why-us"],
@@ -362,31 +395,33 @@ export default function WholesalerProfileTheme({
 
       {/* Hero */}
       <section
-        className="relative overflow-hidden bg-[var(--brand-primary)] bg-cover bg-center py-20 md:py-32"
+        className="relative isolate flex min-h-[min(690px,calc(100svh-150px))] items-end overflow-hidden bg-[var(--brand-primary)] bg-cover bg-center py-10 md:min-h-0 md:items-center md:py-32"
         style={
           heroImage
             ? {
-                backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.72)), url(${heroImage})`,
+                backgroundImage: `linear-gradient(to bottom, rgba(20,14,8,0.12) 0%, rgba(20,14,8,0.42) 40%, rgba(20,14,8,0.92) 100%), url(${heroImage})`,
               }
             : undefined
         }
       >
-        <div className="container mx-auto px-4 text-center md:px-6">
-          {categories.length > 0 ? (
-            <span className="mb-6 inline-block rounded-full bg-white/15 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
-              {categories.slice(0, 3).join(" · ")}
+        <div className="container mx-auto px-5 text-left md:px-6 md:text-center">
+          {heroEyebrow ? (
+            <span className="mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs">
+              {heroEyebrow}
             </span>
           ) : null}
           <h1
-            className={`mx-auto mb-6 max-w-3xl text-4xl font-bold leading-tight text-white md:text-6xl ${DISPLAY_FONT}`}
+            className={`mb-4 max-w-[18ch] text-[2.55rem] font-bold leading-[0.98] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${DISPLAY_FONT}`}
           >
             {headline || "Hand-selected stone. Direct from the source."}
           </h1>
           {heroTeaser ? (
-            <p className="mx-auto mb-10 max-w-xl text-lg text-white/85">{heroTeaser}</p>
+            <p className="mb-7 max-w-[34rem] text-base leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:mb-10 md:text-lg">
+              {heroTeaser}
+            </p>
           ) : null}
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a href="#collection">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:justify-center">
+            <a href="#collection" className="hidden md:block">
               <button className="flex items-center justify-center gap-2 rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
                 Explore Inventory
               </button>
@@ -394,13 +429,13 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-7 py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
+              className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-[var(--brand-accent)] px-7 py-3.5 text-base font-bold text-[#16200b] shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-opacity hover:opacity-90 md:min-h-0 md:rounded-full md:text-sm md:text-white"
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
             </button>
             {!hasViewerSession ? (
-              <Link href={preScoutSignInHref}>
+              <Link href={preScoutSignInHref} className="hidden md:block">
                 <button className="rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
                   Sign in
                 </button>
@@ -704,6 +739,47 @@ export default function WholesalerProfileTheme({
           </div>
         </div>
       </section>
+
+      {/* Business-story photography is sourced from JW Stone's own website.
+          It is intentionally separate from the reconciled inventory catalog above. */}
+      {profileSlug === "jw-stone" ? (
+        <section className="bg-[#17130d] py-10 text-white md:py-16">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="mb-6 max-w-2xl md:mb-8">
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--brand-accent)]">
+                From source to finished space
+              </p>
+              <h2 className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}>
+                Stone selected with the final room in mind.
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
+              {JW_STONE_STORY_IMAGES.map((image, index) => (
+                <figure
+                  key={image.src}
+                  className={`group relative overflow-hidden rounded-2xl bg-black ${
+                    index === 0 ? "sm:col-span-2" : ""
+                  }`}
+                >
+                  <img
+                    src={image.src}
+                    alt={image.alt}
+                    loading="lazy"
+                    className={`w-full object-cover transition-transform duration-500 group-hover:scale-[1.02] ${
+                      index === 0 ? "h-64 sm:h-[28rem]" : "h-72 sm:h-80"
+                    }`}
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-5 pb-5 pt-16">
+                    <figcaption className="text-sm font-semibold text-white md:text-base">
+                      {image.label}
+                    </figcaption>
+                  </div>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {/* Audience paths */}
       <section id="audience" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
