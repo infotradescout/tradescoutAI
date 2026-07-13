@@ -185,6 +185,15 @@ const JW_STONE_STORY_IMAGES = [
   },
 ] as const;
 
+const JW_STONE_PICK_SLUGS = new Set([
+  "blue-dunes",
+  "cristallo",
+  "gold-macaubas",
+  "rhino-white",
+  "taj-mahal",
+  "titanium",
+]);
+
 // Horizontal, scroll-snapped rows keep the page short and let visitors jump
 // straight to what they came for instead of scrolling past every section.
 const SCROLL_ROW =
@@ -309,22 +318,30 @@ export default function WholesalerProfileTheme({
   )
     ? inventoryCatalogBlock.data.categories
     : [];
-  const [activeCategorySlug, setActiveCategorySlug] = useState(
-    inventoryCatalog[0]?.categorySlug || ""
-  );
+  const [activeCategorySlug, setActiveCategorySlug] = useState("all");
   const [inventorySearch, setInventorySearch] = useState("");
+  const [inventoryVisibleLimit, setInventoryVisibleLimit] = useState(24);
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
   const [openImageIndex, setOpenImageIndex] = useState(0);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
   const [expressStoneName, setExpressStoneName] = useState<string | null>(null);
-  const activeCategory =
-    inventoryCatalog.find((c) => c.categorySlug === activeCategorySlug) || inventoryCatalog[0];
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
-  const visibleStones = normalizedInventorySearch
-    ? inventoryCatalog
-        .flatMap((category) => category.stones)
-        .filter((stone) => stone.name.toLowerCase().includes(normalizedInventorySearch))
-    : activeCategory?.stones || [];
+  const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
+  const selectedCategory = inventoryCatalog.find(
+    (category) => category.categorySlug === activeCategorySlug
+  );
+  const categoryStones =
+    activeCategorySlug === "jw-picks"
+      ? allInventoryStones.filter((stone) => JW_STONE_PICK_SLUGS.has(stone.slug))
+      : selectedCategory?.stones || allInventoryStones;
+  const visibleStones = categoryStones.filter((stone) =>
+    normalizedInventorySearch ? stone.name.toLowerCase().includes(normalizedInventorySearch) : true
+  );
+  const displayedStones = visibleStones.slice(0, inventoryVisibleLimit);
+  const hasInventoryFilters = activeCategorySlug !== "all" || normalizedInventorySearch.length > 0;
+  useEffect(() => {
+    setInventoryVisibleLimit(24);
+  }, [activeCategorySlug, normalizedInventorySearch]);
   const cristalloHeroImage = inventoryCatalog
     .flatMap((category) => category.stones)
     .find((stone) => stone.slug === "cristallo")?.images[0];
@@ -333,10 +350,19 @@ export default function WholesalerProfileTheme({
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
     galleryImages[0];
   const heroEyebrow =
-    profileSlug === "jw-stone" ? "Backlit Cristallo Quartzite" : categories.slice(0, 3).join(" · ");
+    profileSlug === "jw-stone"
+      ? "Cristallo quartzite · shown backlit"
+      : categories.slice(0, 3).join(" · ");
+  const heroHeadline =
+    profileSlug === "jw-stone"
+      ? "The slab you choose is the slab you get."
+      : headline || "Hand-selected stone. Direct from the source.";
   // The hero is a glance, not a read -- keep it to one sentence and let the
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
-  const heroTeaser = aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
+  const heroTeaser =
+    profileSlug === "jw-stone"
+      ? "JW Stone hand-selects natural stone at the quarry, oversees its processing, and delivers it without the usual chain of middlemen."
+      : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
   const startDirectConnect = (stoneName?: string | null) => {
@@ -413,7 +439,7 @@ export default function WholesalerProfileTheme({
           <h1
             className={`mb-4 max-w-[18ch] text-[2.55rem] font-bold leading-[0.98] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${DISPLAY_FONT}`}
           >
-            {headline || "Hand-selected stone. Direct from the source."}
+            {heroHeadline}
           </h1>
           {heroTeaser ? (
             <p className="mb-7 max-w-[34rem] text-base leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:mb-10 md:text-lg">
@@ -467,7 +493,7 @@ export default function WholesalerProfileTheme({
 
       {/* Live stone collection */}
       {inventoryCatalog.length > 0 ? (
-        <section id="collection" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
+        <section id="collection" className="scroll-mt-28 py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-6">
               <h2
@@ -482,49 +508,66 @@ export default function WholesalerProfileTheme({
               </p>
             </div>
 
-            <label className="mb-5 flex max-w-xl items-center gap-3 rounded-full border border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-4 py-3 shadow-sm focus-within:border-[var(--brand-primary)]/50">
-              <Search className="h-4 w-4 flex-shrink-0 text-[var(--brand-primary)]/60" />
-              <span className="sr-only">Search JW Stone inventory</span>
-              <input
-                type="search"
-                value={inventorySearch}
-                onChange={(event) => setInventorySearch(event.target.value)}
-                placeholder="Search stone names"
-                className="w-full bg-transparent text-sm text-[#241d0f] outline-none placeholder:text-[#241d0f]/45"
-              />
-            </label>
-
-            <div className={`${SCROLL_ROW} mb-6`}>
-              {inventoryCatalog.map((cat) => {
-                const active = cat.categorySlug === activeCategory?.categorySlug;
-                return (
+            <div className="mb-6 rounded-2xl border border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-3 shadow-sm md:p-4">
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px_auto] md:items-center">
+                <label className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--brand-primary)]/15 bg-white px-4 focus-within:border-[var(--brand-primary)]/50">
+                  <Search className="h-4 w-4 flex-shrink-0 text-[var(--brand-primary)]/60" />
+                  <span className="sr-only">Search JW Stone inventory</span>
+                  <input
+                    type="search"
+                    value={inventorySearch}
+                    onChange={(event) => setInventorySearch(event.target.value)}
+                    placeholder="Search by stone name"
+                    className="w-full bg-transparent text-sm text-[#241d0f] outline-none placeholder:text-[#241d0f]/45"
+                  />
+                </label>
+                <label className="relative">
+                  <span className="sr-only">Filter by material</span>
+                  <select
+                    value={activeCategorySlug}
+                    onChange={(event) => setActiveCategorySlug(event.target.value)}
+                    className="min-h-12 w-full appearance-none rounded-xl border border-[var(--brand-primary)]/15 bg-white px-4 pr-10 text-sm font-semibold text-[#241d0f] outline-none focus:border-[var(--brand-primary)]/50"
+                  >
+                    <option value="all">All stone ({allInventoryStones.length})</option>
+                    {profileSlug === "jw-stone" ? (
+                      <option value="jw-picks">JW Stone Picks ({JW_STONE_PICK_SLUGS.size})</option>
+                    ) : null}
+                    {inventoryCatalog
+                      .filter((category) => category.categorySlug !== "unconfirmed")
+                      .map((category) => (
+                      <option key={category.categorySlug} value={category.categorySlug}>
+                        {category.category} ({category.stones.length})
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-[var(--brand-primary)]/55" />
+                </label>
+                {hasInventoryFilters ? (
                   <button
-                    key={cat.categorySlug}
+                    type="button"
                     onClick={() => {
-                      setActiveCategorySlug(cat.categorySlug);
+                      setActiveCategorySlug("all");
                       setInventorySearch("");
                     }}
-                    className={`flex-shrink-0 whitespace-nowrap rounded-full border px-5 py-2 text-sm font-semibold transition-colors ${
-                      active
-                        ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
-                        : "border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] text-[#241d0f]/70 hover:border-[var(--brand-primary)]/40"
-                    }`}
+                    className="min-h-12 rounded-xl border border-[var(--brand-primary)]/15 px-4 text-sm font-semibold text-[var(--brand-primary)] hover:bg-white"
                   >
-                    {cat.category}
-                    <span className="ml-1.5 opacity-70">({cat.stones.length})</span>
+                    Clear filters
                   </button>
-                );
-              })}
+                ) : (
+                  <p className="whitespace-nowrap px-2 text-sm font-semibold text-[#241d0f]/60">
+                    {visibleStones.length} stones
+                  </p>
+                )}
+              </div>
+              {hasInventoryFilters ? (
+                <p className="mt-3 px-1 text-sm font-medium text-[#241d0f]/60">
+                  {visibleStones.length} {visibleStones.length === 1 ? "stone" : "stones"} shown
+                </p>
+              ) : null}
             </div>
 
-            {normalizedInventorySearch ? (
-              <p className="mb-4 text-sm font-medium text-[#241d0f]/65">
-                {visibleStones.length} {visibleStones.length === 1 ? "stone" : "stones"} found
-              </p>
-            ) : null}
-
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {visibleStones.map((stone) => (
+              {displayedStones.map((stone) => (
                 <button
                   key={stone.slug}
                   onClick={() => {
@@ -572,10 +615,24 @@ export default function WholesalerProfileTheme({
                 </p>
               </div>
             ) : null}
+            {visibleStones.length > displayedStones.length ? (
+              <div className="mt-8 flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInventoryVisibleLimit((current) => current + 24)}
+                  className="rounded-xl bg-[var(--brand-primary)] px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)]"
+                >
+                  Show 24 more
+                </button>
+                <p className="text-xs text-[#241d0f]/55">
+                  Showing {displayedStones.length} of {visibleStones.length}
+                </p>
+              </div>
+            ) : null}
           </div>
         </section>
       ) : inventoryItems.length > 0 ? (
-        <section id="collection" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
+        <section id="collection" className="scroll-mt-28 py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -782,7 +839,7 @@ export default function WholesalerProfileTheme({
       ) : null}
 
       {/* Audience paths */}
-      <section id="audience" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
+      <section id="audience" className="scroll-mt-28 py-10 md:py-14">
         <div className="container mx-auto px-4 md:px-6">
           <h2
             className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
@@ -839,7 +896,7 @@ export default function WholesalerProfileTheme({
 
       {/* FAQ */}
       {faqItems.length > 0 ? (
-        <section className="bg-[var(--brand-bg)] py-10 md:py-14">
+        <section className="py-10 md:py-14">
           <div className="container mx-auto max-w-3xl px-4 md:px-6">
             <h2
               className={`mb-6 text-center text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
@@ -994,4 +1051,3 @@ export default function WholesalerProfileTheme({
     </div>
   );
 }
-
