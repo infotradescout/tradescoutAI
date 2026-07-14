@@ -150,11 +150,11 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       roleContext: "auto_service" as const,
       slug: JRS_PROFILE_SLUG,
       displayName: "JR's Auto Glass",
-      headline: "Send an auto glass request privately through TradeScout.",
+      headline: "Auto glass help without the national-chain runaround.",
       contentBlocks: [],
       ctaConfig: {
         primary: {
-          label: "Start a request",
+          label: "Direct Connect with JR's",
           kind: "message" as const,
           value: "/direct-connect",
         },
@@ -162,7 +162,7 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       seoMeta: {
         title: "JR's Auto Glass | TradeScout",
         description:
-          "Send vehicle and glass details to JR's Auto Glass through TradeScout with protected contact information.",
+          "Send JR's Auto Glass your vehicle, damage, photos, and timing in one protected Direct Connect request.",
       },
       status: "published" as const,
       updatedAt: new Date(),
