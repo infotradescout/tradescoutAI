@@ -399,6 +399,8 @@ export default function WholesalerProfileTheme({
   const amazonicGreenHeroImage = inventoryCatalog
     .flatMap((category) => category.stones)
     .find((stone) => stone.slug === "amazonic-green")?.images[0];
+  const blueGoiasInventoryCtaImage = allInventoryStones.find((stone) => stone.slug === "blue-goias")
+    ?.images[0];
   const heroImage =
     (profileSlug === "jw-stone" ? amazonicGreenHeroImage : undefined) ||
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
@@ -912,15 +914,31 @@ export default function WholesalerProfileTheme({
                   <button
                     type="button"
                     onClick={openFullInventory}
-                    className="group relative flex w-full items-center gap-4 overflow-hidden rounded-[1.75rem] bg-[linear-gradient(135deg,var(--brand-primary)_0%,var(--brand-primary-dark)_100%)] px-5 py-6 text-left text-white shadow-[0_20px_50px_rgba(24,55,25,0.3)] ring-1 ring-black/15 transition-all hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(24,55,25,0.38)] sm:px-7 sm:py-7"
+                    className="group relative flex min-h-[180px] w-full items-center gap-4 overflow-hidden rounded-[1.75rem] bg-[var(--brand-primary-dark)] px-5 py-7 text-left text-white shadow-[0_20px_50px_rgba(24,55,25,0.3)] ring-1 ring-black/15 transition-all hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(24,55,25,0.38)] sm:min-h-[200px] sm:px-7 sm:py-8"
                   >
+                    {blueGoiasInventoryCtaImage ? (
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 1600 1200"
+                        preserveAspectRatio="xMidYMid slice"
+                        className="absolute inset-0 h-full w-full transition-transform duration-700 group-hover:scale-[1.025]"
+                      >
+                        <image
+                          href={blueGoiasInventoryCtaImage}
+                          width="1200"
+                          height="1600"
+                          transform="translate(1600 0) rotate(90)"
+                        />
+                      </svg>
+                    ) : null}
+                    <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,18,0.96)_0%,rgba(7,15,18,0.82)_55%,rgba(7,15,18,0.48)_100%)]" />
                     <span className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-accent)]" />
-                    <span className="inline-flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-accent)] text-[#16200b] shadow-lg">
+                    <span className="relative inline-flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-accent)] text-[#16200b] shadow-lg">
                       <LayoutGrid className="h-7 w-7" />
                     </span>
                     <span className="relative min-w-0 flex-1">
                       <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand-accent)] sm:text-xs">
-                        The complete collection
+                        Blue Goias · current inventory
                       </span>
                       <span
                         className={`mt-0.5 block text-xl font-extrabold sm:text-2xl ${DISPLAY_FONT}`}
