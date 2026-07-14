@@ -132,9 +132,8 @@ export default function JrsAutoGlassProfileTheme({
               Skip the national-chain runaround.
             </h1>
             <p className="mt-6 max-w-xl text-base font-medium leading-7 text-zinc-300 md:text-lg">
-              Choose the established local shop with a 4.8 Google rating. Send JR&apos;s your
-              vehicle, glass damage, photos, and timing once—not through a generic call-center
-              script.
+              Send JR&apos;s your vehicle, glass damage, photos, and timing once. Start with the
+              established local business—not a generic national call-center script.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -181,7 +180,7 @@ export default function JrsAutoGlassProfileTheme({
 
       <section className="border-b border-white/10 bg-zinc-950">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-white/10 md:grid-cols-4">
-          {["4.8 Google rating", "17 Google reviews", "Ponchatoula, Louisiana", "Mobile auto glass"].map(
+          {["Ponchatoula, Louisiana", "Mobile auto glass", "Windshield replacement", "Protected Direct Connect"].map(
             (fact) => (
               <div
                 key={fact}
