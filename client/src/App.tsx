@@ -105,10 +105,15 @@ const AppLayout = memo(function AppLayout() {
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
   const isPublicProfileRoute =
     (/^\/u\/[^/]+$/.test(pathOnly) ||
+      /^\/p\/[^/]+$/.test(pathOnly) ||
       /^\/business\/[^/]+$/.test(pathOnly) ||
       /^\/contractors\/[^/]+$/.test(pathOnly) ||
       /^\/helpers\/[^/]+$/.test(pathOnly) ||
       /^\/profile\/[^/]+$/.test(pathOnly)) &&
+    !pathOnly.endsWith("/edit");
+
+  const isStandaloneProfileRoute =
+    (/^\/u\/[^/]+$/.test(pathOnly) || /^\/p\/[^/]+$/.test(pathOnly)) &&
     !pathOnly.endsWith("/edit");
 
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -320,6 +325,7 @@ const AppLayout = memo(function AppLayout() {
               isPublicCampaignRoute={isPublicCampaignRoute}
               isPublicRootLanding={isPublicRootLanding}
               isShareRoute={isShareRoute}
+              isStandaloneProfileRoute={isStandaloneProfileRoute}
             />
           </ErrorBoundary>
         </main>
@@ -351,6 +357,7 @@ const AppLayout = memo(function AppLayout() {
       {/* Subtle onboarding hints for new users (hide on Scout landing) */}
       {!isLlmRoute &&
         !isLandingRoute &&
+        !isPublicProfileRoute &&
         !isPublicCampaignRoute &&
         !isShareRoute &&
         !FEATURE_EDUCATION_REPLACEMENT && (
@@ -362,7 +369,7 @@ const AppLayout = memo(function AppLayout() {
         )}
 
       {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
-      {!isLlmRoute && !isLandingRoute && !isShareRoute && (
+      {!isLlmRoute && !isLandingRoute && !isShareRoute && !isPublicProfileRoute && (
         <div className="hidden md:block">
           <Suspense fallback={null}>
             <ProfileCompletionBanner />
@@ -371,7 +378,7 @@ const AppLayout = memo(function AppLayout() {
       )}
 
       {/* Per-page first-visit tutorial popup (user-aware and easy-language). */}
-      {!isLandingRoute && !isShareRoute && (
+      {!isLandingRoute && !isShareRoute && !isPublicProfileRoute && (
         <Suspense fallback={null}>
           <PageFirstVisitTutorial />
         </Suspense>
@@ -382,7 +389,8 @@ const AppLayout = memo(function AppLayout() {
         !isPublicCampaignRoute &&
         !isShareRoute &&
         !isAuthSurface &&
-        !isDirectConnectSurface && (
+        !isDirectConnectSurface &&
+        !isPublicProfileRoute && (
           <Suspense fallback={null}>
             <PWAInstallPrompt enabled />
           </Suspense>
