@@ -17,6 +17,7 @@ import { emailService } from "../services/emailService";
 import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
+import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 
@@ -29,6 +30,10 @@ const EXPRESS_REQUEST_TYPES = [
   "match_project",
   "ask_about_bundle",
   "schedule_showroom",
+  "request_service",
+  "request_quote",
+  "ask_question",
+  "schedule_service",
   "other",
 ] as const;
 
@@ -113,6 +118,10 @@ function requestTitle(requestType: (typeof EXPRESS_REQUEST_TYPES)[number], busin
     match_project: "Stone selection for a project",
     ask_about_bundle: "Bundle availability request",
     schedule_showroom: "Showroom visit request",
+    request_service: "Service request",
+    request_quote: "Quote request",
+    ask_question: "Business question",
+    schedule_service: "Service scheduling request",
     other: "Direct request",
   };
   return `${labels[requestType]} for ${businessName}`.slice(0, 180);
@@ -152,7 +161,6 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     !row ||
     String(row.profileStatus) !== "published" ||
     String(row.businessStatus) !== "active" ||
-    profileData.tradePartner !== true ||
     !ownerDiscoverable
   ) {
     return null;
@@ -383,6 +391,19 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           });
         }
 
+        try {
+          await notifySuperAdminsOfDirectConnectRequest({
+            requestId: String(created.id),
+            requestTitle: title,
+            businessName: target.businessName,
+          });
+        } catch (error) {
+          console.warn("[tradepartner-express] beta admin notification failed", {
+            requestId: created.id,
+            error,
+          });
+        }
+
         if (target.notificationEmail && emailService.isConfigured()) {
           const publicBase = String(
             process.env.APP_BASE_URL || "https://www.thetradescout.com"
@@ -422,48 +443,61 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             );
         }
 
+        const requestWorkspacePath =
+          `/direct-connect/engagements?requestId=${encodeURIComponent(String(created.id))}&offerHomeId=1&source=profile_express`;
+        const activation = requesterWasCreated
+          ? passwordResetService.createToken(String(requester.id))
+          : null;
+        const verification = requesterWasCreated
+          ? emailVerificationService.createToken(String(requester.id))
+          : null;
+        const onboardingPath = activation
+          ? `/reset-password?token=${encodeURIComponent(activation.token)}&next=${encodeURIComponent(requestWorkspacePath)}`
+          : null;
+        let onboardingEmailStatus: "sent" | "skipped" | "failed" = "skipped";
+
         if (emailService.isConfigured()) {
           const publicBase = String(
             process.env.APP_BASE_URL || "https://www.thetradescout.com"
           ).replace(/\/$/, "");
-          const activation = requesterWasCreated
-            ? passwordResetService.createToken(String(requester.id))
-            : null;
-          const verification = requesterWasCreated
-            ? emailVerificationService.createToken(String(requester.id))
-            : null;
-          const activationUrl = activation
-            ? `${publicBase}/reset-password?token=${activation.token}&next=${encodeURIComponent("/direct-connect")}`
-            : `${publicBase}/direct-connect`;
+          const activationUrl = onboardingPath
+            ? `${publicBase}${onboardingPath}`
+            : `${publicBase}${requestWorkspacePath}`;
           const verificationUrl = verification
-            ? `${publicBase}/verify-email?token=${verification.token}&next=${encodeURIComponent("/direct-connect")}`
+            ? `${publicBase}/verify-email?token=${verification.token}&next=${encodeURIComponent(requestWorkspacePath)}`
             : null;
-          void emailService
-            .sendEmail({
+          try {
+            const emailResult = await emailService.sendEmail({
               to: requester.email,
               subject: `Your request was sent to ${target.businessName}`,
               html: [
                 `<p>Your request was sent directly to ${escapeHtml(target.businessName)}.</p>`,
                 requesterWasCreated
-                  ? "<p>Your contact details also created your free TradeScout account so you can follow this request and Direct Connect with other businesses.</p>"
+                  ? "<p>Your contact details also created your free TradeScout account so you can follow this request and Direct Connect with the business.</p>"
                   : "<p>This request is now attached to your TradeScout account.</p>",
-                `<p><a href=\"${activationUrl}\">${requesterWasCreated ? "Set up account access" : "Open Direct Connect"}</a>.</p>`,
+                `<p><a href="${activationUrl}">${requesterWasCreated ? "Set up account access" : "Open My Requests"}</a>.</p>`,
                 verificationUrl
-                  ? `<p><a href=\"${verificationUrl}\">Verify your email</a>.</p>`
+                  ? `<p><a href="${verificationUrl}">Verify your email</a>.</p>`
                   : "",
               ].join("\n"),
               text: [
                 `Your request was sent directly to ${target.businessName}.`,
-                `Open Direct Connect: ${activationUrl}`,
+                `Open My Requests: ${activationUrl}`,
                 verificationUrl ? `Verify your email: ${verificationUrl}` : null,
               ]
                 .filter(Boolean)
                 .join("\n"),
               purpose: requesterWasCreated ? "account_creation" : "notification",
-            })
-            .catch((error) =>
-              console.warn("[tradepartner-express] requester onboarding email failed", error)
-            );
+            });
+            onboardingEmailStatus = emailResult.skipped ? "skipped" : "sent";
+          } catch (error) {
+            onboardingEmailStatus = "failed";
+            console.warn("[tradepartner-express] requester onboarding email failed", {
+              requestId: created.id,
+              requesterUserId: requester.id,
+              error,
+            });
+          }
         }
 
         console.info("[tradepartner-express] phone-gated request created", {
@@ -481,9 +515,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           businessName: target.businessName,
           delivered: true,
           accountCreated: requesterWasCreated,
+          onboardingPath,
+          onboardingEmailStatus,
+          requestWorkspacePath,
           membershipNext: requesterWasCreated
-            ? "Check your email to set up access to your TradeScout account."
-            : "Sign in to follow this request in Direct Connect.",
+            ? "Set up your TradeScout access to follow this request."
+            : viewerId
+              ? "Open My Requests to follow this request in Direct Connect."
+              : "Sign in to follow this request in Direct Connect.",
         });
       } catch (error) {
         console.error("[tradepartner-express] request creation failed", error);

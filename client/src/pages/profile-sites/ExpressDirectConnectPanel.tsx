@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import {
   ArrowLeft,
@@ -6,7 +6,6 @@ import {
   Loader2,
   MessageCircle,
   Phone,
-  Search,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -16,7 +15,13 @@ export type ExpressDirectConnectRequestType =
   | "match_project"
   | "ask_about_bundle"
   | "schedule_showroom"
+  | "request_service"
+  | "request_quote"
+  | "ask_question"
+  | "schedule_service"
   | "other";
+
+export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service";
 
 type ExpressDirectConnectPanelProps = {
   open: boolean;
@@ -24,19 +29,64 @@ type ExpressDirectConnectPanelProps = {
   profileSlug: string;
   businessName: string;
   hasViewerSession: boolean;
+  requestMode?: ExpressDirectConnectMode;
   initialStoneName?: string | null;
   initialRequestType?: ExpressDirectConnectRequestType | null;
 };
 
 type PanelView = "choice" | "request" | "call_started" | "success";
 
-const REQUEST_TYPES = [
-  { value: "request_material", label: "Request material" },
-  { value: "match_project", label: "Match stone to a project" },
-  { value: "ask_about_bundle", label: "Ask about a bundle" },
-  { value: "schedule_showroom", label: "Schedule a showroom visit" },
-  { value: "other", label: "Something else" },
-] as const;
+const REQUEST_MODE_CONFIG: Record<
+  ExpressDirectConnectMode,
+  {
+    choiceLabel: string;
+    heading: string;
+    placeholder: string;
+    defaultType: ExpressDirectConnectRequestType;
+    requestTypes: Array<{ value: ExpressDirectConnectRequestType; label: string }>;
+  }
+> = {
+  materials: {
+    choiceLabel: "Request stone or material",
+    heading: "What are you looking for?",
+    placeholder: "Tell them the material, quantity, project, timing, or stone you have in mind.",
+    defaultType: "match_project",
+    requestTypes: [
+      { value: "request_material", label: "Request material" },
+      { value: "match_project", label: "Match stone to a project" },
+      { value: "ask_about_bundle", label: "Ask about a bundle" },
+      { value: "schedule_showroom", label: "Schedule a showroom visit" },
+      { value: "other", label: "Something else" },
+    ],
+  },
+  auto_glass: {
+    choiceLabel: "Request auto glass service",
+    heading: "What does the vehicle need?",
+    placeholder:
+      "Include the vehicle year, make, model, damaged glass, location, and preferred timing.",
+    defaultType: "request_service",
+    requestTypes: [
+      { value: "request_service", label: "Windshield or auto glass service" },
+      { value: "request_quote", label: "Request a quote" },
+      { value: "ask_question", label: "Ask a question" },
+      { value: "schedule_service", label: "Schedule mobile service" },
+      { value: "other", label: "Something else" },
+    ],
+  },
+  service: {
+    choiceLabel: "Send a request",
+    heading: "What do you need?",
+    placeholder: "Describe the job, location, timing, and the outcome you need.",
+    defaultType: "request_service",
+    requestTypes: [
+      { value: "request_service", label: "Request service" },
+      { value: "request_quote", label: "Request a quote" },
+      { value: "ask_question", label: "Ask a question" },
+      { value: "schedule_service", label: "Schedule service" },
+      { value: "other", label: "Something else" },
+    ],
+  },
+};
 
 export default function ExpressDirectConnectPanel({
   open,
@@ -44,21 +94,30 @@ export default function ExpressDirectConnectPanel({
   profileSlug,
   businessName,
   hasViewerSession,
+  requestMode = "service",
   initialStoneName,
   initialRequestType,
 }: ExpressDirectConnectPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const config = REQUEST_MODE_CONFIG[requestMode];
+  const defaultRequestType =
+    initialRequestType || (initialStoneName ? "request_material" : config.defaultType);
   const [view, setView] = useState<PanelView>("choice");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [callPhone, setCallPhone] = useState("");
   const [callTel, setCallTel] = useState("");
   const [accountCreated, setAccountCreated] = useState(false);
+  const [requestId, setRequestId] = useState("");
+  const [onboardingPath, setOnboardingPath] = useState("");
+  const [onboardingEmailStatus, setOnboardingEmailStatus] = useState<
+    "sent" | "skipped" | "failed" | "unknown"
+  >("unknown");
   const [form, setForm] = useState({
     name: "",
     email: "",
     phone: "",
-    requestType: initialRequestType || (initialStoneName ? "request_material" : "match_project"),
+    requestType: defaultRequestType,
     message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
     website: "",
   });
@@ -86,17 +145,27 @@ export default function ExpressDirectConnectPanel({
     setCallPhone("");
     setCallTel("");
     setAccountCreated(false);
+    setRequestId("");
+    setOnboardingPath("");
+    setOnboardingEmailStatus("unknown");
     setForm((current) => ({
       ...current,
-      requestType:
-        initialRequestType || (initialStoneName ? "request_material" : current.requestType),
+      requestType: defaultRequestType,
       message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
     }));
-  }, [open, initialRequestType, initialStoneName]);
+  }, [defaultRequestType, initialRequestType, initialStoneName, open]);
+
+  const requestPath = useMemo(() => {
+    const params = new URLSearchParams();
+    if (requestId) params.set("requestId", requestId);
+    params.set("offerHomeId", "1");
+    params.set("source", "profile_express");
+    return `/direct-connect/engagements?${params.toString()}`;
+  }, [requestId]);
 
   if (!open) return null;
 
-  const membershipHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(
+  const postCallSignupHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(
     `/u/${profileSlug}`
   )}`;
 
@@ -157,6 +226,13 @@ export default function ExpressDirectConnectPanel({
         throw new Error(json?.message || "The request could not be sent.");
       }
       setAccountCreated(json?.accountCreated === true);
+      setRequestId(String(json?.requestId || ""));
+      setOnboardingPath(typeof json?.onboardingPath === "string" ? json.onboardingPath : "");
+      setOnboardingEmailStatus(
+        ["sent", "skipped", "failed"].includes(json?.onboardingEmailStatus)
+          ? json.onboardingEmailStatus
+          : "unknown"
+      );
       setView("success");
     } catch (cause: any) {
       setError(cause?.message || "The request could not be sent.");
@@ -197,7 +273,7 @@ export default function ExpressDirectConnectPanel({
             ) : null}
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-ts-orange-dark">
-                Direct Connect
+                Express Direct Connect
               </p>
               <h2 id="express-direct-connect-title" className="text-xl font-bold text-neutral-900">
                 {businessName}
@@ -217,22 +293,18 @@ export default function ExpressDirectConnectPanel({
         <div className="p-5 sm:p-7">
           {view === "choice" ? (
             <div>
-              <p className="mb-6 text-stone-700">Call now or tell us what you’re looking for.</p>
+              <p className="mb-6 text-stone-700">Choose the fastest way to reach {businessName}.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={startCall}
                   disabled={busy}
-                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-neutral-900 p-5 text-left text-white transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-ts-orange p-5 text-left text-white transition-transform hover:-translate-y-0.5 hover:bg-ts-orange-dark disabled:opacity-60"
                 >
-                  {busy ? (
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                  ) : (
-                    <Phone className="h-6 w-6" />
-                  )}
+                  {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Phone className="h-6 w-6" />}
                   <span>
                     <strong className="block text-lg">Call {businessName}</strong>
-                    <span className="text-sm text-white/75">View the phone number</span>
+                    <span className="text-sm text-white/80">Reveal the number and call</span>
                   </span>
                 </button>
                 <button
@@ -241,20 +313,18 @@ export default function ExpressDirectConnectPanel({
                     setError("");
                     setView("request");
                   }}
-                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-black/10 bg-white p-5 text-left text-neutral-900 transition-transform hover:-translate-y-0.5 hover:border-black/25"
+                  className="flex min-h-32 flex-col items-start justify-between rounded-2xl border-2 border-ts-orange/25 bg-white p-5 text-left text-neutral-900 transition-transform hover:-translate-y-0.5 hover:border-ts-orange/60"
                 >
-                  <MessageCircle className="h-6 w-6" />
+                  <MessageCircle className="h-6 w-6 text-ts-orange" />
                   <span>
-                    <strong className="block text-lg">Request stone</strong>
-                    <span className="text-sm font-medium text-stone-600">
-                      Phone number required
-                    </span>
+                    <strong className="block text-lg">{config.choiceLabel}</strong>
+                    <span className="text-sm font-medium text-stone-600">Send first, signup after</span>
                   </span>
                 </button>
               </div>
               <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-800" />A phone
-                number is required to send a request. No text code needed.
+                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
+                Contact stays protected inside TradeScout. A phone number is required to send.
               </div>
             </div>
           ) : null}
@@ -263,10 +333,10 @@ export default function ExpressDirectConnectPanel({
             <form onSubmit={submitRequest} className="space-y-4">
               <div>
                 <h3 className="text-2xl font-bold text-neutral-900">
-                  {initialStoneName ? `Ask about ${initialStoneName}` : "What are you looking for?"}
+                  {initialStoneName ? `Ask about ${initialStoneName}` : config.heading}
                 </h3>
                 <p className="mt-1 text-sm text-stone-600">
-                  Send your project details directly to {businessName}.
+                  Send the details directly to {businessName}. Signup comes after send.
                 </p>
               </div>
 
@@ -277,7 +347,7 @@ export default function ExpressDirectConnectPanel({
                   autoComplete="name"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
+                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -289,7 +359,7 @@ export default function ExpressDirectConnectPanel({
                     autoComplete="email"
                     value={form.email}
                     onChange={(event) => setForm({ ...form, email: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
+                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
                   />
                 </label>
                 <label className="block">
@@ -304,14 +374,12 @@ export default function ExpressDirectConnectPanel({
                     placeholder="(555) 555-5555"
                     value={form.phone}
                     onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
+                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
                   />
                 </label>
               </div>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
-                  What do you need?
-                </span>
+                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">What do you need?</span>
                 <select
                   value={form.requestType}
                   onChange={(event) =>
@@ -320,9 +388,9 @@ export default function ExpressDirectConnectPanel({
                       requestType: event.target.value as ExpressDirectConnectRequestType,
                     })
                   }
-                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
+                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
                 >
-                  {REQUEST_TYPES.map((type) => (
+                  {config.requestTypes.map((type) => (
                     <option key={type.value} value={type.value}>
                       {type.label}
                     </option>
@@ -337,8 +405,8 @@ export default function ExpressDirectConnectPanel({
                   minLength={10}
                   value={form.message}
                   onChange={(event) => setForm({ ...form, message: event.target.value })}
-                  placeholder="Tell them what material, quantity, project, or timing you have in mind."
-                  className="w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
+                  placeholder={config.placeholder}
+                  className="w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
                 />
               </label>
               <input
@@ -349,20 +417,12 @@ export default function ExpressDirectConnectPanel({
                 onChange={(event) => setForm({ ...form, website: event.target.value })}
                 className="absolute -left-[10000px] h-px w-px opacity-0"
               />
-              <p className="text-xs leading-relaxed text-stone-600">
-                We’ll also create your free TradeScout account so you can follow the request and
-                contact other businesses.
-              </p>
               <button
                 type="submit"
                 disabled={busy}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-neutral-900 px-7 py-3.5 font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-ts-orange px-7 py-3.5 font-bold text-white transition-colors hover:bg-ts-orange-dark disabled:opacity-60"
               >
-                {busy ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <MessageCircle className="h-5 w-5" />
-                )}
+                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageCircle className="h-5 w-5" />}
                 Send request
               </button>
             </form>
@@ -370,29 +430,24 @@ export default function ExpressDirectConnectPanel({
 
           {view === "call_started" ? (
             <div className="text-center">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-black/5 text-neutral-900">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-ts-orange/10 text-ts-orange">
                 <Phone className="h-7 w-7" />
               </div>
               <h3 className="text-2xl font-bold text-neutral-900">Calling {businessName}</h3>
               {callTel ? (
-                <a
-                  href={callTel}
-                  className="mt-3 inline-block text-lg font-bold text-neutral-900 underline underline-offset-4"
-                >
+                <a href={callTel} className="mt-3 inline-block text-lg font-bold text-neutral-900 underline underline-offset-4">
                   {callPhone || "Call again"}
                 </a>
               ) : null}
               {!hasViewerSession ? (
                 <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <Search className="mb-3 h-6 w-6 text-emerald-800" />
-                  <p className="font-bold text-neutral-900">Keep this connection</p>
+                  <p className="font-bold text-neutral-900">Keep this connection in TradeScout</p>
                   <p className="mt-1 text-sm text-stone-600">
-                    Create a free TradeScout account to save this business and find more businesses
-                    you can contact directly.
+                    Create your free account after the call to save {businessName} and manage future projects.
                   </p>
-                  <Link href={membershipHref}>
+                  <Link href={postCallSignupHref}>
                     <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                      Create free account
+                      Continue with Express signup
                     </button>
                   </Link>
                 </div>
@@ -407,30 +462,39 @@ export default function ExpressDirectConnectPanel({
               <p className="mx-auto mt-2 max-w-md text-stone-600">
                 {businessName} received your project details.
               </p>
+
               {!hasViewerSession ? (
                 <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
                   <p className="font-bold text-neutral-900">
-                    {accountCreated
-                      ? "Your TradeScout account is ready"
-                      : "Follow it in TradeScout"}
+                    {accountCreated ? "Finish Express signup" : "Sign in to manage this project"}
                   </p>
                   <p className="mt-1 text-sm text-stone-600">
-                    {accountCreated
-                      ? "Check your email to set up access. Then you can follow this request and find more businesses to Direct Connect with."
-                      : "Sign in to follow this request and continue the conversation."}
+                    This request is already saved to your TradeScout account. Continue to see it in My Requests, contact {businessName}, and manage the project.
                   </p>
+                  {accountCreated && onboardingEmailStatus === "sent" ? (
+                    <p className="mt-2 text-xs font-medium text-emerald-700">A setup email was sent. You can also continue here now.</p>
+                  ) : accountCreated ? (
+                    <p className="mt-2 text-xs font-medium text-amber-700">No email is required to continue from this browser.</p>
+                  ) : null}
                   <Link
-                    href={`/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect")}`}
+                    href={
+                      accountCreated && onboardingPath
+                        ? onboardingPath
+                        : `/pre-scout-setup?mode=signin&email=${encodeURIComponent(form.email)}&next=${encodeURIComponent(requestPath)}`
+                    }
                   >
                     <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                      Open TradeScout
+                      {accountCreated ? "Continue Express signup" : "Sign in and open My Requests"}
                     </button>
                   </Link>
+                  <p className="mt-3 text-xs text-stone-500">
+                    After signup, choose “Attach this project to your HomeID” if you want it in your home record.
+                  </p>
                 </div>
               ) : (
-                <Link href="/direct-connect">
+                <Link href={requestPath}>
                   <button className="mt-6 rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                    View in Direct Connect
+                    View in My Requests
                   </button>
                 </Link>
               )}

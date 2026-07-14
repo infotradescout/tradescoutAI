@@ -44,8 +44,10 @@ describe("HomeID and Direct Connect cohesion contract", () => {
     expect(shellSource).toContain("Request sent");
     expect(shellSource).toContain("Your request is live.");
     expect(shellSource).toContain("Save this request to your HomeID so future work is easier.");
-    expect(shellSource).toContain("Attach/update HomeID");
-    expect(shellSource).toContain("Create from request");
+    expect(shellSource).toContain("Attach this project to your HomeID");
+    expect(shellSource).not.toContain("Attach/update HomeID");
+    expect(shellSource).not.toContain("Create from request");
+    expect(shellSource).toContain('params.get("offerHomeId") !== "1"');
     expect(shellSource).toContain('source: "direct_connect_submitted"');
   });
 

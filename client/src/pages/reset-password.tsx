@@ -31,6 +31,17 @@ export default function ResetPasswordPage() {
     }
   }, [location]);
   const effectiveToken = token || verifiedToken;
+  const safeNext = useMemo(() => {
+    try {
+      const idx = location.indexOf("?");
+      if (idx === -1) return "";
+      const params = new URLSearchParams(location.slice(idx + 1));
+      const requested = String(params.get("next") || "").trim();
+      return requested.startsWith("/") && !requested.startsWith("//") ? requested : "";
+    } catch {
+      return "";
+    }
+  }, [location]);
 
   const requestResetMutation = useMutation({
     mutationFn: async () => {
@@ -104,7 +115,10 @@ export default function ResetPasswordPage() {
     },
     onSuccess: () => {
       toast({ title: "Password set", description: "You can now sign in." });
-      navigate("/pre-scout-setup?mode=signin");
+      const signinPath = safeNext
+        ? `/pre-scout-setup?mode=signin&next=${encodeURIComponent(safeNext)}`
+        : "/pre-scout-setup?mode=signin";
+      navigate(signinPath);
     },
     onError: (error: any) => {
       toast({

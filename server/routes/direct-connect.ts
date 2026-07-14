@@ -29,6 +29,7 @@ import { and, asc, desc, eq, exists, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { storage } from "../storage";
 import { notificationService } from "../notification-service";
+import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
 import { emailService } from "../services/emailService";
 import { passwordResetService } from "../services/passwordResetService";
 import { emailVerificationService } from "../services/emailVerificationService";
@@ -7055,6 +7056,20 @@ export function registerDirectConnectRoutes(app: Express) {
             (createdResponse as any).shareToken = shareToken;
             (createdResponse as any).dcMiniLandingUrl =
               `${resolveOrigin(req)}/r/${encodeURIComponent(String(shareToken))}`;
+          }
+        }
+
+        if (created?.id) {
+          try {
+            await notifySuperAdminsOfDirectConnectRequest({
+              requestId: String(created.id),
+              requestTitle: String(created.title || "Direct Connect request"),
+            });
+          } catch (error) {
+            console.warn("[direct-connect] beta admin notification failed", {
+              requestId: created.id,
+              error,
+            });
           }
         }
 

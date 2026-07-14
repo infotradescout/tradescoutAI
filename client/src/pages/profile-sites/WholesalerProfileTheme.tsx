@@ -1700,6 +1700,7 @@ export default function WholesalerProfileTheme({
         profileSlug={profileSlug}
         businessName={displayName}
         hasViewerSession={hasViewerSession}
+        requestMode="materials"
         initialStoneName={expressStoneName}
         initialRequestType={expressRequestType}
       />
