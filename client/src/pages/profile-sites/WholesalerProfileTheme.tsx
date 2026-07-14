@@ -62,7 +62,12 @@ type InventoryStone = {
   name: string;
   slug: string;
   images: string[];
-  materialStatus?: "user_confirmed" | "source_folder" | "filename" | "historical_assignment" | "unconfirmed";
+  materialStatus?:
+    | "user_confirmed"
+    | "source_folder"
+    | "filename"
+    | "historical_assignment"
+    | "unconfirmed";
   finishes?: string[];
   finishStatus?: "explicit" | "unconfirmed";
   sourceNote?: string;
@@ -518,7 +523,7 @@ export default function WholesalerProfileTheme({
               >
                 Live Stone Collection
               </h2>
-              <p className="text-sm !text-[#625b50]">Browse current inventory and new arrivals.</p>
+              <p className="text-sm !text-[#4a4238]">Browse current inventory and new arrivals.</p>
             </div>
 
             <div className="mb-6 rounded-2xl border border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-3 shadow-sm md:p-4">
@@ -565,13 +570,13 @@ export default function WholesalerProfileTheme({
                     Clear filters
                   </button>
                 ) : (
-                  <p className="whitespace-nowrap px-2 text-sm font-semibold !text-[#6b645b]">
+                  <p className="whitespace-nowrap px-2 text-sm font-semibold !text-[#4a4238]">
                     {visibleStones.length} stones
                   </p>
                 )}
               </div>
               {hasInventoryFilters ? (
-                <p className="mt-3 px-1 text-sm font-medium !text-[#6b645b]">
+                <p className="mt-3 px-1 text-sm font-medium !text-[#4a4238]">
                   {visibleStones.length} {visibleStones.length === 1 ? "stone" : "stones"} shown
                 </p>
               ) : null}
@@ -605,10 +610,8 @@ export default function WholesalerProfileTheme({
                   ) : null}
                   <div className="p-4">
                     <p className="font-semibold !text-[#241d0f]">{stone.name}</p>
-                    <p className="mt-1 text-xs !text-[#71695f]">
-                      {stone.finishes?.length
-                        ? stone.finishes.join(" · ")
-                        : "Finish: ask JW Stone"}
+                    <p className="mt-1 text-xs !text-[#4a4238]">
+                      {stone.finishes?.length ? stone.finishes.join(" · ") : "Finish: ask JW Stone"}
                     </p>
                     {stone.materialStatus === "unconfirmed" ? (
                       <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
@@ -622,7 +625,7 @@ export default function WholesalerProfileTheme({
             {visibleStones.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-5 py-10 text-center">
                 <p className="font-semibold text-[#241d0f]">No matching stone name</p>
-                <p className="mt-1 text-sm text-[#241d0f]/60">
+                <p className="mt-1 text-sm text-[#241d0f]/75">
                   Try another spelling or Direct Connect with JW Stone for help.
                 </p>
               </div>
@@ -636,7 +639,7 @@ export default function WholesalerProfileTheme({
                 >
                   Show 24 more
                 </button>
-                <p className="text-xs text-[#241d0f]/55">
+                <p className="text-xs text-[#241d0f]/75">
                   Showing {displayedStones.length} of {visibleStones.length}
                 </p>
               </div>
@@ -818,7 +821,9 @@ export default function WholesalerProfileTheme({
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--brand-accent)]">
                 From source to finished space
               </p>
-              <h2 className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}>
+              <h2
+                className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}
+              >
                 Stone selected with the final room in mind.
               </h2>
             </div>
@@ -892,7 +897,10 @@ export default function WholesalerProfileTheme({
               >
                 Featured Materials
               </h2>
-              <a href="#collection" className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline">
+              <a
+                href="#collection"
+                className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
+              >
                 View all inventory
               </a>
             </div>
@@ -924,9 +932,13 @@ export default function WholesalerProfileTheme({
                       ) : null}
                     </div>
                     <div className="px-5 pb-3 pt-4">
-                      <h3 className={`text-xl font-bold !text-[#241d0f] ${DISPLAY_FONT}`}>{stone.name}</h3>
-                      <p className="mt-1 text-sm !text-[#71695f]">
-                        {stone.finishes?.length ? stone.finishes.join(" · ") : "Current JW Stone inventory"}
+                      <h3 className={`text-xl font-bold !text-[#241d0f] ${DISPLAY_FONT}`}>
+                        {stone.name}
+                      </h3>
+                      <p className="mt-1 text-sm !text-[#4a4238]">
+                        {stone.finishes?.length
+                          ? stone.finishes.join(" · ")
+                          : "Current JW Stone inventory"}
                       </p>
                     </div>
                   </button>
@@ -947,7 +959,9 @@ export default function WholesalerProfileTheme({
       ) : galleryImages.length > 0 ? (
         <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
-            <h2 className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}>
+            <h2
+              className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+            >
               Featured Materials
             </h2>
             <div className={SCROLL_ROW}>
@@ -1002,7 +1016,7 @@ export default function WholesalerProfileTheme({
                 {summary.positive} positive, {summary.negative} negative ({summary.total} total)
               </div>
             </div>
-            <p className="mb-8 text-sm text-[#241d0f]/60">
+            <p className="mb-8 text-sm text-[#241d0f]/75">
               Recommendations are public, moderated, and tied to verified TradeScout activity.
             </p>
             <div className="space-y-4">
@@ -1030,7 +1044,7 @@ export default function WholesalerProfileTheme({
                         </span>
                       ) : null}
                     </div>
-                    <div className="text-xs text-[#241d0f]/50">
+                    <div className="text-xs text-[#241d0f]/75">
                       {entry.createdAt
                         ? new Date(entry.createdAt).toLocaleDateString()
                         : "Date unavailable"}
@@ -1049,7 +1063,7 @@ export default function WholesalerProfileTheme({
                       </span>
                     </Link>
                   ) : (
-                    <p className="text-xs text-[#241d0f]/50">{entry.contractor.companyName}</p>
+                    <p className="text-xs text-[#241d0f]/75">{entry.contractor.companyName}</p>
                   )}
                 </div>
               ))}
