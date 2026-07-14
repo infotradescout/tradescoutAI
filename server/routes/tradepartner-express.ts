@@ -410,7 +410,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               ]
                 .filter(Boolean)
                 .join("\n"),
-              purpose: "notification",
+              purpose: "tradepartner_request_notification",
             })
             .catch((error) =>
               console.warn("[tradepartner-express] business notification email failed", {

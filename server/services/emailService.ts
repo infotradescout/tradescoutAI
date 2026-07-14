@@ -93,7 +93,8 @@ class EmailService {
         purpose === "claim_business" ||
         purpose === "tradepartner_interest_admin" ||
         purpose === "tradepartner_rsvp_admin" ||
-        purpose === "tradepartner_rsvp_confirmation";
+        purpose === "tradepartner_rsvp_confirmation" ||
+        purpose === "tradepartner_request_notification";
       if (!allowed) {
         console.warn("[email] Suppressed by EMAIL_MODE=account_creation_only", {
           purpose: params.purpose,
