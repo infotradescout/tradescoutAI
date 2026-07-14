@@ -9,7 +9,10 @@ function read(relativePath: string) {
 describe("Public-profile Express Direct Connect contract", () => {
   it("keeps individual business CTAs separate from the Direct Connect portal", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
-    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const theme = [
+      read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
+      read("client/src/pages/profile-sites/WholesalerProfileThemeCore.tsx"),
+    ].join("\n");
 
     expect(profileView).toContain("const useExpressDirectConnect = true");
     expect(profileView).toContain("The boundary is the surface, not the referrer");
