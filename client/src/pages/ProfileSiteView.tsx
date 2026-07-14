@@ -226,9 +226,11 @@ export default function ProfileSiteView() {
       : profile.headline ||
         `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`;
   const seoImage =
-    typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
-      ? profile.seoMeta.imageUrl
-      : undefined;
+    profile.slug === "jw-stone"
+      ? `${getCanonicalAppOrigin()}/images/businesses/jw-stone/logo.svg`
+      : typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
+        ? profile.seoMeta.imageUrl
+        : undefined;
   const structuredData = {
     "@context": "https://schema.org",
     "@type": business?.name ? "LocalBusiness" : "Person",
