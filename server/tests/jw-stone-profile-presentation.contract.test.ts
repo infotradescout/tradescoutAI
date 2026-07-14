@@ -6,6 +6,10 @@ const source = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
   "utf8"
 );
+const expressSource = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx"),
+  "utf8"
+);
 
 describe("JW Stone profile presentation contract", () => {
   it("uses Amazonic Green as the centered ten-percent-cropped hero", () => {
@@ -73,6 +77,24 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('"Close JW Stone and return to TradeScout"');
     expect(source).not.toContain("window.history.back()");
     expect(source).toContain("fixed inset-x-0 top-0 z-40");
+  });
+
+  it("keeps TradeScout actions orange and JW Stone inventory actions green", () => {
+    expect(source).toContain("bg-ts-orange/85");
+    expect(source).toContain("hover:bg-ts-orange-dark");
+    expect(source).toContain(
+      "group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-accent)]"
+    );
+    expect(source).toContain(
+      "Request this stone"
+    );
+    expect(source).toContain(
+      "bg-[var(--brand-accent)] px-6 py-3 text-sm font-extrabold text-[#16200b]"
+    );
+    expect(expressSource).toContain("text-ts-orange-dark");
+    expect(expressSource).toContain(
+      "bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+    );
   });
 
   it("keeps the JW Stone brand centered between profile navigation controls", () => {
