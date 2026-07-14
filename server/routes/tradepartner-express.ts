@@ -64,6 +64,10 @@ type TradePartnerTarget = {
   businessName: string;
   ownerUserId: string;
   phone: string;
+  // Where new-request emails go. Separate from the owner's login email --
+  // a business may want requests routed to a shared inbox instead of
+  // whatever address the account owner personally signed in with.
+  notificationEmail: string;
 };
 
 function normalizeEmail(value: unknown): string {
@@ -142,6 +146,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   const ownerDiscoverable = row?.ownerVerifiedBadge === true || verificationStatus === "approved";
   const profileData = (row?.profileData || {}) as Record<string, any>;
   const phone = String(profileData.phone || "").trim();
+  const notificationEmail = String(profileData.notificationEmail || "").trim();
   if (
     !row ||
     String(row.profileStatus) !== "published" ||
@@ -159,6 +164,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     businessName: String(row.businessName),
     ownerUserId: String(row.ownerUserId),
     phone,
+    notificationEmail,
   };
 }
 
@@ -374,6 +380,45 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             ownerUserId: target.ownerUserId,
             error,
           });
+        }
+
+        if (target.notificationEmail && emailService.isConfigured()) {
+          const publicBase = String(
+            process.env.APP_BASE_URL || "https://www.thetradescout.com"
+          ).replace(/\/$/, "");
+          const inboxUrl = `${publicBase}/direct-connect/inbox`;
+          void emailService
+            .sendEmail({
+              to: target.notificationEmail,
+              subject: `New request for ${target.businessName}`,
+              html: [
+                `<p>${escapeHtml(body.name)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
+                body.stoneName
+                  ? `<p><strong>Stone:</strong> ${escapeHtml(body.stoneName)}</p>`
+                  : "",
+                `<p><strong>Request type:</strong> ${escapeHtml(requestTitle(body.requestType, target.businessName))}</p>`,
+                `<p>Contact details stay inside TradeScout until you respond -- open Direct Connect to view the full message and reply.</p>`,
+                `<p><a href=\"${inboxUrl}\">Open Direct Connect inbox</a>.</p>`,
+              ]
+                .filter(Boolean)
+                .join("\n"),
+              text: [
+                `${body.name} sent a request through your ${target.businessName} profile on TradeScout.`,
+                body.stoneName ? `Stone: ${body.stoneName}` : null,
+                `Request type: ${requestTitle(body.requestType, target.businessName)}`,
+                `Open Direct Connect inbox: ${inboxUrl}`,
+              ]
+                .filter(Boolean)
+                .join("\n"),
+              purpose: "notification",
+            })
+            .catch((error) =>
+              console.warn("[tradepartner-express] business notification email failed", {
+                requestId: created.id,
+                notificationEmail: target.notificationEmail,
+                error,
+              })
+            );
         }
 
         if (emailService.isConfigured()) {
