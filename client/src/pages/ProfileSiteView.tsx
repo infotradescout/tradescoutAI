@@ -124,7 +124,15 @@ export default function ProfileSiteView() {
   const [, paramsU] = useRoute("/u/:slug");
   const [matchP, paramsP] = useRoute("/p/:slug");
   const [, navigate] = useLocation();
-  const slug = (paramsU?.slug || paramsP?.slug || "").trim();
+  // Custom-domain root has no /u/:slug in the path at all -- the server
+  // tells us the slug directly via this injected global (see
+  // injectCustomDomainProfileSlug in server/publicProfileHtml.ts).
+  const customDomainSlug =
+    typeof window !== "undefined"
+      ? (window as unknown as { __TS_CUSTOM_DOMAIN_PROFILE_SLUG__?: string })
+          .__TS_CUSTOM_DOMAIN_PROFILE_SLUG__
+      : undefined;
+  const slug = (paramsU?.slug || paramsP?.slug || customDomainSlug || "").trim();
   const [data, setData] = useState<PublicProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);

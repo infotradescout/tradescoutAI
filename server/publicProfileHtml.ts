@@ -95,6 +95,16 @@ function injectFaviconOverride(html: string, imageUrl: string): string {
   return withoutIcons.replace("</head>", `${tag}\n</head>`);
 }
 
+// The client-side router only recognizes profile pages by URL path
+// (/u/:slug), so when this profile is served at its own custom domain's
+// root -- no /u/:slug in the path at all -- React has no way to know which
+// profile to render post-hydration and falls through to the generic
+// landing page. This tells it directly.
+function injectCustomDomainProfileSlug(html: string, slug: string): string {
+  const script = `<script>window.__TS_CUSTOM_DOMAIN_PROFILE_SLUG__=${JSON.stringify(slug)};</script>`;
+  return html.replace("</head>", `${script}\n</head>`);
+}
+
 function injectJsonLd(html: string, jsonLd: object) {
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   const script = `<script type="application/ld+json">${json}</script>`;
@@ -385,6 +395,18 @@ export async function buildPublicProfileHtml({
   );
   if (meta.faviconUrl) {
     html = injectFaviconOverride(html, meta.faviconUrl);
+  }
+
+  const requestHost = (() => {
+    try {
+      return new URL(origin).hostname.toLowerCase();
+    } catch {
+      return "";
+    }
+  })();
+  const customDomain = profileRecord.seoMeta?.customDomain?.trim().toLowerCase();
+  if (customDomain && requestHost === customDomain) {
+    html = injectCustomDomainProfileSlug(html, profileRecord.slug);
   }
 
   const bookingRows =

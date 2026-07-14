@@ -592,6 +592,7 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicRootLanding,
   isShareRoute,
   isStandaloneProfileRoute,
+  isCustomDomainProfileRoute,
 }: {
   isLiteScoutRoute: boolean;
   isLandingRoute: boolean;
@@ -599,10 +600,16 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicRootLanding: boolean;
   isShareRoute: boolean;
   isStandaloneProfileRoute: boolean;
+  isCustomDomainProfileRoute: boolean;
 }) {
   return (
     <>
-      {isLiteScoutRoute ? (
+      {isCustomDomainProfileRoute ? (
+        // A business's own custom domain -- every path here is that one
+        // profile; no route matching needed since there's nothing else this
+        // host could mean.
+        <LazyPage Component={ProfileSiteView} />
+      ) : isLiteScoutRoute ? (
         <Switch>
           <Route path="/_scout-lite">
             <LandingAccessGate>
