@@ -294,15 +294,27 @@ export default function WholesalerProfileTheme({
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
-  // The hero video plays once and freezes on its last frame, then the
-  // headline/CTAs fade in -- a fallback timer covers the case where the
-  // browser blocks autoplay or the video fails, so content is never stuck
-  // hidden waiting for an "ended" event that will never fire.
-  const [heroVideoReady, setHeroVideoReady] = useState(!isJwStone);
+  // The hero copy reveals in stages *during* video playback, not after it
+  // ends -- stone name first at 0.5s, then headline/teaser/buttons spaced
+  // out across the rest of the 7s clip. Driven by wall-clock timers off
+  // mount rather than video events, so it still runs on schedule even if
+  // autoplay is blocked and the video never actually plays.
+  const [heroStage, setHeroStage] = useState(isJwStone ? 0 : 4);
+  // Starts framed at the video's full, uncropped shot and slowly zooms into
+  // the 1.25x crop used everywhere else -- timed to land exactly when the
+  // last CTA (stage 4) finishes revealing, so the zoom and the copy resolve
+  // together instead of the crop just jumping in on mount.
+  const [heroVideoZoomed, setHeroVideoZoomed] = useState(false);
   useEffect(() => {
     if (!isJwStone) return;
-    const fallback = window.setTimeout(() => setHeroVideoReady(true), 8000);
-    return () => window.clearTimeout(fallback);
+    const timers = [
+      window.setTimeout(() => setHeroVideoZoomed(true), 100),
+      window.setTimeout(() => setHeroStage(1), 500),
+      window.setTimeout(() => setHeroStage(2), 2200),
+      window.setTimeout(() => setHeroStage(3), 4000),
+      window.setTimeout(() => setHeroStage(4), 5600),
+    ];
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [isJwStone]);
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
@@ -436,13 +448,13 @@ export default function WholesalerProfileTheme({
       ? "Search the full collection or ask JW Stone about your project."
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
-  // Staggers the hero copy in after the video ends, stone type leading --
-  // a single simultaneous fade read as flat, so each element gets its own
-  // delay off the same heroVideoReady flip for a cascading reveal.
-  const heroReveal = (delayClass: string) =>
+  // Each hero element reveals at its own stage rather than all together --
+  // stone type leading, then headline/teaser/buttons in turn as heroStage
+  // climbs on its own schedule (see the timers above).
+  const heroReveal = (stage: number) =>
     isJwStone
-      ? `transition-all duration-700 ease-out ${delayClass} ${
-          heroVideoReady ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+      ? `transition-all duration-700 ease-out ${
+          heroStage >= stage ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
         }`
       : "";
 
@@ -762,10 +774,10 @@ export default function WholesalerProfileTheme({
             muted
             playsInline
             poster="/images/businesses/jw-stone/video/hero-poster.jpg"
-            onEnded={() => setHeroVideoReady(true)}
-            onError={() => setHeroVideoReady(true)}
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-[1.25] object-cover object-center"
+            className={`absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[5500ms] ease-out ${
+              heroVideoZoomed ? "scale-[1.25]" : "scale-100"
+            }`}
           >
             <source src="/images/businesses/jw-stone/video/hero.mp4" type="video/mp4" />
           </video>
@@ -778,7 +790,7 @@ export default function WholesalerProfileTheme({
         >
           {heroEyebrow ? (
             <span
-              className={`mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs ${heroReveal("delay-0")}`}
+              className={`mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs ${heroReveal(1)}`}
             >
               {heroEyebrow}
             </span>
@@ -788,7 +800,7 @@ export default function WholesalerProfileTheme({
               isJwStone
                 ? "text-[2.7rem] leading-[0.96]"
                 : "text-[2.55rem] leading-[0.98] md:mx-auto"
-            } ${DISPLAY_FONT} ${heroReveal("delay-150")}`}
+            } ${DISPLAY_FONT} ${heroReveal(2)}`}
           >
             {heroHeadline}
           </h1>
@@ -796,7 +808,7 @@ export default function WholesalerProfileTheme({
             <p
               className={`mb-7 max-w-[34rem] text-base leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mb-10 md:text-lg ${
                 isJwStone ? "font-medium" : "md:mx-auto"
-              } ${heroReveal("delay-300")}`}
+              } ${heroReveal(3)}`}
             >
               {heroTeaser}
             </p>
@@ -804,7 +816,7 @@ export default function WholesalerProfileTheme({
           <div
             className={`flex flex-col items-stretch gap-3 sm:flex-row sm:items-center ${
               isJwStone ? "max-w-[38rem]" : "md:justify-center"
-            } ${heroReveal("delay-500")}`}
+            } ${heroReveal(4)}`}
           >
             {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
               <button
