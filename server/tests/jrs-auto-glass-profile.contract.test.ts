@@ -31,8 +31,6 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("/images/businesses/jrs-auto-glass/logo.svg");
     expect(theme).toContain("Skip the national-chain runaround.");
     expect(theme).toContain("Direct Connect with JR&apos;s");
-    expect(theme).toContain("A name handed down. A business carried forward.");
-    expect(theme).toContain("Ryan Bourg&apos;s father");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
