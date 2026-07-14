@@ -83,7 +83,7 @@ export default function JrsAutoGlassProfileTheme({
   const exitHref = hasViewerSession ? "/direct-connect" : "/";
 
   return (
-    <main className="min-h-screen bg-[#080808] text-zinc-100">
+    <main className="bg-[#080808] text-zinc-100">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/90 backdrop-blur-xl">
         <div className="mx-auto grid h-16 max-w-6xl grid-cols-[1fr_auto_1fr] items-center px-4 md:h-[72px] md:px-8">
           <Link
