@@ -642,18 +642,20 @@ export default function WholesalerProfileTheme({
                 />
               </div>
               <div className="flex items-center justify-self-end gap-2">
-                <Link
-                  href={tradeScoutExitHref}
-                  aria-label={
-                    hasViewerSession
-                      ? "Close JW Stone and return to Direct Connect"
-                      : "Close JW Stone and return to TradeScout"
-                  }
-                  title={hasViewerSession ? "Return to Direct Connect" : "Return to TradeScout"}
-                  className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
-                >
-                  <X className="h-4.5 w-4.5" />
-                </Link>
+                {isProfileHome ? null : (
+                  <Link
+                    href={tradeScoutExitHref}
+                    aria-label={
+                      hasViewerSession
+                        ? "Close JW Stone and return to Direct Connect"
+                        : "Close JW Stone and return to TradeScout"
+                    }
+                    title={hasViewerSession ? "Return to Direct Connect" : "Return to TradeScout"}
+                    className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+                  >
+                    <X className="h-4.5 w-4.5" />
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={() => startDirectConnect()}
@@ -957,16 +959,8 @@ export default function WholesalerProfileTheme({
                       <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand-accent)] sm:text-xs">
                         Rhino White · current inventory
                       </span>
-                      <span
-                        className={`mt-0.5 block text-xl font-extrabold sm:text-2xl ${DISPLAY_FONT}`}
-                      >
+                      <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors group-hover:bg-white/20">
                         Browse full inventory
-                      </span>
-                      <span className="mt-1 block text-sm font-medium text-white/75">
-                        Search every current slab by stone or material
-                      </span>
-                      <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors group-hover:bg-white/20">
-                        Search inventory
                         <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </span>
