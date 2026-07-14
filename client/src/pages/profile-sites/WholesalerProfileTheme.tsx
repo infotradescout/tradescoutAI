@@ -424,21 +424,56 @@ export default function WholesalerProfileTheme({
     navigate(ctaHref);
   };
 
+  // A handful of source files are truncated mid-upload (correct WebP header
+  // and dimensions, but the compressed frame data cuts off) -- the browser
+  // reports them as loaded successfully, so onError never fires. Sampling a
+  // downscaled draw catches the "decoded to solid black" case those produce.
+  const isDecodedFrameBlack = (img: HTMLImageElement): boolean => {
+    try {
+      const w = 24;
+      const h = Math.max(1, Math.round((img.naturalHeight / img.naturalWidth) * w) || 24);
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return false;
+      ctx.drawImage(img, 0, 0, w, h);
+      const { data } = ctx.getImageData(0, 0, w, h);
+      let sum = 0;
+      for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
+      return sum / (data.length / 4) < 4;
+    } catch {
+      return false;
+    }
+  };
+
   // Falls through the stone's other photos before giving up and showing the
-  // JW Stone mark, so a single failed request never just leaves a blank box.
+  // JW Stone mark, so a corrupted or failed photo never just leaves a blank
+  // box -- covers both real network errors and the silent-black-decode case.
+  const advanceStoneImage = (img: HTMLImageElement, stone: InventoryStone) => {
+    const nextIndex = Number(img.dataset.fallbackIndex || "0") + 1;
+    if (nextIndex < stone.images.length) {
+      img.dataset.fallbackIndex = String(nextIndex);
+      img.src = stone.images[nextIndex];
+      return;
+    }
+    img.onerror = null;
+    img.src = "/images/businesses/jw-stone/logo.svg";
+    img.className =
+      "h-full w-full bg-stone-200 object-contain p-10 opacity-40 transition-transform duration-300 group-hover:scale-105";
+  };
+
   const handleStoneImageError =
     (stone: InventoryStone) => (event: SyntheticEvent<HTMLImageElement>) => {
+      advanceStoneImage(event.currentTarget, stone);
+    };
+
+  const handleStoneImageLoad =
+    (stone: InventoryStone) => (event: SyntheticEvent<HTMLImageElement>) => {
       const img = event.currentTarget;
-      const nextIndex = Number(img.dataset.fallbackIndex || "0") + 1;
-      if (nextIndex < stone.images.length) {
-        img.dataset.fallbackIndex = String(nextIndex);
-        img.src = stone.images[nextIndex];
-        return;
+      if (isDecodedFrameBlack(img)) {
+        advanceStoneImage(img, stone);
       }
-      img.onerror = null;
-      img.src = "/images/businesses/jw-stone/logo.svg";
-      img.className =
-        "h-full w-full bg-stone-200 object-contain p-10 opacity-40 transition-transform duration-300 group-hover:scale-105";
     };
 
   const renderStoneCard = (
@@ -463,6 +498,7 @@ export default function WholesalerProfileTheme({
             fetchPriority={priority === "high" ? "high" : "auto"}
             data-fallback-index="0"
             onError={handleStoneImageError(stone)}
+            onLoad={handleStoneImageLoad(stone)}
             className="h-full w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-105"
           />
           {stone.images.length > 1 ? (
@@ -654,6 +690,7 @@ export default function WholesalerProfileTheme({
                           alt={stone.name}
                           data-fallback-index="0"
                           onError={handleStoneImageError(stone)}
+                          onLoad={handleStoneImageLoad(stone)}
                           className="aspect-[3/4] w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         />
                         <div className="p-2 sm:p-4">
@@ -962,6 +999,15 @@ export default function WholesalerProfileTheme({
                   src={openStone.images[openImageIndex]}
                   alt={`${openStone.name} ${openImageIndex + 1}`}
                   onError={() => {
+                    triedLightboxIndexesRef.current.add(openImageIndex);
+                    if (triedLightboxIndexesRef.current.size >= openStone.images.length) {
+                      setLightboxImageFailed(true);
+                      return;
+                    }
+                    setOpenImageIndex((current) => (current + 1) % openStone.images.length);
+                  }}
+                  onLoad={(event) => {
+                    if (!isDecodedFrameBlack(event.currentTarget)) return;
                     triedLightboxIndexesRef.current.add(openImageIndex);
                     if (triedLightboxIndexesRef.current.size >= openStone.images.length) {
                       setLightboxImageFailed(true);
