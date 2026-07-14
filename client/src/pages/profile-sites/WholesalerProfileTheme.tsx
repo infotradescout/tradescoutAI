@@ -761,9 +761,6 @@ export default function WholesalerProfileTheme({
           </video>
         ) : null}
         {/* A 1.25x centered scale shows the middle 80% of the image: a 10% crop on every side. */}
-        {isJwStone ? (
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(12,18,10,0.08)_0%,rgba(12,18,10,0.38)_42%,rgba(12,18,10,0.94)_100%)] md:bg-[linear-gradient(to_right,rgba(12,18,10,0.86)_0%,rgba(12,18,10,0.48)_52%,rgba(12,18,10,0.16)_100%)]" />
-        ) : null}
         <div
           className={`relative z-10 container mx-auto px-5 text-left transition-all duration-700 ease-out ${
             isJwStone ? "md:px-8" : "md:px-6 md:text-center"
