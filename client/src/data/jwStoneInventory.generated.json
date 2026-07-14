@@ -1032,20 +1032,17 @@
     "name": "Honey Onyx",
     "slug": "honey-onyx",
     "images": [
+      "/images/businesses/jw-stone/inventory-source/1VzCA95gOYzhCA7CP6GaL9f73Ijv05QCf.webp",
       "/images/businesses/jw-stone/inventory-source/1ldPDW2qNe82fjs33B-67cnwrz6k7jC5S.webp",
-      "/images/businesses/jw-stone/inventory-source/1yJx_wc5icvkwJCU4r7weJtOvpWztrXK-.webp",
-      "/images/businesses/jw-stone/inventory-source/1VzCA95gOYzhCA7CP6GaL9f73Ijv05QCf.webp"
+      "/images/businesses/jw-stone/inventory-source/1yJx_wc5icvkwJCU4r7weJtOvpWztrXK-.webp"
     ],
     "sourceFolders": [
       "Onyx"
     ],
     "sourceFileIds": [
+      "1VzCA95gOYzhCA7CP6GaL9f73Ijv05QCf",
       "1ldPDW2qNe82fjs33B-67cnwrz6k7jC5S",
-      "1yJx_wc5icvkwJCU4r7weJtOvpWztrXK-",
-      "1VzCA95gOYzhCA7CP6GaL9f73Ijv05QCf"
-    ],
-    "slabCounts": [
-      120
+      "1yJx_wc5icvkwJCU4r7weJtOvpWztrXK-"
     ]
   },
   {

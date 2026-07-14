@@ -956,6 +956,10 @@ export default function WholesalerProfileTheme({
                       <span className="mt-1 block text-sm font-medium text-white/75">
                         Search every current slab by stone or material
                       </span>
+                      <span className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-5 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors group-hover:bg-white/20">
+                        Search inventory
+                        <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                      </span>
                     </span>
                   </button>
                 </div>
@@ -1659,13 +1663,6 @@ export default function WholesalerProfileTheme({
                 {option.label}
               </button>
             ))}
-          </div>
-          <div className="mx-auto mb-10 flex max-w-md items-center justify-center gap-2 text-sm text-white/70">
-            <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
-            <span>
-              The phone number appears only after you choose Call. Written requests require your
-              phone number before they go directly to {displayName}.
-            </span>
           </div>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <button
