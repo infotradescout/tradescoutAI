@@ -645,7 +645,7 @@ export default function WholesalerProfileTheme({
                 <button
                   type="button"
                   onClick={() => startDirectConnect()}
-                  className="hidden flex-shrink-0 rounded-full bg-[var(--brand-primary)] px-3.5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] sm:inline-flex md:px-5 md:text-sm"
+                  className="hidden flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark sm:inline-flex md:px-5 md:text-sm"
                 >
                   Direct Connect
                 </button>
@@ -666,7 +666,7 @@ export default function WholesalerProfileTheme({
               <button
                 type="button"
                 onClick={() => startDirectConnect()}
-                className="flex-shrink-0 rounded-full bg-[var(--brand-primary)] px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] md:px-5 md:text-sm"
+                className="flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark md:px-5 md:text-sm"
               >
                 Direct Connect
               </button>
@@ -772,26 +772,14 @@ export default function WholesalerProfileTheme({
               <button
                 type="button"
                 onClick={openFullInventory}
-                className="group flex min-h-16 flex-1 items-center justify-between gap-4 rounded-2xl bg-white px-5 py-3.5 text-left text-[var(--brand-primary)] shadow-[0_16px_44px_rgba(0,0,0,0.38)] ring-1 ring-white/70 transition-transform hover:-translate-y-0.5 md:rounded-full md:px-7"
+                className="group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-accent)] px-6 py-3.5 text-sm font-bold text-[#16200b] shadow-[0_12px_36px_rgba(0,0,0,0.24)] transition-all hover:-translate-y-0.5 hover:brightness-95 md:rounded-full"
               >
-                <span className="flex items-center gap-3">
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-accent)] text-[#16200b]">
-                    <LayoutGrid className="h-5 w-5" />
-                  </span>
-                  <span>
-                    <span className="block text-base font-extrabold leading-tight">
-                      Browse full inventory
-                    </span>
-                    <span className="mt-0.5 block text-xs font-semibold text-[var(--brand-primary)]/70">
-                      Search by stone or material
-                    </span>
-                  </span>
-                </span>
-                <ChevronRight className="h-5 w-5 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
+                Browse full inventory
+                <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
               </button>
             ) : (
               <a href="#collection">
-                <button className="flex items-center justify-center gap-2 rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                <button className="flex min-h-14 items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-7 py-3.5 text-sm font-bold text-[#16200b] shadow-[0_12px_36px_rgba(0,0,0,0.24)] transition-all hover:-translate-y-0.5 hover:brightness-95">
                   Explore Inventory
                 </button>
               </a>
@@ -799,18 +787,14 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className={`flex min-h-14 items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white ${
-                isJwStone
-                  ? "rounded-2xl border border-white/45 bg-black/25 shadow-[0_12px_36px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-colors hover:bg-black/40 md:rounded-full"
-                  : "rounded-xl bg-[var(--brand-accent)] text-base text-[#16200b] shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-opacity hover:opacity-90 md:min-h-0 md:rounded-full md:text-sm md:text-white"
-              }`}
+              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-ts-orange-light/70 bg-ts-orange/85 px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-sm transition-colors hover:bg-ts-orange md:rounded-full"
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
             </button>
             {!isJwStone && !hasViewerSession ? (
               <Link href={preScoutSignInHref} className="hidden md:block">
-                <button className="rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                <button className="rounded-full border border-ts-orange-light/70 bg-ts-orange/15 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-ts-orange/30">
                   Sign in
                 </button>
               </Link>
@@ -1691,14 +1675,14 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex items-center justify-center gap-2 rounded-full bg-[var(--brand-accent)] px-8 py-4 text-base font-bold text-white transition-opacity hover:opacity-90"
+              className="flex items-center justify-center gap-2 rounded-full bg-ts-orange px-8 py-4 text-base font-bold text-white transition-colors hover:bg-ts-orange-dark"
             >
               <MessageCircle className="h-5 w-5" />
               Direct Connect
             </button>
             {!hasViewerSession ? (
               <Link href={preScoutSignInHref}>
-                <button className="rounded-full border border-white/40 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-white/10">
+                <button className="rounded-full border border-ts-orange-light/70 bg-ts-orange/15 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-ts-orange/30">
                   Sign in
                 </button>
               </Link>
