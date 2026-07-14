@@ -246,7 +246,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Custom domains: redirect to canonical host with ?ref=... attached.
+// Custom domains: profile domains render the profile in place; business and
+// affiliate domains redirect to canonical host with ?ref=... attached.
 const CUSTOM_DOMAIN_CACHE = new Map<
   string,
   | { kind: "affiliate"; ref: string; at: number }
@@ -254,6 +255,27 @@ const CUSTOM_DOMAIN_CACHE = new Map<
   | { kind: "business"; slug: string; at: number }
 >();
 const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// A verified profile custom domain (e.g. jwstonelogistics.com) should show
+// its own URL in the address bar, not redirect through /u/:slug -- so this
+// renders the same server-side HTML that route serves, in place, on the
+// custom host. Falls back to the old redirect if the build isn't available
+// (e.g. local dev, where dist/public doesn't exist).
+async function renderProfileOnCustomDomain(
+  req: Request,
+  res: Response,
+  slug: string
+): Promise<boolean> {
+  const indexPath = path.join(process.cwd(), "dist/public", "index.html");
+  const templateHtml = getCachedTemplate(indexPath);
+  if (!templateHtml) return false;
+  const origin = resolvePublicOrigin(req);
+  const html = await buildPublicProfileHtml({ slug, origin, templateHtml });
+  if (!html) return false;
+  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+  res.send(html);
+  return true;
+}
 
 app.use(async (req, res, next) => {
   try {
@@ -276,6 +298,7 @@ app.use(async (req, res, next) => {
       if (cached.kind === "profile") {
         const path = req.path || "/";
         if (path === "/" || path === "") {
+          if (await renderProfileOnCustomDomain(req, res, cached.slug)) return;
           return res.redirect(
             301,
             `/u/${encodeURIComponent(cached.slug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
@@ -319,6 +342,7 @@ app.use(async (req, res, next) => {
       CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, at: now });
       const path = req.path || "/";
       if (path === "/" || path === "") {
+        if (await renderProfileOnCustomDomain(req, res, profileSlug)) return;
         return res.redirect(
           301,
           `/u/${encodeURIComponent(profileSlug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`

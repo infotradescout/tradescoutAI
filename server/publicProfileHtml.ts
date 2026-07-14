@@ -124,8 +124,17 @@ function buildFaqJsonLd(profile: PublicProfileData) {
   };
 }
 
+// A profile with a verified custom domain is canonically served there, not
+// under /u/:slug -- Google and structured-data consumers should be pointed
+// at the business's own domain regardless of which host the request came in on.
+function resolveProfileUrl(profile: PublicProfileData, origin: string): string {
+  const customDomain = profile.profile.seoMeta?.customDomain?.trim().toLowerCase();
+  if (customDomain) return `https://${customDomain}/`;
+  return `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
+}
+
 function buildJsonLd(profile: PublicProfileData, origin: string) {
-  const profileUrl = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
+  const profileUrl = resolveProfileUrl(profile, origin);
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
   const description =
     profile.profile.seoMeta?.description ||
@@ -197,7 +206,7 @@ function buildMeta(profile: PublicProfileData, origin: string) {
   );
   const customImageUrl = profile.profile.seoMeta?.imageUrl || null;
   const imageUrl = customImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
-  const canonical = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
+  const canonical = resolveProfileUrl(profile, origin);
   const keywords = [
     displayName,
     profile.profile.roleContext || "",
