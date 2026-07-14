@@ -214,6 +214,11 @@ app.use(
           "https://maps.googleapis.com",
           "https://platform-lookaside.fbsbx.com",
           "https://*.fbcdn.net",
+          // Profile/business photos and the favicon override are always
+          // referenced with absolute thetradescout.com URLs, including when
+          // the page itself is served from a business's own custom domain.
+          "https://thetradescout.com",
+          "https://www.thetradescout.com",
         ],
       },
     },
@@ -400,6 +405,11 @@ const ALLOWED_ORIGINS: string[] = [
   "https://www.thetradescout.com",
   "https://thetradescout.com",
   "https://tradescoutai.onrender.com",
+  // Verified profile custom domains -- served in place (see the custom-domain
+  // routing middleware above), so their own static assets/API calls need to
+  // be CORS-allowed from their own origin too.
+  "https://jwstonelogistics.com",
+  "https://www.jwstonelogistics.com",
 ].map((o) => o.toLowerCase());
 
 const rawAllowlist = process.env.CORS_ALLOWED_ORIGINS || "";
