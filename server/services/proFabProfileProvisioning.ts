@@ -40,6 +40,11 @@ export async function provisionProFabProfile(): Promise<void> {
             firstName: existingOwner.firstName || "Brody",
             lastName: existingOwner.lastName || "Joiner",
             roles,
+            verifiedBadge: existingOwner.verifiedBadge === true,
+            // This authorizes the admin-managed profile as a Direct Connect
+            // destination. It does not assert license, insurance, identity,
+            // email, or address verification.
+            verificationStatus: "approved",
             preferences: {
               ...existingPreferences,
               profileVisibility: "public",
@@ -72,9 +77,9 @@ export async function provisionProFabProfile(): Promise<void> {
             emailVerified: false,
             addressVerified: false,
             verifiedBadge: false,
-            // Approved here means the administrator approved this managed
-            // profile as a Direct Connect destination. It does not assert
-            // license, insurance, identity, email, or address verification.
+            // This authorizes the admin-managed profile as a Direct Connect
+            // destination. It does not assert license, insurance, identity,
+            // email, or address verification.
             verificationStatus: "approved",
             onboardingCompleted: false,
             preferences: {
@@ -115,7 +120,7 @@ export async function provisionProFabProfile(): Promise<void> {
       roleContext: "contractor" as const,
       profileData: {
         category: "Welding & Metal Fabrication",
-        tradePartner: false,
+        tradePartner: true,
         phone: PRO_FAB_PHONE,
         notificationEmail: normalizedEmail,
         brandColors: {
