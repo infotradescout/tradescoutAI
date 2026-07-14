@@ -199,10 +199,7 @@ export default function ExpressDirectConnectPanel({
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
                 Direct Connect
               </p>
-              <h2
-                id="express-direct-connect-title"
-                className="text-xl font-bold text-neutral-900"
-              >
+              <h2 id="express-direct-connect-title" className="text-xl font-bold text-neutral-900">
                 {businessName}
               </h2>
             </div>
@@ -220,9 +217,7 @@ export default function ExpressDirectConnectPanel({
         <div className="p-5 sm:p-7">
           {view === "choice" ? (
             <div>
-              <p className="mb-6 text-stone-700">
-                Call now or tell us what you’re looking for.
-              </p>
+              <p className="mb-6 text-stone-700">Call now or tell us what you’re looking for.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -251,13 +246,15 @@ export default function ExpressDirectConnectPanel({
                   <MessageCircle className="h-6 w-6" />
                   <span>
                     <strong className="block text-lg">Request stone</strong>
-                    <span className="text-sm font-medium text-stone-600">Phone number required</span>
+                    <span className="text-sm font-medium text-stone-600">
+                      Phone number required
+                    </span>
                   </span>
                 </button>
               </div>
               <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
-                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-800" />
-                A phone number is required to send a request. No text code needed.
+                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-800" />A phone
+                number is required to send a request. No text code needed.
               </div>
             </div>
           ) : null}
@@ -317,7 +314,12 @@ export default function ExpressDirectConnectPanel({
                 </span>
                 <select
                   value={form.requestType}
-                  onChange={(event) => setForm({ ...form, requestType: event.target.value })}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      requestType: event.target.value as ExpressDirectConnectRequestType,
+                    })
+                  }
                   className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-black/45"
                 >
                   {REQUEST_TYPES.map((type) => (
@@ -371,9 +373,7 @@ export default function ExpressDirectConnectPanel({
               <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-black/5 text-neutral-900">
                 <Phone className="h-7 w-7" />
               </div>
-              <h3 className="text-2xl font-bold text-neutral-900">
-                Calling {businessName}
-              </h3>
+              <h3 className="text-2xl font-bold text-neutral-900">Calling {businessName}</h3>
               {callTel ? (
                 <a
                   href={callTel}
@@ -387,7 +387,8 @@ export default function ExpressDirectConnectPanel({
                   <Search className="mb-3 h-6 w-6 text-emerald-800" />
                   <p className="font-bold text-neutral-900">Keep this connection</p>
                   <p className="mt-1 text-sm text-stone-600">
-                    Create a free TradeScout account to save this business and find more businesses you can contact directly.
+                    Create a free TradeScout account to save this business and find more businesses
+                    you can contact directly.
                   </p>
                   <Link href={membershipHref}>
                     <button className="mt-4 w-full rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white">
