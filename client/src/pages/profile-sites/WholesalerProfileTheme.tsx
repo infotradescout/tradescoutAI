@@ -436,6 +436,16 @@ export default function WholesalerProfileTheme({
       ? "Search the full collection or ask JW Stone about your project."
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
+  // Staggers the hero copy in after the video ends, stone type leading --
+  // a single simultaneous fade read as flat, so each element gets its own
+  // delay off the same heroVideoReady flip for a cascading reveal.
+  const heroReveal = (delayClass: string) =>
+    isJwStone
+      ? `transition-all duration-700 ease-out ${delayClass} ${
+          heroVideoReady ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+        }`
+      : "";
+
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
   const tradeScoutExitHref = hasViewerSession ? "/direct-connect" : "/";
   const startDirectConnect = (
@@ -762,12 +772,14 @@ export default function WholesalerProfileTheme({
         ) : null}
         {/* A 1.25x centered scale shows the middle 80% of the image: a 10% crop on every side. */}
         <div
-          className={`relative z-10 container mx-auto px-5 text-left transition-all duration-700 ease-out ${
+          className={`relative z-10 container mx-auto px-5 text-left ${
             isJwStone ? "md:px-8" : "md:px-6 md:text-center"
-          } ${isJwStone && !heroVideoReady ? "translate-y-3 opacity-0" : "translate-y-0 opacity-100"}`}
+          }`}
         >
           {heroEyebrow ? (
-            <span className="mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs">
+            <span
+              className={`mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs ${heroReveal("delay-0")}`}
+            >
               {heroEyebrow}
             </span>
           ) : null}
@@ -776,7 +788,7 @@ export default function WholesalerProfileTheme({
               isJwStone
                 ? "text-[2.7rem] leading-[0.96]"
                 : "text-[2.55rem] leading-[0.98] md:mx-auto"
-            } ${DISPLAY_FONT}`}
+            } ${DISPLAY_FONT} ${heroReveal("delay-150")}`}
           >
             {heroHeadline}
           </h1>
@@ -784,7 +796,7 @@ export default function WholesalerProfileTheme({
             <p
               className={`mb-7 max-w-[34rem] text-base leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mb-10 md:text-lg ${
                 isJwStone ? "font-medium" : "md:mx-auto"
-              }`}
+              } ${heroReveal("delay-300")}`}
             >
               {heroTeaser}
             </p>
@@ -792,7 +804,7 @@ export default function WholesalerProfileTheme({
           <div
             className={`flex flex-col items-stretch gap-3 sm:flex-row sm:items-center ${
               isJwStone ? "max-w-[38rem]" : "md:justify-center"
-            }`}
+            } ${heroReveal("delay-500")}`}
           >
             {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
               <button
