@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Page } from "@/components/layout/PagePrimitives";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
+import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
@@ -256,9 +257,14 @@ export default function ProfileSiteView() {
   // Connect targeted straight at their own account (via the target/targetName
   // prefill params DirectConnectShell already reads), instead of the
   // anonymous, business-agnostic request flow every other profile uses.
-  const directConnectHref = business?.directConnectOwnerUserId
-    ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=tradepartner_profile`
-    : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
+  const jrsRequestDescription =
+    "Vehicle year, make, and model:\nGlass that is damaged:\nWhat happened:\nPreferred timing:";
+  const directConnectHref =
+    profile.slug === "jrs-auto-glass"
+      ? `/direct-connect?profile=${encodeURIComponent(profile.slug)}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
+      : business?.directConnectOwnerUserId
+        ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=tradepartner_profile`
+        : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
   const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
@@ -352,6 +358,26 @@ export default function ProfileSiteView() {
       return { title, body: body.trim() };
     })
     .filter((item) => item.body.length > 0);
+
+  if (profile.slug === "jrs-auto-glass") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          description={seoDescription}
+          canonical={`${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`}
+          ogType="profile"
+          ogImage={seoImage}
+          structuredData={structuredData}
+        />
+        <JrsAutoGlassProfileTheme
+          directConnectHref={directConnectHref}
+          hasViewerSession={hasViewerSession}
+          preScoutCreateHref={preScoutCreateHref}
+        />
+      </>
+    );
+  }
 
   if (isTradePartner(business)) {
     return (

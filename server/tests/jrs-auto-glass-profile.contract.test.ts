@@ -1,0 +1,67 @@
+import fs from "node:fs";
+import path from "node:path";
+import { describe, expect, it } from "vitest";
+
+const read = (relativePath: string) =>
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
+
+describe("JR's Auto Glass public profile contract", () => {
+  it("provisions the confirmed owner, business, and published profile at production boot", () => {
+    const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
+    const developmentEntry = read("server/index.ts");
+    const productionEntry = read("server/index.prod.ts");
+
+    expect(provisioning).toContain('const JRS_PROFILE_SLUG = "jrs-auto-glass"');
+    expect(provisioning).toContain('displayName: "JR\'s Auto Glass"');
+    expect(provisioning).toContain('status: "published"');
+    expect(provisioning).toContain('profileVisibility: "public"');
+    expect(provisioning).toContain("activeBusinessId: business.id");
+    expect(provisioning).toContain("activeProfileId: profile.id");
+    expect(developmentEntry).toContain("await provisionJrsAutoGlassProfile()");
+    expect(productionEntry).toContain("await provisionJrsAutoGlassProfile()");
+  });
+
+  it("mounts the branded theme on the canonical dynamic route", () => {
+    const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const theme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
+
+    expect(profileView).toContain("import JrsAutoGlassProfileTheme");
+    expect(profileView).toContain('profile.slug === "jrs-auto-glass"');
+    expect(profileView).toContain("<JrsAutoGlassProfileTheme");
+    expect(theme).toContain("/images/businesses/jrs-auto-glass/logo.svg");
+    expect(
+      fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
+    ).toBe(false);
+  });
+
+  it("publishes no unconfirmed contact, location, pricing, or service claims", () => {
+    const theme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
+    const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
+    const publicSurface = `${theme}\n${provisioning}`;
+
+    expect(publicSurface).not.toContain("985");
+    expect(publicSurface).not.toContain("Ponchatoula");
+    expect(publicSurface).not.toContain("S Range Rd");
+    expect(publicSurface).not.toContain("jrs.autoglass3");
+    expect(theme).not.toContain("Family owned");
+    expect(theme).not.toContain("Affordable pricing");
+    expect(theme).not.toContain("Mobile service");
+    expect(theme).not.toContain("Windshield Replacement");
+  });
+
+  it("routes a profile CTA to its owner through a private Direct Connect assignment", () => {
+    const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
+    const route = read("server/routes/direct-connect.ts");
+
+    expect(profileView).toContain("profile=${encodeURIComponent(profile.slug)}");
+    expect(composer).toContain("payload.targetProfileSlug = prefillContextId.trim()");
+    expect(route).toContain("targetProfileSlug:");
+    expect(route).toContain("await storage.getProfileBySlugPublic(body.targetProfileSlug)");
+    expect(route).toContain('scope: isExplicitTarget ? "personal" : "community"');
+    expect(route).toContain('visibility: isExplicitTarget ? "private" : "community"');
+    expect(route).toContain("responderUserId: targetProfileOwnerUserId");
+    expect(route).toContain('routingMode: "profile_direct_connect"');
+    expect(route).toContain('source: "profile_direct_connect"');
+  });
+});

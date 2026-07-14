@@ -67,6 +67,7 @@ import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
+import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -612,6 +613,7 @@ app.use(landingContractHeaders);
     };
 
     await ensureMasterAdmin();
+    await provisionJrsAutoGlassProfile();
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {
       await runSchemaPreflight();

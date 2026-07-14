@@ -57,6 +57,7 @@ import { detectActorFromUserAgent } from "./utils/requestActor";
 import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -555,6 +556,7 @@ app.use(landingContractHeaders);
     };
 
     await ensureMasterAdmin();
+    await provisionJrsAutoGlassProfile();
     console.log("[Startup] Master admin verification complete.");
 
     try {
