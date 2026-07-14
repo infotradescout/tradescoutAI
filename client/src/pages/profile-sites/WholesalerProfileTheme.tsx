@@ -62,6 +62,7 @@ type InventoryStone = {
   name: string;
   slug: string;
   images: string[];
+  slabCounts?: number[];
   materialStatus?: "user_confirmed" | "source_folder" | "filename" | "historical_assignment" | "unconfirmed";
   finishes?: string[];
   finishStatus?: "explicit" | "unconfirmed";
@@ -707,6 +708,13 @@ export default function WholesalerProfileTheme({
                   ) : null}
                   <div className="p-4">
                     <p className="text-base font-bold !text-[#241d0f]">{stone.name}</p>
+                    {stone.slabCounts?.length ? (
+                      <p className="mt-1 text-sm font-bold text-[var(--brand-primary)]">
+                        {stone.slabCounts.length === 1
+                          ? `${stone.slabCounts[0]} slabs`
+                          : `Bundle counts: ${stone.slabCounts.join(", ")} slabs`}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-xs font-medium !text-[#625b50]">
                       {stone.finishes?.length
                         ? stone.finishes.join(" · ")
@@ -797,6 +805,13 @@ export default function WholesalerProfileTheme({
                     ? `Finish: ${openStone.finishes.join(" · ")}`
                     : "Finish not confirmed — ask JW Stone"}
                 </p>
+                {openStone.slabCounts?.length ? (
+                  <p className="mt-1 text-xs font-semibold text-white/80">
+                    {openStone.slabCounts.length === 1
+                      ? `${openStone.slabCounts[0]} slabs in source inventory`
+                      : `Source bundle counts: ${openStone.slabCounts.join(", ")} slabs`}
+                  </p>
+                ) : null}
               </div>
               <button
                 onClick={() => setOpenStone(null)}
