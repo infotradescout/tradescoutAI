@@ -126,14 +126,15 @@ export default function JrsAutoGlassProfileTheme({
         <div className="relative mx-auto grid min-h-[610px] max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1.12fr_0.88fr] md:items-center md:px-8 md:py-20">
           <div>
             <p className="mb-4 text-xs font-black uppercase tracking-[0.24em] text-red-500">
-              JR&apos;s Auto Glass · Direct response
+              Ponchatoula, Louisiana · Mobile auto glass
             </p>
             <h1 className="max-w-[11ch] text-[3.15rem] font-black uppercase leading-[0.9] tracking-[-0.04em] text-white sm:text-6xl md:text-7xl">
               Skip the national-chain runaround.
             </h1>
             <p className="mt-6 max-w-xl text-base font-medium leading-7 text-zinc-300 md:text-lg">
-              Send JR&apos;s your vehicle, glass damage, photos, and timing once. Start with the
-              real job—not a generic call-center script.
+              Choose the established local shop with a 4.8 Google rating. Send JR&apos;s your
+              vehicle, glass damage, photos, and timing once—not through a generic call-center
+              script.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -168,7 +169,7 @@ export default function JrsAutoGlassProfileTheme({
                     One useful request
                   </p>
                   <p className="mt-1 text-sm font-semibold text-zinc-300">
-                    Vehicle · Damage · Photos · Timing
+                    Windshield replacement · Mobile service
                   </p>
                 </div>
                 <ShieldCheck className="h-6 w-6 flex-shrink-0 text-ts-orange" />
@@ -180,7 +181,7 @@ export default function JrsAutoGlassProfileTheme({
 
       <section className="border-b border-white/10 bg-zinc-950">
         <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px bg-white/10 md:grid-cols-4">
-          {["One private request", "Photos supported", "Vehicle-specific details", "Contact protected"].map(
+          {["4.8 Google rating", "17 Google reviews", "Ponchatoula, Louisiana", "Mobile auto glass"].map(
             (fact) => (
               <div
                 key={fact}
