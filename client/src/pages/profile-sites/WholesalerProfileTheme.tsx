@@ -1056,10 +1056,27 @@ export default function WholesalerProfileTheme({
                     </div>
                     {visibleStones.length === 0 ? (
                       <div className="rounded-2xl border border-dashed border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-5 py-10 text-center">
-                        <p className="font-semibold text-[#241d0f]">No matching stone name</p>
-                        <p className="mt-1 text-sm text-[#241d0f]/75">
-                          Try another spelling or Direct Connect with JW Stone for help.
+                        <p className="font-semibold text-[#241d0f]">
+                          {normalizedInventorySearch
+                            ? `No match for “${inventorySearch.trim()}”`
+                            : "No matching stone name"}
                         </p>
+                        <p className="mt-1 text-sm text-[#241d0f]/75">
+                          {profileSlug === "jw-stone" && normalizedInventorySearch
+                            ? "JW Stone may be able to source it for your project."
+                            : "Try another spelling or Direct Connect with JW Stone for help."}
+                        </p>
+                        {profileSlug === "jw-stone" && normalizedInventorySearch ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              startDirectConnect(inventorySearch.trim(), "request_material")
+                            }
+                            className="mt-5 rounded-full bg-[var(--brand-accent)] px-6 py-3 text-sm font-extrabold text-[#16200b] shadow-md transition-transform hover:-translate-y-0.5"
+                          >
+                            Request this stone
+                          </button>
+                        ) : null}
                       </div>
                     ) : null}
                     {visibleStones.length > displayedStones.length ? (
