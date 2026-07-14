@@ -31,6 +31,11 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("/images/businesses/jrs-auto-glass/logo.svg");
     expect(theme).toContain("Skip the national-chain runaround.");
     expect(theme).toContain("Direct Connect with JR&apos;s");
+    expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
+    expect(theme).toContain("TradeScout CV");
+    expect(theme).toContain("Trust built from activity, not stars.");
+    expect(theme).toContain("Public recommendations are moderated");
+    expect(theme).toContain("contact opens after acceptance");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
