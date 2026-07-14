@@ -39,7 +39,7 @@ export default function JrsAutoGlassProfileTheme({
   const requestHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
 
   return (
-    <main className="min-h-screen bg-[#070707] text-zinc-100">
+    <main className="bg-[#070707] text-zinc-100">
       <section className="relative overflow-hidden border-b border-red-600/25 bg-[radial-gradient(circle_at_75%_10%,rgba(220,38,38,0.18),transparent_32%),linear-gradient(180deg,#111111_0%,#070707_100%)]">
         <div className="absolute inset-y-0 left-0 w-1 bg-red-600" aria-hidden="true" />
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-10 md:grid-cols-[1.05fr_0.95fr] md:px-8 md:py-16">
