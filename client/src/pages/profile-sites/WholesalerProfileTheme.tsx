@@ -364,7 +364,7 @@ export default function WholesalerProfileTheme({
     useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
-  const featuredStones = [...JW_STONE_PICK_SLUGS]
+  const jwStonePicks = [...JW_STONE_PICK_SLUGS]
     .map((slug) => allInventoryStones.find((stone) => stone.slug === slug))
     .filter((stone): stone is InventoryStone => Boolean(stone))
     .slice(0, 3);
@@ -1000,7 +1000,7 @@ export default function WholesalerProfileTheme({
       </section>
 
       {/* Featured materials */}
-      {profileSlug === "jw-stone" && featuredStones.length > 0 ? (
+      {profileSlug === "jw-stone" && jwStonePicks.length > 0 ? (
         <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
             <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -1014,7 +1014,7 @@ export default function WholesalerProfileTheme({
               </a>
             </div>
             <div className="grid gap-5 md:grid-cols-3">
-              {featuredStones.map((stone, index) => (
+              {jwStonePicks.map((stone, index) => (
                 <article
                   key={stone.slug}
                   className="overflow-hidden rounded-2xl border border-[var(--brand-primary)]/10 bg-white shadow-sm"
