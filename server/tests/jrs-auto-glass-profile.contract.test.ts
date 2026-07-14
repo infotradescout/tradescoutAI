@@ -36,13 +36,17 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("Request auto glass service");
     expect(theme).toContain("Direct Connect with JR&apos;s");
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
-    expect(theme).toContain("TradeScout CV");
-    expect(theme).toContain("A trust record built from real activity.");
-    expect(theme).toContain("Approved TradeScout recommendations");
-    expect(theme).toContain("Contact opens after acceptance");
+    expect(theme).toContain("TradeScout Business CV");
+    expect(theme).toContain("Recommendations and completed activity");
+    expect(theme).toContain("Contact information remains protected");
     expect(theme).not.toContain("Skip the national-chain runaround.");
-    expect(theme).not.toContain("Trust built from activity, not stars.");
+    expect(theme).not.toContain("Auto glass, wherever the vehicle is");
+    expect(theme).not.toContain("Damage in. Clear glass out.");
+    expect(theme).not.toContain("A trust record built from real activity.");
     expect(theme).not.toContain("min-h-[610px]");
+    expect(theme).not.toContain("sm:-mt-8");
+    expect(theme).not.toContain("shadow-2xl");
+    expect(theme).not.toContain("<footer");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
