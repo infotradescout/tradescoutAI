@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ChevronRight,
+  ChevronDown,
   MapPin,
   ShieldCheck,
   Package,
@@ -15,6 +16,7 @@ import {
   Compass,
   Home,
   Search,
+  LayoutGrid,
   X,
 } from "lucide-react";
 import ExpressDirectConnectPanel, {
@@ -738,16 +740,19 @@ export default function WholesalerProfileTheme({
             ) : null}
 
             {!inventoryExpanded ? (
-              <div className="flex items-center gap-4 py-2">
-                <div className="h-px flex-1 bg-[#241d0f]/15" />
+              <div className="flex justify-center py-4">
                 <button
                   type="button"
                   onClick={() => setInventoryExpanded(true)}
-                  className="whitespace-nowrap rounded-full border border-[var(--brand-primary)]/25 px-5 py-2.5 text-sm font-bold text-[var(--brand-primary)] transition-colors hover:bg-white"
+                  className="group inline-flex items-center gap-2.5 rounded-full bg-[var(--brand-primary)] px-8 py-4 text-base font-bold text-white shadow-lg shadow-[var(--brand-primary)]/25 transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-primary-dark)] hover:shadow-xl hover:shadow-[var(--brand-primary)]/30"
                 >
-                  See full inventory ({allInventoryStones.length} stones)
+                  <LayoutGrid className="h-5 w-5 flex-shrink-0" />
+                  See full inventory
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-sm">
+                    {allInventoryStones.length}
+                  </span>
+                  <ChevronDown className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-y-0.5" />
                 </button>
-                <div className="h-px flex-1 bg-[#241d0f]/15" />
               </div>
             ) : (
               <>
