@@ -294,6 +294,16 @@ export default function WholesalerProfileTheme({
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
+  // The hero video plays once and freezes on its last frame, then the
+  // headline/CTAs fade in -- a fallback timer covers the case where the
+  // browser blocks autoplay or the video fails, so content is never stuck
+  // hidden waiting for an "ended" event that will never fire.
+  const [heroVideoReady, setHeroVideoReady] = useState(!isJwStone);
+  useEffect(() => {
+    if (!isJwStone) return;
+    const fallback = window.setTimeout(() => setHeroVideoReady(true), 8000);
+    return () => window.clearTimeout(fallback);
+  }, [isJwStone]);
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
   const themeVars = {
@@ -736,23 +746,28 @@ export default function WholesalerProfileTheme({
             : undefined
         }
       >
-        {isJwStone && heroImage ? (
-          <img
-            src={heroImage}
-            alt=""
-            fetchPriority="high"
+        {isJwStone ? (
+          <video
+            autoPlay
+            muted
+            playsInline
+            poster="/images/businesses/jw-stone/video/hero-poster.jpg"
+            onEnded={() => setHeroVideoReady(true)}
+            onError={() => setHeroVideoReady(true)}
             aria-hidden="true"
             className="absolute inset-0 h-full w-full scale-[1.25] object-cover object-center"
-          />
+          >
+            <source src="/images/businesses/jw-stone/video/hero.mp4" type="video/mp4" />
+          </video>
         ) : null}
         {/* A 1.25x centered scale shows the middle 80% of the image: a 10% crop on every side. */}
         {isJwStone ? (
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(12,18,10,0.08)_0%,rgba(12,18,10,0.38)_42%,rgba(12,18,10,0.94)_100%)] md:bg-[linear-gradient(to_right,rgba(12,18,10,0.86)_0%,rgba(12,18,10,0.48)_52%,rgba(12,18,10,0.16)_100%)]" />
         ) : null}
         <div
-          className={`relative z-10 container mx-auto px-5 text-left ${
+          className={`relative z-10 container mx-auto px-5 text-left transition-all duration-700 ease-out ${
             isJwStone ? "md:px-8" : "md:px-6 md:text-center"
-          }`}
+          } ${isJwStone && !heroVideoReady ? "translate-y-3 opacity-0" : "translate-y-0 opacity-100"}`}
         >
           {heroEyebrow ? (
             <span className="mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs">
