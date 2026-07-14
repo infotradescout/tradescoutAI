@@ -426,6 +426,52 @@ export default function WholesalerProfileTheme({
     navigate(ctaHref);
   };
 
+  const renderStoneCard = (stone: InventoryStone, stoneIndex: number, wrapperClassName: string) => (
+    <button
+      key={stone.slug}
+      onClick={() => {
+        setOpenStone(stone);
+        setOpenImageIndex(0);
+      }}
+      className={`group overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg ${wrapperClassName}`}
+    >
+      {stone.images[0] ? (
+        <div className="relative h-56 overflow-hidden">
+          <img
+            src={stone.images[0]}
+            alt={stone.name}
+            loading={stoneIndex < 8 ? "eager" : "lazy"}
+            fetchPriority={stoneIndex < 4 ? "high" : "auto"}
+            className="h-full w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          {stone.images.length > 1 ? (
+            <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white">
+              {stone.images.length} photos
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="p-4">
+        <p className="text-base font-bold !text-[#241d0f]">{stone.name}</p>
+        {stone.slabCounts?.length ? (
+          <p className="mt-1 text-sm font-bold text-[var(--brand-primary)]">
+            {stone.slabCounts.length === 1
+              ? `${stone.slabCounts[0]} slabs`
+              : `Bundle counts: ${stone.slabCounts.join(", ")} slabs`}
+          </p>
+        ) : null}
+        <p className="mt-1 text-xs font-medium !text-[#4a4238]">
+          {stone.finishes?.length ? stone.finishes.join(" · ") : "Finish: ask JW Stone"}
+        </p>
+        {stone.materialStatus === "unconfirmed" ? (
+          <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
+            Trending at JW Stone
+          </span>
+        ) : null}
+      </div>
+    </button>
+  );
+
   return (
     <div
       className="jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900"
@@ -680,77 +726,88 @@ export default function WholesalerProfileTheme({
               ) : null}
             </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {displayedStones.map((stone, stoneIndex) => (
-                <button
-                  key={stone.slug}
-                  onClick={() => {
-                    setOpenStone(stone);
-                    setOpenImageIndex(0);
-                  }}
-                  className="group overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg"
-                >
-                  {stone.images[0] ? (
-                    <div className="relative h-56 overflow-hidden">
-                      <img
-                        src={stone.images[0]}
-                        alt={stone.name}
-                        loading={stoneIndex < 8 ? "eager" : "lazy"}
-                        fetchPriority={stoneIndex < 4 ? "high" : "auto"}
-                        className="h-full w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      {stone.images.length > 1 ? (
-                        <span className="absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white">
-                          {stone.images.length} photos
-                        </span>
+            {hasInventoryFilters ? (
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {displayedStones.map((stone, stoneIndex) =>
+                    renderStoneCard(stone, stoneIndex, "")
+                  )}
+                </div>
+                {visibleStones.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-5 py-10 text-center">
+                    <p className="font-semibold text-[#241d0f]">No matching stone name</p>
+                    <p className="mt-1 text-sm text-[#241d0f]/75">
+                      Try another spelling or Direct Connect with JW Stone for help.
+                    </p>
+                  </div>
+                ) : null}
+                {visibleStones.length > displayedStones.length ? (
+                  <div className="mt-8 flex flex-col items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setInventoryVisibleLimit((current) => current + 24)}
+                      className="rounded-xl bg-[var(--brand-primary)] px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)]"
+                    >
+                      Show 24 more
+                    </button>
+                    <p className="text-xs text-[#241d0f]/75">
+                      Showing {displayedStones.length} of {visibleStones.length}
+                    </p>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="space-y-10">
+                {profileSlug === "jw-stone" ? (
+                  <div>
+                    <div className="mb-3 flex items-end justify-between gap-3">
+                      <h3 className="text-lg font-bold text-[var(--brand-primary)]">
+                        JW Stone Picks
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategorySlug("jw-picks")}
+                        className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
+                      >
+                        View all
+                      </button>
+                    </div>
+                    <div className={SCROLL_ROW}>
+                      {allInventoryStones
+                        .filter((stone) => JW_STONE_PICK_SLUGS.has(stone.slug))
+                        .map((stone, stoneIndex) =>
+                          renderStoneCard(stone, stoneIndex, SCROLL_CARD)
+                        )}
+                    </div>
+                  </div>
+                ) : null}
+                {inventoryCatalog.map((category) => (
+                  <div key={category.categorySlug}>
+                    <div className="mb-3 flex items-end justify-between gap-3">
+                      <h3 className="text-lg font-bold text-[var(--brand-primary)]">
+                        {category.category}
+                      </h3>
+                      {category.stones.length > 12 ? (
+                        <button
+                          type="button"
+                          onClick={() => setActiveCategorySlug(category.categorySlug)}
+                          className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
+                        >
+                          View all ({category.stones.length})
+                        </button>
                       ) : null}
                     </div>
-                  ) : null}
-                  <div className="p-4">
-                    <p className="text-base font-bold !text-[#241d0f]">{stone.name}</p>
-                    {stone.slabCounts?.length ? (
-                      <p className="mt-1 text-sm font-bold text-[var(--brand-primary)]">
-                        {stone.slabCounts.length === 1
-                          ? `${stone.slabCounts[0]} slabs`
-                          : `Bundle counts: ${stone.slabCounts.join(", ")} slabs`}
-                      </p>
-                    ) : null}
-                    <p className="mt-1 text-xs font-medium !text-[#4a4238]">
-                      {stone.finishes?.length
-                        ? stone.finishes.join(" · ")
-                        : "Finish: ask JW Stone"}
-                    </p>
-                    {stone.materialStatus === "unconfirmed" ? (
-                      <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
-                        Trending at JW Stone
-                      </span>
-                    ) : null}
+                    <div className={SCROLL_ROW}>
+                      {category.stones
+                        .slice(0, 12)
+                        .map((stone, stoneIndex) =>
+                          renderStoneCard(stone, stoneIndex, SCROLL_CARD)
+                        )}
+                    </div>
                   </div>
-                </button>
-              ))}
-            </div>
-            {visibleStones.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-5 py-10 text-center">
-                <p className="font-semibold text-[#241d0f]">No matching stone name</p>
-                <p className="mt-1 text-sm text-[#241d0f]/75">
-                  Try another spelling or Direct Connect with JW Stone for help.
-                </p>
+                ))}
               </div>
-            ) : null}
-            {visibleStones.length > displayedStones.length ? (
-              <div className="mt-8 flex flex-col items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setInventoryVisibleLimit((current) => current + 24)}
-                  className="rounded-xl bg-[var(--brand-primary)] px-7 py-3 text-sm font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)]"
-                >
-                  Show 24 more
-                </button>
-                <p className="text-xs text-[#241d0f]/75">
-                  Showing {displayedStones.length} of {visibleStones.length}
-                </p>
-              </div>
-            ) : null}
+            )}
           </div>
         </section>
       ) : inventoryItems.length > 0 ? (
