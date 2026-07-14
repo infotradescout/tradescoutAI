@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type SyntheticEvent } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ChevronRight,
@@ -417,7 +417,28 @@ export default function WholesalerProfileTheme({
     navigate(ctaHref);
   };
 
-  const renderStoneCard = (stone: InventoryStone, stoneIndex: number, wrapperClassName: string) => (
+  // Falls through the stone's other photos before giving up and showing the
+  // JW Stone mark, so a single failed request never just leaves a blank box.
+  const handleStoneImageError =
+    (stone: InventoryStone) => (event: SyntheticEvent<HTMLImageElement>) => {
+      const img = event.currentTarget;
+      const nextIndex = Number(img.dataset.fallbackIndex || "0") + 1;
+      if (nextIndex < stone.images.length) {
+        img.dataset.fallbackIndex = String(nextIndex);
+        img.src = stone.images[nextIndex];
+        return;
+      }
+      img.onerror = null;
+      img.src = "/images/businesses/jw-stone/logo.svg";
+      img.className =
+        "h-full w-full bg-stone-200 object-contain p-10 opacity-40 transition-transform duration-300 group-hover:scale-105";
+    };
+
+  const renderStoneCard = (
+    stone: InventoryStone,
+    priority: "high" | "eager" | "lazy",
+    wrapperClassName: string
+  ) => (
     <button
       key={stone.slug}
       onClick={() => {
@@ -431,8 +452,10 @@ export default function WholesalerProfileTheme({
           <img
             src={stone.images[0]}
             alt={stone.name}
-            loading={stoneIndex < 8 ? "eager" : "lazy"}
-            fetchPriority={stoneIndex < 4 ? "high" : "auto"}
+            loading={priority === "lazy" ? "lazy" : "eager"}
+            fetchPriority={priority === "high" ? "high" : "auto"}
+            data-fallback-index="0"
+            onError={handleStoneImageError(stone)}
             className="h-full w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-105"
           />
           {stone.images.length > 1 ? (
@@ -625,6 +648,8 @@ export default function WholesalerProfileTheme({
                         <img
                           src={stone.images[0]}
                           alt={stone.name}
+                          data-fallback-index="0"
+                          onError={handleStoneImageError(stone)}
                           className="h-52 w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         />
                         <div className="p-4">
@@ -724,7 +749,11 @@ export default function WholesalerProfileTheme({
               <>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {displayedStones.map((stone, stoneIndex) =>
-                    renderStoneCard(stone, stoneIndex, "")
+                    renderStoneCard(
+                      stone,
+                      stoneIndex < 4 ? "high" : stoneIndex < 8 ? "eager" : "lazy",
+                      ""
+                    )
                   )}
                 </div>
                 {visibleStones.length === 0 ? (
@@ -770,7 +799,11 @@ export default function WholesalerProfileTheme({
                       {allInventoryStones
                         .filter((stone) => JW_STONE_PICK_SLUGS.has(stone.slug))
                         .map((stone, stoneIndex) =>
-                          renderStoneCard(stone, stoneIndex, SCROLL_CARD)
+                          renderStoneCard(
+                            stone,
+                            stoneIndex < 2 ? "high" : stoneIndex < 4 ? "eager" : "lazy",
+                            SCROLL_CARD
+                          )
                         )}
                     </div>
                   </div>
@@ -792,11 +825,12 @@ export default function WholesalerProfileTheme({
                       ) : null}
                     </div>
                     <div className={SCROLL_ROW}>
+                      {/* Every rail below the first competes for bandwidth if
+                          eager-loaded simultaneously -- native lazy-loading
+                          fetches these as the user actually scrolls to them. */}
                       {category.stones
                         .slice(0, 12)
-                        .map((stone, stoneIndex) =>
-                          renderStoneCard(stone, stoneIndex, SCROLL_CARD)
-                        )}
+                        .map((stone) => renderStoneCard(stone, "lazy", SCROLL_CARD))}
                     </div>
                   </div>
                 ))}
