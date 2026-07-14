@@ -24,13 +24,24 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('viewBox="0 0 1600 1200"');
     expect(source).toContain('preserveAspectRatio="xMidYMid slice"');
     expect(source).toContain('transform="translate(1600 0) rotate(90)"');
+    expect(source).toContain("rgba(7,15,18,0.66)_0%");
+    const ctaImage = source.indexOf("{blueGoiasInventoryCtaImage ?");
+    const ctaStart = source.lastIndexOf("<button", ctaImage);
+    const ctaEnd = source.indexOf("</button>", ctaStart);
+    const ctaSource = source.slice(ctaStart, ctaEnd);
+    expect(ctaSource).not.toContain("<LayoutGrid");
+    expect(ctaSource).not.toContain("<ChevronRight");
+    expect(source).toContain('className="-mx-4 mt-0 md:-mx-6"');
+    expect(ctaSource).toContain("min-h-[320px]");
+    expect(ctaSource).not.toContain("rounded-[1.75rem]");
     expect(source).not.toContain("{allInventoryStones.length} stones · one collection");
     expect(source).not.toContain("{allInventoryStones.length} current stones");
     expect(source).toContain('id="inventory-browser"');
   });
 
-  it("presents the featured offer row as a premium JW Stone edit", () => {
-    expect(source).toContain("The JW Stone edit");
+  it("presents a premium featured-offer row without fashion-copy language", () => {
+    expect(source).toContain("Featured stone offers");
+    expect(source).not.toContain("The JW Stone edit");
     expect(source).toContain("Stone worth building around.");
     expect(source).toContain("Three standouts from the current collection");
     expect(source).toContain("offer.availability");
