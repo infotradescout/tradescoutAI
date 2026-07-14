@@ -50,3 +50,15 @@ jobs:
       - name: Public profile SEO contracts
         continue-on-error: true
         run: npm run test:run -- server/tests/public-profile-seo-contracts.test.ts
+
+      - name: Full source-contract JSON report
+        continue-on-error: true
+        run: npx cross-env TEST_DATABASE_URL= DATABASE_URL= RUN_INTEGRATION_TESTS= npm run test:run -- --reporter=json --outputFile=vitest-results.json
+
+      - name: Upload source-contract diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pro-fab-source-contract-diagnostics
+          path: vitest-results.json
+          if-no-files-found: error
