@@ -1,0 +1,52 @@
+name: Pro Fab Diagnostics
+
+on:
+  pull_request:
+
+concurrency:
+  group: pro-fab-diagnostics-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  focused-profile-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Pro Fab profile contract
+        continue-on-error: true
+        run: npm run test:run -- server/tests/pro-fab-profile.contract.test.ts
+
+      - name: TradePartner Express contract
+        continue-on-error: true
+        run: npm run test:run -- server/tests/tradepartner-express-direct-connect.contract.test.ts
+
+      - name: JW Stone presentation contract
+        continue-on-error: true
+        run: npm run test:run -- server/tests/jw-stone-profile-presentation.contract.test.ts
+
+      - name: JR Auto Glass contract
+        continue-on-error: true
+        run: npm run test:run -- server/tests/jrs-auto-glass-profile.contract.test.ts
+
+      - name: Universal profile Express contract
+        continue-on-error: true
+        run: npm run test:run -- server/tests/universal-profile-express-direct-connect.contract.test.ts
+
+      - name: Public profile compatibility contract
+        continue-on-error: true
+        run: npm run test:run -- server/tests/public-profile-compat.contract.test.ts
+
+      - name: Public profile SEO contracts
+        continue-on-error: true
+        run: npm run test:run -- server/tests/public-profile-seo-contracts.test.ts
