@@ -10,6 +10,8 @@ export interface BusinessProfileSeoMeta {
   title?: string | null;
   description?: string | null;
   imageUrl?: string | null;
+  imageWidth?: number | null;
+  imageHeight?: number | null;
 }
 
 export interface BusinessProfileCta {

@@ -25,7 +25,14 @@ type PublicProfileData = {
     headline?: string | null;
     roleContext?: string | null;
     servicesDescription?: string | null;
-    seoMeta?: { title?: string; description?: string; imageUrl?: string; customDomain?: string };
+    seoMeta?: {
+      title?: string;
+      description?: string;
+      imageUrl?: string;
+      imageWidth?: number;
+      imageHeight?: number;
+      customDomain?: string;
+    };
     profileBooking?: {
       enabled?: boolean;
       paidBookings?: boolean;
@@ -209,6 +216,8 @@ function buildMeta(profile: PublicProfileData, origin: string) {
     imageUrl,
     imageType: imageMimeType(imageUrl),
     imageAlt: `${displayName} preview`,
+    imageWidth: customImageUrl ? profile.profile.seoMeta?.imageWidth : 1200,
+    imageHeight: customImageUrl ? profile.profile.seoMeta?.imageHeight : 630,
     customImageUrl,
     canonical,
     keywords,
@@ -307,6 +316,18 @@ export async function buildPublicProfileHtml({
     /<meta property="og:image:alt"[^>]*>/i,
     `<meta property="og:image:alt" content="${escapeHtml(meta.imageAlt)}" />`
   );
+  if (Number.isFinite(meta.imageWidth) && Number.isFinite(meta.imageHeight)) {
+    html = upsertTag(
+      html,
+      /<meta property="og:image:width"[^>]*>/i,
+      `<meta property="og:image:width" content="${meta.imageWidth}" />`
+    );
+    html = upsertTag(
+      html,
+      /<meta property="og:image:height"[^>]*>/i,
+      `<meta property="og:image:height" content="${meta.imageHeight}" />`
+    );
+  }
   html = upsertTag(
     html,
     /<meta property="og:locale"[^>]*>/i,

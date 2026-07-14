@@ -1458,6 +1458,8 @@ export const profiles = pgTable(
         title?: string;
         description?: string;
         imageUrl?: string;
+        imageWidth?: number;
+        imageHeight?: number;
         customDomain?: string;
       }>()
       .default(sql`'{}'::jsonb`),

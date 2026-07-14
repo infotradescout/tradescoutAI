@@ -229,13 +229,9 @@ export default function ProfileSiteView() {
       : profile.headline ||
         `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`;
   const seoImage =
-    profile.slug === "jw-stone"
-      ? // SVG isn't rendered by Facebook/Twitter/Slack/iMessage link-preview
-        // crawlers -- og:image needs a raster file.
-        `${getCanonicalAppOrigin()}/images/businesses/jw-stone/logo-social-preview.png`
-      : typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
-        ? profile.seoMeta.imageUrl
-        : undefined;
+    typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
+      ? profile.seoMeta.imageUrl
+      : undefined;
   const structuredData = {
     "@context": "https://schema.org",
     "@type": business?.name ? "LocalBusiness" : "Person",

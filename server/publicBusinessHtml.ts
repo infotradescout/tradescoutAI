@@ -83,7 +83,13 @@ function buildBusinessMeta(args: {
   name: string;
   headline?: string | null;
   description?: string | null;
-  seoMeta?: { title?: string | null; description?: string | null; imageUrl?: string | null } | null;
+  seoMeta?: {
+    title?: string | null;
+    description?: string | null;
+    imageUrl?: string | null;
+    imageWidth?: number | null;
+    imageHeight?: number | null;
+  } | null;
   countyName?: string | null;
   stateCode?: string | null;
   categories?: string[];
@@ -134,7 +140,21 @@ function buildBusinessMeta(args: {
     .slice(0, 14)
     .join(", ");
 
-  return { title, description, canonical, imageUrl, imageType, imageAlt, customImageUrl, keywords };
+  const imageWidth = customImageUrl ? args.seoMeta?.imageWidth || undefined : 1200;
+  const imageHeight = customImageUrl ? args.seoMeta?.imageHeight || undefined : 630;
+
+  return {
+    title,
+    description,
+    canonical,
+    imageUrl,
+    imageType,
+    imageAlt,
+    imageWidth,
+    imageHeight,
+    customImageUrl,
+    keywords,
+  };
 }
 
 export async function buildPublicBusinessHtml({
@@ -244,6 +264,18 @@ export async function buildPublicBusinessHtml({
       /<meta property="og:image:alt"[^>]*>/i,
       `<meta property="og:image:alt" content="${escapeHtml(meta.imageAlt)}" />`
     );
+    if (Number.isFinite(meta.imageWidth) && Number.isFinite(meta.imageHeight)) {
+      html = upsertTag(
+        html,
+        /<meta property="og:image:width"[^>]*>/i,
+        `<meta property="og:image:width" content="${meta.imageWidth}" />`
+      );
+      html = upsertTag(
+        html,
+        /<meta property="og:image:height"[^>]*>/i,
+        `<meta property="og:image:height" content="${meta.imageHeight}" />`
+      );
+    }
     html = upsertTag(
       html,
       /<meta name="twitter:card"[^>]*>/i,
