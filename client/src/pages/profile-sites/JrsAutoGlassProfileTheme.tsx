@@ -193,6 +193,32 @@ export default function JrsAutoGlassProfileTheme({
         </div>
       </section>
 
+      <section className="relative overflow-hidden border-b border-white/10 bg-[#111111] py-14 md:py-20">
+        <div
+          className="absolute inset-y-0 left-0 w-1 bg-red-600"
+          aria-hidden="true"
+        />
+        <div className="mx-auto grid max-w-6xl gap-8 px-5 md:grid-cols-[0.72fr_1.28fr] md:items-end md:px-8">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-red-500">
+              The name behind the work
+            </p>
+            <p className="mt-4 text-6xl font-black uppercase leading-none tracking-[-0.06em] text-white md:text-8xl">
+              JR
+            </p>
+          </div>
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-black uppercase leading-tight tracking-tight text-white md:text-5xl">
+              A name handed down. A business carried forward.
+            </h2>
+            <p className="mt-5 text-base leading-7 text-zinc-300 md:text-lg">
+              JR was Ryan Bourg&apos;s father. Ryan carries forward the auto glass business his
+              father built, with the same name out front and a direct line to the person behind it.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section id="request-details" className="scroll-mt-24 bg-[#0b0b0b] py-14 md:py-20">
         <div className="mx-auto max-w-6xl px-5 md:px-8">
           <div className="max-w-3xl">
