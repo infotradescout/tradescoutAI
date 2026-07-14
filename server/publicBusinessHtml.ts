@@ -246,6 +246,11 @@ export async function buildPublicBusinessHtml({
     );
     html = upsertTag(
       html,
+      /<meta property="og:url"[^>]*>/i,
+      `<meta property="og:url" content="${escapeHtml(meta.canonical)}" />`
+    );
+    html = upsertTag(
+      html,
       /<meta property="og:image"[^>]*>/i,
       `<meta property="og:image" content="${escapeHtml(meta.imageUrl)}" />`
     );
@@ -557,6 +562,11 @@ export async function buildPublicBusinessHtml({
     html,
     /<meta property="og:description"[^>]*>/i,
     `<meta property="og:description" content="${escapeHtml(meta.description)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:url"[^>]*>/i,
+    `<meta property="og:url" content="${escapeHtml(meta.canonical)}" />`
   );
   html = upsertTag(
     html,

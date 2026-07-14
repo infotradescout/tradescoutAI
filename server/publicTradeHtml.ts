@@ -158,6 +158,11 @@ function applyMeta(templateHtml: string, meta: ReturnType<typeof buildTradeMeta>
   );
   html = upsertTag(
     html,
+    /<meta property="og:url"[^>]*>/i,
+    `<meta property="og:url" content="${escapeHtml(meta.canonical)}" />`
+  );
+  html = upsertTag(
+    html,
     /<meta property="og:image"[^>]*>/i,
     `<meta property="og:image" content="${escapeHtml(meta.imageUrl)}" />`
   );
