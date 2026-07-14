@@ -52,17 +52,33 @@ const requestAdvantages = [
   },
 ] as const;
 
+type RecommendationEntry = {
+  id: string;
+  recommendationType: "positive" | "negative";
+  comment: string;
+  projectType: string | null;
+  contractor: {
+    companyName: string;
+    canonicalBusinessProfileUrl?: string | null;
+  };
+};
+
 type Props = {
   directConnectHref: string;
   hasViewerSession: boolean;
   preScoutCreateHref: string;
+  recommendationsDirectory?: RecommendationEntry[];
 };
 
 export default function JrsAutoGlassProfileTheme({
   directConnectHref,
   hasViewerSession,
   preScoutCreateHref,
+  recommendationsDirectory = [],
 }: Props) {
+  const publicRecommendations = recommendationsDirectory.filter(
+    (entry) => entry.recommendationType === "positive"
+  );
   const requestHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
   const exitHref = hasViewerSession ? "/direct-connect" : "/";
 
@@ -225,6 +241,106 @@ export default function JrsAutoGlassProfileTheme({
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="border-y border-white/10 bg-[#111111] py-14 md:py-20">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
+          <div className="grid gap-8 md:grid-cols-[0.78fr_1.22fr] md:items-start">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.25em] text-ts-orange">
+                TradeScout CV
+              </p>
+              <h2 className="mt-3 text-3xl font-black uppercase leading-tight tracking-tight text-white md:text-5xl">
+                Trust built from activity, not stars.
+              </h2>
+              <p className="mt-4 leading-7 text-zinc-400">
+                CVS governs exposure and eligibility using identity, work outcomes,
+                recommendations, and platform behavior.
+              </p>
+            </div>
+
+            <div className="grid gap-3">
+              {[
+                {
+                  title: "Verified intent",
+                  body: "Every request starts with the vehicle, the damage, and the work needed.",
+                },
+                {
+                  title: "Work outcomes",
+                  body: "Completed TradeScout activity strengthens the business CV over time.",
+                },
+                {
+                  title: "Recommendations",
+                  body: "Public recommendations are moderated and tied to TradeScout activity.",
+                },
+                {
+                  title: "Protected connection",
+                  body: "Contact opens after acceptance through Direct Connect.",
+                },
+              ].map((signal) => (
+                <article
+                  key={signal.title}
+                  className="grid grid-cols-[auto_1fr] gap-4 rounded-2xl border border-white/10 bg-black/35 p-5"
+                >
+                  <ShieldCheck className="mt-0.5 h-5 w-5 text-ts-orange" />
+                  <div>
+                    <h3 className="font-black text-white">{signal.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-zinc-400">{signal.body}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          {publicRecommendations.length > 0 ? (
+            <div className="mt-10 border-t border-white/10 pt-9">
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-red-500">
+                    Recommendation directory
+                  </p>
+                  <h3 className="mt-2 text-2xl font-black text-white">
+                    Businesses JR&apos;s recommends
+                  </h3>
+                </div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-zinc-500">
+                  Approved public TradeScout activity
+                </p>
+              </div>
+              <div className="mt-5 grid gap-3 md:grid-cols-2">
+                {publicRecommendations.slice(0, 6).map((entry) => {
+                  const content = (
+                    <>
+                      <p className="font-black text-white">{entry.contractor.companyName}</p>
+                      {entry.projectType ? (
+                        <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-ts-orange">
+                          {entry.projectType}
+                        </p>
+                      ) : null}
+                      {entry.comment ? (
+                        <p className="mt-3 text-sm leading-6 text-zinc-400">{entry.comment}</p>
+                      ) : null}
+                    </>
+                  );
+
+                  return entry.contractor.canonicalBusinessProfileUrl ? (
+                    <Link
+                      key={entry.id}
+                      href={entry.contractor.canonicalBusinessProfileUrl}
+                      className="rounded-2xl border border-white/10 bg-black/35 p-5 transition-colors hover:border-ts-orange/45"
+                    >
+                      {content}
+                    </Link>
+                  ) : (
+                    <article key={entry.id} className="rounded-2xl border border-white/10 bg-black/35 p-5">
+                      {content}
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 
