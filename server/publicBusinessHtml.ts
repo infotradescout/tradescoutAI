@@ -34,6 +34,23 @@ function upsertTag(html: string, regex: RegExp, tag: string) {
   return html.replace("</head>", `${tag}\n</head>`);
 }
 
+function imageMimeType(url: string): string {
+  const path = url.split("?")[0].toLowerCase();
+  if (path.endsWith(".webp")) return "image/webp";
+  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+  if (path.endsWith(".gif")) return "image/gif";
+  if (path.endsWith(".svg")) return "image/svg+xml";
+  return "image/png";
+}
+
+function injectFaviconOverride(html: string, imageUrl: string): string {
+  const withoutIcons = html
+    .replace(/<link rel="icon"[^>]*>\s*/gi, "")
+    .replace(/<link rel="apple-touch-icon"[^>]*>\s*/gi, "");
+  const tag = `<link rel="icon" href="${escapeHtml(imageUrl)}" />\n    <link rel="apple-touch-icon" href="${escapeHtml(imageUrl)}" />`;
+  return withoutIcons.replace("</head>", `${tag}\n</head>`);
+}
+
 function slugifyCityName(name: string): string {
   return String(name || "")
     .trim()
@@ -99,7 +116,10 @@ function buildBusinessMeta(args: {
     .slice(0, 160);
 
   const canonical = `${args.origin}/business/${encodeURIComponent(args.slug)}`;
-  const imageUrl = args.seoMeta?.imageUrl || `${args.origin}/tradescout-social-preview.png?v=11`;
+  const customImageUrl = args.seoMeta?.imageUrl || null;
+  const imageUrl = customImageUrl || `${args.origin}/tradescout-social-preview.png?v=12`;
+  const imageType = imageMimeType(imageUrl);
+  const imageAlt = `${name} preview`;
   const keywords = [
     name,
     args.countyName || "",
@@ -114,7 +134,7 @@ function buildBusinessMeta(args: {
     .slice(0, 14)
     .join(", ");
 
-  return { title, description, canonical, imageUrl, keywords };
+  return { title, description, canonical, imageUrl, imageType, imageAlt, customImageUrl, keywords };
 }
 
 export async function buildPublicBusinessHtml({
@@ -211,6 +231,21 @@ export async function buildPublicBusinessHtml({
     );
     html = upsertTag(
       html,
+      /<meta property="og:image:secure_url"[^>]*>/i,
+      `<meta property="og:image:secure_url" content="${escapeHtml(meta.imageUrl)}" />`
+    );
+    html = upsertTag(
+      html,
+      /<meta property="og:image:type"[^>]*>/i,
+      `<meta property="og:image:type" content="${escapeHtml(meta.imageType)}" />`
+    );
+    html = upsertTag(
+      html,
+      /<meta property="og:image:alt"[^>]*>/i,
+      `<meta property="og:image:alt" content="${escapeHtml(meta.imageAlt)}" />`
+    );
+    html = upsertTag(
+      html,
       /<meta name="twitter:card"[^>]*>/i,
       `<meta name="twitter:card" content="summary_large_image" />`
     );
@@ -231,9 +266,17 @@ export async function buildPublicBusinessHtml({
     );
     html = upsertTag(
       html,
+      /<meta name="twitter:image:alt"[^>]*>/i,
+      `<meta name="twitter:image:alt" content="${escapeHtml(meta.imageAlt)}" />`
+    );
+    html = upsertTag(
+      html,
       /<link rel="canonical"[^>]*>/i,
       `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
     );
+    if (meta.customImageUrl) {
+      html = injectFaviconOverride(html, meta.customImageUrl);
+    }
 
     const countySlug =
       published.countyName && published.stateCode

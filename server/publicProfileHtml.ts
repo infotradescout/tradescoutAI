@@ -64,6 +64,26 @@ function upsertTag(html: string, regex: RegExp, tag: string) {
   return html.replace("</head>", `${tag}\n</head>`);
 }
 
+function imageMimeType(url: string): string {
+  const path = url.split("?")[0].toLowerCase();
+  if (path.endsWith(".webp")) return "image/webp";
+  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
+  if (path.endsWith(".gif")) return "image/gif";
+  if (path.endsWith(".svg")) return "image/svg+xml";
+  return "image/png";
+}
+
+// Business/profile pages should show their own icon in the browser tab
+// instead of the generic TradeScout icon -- only when they actually have a
+// custom share image set, so we never blank out the real TradeScout icon.
+function injectFaviconOverride(html: string, imageUrl: string): string {
+  const withoutIcons = html
+    .replace(/<link rel="icon"[^>]*>\s*/gi, "")
+    .replace(/<link rel="apple-touch-icon"[^>]*>\s*/gi, "");
+  const tag = `<link rel="icon" href="${escapeHtml(imageUrl)}" />\n    <link rel="apple-touch-icon" href="${escapeHtml(imageUrl)}" />`;
+  return withoutIcons.replace("</head>", `${tag}\n</head>`);
+}
+
 function injectJsonLd(html: string, jsonLd: object) {
   const json = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
   const script = `<script type="application/ld+json">${json}</script>`;
@@ -168,8 +188,8 @@ function buildMeta(profile: PublicProfileData, origin: string) {
       profile.profile.roleContext ||
       "TradeScout public profile"
   );
-  const imageUrl =
-    profile.profile.seoMeta?.imageUrl || `${origin}/tradescout-social-preview.png?v=11`;
+  const customImageUrl = profile.profile.seoMeta?.imageUrl || null;
+  const imageUrl = customImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
   const canonical = `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
   const keywords = [
     displayName,
@@ -187,6 +207,9 @@ function buildMeta(profile: PublicProfileData, origin: string) {
     title,
     description,
     imageUrl,
+    imageType: imageMimeType(imageUrl),
+    imageAlt: `${displayName} preview`,
+    customImageUrl,
     canonical,
     keywords,
   };
@@ -271,6 +294,21 @@ export async function buildPublicProfileHtml({
   );
   html = upsertTag(
     html,
+    /<meta property="og:image:secure_url"[^>]*>/i,
+    `<meta property="og:image:secure_url" content="${escapeHtml(meta.imageUrl)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:image:type"[^>]*>/i,
+    `<meta property="og:image:type" content="${escapeHtml(meta.imageType)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:image:alt"[^>]*>/i,
+    `<meta property="og:image:alt" content="${escapeHtml(meta.imageAlt)}" />`
+  );
+  html = upsertTag(
+    html,
     /<meta property="og:locale"[^>]*>/i,
     `<meta property="og:locale" content="en_US" />`
   );
@@ -296,9 +334,17 @@ export async function buildPublicProfileHtml({
   );
   html = upsertTag(
     html,
+    /<meta name="twitter:image:alt"[^>]*>/i,
+    `<meta name="twitter:image:alt" content="${escapeHtml(meta.imageAlt)}" />`
+  );
+  html = upsertTag(
+    html,
     /<link rel="canonical"[^>]*>/i,
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
+  if (meta.customImageUrl) {
+    html = injectFaviconOverride(html, meta.customImageUrl);
+  }
 
   const bookingRows =
     profileRecord.profileBooking?.pricingTableEnabled &&
