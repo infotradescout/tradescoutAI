@@ -258,10 +258,13 @@ export default function ProfileSiteView() {
   // prefill params DirectConnectShell already reads), instead of the
   // anonymous, business-agnostic request flow every other profile uses.
   const jrsRequestDescription =
-    "Vehicle year, make, and model:\nGlass that is damaged:\nWhat happened:\nPreferred timing:";
+    "Vehicle year, make, model, and VIN (if available):\nWhich glass is damaged:\nChip or crack size and location:\nCamera or sensors near the glass:\nInsurance claim or self-pay:\nVehicle location:\nPreferred timing:\nPhotos attached:";
+  const jrsDirectConnectTarget = business?.directConnectOwnerUserId
+    ? `target=${encodeURIComponent(business.directConnectOwnerUserId)}`
+    : `profile=${encodeURIComponent(profile.slug)}`;
   const directConnectHref =
     profile.slug === "jrs-auto-glass"
-      ? `/direct-connect?profile=${encodeURIComponent(profile.slug)}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
+      ? `/direct-connect?${jrsDirectConnectTarget}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
       : business?.directConnectOwnerUserId
         ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=tradepartner_profile`
         : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
@@ -374,6 +377,7 @@ export default function ProfileSiteView() {
           directConnectHref={directConnectHref}
           hasViewerSession={hasViewerSession}
           preScoutCreateHref={preScoutCreateHref}
+          recommendationsDirectory={recommendationsDirectory}
         />
       </>
     );

@@ -29,24 +29,33 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(profileView).toContain('profile.slug === "jrs-auto-glass"');
     expect(profileView).toContain("<JrsAutoGlassProfileTheme");
     expect(theme).toContain("/images/businesses/jrs-auto-glass/logo.svg");
+    expect(theme).toContain("Skip the national-chain runaround.");
+    expect(theme).toContain("Direct Connect with JR&apos;s");
+    expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
+    expect(theme).toContain("TradeScout CV");
+    expect(theme).toContain("Trust built from activity, not stars.");
+    expect(theme).toContain("Public recommendations are moderated");
+    expect(theme).toContain("Contact opens after acceptance");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
   });
 
-  it("publishes no unconfirmed contact, location, pricing, or service claims", () => {
+  it("publishes confirmed public proof without exposing direct contact details", () => {
     const theme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
     const publicSurface = `${theme}\n${provisioning}`;
 
+    expect(publicSurface).toContain("Ponchatoula");
+    expect(theme).toContain("Mobile auto glass");
+    expect(theme).toContain("Windshield replacement");
+    expect(theme.toLowerCase()).not.toContain("review");
+    expect(theme.toLowerCase()).not.toContain("rating");
+    expect(publicSurface).not.toContain("4.8");
     expect(publicSurface).not.toContain("985");
-    expect(publicSurface).not.toContain("Ponchatoula");
     expect(publicSurface).not.toContain("S Range Rd");
     expect(publicSurface).not.toContain("jrs.autoglass3");
-    expect(theme).not.toContain("Family owned");
     expect(theme).not.toContain("Affordable pricing");
-    expect(theme).not.toContain("Mobile service");
-    expect(theme).not.toContain("Windshield Replacement");
   });
 
   it("routes a profile CTA to its owner through a private Direct Connect assignment", () => {
@@ -54,7 +63,11 @@ describe("JR's Auto Glass public profile contract", () => {
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const route = read("server/routes/direct-connect.ts");
 
-    expect(profileView).toContain("profile=${encodeURIComponent(profile.slug)}");
+    expect(profileView).toContain("const jrsDirectConnectTarget = business?.directConnectOwnerUserId");
+    expect(profileView).toContain("target=${encodeURIComponent(business.directConnectOwnerUserId)}");
+    expect(profileView).toContain("Vehicle year, make, model, and VIN (if available)");
+    expect(profileView).toContain("Camera or sensors near the glass");
+    expect(profileView).toContain("Insurance claim or self-pay");
     expect(composer).toContain("payload.targetProfileSlug = prefillContextId.trim()");
     expect(route).toContain("targetProfileSlug:");
     expect(route).toContain("await storage.getProfileBySlugPublic(body.targetProfileSlug)");

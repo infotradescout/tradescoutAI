@@ -150,19 +150,19 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       roleContext: "auto_service" as const,
       slug: JRS_PROFILE_SLUG,
       displayName: "JR's Auto Glass",
-      headline: "Send an auto glass request privately through TradeScout.",
+      headline: "Established mobile auto glass service in Ponchatoula, Louisiana.",
       contentBlocks: [],
       ctaConfig: {
         primary: {
-          label: "Start a request",
+          label: "Direct Connect with JR's",
           kind: "message" as const,
           value: "/direct-connect",
         },
       },
       seoMeta: {
-        title: "JR's Auto Glass | TradeScout",
+        title: "JR's Auto Glass | Ponchatoula Mobile Auto Glass",
         description:
-          "Send vehicle and glass details to JR's Auto Glass through TradeScout with protected contact information.",
+          "Connect with JR's Auto Glass in Ponchatoula for mobile auto glass and windshield replacement through TradeScout.",
       },
       status: "published" as const,
       updatedAt: new Date(),
