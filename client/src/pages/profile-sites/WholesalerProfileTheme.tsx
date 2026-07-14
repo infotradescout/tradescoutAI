@@ -1,4 +1,4 @@
-import { useEffect, useState, type SyntheticEvent } from "react";
+import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ChevronRight,
@@ -350,6 +350,12 @@ export default function WholesalerProfileTheme({
   const [inventoryVisibleLimit, setInventoryVisibleLimit] = useState(24);
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
   const [openImageIndex, setOpenImageIndex] = useState(0);
+  const [lightboxImageFailed, setLightboxImageFailed] = useState(false);
+  const triedLightboxIndexesRef = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    triedLightboxIndexesRef.current = new Set();
+    setLightboxImageFailed(false);
+  }, [openStone]);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
   const [expressStoneName, setExpressStoneName] = useState<string | null>(null);
   const [expressRequestType, setExpressRequestType] =
@@ -629,7 +635,7 @@ export default function WholesalerProfileTheme({
                     Ready for the next job
                   </h2>
                 </div>
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   {featuredStones.map((offer) => {
                     const stone = offer.stone;
                     if (!stone) return null;
@@ -641,33 +647,47 @@ export default function WholesalerProfileTheme({
                           setOpenStone(stone);
                           setOpenImageIndex(0);
                         }}
-                        className="group overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                        className="group overflow-hidden rounded-xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:rounded-2xl"
                       >
                         <img
                           src={stone.images[0]}
                           alt={stone.name}
                           data-fallback-index="0"
                           onError={handleStoneImageError(stone)}
-                          className="h-52 w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                          className="aspect-[3/4] w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                         />
-                        <div className="p-4">
-                          <div className="flex items-start justify-between gap-3">
+                        <div className="p-2 sm:p-4">
+                          <p className="truncate text-xs font-bold !text-[#241d0f] sm:text-base">
+                            {stone.name}
+                          </p>
+                          <p className="truncate text-[9px] font-semibold uppercase tracking-wide text-[var(--brand-accent)] sm:text-xs">
+                            {offer.material}
+                            {offer.finish ? ` · ${offer.finish}` : ""}
+                          </p>
+                          <div className="mt-2 flex items-end justify-between gap-2 border-t border-[#241d0f]/10 pt-2">
                             <div>
-                              <p className="text-lg font-bold !text-[#241d0f]">{stone.name}</p>
-                              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide !text-[#4a4238]">
-                                {offer.material} · {offer.finish}
+                              <p className="text-xs font-bold text-[#241d0f] sm:text-lg">
+                                {offer.price}
+                              </p>
+                              <p className="text-[8px] font-semibold uppercase tracking-wide !text-[#4a4238] sm:text-[10px]">
+                                Per sq. ft.
                               </p>
                             </div>
-                            <p className="whitespace-nowrap text-lg font-bold text-[var(--brand-primary)]">
-                              {offer.price}
+                            <div className="hidden text-right sm:block">
+                              <p className="text-[10px] font-semibold uppercase tracking-wide !text-[#4a4238]">
+                                Size
+                              </p>
+                              <p className="text-xs font-bold !text-[#241d0f]">{offer.size}</p>
+                            </div>
+                          </div>
+                          <div className="hidden text-right sm:mt-1 sm:block">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide !text-[#4a4238]">
+                              Available
+                            </p>
+                            <p className="text-xs font-bold !text-[#241d0f]">
+                              {offer.availability}
                             </p>
                           </div>
-                          <p className="mt-3 text-sm !text-[#4a4238]">
-                            {offer.size} · {offer.availability}
-                          </p>
-                          <span className="mt-4 inline-flex rounded-full bg-[var(--brand-primary)] px-4 py-2 text-xs font-bold text-white">
-                            Ask about this stone
-                          </span>
                         </div>
                       </button>
                     );
@@ -924,12 +944,34 @@ export default function WholesalerProfileTheme({
               </button>
             </div>
 
-            <div className="relative flex-1 bg-black">
-              <img
-                src={openStone.images[openImageIndex]}
-                alt={`${openStone.name} ${openImageIndex + 1}`}
-                className="max-h-[55vh] w-full object-contain"
-              />
+            <div className="relative flex min-h-[240px] flex-1 items-center justify-center bg-black">
+              {lightboxImageFailed ? (
+                <div className="flex flex-col items-center gap-3 px-6 py-16 text-center text-white/60">
+                  <img
+                    src="/images/businesses/jw-stone/logo.svg"
+                    alt=""
+                    className="w-28 opacity-40"
+                  />
+                  <p className="text-sm">
+                    Photo unavailable right now — ask JW Stone for updated photos.
+                  </p>
+                </div>
+              ) : (
+                <img
+                  key={`${openStone.slug}-${openImageIndex}`}
+                  src={openStone.images[openImageIndex]}
+                  alt={`${openStone.name} ${openImageIndex + 1}`}
+                  onError={() => {
+                    triedLightboxIndexesRef.current.add(openImageIndex);
+                    if (triedLightboxIndexesRef.current.size >= openStone.images.length) {
+                      setLightboxImageFailed(true);
+                      return;
+                    }
+                    setOpenImageIndex((current) => (current + 1) % openStone.images.length);
+                  }}
+                  className="max-h-[55vh] w-full object-contain"
+                />
+              )}
               {openStone.images.length > 1 ? (
                 <>
                   <button
@@ -972,7 +1014,14 @@ export default function WholesalerProfileTheme({
                     }`}
                     aria-label={`View photo ${index + 1}`}
                   >
-                    <img src={url} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={url}
+                      alt=""
+                      onError={(event) => {
+                        event.currentTarget.style.visibility = "hidden";
+                      }}
+                      className="h-full w-full bg-white/10 object-cover"
+                    />
                   </button>
                 ))}
               </div>
