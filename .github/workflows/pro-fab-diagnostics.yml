@@ -8,7 +8,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  focused-profile-contracts:
+  verify-segments:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,42 +23,94 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Pro Fab profile contract
+      - name: TypeScript check
         continue-on-error: true
-        run: npm run test:run -- server/tests/pro-fab-profile.contract.test.ts
+        run: npm run check
 
-      - name: TradePartner Express contract
+      - name: Verify test inventory
         continue-on-error: true
-        run: npm run test:run -- server/tests/tradepartner-express-direct-connect.contract.test.ts
+        run: node scripts/verify-tests.mjs
 
-      - name: JW Stone presentation contract
+      - name: Theme audit
         continue-on-error: true
-        run: npm run test:run -- server/tests/jw-stone-profile-presentation.contract.test.ts
+        run: npm run audit:theme
 
-      - name: JR Auto Glass contract
+      - name: Blur audit
         continue-on-error: true
-        run: npm run test:run -- server/tests/jrs-auto-glass-profile.contract.test.ts
+        run: npm run audit:blur
 
-      - name: Universal profile Express contract
+      - name: HTTP semantics audit
         continue-on-error: true
-        run: npm run test:run -- server/tests/universal-profile-express-direct-connect.contract.test.ts
+        run: npm run audit:http-semantics
 
-      - name: Public profile compatibility contract
+      - name: Authority gates audit
         continue-on-error: true
-        run: npm run test:run -- server/tests/public-profile-compat.contract.test.ts
+        run: npm run audit:authority-gates
 
-      - name: Public profile SEO contracts
+      - name: Trust leaks audit
         continue-on-error: true
-        run: npm run test:run -- server/tests/public-profile-seo-contracts.test.ts
+        run: npm run audit:trust-leaks
 
-      - name: Full source-contract JSON report
+      - name: User-facing errors audit
         continue-on-error: true
-        run: npx cross-env TEST_DATABASE_URL= DATABASE_URL= RUN_INTEGRATION_TESTS= npm run test:run -- --reporter=json --outputFile=vitest-results.json
+        run: npm run audit:user-facing-errors
 
-      - name: Upload source-contract diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pro-fab-source-contract-diagnostics
-          path: vitest-results.json
-          if-no-files-found: error
+      - name: Observability audit
+        continue-on-error: true
+        run: npm run audit:observability-baselines
+
+      - name: Production debt audit
+        continue-on-error: true
+        run: npm run audit:production-debt
+
+      - name: Secrets history audit
+        continue-on-error: true
+        run: npm run audit:secrets-history
+
+      - name: Affiliate integrity audit
+        continue-on-error: true
+        run: npm run audit:affiliate-integrity:strict
+
+      - name: Documentation links audit
+        continue-on-error: true
+        run: npm run audit:doc-links:entry
+
+      - name: Legacy guard
+        continue-on-error: true
+        run: npm run verify:legacy-guard
+
+      - name: Scout purity
+        continue-on-error: true
+        run: npm run verify:scout-purity
+
+      - name: Shell architecture
+        continue-on-error: true
+        run: npm run verify:shells
+
+      - name: City branding
+        continue-on-error: true
+        run: npm run verify:city-branding
+
+      - name: Brand scope
+        continue-on-error: true
+        run: npm run guard:brand-scope
+
+      - name: Admin route aliases
+        continue-on-error: true
+        run: npm run guard:admin-route-aliases
+
+      - name: Law drift
+        continue-on-error: true
+        run: npm run guard:law-drift
+
+      - name: Scout response contract
+        continue-on-error: true
+        run: npm run guard:scout-response-contract
+
+      - name: Scout behavior registry
+        continue-on-error: true
+        run: npm run enforce:scout-behaviors
+
+      - name: Dist Vite guard
+        continue-on-error: true
+        run: npm run verify:no-vite
