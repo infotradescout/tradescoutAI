@@ -150,7 +150,7 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       roleContext: "auto_service" as const,
       slug: JRS_PROFILE_SLUG,
       displayName: "JR's Auto Glass",
-      headline: "Established mobile auto glass service in Ponchatoula, Louisiana."
+      headline: "Established mobile auto glass service in Ponchatoula, Louisiana.",
       contentBlocks: [],
       ctaConfig: {
         primary: {
