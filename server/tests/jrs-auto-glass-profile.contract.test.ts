@@ -29,6 +29,8 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(profileView).toContain('profile.slug === "jrs-auto-glass"');
     expect(profileView).toContain("<JrsAutoGlassProfileTheme");
     expect(theme).toContain("/images/businesses/jrs-auto-glass/logo.svg");
+    expect(theme).toContain("Skip the national-chain runaround.");
+    expect(theme).toContain("Direct Connect with JR&apos;s");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
@@ -54,7 +56,11 @@ describe("JR's Auto Glass public profile contract", () => {
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const route = read("server/routes/direct-connect.ts");
 
-    expect(profileView).toContain("profile=${encodeURIComponent(profile.slug)}");
+    expect(profileView).toContain("const jrsDirectConnectTarget = business?.directConnectOwnerUserId");
+    expect(profileView).toContain("target=${encodeURIComponent(business.directConnectOwnerUserId)}");
+    expect(profileView).toContain("Vehicle year, make, model, and VIN (if available)");
+    expect(profileView).toContain("Camera or sensors near the glass");
+    expect(profileView).toContain("Insurance claim or self-pay");
     expect(composer).toContain("payload.targetProfileSlug = prefillContextId.trim()");
     expect(route).toContain("targetProfileSlug:");
     expect(route).toContain("await storage.getProfileBySlugPublic(body.targetProfileSlug)");
