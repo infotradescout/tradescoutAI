@@ -31,24 +31,27 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("/images/businesses/jrs-auto-glass/logo.svg");
     expect(theme).toContain("Skip the national-chain runaround.");
     expect(theme).toContain("Direct Connect with JR&apos;s");
+    expect(theme).toContain("A name handed down. A business carried forward.");
+    expect(theme).toContain("Ryan Bourg&apos;s father");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
   });
 
-  it("publishes no unconfirmed contact, location, pricing, or service claims", () => {
+  it("publishes confirmed public proof without exposing direct contact details", () => {
     const theme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
     const publicSurface = `${theme}\n${provisioning}`;
 
+    expect(theme).toContain("4.8 Google rating");
+    expect(theme).toContain("17 Google reviews");
+    expect(publicSurface).toContain("Ponchatoula");
+    expect(theme).toContain("Mobile auto glass");
+    expect(theme).toContain("Windshield replacement");
     expect(publicSurface).not.toContain("985");
-    expect(publicSurface).not.toContain("Ponchatoula");
     expect(publicSurface).not.toContain("S Range Rd");
     expect(publicSurface).not.toContain("jrs.autoglass3");
-    expect(theme).not.toContain("Family owned");
     expect(theme).not.toContain("Affordable pricing");
-    expect(theme).not.toContain("Mobile service");
-    expect(theme).not.toContain("Windshield Replacement");
   });
 
   it("routes a profile CTA to its owner through a private Direct Connect assignment", () => {
