@@ -784,14 +784,14 @@ export default function WholesalerProfileTheme({
               <button
                 type="button"
                 onClick={openFullInventory}
-                className="group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--brand-accent)]/80 bg-[var(--brand-accent)]/40 px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-accent)]/50 md:rounded-full"
+                className="group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-white/12 px-6 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20 md:rounded-full"
               >
                 Browse full inventory
                 <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
               </button>
             ) : (
               <a href="#collection">
-                <button className="flex min-h-14 items-center justify-center gap-2 rounded-full border border-[var(--brand-accent)]/80 bg-[var(--brand-accent)]/40 px-7 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-accent)]/50">
+                <button className="flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20">
                   Explore Inventory
                 </button>
               </a>
@@ -799,7 +799,7 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-ts-orange-light bg-ts-orange/45 px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors hover:bg-ts-orange/55 md:rounded-full"
+              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3.5 text-sm font-extrabold text-ts-orange-light shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-white/20 md:rounded-full"
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
@@ -1350,7 +1350,7 @@ export default function WholesalerProfileTheme({
                   setOpenStone(null);
                   startDirectConnect(stoneName);
                 }}
-                className="rounded-full border border-[var(--brand-accent)]/80 bg-[var(--brand-accent)]/40 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-[var(--brand-accent)]/50"
+                className="rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-6 py-2.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-colors hover:bg-white/20"
               >
                 Ask about this stone
               </button>
