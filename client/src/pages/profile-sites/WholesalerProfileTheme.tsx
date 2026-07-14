@@ -424,6 +424,7 @@ export default function WholesalerProfileTheme({
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
+  const tradeScoutExitHref = hasViewerSession ? "/direct-connect" : "/";
   const startDirectConnect = (
     stoneName?: string | null,
     requestType?: ExpressDirectConnectRequestType | null
@@ -462,12 +463,28 @@ export default function WholesalerProfileTheme({
     scrollToInventoryBrowser();
   }, [inventoryExpanded]);
 
-  const goBack = () => {
-    if (window.history.length > 1) {
-      window.history.back();
+  const goBackWithinProfile = () => {
+    if (expressPanelOpen) {
+      setExpressPanelOpen(false);
       return;
     }
-    navigate("/");
+    if (openStone) {
+      setOpenStone(null);
+      return;
+    }
+    if (inventoryExpanded) {
+      setInventoryExpanded(false);
+      setActiveCategorySlug("all");
+      setInventorySearch("");
+      setInventoryVisibleLimit(24);
+      window.requestAnimationFrame(() => {
+        document
+          .getElementById("collection")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // A handful of source files are truncated mid-upload (correct WebP header
@@ -588,67 +605,73 @@ export default function WholesalerProfileTheme({
         } border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]`}
       >
         <div
-          className={`container mx-auto flex items-center gap-2 px-3 md:gap-3 md:px-8 ${
-            isJwStone ? "h-14 md:h-[72px]" : "justify-between py-2 md:py-3"
+          className={`container mx-auto items-center px-3 md:px-8 ${
+            isJwStone
+              ? "grid h-14 grid-cols-[1fr_auto_1fr] md:h-[72px]"
+              : "flex justify-between gap-3 py-2 md:py-3"
           }`}
         >
           {isJwStone ? (
             <>
               <button
                 type="button"
-                onClick={goBack}
-                aria-label="Go back"
-                className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+                onClick={goBackWithinProfile}
+                aria-label="Back within JW Stone"
+                title="Back within JW Stone"
+                className="inline-flex h-10 w-10 items-center justify-center justify-self-start rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <Link
-                href="/"
-                aria-label="TradeScout home"
-                className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
-              >
-                <Home className="h-4.5 w-4.5" />
-              </Link>
+              <div className="flex items-center justify-center" aria-label="JW Stone">
+                <img
+                  src="/images/businesses/jw-stone/logo.svg"
+                  alt="JW Stone — Premium Wholesale Stone Distributor"
+                  className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"
+                />
+              </div>
+              <div className="flex items-center justify-self-end gap-2">
+                <Link
+                  href={tradeScoutExitHref}
+                  aria-label={
+                    hasViewerSession
+                      ? "Close JW Stone and return to Direct Connect"
+                      : "Close JW Stone and return to TradeScout"
+                  }
+                  title={hasViewerSession ? "Return to Direct Connect" : "Return to TradeScout"}
+                  className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+                >
+                  <X className="h-4.5 w-4.5" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => startDirectConnect()}
+                  className="hidden flex-shrink-0 rounded-full bg-[var(--brand-primary)] px-3.5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] sm:inline-flex md:px-5 md:text-sm"
+                >
+                  Direct Connect
+                </button>
+              </div>
             </>
-          ) : null}
-          {profileSlug === "jw-stone" ? (
-            <div className="min-w-0 flex-1 px-1 md:px-3">
-              <img
-                src="/images/businesses/jw-stone/logo.svg"
-                alt="JW Stone — Premium Wholesale Stone Distributor"
-                className="h-auto w-[116px] max-w-full sm:w-[148px] md:w-[204px]"
-              />
-            </div>
           ) : (
-            <div className="min-w-0 flex-1">
-              <span
-                className={`block text-lg font-bold leading-tight text-[var(--brand-primary)] md:text-xl ${DISPLAY_FONT}`}
+            <>
+              <div className="min-w-0 flex-1">
+                <span
+                  className={`block text-lg font-bold leading-tight text-[var(--brand-primary)] md:text-xl ${DISPLAY_FONT}`}
+                >
+                  {displayName}
+                </span>
+                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
+                  TradeScout TradePartner
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => startDirectConnect()}
+                className="flex-shrink-0 rounded-full bg-[var(--brand-primary)] px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] md:px-5 md:text-sm"
               >
-                {displayName}
-              </span>
-              <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
-                TradeScout TradePartner
-              </p>
-            </div>
+                Direct Connect
+              </button>
+            </>
           )}
-          <button
-            type="button"
-            onClick={() => startDirectConnect()}
-            className={`flex-shrink-0 rounded-full bg-[var(--brand-primary)] font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] ${
-              isJwStone
-                ? "px-3 py-2.5 text-[11px] sm:px-3.5 sm:text-xs md:px-5 md:text-sm"
-                : "px-3.5 py-2 text-xs md:px-5 md:text-sm"
-            }`}
-          >
-            {isJwStone ? (
-              <>
-                <span className="sm:hidden">Connect</span>
-                <span className="hidden sm:inline">Direct Connect</span>
-              </>
-            ) : (
-              "Direct Connect"
-            )}
-          </button>
         </div>
         <nav
           className={`scrollbar-hide items-center overflow-x-auto uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
