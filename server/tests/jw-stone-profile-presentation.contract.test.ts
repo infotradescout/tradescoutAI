@@ -18,8 +18,9 @@ describe("JW Stone profile presentation contract", () => {
   it("makes the full catalog the primary JW Stone action", () => {
     expect(source).toContain("const openFullInventory = () =>");
     expect(source).toContain("Browse full inventory");
-    expect(source).toContain("Explore the complete stone library");
-    expect(source).toContain("{allInventoryStones.length} stones · one collection");
+    expect(source).toContain("The complete collection");
+    expect(source).not.toContain("{allInventoryStones.length} stones · one collection");
+    expect(source).not.toContain("{allInventoryStones.length} current stones");
     expect(source).toContain('id="inventory-browser"');
   });
 
