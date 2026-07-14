@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
+import { provisionProFabProfile } from "./proFabProfileProvisioning";
 
 const JRS_PROFILE_SLUG = "jrs-auto-glass";
 const JRS_OWNER_EMAIL = Buffer.from("c3J0NGxpZmUyMDA0QGdtYWlsLmNvbQ==", "base64").toString("utf8");
@@ -191,4 +192,6 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       } as any)
       .where(eq(users.id, owner.id));
   });
+
+  await provisionProFabProfile();
 }
