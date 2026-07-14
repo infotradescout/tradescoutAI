@@ -9,6 +9,11 @@ export type JwStoneInventoryStone = {
   name: string;
   slug: string;
   images: string[];
+  // Parallel to images: the finish stated in that specific photo's source
+  // filename, when explicit (e.g. a stone shot in both polished and
+  // leathered side by side). Undefined per-photo when no photo-specific
+  // evidence exists -- falls back to the stone-level `finishes` in the UI.
+  imageFinishes?: Array<string[] | undefined>;
   slabCounts?: number[];
   materialStatus: JwStoneMaterialStatus;
   finishes?: string[];
@@ -83,31 +88,41 @@ function materialStatus(slug: string, category: string): JwStoneMaterialStatus {
   return "source_folder";
 }
 
-const stones = generatedInventory.map((generated): JwStoneInventoryStone & {
-  categorySlug: string;
-} => {
-  const { categorySlug, slug, name, images, slabCounts } = generated;
-  const status = materialStatus(slug, categorySlug);
-  const finishes = EXPLICIT_FINISHES[slug];
-  return {
-    categorySlug,
-    name,
-    slug,
-    images,
-    slabCounts,
-    materialStatus: status,
-    finishes,
-    finishStatus: finishes?.length ? "explicit" : "unconfirmed",
-    sourceNote:
-      status === "user_confirmed"
-        ? "Material confirmed during JW Stone reconciliation."
-        : status === "filename"
-          ? "Material stated in the source filename."
-          : status === "source_folder"
-            ? "Material follows the JW Stone source folder; finish remains separate evidence."
-            : "Source material is conflicting or absent; confirmation required.",
-  };
-});
+const stones = generatedInventory.map(
+  (
+    generated
+  ): JwStoneInventoryStone & {
+    categorySlug: string;
+  } => {
+    const { categorySlug, slug, name, images, slabCounts, sourceFileIds } = generated;
+    const status = materialStatus(slug, categorySlug);
+    const finishes = EXPLICIT_FINISHES[slug];
+    const imageFinishes = sourceFileIds?.map(
+      (fileId: string) => (imageFinishByDriveId as Record<string, string[]>)[fileId]
+    );
+    return {
+      categorySlug,
+      name,
+      slug,
+      images,
+      imageFinishes: imageFinishes?.some((f: string[] | undefined) => f?.length)
+        ? imageFinishes
+        : undefined,
+      slabCounts,
+      materialStatus: status,
+      finishes,
+      finishStatus: finishes?.length ? "explicit" : "unconfirmed",
+      sourceNote:
+        status === "user_confirmed"
+          ? "Material confirmed during JW Stone reconciliation."
+          : status === "filename"
+            ? "Material stated in the source filename."
+            : status === "source_folder"
+              ? "Material follows the JW Stone source folder; finish remains separate evidence."
+              : "Source material is conflicting or absent; confirmation required.",
+    };
+  }
+);
 
 export const JW_STONE_INVENTORY_CATEGORIES: JwStoneInventoryCategory[] = CATEGORY_ORDER.map(
   (categorySlug) => ({
@@ -128,3 +143,4 @@ export const JW_STONE_INVENTORY_SUMMARY = {
   needsFinishConfirmation: stones.filter((stone) => stone.finishStatus === "unconfirmed").length,
 };
 import generatedInventory from "./jwStoneInventory.generated.json";
+import imageFinishByDriveId from "./jwStoneImageFinishes.generated.json";

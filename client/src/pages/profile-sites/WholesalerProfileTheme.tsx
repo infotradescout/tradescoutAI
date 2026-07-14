@@ -62,6 +62,10 @@ type InventoryStone = {
   name: string;
   slug: string;
   images: string[];
+  // Parallel to images -- the finish shown in that specific photo, when the
+  // source filename states one explicitly (a stone can be photographed in
+  // more than one finish, e.g. polished and leathered side by side).
+  imageFinishes?: Array<string[] | undefined>;
   slabCounts?: number[];
   materialStatus?:
     | "user_confirmed"
@@ -964,6 +968,11 @@ export default function WholesalerProfileTheme({
                     ? `Finish: ${openStone.finishes.join(" · ")}`
                     : "Finish not confirmed — ask JW Stone"}
                 </p>
+                {openStone.imageFinishes?.[openImageIndex]?.length ? (
+                  <p className="mt-1 text-xs font-semibold text-[var(--brand-accent)]">
+                    This photo: {openStone.imageFinishes[openImageIndex]?.join(" · ")}
+                  </p>
+                ) : null}
                 {openStone.slabCounts?.length ? (
                   <p className="mt-1 text-xs font-semibold text-white/80">
                     {openStone.slabCounts.length === 1
