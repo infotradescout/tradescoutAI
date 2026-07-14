@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 const source = fs.readFileSync(
-  path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileTheme.tsx"),
+  path.resolve(process.cwd(), "client/src/pages/profile-sites/WholesalerProfileThemeCore.tsx"),
   "utf8"
 );
 const expressSource = fs.readFileSync(
