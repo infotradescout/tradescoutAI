@@ -591,12 +591,14 @@ export const AppRoutes = memo(function AppRoutes({
   isPublicCampaignRoute,
   isPublicRootLanding,
   isShareRoute,
+  isStandaloneProfileRoute,
 }: {
   isLiteScoutRoute: boolean;
   isLandingRoute: boolean;
   isPublicCampaignRoute: boolean;
   isPublicRootLanding: boolean;
   isShareRoute: boolean;
+  isStandaloneProfileRoute: boolean;
 }) {
   return (
     <>
@@ -615,6 +617,18 @@ export const AppRoutes = memo(function AppRoutes({
         <Switch>
           <Route path="/r/:shareToken">
             <LazyPage Component={DirectConnectSharePage} />
+          </Route>
+          <Route path=":rest*">
+            <LazyPage Component={NotFound} />
+          </Route>
+        </Switch>
+      ) : isStandaloneProfileRoute ? (
+        <Switch>
+          <Route path="/u/:slug">
+            <LazyPage Component={ProfileSiteView} />
+          </Route>
+          <Route path="/p/:slug">
+            <LazyPage Component={ProfileSiteView} />
           </Route>
           <Route path=":rest*">
             <LazyPage Component={NotFound} />
