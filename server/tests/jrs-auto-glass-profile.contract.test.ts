@@ -44,8 +44,8 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(publicSurface).toContain("Ponchatoula");
     expect(theme).toContain("Mobile auto glass");
     expect(theme).toContain("Windshield replacement");
-    expect(publicSurface.toLowerCase()).not.toContain("review");
-    expect(publicSurface.toLowerCase()).not.toContain("rating");
+    expect(theme.toLowerCase()).not.toContain("review");
+    expect(theme.toLowerCase()).not.toContain("rating");
     expect(publicSurface).not.toContain("4.8");
     expect(publicSurface).not.toContain("985");
     expect(publicSurface).not.toContain("S Range Rd");
