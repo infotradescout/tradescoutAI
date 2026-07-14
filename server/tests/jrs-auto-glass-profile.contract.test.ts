@@ -35,7 +35,7 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("TradeScout CV");
     expect(theme).toContain("Trust built from activity, not stars.");
     expect(theme).toContain("Public recommendations are moderated");
-    expect(theme).toContain("contact opens after acceptance");
+    expect(theme).toContain("Contact opens after acceptance");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
