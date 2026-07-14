@@ -63,7 +63,12 @@ type InventoryStone = {
   slug: string;
   images: string[];
   slabCounts?: number[];
-  materialStatus?: "user_confirmed" | "source_folder" | "filename" | "historical_assignment" | "unconfirmed";
+  materialStatus?:
+    | "user_confirmed"
+    | "source_folder"
+    | "filename"
+    | "historical_assignment"
+    | "unconfirmed";
   finishes?: string[];
   finishStatus?: "explicit" | "unconfirmed";
   sourceNote?: string;
@@ -233,24 +238,11 @@ const SCROLL_ROW =
   "flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden";
 const SCROLL_CARD = "w-[240px] flex-shrink-0 snap-start sm:w-[260px]";
 
-function useWholesalerThemeFonts() {
-  useEffect(() => {
-    const id = "wholesaler-theme-fonts";
-    if (document.getElementById(id)) return;
-    const link = document.createElement("link");
-    link.id = id;
-    link.rel = "preload";
-    link.as = "style";
-    link.href =
-      "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap";
-    link.onload = () => {
-      link.rel = "stylesheet";
-    };
-    document.head.appendChild(link);
-  }, []);
-}
-
-const DISPLAY_FONT = "font-['Playfair_Display',serif]";
+// Headings use TradeScout's own display font (Sora, already loaded
+// platform-wide) rather than a customer-specific webfont -- brand color and
+// imagery still carry the customer's identity, but typography stays
+// TradeScout-native so the page doesn't read as a disconnected microsite.
+const DISPLAY_FONT = "font-display";
 
 function findBlock(blocks: ContentBlock[], type: string): ContentBlock | undefined {
   return blocks.find((b) => b?.type === type);
@@ -291,7 +283,6 @@ export default function WholesalerProfileTheme({
   recommendationsDirectory = [],
   recommendationDirectorySummary,
 }: WholesalerProfileThemeProps) {
-  useWholesalerThemeFonts();
   const [, navigate] = useLocation();
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
@@ -611,7 +602,9 @@ export default function WholesalerProfileTheme({
                   <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--brand-accent)]">
                     Featured stone offers
                   </p>
-                  <h2 className={`mt-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}>
+                  <h2
+                    className={`mt-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+                  >
                     Ready for the next job
                   </h2>
                 </div>
@@ -666,7 +659,8 @@ export default function WholesalerProfileTheme({
                 Current Inventory
               </h2>
               <p className="text-sm !text-[#4a4238]">
-                Search JW Stone's full collection or open any stone to send a protected Direct Connect request.
+                Search JW Stone's full collection or open any stone to send a protected Direct
+                Connect request.
               </p>
             </div>
 
@@ -992,7 +986,9 @@ export default function WholesalerProfileTheme({
               <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-[var(--brand-accent)]">
                 From source to finished space
               </p>
-              <h2 className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}>
+              <h2
+                className={`text-3xl font-bold leading-tight text-white md:text-5xl ${DISPLAY_FONT}`}
+              >
                 Stone selected with the final room in mind.
               </h2>
             </div>
@@ -1066,7 +1062,10 @@ export default function WholesalerProfileTheme({
               >
                 Featured Materials
               </h2>
-              <a href="#collection" className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline">
+              <a
+                href="#collection"
+                className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
+              >
                 View all inventory
               </a>
             </div>
@@ -1098,9 +1097,13 @@ export default function WholesalerProfileTheme({
                       ) : null}
                     </div>
                     <div className="px-5 pb-3 pt-4">
-                      <h3 className={`text-xl font-bold !text-[#241d0f] ${DISPLAY_FONT}`}>{stone.name}</h3>
+                      <h3 className={`text-xl font-bold !text-[#241d0f] ${DISPLAY_FONT}`}>
+                        {stone.name}
+                      </h3>
                       <p className="mt-1 text-sm !text-[#4a4238]">
-                        {stone.finishes?.length ? stone.finishes.join(" · ") : "Current JW Stone inventory"}
+                        {stone.finishes?.length
+                          ? stone.finishes.join(" · ")
+                          : "Current JW Stone inventory"}
                       </p>
                     </div>
                   </button>
@@ -1121,7 +1124,9 @@ export default function WholesalerProfileTheme({
       ) : galleryImages.length > 0 ? (
         <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
-            <h2 className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}>
+            <h2
+              className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+            >
               Featured Materials
             </h2>
             <div className={SCROLL_ROW}>
