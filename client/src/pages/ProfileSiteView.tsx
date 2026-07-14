@@ -19,6 +19,7 @@ import {
 import { Page } from "@/components/layout/PagePrimitives";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
+import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
@@ -127,6 +128,7 @@ export default function ProfileSiteView() {
   const [data, setData] = useState<PublicProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [expressPanelOpen, setExpressPanelOpen] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -374,10 +376,17 @@ export default function ProfileSiteView() {
           structuredData={structuredData}
         />
         <JrsAutoGlassProfileTheme
-          directConnectHref={directConnectHref}
+          onDirectConnect={() => setExpressPanelOpen(true)}
           hasViewerSession={hasViewerSession}
-          preScoutCreateHref={preScoutCreateHref}
           recommendationsDirectory={recommendationsDirectory}
+        />
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          businessName={displayName}
+          hasViewerSession={hasViewerSession}
+          requestMode="auto_glass"
         />
       </>
     );
@@ -712,21 +721,19 @@ export default function ProfileSiteView() {
                     </div>
                     <p className="text-white/60">
                       {isSuperAdminViewer
-                        ? "Super Admin override active. You are automatically connected through Direct Connect."
-                        : hasViewerSession
-                          ? "Open Direct Connect to contact this profile inside TradeScout."
-                          : "Create a free TradeScout account to contact this profile through Direct Connect."}
+                        ? "Super Admin oversight is active. Send the request directly to this business."
+                        : "Send or call first. TradeScout offers signup after the action so the request can be managed in My Requests."}
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
-                    <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
-                      <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2">
-                        <MessageCircle className="h-4 w-4" />
-                        <span>
-                          {isSuperAdminViewer ? "Open Direct Connect" : "Start a Request"}
-                        </span>
-                      </Button>
-                    </Link>
+                    <Button
+                      type="button"
+                      onClick={() => setExpressPanelOpen(true)}
+                      className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span>{isSuperAdminViewer ? "Open Direct Connect" : "Start a Request"}</span>
+                    </Button>
                     {!hasViewerSession ? (
                       <Link href={preScoutSignInHref}>
                         <Button className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white">
@@ -741,6 +748,14 @@ export default function ProfileSiteView() {
           </div>
         </CardContent>
       </Card>
+      <ExpressDirectConnectPanel
+        open={expressPanelOpen}
+        onClose={() => setExpressPanelOpen(false)}
+        profileSlug={profile.slug}
+        businessName={displayName}
+        hasViewerSession={hasViewerSession}
+        requestMode="service"
+      />
     </Page>
   );
 }
