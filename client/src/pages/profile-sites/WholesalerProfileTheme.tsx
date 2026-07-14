@@ -821,15 +821,15 @@ export default function WholesalerProfileTheme({
         <section
           id="collection"
           className={`scroll-mt-28 bg-[var(--brand-bg)] ${
-            isJwStone ? "border-t border-[#241d0f]/10 py-10 md:py-14" : "py-8 md:py-11"
+            isJwStone ? "border-t border-[#241d0f]/10 pt-10 md:pt-14" : "py-8 md:py-11"
           }`}
         >
           <div className="container mx-auto px-4 md:px-6">
             {featuredStones.length > 0 ? (
-              <div className="mb-11">
+              <div className={inventoryExpanded ? "mb-11" : "mb-0"}>
                 <div className="mb-5 max-w-2xl">
                   <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--brand-accent)] md:text-xs">
-                    The JW Stone edit
+                    Featured stone offers
                   </p>
                   <h2
                     className={`mt-1.5 text-[1.7rem] font-extrabold leading-tight text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
@@ -918,11 +918,11 @@ export default function WholesalerProfileTheme({
 
             {!inventoryExpanded ? (
               isJwStone ? (
-                <div className="py-3 md:py-5">
+                <div className="-mx-4 mt-0 md:-mx-6">
                   <button
                     type="button"
                     onClick={openFullInventory}
-                    className="group relative flex min-h-[180px] w-full items-center gap-4 overflow-hidden rounded-[1.75rem] bg-[var(--brand-primary-dark)] px-5 py-7 text-left text-white shadow-[0_20px_50px_rgba(24,55,25,0.3)] ring-1 ring-black/15 transition-all hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(24,55,25,0.38)] sm:min-h-[200px] sm:px-7 sm:py-8"
+                    className="group relative flex min-h-[320px] w-full items-center overflow-hidden bg-[var(--brand-primary-dark)] px-7 py-10 text-left text-white sm:min-h-[340px] sm:px-10"
                   >
                     {blueGoiasInventoryCtaImage ? (
                       <svg
@@ -939,12 +939,9 @@ export default function WholesalerProfileTheme({
                         />
                       </svg>
                     ) : null}
-                    <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,18,0.96)_0%,rgba(7,15,18,0.82)_55%,rgba(7,15,18,0.48)_100%)]" />
+                    <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,18,0.66)_0%,rgba(7,15,18,0.48)_58%,rgba(7,15,18,0.24)_100%)]" />
                     <span className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-accent)]" />
-                    <span className="relative inline-flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-accent)] text-[#16200b] shadow-lg">
-                      <LayoutGrid className="h-7 w-7" />
-                    </span>
-                    <span className="relative min-w-0 flex-1">
+                    <span className="relative z-10 min-w-0 max-w-[34rem]">
                       <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand-accent)] sm:text-xs">
                         Blue Goias · current inventory
                       </span>
@@ -956,9 +953,6 @@ export default function WholesalerProfileTheme({
                       <span className="mt-1 block text-sm font-medium text-white/75">
                         Search every current slab by stone or material
                       </span>
-                    </span>
-                    <span className="relative inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 transition-transform group-hover:translate-x-1">
-                      <ChevronRight className="h-5 w-5" />
                     </span>
                   </button>
                 </div>
@@ -978,7 +972,7 @@ export default function WholesalerProfileTheme({
                 </div>
               )
             ) : (
-              <div id="inventory-browser" className="scroll-mt-28">
+              <div id="inventory-browser" className="scroll-mt-28 pb-10 md:pb-14">
                 <div className="mb-6">
                   <h2
                     className={`mb-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
