@@ -18,8 +18,23 @@ describe("JW Stone profile presentation contract", () => {
   it("makes the full catalog the primary JW Stone action", () => {
     expect(source).toContain("const openFullInventory = () =>");
     expect(source).toContain("Browse full inventory");
-    expect(source).toContain("Browse all {allInventoryStones.length} stones");
+    expect(source).toContain("The complete collection");
+    expect(source).not.toContain("{allInventoryStones.length} stones · one collection");
+    expect(source).not.toContain("{allInventoryStones.length} current stones");
     expect(source).toContain('id="inventory-browser"');
+  });
+
+  it("presents the featured offer row as a premium JW Stone edit", () => {
+    expect(source).toContain("The JW Stone edit");
+    expect(source).toContain("Stone worth building around.");
+    expect(source).toContain("Three standouts from the current collection");
+    expect(source).toContain("offer.availability");
+  });
+
+  it("shows each complete featured slab rotated into the portrait card", () => {
+    expect(source).toContain('className="relative aspect-[2/3] overflow-hidden');
+    expect(source).toContain("rotate-90 object-contain");
+    expect(source).toContain("h-2/3 w-[150%] max-w-none");
   });
 
   it("owns public-profile navigation after leaving the app shell", () => {

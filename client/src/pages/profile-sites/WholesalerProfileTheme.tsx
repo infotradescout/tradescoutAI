@@ -415,7 +415,7 @@ export default function WholesalerProfileTheme({
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
   const heroTeaser =
     profileSlug === "jw-stone"
-      ? `${allInventoryStones.length} current stones. Search the full collection or ask JW Stone about your project.`
+      ? "Search the full collection or ask JW Stone about your project."
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
@@ -611,7 +611,7 @@ export default function WholesalerProfileTheme({
               <img
                 src="/images/businesses/jw-stone/logo.svg"
                 alt="JW Stone — Premium Wholesale Stone Distributor"
-                className="h-auto w-[108px] max-w-full sm:w-[140px] md:w-[190px]"
+                className="h-auto w-[116px] max-w-full sm:w-[148px] md:w-[204px]"
               />
             </div>
           ) : (
@@ -659,10 +659,7 @@ export default function WholesalerProfileTheme({
               className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-[var(--brand-accent)] px-3 py-1.5 text-[#16200b] shadow-sm"
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              Full inventory
-              <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px]">
-                {allInventoryStones.length}
-              </span>
+              Browse full inventory
             </button>
           ) : null}
           {[
@@ -758,7 +755,7 @@ export default function WholesalerProfileTheme({
                       Browse full inventory
                     </span>
                     <span className="mt-0.5 block text-xs font-semibold text-[var(--brand-primary)]/70">
-                      {allInventoryStones.length} current stones
+                      Search by stone or material
                     </span>
                   </span>
                 </span>
@@ -816,22 +813,31 @@ export default function WholesalerProfileTheme({
 
       {/* Live stone collection */}
       {inventoryCatalog.length > 0 ? (
-        <section id="collection" className="scroll-mt-28 bg-[var(--brand-bg)] py-8 md:py-11">
+        <section
+          id="collection"
+          className={`scroll-mt-28 bg-[var(--brand-bg)] ${
+            isJwStone ? "border-t border-[#241d0f]/10 py-10 md:py-14" : "py-8 md:py-11"
+          }`}
+        >
           <div className="container mx-auto px-4 md:px-6">
             {featuredStones.length > 0 ? (
-              <div className="mb-10">
-                <div className="mb-4">
-                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--brand-accent)]">
-                    Featured stone offers
+              <div className="mb-11">
+                <div className="mb-5 max-w-2xl">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--brand-accent)] md:text-xs">
+                    The JW Stone edit
                   </p>
                   <h2
-                    className={`mt-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+                    className={`mt-1.5 text-[1.7rem] font-extrabold leading-tight text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
                   >
-                    Ready for the next job
+                    Stone worth building around.
                   </h2>
+                  <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed !text-[#4a4238] md:text-base">
+                    Three standouts from the current collection, priced and ready for the next
+                    project.
+                  </p>
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                  {featuredStones.map((offer) => {
+                <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+                  {featuredStones.map((offer, offerIndex) => {
                     const stone = offer.stone;
                     if (!stone) return null;
                     return (
@@ -842,27 +848,35 @@ export default function WholesalerProfileTheme({
                           setOpenStone(stone);
                           setOpenImageIndex(0);
                         }}
-                        className="group overflow-hidden rounded-xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg sm:rounded-2xl"
+                        className="group overflow-hidden rounded-xl border border-[#241d0f]/15 bg-white text-left shadow-[0_10px_30px_rgba(36,29,15,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-accent)]/55 hover:shadow-[0_18px_40px_rgba(36,29,15,0.14)] sm:rounded-2xl"
                       >
-                        <img
-                          src={stone.images[0]}
-                          alt={stone.name}
-                          data-fallback-index="0"
-                          onError={handleStoneImageError(stone)}
-                          onLoad={handleStoneImageLoad(stone)}
-                          className="aspect-[3/4] w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                        />
-                        <div className="p-2 sm:p-4">
-                          <p className="truncate text-xs font-bold !text-[#241d0f] sm:text-base">
+                        <div className="relative aspect-[2/3] overflow-hidden bg-[#e9e5dc]">
+                          <img
+                            src={stone.images[0]}
+                            alt={stone.name}
+                            data-fallback-index="0"
+                            onError={handleStoneImageError(stone)}
+                            onLoad={handleStoneImageLoad(stone)}
+                            className="absolute left-1/2 top-1/2 h-2/3 w-[150%] max-w-none -translate-x-1/2 -translate-y-1/2 rotate-90 object-contain"
+                          />
+                          <span className="absolute left-2 top-2 inline-flex items-center rounded-full border border-white/40 bg-black/55 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
+                            {offer.availability}
+                          </span>
+                          <span className="absolute bottom-2 right-2 text-[9px] font-bold tracking-[0.14em] text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.85)] sm:bottom-3 sm:right-3 sm:text-[10px]">
+                            0{offerIndex + 1}
+                          </span>
+                        </div>
+                        <div className="p-2.5 sm:p-4">
+                          <p className="truncate text-xs font-extrabold !text-[#241d0f] sm:text-base">
                             {stone.name}
                           </p>
-                          <p className="truncate text-[9px] font-semibold uppercase tracking-wide text-[var(--brand-accent)] sm:text-xs">
+                          <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--brand-accent)] sm:text-xs">
                             {offer.material}
                             {offer.finish ? ` · ${offer.finish}` : ""}
                           </p>
-                          <div className="mt-2 flex items-end justify-between gap-2 border-t border-[#241d0f]/10 pt-2">
+                          <div className="mt-2.5 flex items-end justify-between gap-2 border-t border-[#241d0f]/10 pt-2.5">
                             <div>
-                              <p className="text-xs font-bold text-[#241d0f] sm:text-lg">
+                              <p className="text-sm font-extrabold text-[#241d0f] sm:text-lg">
                                 {offer.price}
                               </p>
                               <p className="text-[8px] font-semibold uppercase tracking-wide !text-[#4a4238] sm:text-[10px]">
@@ -898,25 +912,26 @@ export default function WholesalerProfileTheme({
                   <button
                     type="button"
                     onClick={openFullInventory}
-                    className="group relative flex w-full items-center gap-4 overflow-hidden rounded-[1.75rem] bg-[var(--brand-primary)] px-5 py-6 text-left text-white shadow-[0_18px_45px_rgba(24,55,25,0.28)] ring-1 ring-black/10 transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-primary-dark)] hover:shadow-[0_24px_55px_rgba(24,55,25,0.34)] sm:px-7 sm:py-7"
+                    className="group relative flex w-full items-center gap-4 overflow-hidden rounded-[1.75rem] bg-[linear-gradient(135deg,var(--brand-primary)_0%,var(--brand-primary-dark)_100%)] px-5 py-6 text-left text-white shadow-[0_20px_50px_rgba(24,55,25,0.3)] ring-1 ring-black/15 transition-all hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(24,55,25,0.38)] sm:px-7 sm:py-7"
                   >
+                    <span className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-accent)]" />
                     <span className="inline-flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-accent)] text-[#16200b] shadow-lg">
                       <LayoutGrid className="h-7 w-7" />
                     </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/65 sm:text-xs">
-                        Full collection
+                    <span className="relative min-w-0 flex-1">
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand-accent)] sm:text-xs">
+                        The complete collection
                       </span>
                       <span
                         className={`mt-0.5 block text-xl font-extrabold sm:text-2xl ${DISPLAY_FONT}`}
                       >
-                        Browse all {allInventoryStones.length} stones
+                        Browse full inventory
                       </span>
                       <span className="mt-1 block text-sm font-medium text-white/75">
-                        Search by stone name or material
+                        Search every current slab by stone or material
                       </span>
                     </span>
-                    <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 transition-transform group-hover:translate-x-1">
+                    <span className="relative inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 transition-transform group-hover:translate-x-1">
                       <ChevronRight className="h-5 w-5" />
                     </span>
                   </button>
