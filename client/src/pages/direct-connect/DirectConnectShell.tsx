@@ -291,7 +291,7 @@ function getPostSubmitHomeIdMemoryCopy(hasHomes: boolean) {
     description: hasHomes
       ? "Save this request to your HomeID so future work is easier. You can attach it to a saved home or update property history when you are ready."
       : "Save this request to your HomeID so future work is easier. You can create a home record from the request when you are ready.",
-    actionLabel: hasHomes ? "Attach/update HomeID" : "Create from request",
+    actionLabel: "Attach this project to your HomeID",
   };
 }
 
@@ -5515,6 +5515,8 @@ function MyDirectConnectRequests() {
 export default function DirectConnectShell() {
   const [location, navigate] = useLocation();
   const { isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
+  const homeIdOfferShownRef = useRef<string | null>(null);
   const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
   const pathOnly = useMemo(() => getDirectConnectPathOnly(location), [location]);
   const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
@@ -5545,6 +5547,40 @@ export default function DirectConnectShell() {
     const nextPath = encodeURIComponent(location || "/direct-connect");
     return `/create-account?source=pensacola-direct-connect&county=${PENSACOLA_COUNTY_CODE}&next=${nextPath}`;
   }, [location]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const queryIndex = location.indexOf("?");
+    if (queryIndex === -1) return;
+    const params = new URLSearchParams(location.slice(queryIndex + 1));
+    if (params.get("offerHomeId") !== "1") return;
+    const requestId = String(params.get("requestId") || "").trim();
+    if (!requestId || homeIdOfferShownRef.current === requestId) return;
+    homeIdOfferShownRef.current = requestId;
+
+    params.delete("offerHomeId");
+    const remainingQuery = params.toString();
+    const cleanLocation = `${location.slice(0, queryIndex)}${remainingQuery ? `?${remainingQuery}` : ""}`;
+    navigate(cleanLocation, { replace: true });
+
+    toast({
+      title: "Keep this project with your home",
+      description:
+        "The request is in My Requests. Add it to HomeID only if you choose to.",
+      action: (
+        <ToastAction
+          altText="Attach this project to your HomeID"
+          onClick={() =>
+            navigate(
+              `/homes?source=direct_connect_submitted&requestId=${encodeURIComponent(requestId)}`
+            )
+          }
+        >
+          Attach this project to your HomeID
+        </ToastAction>
+      ),
+    });
+  }, [isAuthenticated, location, navigate, toast, user]);
 
   useEffect(() => {
     void trackShellEvent({
