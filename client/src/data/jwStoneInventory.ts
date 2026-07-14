@@ -9,6 +9,7 @@ export type JwStoneInventoryStone = {
   name: string;
   slug: string;
   images: string[];
+  slabCounts?: number[];
   materialStatus: JwStoneMaterialStatus;
   finishes?: string[];
   finishStatus: "explicit" | "unconfirmed";
@@ -85,7 +86,7 @@ function materialStatus(slug: string, category: string): JwStoneMaterialStatus {
 const stones = generatedInventory.map((generated): JwStoneInventoryStone & {
   categorySlug: string;
 } => {
-  const { categorySlug, slug, name, images } = generated;
+  const { categorySlug, slug, name, images, slabCounts } = generated;
   const status = materialStatus(slug, categorySlug);
   const finishes = EXPLICIT_FINISHES[slug];
   return {
@@ -93,6 +94,7 @@ const stones = generatedInventory.map((generated): JwStoneInventoryStone & {
     name,
     slug,
     images,
+    slabCounts,
     materialStatus: status,
     finishes,
     finishStatus: finishes?.length ? "explicit" : "unconfirmed",
