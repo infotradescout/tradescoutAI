@@ -61,10 +61,25 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('startDirectConnect(inventorySearch.trim(), "request_material")');
   });
 
-  it("owns public-profile navigation after leaving the app shell", () => {
-    expect(source).toContain('aria-label="Go back"');
-    expect(source).toContain('aria-label="TradeScout home"');
-    expect(source).toContain("window.history.back()");
+  it("unwinds JW Stone states before offering an account-aware TradeScout exit", () => {
+    expect(source).toContain('aria-label="Back within JW Stone"');
+    expect(source).toContain("if (expressPanelOpen)");
+    expect(source).toContain("if (openStone)");
+    expect(source).toContain("if (inventoryExpanded)");
+    expect(source).toContain(
+      'const tradeScoutExitHref = hasViewerSession ? "/direct-connect" : "/";'
+    );
+    expect(source).toContain('"Close JW Stone and return to Direct Connect"');
+    expect(source).toContain('"Close JW Stone and return to TradeScout"');
+    expect(source).not.toContain("window.history.back()");
     expect(source).toContain("fixed inset-x-0 top-0 z-40");
+  });
+
+  it("keeps the JW Stone brand centered between profile navigation controls", () => {
+    expect(source).toContain("grid-cols-[1fr_auto_1fr]");
+    expect(source).toContain('aria-label="JW Stone"');
+    expect(source).toContain('className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"');
+    expect(source).toContain("justify-self-start");
+    expect(source).toContain("justify-self-end");
   });
 });
