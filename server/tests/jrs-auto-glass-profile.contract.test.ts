@@ -41,11 +41,12 @@ describe("JR's Auto Glass public profile contract", () => {
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
     const publicSurface = `${theme}\n${provisioning}`;
 
-    expect(theme).toContain("4.8 Google rating");
-    expect(theme).toContain("17 Google reviews");
     expect(publicSurface).toContain("Ponchatoula");
     expect(theme).toContain("Mobile auto glass");
     expect(theme).toContain("Windshield replacement");
+    expect(publicSurface.toLowerCase()).not.toContain("review");
+    expect(publicSurface.toLowerCase()).not.toContain("rating");
+    expect(publicSurface).not.toContain("4.8");
     expect(publicSurface).not.toContain("985");
     expect(publicSurface).not.toContain("S Range Rd");
     expect(publicSurface).not.toContain("jrs.autoglass3");
