@@ -2,8 +2,10 @@ import { Link } from "wouter";
 import {
   Camera,
   CarFront,
+  CheckCircle2,
   ChevronRight,
   Clock3,
+  FileText,
   MapPin,
   MessageCircle,
   ShieldCheck,
@@ -23,6 +25,24 @@ const requestDetails = [
   { icon: ShieldCheck, label: "Damaged glass" },
   { icon: Camera, label: "Damage photos" },
   { icon: Clock3, label: "Timing and location" },
+] as const;
+
+const howItWorks = [
+  {
+    icon: MessageCircle,
+    title: "Send the details",
+    body: "Vehicle, damage, and location through TradeScout Direct Connect — no phone tag.",
+  },
+  {
+    icon: CheckCircle2,
+    title: "JR’s confirms",
+    body: "Get scheduling and pricing back before anyone shows up.",
+  },
+  {
+    icon: Wrench,
+    title: "Mobile service",
+    body: "JR’s comes to your home or work and repairs or replaces the glass on-site.",
+  },
 ] as const;
 
 type RecommendationEntry = {
@@ -70,7 +90,10 @@ export default function JrsAutoGlassProfileTheme({
             <X className="h-5 w-5" />
           </Link>
 
-          <div className="flex min-w-0 items-center justify-center gap-2" aria-label="JR's Auto Glass">
+          <div
+            className="flex min-w-0 items-center justify-center gap-2"
+            aria-label="JR's Auto Glass"
+          >
             <img
               src={`${assetRoot}/logo.webp`}
               alt=""
@@ -157,7 +180,9 @@ export default function JrsAutoGlassProfileTheme({
         <section className="border-b border-white/10 px-4 py-5 sm:px-6">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-500">Recent work</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-500">
+                Recent work
+              </p>
               <h2 className="mt-1 text-xl font-black text-white">Windshield replacement</h2>
             </div>
             <p className="text-xs font-semibold text-zinc-500">Before and after</p>
@@ -191,7 +216,8 @@ export default function JrsAutoGlassProfileTheme({
           <h2 className="text-base font-black text-white">About JR&apos;s Auto Glass</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">
             Mobile auto glass repair and installation serving Ponchatoula and surrounding areas.
-            JR&apos;s handles windshield replacement, rock chip repair, and on-site auto glass service.
+            JR&apos;s handles windshield replacement, rock chip repair, and on-site auto glass
+            service.
           </p>
         </section>
 
@@ -244,7 +270,9 @@ export default function JrsAutoGlassProfileTheme({
           ) : (
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 px-4 py-3">
               <ShieldCheck className="h-4 w-4 flex-none text-red-500" />
-              <p className="text-sm font-semibold text-zinc-300">Public business profile active on TradeScout</p>
+              <p className="text-sm font-semibold text-zinc-300">
+                Public business profile active on TradeScout
+              </p>
             </div>
           )}
         </section>
@@ -256,7 +284,10 @@ export default function JrsAutoGlassProfileTheme({
           <h2 className="mt-1 text-xl font-black text-white">Send JR&apos;s the job details.</h2>
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
             {requestDetails.map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2 text-sm font-semibold text-zinc-400">
+              <div
+                key={label}
+                className="flex items-center gap-2 text-sm font-semibold text-zinc-400"
+              >
                 <Icon className="h-4 w-4 flex-none text-ts-orange" />
                 {label}
               </div>
