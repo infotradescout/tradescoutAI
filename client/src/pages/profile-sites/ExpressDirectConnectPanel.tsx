@@ -196,7 +196,7 @@ export default function ExpressDirectConnectPanel({
               </button>
             ) : null}
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-800">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-ts-orange-dark">
                 Direct Connect
               </p>
               <h2 id="express-direct-connect-title" className="text-xl font-bold text-neutral-900">
@@ -391,7 +391,7 @@ export default function ExpressDirectConnectPanel({
                     you can contact directly.
                   </p>
                   <Link href={membershipHref}>
-                    <button className="mt-4 w-full rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white">
+                    <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
                       Create free account
                     </button>
                   </Link>
@@ -422,14 +422,14 @@ export default function ExpressDirectConnectPanel({
                   <Link
                     href={`/pre-scout-setup?mode=signin&next=${encodeURIComponent("/direct-connect")}`}
                   >
-                    <button className="mt-4 w-full rounded-xl bg-neutral-900 px-6 py-3 font-semibold text-white">
+                    <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
                       Open TradeScout
                     </button>
                   </Link>
                 </div>
               ) : (
                 <Link href="/direct-connect">
-                  <button className="mt-6 rounded-xl bg-neutral-900 px-7 py-3 font-semibold text-white">
+                  <button className="mt-6 rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
                     View in Direct Connect
                   </button>
                 </Link>
