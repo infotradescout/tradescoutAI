@@ -1222,6 +1222,7 @@ function getProviderAvatarClass(label: string): string {
 type DispatchMode = "top_count" | "direct_pick";
 type DirectConnectCreateDispatch = {
   targetProviderIds?: string[];
+  targetProfileSlug?: string;
   autoRoute?: boolean;
   dispatchMode?: DispatchMode;
   dispatchCount?: number;
@@ -2221,6 +2222,10 @@ function DirectConnectRequestComposer({
       if (Number.isFinite(min) && min > 0) payload.budgetMin = min;
       if (Number.isFinite(max) && max > 0) payload.budgetMax = max;
       if (prefillTradeId?.trim()) payload.tradeId = prefillTradeId.trim();
+      if (prefillContextType === "profile" && prefillContextId?.trim()) {
+        payload.targetProfileSlug = prefillContextId.trim();
+        payload.autoRoute = false;
+      }
       if (dispatch?.targetProviderIds?.length) {
         payload.targetProviderIds = Array.from(new Set(dispatch.targetProviderIds));
         payload.autoRoute = false;
@@ -2530,6 +2535,20 @@ function DirectConnectRequestComposer({
       });
       const next = encodeURIComponent(currentReturnPath());
       navigate(`/pre-scout-setup?mode=signin&next=${next}`);
+      return;
+    }
+    if (prefillContextType === "profile" && prefillContextId?.trim()) {
+      createMutation.mutate({
+        targetProfileSlug: prefillContextId.trim(),
+        autoRoute: false,
+        dispatchMode: "direct_pick",
+        dispatchCount: 1,
+        homeId: selectedHomeId.trim() || undefined,
+        assetComponentType: assetComponentType || undefined,
+        assetComponentId: assetComponentId.trim() || undefined,
+        assetLabel: assetLabel.trim() || undefined,
+        homeContextIntent,
+      });
       return;
     }
     setShowDispatchSheet(true);
@@ -2992,7 +3011,7 @@ function DirectConnectRequestComposer({
               <p className="text-center text-[11px] text-white/62">
                 Your contact details stay private until you choose the next step.
               </p>
-              {!prefillTargetUserId && (
+              {!hasEntryContext && (
                 <p className="mt-3 text-center text-xs text-[color:var(--text-secondary)]">
                   Prefer browsing first?{" "}
                   <button
@@ -3074,7 +3093,12 @@ function DirectConnectRequestComposer({
                     ["Location / county", reviewLocation],
                     ["Urgency", reviewTiming],
                     ["Summary", reviewSummary],
-                    ["Next step", "Choose who receives it"],
+                    [
+                      "Next step",
+                      prefillContextType === "profile"
+                        ? `Send privately to ${prefillTargetLabel}`
+                        : "Choose who receives it",
+                    ],
                   ].map(([label, value]) => (
                     <div key={label}>
                       <p className="text-[10px] uppercase tracking-[0.14em] text-[color:var(--text-secondary)]">
@@ -3091,7 +3115,11 @@ function DirectConnectRequestComposer({
                     disabled={!reviewCardReady || createMutation.isPending}
                     className="rounded-full bg-ts-orange text-text-black hover:bg-ts-orange/90"
                   >
-                    Send when ready
+                    {createMutation.isPending
+                      ? "Sending..."
+                      : prefillContextType === "profile"
+                        ? `Send to ${prefillTargetLabel}`
+                        : "Send when ready"}
                   </Button>
                   <Button
                     type="button"

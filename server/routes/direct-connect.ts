@@ -803,6 +803,7 @@ const directConnectRequestSchema = z.object({
   attachments: z.array(z.string().trim().min(10).max(600)).max(8).optional(),
   targetContractorIds: z.array(z.string().min(1)).optional(),
   targetProviderIds: z.array(z.string().min(1)).optional(),
+  targetProfileSlug: z.string().trim().min(1).max(120).optional(),
   homeId: z.string().trim().min(1).max(120).optional(),
   assetComponentId: z.string().trim().min(1).max(120).optional(),
   assetComponentType: z
@@ -6379,9 +6380,42 @@ export function registerDirectConnectRoutes(app: Express) {
         if (bodyCounty) countyFips = bodyCounty;
         if (bodyState) stateCode = bodyState;
 
+        const targetProfile = body.targetProfileSlug
+          ? await storage.getProfileBySlugPublic(body.targetProfileSlug)
+          : undefined;
+        if (body.targetProfileSlug && !targetProfile) {
+          return res.status(404).json({
+            code: "TARGET_PROFILE_NOT_FOUND",
+            message: "This profile is no longer available for Direct Connect requests.",
+          });
+        }
+        const targetProfileOwnerUserId = targetProfile
+          ? await storage.getProfileOwnerUserId(targetProfile.id)
+          : null;
+        if (targetProfile && !targetProfileOwnerUserId) {
+          return res.status(404).json({
+            code: "TARGET_PROFILE_NOT_FOUND",
+            message: "This profile is no longer available for Direct Connect requests.",
+          });
+        }
+        if (targetProfileOwnerUserId === ownerUserId) {
+          return res.status(400).json({
+            code: "TARGET_PROFILE_IS_REQUESTER",
+            message: "You cannot send a Direct Connect request to your own profile.",
+          });
+        }
+
         const targetProviderIds = resolveTargetProviderIds(body);
+        if (body.targetProfileSlug && targetProviderIds.length > 0) {
+          return res.status(400).json({
+            code: "MULTIPLE_EXPLICIT_TARGET_TYPES",
+            message: "Choose either a profile or provider recipients for this request.",
+          });
+        }
         const isDirectToProviders = targetProviderIds.length > 0;
-        const shouldAutoRoute = body.autoRoute !== false && !isDirectToProviders;
+        const isDirectToProfile = Boolean(targetProfile && targetProfileOwnerUserId);
+        const isExplicitTarget = isDirectToProviders || isDirectToProfile;
+        const shouldAutoRoute = body.autoRoute !== false && !isExplicitTarget;
         const useFastTestCreate =
           process.env.NODE_ENV === "test" && String(req.query?.e2eFast || "") === "1";
 
@@ -6394,11 +6428,12 @@ export function registerDirectConnectRoutes(app: Express) {
             category: body.category,
             countyFips,
             stateCode,
-            // Direct-to-provider requests should not be listed as "community board" jobs.
-            scope: isDirectToProviders ? "personal" : "community",
+            // Explicit profile/provider requests stay private and never enter the community board.
+            scope: isExplicitTarget ? "personal" : "community",
             source: "direct_connect" as any,
+            sourceRefId: targetProfile?.id,
             status: "open" as const,
-            visibility: isDirectToProviders ? "private" : "community",
+            visibility: isExplicitTarget ? "private" : "community",
             exposureMode: "guided",
             competitionMode: "none",
             budgetMin,
@@ -6520,14 +6555,19 @@ export function registerDirectConnectRoutes(app: Express) {
             category: String(created.category || body.category || "direct_connect"),
             hasBudget: Boolean(body.budgetMin || body.budgetMax),
             attachmentCount: Array.isArray(body.attachments) ? body.attachments.length : 0,
-            dispatchMode:
-              targetProviderIds.length > 0
+            dispatchMode: isDirectToProfile
+              ? "profile_targeted"
+              : targetProviderIds.length > 0
                 ? "direct_targeted"
                 : shouldAutoRoute
                   ? "auto_route"
                   : "manual",
-            dispatchCount: targetProviderIds.length > 0 ? targetProviderIds.length : null,
-            directTargets: targetProviderIds.length,
+            dispatchCount: isDirectToProfile
+              ? 1
+              : targetProviderIds.length > 0
+                ? targetProviderIds.length
+                : null,
+            directTargets: isDirectToProfile ? 1 : targetProviderIds.length,
             countyFips: countyFips || null,
             tradeId: body.tradeId || null,
           });
@@ -6725,6 +6765,66 @@ export function registerDirectConnectRoutes(app: Express) {
             operation: "create",
             requestId: createdRequestId,
           });
+        }
+
+        // A profile CTA is an explicit recipient choice. Route the private
+        // request to that published profile's owner without exposing contact
+        // details or placing the request into county-wide discovery.
+        if (created && targetProfile && targetProfileOwnerUserId) {
+          try {
+            const now = new Date();
+            await db.transaction(async (tx) => {
+              await tx.insert(workRequestAssignments).values({
+                workRequestId: created.id,
+                contractorId: null,
+                responderUserId: targetProfileOwnerUserId,
+                status: "invited",
+                scoreSnapshot: {
+                  reasons: ["requester_selected_published_profile"],
+                  routingMode: "profile_direct_connect",
+                },
+                createdAt: now,
+                updatedAt: now,
+              });
+              await tx
+                .update(workRequests)
+                .set({ status: "routed", updatedAt: now })
+                .where(eq(workRequests.id, created.id));
+              await tx.insert(workRequestEvents).values({
+                workRequestId: created.id,
+                type: "provider_invited",
+                actorUserId: String(ownerUserId),
+                metadata: {
+                  profileId: targetProfile.id,
+                  profileSlug: targetProfile.slug,
+                  responderUserId: targetProfileOwnerUserId,
+                  source: "profile_direct_connect",
+                },
+              });
+            });
+            createdResponse = { ...created, status: "routed", updatedAt: now } as any;
+          } catch (error) {
+            console.error("[direct-connect] Failed to route request to selected profile", error);
+            throw error;
+          }
+          try {
+            await notificationService.createNotification({
+              userId: targetProfileOwnerUserId,
+              type: "new_project_request",
+              title: "New Direct Connect request",
+              message: `You have a new Direct Connect request: ${created.title}`,
+              actionUrl: "/direct-connect/inbox",
+              actionText: "View in Direct Connect",
+              iconName: "briefcase",
+              iconColor: "orange",
+              deliveryMethods: ["in_app", "push"],
+            });
+          } catch (error) {
+            console.error(
+              "[direct-connect] Failed to notify selected profile owner; request remains routed",
+              error
+            );
+          }
         }
 
         // Explicit targeting preserves requester choice; this is not automatic routing.

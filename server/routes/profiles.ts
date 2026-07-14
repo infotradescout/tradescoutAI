@@ -7,7 +7,8 @@ import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { contractors, profiles, recommendations, users } from "../../shared/schema";
+import { businesses, contractors, profiles, recommendations, users } from "../../shared/schema";
+import { JRS_PROFILE_PROVISIONING_SOURCE } from "../services/jrsAutoGlassProfileProvisioning";
 
 const router = Router();
 
@@ -635,7 +636,24 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       return res.status(404).json({ message: "Profile not found" });
     }
     const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
-    if (!isBusinessDiscoverable(ownerUser)) {
+    const [linkedBusiness] = await db
+      .select({
+        ownerUserId: businesses.ownerUserId,
+        sources: businesses.sources,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+        status: businesses.status,
+      })
+      .from(businesses)
+      .where(eq(businesses.id, profile.businessId!))
+      .limit(1);
+    const isOwnerConfirmedDirectProfile =
+      profile.slug === "jrs-auto-glass" &&
+      linkedBusiness?.status === "active" &&
+      linkedBusiness.publicDiscoveryEnabled === false &&
+      String(linkedBusiness.ownerUserId || "") === ownerUserId &&
+      Array.isArray(linkedBusiness.sources) &&
+      linkedBusiness.sources.includes(JRS_PROFILE_PROVISIONING_SOURCE);
+    if (!isBusinessDiscoverable(ownerUser) && !isOwnerConfirmedDirectProfile) {
       return res.status(404).json({ message: "Profile not found" });
     }
     verifiedOwnerUserId = ownerUserId;
