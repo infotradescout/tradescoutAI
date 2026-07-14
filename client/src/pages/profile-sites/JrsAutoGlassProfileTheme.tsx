@@ -2,10 +2,8 @@ import { Link } from "wouter";
 import {
   Camera,
   CarFront,
-  CheckCircle2,
   ChevronRight,
   Clock3,
-  FileText,
   MapPin,
   MessageCircle,
   ShieldCheck,
@@ -25,24 +23,6 @@ const requestDetails = [
   { icon: ShieldCheck, label: "Damaged glass" },
   { icon: Camera, label: "Damage photos" },
   { icon: Clock3, label: "Timing and location" },
-] as const;
-
-const howItWorks = [
-  {
-    icon: MessageCircle,
-    title: "Send the details",
-    body: "Vehicle, damage, and location through TradeScout Direct Connect — no phone tag.",
-  },
-  {
-    icon: CheckCircle2,
-    title: "JR’s confirms",
-    body: "Get scheduling and pricing back before anyone shows up.",
-  },
-  {
-    icon: Wrench,
-    title: "Mobile service",
-    body: "JR’s comes to your home or work and repairs or replaces the glass on-site.",
-  },
 ] as const;
 
 type RecommendationEntry = {
