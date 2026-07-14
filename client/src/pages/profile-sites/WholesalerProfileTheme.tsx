@@ -501,9 +501,6 @@ export default function WholesalerProfileTheme({
                 alt="JW Stone — Premium Wholesale Stone Distributor"
                 className="h-auto w-[140px] max-w-[50vw] md:w-[190px]"
               />
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#4a4238]">
-                TradeScout Profile · Protected Direct Connect
-              </p>
             </div>
           ) : (
             <div>
