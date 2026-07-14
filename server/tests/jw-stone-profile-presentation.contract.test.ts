@@ -55,6 +55,12 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("h-2/3 w-[150%] max-w-none");
   });
 
+  it("turns a zero-result search into a prefilled material request", () => {
+    expect(source).toContain("Request this stone");
+    expect(source).toContain("JW Stone may be able to source it for your project.");
+    expect(source).toContain('startDirectConnect(inventorySearch.trim(), "request_material")');
+  });
+
   it("owns public-profile navigation after leaving the app shell", () => {
     expect(source).toContain('aria-label="Go back"');
     expect(source).toContain('aria-label="TradeScout home"');
