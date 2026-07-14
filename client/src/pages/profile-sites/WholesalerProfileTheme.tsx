@@ -415,7 +415,7 @@ export default function WholesalerProfileTheme({
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
   const heroTeaser =
     profileSlug === "jw-stone"
-      ? `${allInventoryStones.length} current stones. Search the full collection or ask JW Stone about your project.`
+      ? "Search the full collection or ask JW Stone about your project."
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
@@ -659,10 +659,7 @@ export default function WholesalerProfileTheme({
               className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-[var(--brand-accent)] px-3 py-1.5 text-[#16200b] shadow-sm"
             >
               <LayoutGrid className="h-3.5 w-3.5" />
-              Full inventory
-              <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px]">
-                {allInventoryStones.length}
-              </span>
+              Browse full inventory
             </button>
           ) : null}
           {[
@@ -758,7 +755,7 @@ export default function WholesalerProfileTheme({
                       Browse full inventory
                     </span>
                     <span className="mt-0.5 block text-xs font-semibold text-[var(--brand-primary)]/70">
-                      {allInventoryStones.length} current stones
+                      Search by stone or material
                     </span>
                   </span>
                 </span>
@@ -918,23 +915,17 @@ export default function WholesalerProfileTheme({
                     className="group relative flex w-full items-center gap-4 overflow-hidden rounded-[1.75rem] bg-[linear-gradient(135deg,var(--brand-primary)_0%,var(--brand-primary-dark)_100%)] px-5 py-6 text-left text-white shadow-[0_20px_50px_rgba(24,55,25,0.3)] ring-1 ring-black/15 transition-all hover:-translate-y-1 hover:shadow-[0_28px_65px_rgba(24,55,25,0.38)] sm:px-7 sm:py-7"
                   >
                     <span className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-accent)]" />
-                    <span
-                      aria-hidden="true"
-                      className="pointer-events-none absolute -bottom-10 right-3 text-[7rem] font-black leading-none text-white/[0.035] sm:-bottom-14 sm:text-[10rem]"
-                    >
-                      {allInventoryStones.length}
-                    </span>
                     <span className="inline-flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-accent)] text-[#16200b] shadow-lg">
                       <LayoutGrid className="h-7 w-7" />
                     </span>
                     <span className="relative min-w-0 flex-1">
                       <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand-accent)] sm:text-xs">
-                        {allInventoryStones.length} stones · one collection
+                        The complete collection
                       </span>
                       <span
                         className={`mt-0.5 block text-xl font-extrabold sm:text-2xl ${DISPLAY_FONT}`}
                       >
-                        Explore the complete stone library
+                        Browse full inventory
                       </span>
                       <span className="mt-1 block text-sm font-medium text-white/75">
                         Search every current slab by stone or material
