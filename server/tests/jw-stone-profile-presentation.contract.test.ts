@@ -85,9 +85,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain(
       "group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-accent)]"
     );
-    expect(source).toContain(
-      "Request this stone"
-    );
+    expect(source).toContain("Request this stone");
     expect(source).toContain(
       "bg-[var(--brand-accent)] px-6 py-3 text-sm font-extrabold text-[#16200b]"
     );
