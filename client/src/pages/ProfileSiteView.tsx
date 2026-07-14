@@ -377,6 +377,7 @@ export default function ProfileSiteView() {
           directConnectHref={directConnectHref}
           hasViewerSession={hasViewerSession}
           preScoutCreateHref={preScoutCreateHref}
+          recommendationsDirectory={recommendationsDirectory}
         />
       </>
     );
