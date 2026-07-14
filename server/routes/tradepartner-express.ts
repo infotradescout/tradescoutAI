@@ -3,6 +3,7 @@ import { rateLimit } from "express-rate-limit";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db, pool } from "../db";
+import { isAuthenticated, isSuperAdmin } from "../auth";
 import {
   businesses,
   profiles,
@@ -487,6 +488,35 @@ export function registerTradePartnerExpressRoutes(app: Express) {
       } catch (error) {
         console.error("[tradepartner-express] request creation failed", error);
         return res.status(500).json({ message: "The request could not be sent." });
+      }
+    }
+  );
+
+  // Super-admin only: verify the business-notification email path (purpose,
+  // EMAIL_MODE allow-list, provider) actually delivers without creating a
+  // real work request against a live TradePartner's Direct Connect inbox.
+  app.post(
+    "/api/admin/tradepartner-express/test-notification-email",
+    isAuthenticated,
+    isSuperAdmin,
+    async (req: OptionalAuthedRequest, res: Response) => {
+      try {
+        const to = String(req.body?.to || "").trim();
+        if (!to) return res.status(400).json({ message: "Provide a 'to' email address." });
+        if (!emailService.isConfigured()) {
+          return res.status(503).json({ message: "Email provider is not configured." });
+        }
+        const result = await emailService.sendEmail({
+          to,
+          subject: "TradeScout test: business notification email",
+          html: "<p>This is an admin-triggered test of the tradepartner_request_notification email path. If you received this, the EMAIL_MODE allow-list and provider config are working.</p>",
+          text: "This is an admin-triggered test of the tradepartner_request_notification email path. If you received this, the EMAIL_MODE allow-list and provider config are working.",
+          purpose: "tradepartner_request_notification",
+        });
+        return res.json({ sent: !result.skipped, messageId: result.messageId || null });
+      } catch (error) {
+        console.error("[tradepartner-express] test notification email failed", error);
+        return res.status(500).json({ message: "Test email failed to send." });
       }
     }
   );
