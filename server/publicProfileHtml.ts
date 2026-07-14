@@ -31,6 +31,10 @@ type PublicProfileData = {
       imageUrl?: string;
       imageWidth?: number;
       imageHeight?: number;
+      // Separate from imageUrl (the OG/share banner) -- browser tab icons
+      // need a square mark, not a wide 1200x630 crop. Falls back to imageUrl
+      // when unset so existing profiles keep working.
+      faviconUrl?: string;
       customDomain?: string;
     };
     profileBooking?: {
@@ -206,6 +210,7 @@ function buildMeta(profile: PublicProfileData, origin: string) {
   );
   const customImageUrl = profile.profile.seoMeta?.imageUrl || null;
   const imageUrl = customImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
+  const faviconUrl = profile.profile.seoMeta?.faviconUrl || customImageUrl;
   const canonical = resolveProfileUrl(profile, origin);
   const keywords = [
     displayName,
@@ -228,6 +233,7 @@ function buildMeta(profile: PublicProfileData, origin: string) {
     imageWidth: customImageUrl ? profile.profile.seoMeta?.imageWidth : 1200,
     imageHeight: customImageUrl ? profile.profile.seoMeta?.imageHeight : 630,
     customImageUrl,
+    faviconUrl,
     canonical,
     keywords,
   };
@@ -377,8 +383,8 @@ export async function buildPublicProfileHtml({
     /<link rel="canonical"[^>]*>/i,
     `<link rel="canonical" href="${escapeHtml(meta.canonical)}" />`
   );
-  if (meta.customImageUrl) {
-    html = injectFaviconOverride(html, meta.customImageUrl);
+  if (meta.faviconUrl) {
+    html = injectFaviconOverride(html, meta.faviconUrl);
   }
 
   const bookingRows =
