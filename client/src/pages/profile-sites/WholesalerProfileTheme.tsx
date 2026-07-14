@@ -1066,6 +1066,11 @@ export default function WholesalerProfileTheme({
                       onError={(event) => {
                         event.currentTarget.style.visibility = "hidden";
                       }}
+                      onLoad={(event) => {
+                        if (isDecodedFrameBlack(event.currentTarget)) {
+                          event.currentTarget.style.visibility = "hidden";
+                        }
+                      }}
                       className="h-full w-full bg-white/10 object-cover"
                     />
                   </button>
