@@ -6263,6 +6263,44 @@ export const propertyDocuments = pgTable(
 export type PropertyDocument = typeof propertyDocuments.$inferSelect;
 export type InsertPropertyDocument = typeof propertyDocuments.$inferInsert;
 
+export const propertyParticipantInvites = pgTable(
+  "property_participant_invites",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    propertyProgramId: varchar("property_program_id")
+      .notNull()
+      .references(() => propertyPrograms.id, { onDelete: "cascade" }),
+    inviterUserId: varchar("inviter_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    inviteeEmail: varchar("invitee_email").notNull(),
+    participantRole: varchar("participant_role", { length: 64 }).notNull(),
+    permissions: jsonb("permissions").$type<Record<string, any>>().notNull().default({}),
+    invitationCode: varchar("invitation_code").unique().notNull(),
+    status: varchar("status", { enum: ["pending", "accepted", "revoked", "expired"] })
+      .notNull()
+      .default("pending"),
+    expiresAt: timestamp("expires_at").notNull(),
+    acceptedAt: timestamp("accepted_at"),
+    acceptedParticipantId: varchar("accepted_participant_id").references(
+      () => propertyParticipants.id,
+      { onDelete: "set null" }
+    ),
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("idx_property_participant_invites_property").on(table.propertyProgramId),
+    index("idx_property_participant_invites_code").on(table.invitationCode),
+    index("idx_property_participant_invites_email").on(table.inviteeEmail),
+  ]
+);
+
+export type PropertyParticipantInvite = typeof propertyParticipantInvites.$inferSelect;
+export type InsertPropertyParticipantInvite = typeof propertyParticipantInvites.$inferInsert;
+
 export const propertyUpgrades = pgTable(
   "property_upgrades",
   {

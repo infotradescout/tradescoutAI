@@ -1,21 +1,35 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { randomUUID } from "crypto";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
+  propertyDocuments,
   propertyEventLog,
   propertyHomefaxSnapshots,
   propertyLifecycleEvents,
+  propertyParticipantInvites,
   propertyParticipants,
   propertyPrograms,
   propertyReadinessSnapshots,
+  users,
+  type InsertPropertyDocument,
   type InsertPropertyEventLogRow,
   type InsertPropertyHomefaxSnapshot,
   type InsertPropertyLifecycleEvent,
+  type InsertPropertyParticipantInvite,
   type InsertPropertyProgram,
   type InsertPropertyReadinessSnapshot,
+  type PropertyDocument,
   type PropertyHomefaxSnapshot,
+  type PropertyParticipant,
+  type PropertyParticipantInvite,
   type PropertyProgram,
   type PropertyReadinessSnapshot,
 } from "@shared/schema";
+import {
+  PROPERTY_PARTICIPANT_ROLE_PERMISSIONS,
+  isPropertyParticipantRole,
+  type PropertyParticipantRoleValue,
+} from "@shared/propertyParticipantRoles";
 
 export type PropertyProgramCreateInput = {
   ownerUserId: string;
@@ -59,7 +73,11 @@ function safeIdempotencyKey(input: string) {
 export async function requirePropertyProgramAccess(params: {
   propertyProgramId: string;
   userId: string;
-}): Promise<PropertyProgram> {
+}): Promise<{
+  program: PropertyProgram;
+  participant: PropertyParticipant | null;
+  isOwnerLike: boolean;
+}> {
   const propertyProgramId = String(params.propertyProgramId || "").trim();
   const userId = String(params.userId || "").trim();
   if (!propertyProgramId) throw new Error("propertyProgramId required");
@@ -73,7 +91,7 @@ export async function requirePropertyProgramAccess(params: {
   if (!program) throw new Error("Property program not found");
 
   const [participant] = await db
-    .select({ id: propertyParticipants.id })
+    .select()
     .from(propertyParticipants)
     .where(
       and(
@@ -88,10 +106,12 @@ export async function requirePropertyProgramAccess(params: {
     String(program.ownerUserId) === userId || String(program.primaryUserId) === userId;
   if (!participant && !isOwnerLike) throw new Error("Not allowed");
 
-  return program;
+  return { program, participant: participant ?? null, isOwnerLike };
 }
 
-export async function createPropertyProgram(input: PropertyProgramCreateInput): Promise<PropertyProgram> {
+export async function createPropertyProgram(
+  input: PropertyProgramCreateInput
+): Promise<PropertyProgram> {
   const ownerUserId = String(input.ownerUserId || "").trim();
   const primaryUserId = String(input.primaryUserId || "").trim();
   if (!ownerUserId) throw new Error("ownerUserId required");
@@ -280,7 +300,10 @@ export async function recomputePropertyReadinessSnapshot(params: {
 
   if (eventCount === 0) {
     softBlockers.push({ code: "no_history", message: "No lifecycle history yet." });
-    nextBestActions.push({ action: "add_first_event", message: "Add your first milestone or record." });
+    nextBestActions.push({
+      action: "add_first_event",
+      message: "Add your first milestone or record.",
+    });
   }
   if (blockedCount > 0) {
     softBlockers.push({
@@ -288,7 +311,10 @@ export async function recomputePropertyReadinessSnapshot(params: {
       message: "Some items are blocked. Resolve blockers to improve readiness.",
       blockedCount,
     });
-    nextBestActions.push({ action: "resolve_blockers", message: "Review and resolve blocked items." });
+    nextBestActions.push({
+      action: "resolve_blockers",
+      message: "Review and resolve blocked items.",
+    });
   }
 
   const payload: InsertPropertyReadinessSnapshot = {
@@ -344,7 +370,9 @@ export async function addPropertyLifecycleEvent(input: PropertyLifecycleEventCre
   const created = await db.transaction(async (tx) => {
     const row: InsertPropertyLifecycleEvent = {
       propertyProgramId: input.propertyProgramId,
-      actionType: String(input.actionType || "").trim().slice(0, 80),
+      actionType: String(input.actionType || "")
+        .trim()
+        .slice(0, 80),
       phase: input.phase ? String(input.phase).trim().slice(0, 80) : null,
       title: String(input.title || "").trim(),
       description: input.description ? String(input.description) : null,
@@ -401,5 +429,354 @@ export async function addPropertyLifecycleEvent(input: PropertyLifecycleEventCre
     recomputePropertyReadinessSnapshot({ propertyProgramId: input.propertyProgramId }),
   ]);
 
+  return created;
+}
+
+const INVITE_EXPIRY_DAYS = 14;
+
+export async function inviteParticipant(params: {
+  propertyProgramId: string;
+  inviterUserId: string;
+  inviteeEmail: string;
+  participantRole: PropertyParticipantRoleValue;
+  permissions?: Record<string, any>;
+}): Promise<PropertyParticipantInvite> {
+  const propertyProgramId = String(params.propertyProgramId || "").trim();
+  const inviterUserId = String(params.inviterUserId || "").trim();
+  const inviteeEmail = String(params.inviteeEmail || "")
+    .trim()
+    .toLowerCase();
+  if (!propertyProgramId) throw new Error("propertyProgramId required");
+  if (!inviterUserId) throw new Error("inviterUserId required");
+  if (!inviteeEmail) throw new Error("inviteeEmail required");
+  if (!isPropertyParticipantRole(params.participantRole))
+    throw new Error("Invalid participant role");
+
+  const permissions =
+    params.permissions ?? PROPERTY_PARTICIPANT_ROLE_PERMISSIONS[params.participantRole];
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + INVITE_EXPIRY_DAYS);
+
+  const row: InsertPropertyParticipantInvite = {
+    propertyProgramId,
+    inviterUserId,
+    inviteeEmail,
+    participantRole: params.participantRole,
+    permissions,
+    invitationCode: randomUUID(),
+    status: "pending",
+    expiresAt,
+    updatedAt: new Date(),
+  } as any;
+
+  const [created] = await db.insert(propertyParticipantInvites).values(row).returning();
+  if (!created) throw new Error("Failed to create invite");
+  return created;
+}
+
+export async function listParticipants(params: { propertyProgramId: string }): Promise<{
+  participants: Array<
+    PropertyParticipant & {
+      email: string | null;
+      firstName: string | null;
+      lastName: string | null;
+    }
+  >;
+  pendingInvites: PropertyParticipantInvite[];
+}> {
+  const propertyProgramId = String(params.propertyProgramId || "").trim();
+  if (!propertyProgramId) throw new Error("propertyProgramId required");
+
+  const participantRows = await db
+    .select()
+    .from(propertyParticipants)
+    .where(
+      and(
+        eq(propertyParticipants.propertyProgramId, propertyProgramId),
+        eq(propertyParticipants.status, "active")
+      )
+    );
+
+  const userIds: string[] = Array.from(
+    new Set(participantRows.map((p) => p.userId).filter(Boolean))
+  );
+  const userRows: Array<{
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+  }> = userIds.length
+    ? await db
+        .select({
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+        })
+        .from(users)
+        .where(inArray(users.id, userIds))
+    : [];
+  const userById = new Map(userRows.map((u) => [u.id, u]));
+
+  const participants = participantRows.map((p) => {
+    const u = userById.get(p.userId);
+    return {
+      ...p,
+      email: u?.email ?? null,
+      firstName: u?.firstName ?? null,
+      lastName: u?.lastName ?? null,
+    };
+  });
+
+  const pendingInvites = await db
+    .select()
+    .from(propertyParticipantInvites)
+    .where(
+      and(
+        eq(propertyParticipantInvites.propertyProgramId, propertyProgramId),
+        eq(propertyParticipantInvites.status, "pending")
+      )
+    );
+
+  return { participants, pendingInvites };
+}
+
+export async function acceptParticipantInvite(params: {
+  invitationCode: string;
+  userId: string;
+  userEmail: string;
+}): Promise<PropertyParticipant> {
+  const invitationCode = String(params.invitationCode || "").trim();
+  const userId = String(params.userId || "").trim();
+  const userEmail = String(params.userEmail || "")
+    .trim()
+    .toLowerCase();
+  if (!invitationCode) throw new Error("invitationCode required");
+  if (!userId) throw new Error("userId required");
+
+  const [invite] = await db
+    .select()
+    .from(propertyParticipantInvites)
+    .where(eq(propertyParticipantInvites.invitationCode, invitationCode))
+    .limit(1);
+  if (!invite) throw new Error("Invite not found");
+  if (invite.status !== "pending") throw new Error("Invite already used or revoked");
+  if (invite.expiresAt.getTime() < Date.now()) throw new Error("Invite expired");
+  if (String(invite.inviteeEmail).toLowerCase() !== userEmail) {
+    throw new Error("Sign in with the email this invite was sent to");
+  }
+
+  const created = await db.transaction(async (tx) => {
+    const [participant] = await tx
+      .insert(propertyParticipants)
+      .values({
+        propertyProgramId: invite.propertyProgramId,
+        userId,
+        participantRole: invite.participantRole,
+        permissions: invite.permissions,
+        status: "active",
+        invitedByUserId: invite.inviterUserId,
+        updatedAt: new Date(),
+      } as any)
+      .onConflictDoNothing()
+      .returning();
+
+    const resolvedParticipant =
+      participant ??
+      (
+        await tx
+          .select()
+          .from(propertyParticipants)
+          .where(
+            and(
+              eq(propertyParticipants.propertyProgramId, invite.propertyProgramId),
+              eq(propertyParticipants.userId, userId)
+            )
+          )
+          .limit(1)
+      )[0];
+    if (!resolvedParticipant) throw new Error("Failed to accept invite");
+
+    await tx
+      .update(propertyParticipantInvites)
+      .set({
+        status: "accepted",
+        acceptedAt: new Date(),
+        acceptedParticipantId: resolvedParticipant.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(propertyParticipantInvites.id, invite.id));
+
+    return resolvedParticipant;
+  });
+
+  return created;
+}
+
+export async function removeParticipant(params: {
+  propertyProgramId: string;
+  participantId: string;
+  actingUserId: string;
+}): Promise<void> {
+  const propertyProgramId = String(params.propertyProgramId || "").trim();
+  const participantId = String(params.participantId || "").trim();
+  const actingUserId = String(params.actingUserId || "").trim();
+  if (!propertyProgramId) throw new Error("propertyProgramId required");
+  if (!participantId) throw new Error("participantId required");
+
+  const [program] = await db
+    .select()
+    .from(propertyPrograms)
+    .where(eq(propertyPrograms.id, propertyProgramId))
+    .limit(1);
+  if (!program) throw new Error("Property program not found");
+  const isOwnerLike =
+    String(program.ownerUserId) === actingUserId || String(program.primaryUserId) === actingUserId;
+  if (!isOwnerLike) throw new Error("Not allowed");
+
+  const [participant] = await db
+    .select()
+    .from(propertyParticipants)
+    .where(
+      and(
+        eq(propertyParticipants.id, participantId),
+        eq(propertyParticipants.propertyProgramId, propertyProgramId)
+      )
+    )
+    .limit(1);
+  if (!participant) throw new Error("Participant not found");
+  if (String(participant.userId) === String(program.ownerUserId)) {
+    throw new Error("Cannot remove the owner");
+  }
+
+  await db
+    .update(propertyParticipants)
+    .set({ status: "removed", updatedAt: new Date() })
+    .where(eq(propertyParticipants.id, participantId));
+}
+
+export async function transferPrimary(params: {
+  propertyProgramId: string;
+  newPrimaryUserId: string;
+  actingUserId: string;
+}): Promise<PropertyProgram> {
+  const propertyProgramId = String(params.propertyProgramId || "").trim();
+  const newPrimaryUserId = String(params.newPrimaryUserId || "").trim();
+  const actingUserId = String(params.actingUserId || "").trim();
+  if (!propertyProgramId) throw new Error("propertyProgramId required");
+  if (!newPrimaryUserId) throw new Error("newPrimaryUserId required");
+
+  const [program] = await db
+    .select()
+    .from(propertyPrograms)
+    .where(eq(propertyPrograms.id, propertyProgramId))
+    .limit(1);
+  if (!program) throw new Error("Property program not found");
+  if (String(program.ownerUserId) !== actingUserId)
+    throw new Error("Only the owner can transfer primary");
+
+  const [newPrimary] = await db
+    .select()
+    .from(propertyParticipants)
+    .where(
+      and(
+        eq(propertyParticipants.propertyProgramId, propertyProgramId),
+        eq(propertyParticipants.userId, newPrimaryUserId),
+        eq(propertyParticipants.status, "active")
+      )
+    )
+    .limit(1);
+  if (!newPrimary) throw new Error("New primary must already be an active participant");
+
+  const previousPrimaryUserId = program.primaryUserId;
+
+  const updated = await db.transaction(async (tx) => {
+    // Only one active "primary"-role participant row is allowed per program
+    // (idx_property_participants_single_primary_active) — free it up first.
+    await tx
+      .update(propertyParticipants)
+      .set({ status: "removed", updatedAt: new Date() })
+      .where(
+        and(
+          eq(propertyParticipants.propertyProgramId, propertyProgramId),
+          eq(propertyParticipants.participantRole, "primary"),
+          eq(propertyParticipants.status, "active")
+        )
+      );
+
+    await tx
+      .insert(propertyParticipants)
+      .values({
+        propertyProgramId,
+        userId: newPrimaryUserId,
+        participantRole: "primary",
+        status: "active",
+        permissions: {},
+        invitedByUserId: actingUserId,
+        updatedAt: new Date(),
+      } as any)
+      .onConflictDoUpdate({
+        target: [
+          propertyParticipants.propertyProgramId,
+          propertyParticipants.userId,
+          propertyParticipants.participantRole,
+        ],
+        set: { status: "active", updatedAt: new Date() },
+      });
+
+    const [row] = await tx
+      .update(propertyPrograms)
+      .set({ primaryUserId: newPrimaryUserId, updatedAt: new Date() })
+      .where(eq(propertyPrograms.id, propertyProgramId))
+      .returning();
+    if (!row) throw new Error("Failed to transfer primary");
+    return row;
+  });
+
+  await addPropertyLifecycleEvent({
+    propertyProgramId,
+    actionType: "primary_transferred",
+    title: "Primary contact transferred",
+    description: null,
+    occurredAt: new Date(),
+    source: "user",
+    status: "done",
+    metadata: { previousPrimaryUserId, newPrimaryUserId },
+    createdByUserId: actingUserId,
+    sourceSurface: "property_build",
+  });
+
+  return updated;
+}
+
+export async function addPropertyDocument(params: {
+  propertyProgramId: string;
+  lifecycleEventId?: string | null;
+  documentType: string;
+  fileUrl: string;
+  uploadedByUserId: string;
+  metadata?: Record<string, any>;
+}): Promise<PropertyDocument> {
+  const propertyProgramId = String(params.propertyProgramId || "").trim();
+  const fileUrl = String(params.fileUrl || "").trim();
+  const uploadedByUserId = String(params.uploadedByUserId || "").trim();
+  if (!propertyProgramId) throw new Error("propertyProgramId required");
+  if (!fileUrl) throw new Error("fileUrl required");
+  if (!uploadedByUserId) throw new Error("uploadedByUserId required");
+
+  const row: InsertPropertyDocument = {
+    propertyProgramId,
+    lifecycleEventId: params.lifecycleEventId ?? null,
+    documentType: String(params.documentType || "other")
+      .trim()
+      .slice(0, 80),
+    fileUrl,
+    uploadedByUserId,
+    metadata: params.metadata || {},
+  } as any;
+
+  const [created] = await db.insert(propertyDocuments).values(row).returning();
+  if (!created) throw new Error("Failed to add document");
   return created;
 }

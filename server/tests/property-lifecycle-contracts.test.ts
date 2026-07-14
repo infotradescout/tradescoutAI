@@ -34,5 +34,19 @@ describe("Property Lifecycle OS Contracts", () => {
     expect(src).toContain("booking_request_created");
     expect(src).toContain("booking_payment_intent_created");
   });
-});
 
+  it("exposes participant invite/accept/remove and document endpoints", () => {
+    const src = read("server/routes/property-programs.ts");
+    expect(src).toContain("/api/property-programs/:id/participants");
+    expect(src).toContain("/api/property-programs/:id/participants/invite");
+    expect(src).toContain("/api/property-programs/invites/:code/accept");
+    expect(src).toContain("/api/property-programs/:id/participants/:participantId");
+    expect(src).toContain("/api/property-programs/:id/transfer-primary");
+    expect(src).toContain("/api/property-programs/:id/documents");
+  });
+
+  it("gates the participant invite email behind the account_creation_only allow-list", () => {
+    const src = read("server/services/emailService.ts");
+    expect(src).toContain("property_participant_invite");
+  });
+});

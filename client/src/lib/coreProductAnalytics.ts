@@ -84,6 +84,40 @@ export function trackHomeIdStarted(args: HomesArgs) {
   trackHomesEvent("homeid_started", args);
 }
 
+type PropertyBuildArgs = CoreBaseArgs & {
+  propertyProgramId?: string;
+  role?: string;
+  source?: string;
+};
+
+function trackPropertyBuildEvent(
+  type: "property_build_started" | "property_participant_invited" | "property_milestone_added",
+  args: PropertyBuildArgs
+) {
+  void trackShellEvent({
+    type,
+    surface: "property_build",
+    userState: args.userState,
+    viewport: getDeviceType(),
+    source: args.source || "property_build_ui",
+    propertyProgramId: args.propertyProgramId,
+    role: args.role,
+    ts: nowIso(),
+  });
+}
+
+export function trackPropertyBuildStarted(args: PropertyBuildArgs) {
+  trackPropertyBuildEvent("property_build_started", args);
+}
+
+export function trackPropertyParticipantInvited(args: PropertyBuildArgs) {
+  trackPropertyBuildEvent("property_participant_invited", args);
+}
+
+export function trackPropertyMilestoneAdded(args: PropertyBuildArgs) {
+  trackPropertyBuildEvent("property_milestone_added", args);
+}
+
 export function trackHomeIdFirstDetailAdded(args: HomesArgs) {
   trackHomesEvent("homeid_first_detail_added", args);
 }

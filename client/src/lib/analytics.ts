@@ -265,6 +265,16 @@ export type ShellEvent =
       ts: string;
     }
   | {
+      type: "property_build_started" | "property_participant_invited" | "property_milestone_added";
+      surface: "property_build";
+      userState: "anonymous" | "authenticated";
+      viewport: DeviceType;
+      source: string;
+      propertyProgramId?: string;
+      role?: string;
+      ts: string;
+    }
+  | {
       type:
         | "direct_connect_request_started"
         | "direct_connect_homeid_link_selected"

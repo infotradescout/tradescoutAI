@@ -1093,6 +1093,21 @@ export default function HomesVault() {
               </p>
             </CardContent>
           </Card>
+          <Card className="border-white/10">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
+              <p className="text-sm">
+                Building a new home? Track it milestone-by-milestone and share the timeline with
+                your contractors.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => (window.location.href = "/homes/build")}
+              >
+                Start your Build Timeline
+              </Button>
+            </CardContent>
+          </Card>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="space-y-6">

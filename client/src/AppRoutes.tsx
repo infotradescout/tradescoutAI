@@ -1049,6 +1049,11 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={lazy(() => import("./pages/homes"))} />
                 </ProtectedRoute>
               </Route>
+              <Route path="/homes/build">
+                <ProtectedRoute>
+                  <LazyPage Component={lazy(() => import("./pages/property-build"))} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/vehicles">
                 <ProtectedRoute>
                   <LazyPage Component={lazy(() => import("./pages/vehicles"))} />
