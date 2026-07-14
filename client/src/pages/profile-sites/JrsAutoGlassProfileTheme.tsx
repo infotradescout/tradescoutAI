@@ -58,7 +58,7 @@ export default function JrsAutoGlassProfileTheme({
   );
 
   return (
-    <main className="min-h-screen bg-black text-zinc-100">
+    <main className="bg-black text-zinc-100">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/95 backdrop-blur-xl">
         <div className="mx-auto grid h-14 max-w-3xl grid-cols-[44px_1fr_44px] items-center px-2 sm:h-16 sm:grid-cols-[120px_1fr_120px] sm:px-4">
           <Link
@@ -96,7 +96,7 @@ export default function JrsAutoGlassProfileTheme({
         </div>
       </header>
 
-      <div className="mx-auto min-h-screen max-w-3xl bg-[#0d0d0d] sm:border-x sm:border-white/10">
+      <div className="mx-auto max-w-3xl bg-[#0d0d0d] sm:border-x sm:border-white/10">
         <section aria-label="JR's Auto Glass cover" className="border-b border-white/10 bg-black">
           <img
             src={`${assetRoot}/cover.webp`}
