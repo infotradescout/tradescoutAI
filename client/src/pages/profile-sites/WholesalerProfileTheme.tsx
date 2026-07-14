@@ -402,8 +402,11 @@ export default function WholesalerProfileTheme({
   const amazonicGreenHeroImage = inventoryCatalog
     .flatMap((category) => category.stones)
     .find((stone) => stone.slug === "amazonic-green")?.images[0];
-  const blueGoiasInventoryCtaImage = allInventoryStones.find((stone) => stone.slug === "blue-goias")
-    ?.images[0];
+  // Index 1 specifically -- the warehouse shot (steel racking, skylights),
+  // not index 0 which is the outdoor stone-yard shot.
+  const rhinoWhiteWarehouseCtaImage = allInventoryStones.find(
+    (stone) => stone.slug === "rhino-white"
+  )?.images[1];
   const heroImage =
     (profileSlug === "jw-stone" ? amazonicGreenHeroImage : undefined) ||
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
@@ -875,7 +878,7 @@ export default function WholesalerProfileTheme({
                             {offer.availability}
                           </span>
                           {offer.badge ? (
-                            <span className="absolute right-2 top-2 inline-flex items-center rounded-full bg-[var(--brand-accent)] px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[#16200b] shadow-md sm:right-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
+                            <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[var(--brand-accent)] px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[#16200b] shadow-md sm:bottom-3 sm:left-3 sm:px-2.5 sm:text-[9px]">
                               {offer.badge}
                             </span>
                           ) : null}
@@ -931,26 +934,19 @@ export default function WholesalerProfileTheme({
                     onClick={openFullInventory}
                     className="group relative flex min-h-[320px] w-full items-center overflow-hidden bg-[var(--brand-primary-dark)] px-7 py-10 text-left text-white sm:min-h-[340px] sm:px-10"
                   >
-                    {blueGoiasInventoryCtaImage ? (
-                      <svg
+                    {rhinoWhiteWarehouseCtaImage ? (
+                      <img
+                        src={rhinoWhiteWarehouseCtaImage}
+                        alt=""
                         aria-hidden="true"
-                        viewBox="0 0 1600 1200"
-                        preserveAspectRatio="xMidYMid slice"
-                        className="absolute inset-0 h-full w-full transition-transform duration-700 group-hover:scale-[1.025]"
-                      >
-                        <image
-                          href={blueGoiasInventoryCtaImage}
-                          width="1200"
-                          height="1600"
-                          transform="translate(1600 0) rotate(90)"
-                        />
-                      </svg>
+                        className="absolute inset-0 h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.025]"
+                      />
                     ) : null}
                     <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,18,0.66)_0%,rgba(7,15,18,0.48)_58%,rgba(7,15,18,0.24)_100%)]" />
                     <span className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-accent)]" />
                     <span className="relative z-10 min-w-0 max-w-[34rem]">
                       <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand-accent)] sm:text-xs">
-                        Blue Goias · current inventory
+                        Rhino White · current inventory
                       </span>
                       <span
                         className={`mt-0.5 block text-xl font-extrabold sm:text-2xl ${DISPLAY_FONT}`}
