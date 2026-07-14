@@ -79,9 +79,7 @@
     "name": "Blue Bahia",
     "slug": "blue-bahia",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1xtIvZ7k7Uq0zlA8NQK9JWluo9CwIFypE.webp",
       "/images/businesses/jw-stone/inventory-source/1q3NTzShBrTddVhl_hWXHRX2lDgkFZGjk.webp",
-      "/images/businesses/jw-stone/inventory-source/1xWCAXVCAyD_YLWKWeEVweY2ucA1Dzp1V.webp",
       "/images/businesses/jw-stone/inventory-source/1Vl-m71CaDLJPgaWDuSAnTuLDdWEHyFCU.webp",
       "/images/businesses/jw-stone/inventory-source/13rWqV4oD11WCiPZQdUWqTu1LQJx_dVBQ.webp"
     ],
@@ -91,9 +89,7 @@
       "Root"
     ],
     "sourceFileIds": [
-      "1xtIvZ7k7Uq0zlA8NQK9JWluo9CwIFypE",
       "1q3NTzShBrTddVhl_hWXHRX2lDgkFZGjk",
-      "1xWCAXVCAyD_YLWKWeEVweY2ucA1Dzp1V",
       "1Vl-m71CaDLJPgaWDuSAnTuLDdWEHyFCU",
       "13rWqV4oD11WCiPZQdUWqTu1LQJx_dVBQ"
     ],
@@ -293,7 +289,6 @@
     "images": [
       "/images/businesses/jw-stone/inventory-source/1TsN3H2GyoEpgcZPslW5RigFxvbyfzrr2.webp",
       "/images/businesses/jw-stone/inventory-source/1i_giN3lI5DVy6hGIleUEMPgmaVxADwrD.webp",
-      "/images/businesses/jw-stone/inventory-source/1pXaNXQLIDTfERVNYAN1A-64UTeP9FrMG.webp",
       "/images/businesses/jw-stone/inventory-source/1938sEfL0eGBwyHqWXHF7eyzSOJhFLv5j.webp",
       "/images/businesses/jw-stone/inventory-source/1m0c_7nfTZzh7iyGknZD354AHa5tbESTW.webp",
       "/images/businesses/jw-stone/inventory-source/1dFGFLtlLaRVEHwXjULLd7ZPiuCye8HIY.webp",
@@ -305,7 +300,6 @@
     "sourceFileIds": [
       "1TsN3H2GyoEpgcZPslW5RigFxvbyfzrr2",
       "1i_giN3lI5DVy6hGIleUEMPgmaVxADwrD",
-      "1pXaNXQLIDTfERVNYAN1A-64UTeP9FrMG",
       "1938sEfL0eGBwyHqWXHF7eyzSOJhFLv5j",
       "1m0c_7nfTZzh7iyGknZD354AHa5tbESTW",
       "1dFGFLtlLaRVEHwXjULLd7ZPiuCye8HIY",
@@ -359,7 +353,6 @@
     "slug": "titanium",
     "images": [
       "/images/businesses/jw-stone/inventory-source/11boW4pfNcvvgZx3crvMbgBr8Cs0ycLTA.webp",
-      "/images/businesses/jw-stone/inventory-source/1PplgXqhU_3spqjMlApu83iRlLOrJT3Su.webp",
       "/images/businesses/jw-stone/inventory-source/1O3crQvhlMBAEVQxmiLKw6PC-EFl3du8o.webp",
       "/images/businesses/jw-stone/inventory-source/1JPBgndYxnByWradS4-tI7jkeMLezieOR.webp"
     ],
@@ -370,7 +363,6 @@
     ],
     "sourceFileIds": [
       "11boW4pfNcvvgZx3crvMbgBr8Cs0ycLTA",
-      "1PplgXqhU_3spqjMlApu83iRlLOrJT3Su",
       "1O3crQvhlMBAEVQxmiLKw6PC-EFl3du8o",
       "1JPBgndYxnByWradS4-tI7jkeMLezieOR"
     ],
@@ -422,15 +414,13 @@
     "name": "White Ice",
     "slug": "white-ice",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1gtwgJqkl93irN7Lav3a2ebrHSxrrK9vv.webp",
-      "/images/businesses/jw-stone/inventory-source/1pqhFXwIwToXnSaCH_77cpW2Me1ighcai.webp"
+      "/images/businesses/jw-stone/inventory-source/1gtwgJqkl93irN7Lav3a2ebrHSxrrK9vv.webp"
     ],
     "sourceFolders": [
       "Granite"
     ],
     "sourceFileIds": [
-      "1gtwgJqkl93irN7Lav3a2ebrHSxrrK9vv",
-      "1pqhFXwIwToXnSaCH_77cpW2Me1ighcai"
+      "1gtwgJqkl93irN7Lav3a2ebrHSxrrK9vv"
     ],
     "slabCounts": [
       14
@@ -475,35 +465,29 @@
     "name": "Alabama Rose",
     "slug": "alabama-rose",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1TNWLK9GggfCv4F9tg0FU9OOLd3_3ouMY.webp",
       "/images/businesses/jw-stone/inventory-source/1sTR8wlx4qAAgyQ9zMhqI7Uvi1Xo-WEb1.webp",
       "/images/businesses/jw-stone/inventory-source/1E56w-xk2s-jnVVLjIZF9RzTRXQm8C0rJ.webp",
-      "/images/businesses/jw-stone/inventory-source/1L8JXn07Hb-KF-e9rntqD6pKXLamMPSip.webp",
       "/images/businesses/jw-stone/inventory-source/1Jp1tn3WRUB8r_8cBQAQFc7c4k1_yEOpF.webp",
       "/images/businesses/jw-stone/inventory-source/1qEe2V0TYTafhZ4y94mLwBPwIShe2UVIE.webp",
       "/images/businesses/jw-stone/inventory-source/1KKb6JLmGMFlEDwlMIhZpCI7lhLGBG3nL.webp",
       "/images/businesses/jw-stone/inventory-source/1QcZTp-iEEWzcgyqU3PV7IbgjTJmv748S.webp",
       "/images/businesses/jw-stone/inventory-source/1YduvgMOGM1bVSC5dxEY1mF7QZ7kt8Coy.webp",
       "/images/businesses/jw-stone/inventory-source/1w6S3WQFDxEZZKqecOk_RsMNvpe-RboAw.webp",
-      "/images/businesses/jw-stone/inventory-source/1sa0feqnYAawCgoXe9F4x7CoBcoAF5b0e.webp",
-      "/images/businesses/jw-stone/inventory-source/1Btd2UvNyX1OSL2BUHOHdSb1WAIv8bti4.webp"
+      "/images/businesses/jw-stone/inventory-source/1sa0feqnYAawCgoXe9F4x7CoBcoAF5b0e.webp"
     ],
     "sourceFolders": [
       "Marble"
     ],
     "sourceFileIds": [
-      "1TNWLK9GggfCv4F9tg0FU9OOLd3_3ouMY",
       "1sTR8wlx4qAAgyQ9zMhqI7Uvi1Xo-WEb1",
       "1E56w-xk2s-jnVVLjIZF9RzTRXQm8C0rJ",
-      "1L8JXn07Hb-KF-e9rntqD6pKXLamMPSip",
       "1Jp1tn3WRUB8r_8cBQAQFc7c4k1_yEOpF",
       "1qEe2V0TYTafhZ4y94mLwBPwIShe2UVIE",
       "1KKb6JLmGMFlEDwlMIhZpCI7lhLGBG3nL",
       "1QcZTp-iEEWzcgyqU3PV7IbgjTJmv748S",
       "1YduvgMOGM1bVSC5dxEY1mF7QZ7kt8Coy",
       "1w6S3WQFDxEZZKqecOk_RsMNvpe-RboAw",
-      "1sa0feqnYAawCgoXe9F4x7CoBcoAF5b0e",
-      "1Btd2UvNyX1OSL2BUHOHdSb1WAIv8bti4"
+      "1sa0feqnYAawCgoXe9F4x7CoBcoAF5b0e"
     ],
     "slabCounts": [
       6,
@@ -526,25 +510,20 @@
       "/images/businesses/jw-stone/inventory-source/1S_wPLY9AbNhIb1JBYjnQsTF2ShpDL_BN.webp",
       "/images/businesses/jw-stone/inventory-source/1sgTLtgT5dbt9FPjxK2gjz_OSYjFIZYdE.webp",
       "/images/businesses/jw-stone/inventory-source/1zw5HH2YeNYveTHw_-eVsTcNOxbks316H.webp",
-      "/images/businesses/jw-stone/inventory-source/1CbwP4rBI-zcPsW4cQWivi4kZ6rr6__Si.webp",
       "/images/businesses/jw-stone/inventory-source/1uQZ6caIosnCTgqzFm9S3w9TH1AKishXM.webp",
       "/images/businesses/jw-stone/inventory-source/17n5eBbZQqaXKCf3J1bRDUZqJjdkgiYT5.webp",
       "/images/businesses/jw-stone/inventory-source/1FYb2Sm1myV_p827L1BDz_oGZAwYCQdxY.webp",
       "/images/businesses/jw-stone/inventory-source/1rZENRJ_NvyDXrrJYFIajThqjrNINRxYz.webp",
       "/images/businesses/jw-stone/inventory-source/14SVthKF0vhjuDJf2vTHZMWmyxt0fWEBc.webp",
       "/images/businesses/jw-stone/inventory-source/1CGUkFP147muLzKQ-l8sXrUoGI7dtOEYk.webp",
-      "/images/businesses/jw-stone/inventory-source/13lAN9MtvZ7TrsY_Xmsy8fz-cAXvn0FeS.webp",
       "/images/businesses/jw-stone/inventory-source/16lt6ZE2xTCCnmceWRA65dUvneOG2uCcY.webp",
       "/images/businesses/jw-stone/inventory-source/1EPLBWRPO7OIt_0NnxDAKRQMpmYf9MqYs.webp",
-      "/images/businesses/jw-stone/inventory-source/1rbyZZIqPUnsU6BecwybFclMhXCXLPBek.webp",
       "/images/businesses/jw-stone/inventory-source/1ThCx44OJf6PZkTFvniTnU0Ce819543Dg.webp",
       "/images/businesses/jw-stone/inventory-source/1Z1GEqwtArPuDCGLSceDqKHMLhca8eMlI.webp",
       "/images/businesses/jw-stone/inventory-source/15IzmRZ_GbEl3fNH5G8mv7eUqDnXsiL9v.webp",
-      "/images/businesses/jw-stone/inventory-source/1NDUnWYKuwwcTkBn4j2kcNjknH785RhZC.webp",
       "/images/businesses/jw-stone/inventory-source/1TrB1t4M_aZmgDuJ3XttzNZttQTU7N0Xi.webp",
       "/images/businesses/jw-stone/inventory-source/1DjoitsFIRzrhQrhEJr91GNtyNWN7IvEr.webp",
       "/images/businesses/jw-stone/inventory-source/1thSvBurK2Qp9KSity1VcltUmRCGpmtHv.webp",
-      "/images/businesses/jw-stone/inventory-source/1Qctx_LJT9mKVnppLf5ffq_nvHBItewcG.webp",
       "/images/businesses/jw-stone/inventory-source/1lN4vlGwi97m4iv0Ynm6rD2H6UiaXiAdz.webp",
       "/images/businesses/jw-stone/inventory-source/1CwXML-8-I91eHeOZzNDuhtJ3PA8f1lWe.webp",
       "/images/businesses/jw-stone/inventory-source/1xLxusTDpf99aN-jKZg328wFkZbvJxqRi.webp",
@@ -577,25 +556,20 @@
       "1S_wPLY9AbNhIb1JBYjnQsTF2ShpDL_BN",
       "1sgTLtgT5dbt9FPjxK2gjz_OSYjFIZYdE",
       "1zw5HH2YeNYveTHw_-eVsTcNOxbks316H",
-      "1CbwP4rBI-zcPsW4cQWivi4kZ6rr6__Si",
       "1uQZ6caIosnCTgqzFm9S3w9TH1AKishXM",
       "17n5eBbZQqaXKCf3J1bRDUZqJjdkgiYT5",
       "1FYb2Sm1myV_p827L1BDz_oGZAwYCQdxY",
       "1rZENRJ_NvyDXrrJYFIajThqjrNINRxYz",
       "14SVthKF0vhjuDJf2vTHZMWmyxt0fWEBc",
       "1CGUkFP147muLzKQ-l8sXrUoGI7dtOEYk",
-      "13lAN9MtvZ7TrsY_Xmsy8fz-cAXvn0FeS",
       "16lt6ZE2xTCCnmceWRA65dUvneOG2uCcY",
       "1EPLBWRPO7OIt_0NnxDAKRQMpmYf9MqYs",
-      "1rbyZZIqPUnsU6BecwybFclMhXCXLPBek",
       "1ThCx44OJf6PZkTFvniTnU0Ce819543Dg",
       "1Z1GEqwtArPuDCGLSceDqKHMLhca8eMlI",
       "15IzmRZ_GbEl3fNH5G8mv7eUqDnXsiL9v",
-      "1NDUnWYKuwwcTkBn4j2kcNjknH785RhZC",
       "1TrB1t4M_aZmgDuJ3XttzNZttQTU7N0Xi",
       "1DjoitsFIRzrhQrhEJr91GNtyNWN7IvEr",
       "1thSvBurK2Qp9KSity1VcltUmRCGpmtHv",
-      "1Qctx_LJT9mKVnppLf5ffq_nvHBItewcG",
       "1lN4vlGwi97m4iv0Ynm6rD2H6UiaXiAdz",
       "1CwXML-8-I91eHeOZzNDuhtJ3PA8f1lWe",
       "1xLxusTDpf99aN-jKZg328wFkZbvJxqRi",
@@ -679,14 +653,12 @@
     "name": "Cherokee Marble",
     "slug": "cherokee-marble",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1-aG5hB5B08PNUXj8230wYmKF58q0EkNf.webp",
       "/images/businesses/jw-stone/inventory-source/1lZwkyg4b_D3JcBUrlbYrwnG_XXl0rpzB.webp"
     ],
     "sourceFolders": [
       "Marble"
     ],
     "sourceFileIds": [
-      "1-aG5hB5B08PNUXj8230wYmKF58q0EkNf",
       "1lZwkyg4b_D3JcBUrlbYrwnG_XXl0rpzB"
     ]
   },
@@ -696,16 +668,14 @@
     "slug": "cristalita-blue",
     "images": [
       "/images/businesses/jw-stone/inventory-source/1YZcZLJfSK6qmO_8dhPKpDrMwyeTdXK-B.webp",
-      "/images/businesses/jw-stone/inventory-source/1KlAgBMSmq08dfMcbOT2MdqRryINYCIGh.webp",
-      "/images/businesses/jw-stone/inventory-source/1vi_-cP22eAuKAuLlftvJsjKFjGUTEEvU.webp"
+      "/images/businesses/jw-stone/inventory-source/1KlAgBMSmq08dfMcbOT2MdqRryINYCIGh.webp"
     ],
     "sourceFolders": [
       "Marble"
     ],
     "sourceFileIds": [
       "1YZcZLJfSK6qmO_8dhPKpDrMwyeTdXK-B",
-      "1KlAgBMSmq08dfMcbOT2MdqRryINYCIGh",
-      "1vi_-cP22eAuKAuLlftvJsjKFjGUTEEvU"
+      "1KlAgBMSmq08dfMcbOT2MdqRryINYCIGh"
     ],
     "slabCounts": [
       5,
@@ -740,18 +710,15 @@
       "/images/businesses/jw-stone/inventory-source/12O_VGHOCPvZoQWdfrizrBO3sCUBULqVk.webp",
       "/images/businesses/jw-stone/inventory-source/1MQmEbjxPx_yizkRfRwgoK2_R_eQfQ6vh.webp",
       "/images/businesses/jw-stone/inventory-source/1a6EsLI5jfCYl2beHQ9mj6w-C-VyqZ4x_.webp",
-      "/images/businesses/jw-stone/inventory-source/1nHCOYqpF2w4idljONVrnps4oys8wwp0R.webp",
       "/images/businesses/jw-stone/inventory-source/1b_g-man-VhBa2QXYxvmIcLOB5C4GTBGc.webp",
       "/images/businesses/jw-stone/inventory-source/1XHYZpQy13hW7duEUpnTgqLvuE3DiYM_H.webp",
       "/images/businesses/jw-stone/inventory-source/1OlugOio2ps9xFd6H7bRCf5a9fs-CFg0S.webp",
       "/images/businesses/jw-stone/inventory-source/1i_nKvmqnx8tpqUOZ9lacC1ESwRDi3Ov7.webp",
-      "/images/businesses/jw-stone/inventory-source/11yinVoaF5GMTL56UnJJh-PnjdNRtgb0S.webp",
       "/images/businesses/jw-stone/inventory-source/15LtwDkSL-8iuGtNQbM8Ntbyq-ChtBVOO.webp",
       "/images/businesses/jw-stone/inventory-source/1G54SN8X30kT6eEdXUlqKl1YkaI-SEc7u.webp",
       "/images/businesses/jw-stone/inventory-source/1hs5WFmS04JvPYlrHD4rOHqfKClONKGlC.webp",
       "/images/businesses/jw-stone/inventory-source/1Rw8GzuNrQXBnYA4IYfAHYjxum71VJz6R.webp",
       "/images/businesses/jw-stone/inventory-source/1tEHXGMANOfnn7RB-i6uMM3UTA7dGyImk.webp",
-      "/images/businesses/jw-stone/inventory-source/1U1lTFh5nRPnpLicK4u1FPOKPUSNpwWgm.webp",
       "/images/businesses/jw-stone/inventory-source/1kY3yHGsC8ExHrZno5SwXqd3xzHmHaAiM.webp",
       "/images/businesses/jw-stone/inventory-source/1nYMaYX2RtDlfQgEuw2zJWOJFuLdV3xgz.webp",
       "/images/businesses/jw-stone/inventory-source/1ycmpsbQxISOAiUhNGGGhCsn_Zk0Vvzbe.webp"
@@ -767,18 +734,15 @@
       "12O_VGHOCPvZoQWdfrizrBO3sCUBULqVk",
       "1MQmEbjxPx_yizkRfRwgoK2_R_eQfQ6vh",
       "1a6EsLI5jfCYl2beHQ9mj6w-C-VyqZ4x_",
-      "1nHCOYqpF2w4idljONVrnps4oys8wwp0R",
       "1b_g-man-VhBa2QXYxvmIcLOB5C4GTBGc",
       "1XHYZpQy13hW7duEUpnTgqLvuE3DiYM_H",
       "1OlugOio2ps9xFd6H7bRCf5a9fs-CFg0S",
       "1i_nKvmqnx8tpqUOZ9lacC1ESwRDi3Ov7",
-      "11yinVoaF5GMTL56UnJJh-PnjdNRtgb0S",
       "15LtwDkSL-8iuGtNQbM8Ntbyq-ChtBVOO",
       "1G54SN8X30kT6eEdXUlqKl1YkaI-SEc7u",
       "1hs5WFmS04JvPYlrHD4rOHqfKClONKGlC",
       "1Rw8GzuNrQXBnYA4IYfAHYjxum71VJz6R",
       "1tEHXGMANOfnn7RB-i6uMM3UTA7dGyImk",
-      "1U1lTFh5nRPnpLicK4u1FPOKPUSNpwWgm",
       "1kY3yHGsC8ExHrZno5SwXqd3xzHmHaAiM",
       "1nYMaYX2RtDlfQgEuw2zJWOJFuLdV3xgz",
       "1ycmpsbQxISOAiUhNGGGhCsn_Zk0Vvzbe"
@@ -1068,22 +1032,16 @@
     "name": "Honey Onyx",
     "slug": "honey-onyx",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1Kfn1NfVZwueiPoGrpteEjSdBm9WTIVIC.webp",
       "/images/businesses/jw-stone/inventory-source/1ldPDW2qNe82fjs33B-67cnwrz6k7jC5S.webp",
-      "/images/businesses/jw-stone/inventory-source/189iSyURMwlxoeYfM1ksoLwgkJNSvFzCB.webp",
       "/images/businesses/jw-stone/inventory-source/1yJx_wc5icvkwJCU4r7weJtOvpWztrXK-.webp",
-      "/images/businesses/jw-stone/inventory-source/1_9h4B1GmZNrClfPk3ehT72bt55OQN_-i.webp",
       "/images/businesses/jw-stone/inventory-source/1VzCA95gOYzhCA7CP6GaL9f73Ijv05QCf.webp"
     ],
     "sourceFolders": [
       "Onyx"
     ],
     "sourceFileIds": [
-      "1Kfn1NfVZwueiPoGrpteEjSdBm9WTIVIC",
       "1ldPDW2qNe82fjs33B-67cnwrz6k7jC5S",
-      "189iSyURMwlxoeYfM1ksoLwgkJNSvFzCB",
       "1yJx_wc5icvkwJCU4r7weJtOvpWztrXK-",
-      "1_9h4B1GmZNrClfPk3ehT72bt55OQN_-i",
       "1VzCA95gOYzhCA7CP6GaL9f73Ijv05QCf"
     ],
     "slabCounts": [
@@ -1107,7 +1065,6 @@
       "/images/businesses/jw-stone/inventory-source/1nRCI_OSyXatCPGs-s4U9CyRLMNq6euyy.webp",
       "/images/businesses/jw-stone/inventory-source/1nESBmeGw1-QfcBNVLrGyNKQtHbQt8uwM.webp",
       "/images/businesses/jw-stone/inventory-source/1GhcyanNTSKcFuVXN3pAggbI-XYAmjx2u.webp",
-      "/images/businesses/jw-stone/inventory-source/1AzFyMhpubYlomxpl6eLErgR1eOxbRMkA.webp",
       "/images/businesses/jw-stone/inventory-source/1pgK_FzwRM6E5K-1zz6xBrBS2KSBiTEuH.webp"
     ],
     "sourceFolders": [
@@ -1126,7 +1083,6 @@
       "1nRCI_OSyXatCPGs-s4U9CyRLMNq6euyy",
       "1nESBmeGw1-QfcBNVLrGyNKQtHbQt8uwM",
       "1GhcyanNTSKcFuVXN3pAggbI-XYAmjx2u",
-      "1AzFyMhpubYlomxpl6eLErgR1eOxbRMkA",
       "1pgK_FzwRM6E5K-1zz6xBrBS2KSBiTEuH"
     ],
     "slabCounts": [
@@ -1253,7 +1209,6 @@
     "images": [
       "/images/businesses/jw-stone/inventory-source/1Sj9EjHRqjwVqTqi5bFZTrjdwMRhIm7ul.webp",
       "/images/businesses/jw-stone/inventory-source/1ApF2R6Pbn8aWYpXNHD7VNlJwsFlBsIP4.webp",
-      "/images/businesses/jw-stone/inventory-source/1Bd7X9XmqC5OOYi0vW0ji5JDjncPxj7Or.webp",
       "/images/businesses/jw-stone/inventory-source/12iZ2UvdhwS-2Zb7JdP0tt_CFmlM6PU9-.webp",
       "/images/businesses/jw-stone/inventory-source/1BHaSAxN9B8CbNN9gaKiK2F_HJ-GAyRVy.webp"
     ],
@@ -1263,7 +1218,6 @@
     "sourceFileIds": [
       "1Sj9EjHRqjwVqTqi5bFZTrjdwMRhIm7ul",
       "1ApF2R6Pbn8aWYpXNHD7VNlJwsFlBsIP4",
-      "1Bd7X9XmqC5OOYi0vW0ji5JDjncPxj7Or",
       "12iZ2UvdhwS-2Zb7JdP0tt_CFmlM6PU9-",
       "1BHaSAxN9B8CbNN9gaKiK2F_HJ-GAyRVy"
     ],
@@ -1311,15 +1265,13 @@
     "name": "Blue Dream",
     "slug": "blue-dream",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/11ax9DfAdp_SjHdkX2sTHMGu-NVFEGwru.webp",
-      "/images/businesses/jw-stone/inventory-source/1sM_JTMIe2OrmEGPcWpPxu_ebtllfcZGP.webp"
+      "/images/businesses/jw-stone/inventory-source/11ax9DfAdp_SjHdkX2sTHMGu-NVFEGwru.webp"
     ],
     "sourceFolders": [
       "Quartzite"
     ],
     "sourceFileIds": [
-      "11ax9DfAdp_SjHdkX2sTHMGu-NVFEGwru",
-      "1sM_JTMIe2OrmEGPcWpPxu_ebtllfcZGP"
+      "11ax9DfAdp_SjHdkX2sTHMGu-NVFEGwru"
     ]
   },
   {
@@ -1361,7 +1313,6 @@
     "slug": "calacatta-amala",
     "images": [
       "/images/businesses/jw-stone/inventory-source/112yUwIti-kOjZj7MZD9O_IRRRMO65hUT.webp",
-      "/images/businesses/jw-stone/inventory-source/1wQyeIY6MPNt8GoqMY3ZbbJ-UjrRSyb6C.webp",
       "/images/businesses/jw-stone/inventory-source/1-8YRVJ9x4_lEyoLWh7RpAY0oFPbJHcFa.webp"
     ],
     "sourceFolders": [
@@ -1369,7 +1320,6 @@
     ],
     "sourceFileIds": [
       "112yUwIti-kOjZj7MZD9O_IRRRMO65hUT",
-      "1wQyeIY6MPNt8GoqMY3ZbbJ-UjrRSyb6C",
       "1-8YRVJ9x4_lEyoLWh7RpAY0oFPbJHcFa"
     ],
     "slabCounts": [
@@ -1415,7 +1365,6 @@
       "/images/businesses/jw-stone/inventory-source/1D8bvWASTFtKs4ri4KK553drHwWXeAzxQ.webp",
       "/images/businesses/jw-stone/inventory-source/1To_Qnh28UdJ0vDBy4Q3O4zAgsqmnQ1Fy.webp",
       "/images/businesses/jw-stone/inventory-source/1u5DrS3Rm4IxX2sxw9sxOwVolJ9EJLF8O.webp",
-      "/images/businesses/jw-stone/inventory-source/1twrgA6jRajxWAbCNeHmv4x2gdE5qNFyg.webp",
       "/images/businesses/jw-stone/inventory-source/16CqsWzWFUs5KzLuiuo-ajEGcKAGPfrr-.webp",
       "/images/businesses/jw-stone/inventory-source/1orjwnzlaUer0CzKpfkA7V8UlCm-uUDim.webp",
       "/images/businesses/jw-stone/inventory-source/1NJ6h9wPR_jIkb7dcOK9rZqMCAe_Uy1Rk.webp",
@@ -1447,7 +1396,6 @@
       "1D8bvWASTFtKs4ri4KK553drHwWXeAzxQ",
       "1To_Qnh28UdJ0vDBy4Q3O4zAgsqmnQ1Fy",
       "1u5DrS3Rm4IxX2sxw9sxOwVolJ9EJLF8O",
-      "1twrgA6jRajxWAbCNeHmv4x2gdE5qNFyg",
       "16CqsWzWFUs5KzLuiuo-ajEGcKAGPfrr-",
       "1orjwnzlaUer0CzKpfkA7V8UlCm-uUDim",
       "1NJ6h9wPR_jIkb7dcOK9rZqMCAe_Uy1Rk",
@@ -1550,14 +1498,12 @@
     "name": "Fusion Yellow",
     "slug": "fusion-yellow",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1TtWhRio6bzOIdQOwpLYLVRM4Io4o78ve.webp",
       "/images/businesses/jw-stone/inventory-source/18gmBQeXMlJVXkyVR8CYZcr7S19YLnIvM.webp"
     ],
     "sourceFolders": [
       "Quartzite"
     ],
     "sourceFileIds": [
-      "1TtWhRio6bzOIdQOwpLYLVRM4Io4o78ve",
       "18gmBQeXMlJVXkyVR8CYZcr7S19YLnIvM"
     ]
   },
@@ -1587,16 +1533,14 @@
     "name": "Macaubas Fantasy",
     "slug": "macaubas-fantasy",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1K-HqdDl-rCe8H_-k3eYA4sUlEVb57_Kv.webp",
-      "/images/businesses/jw-stone/inventory-source/1xtwOy2WD1MshO259BLcW_ekqmDyzr-w7.webp"
+      "/images/businesses/jw-stone/inventory-source/1K-HqdDl-rCe8H_-k3eYA4sUlEVb57_Kv.webp"
     ],
     "sourceFolders": [
       "Quartzite",
       "Root"
     ],
     "sourceFileIds": [
-      "1K-HqdDl-rCe8H_-k3eYA4sUlEVb57_Kv",
-      "1xtwOy2WD1MshO259BLcW_ekqmDyzr-w7"
+      "1K-HqdDl-rCe8H_-k3eYA4sUlEVb57_Kv"
     ]
   },
   {
@@ -1644,9 +1588,7 @@
     "name": "Taj Mahal",
     "slug": "taj-mahal",
     "images": [
-      "/images/businesses/jw-stone/inventory-source/1xqajpfn9i2CG-FGm7J4xR4kb5DdpSEq1.webp",
       "/images/businesses/jw-stone/inventory-source/1KlXD4-B96IBcvKjfCPGTM-aR8AwmD446.webp",
-      "/images/businesses/jw-stone/inventory-source/1B79WbvAi2URScPU8us82yeLMxL4mC9sm.webp",
       "/images/businesses/jw-stone/inventory-source/1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b.webp",
       "/images/businesses/jw-stone/inventory-source/1L42L_3HT_2rFzdCTWT46k_AS_ytajWF-.webp",
       "/images/businesses/jw-stone/inventory-source/1RDfOSuLoIbKDL8UbqI_FaNgY6jTHqn6n.webp",
@@ -1670,9 +1612,7 @@
       "Quartzite"
     ],
     "sourceFileIds": [
-      "1xqajpfn9i2CG-FGm7J4xR4kb5DdpSEq1",
       "1KlXD4-B96IBcvKjfCPGTM-aR8AwmD446",
-      "1B79WbvAi2URScPU8us82yeLMxL4mC9sm",
       "1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b",
       "1L42L_3HT_2rFzdCTWT46k_AS_ytajWF-",
       "1RDfOSuLoIbKDL8UbqI_FaNgY6jTHqn6n",
@@ -1988,20 +1928,6 @@
   },
   {
     "categorySlug": "unconfirmed",
-    "name": "Fusion Blue",
-    "slug": "fusion-blue",
-    "images": [
-      "/images/businesses/jw-stone/inventory-source/1opCWnnzl2Eba_qdW54RvF7B4jn-XD4PB.webp"
-    ],
-    "sourceFolders": [
-      "Root"
-    ],
-    "sourceFileIds": [
-      "1opCWnnzl2Eba_qdW54RvF7B4jn-XD4PB"
-    ]
-  },
-  {
-    "categorySlug": "unconfirmed",
     "name": "Gold Macaubas",
     "slug": "gold-macaubas",
     "images": [
@@ -2235,18 +2161,14 @@
     "slug": "steel-gray",
     "images": [
       "/images/businesses/jw-stone/inventory-source/1UDe57h8Vq_IpmDKm9JvV-1jEdrc7TMKW.webp",
-      "/images/businesses/jw-stone/inventory-source/1fqDCQbCGOI4ieLt5899s8XYZv3OlhJp6.webp",
-      "/images/businesses/jw-stone/inventory-source/12Qhbu1BQIrhkVv98a0pgmwPn2ARHUjgh.webp",
-      "/images/businesses/jw-stone/inventory-source/1jufH_gRLotlr-Qs8vK3VQ4tU1xh2jJwe.webp"
+      "/images/businesses/jw-stone/inventory-source/1fqDCQbCGOI4ieLt5899s8XYZv3OlhJp6.webp"
     ],
     "sourceFolders": [
       "Root"
     ],
     "sourceFileIds": [
       "1UDe57h8Vq_IpmDKm9JvV-1jEdrc7TMKW",
-      "1fqDCQbCGOI4ieLt5899s8XYZv3OlhJp6",
-      "12Qhbu1BQIrhkVv98a0pgmwPn2ARHUjgh",
-      "1jufH_gRLotlr-Qs8vK3VQ4tU1xh2jJwe"
+      "1fqDCQbCGOI4ieLt5899s8XYZv3OlhJp6"
     ]
   },
   {
@@ -2306,7 +2228,6 @@
       "/images/businesses/jw-stone/inventory-source/1xcxfeAyznEImugsl7FP0NZcEOSr0BPpv.webp",
       "/images/businesses/jw-stone/inventory-source/1pmQor_1An8FJAjVdBcvNkyZZAGRFrlHs.webp",
       "/images/businesses/jw-stone/inventory-source/1h_te0mJgITRnLRzEj8Mw26YDP-Z0wrCA.webp",
-      "/images/businesses/jw-stone/inventory-source/1o6jiIVHYhTAOJNO0dQGViS4in808duL8.webp",
       "/images/businesses/jw-stone/inventory-source/13fz-Eh_2neFClTI0tbBNc1fjUBaY3lOi.webp",
       "/images/businesses/jw-stone/inventory-source/1wh-Ozj0pZyEWeuObGkKe0BVN1j-IvCvw.webp",
       "/images/businesses/jw-stone/inventory-source/1WDWrRZ8_VTsm4_07XDQvSOeRsknrawjQ.webp",
@@ -2319,7 +2240,6 @@
       "1xcxfeAyznEImugsl7FP0NZcEOSr0BPpv",
       "1pmQor_1An8FJAjVdBcvNkyZZAGRFrlHs",
       "1h_te0mJgITRnLRzEj8Mw26YDP-Z0wrCA",
-      "1o6jiIVHYhTAOJNO0dQGViS4in808duL8",
       "13fz-Eh_2neFClTI0tbBNc1fjUBaY3lOi",
       "1wh-Ozj0pZyEWeuObGkKe0BVN1j-IvCvw",
       "1WDWrRZ8_VTsm4_07XDQvSOeRsknrawjQ",
@@ -2433,11 +2353,9 @@
     "slug": "trending-selection-05",
     "images": [
       "/images/businesses/jw-stone/inventory-source/1oZsJKDQJSjrTAIjcV2Q0_ENSicfJecWP.webp",
-      "/images/businesses/jw-stone/inventory-source/1tFvjrRRxlDk5Ra4tCgIEZup5oPb15joJ.webp",
       "/images/businesses/jw-stone/inventory-source/12vSbzs1Z0X_SXNmWTR8vSqmNeFBOe-5z.webp",
       "/images/businesses/jw-stone/inventory-source/1Bi_x2HdRRSZS0Ng4qWYXj4Cxy07HGAjn.webp",
       "/images/businesses/jw-stone/inventory-source/19V81SckaIzLQLNck6PI7itmS_NFQBCdk.webp",
-      "/images/businesses/jw-stone/inventory-source/1fCvJHGY08vt9oPh34w1_n0NgBiNXFpwH.webp",
       "/images/businesses/jw-stone/inventory-source/1tqxCx2mCA7GykKt0n7s7AoGBL8gCBMhv.webp",
       "/images/businesses/jw-stone/inventory-source/1L4IDbbZNC0b8pud5B7x2lMAGnZ7Q75hS.webp"
     ],
@@ -2446,11 +2364,9 @@
     ],
     "sourceFileIds": [
       "1oZsJKDQJSjrTAIjcV2Q0_ENSicfJecWP",
-      "1tFvjrRRxlDk5Ra4tCgIEZup5oPb15joJ",
       "12vSbzs1Z0X_SXNmWTR8vSqmNeFBOe-5z",
       "1Bi_x2HdRRSZS0Ng4qWYXj4Cxy07HGAjn",
       "19V81SckaIzLQLNck6PI7itmS_NFQBCdk",
-      "1fCvJHGY08vt9oPh34w1_n0NgBiNXFpwH",
       "1tqxCx2mCA7GykKt0n7s7AoGBL8gCBMhv",
       "1L4IDbbZNC0b8pud5B7x2lMAGnZ7Q75hS"
     ],
@@ -2541,7 +2457,6 @@
       "/images/businesses/jw-stone/inventory-source/1fnZq1nzVqBt2oT2-Hq3NyMSBnDEzEeep.webp",
       "/images/businesses/jw-stone/inventory-source/1Hu_p-XPZ1SkhvKJRXy-trTLeYqx14gkl.webp",
       "/images/businesses/jw-stone/inventory-source/1t-yPXoWxxkHitnkpNCPzc1RLJAYk1Kfv.webp",
-      "/images/businesses/jw-stone/inventory-source/1NQ9gBFZG1Q9qWiu4bP-HGLNgvsPOZ9IY.webp",
       "/images/businesses/jw-stone/inventory-source/1zU2HuiSRWOyn-uWHgocd3oGogae9zdIl.webp",
       "/images/businesses/jw-stone/inventory-source/1TA4aLdLut6isSivo0jcJ5biH-FqrwB95.webp",
       "/images/businesses/jw-stone/inventory-source/1YbKcruB0psPD5VWkLVjgxnQzbh0_wh8m.webp",
@@ -2554,7 +2469,6 @@
       "1fnZq1nzVqBt2oT2-Hq3NyMSBnDEzEeep",
       "1Hu_p-XPZ1SkhvKJRXy-trTLeYqx14gkl",
       "1t-yPXoWxxkHitnkpNCPzc1RLJAYk1Kfv",
-      "1NQ9gBFZG1Q9qWiu4bP-HGLNgvsPOZ9IY",
       "1zU2HuiSRWOyn-uWHgocd3oGogae9zdIl",
       "1TA4aLdLut6isSivo0jcJ5biH-FqrwB95",
       "1YbKcruB0psPD5VWkLVjgxnQzbh0_wh8m",
@@ -2606,8 +2520,7 @@
       "/images/businesses/jw-stone/inventory-source/1bxLwSD3Ki1Nx4fks0sLxN57P-dM3TXRd.webp",
       "/images/businesses/jw-stone/inventory-source/1VfjvMaj1jGW1KIlswUekR9qNcvQHEG-0.webp",
       "/images/businesses/jw-stone/inventory-source/1xLMfKusMdc-wcPNIjYSoBNbhf5g0XutW.webp",
-      "/images/businesses/jw-stone/inventory-source/1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo.webp",
-      "/images/businesses/jw-stone/inventory-source/1A9VauyraAtBZkepc1MUPmItSLzWZOAj-.webp"
+      "/images/businesses/jw-stone/inventory-source/1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo.webp"
     ],
     "sourceFolders": [
       "Root"
@@ -2617,8 +2530,7 @@
       "1bxLwSD3Ki1Nx4fks0sLxN57P-dM3TXRd",
       "1VfjvMaj1jGW1KIlswUekR9qNcvQHEG-0",
       "1xLMfKusMdc-wcPNIjYSoBNbhf5g0XutW",
-      "1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo",
-      "1A9VauyraAtBZkepc1MUPmItSLzWZOAj-"
+      "1M-2UdrtDBUyNDhZswqST_VjV5RvN9Zbo"
     ]
   },
   {
