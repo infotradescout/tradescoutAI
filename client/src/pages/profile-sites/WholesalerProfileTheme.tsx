@@ -199,6 +199,33 @@ const JW_STONE_PICK_SLUGS = new Set([
   "titanium",
 ]);
 
+const JW_STONE_FEATURED_OFFERS = [
+  {
+    slug: "taj-mahal",
+    material: "Quartzite",
+    finish: "Polished",
+    price: "$26.95/sf",
+    size: "126 × 79",
+    availability: "27 slabs",
+  },
+  {
+    slug: "titanium",
+    material: "Granite",
+    finish: "Leathered",
+    price: "$13.50/sf",
+    size: "115 × 76",
+    availability: "6 slabs",
+  },
+  {
+    slug: "rhino-white",
+    material: "Marble",
+    finish: "Polished",
+    price: "$26.50/sf",
+    size: "111 × 69.25",
+    availability: "7 slabs",
+  },
+] as const;
+
 // Horizontal, scroll-snapped rows keep the page short and let visitors jump
 // straight to what they came for instead of scrolling past every section.
 const SCROLL_ROW =
@@ -351,6 +378,13 @@ export default function WholesalerProfileTheme({
     normalizedInventorySearch ? stone.name.toLowerCase().includes(normalizedInventorySearch) : true
   );
   const displayedStones = visibleStones.slice(0, inventoryVisibleLimit);
+  const featuredStones =
+    profileSlug === "jw-stone"
+      ? JW_STONE_FEATURED_OFFERS.map((offer) => ({
+          ...offer,
+          stone: allInventoryStones.find((stone) => stone.slug === offer.slug),
+        }))
+      : [];
   const hasInventoryFilters = activeCategorySlug !== "all" || normalizedInventorySearch.length > 0;
   useEffect(() => {
     setInventoryVisibleLimit(24);
@@ -393,26 +427,38 @@ export default function WholesalerProfileTheme({
 
   return (
     <div
-      className="jw-stone-public-profile min-h-full bg-[var(--brand-bg)] pb-[calc(var(--bottom-nav-h,72px)+env(safe-area-inset-bottom))] !text-stone-900 md:pb-0"
+      className="jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900"
       style={themeVars}
     >
-      {/* Sticky header */}
-      <header className="relative z-20 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]">
-        <div className="container mx-auto flex items-center justify-between gap-4 px-5 py-4 md:px-8 md:py-5">
-          <div>
-            <span
-              className={`block text-xl font-bold leading-tight text-[var(--brand-primary)] md:text-2xl ${DISPLAY_FONT}`}
-            >
-              {displayName}
-            </span>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
-              TradeScout TradePartner
-            </p>
-          </div>
+      <header className="sticky top-0 z-20 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)] shadow-sm">
+        <div className="container mx-auto flex items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-5">
+          {profileSlug === "jw-stone" ? (
+            <div className="min-w-0">
+              <img
+                src="/images/businesses/jw-stone/logo.svg"
+                alt="JW Stone — Premium Wholesale Stone Distributor"
+                className="h-auto w-[164px] max-w-[50vw] md:w-[230px]"
+              />
+              <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] !text-[#625b50]">
+                TradeScout Profile · Protected Direct Connect
+              </p>
+            </div>
+          ) : (
+            <div>
+              <span
+                className={`block text-xl font-bold leading-tight text-[var(--brand-primary)] md:text-2xl ${DISPLAY_FONT}`}
+              >
+                {displayName}
+              </span>
+              <p className="mt-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
+                TradeScout TradePartner
+              </p>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => startDirectConnect()}
-            className="hidden rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-primary-dark)] md:block"
+            className="flex-shrink-0 rounded-full bg-[var(--brand-primary)] px-3.5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] md:px-5 md:text-sm"
           >
             Direct Connect
           </button>
@@ -512,16 +558,72 @@ export default function WholesalerProfileTheme({
       {inventoryCatalog.length > 0 ? (
         <section id="collection" className="scroll-mt-28 bg-[var(--brand-bg)] py-10 md:py-14">
           <div className="container mx-auto px-4 md:px-6">
+            {featuredStones.length > 0 ? (
+              <div className="mb-10">
+                <div className="mb-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--brand-accent)]">
+                    Featured stone offers
+                  </p>
+                  <h2 className={`mt-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}>
+                    Ready for the next job
+                  </h2>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {featuredStones.map((offer) => {
+                    const stone = offer.stone;
+                    if (!stone) return null;
+                    return (
+                      <button
+                        key={offer.slug}
+                        type="button"
+                        onClick={() => {
+                          setOpenStone(stone);
+                          setOpenImageIndex(0);
+                        }}
+                        className="group overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                      >
+                        <img
+                          src={stone.images[0]}
+                          alt={stone.name}
+                          className="h-52 w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        />
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-lg font-bold !text-[#241d0f]">{stone.name}</p>
+                              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide !text-[#625b50]">
+                                {offer.material} · {offer.finish}
+                              </p>
+                            </div>
+                            <p className="whitespace-nowrap text-lg font-bold text-[var(--brand-primary)]">
+                              {offer.price}
+                            </p>
+                          </div>
+                          <p className="mt-3 text-sm !text-[#625b50]">
+                            {offer.size} · {offer.availability}
+                          </p>
+                          <span className="mt-4 inline-flex rounded-full bg-[var(--brand-primary)] px-4 py-2 text-xs font-bold text-white">
+                            Ask about this stone
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
             <div className="mb-6">
               <h2
                 className={`mb-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
               >
-                Live Stone Collection
+                Current Inventory
               </h2>
-              <p className="text-sm !text-[#625b50]">Browse current inventory and new arrivals.</p>
+              <p className="text-sm !text-[#625b50]">
+                Search JW Stone's full collection or open any stone to send a protected Direct Connect request.
+              </p>
             </div>
 
-            <div className="mb-6 rounded-2xl border border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] p-3 shadow-sm md:p-4">
+            <div className="mb-6 rounded-2xl border border-[#241d0f]/15 bg-white p-3 shadow-sm md:p-4">
               <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px_auto] md:items-center">
                 <label className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--brand-primary)]/15 bg-white px-4 focus-within:border-[var(--brand-primary)]/50">
                   <Search className="h-4 w-4 flex-shrink-0 text-[var(--brand-primary)]/60" />
@@ -585,7 +687,7 @@ export default function WholesalerProfileTheme({
                     setOpenStone(stone);
                     setOpenImageIndex(0);
                   }}
-                  className="group overflow-hidden rounded-2xl border border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/40 hover:shadow-lg"
+                  className="group overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg"
                 >
                   {stone.images[0] ? (
                     <div className="relative h-56 overflow-hidden">
@@ -604,8 +706,8 @@ export default function WholesalerProfileTheme({
                     </div>
                   ) : null}
                   <div className="p-4">
-                    <p className="font-semibold !text-[#241d0f]">{stone.name}</p>
-                    <p className="mt-1 text-xs !text-[#71695f]">
+                    <p className="text-base font-bold !text-[#241d0f]">{stone.name}</p>
+                    <p className="mt-1 text-xs font-medium !text-[#625b50]">
                       {stone.finishes?.length
                         ? stone.finishes.join(" · ")
                         : "Finish: ask JW Stone"}
