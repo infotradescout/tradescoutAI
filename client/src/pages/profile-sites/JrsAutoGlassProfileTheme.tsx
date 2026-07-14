@@ -37,21 +37,18 @@ type RecommendationEntry = {
 };
 
 type Props = {
-  directConnectHref: string;
+  onDirectConnect: () => void;
   hasViewerSession: boolean;
-  preScoutCreateHref: string;
   recommendationsDirectory?: RecommendationEntry[];
 };
 
 const assetRoot = "/images/businesses/jrs-auto-glass";
 
 export default function JrsAutoGlassProfileTheme({
-  directConnectHref,
+  onDirectConnect,
   hasViewerSession,
-  preScoutCreateHref,
   recommendationsDirectory = [],
 }: Props) {
-  const requestHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
   const exitHref = hasViewerSession ? "/direct-connect" : "/";
   const publicRecommendations = recommendationsDirectory.filter(
     (entry) => entry.recommendationType === "positive"
@@ -85,14 +82,15 @@ export default function JrsAutoGlassProfileTheme({
             </span>
           </div>
 
-          <Link
-            href={requestHref}
+          <button
+            type="button"
+            onClick={onDirectConnect}
             aria-label="Open TradeScout Direct Connect with JR's Auto Glass"
             className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full bg-ts-orange text-white transition-colors hover:bg-ts-orange-dark sm:w-auto sm:gap-2 sm:px-4"
           >
             <MessageCircle className="h-4 w-4" />
             <span className="hidden text-xs font-black sm:inline">Direct Connect</span>
-          </Link>
+          </button>
         </div>
       </header>
 
@@ -124,13 +122,14 @@ export default function JrsAutoGlassProfileTheme({
             </div>
           </div>
 
-          <Link
-            href={requestHref}
+          <button
+            type="button"
+            onClick={onDirectConnect}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
           >
             Request auto glass service
             <ChevronRight className="h-4 w-4" />
-          </Link>
+          </button>
           <p className="mt-2 text-center text-[11px] font-medium text-zinc-500">
             Private request through TradeScout Direct Connect
           </p>
@@ -263,13 +262,14 @@ export default function JrsAutoGlassProfileTheme({
               </div>
             ))}
           </div>
-          <Link
-            href={requestHref}
+          <button
+            type="button"
+            onClick={onDirectConnect}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
           >
             Direct Connect with JR&apos;s
             <ChevronRight className="h-4 w-4" />
-          </Link>
+          </button>
           <p className="mt-3 text-center text-xs leading-5 text-zinc-500">
             Contact information remains protected until JR&apos;s accepts the request.
           </p>
