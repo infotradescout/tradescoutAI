@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
 import { Link, useLocation } from "wouter";
 import {
+  ArrowLeft,
   ChevronRight,
-  ChevronDown,
   MapPin,
   ShieldCheck,
   Package,
@@ -290,6 +290,7 @@ export default function WholesalerProfileTheme({
   recommendationDirectorySummary,
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
+  const isJwStone = profileSlug === "jw-stone";
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
   const themeVars = {
@@ -354,6 +355,7 @@ export default function WholesalerProfileTheme({
   const [inventoryExpanded, setInventoryExpanded] = useState(false);
   const [inventorySearch, setInventorySearch] = useState("");
   const [inventoryVisibleLimit, setInventoryVisibleLimit] = useState(24);
+  const pendingInventoryScrollRef = useRef(false);
   const [openStone, setOpenStone] = useState<InventoryStone | null>(null);
   const [openImageIndex, setOpenImageIndex] = useState(0);
   const [lightboxImageFailed, setLightboxImageFailed] = useState(false);
@@ -394,16 +396,16 @@ export default function WholesalerProfileTheme({
   useEffect(() => {
     setInventoryVisibleLimit(24);
   }, [activeCategorySlug, normalizedInventorySearch]);
-  const cristalloHeroImage = inventoryCatalog
+  const amazonicGreenHeroImage = inventoryCatalog
     .flatMap((category) => category.stones)
-    .find((stone) => stone.slug === "cristallo")?.images[0];
+    .find((stone) => stone.slug === "amazonic-green")?.images[0];
   const heroImage =
-    (profileSlug === "jw-stone" ? cristalloHeroImage : undefined) ||
+    (profileSlug === "jw-stone" ? amazonicGreenHeroImage : undefined) ||
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
     galleryImages[0];
   const heroEyebrow =
     profileSlug === "jw-stone"
-      ? "Cristallo quartzite · shown backlit"
+      ? "Amazonic Green · current inventory"
       : categories.slice(0, 3).join(" · ");
   const heroHeadline =
     profileSlug === "jw-stone"
@@ -413,7 +415,7 @@ export default function WholesalerProfileTheme({
   // "Why Us" section carry the fuller story for anyone who scrolls that far.
   const heroTeaser =
     profileSlug === "jw-stone"
-      ? "Browse current inventory or contact JW Stone directly."
+      ? `${allInventoryStones.length} current stones. Search the full collection or ask JW Stone about your project.`
       : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
@@ -428,6 +430,39 @@ export default function WholesalerProfileTheme({
       return;
     }
     navigate(ctaHref);
+  };
+
+  const scrollToInventoryBrowser = () => {
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById("inventory-browser")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  };
+
+  const openFullInventory = () => {
+    setActiveCategorySlug("all");
+    setInventorySearch("");
+    if (inventoryExpanded) {
+      scrollToInventoryBrowser();
+      return;
+    }
+    pendingInventoryScrollRef.current = true;
+    setInventoryExpanded(true);
+  };
+
+  useEffect(() => {
+    if (!inventoryExpanded || !pendingInventoryScrollRef.current) return;
+    pendingInventoryScrollRef.current = false;
+    scrollToInventoryBrowser();
+  }, [inventoryExpanded]);
+
+  const goBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    navigate("/");
   };
 
   // A handful of source files are truncated mid-upload (correct WebP header
@@ -537,21 +572,50 @@ export default function WholesalerProfileTheme({
 
   return (
     <div
-      className="jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900"
+      className={`jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900 ${
+        isJwStone ? "pt-[96px] md:pt-[112px]" : ""
+      }`}
       style={themeVars}
     >
-      <header className="sticky top-0 z-20 border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)] shadow-sm">
-        <div className="container mx-auto flex items-center justify-between gap-3 px-4 py-2 md:px-8 md:py-3">
+      <header
+        className={`${
+          isJwStone ? "fixed inset-x-0 top-0 z-40 shadow-md" : "sticky top-0 z-20 shadow-sm"
+        } border-b border-[var(--brand-primary)]/10 bg-[var(--brand-bg)]`}
+      >
+        <div
+          className={`container mx-auto flex items-center gap-2 px-3 md:gap-3 md:px-8 ${
+            isJwStone ? "h-14 md:h-[72px]" : "justify-between py-2 md:py-3"
+          }`}
+        >
+          {isJwStone ? (
+            <>
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Go back"
+                className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+              <Link
+                href="/"
+                aria-label="TradeScout home"
+                className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+              >
+                <Home className="h-4.5 w-4.5" />
+              </Link>
+            </>
+          ) : null}
           {profileSlug === "jw-stone" ? (
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1 px-1 md:px-3">
               <img
                 src="/images/businesses/jw-stone/logo.svg"
                 alt="JW Stone — Premium Wholesale Stone Distributor"
-                className="h-auto w-[140px] max-w-[50vw] md:w-[190px]"
+                className="h-auto w-[108px] max-w-full sm:w-[140px] md:w-[190px]"
               />
             </div>
           ) : (
-            <div>
+            <div className="min-w-0 flex-1">
               <span
                 className={`block text-lg font-bold leading-tight text-[var(--brand-primary)] md:text-xl ${DISPLAY_FONT}`}
               >
@@ -565,14 +629,43 @@ export default function WholesalerProfileTheme({
           <button
             type="button"
             onClick={() => startDirectConnect()}
-            className="flex-shrink-0 rounded-full bg-[var(--brand-primary)] px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] md:px-5 md:text-sm"
+            className={`flex-shrink-0 rounded-full bg-[var(--brand-primary)] font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)] ${
+              isJwStone
+                ? "px-3 py-2.5 text-[11px] sm:px-3.5 sm:text-xs md:px-5 md:text-sm"
+                : "px-3.5 py-2 text-xs md:px-5 md:text-sm"
+            }`}
           >
-            Direct Connect
+            {isJwStone ? (
+              <>
+                <span className="sm:hidden">Connect</span>
+                <span className="hidden sm:inline">Direct Connect</span>
+              </>
+            ) : (
+              "Direct Connect"
+            )}
           </button>
         </div>
-        <div className="scrollbar-hide hidden gap-5 overflow-x-auto px-5 pb-2 text-xs font-semibold uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] md:flex md:px-8 [&::-webkit-scrollbar]:hidden">
+        <nav
+          className={`scrollbar-hide items-center overflow-x-auto uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+            isJwStone
+              ? "flex h-10 gap-4 px-3 pb-2 text-[11px] font-bold md:gap-5 md:px-8 md:text-xs"
+              : "hidden gap-5 px-5 pb-2 text-xs font-semibold md:flex md:px-8"
+          }`}
+        >
+          {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
+            <button
+              type="button"
+              onClick={openFullInventory}
+              className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-full bg-[var(--brand-accent)] px-3 py-1.5 text-[#16200b] shadow-sm"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Full inventory
+              <span className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px]">
+                {allInventoryStones.length}
+              </span>
+            </button>
+          ) : null}
           {[
-            ["Collection", "#collection"],
             ["Why Us", "#why-us"],
             ["Who We Serve", "#audience"],
             ["Materials", "#materials"],
@@ -586,51 +679,111 @@ export default function WholesalerProfileTheme({
               {label}
             </a>
           ))}
-        </div>
+        </nav>
       </header>
 
       {/* Hero */}
       <section
-        className="relative isolate flex min-h-[min(690px,calc(100svh-150px))] items-end overflow-hidden bg-[var(--brand-primary)] bg-cover bg-center py-10 md:min-h-[500px] md:items-center md:py-20"
+        className={`relative isolate flex items-end overflow-hidden bg-[var(--brand-primary)] py-10 md:items-center md:py-20 ${
+          isJwStone
+            ? "min-h-[570px] md:min-h-[600px]"
+            : "min-h-[min(690px,calc(100svh-150px))] bg-cover bg-center md:min-h-[500px]"
+        }`}
         style={
-          heroImage
+          !isJwStone && heroImage
             ? {
                 backgroundImage: `linear-gradient(to bottom, rgba(20,14,8,0.12) 0%, rgba(20,14,8,0.42) 40%, rgba(20,14,8,0.92) 100%), url(${heroImage})`,
               }
             : undefined
         }
       >
-        <div className="container mx-auto px-5 text-left md:px-6 md:text-center">
+        {isJwStone && heroImage ? (
+          <img
+            src={heroImage}
+            alt=""
+            fetchPriority="high"
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-[1.25] object-cover object-center"
+          />
+        ) : null}
+        {/* A 1.25x centered scale shows the middle 80% of the image: a 10% crop on every side. */}
+        {isJwStone ? (
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(12,18,10,0.08)_0%,rgba(12,18,10,0.38)_42%,rgba(12,18,10,0.94)_100%)] md:bg-[linear-gradient(to_right,rgba(12,18,10,0.86)_0%,rgba(12,18,10,0.48)_52%,rgba(12,18,10,0.16)_100%)]" />
+        ) : null}
+        <div
+          className={`relative z-10 container mx-auto px-5 text-left ${
+            isJwStone ? "md:px-8" : "md:px-6 md:text-center"
+          }`}
+        >
           {heroEyebrow ? (
             <span className="mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs">
               {heroEyebrow}
             </span>
           ) : null}
           <h1
-            className={`mb-4 max-w-[18ch] text-[2.55rem] font-bold leading-[0.98] text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${DISPLAY_FONT}`}
+            className={`mb-4 max-w-[18ch] font-bold text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
+              isJwStone
+                ? "text-[2.7rem] leading-[0.96]"
+                : "text-[2.55rem] leading-[0.98] md:mx-auto"
+            } ${DISPLAY_FONT}`}
           >
             {heroHeadline}
           </h1>
           {heroTeaser ? (
-            <p className="mb-7 max-w-[34rem] text-base leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto md:mb-10 md:text-lg">
+            <p
+              className={`mb-7 max-w-[34rem] text-base leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mb-10 md:text-lg ${
+                isJwStone ? "font-medium" : "md:mx-auto"
+              }`}
+            >
               {heroTeaser}
             </p>
           ) : null}
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center md:justify-center">
-            <a href="#collection" className="hidden md:block">
-              <button className="flex items-center justify-center gap-2 rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
-                Explore Inventory
+          <div
+            className={`flex flex-col items-stretch gap-3 sm:flex-row sm:items-center ${
+              isJwStone ? "max-w-[38rem]" : "md:justify-center"
+            }`}
+          >
+            {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
+              <button
+                type="button"
+                onClick={openFullInventory}
+                className="group flex min-h-16 flex-1 items-center justify-between gap-4 rounded-2xl bg-white px-5 py-3.5 text-left text-[var(--brand-primary)] shadow-[0_16px_44px_rgba(0,0,0,0.38)] ring-1 ring-white/70 transition-transform hover:-translate-y-0.5 md:rounded-full md:px-7"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--brand-accent)] text-[#16200b]">
+                    <LayoutGrid className="h-5 w-5" />
+                  </span>
+                  <span>
+                    <span className="block text-base font-extrabold leading-tight">
+                      Browse full inventory
+                    </span>
+                    <span className="mt-0.5 block text-xs font-semibold text-[var(--brand-primary)]/70">
+                      {allInventoryStones.length} current stones
+                    </span>
+                  </span>
+                </span>
+                <ChevronRight className="h-5 w-5 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
               </button>
-            </a>
+            ) : (
+              <a href="#collection">
+                <button className="flex items-center justify-center gap-2 rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                  Explore Inventory
+                </button>
+              </a>
+            )}
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-xl bg-[var(--brand-accent)] px-7 py-3.5 text-base font-bold text-[#16200b] shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-opacity hover:opacity-90 md:min-h-0 md:rounded-full md:text-sm md:text-white"
+              className={`flex min-h-14 items-center justify-center gap-2 px-6 py-3.5 text-sm font-bold text-white ${
+                isJwStone
+                  ? "rounded-2xl border border-white/45 bg-black/25 shadow-[0_12px_36px_rgba(0,0,0,0.2)] backdrop-blur-sm transition-colors hover:bg-black/40 md:rounded-full"
+                  : "rounded-xl bg-[var(--brand-accent)] text-base text-[#16200b] shadow-[0_12px_36px_rgba(0,0,0,0.28)] transition-opacity hover:opacity-90 md:min-h-0 md:rounded-full md:text-sm md:text-white"
+              }`}
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
             </button>
-            {!hasViewerSession ? (
+            {!isJwStone && !hasViewerSession ? (
               <Link href={preScoutSignInHref} className="hidden md:block">
                 <button className="rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
                   Sign in
@@ -740,22 +893,51 @@ export default function WholesalerProfileTheme({
             ) : null}
 
             {!inventoryExpanded ? (
-              <div className="flex justify-center py-4">
-                <button
-                  type="button"
-                  onClick={() => setInventoryExpanded(true)}
-                  className="group inline-flex items-center gap-2.5 rounded-full bg-[var(--brand-primary)] px-8 py-4 text-base font-bold text-white shadow-lg shadow-[var(--brand-primary)]/25 transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-primary-dark)] hover:shadow-xl hover:shadow-[var(--brand-primary)]/30"
-                >
-                  <LayoutGrid className="h-5 w-5 flex-shrink-0" />
-                  See full inventory
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-sm">
-                    {allInventoryStones.length}
-                  </span>
-                  <ChevronDown className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-y-0.5" />
-                </button>
-              </div>
+              isJwStone ? (
+                <div className="py-3 md:py-5">
+                  <button
+                    type="button"
+                    onClick={openFullInventory}
+                    className="group relative flex w-full items-center gap-4 overflow-hidden rounded-[1.75rem] bg-[var(--brand-primary)] px-5 py-6 text-left text-white shadow-[0_18px_45px_rgba(24,55,25,0.28)] ring-1 ring-black/10 transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-primary-dark)] hover:shadow-[0_24px_55px_rgba(24,55,25,0.34)] sm:px-7 sm:py-7"
+                  >
+                    <span className="inline-flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-accent)] text-[#16200b] shadow-lg">
+                      <LayoutGrid className="h-7 w-7" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-white/65 sm:text-xs">
+                        Full collection
+                      </span>
+                      <span
+                        className={`mt-0.5 block text-xl font-extrabold sm:text-2xl ${DISPLAY_FONT}`}
+                      >
+                        Browse all {allInventoryStones.length} stones
+                      </span>
+                      <span className="mt-1 block text-sm font-medium text-white/75">
+                        Search by stone name or material
+                      </span>
+                    </span>
+                    <span className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/10 transition-transform group-hover:translate-x-1">
+                      <ChevronRight className="h-5 w-5" />
+                    </span>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex justify-center py-4">
+                  <button
+                    type="button"
+                    onClick={openFullInventory}
+                    className="group inline-flex items-center gap-2.5 rounded-full bg-[var(--brand-primary)] px-8 py-4 text-base font-bold text-white shadow-lg shadow-[var(--brand-primary)]/25 transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-primary-dark)]"
+                  >
+                    <LayoutGrid className="h-5 w-5 flex-shrink-0" />
+                    See full inventory
+                    <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-sm">
+                      {allInventoryStones.length}
+                    </span>
+                  </button>
+                </div>
+              )
             ) : (
-              <>
+              <div id="inventory-browser" className="scroll-mt-28">
                 <div className="mb-6">
                   <h2
                     className={`mb-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
@@ -917,7 +1099,7 @@ export default function WholesalerProfileTheme({
                     ))}
                   </div>
                 )}
-              </>
+              </div>
             )}
           </div>
         </section>
