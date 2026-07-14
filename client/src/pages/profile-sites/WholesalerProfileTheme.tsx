@@ -794,7 +794,7 @@ export default function WholesalerProfileTheme({
             </button>
             {!isJwStone && !hasViewerSession ? (
               <Link href={preScoutSignInHref} className="hidden md:block">
-                <button className="rounded-full border border-white/40 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-white/10">
+                <button className="rounded-full border border-ts-orange-light/70 bg-ts-orange/15 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-ts-orange/30">
                   Sign in
                 </button>
               </Link>
@@ -1079,7 +1079,7 @@ export default function WholesalerProfileTheme({
                             onClick={() =>
                               startDirectConnect(inventorySearch.trim(), "request_material")
                             }
-                            className="mt-5 rounded-full bg-ts-orange px-6 py-3 text-sm font-extrabold text-white shadow-md transition-colors hover:bg-ts-orange-dark"
+                            className="mt-5 rounded-full bg-[var(--brand-accent)] px-6 py-3 text-sm font-extrabold text-[#16200b] shadow-md transition-transform hover:-translate-y-0.5"
                           >
                             Request this stone
                           </button>
@@ -1341,7 +1341,7 @@ export default function WholesalerProfileTheme({
                   setOpenStone(null);
                   startDirectConnect(stoneName);
                 }}
-                className="rounded-full bg-ts-orange px-6 py-2.5 text-sm font-bold text-white transition-colors hover:bg-ts-orange-dark"
+                className="rounded-full bg-[var(--brand-accent)] px-6 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-90"
               >
                 Ask about this stone
               </button>
@@ -1517,7 +1517,7 @@ export default function WholesalerProfileTheme({
                     <button
                       type="button"
                       onClick={() => startDirectConnect(stone.name, "request_material")}
-                      className="w-full rounded-xl bg-ts-orange px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-ts-orange-dark"
+                      className="w-full rounded-xl bg-[var(--brand-primary)] px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-[var(--brand-primary-dark)]"
                     >
                       Ask about {stone.name}
                     </button>
@@ -1658,7 +1658,7 @@ export default function WholesalerProfileTheme({
                 type="button"
                 key={option.value}
                 onClick={() => startDirectConnect(null, option.value)}
-                className="rounded-full border border-ts-orange-light/60 bg-ts-orange/15 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white transition-colors hover:border-ts-orange-light hover:bg-ts-orange/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
+                className="rounded-full border border-white/25 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/90 transition-colors hover:border-[var(--brand-accent)] hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)]"
               >
                 {option.label}
               </button>
@@ -1682,7 +1682,7 @@ export default function WholesalerProfileTheme({
             </button>
             {!hasViewerSession ? (
               <Link href={preScoutSignInHref}>
-                <button className="rounded-full border border-white/40 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-white/10">
+                <button className="rounded-full border border-ts-orange-light/70 bg-ts-orange/15 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-ts-orange/30">
                   Sign in
                 </button>
               </Link>
