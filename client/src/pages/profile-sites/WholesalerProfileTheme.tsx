@@ -466,6 +466,11 @@ export default function WholesalerProfileTheme({
     scrollToInventoryBrowser();
   }, [inventoryExpanded]);
 
+  // Nothing to go "back" from at the top-level home state -- the back
+  // button would just no-op scroll to top. Only meaningful once the
+  // visitor has actually drilled into something.
+  const isProfileHome = !expressPanelOpen && !openStone && !inventoryExpanded;
+
   const goBackWithinProfile = () => {
     if (expressPanelOpen) {
       setExpressPanelOpen(false);
@@ -616,15 +621,19 @@ export default function WholesalerProfileTheme({
         >
           {isJwStone ? (
             <>
-              <button
-                type="button"
-                onClick={goBackWithinProfile}
-                aria-label="Back within JW Stone"
-                title="Back within JW Stone"
-                className="inline-flex h-10 w-10 items-center justify-center justify-self-start rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
+              {isProfileHome ? (
+                <span aria-hidden="true" className="h-10 w-10 justify-self-start" />
+              ) : (
+                <button
+                  type="button"
+                  onClick={goBackWithinProfile}
+                  aria-label="Back within JW Stone"
+                  title="Back within JW Stone"
+                  className="inline-flex h-10 w-10 items-center justify-center justify-self-start rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+              )}
               <div className="flex items-center justify-center" aria-label="JW Stone">
                 <img
                   src="/images/businesses/jw-stone/logo.svg"
@@ -775,14 +784,14 @@ export default function WholesalerProfileTheme({
               <button
                 type="button"
                 onClick={openFullInventory}
-                className="group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--brand-accent)]/60 bg-[var(--brand-accent)]/20 px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-accent)]/30 md:rounded-full"
+                className="group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border border-[var(--brand-accent)]/80 bg-[var(--brand-accent)]/40 px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-accent)]/50 md:rounded-full"
               >
                 Browse full inventory
                 <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
               </button>
             ) : (
               <a href="#collection">
-                <button className="flex min-h-14 items-center justify-center gap-2 rounded-full border border-[var(--brand-accent)]/60 bg-[var(--brand-accent)]/20 px-7 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-accent)]/30">
+                <button className="flex min-h-14 items-center justify-center gap-2 rounded-full border border-[var(--brand-accent)]/80 bg-[var(--brand-accent)]/40 px-7 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-accent)]/50">
                   Explore Inventory
                 </button>
               </a>
@@ -790,7 +799,7 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-ts-orange-light/70 bg-ts-orange/25 px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors hover:bg-ts-orange/35 md:rounded-full"
+              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border border-ts-orange-light bg-ts-orange/45 px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_36px_rgba(0,0,0,0.24)] backdrop-blur-md transition-colors hover:bg-ts-orange/55 md:rounded-full"
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
@@ -1341,7 +1350,7 @@ export default function WholesalerProfileTheme({
                   setOpenStone(null);
                   startDirectConnect(stoneName);
                 }}
-                className="rounded-full border border-[var(--brand-accent)]/60 bg-[var(--brand-accent)]/20 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-[var(--brand-accent)]/30"
+                className="rounded-full border border-[var(--brand-accent)]/80 bg-[var(--brand-accent)]/40 px-6 py-2.5 text-sm font-bold text-white backdrop-blur-md transition-colors hover:bg-[var(--brand-accent)]/50"
               >
                 Ask about this stone
               </button>
