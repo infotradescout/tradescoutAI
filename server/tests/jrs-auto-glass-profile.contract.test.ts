@@ -28,14 +28,21 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(profileView).toContain("import JrsAutoGlassProfileTheme");
     expect(profileView).toContain('profile.slug === "jrs-auto-glass"');
     expect(profileView).toContain("<JrsAutoGlassProfileTheme");
-    expect(theme).toContain("/images/businesses/jrs-auto-glass/logo.svg");
-    expect(theme).toContain("Skip the national-chain runaround.");
+    expect(theme).toContain("/images/businesses/jrs-auto-glass");
+    expect(theme).toContain("logo.webp");
+    expect(theme).toContain("cover.webp");
+    expect(theme).toContain("before.webp");
+    expect(theme).toContain("after.webp");
+    expect(theme).toContain("Request auto glass service");
     expect(theme).toContain("Direct Connect with JR&apos;s");
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
     expect(theme).toContain("TradeScout CV");
-    expect(theme).toContain("Trust built from activity, not stars.");
-    expect(theme).toContain("Public recommendations are moderated");
+    expect(theme).toContain("A trust record built from real activity.");
+    expect(theme).toContain("Approved TradeScout recommendations");
     expect(theme).toContain("Contact opens after acceptance");
+    expect(theme).not.toContain("Skip the national-chain runaround.");
+    expect(theme).not.toContain("Trust built from activity, not stars.");
+    expect(theme).not.toContain("min-h-[610px]");
     expect(
       fs.existsSync(path.resolve(process.cwd(), "client/public/u/jrs-auto-glass/index.html"))
     ).toBe(false);
