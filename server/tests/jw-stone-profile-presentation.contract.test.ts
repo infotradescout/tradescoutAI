@@ -34,6 +34,8 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("Stone worth building around.");
     expect(source).toContain("Three standouts from the current collection");
     expect(source).toContain("offer.availability");
+    expect(source).toMatch(/slug: "rhino-white"[\s\S]{0,260}badge: "New inventory"/);
+    expect(source).toContain("offer.badge");
   });
 
   it("shows each complete featured slab rotated into the portrait card", () => {

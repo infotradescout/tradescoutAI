@@ -219,6 +219,7 @@ const JW_STONE_FEATURED_OFFERS = [
     price: "$26.95/sf",
     size: "126 × 79",
     availability: "27 slabs",
+    badge: null,
   },
   {
     slug: "titanium",
@@ -227,6 +228,7 @@ const JW_STONE_FEATURED_OFFERS = [
     price: "$13.50/sf",
     size: "115 × 76",
     availability: "6 slabs",
+    badge: null,
   },
   {
     slug: "rhino-white",
@@ -235,6 +237,7 @@ const JW_STONE_FEATURED_OFFERS = [
     price: "$26.50/sf",
     size: "111 × 69.25",
     availability: "7 slabs",
+    badge: "New inventory",
   },
 ] as const;
 
@@ -864,6 +867,11 @@ export default function WholesalerProfileTheme({
                           <span className="absolute left-2 top-2 inline-flex items-center rounded-full border border-white/40 bg-black/55 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
                             {offer.availability}
                           </span>
+                          {offer.badge ? (
+                            <span className="absolute right-2 top-2 inline-flex items-center rounded-full bg-[var(--brand-accent)] px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[#16200b] shadow-md sm:right-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
+                              {offer.badge}
+                            </span>
+                          ) : null}
                           <span className="absolute bottom-2 right-2 text-[9px] font-bold tracking-[0.14em] text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.85)] sm:bottom-3 sm:right-3 sm:text-[10px]">
                             0{offerIndex + 1}
                           </span>
