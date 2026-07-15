@@ -8,8 +8,7 @@ const read = (relativePath: string) =>
 describe("JR's Auto Glass public profile contract", () => {
   it("provisions the confirmed owner, business, and published profile at production boot", () => {
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
-    const developmentEntry = read("server/index.ts");
-    const productionEntry = read("server/index.prod.ts");
+    const entry = read("server/index.ts");
 
     expect(provisioning).toContain('const JRS_PROFILE_SLUG = "jrs-auto-glass"');
     expect(provisioning).toContain('displayName: "JR\'s Auto Glass"');
@@ -17,8 +16,7 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(provisioning).toContain('profileVisibility: "public"');
     expect(provisioning).toContain("activeBusinessId: business.id");
     expect(provisioning).toContain("activeProfileId: profile.id");
-    expect(developmentEntry).toContain("await provisionJrsAutoGlassProfile()");
-    expect(productionEntry).toContain("await provisionJrsAutoGlassProfile()");
+    expect(entry).toContain("await provisionJrsAutoGlassProfile()");
   });
 
   it("mounts the branded theme on the canonical dynamic route", () => {
@@ -74,8 +72,12 @@ describe("JR's Auto Glass public profile contract", () => {
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const route = read("server/routes/direct-connect.ts");
 
-    expect(profileView).toContain("const jrsDirectConnectTarget = business?.directConnectOwnerUserId");
-    expect(profileView).toContain("target=${encodeURIComponent(business.directConnectOwnerUserId)}");
+    expect(profileView).toContain(
+      "const jrsDirectConnectTarget = business?.directConnectOwnerUserId"
+    );
+    expect(profileView).toContain(
+      "target=${encodeURIComponent(business.directConnectOwnerUserId)}"
+    );
     expect(profileView).toContain("Vehicle year, make, model, and VIN (if available)");
     expect(profileView).toContain("Camera or sensors near the glass");
     expect(profileView).toContain("Insurance claim or self-pay");

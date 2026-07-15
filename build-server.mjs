@@ -45,7 +45,7 @@ const aliasPlugin = {
 };
 
 await esbuild.build({
-  entryPoints: ['server/index.prod.ts'],
+  entryPoints: ['server/index.ts'],
   bundle: true,
   platform: 'node',
   format: 'esm',

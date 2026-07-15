@@ -29,7 +29,7 @@ describe("runtime recovery contracts", () => {
   });
 
   it("missing hashed assets remain explicitly non-cacheable on the server", () => {
-    const source = read("server/index.prod.ts");
+    const source = read("server/index.ts");
 
     expect(source).toContain('if (reqPath.startsWith("/assets"))');
     expect(source).toContain('res.setHeader("Cache-Control", "no-store")');

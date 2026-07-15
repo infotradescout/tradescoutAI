@@ -91,15 +91,13 @@ describe("TradeScout public entry rendered smoke", () => {
   });
 
   it("registers public entry server HTML before static shell serving", () => {
-    for (const relPath of ["server/index.ts", "server/index.prod.ts"]) {
-      const source = read(relPath);
-      const routeIndex = source.indexOf('"/landing/"');
-      const staticIndex = source.indexOf("express.static(publicDistPath");
+    const source = read("server/index.ts");
+    const routeIndex = source.indexOf('"/landing/"');
+    const staticIndex = source.indexOf("express.static(publicDistPath");
 
-      expect(routeIndex).toBeGreaterThan(-1);
-      expect(staticIndex).toBeGreaterThan(-1);
-      expect(routeIndex).toBeLessThan(staticIndex);
-    }
+    expect(routeIndex).toBeGreaterThan(-1);
+    expect(staticIndex).toBeGreaterThan(-1);
+    expect(routeIndex).toBeLessThan(staticIndex);
   });
 
   it("renders canonical public landing CTAs with stable targets", () => {
