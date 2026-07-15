@@ -303,6 +303,44 @@ async function renderProfileOnCustomDomain(
   return true;
 }
 
+// A verified profile custom domain needs its own robots.txt/sitemap.xml --
+// falling through to the platform's generic ones would advertise TradeScout
+// routes (/u/, /business/, /admin/, ...) that don't exist on this domain,
+// and never mention the one URL that does. Returns true if the request was
+// fully handled (caller should not call next()).
+async function serveCustomDomainProfilePath(
+  req: Request,
+  res: Response,
+  host: string,
+  slug: string
+): Promise<boolean> {
+  const path = req.path || "/";
+  if (path === "/" || path === "") {
+    if (await renderProfileOnCustomDomain(req, res, slug)) return true;
+    res.redirect(
+      301,
+      `/u/${encodeURIComponent(slug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+    );
+    return true;
+  }
+  if (path === "/robots.txt") {
+    res
+      .type("text/plain")
+      .send(`User-agent: *\nAllow: /\n\nSitemap: https://${host}/sitemap.xml\n`);
+    return true;
+  }
+  if (path === "/sitemap.xml") {
+    const lastmod = new Date().toISOString().slice(0, 10);
+    res
+      .type("application/xml")
+      .send(
+        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://${host}/</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>\n</urlset>\n`
+      );
+    return true;
+  }
+  return false;
+}
+
 app.use(async (req, res, next) => {
   try {
     const rawHost = (req.headers.host || "").toString().toLowerCase();
@@ -322,14 +360,7 @@ app.use(async (req, res, next) => {
     const cached = CUSTOM_DOMAIN_CACHE.get(host);
     if (cached && now - cached.at < CUSTOM_DOMAIN_TTL_MS) {
       if (cached.kind === "profile") {
-        const path = req.path || "/";
-        if (path === "/" || path === "") {
-          if (await renderProfileOnCustomDomain(req, res, cached.slug)) return;
-          return res.redirect(
-            301,
-            `/u/${encodeURIComponent(cached.slug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
-          );
-        }
+        if (await serveCustomDomainProfilePath(req, res, host, cached.slug)) return;
         return next();
       }
 
@@ -366,14 +397,7 @@ app.use(async (req, res, next) => {
     const profileSlug = typeof profileDomain?.slug === "string" ? profileDomain.slug.trim() : "";
     if (profileSlug) {
       CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, at: now });
-      const path = req.path || "/";
-      if (path === "/" || path === "") {
-        if (await renderProfileOnCustomDomain(req, res, profileSlug)) return;
-        return res.redirect(
-          301,
-          `/u/${encodeURIComponent(profileSlug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
-        );
-      }
+      if (await serveCustomDomainProfilePath(req, res, host, profileSlug)) return;
       return next();
     }
 
