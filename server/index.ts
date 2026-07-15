@@ -948,7 +948,18 @@ app.use(landingContractHeaders);
                   console.log("[DEV] Setting up Vite...");
                   if (!viteSetupPromise) {
                     viteSetupPromise = (async () => {
-                      const { setupVite } = await import("./vite");
+                      // A plain string-literal specifier here is statically
+                      // analyzable, so esbuild inlines ./vite.ts (and the
+                      // real `vite` package it imports) straight into the
+                      // production bundle. That crashes Node at module-load
+                      // time -- before this branch would ever run -- because
+                      // the Docker image prunes devDependencies (including
+                      // vite) after building. Concatenating the specifier
+                      // hides it from esbuild's static import analysis, so
+                      // this stays a genuine runtime-only import that's
+                      // simply never reached when NODE_ENV=production.
+                      const viteModuleSpecifier = "./" + "vite";
+                      const { setupVite } = await import(viteModuleSpecifier);
                       await setupVite(app, server);
                     })();
                   } else {
