@@ -755,9 +755,9 @@ export default function WholesalerProfileTheme({
 
       {/* Hero */}
       <section
-        className={`relative isolate flex items-end overflow-hidden bg-[var(--brand-primary)] py-10 md:items-center md:py-20 ${
+        className={`relative isolate flex items-end overflow-hidden bg-[var(--brand-primary)] py-8 md:items-center md:py-20 ${
           isJwStone
-            ? "min-h-[570px] md:min-h-[600px]"
+            ? "min-h-[460px] md:min-h-[600px]"
             : "min-h-[min(690px,calc(100svh-150px))] bg-cover bg-center md:min-h-[500px]"
         }`}
         style={
@@ -776,7 +776,7 @@ export default function WholesalerProfileTheme({
             poster="/images/businesses/jw-stone/video/hero-poster.jpg"
             aria-hidden="true"
             className={`absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[5500ms] ease-out ${
-              heroVideoZoomed ? "scale-[1.25]" : "scale-100"
+              heroVideoZoomed ? "scale-105 md:scale-[1.25]" : "scale-100"
             }`}
           >
             <source src="/images/businesses/jw-stone/video/hero.mp4" type="video/mp4" />
@@ -790,15 +790,15 @@ export default function WholesalerProfileTheme({
         >
           {heroEyebrow ? (
             <span
-              className={`mb-4 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs ${heroReveal(1)}`}
+              className={`mb-3 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs ${heroReveal(1)}`}
             >
               {heroEyebrow}
             </span>
           ) : null}
           <h1
-            className={`mb-4 max-w-[18ch] font-bold text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
+            className={`mb-3 max-w-[18ch] font-bold text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
               isJwStone
-                ? "text-[2.7rem] leading-[0.96]"
+                ? "text-[2.2rem] leading-[1.02] md:text-[2.7rem] md:leading-[0.96]"
                 : "text-[2.55rem] leading-[0.98] md:mx-auto"
             } ${DISPLAY_FONT} ${heroReveal(2)}`}
           >
@@ -806,15 +806,15 @@ export default function WholesalerProfileTheme({
           </h1>
           {heroTeaser ? (
             <p
-              className={`mb-7 max-w-[34rem] text-base leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mb-10 md:text-lg ${
-                isJwStone ? "font-medium" : "md:mx-auto"
+              className={`mb-5 max-w-[34rem] text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mb-10 md:text-lg ${
+                isJwStone ? "font-medium md:text-base" : "md:mx-auto"
               } ${heroReveal(3)}`}
             >
               {heroTeaser}
             </p>
           ) : null}
           <div
-            className={`flex flex-col items-stretch gap-3 sm:flex-row sm:items-center ${
+            className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
               isJwStone ? "max-w-[38rem]" : "md:justify-center"
             } ${heroReveal(4)}`}
           >
@@ -822,7 +822,7 @@ export default function WholesalerProfileTheme({
               <button
                 type="button"
                 onClick={openFullInventory}
-                className="group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-white/12 px-6 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20 md:rounded-full"
+                className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-white/12 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
               >
                 Browse full inventory
                 <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -837,7 +837,7 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex min-h-14 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3.5 text-sm font-extrabold text-ts-orange-light shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-white/20 md:rounded-full"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3 text-sm font-extrabold text-ts-orange-light shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
