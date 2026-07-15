@@ -194,7 +194,7 @@ function ActiveCoordinationPanel({
             className="h-8 w-full px-2.5 text-[11px] font-semibold sm:h-7 sm:w-auto"
             style={{
               backgroundColor: "var(--theme-accent-primary)",
-              color: "var(--ts-text-on-accent, #0B0F14)",
+              color: "var(--ts-text-on-accent, #2b2b2b)",
             }}
             onClick={onViewBoard}
           >

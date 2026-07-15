@@ -23,7 +23,7 @@ const css = `
 .ts-bg{
   position: relative;
   min-height: 100%;
-  background: var(--ts-bg, #0B0F14);
+  background: var(--ts-bg, #2b2b2b);
   overflow: hidden;
   isolation: isolate;
 }
@@ -50,7 +50,7 @@ const css = `
   background:
     radial-gradient(720px 420px at 18% 10%, color-mix(in oklab, var(--theme-accent-primary, #f97316) 12%, transparent), transparent 70%),
     radial-gradient(820px 520px at 82% 18%, rgba(255,255,255,.03), transparent 72%),
-    linear-gradient(180deg, color-mix(in oklab, var(--ts-bg, #0B0F14) 96%, #000 4%), var(--ts-bg, #0B0F14) 58%, color-mix(in oklab, var(--ts-bg, #0B0F14) 92%, #000 8%));
+    linear-gradient(180deg, color-mix(in oklab, var(--ts-bg, #2b2b2b) 96%, #000 4%), var(--ts-bg, #2b2b2b) 58%, color-mix(in oklab, var(--ts-bg, #2b2b2b) 92%, #000 8%));
 }
 
 /* GRID: one calm blueprint grid instead of stacked drafting motifs */

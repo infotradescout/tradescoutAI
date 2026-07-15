@@ -79,7 +79,7 @@ export const PostOnboardingActionCard: React.FC<PostOnboardingActionCardProps> =
                 action.primary
                   ? {
                       backgroundColor: "var(--theme-accent-primary)",
-                      color: "var(--ts-text-on-accent, #0B0F14)",
+                      color: "var(--ts-text-on-accent, #2b2b2b)",
                     }
                   : {
                       backgroundColor:

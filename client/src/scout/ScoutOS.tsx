@@ -5398,7 +5398,7 @@ export default function ScoutOS() {
                           style={{
                             color:
                               scoutViewMode === "chat_only"
-                                ? "var(--ts-text-on-accent, #0B0F14)"
+                                ? "var(--ts-text-on-accent, #2b2b2b)"
                                 : "var(--text-secondary)",
                             backgroundColor:
                               scoutViewMode === "chat_only"
@@ -5415,7 +5415,7 @@ export default function ScoutOS() {
                           style={{
                             color:
                               scoutViewMode === "chat_plus_controller"
-                                ? "var(--ts-text-on-accent, #0B0F14)"
+                                ? "var(--ts-text-on-accent, #2b2b2b)"
                                 : "var(--text-secondary)",
                             backgroundColor:
                               scoutViewMode === "chat_plus_controller"
@@ -5595,7 +5595,7 @@ export default function ScoutOS() {
                             className="h-7 px-3 text-[11px] font-medium"
                             style={{
                               backgroundColor: "var(--theme-accent-primary)",
-                              color: "var(--ts-text-on-accent, #0B0F14)",
+                              color: "var(--ts-text-on-accent, #2b2b2b)",
                             }}
                             onClick={() => navigate(ROUTES.SETTINGS)}
                           >
@@ -5961,7 +5961,7 @@ export default function ScoutOS() {
                             size="sm"
                             style={{
                               backgroundColor: "var(--theme-accent-primary)",
-                              color: "var(--ts-text-on-accent, #0B0F14)",
+                              color: "var(--ts-text-on-accent, #2b2b2b)",
                             }}
                             onClick={() => {
                               cancelAutoRoute();

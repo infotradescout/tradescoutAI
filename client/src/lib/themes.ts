@@ -63,11 +63,15 @@ export type ThemeTokens = {
 export const THEME_IDS: ThemeId[] = ["charcoal", "graphite", "sand", "sage", "midnight", "ember"];
 export const LOCKED_TRADESCOUT_THEME_ID: ThemeId = "charcoal";
 
+// Base charcoal (#2B2B2B) sampled directly from the TradeScout logo's own
+// background -- the previous locked tokens had drifted to near-black
+// (#050607) plus a stray blue-tinted input background (#182131) that never
+// matched the rest of the neutral-gray scale.
 const TRADESCOUT_LOCKED_TOKENS: ThemeTokens = {
-  "--ts-bg": "#050607",
-  "--ts-surface": "#0C1015",
-  "--ts-surface-strong": "#07090C",
-  "--ts-surface-hover": "#171D25",
+  "--ts-bg": "#2B2B2B",
+  "--ts-surface": "#333333",
+  "--ts-surface-strong": "#202020",
+  "--ts-surface-hover": "#3D3D3D",
   "--ts-border-subtle": "rgba(255,255,255,0.10)",
   "--ts-border-strong": "rgba(255,255,255,0.18)",
   "--ts-text": "#FAFAFA",
@@ -75,8 +79,8 @@ const TRADESCOUT_LOCKED_TOKENS: ThemeTokens = {
   "--ts-accent": "#FF6A00",
   "--ts-accent-strong": "#FF7A1A",
   "--ts-accent-soft": "rgba(255,106,0,0.16)",
-  "--ts-text-on-accent": "#050607",
-  "--ts-input-bg": "#182131",
+  "--ts-text-on-accent": "#2B2B2B",
+  "--ts-input-bg": "#303030",
   "--ts-input-border": "rgba(255,255,255,0.13)",
   "--ts-focus-ring": "rgba(255,106,0,0.58)",
   "--ts-success": "#22C55E",
@@ -237,7 +241,7 @@ export const PRESET_THEMES: Theme[] = [
       ...TRADESCOUT_LOCKED_COLORS,
     },
     backgroundGradient:
-      "radial-gradient(1200px 800px at 20% 10%, rgba(255,106,0,0.16), transparent 60%), linear-gradient(180deg, #050607, #050607)",
+      "radial-gradient(1200px 800px at 20% 10%, rgba(255,106,0,0.16), transparent 60%), linear-gradient(180deg, #2b2b2b, #2b2b2b)",
   },
 
   // ======== ALTERNATIVE THEMES (users can customize all colors) ========

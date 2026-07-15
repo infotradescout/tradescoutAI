@@ -233,7 +233,7 @@ const ScoutInput: React.FC<ScoutInputProps> = ({
             backgroundColor: isButtonDisabled
               ? "color-mix(in oklab, var(--surface-intermediate) 88%, transparent)"
               : "var(--theme-accent-primary)",
-            color: isButtonDisabled ? "var(--text-secondary)" : "var(--ts-text-on-accent, #0B0F14)",
+            color: isButtonDisabled ? "var(--text-secondary)" : "var(--ts-text-on-accent, #2b2b2b)",
           }}
         >
           <Send className="h-4 w-4" />

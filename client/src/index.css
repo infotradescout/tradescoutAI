@@ -311,13 +311,13 @@ body.ts-scout-active .app-root,
 body.ts-scout-active .app-shell,
 body.ts-scout-active .app-page,
 body.ts-scout-active #app-scroll-root {
-  background: #050607 !important;
-  background-color: #050607 !important;
+  background: #2b2b2b !important;
+  background-color: #2b2b2b !important;
   background-image: none !important;
 }
 
 body.ts-scout-active .ts-bottom-nav {
-  background: #050607 !important;
+  background: #2b2b2b !important;
 }
 
 /* stylelint-disable */
@@ -891,7 +891,7 @@ html {
     --bg-tertiary: var(--surface-intermediate);
     --bg-quaternary: color-mix(in oklab, var(--surface-intermediate) 92%, white 8%);
     --orange-primary: var(--ts-accent, #f97316);
-    --bg-primary: var(--ts-bg, #050607);
+    --bg-primary: var(--ts-bg, #2b2b2b);
     --shadow-card: var(--ts-shadow-soft, 0 18px 52px rgba(0, 0, 0, 0.42));
 
     /* SURFACE DEPTH (always-on card/panel separation) */
@@ -1313,7 +1313,7 @@ html {
   .ts-action {
     border-radius: var(--ts-radius-control);
     background: var(--theme-accent-primary);
-    color: var(--ts-text-on-accent, #050607);
+    color: var(--ts-text-on-accent, #2b2b2b);
     box-shadow: var(--surface-action-shadow);
   }
 
@@ -1451,7 +1451,7 @@ html {
       sans-serif;
     margin: 0;
     min-height: 100vh;
-    background-color: var(--ts-bg, #050607);
+    background-color: var(--ts-bg, #2b2b2b);
     color: var(--ts-text, #fafafa);
   }
 
@@ -2711,7 +2711,7 @@ body {
 
 /* Scout shell: own the dark canvas so ambient page color does not bleed through */
 .scout-shell {
-  background: var(--background, #050607);
+  background: var(--background, #2b2b2b);
   overflow: clip !important;
 }
 
@@ -2808,7 +2808,7 @@ body {
 
 /* Scout shell - single, controlled dark canvas */
 .scout-shell {
-  background: var(--background, #050607);
+  background: var(--background, #2b2b2b);
   position: relative;
   min-height: 100vh;
   min-height: 100dvh;
@@ -2817,7 +2817,7 @@ body {
 }
 
 body.ts-scout-active .scout-shell {
-  background: #050607 !important;
+  background: #2b2b2b !important;
   min-height: 100vh;
   min-height: 100dvh;
 }
@@ -4084,9 +4084,9 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
 
 /* Scout OS — Morphic Dark Theme (replaces old light "local guide" override) */
 .scout-shell-refined {
-  --surface-card: var(--ts-surface, #0c1015);
-  --surface-intermediate: var(--ts-surface-hover, #171d25);
-  --surface-input: var(--ts-input-bg, #182131);
+  --surface-card: var(--ts-surface, #333333);
+  --surface-intermediate: var(--ts-surface-hover, #3d3d3d);
+  --surface-input: var(--ts-input-bg, #303030);
   --surface-card-border: var(--ts-border-subtle, rgba(255, 255, 255, 0.1));
   --surface-card-border-hover: color-mix(
     in oklab,

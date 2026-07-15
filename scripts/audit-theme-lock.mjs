@@ -35,10 +35,10 @@ function main() {
   const violations = [];
   const requiredPalette = [
     { file: "client/src/lib/themes.ts", token: 'LOCKED_TRADESCOUT_THEME_ID: ThemeId = "charcoal"' },
-    { file: "client/src/lib/themes.ts", token: '"--ts-bg": "#050607"' },
-    { file: "client/src/lib/themes.ts", token: '"--ts-surface": "#0C1015"' },
+    { file: "client/src/lib/themes.ts", token: '"--ts-bg": "#2B2B2B"' },
+    { file: "client/src/lib/themes.ts", token: '"--ts-surface": "#333333"' },
     { file: "client/src/lib/themes.ts", token: '"--ts-accent": "#FF6A00"' },
-    { file: "client/tailwind.config.ts", token: 'tsBg: "#050607"' },
+    { file: "client/tailwind.config.ts", token: 'tsBg: "#2B2B2B"' },
     { file: "client/tailwind.config.ts", token: 'tsAccent: "#FF6A00"' },
     { file: "client/src/index.css", token: "--ts-radius-card: 8px;" },
     { file: "client/src/index.css", token: "--ts-radius-control: 8px;" },

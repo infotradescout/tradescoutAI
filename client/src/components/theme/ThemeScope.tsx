@@ -35,13 +35,19 @@ export function ThemeScope({ themeId, children, className }: ThemeScopeProps) {
     style.setProperty("--ts-surface-strong", theme.colors.bgTertiary);
     style.setProperty("--ts-surface-hover", theme.colors.bgSecondary);
     style.setProperty("--ts-border-subtle", theme.colors.borderPrimary);
-    style.setProperty("--ts-border-strong", theme.colors.borderSecondary || theme.colors.borderPrimary);
+    style.setProperty(
+      "--ts-border-strong",
+      theme.colors.borderSecondary || theme.colors.borderPrimary
+    );
     style.setProperty("--ts-text", theme.colors.textPrimary);
     style.setProperty("--ts-text-muted", theme.colors.textSecondary);
     style.setProperty("--ts-accent", theme.colors.accentPrimary);
     style.setProperty("--ts-accent-strong", theme.colors.accentSecondary);
-    style.setProperty("--ts-accent-soft", theme.colors.accentTertiary || theme.colors.accentPrimary);
-    style.setProperty("--ts-text-on-accent", "#0B0F14");
+    style.setProperty(
+      "--ts-accent-soft",
+      theme.colors.accentTertiary || theme.colors.accentPrimary
+    );
+    style.setProperty("--ts-text-on-accent", theme.colors.bgPrimary);
 
     return () => {
       style.removeProperty("--ts-bg");
