@@ -137,7 +137,7 @@ body.ts-mobile-simplified .app-page .ts-page-card {
 /* Conservative minimalist shell mode (reversible via VITE_UI_MINIMAL_V1). */
 body.ts-ui-minimal {
   --surface-card: color-mix(in oklab, var(--ts-surface, #161e2b) 90%, transparent);
-  --surface-intermediate: color-mix(in oklab, var(--ts-surface-hover, #1a2230) 86%, transparent);
+  --surface-intermediate: color-mix(in oklab, var(--ts-surface-hover, #3d3d3d) 86%, transparent);
 }
 
 body.ts-ui-minimal .app-shell .ts-shell-header,
@@ -877,7 +877,7 @@ html {
     ); /* Elevated: cards, suggestions, prompts */
     --surface-intermediate: color-mix(
       in oklab,
-      var(--ts-surface-hover, #1a2230) 78%,
+      var(--ts-surface-hover, #3d3d3d) 78%,
       transparent
     ); /* In-card surfaces */
     --surface-input: var(--ts-input-bg, #1b2332); /* Inputs */
@@ -1573,7 +1573,7 @@ html {
   input:not([type="radio"]):not([type="checkbox"]),
   textarea,
   select {
-    background-color: #1a2230;
+    background-color: var(--ts-input-bg, #303030);
     border-color: var(--border-primary);
     color: var(--text-primary);
   }
