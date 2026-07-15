@@ -1,7 +1,6 @@
-import React, { Suspense, memo, useEffect, useState } from "react";
+import React, { Suspense, memo, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Router, useLocation } from "wouter";
-import { X } from "lucide-react";
 import { queryClient } from "./lib/queryClient";
 import { trackShellEvent } from "./lib/analytics";
 import { ErrorBoundary } from "./components/ui/error-boundary";
@@ -95,12 +94,6 @@ const AppLayout = memo(function AppLayout() {
     pathOnly.startsWith("/pre-scout-setup") ||
     pathOnly.startsWith("/onboarding/");
   const isShareRoute = pathOnly.startsWith("/r/");
-  const isPortalSurface =
-    pathOnly === "/homescout-listings" ||
-    pathOnly.startsWith("/homescout/") ||
-    pathOnly === "/tradepartners" ||
-    pathOnly.startsWith("/tradepartners/") ||
-    pathOnly.startsWith("/collections/");
   const isDirectConnectSurface =
     pathOnly === "/direct-connect" || pathOnly.startsWith("/direct-connect/");
   const isPublicProfileRoute =
@@ -130,18 +123,6 @@ const AppLayout = memo(function AppLayout() {
 
   const { user, isAuthenticated, isLoading } = useAuth();
   const isPublicRootLanding = pathOnly === "/" && !isLoading && !isAuthenticated;
-
-  const [showBetaNotice, setShowBetaNotice] = useState(false);
-
-  useEffect(() => {
-    const dismissed =
-      typeof window !== "undefined"
-        ? sessionStorage.getItem("ts_beta_notice_dismissed_session")
-        : null;
-    if (!dismissed) {
-      setShowBetaNotice(true);
-    }
-  }, []);
 
   // Identity funnel telemetry: emit once per browser session
   useEffect(() => {
@@ -274,62 +255,12 @@ const AppLayout = memo(function AppLayout() {
     }
   }, [isAuthenticated, user, location, setLocation]);
 
-  const dismissBetaNotice = () => {
-    sessionStorage.setItem("ts_beta_notice_dismissed_session", "true");
-    setShowBetaNotice(false);
-  };
-
-  const shouldShowBetaNotice =
-    showBetaNotice &&
-    !isLlmRoute &&
-    !isPortalSurface &&
-    !isLandingRoute &&
-    !isPublicCampaignRoute &&
-    !isShareRoute &&
-    !isAuthSurface &&
-    !isDirectConnectSurface &&
-    !isPublicProfileRoute &&
-    !isCustomDomainProfileRoute;
-
   const appBackgroundClass = "";
   const mainClassName = "flex-1 relative w-full";
 
   return (
     <SimpleMobileGestures>
       <div className={`${appBackgroundClass} text-tsTextMain font-sans flex flex-col`}>
-        {shouldShowBetaNotice && (
-          <div className="mx-auto w-full max-w-6xl px-2.5 pt-2 sm:px-3 md:px-6">
-            <div className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]/82 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.14)]">
-              <div className="flex items-start gap-2.5">
-                <div
-                  className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full"
-                  // eslint-disable-next-line no-restricted-syntax -- uses theme CSS variables for dynamic accent glow
-                  style={{
-                    backgroundColor: "var(--theme-accent-primary,#ff6600)",
-                    boxShadow:
-                      "0 0 0 3px color-mix(in oklab, var(--theme-accent-primary,#ff6600) 18%, transparent)",
-                  }}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-[color:var(--text-primary)]">
-                    TradeScout beta
-                  </p>
-                  <p className="mt-0.5 text-[11px] leading-4 text-[color:var(--text-secondary)]">
-                    Requests are actively improving — tell us if anything feels off.
-                  </p>
-                </div>
-                <button
-                  aria-label="Dismiss beta notice"
-                  onClick={dismissBetaNotice}
-                  className="-mr-1 rounded-md p-1 text-[color:var(--text-secondary)] transition hover:bg-[color:var(--surface-intermediate)] hover:text-[color:var(--text-primary)]"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <main className={mainClassName}>
           <ErrorBoundary fallback={<PageLoader />}>
             <AppRoutes
