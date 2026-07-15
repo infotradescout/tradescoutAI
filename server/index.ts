@@ -30,7 +30,10 @@ import { assertStartupInvariants } from "./startupInvariants";
 import { emitHttpStatus } from "./observability/metrics";
 import { botReadOnlyGuard } from "./middleware/botReadOnlyGuard";
 import { landingContractHeaders } from "./middleware/landingContractHeaders";
-import { recordCrawlerRequestEvent } from "./services/crawlerTelemetryService";
+import {
+  recordCrawlerRequestEvent,
+  getLandingIntentContractForPath,
+} from "./services/crawlerTelemetryService";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -278,7 +281,25 @@ async function renderProfileOnCustomDomain(
   const origin = resolvePublicOrigin(req);
   const html = await buildPublicProfileHtml({ slug, origin, templateHtml });
   if (!html) return false;
+
+  // This runs in a middleware registered ahead of the app's usual CORS,
+  // telemetry, and crawler-intent-header middleware (it has to, so it can
+  // render before those even apply) -- so requests served here would
+  // otherwise never get the bot-visibility signals every other page gets.
+  // Set them explicitly instead of relying on that later middleware.
+  const start = Date.now();
+  const contract = getLandingIntentContractForPath("/");
+  res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
+  res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
+  res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
+  res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+  res.on("finish", () => {
+    void recordCrawlerRequestEvent(req, res.statusCode, {
+      responseTimeMs: Date.now() - start,
+      responseBytes: Buffer.byteLength(html),
+    });
+  });
   res.send(html);
   return true;
 }
