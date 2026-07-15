@@ -288,7 +288,8 @@ const AppLayout = memo(function AppLayout() {
     !isShareRoute &&
     !isAuthSurface &&
     !isDirectConnectSurface &&
-    !isPublicProfileRoute;
+    !isPublicProfileRoute &&
+    !isCustomDomainProfileRoute;
 
   const appBackgroundClass = "";
   const mainClassName = "flex-1 relative w-full";
@@ -371,6 +372,7 @@ const AppLayout = memo(function AppLayout() {
       {!isLlmRoute &&
         !isLandingRoute &&
         !isPublicProfileRoute &&
+        !isCustomDomainProfileRoute &&
         !isPublicCampaignRoute &&
         !isShareRoute &&
         !FEATURE_EDUCATION_REPLACEMENT && (
@@ -382,16 +384,20 @@ const AppLayout = memo(function AppLayout() {
         )}
 
       {/* Deterministic setup prompt (avoid re-running pre-scout/onboarding loops) */}
-      {!isLlmRoute && !isLandingRoute && !isShareRoute && !isPublicProfileRoute && (
-        <div className="hidden md:block">
-          <Suspense fallback={null}>
-            <ProfileCompletionBanner />
-          </Suspense>
-        </div>
-      )}
+      {!isLlmRoute &&
+        !isLandingRoute &&
+        !isShareRoute &&
+        !isPublicProfileRoute &&
+        !isCustomDomainProfileRoute && (
+          <div className="hidden md:block">
+            <Suspense fallback={null}>
+              <ProfileCompletionBanner />
+            </Suspense>
+          </div>
+        )}
 
       {/* Per-page first-visit tutorial popup (user-aware and easy-language). */}
-      {!isLandingRoute && !isShareRoute && !isPublicProfileRoute && (
+      {!isLandingRoute && !isShareRoute && !isPublicProfileRoute && !isCustomDomainProfileRoute && (
         <Suspense fallback={null}>
           <PageFirstVisitTutorial />
         </Suspense>
@@ -403,7 +409,8 @@ const AppLayout = memo(function AppLayout() {
         !isShareRoute &&
         !isAuthSurface &&
         !isDirectConnectSurface &&
-        !isPublicProfileRoute && (
+        !isPublicProfileRoute &&
+        !isCustomDomainProfileRoute && (
           <Suspense fallback={null}>
             <PWAInstallPrompt enabled />
           </Suspense>
