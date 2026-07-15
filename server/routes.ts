@@ -403,6 +403,14 @@ import { Strategy as GoogleStrategy, Profile as GoogleProfile } from "passport-g
 import type { VerifyCallback } from "passport-google-oauth20";
 import { db, pool } from "./db";
 import type { Request, Response, NextFunction } from "express";
+import {
+  getCookieValue,
+  setReferralCookie,
+  recordReferralClick,
+  persistLifetimeReferralOwner,
+  handleExplicitOrExistingReferral,
+  attributeCleanPageViewToOwner,
+} from "./services/referralAttribution";
 import { rateLimit } from "express-rate-limit";
 import { createPostgresRateLimitStore } from "./utils/postgresRateLimitStore";
 import Stripe from "stripe";
@@ -5001,155 +5009,6 @@ export async function registerRoutes(app: any) {
 
   // Auth middleware already initialized at the top of registerRoutes
 
-  function getCookieValue(req: Request, key: string): string | null {
-    const header = String(req.headers.cookie || "");
-    if (!header) return null;
-    const parts = header.split(";").map((p) => p.trim());
-    for (const part of parts) {
-      if (!part) continue;
-      const idx = part.indexOf("=");
-      if (idx <= 0) continue;
-      const k = part.slice(0, idx).trim();
-      if (k !== key) continue;
-      try {
-        return decodeURIComponent(part.slice(idx + 1));
-      } catch {
-        return part.slice(idx + 1);
-      }
-    }
-    return null;
-  }
-
-  function setReferralCookie(res: Response, referralCode: string) {
-    const safe = String(referralCode || "").trim();
-    if (!safe) return;
-    const maxAgeDays = 30;
-    const maxAgeSeconds = maxAgeDays * 24 * 60 * 60;
-    const cookie = [
-      `ts_ref=${encodeURIComponent(safe)}`,
-      "Path=/",
-      `Max-Age=${maxAgeSeconds}`,
-      "SameSite=Lax",
-      // Let the CDN/app decide; in production always secure.
-      process.env.NODE_ENV === "production" ? "Secure" : "",
-    ]
-      .filter(Boolean)
-      .join("; ");
-
-    const existing = res.getHeader("Set-Cookie");
-    if (!existing) {
-      res.setHeader("Set-Cookie", cookie);
-      return;
-    }
-    const arr = Array.isArray(existing) ? existing : [String(existing)];
-    res.setHeader("Set-Cookie", [...arr, cookie]);
-  }
-
-  async function recordReferralClick(params: {
-    referralCode: string;
-    destination: string;
-    source: string;
-    conversionType?: string;
-  }) {
-    const referralCode = String(params.referralCode || "").trim();
-    if (!referralCode) return;
-
-    const [account] = await db
-      .select()
-      .from(affiliateAccounts)
-      .where(eq(affiliateAccounts.referralCode, referralCode))
-      .limit(1);
-
-    if (!account) return;
-
-    await storage.trackReferralClick({
-      affiliateId: account.id,
-      referredUserId: null,
-      shareLinkId: null,
-      customLink: params.destination || null,
-      conversionSource: params.source || "unknown",
-      conversionType: params.conversionType || "click",
-      couponCode: null,
-    } as any);
-  }
-
-  async function persistLifetimeReferralOwner(params: {
-    referredUserId: string;
-    referralCode: string;
-    conversionSource: string;
-    conversionType: string;
-    destination?: string;
-  }) {
-    const referredUserId = String(params.referredUserId || "").trim();
-    const referralCode = String(params.referralCode || "").trim();
-    if (!referredUserId || !referralCode) return;
-
-    try {
-      const [account] = await db
-        .select({
-          id: affiliateAccounts.id,
-          affiliateId: affiliateAccounts.affiliateId,
-        })
-        .from(affiliateAccounts)
-        .where(eq(affiliateAccounts.referralCode, referralCode))
-        .limit(1);
-
-      if (!account?.id) return;
-      if (String(account.affiliateId) === referredUserId) return; // no self-attribution
-
-      const [current] = await db
-        .select({ referredByAffiliateAccountId: users.referredByAffiliateAccountId })
-        .from(users)
-        .where(eq(users.id, referredUserId))
-        .limit(1);
-
-      const existingOwner = current?.referredByAffiliateAccountId
-        ? String(current.referredByAffiliateAccountId)
-        : "";
-
-      // First-touch lifetime: never overwrite once set to a different affiliate.
-      if (existingOwner && existingOwner !== account.id) return;
-
-      if (!existingOwner) {
-        await db
-          .update(users)
-          .set({
-            referredByAffiliateAccountId: account.id,
-            referredAt: new Date(),
-          } as any)
-          .where(and(eq(users.id, referredUserId), isNull(users.referredByAffiliateAccountId)));
-      }
-
-      const [existingReferral] = await db
-        .select({ id: affiliateReferrals.id })
-        .from(affiliateReferrals)
-        .where(
-          and(
-            eq(affiliateReferrals.affiliateId, account.id),
-            eq(affiliateReferrals.referredUserId, referredUserId)
-          )
-        )
-        .limit(1);
-
-      if (!existingReferral?.id) {
-        await db
-          .insert(affiliateReferrals)
-          .values({
-            affiliateId: account.id,
-            referredUserId,
-            shareLinkId: null,
-            customLink: params.destination || null,
-            conversionSource: params.conversionSource || "unknown",
-            conversionType: params.conversionType || "signup",
-            couponCode: null,
-          } as any)
-          .catch(() => {});
-      }
-    } catch {
-      // Never block auth flows on referral persistence.
-    }
-  }
-
   // Referral attribution middleware:
   // - If a visitor arrives with ?ref=CODE, persist it in a cookie for later signup conversion.
   // - If a visitor lands on a public profile/business page without ?ref=..., attribute to the
@@ -5166,32 +5025,13 @@ export async function registerRoutes(app: any) {
         return next();
       }
 
-      const explicitRef =
-        typeof (req.query as any)?.ref === "string" ? String((req.query as any).ref).trim() : "";
-      const existingRef = getCookieValue(req, "ts_ref");
-
-      // Explicit referrals are recorded, but cookie attribution is first-touch (lifetime) and will not overwrite.
-      if (explicitRef) {
-        await recordReferralClick({
-          referralCode: explicitRef,
-          destination: req.originalUrl || path,
-          source: "query_ref",
-          conversionType: "click",
-        }).catch(() => {});
-        if (!existingRef) {
-          setReferralCookie(res, explicitRef);
-        }
-        return next();
-      }
-
-      // No explicit ref: do not overwrite an existing referral cookie.
-      if (existingRef) return next();
+      // Explicit ?ref=... is recorded and, absent an existing cookie, sets
+      // first-touch attribution. An existing cookie is never overwritten.
+      const handled = await handleExplicitOrExistingReferral(req, res);
+      if (handled) return next();
 
       // Clean public profile attribution (no ?ref=... required).
       if (path.startsWith("/profile/") || path.startsWith("/u/") || path.startsWith("/p/")) {
-        const authedUserId =
-          ((req as any)?.user as any)?.id || ((req as any)?.user as any)?.claims?.sub || null;
-
         let ownerUserId = "";
         let conversionSource = "profile_clean";
         let conversionType = "profile_view";
@@ -5222,27 +5062,14 @@ export async function registerRoutes(app: any) {
           conversionType = "public_profile_view";
         }
 
-        if (!ownerUserId) return next();
-
-        // Avoid self-attribution
-        if (authedUserId && String(authedUserId) === ownerUserId) return next();
-
-        let program = await storage.getAffiliateProgram(ownerUserId).catch(() => undefined);
-        if (!program) {
-          program = await storage
-            .createAffiliateProgram({ userId: ownerUserId } as any)
-            .catch(() => undefined);
-        }
-        const referralCode = String((program as any)?.referralCode || "").trim();
-        if (!referralCode) return next();
-
-        setReferralCookie(res, referralCode);
-        await recordReferralClick({
-          referralCode,
+        await attributeCleanPageViewToOwner({
+          req,
+          res,
+          ownerUserId,
           destination: req.originalUrl || path,
           source: conversionSource,
           conversionType,
-        }).catch(() => {});
+        });
         return next();
       }
 
@@ -5258,28 +5085,15 @@ export async function registerRoutes(app: any) {
           .limit(1);
 
         const ownerUserId = (biz as any)?.ownerUserId ? String((biz as any).ownerUserId) : "";
-        if (!ownerUserId) return next();
 
-        const authedUserId =
-          ((req as any)?.user as any)?.id || ((req as any)?.user as any)?.claims?.sub || null;
-        if (authedUserId && String(authedUserId) === ownerUserId) return next();
-
-        let program = await storage.getAffiliateProgram(ownerUserId).catch(() => undefined);
-        if (!program) {
-          program = await storage
-            .createAffiliateProgram({ userId: ownerUserId } as any)
-            .catch(() => undefined);
-        }
-        const referralCode = String((program as any)?.referralCode || "").trim();
-        if (!referralCode) return next();
-
-        setReferralCookie(res, referralCode);
-        await recordReferralClick({
-          referralCode,
+        await attributeCleanPageViewToOwner({
+          req,
+          res,
+          ownerUserId,
           destination: req.originalUrl || path,
           source: "business_clean",
           conversionType: "business_view",
-        }).catch(() => {});
+        });
         return next();
       }
     } catch {

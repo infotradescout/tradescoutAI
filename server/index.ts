@@ -34,6 +34,10 @@ import {
   recordCrawlerRequestEvent,
   getLandingIntentContractForPath,
 } from "./services/crawlerTelemetryService";
+import {
+  handleExplicitOrExistingReferral,
+  attributeCleanPageViewToOwner,
+} from "./services/referralAttribution";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -294,7 +298,7 @@ app.use((req, res, next) => {
 const CUSTOM_DOMAIN_CACHE = new Map<
   string,
   | { kind: "affiliate"; ref: string; at: number }
-  | { kind: "profile"; slug: string; at: number }
+  | { kind: "profile"; slug: string; ownerUserId: string; at: number }
   | { kind: "business"; slug: string; at: number }
 >();
 const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -347,10 +351,27 @@ async function serveCustomDomainProfilePath(
   req: Request,
   res: Response,
   host: string,
-  slug: string
+  slug: string,
+  ownerUserId: string
 ): Promise<boolean> {
   const path = req.path || "/";
   if (path === "/" || path === "") {
+    // The affiliate referral system otherwise never sees this request at all
+    // -- this middleware runs ahead of the route stack it normally lives in
+    // (server/routes.ts), and short-circuits the response before reaching
+    // it. A clean visit still attributes to the profile's own owner, and an
+    // explicit ?ref=... (e.g. from a share link) is still honored.
+    const handledExplicitOrExisting = await handleExplicitOrExistingReferral(req, res);
+    if (!handledExplicitOrExisting) {
+      await attributeCleanPageViewToOwner({
+        req,
+        res,
+        ownerUserId,
+        destination: req.originalUrl || "/",
+        source: "custom_domain_clean",
+        conversionType: "public_profile_view",
+      });
+    }
     if (await renderProfileOnCustomDomain(req, res, slug)) return true;
     res.redirect(
       301,
@@ -396,7 +417,8 @@ app.use(async (req, res, next) => {
     const cached = CUSTOM_DOMAIN_CACHE.get(host);
     if (cached && now - cached.at < CUSTOM_DOMAIN_TTL_MS) {
       if (cached.kind === "profile") {
-        if (await serveCustomDomainProfilePath(req, res, host, cached.slug)) return;
+        if (await serveCustomDomainProfilePath(req, res, host, cached.slug, cached.ownerUserId))
+          return;
         return next();
       }
 
@@ -419,7 +441,7 @@ app.use(async (req, res, next) => {
 
     // Profile custom domains are defined in profile seoMeta.customDomain.
     const [profileDomain] = await db
-      .select({ slug: profiles.slug })
+      .select({ slug: profiles.slug, ownerUserId: profiles.ownerUserId })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
       .where(
@@ -433,8 +455,9 @@ app.use(async (req, res, next) => {
 
     const profileSlug = typeof profileDomain?.slug === "string" ? profileDomain.slug.trim() : "";
     if (profileSlug) {
-      CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, at: now });
-      if (await serveCustomDomainProfilePath(req, res, host, profileSlug)) return;
+      const ownerUserId = String(profileDomain?.ownerUserId || "");
+      CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, ownerUserId, at: now });
+      if (await serveCustomDomainProfilePath(req, res, host, profileSlug, ownerUserId)) return;
       return next();
     }
 
