@@ -310,9 +310,9 @@ export default function WholesalerProfileTheme({
     const timers = [
       window.setTimeout(() => setHeroVideoZoomed(true), 100),
       window.setTimeout(() => setHeroStage(1), 500),
-      window.setTimeout(() => setHeroStage(2), 2200),
-      window.setTimeout(() => setHeroStage(3), 4000),
-      window.setTimeout(() => setHeroStage(4), 5600),
+      window.setTimeout(() => setHeroStage(2), 3000),
+      window.setTimeout(() => setHeroStage(3), 5000),
+      window.setTimeout(() => setHeroStage(4), 6500),
     ];
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [isJwStone]);
@@ -898,7 +898,7 @@ export default function WholesalerProfileTheme({
                     project.
                   </p>
                 </div>
-                <div className="grid grid-cols-3 gap-2.5 sm:gap-4">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
                   {featuredStones.map((offer, offerIndex) => {
                     const stone = offer.stone;
                     if (!stone) return null;
@@ -979,7 +979,7 @@ export default function WholesalerProfileTheme({
                   <button
                     type="button"
                     onClick={openFullInventory}
-                    className="group relative flex min-h-[320px] w-full items-center overflow-hidden bg-[var(--brand-primary-dark)] px-7 py-10 text-left text-white sm:min-h-[340px] sm:px-10"
+                    className="group relative flex min-h-[320px] w-full items-center justify-center overflow-hidden bg-[var(--brand-primary-dark)] px-7 py-10 text-center text-white sm:min-h-[340px] sm:px-10"
                   >
                     {rhinoWhiteWarehouseCtaImage ? (
                       <img
@@ -991,7 +991,7 @@ export default function WholesalerProfileTheme({
                     ) : null}
                     <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,15,18,0.66)_0%,rgba(7,15,18,0.48)_58%,rgba(7,15,18,0.24)_100%)]" />
                     <span className="absolute inset-x-0 top-0 h-1 bg-[var(--brand-accent)]" />
-                    <span className="relative z-10 min-w-0 max-w-[34rem]">
+                    <span className="relative z-10 flex min-w-0 max-w-[34rem] flex-col items-center">
                       <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--brand-accent)] sm:text-xs">
                         Rhino White · current inventory
                       </span>
