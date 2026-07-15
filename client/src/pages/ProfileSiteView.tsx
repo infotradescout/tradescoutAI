@@ -17,6 +17,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { Page } from "@/components/layout/PagePrimitives";
+import { ShareButton } from "@/components/ShareButton";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
@@ -462,7 +463,14 @@ export default function ProfileSiteView() {
         <CardHeader className="space-y-4 bg-tsCardMuted">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
-              <Badge variant="secondary">Website Profile</Badge>
+              <div className="flex items-center justify-between gap-3">
+                <Badge variant="secondary">Website Profile</Badge>
+                <ShareButton
+                  destination={`/u/${profile.slug}`}
+                  title={displayName}
+                  text={`Check out ${displayName} on TradeScout`}
+                />
+              </div>
               <CardTitle className="text-white text-3xl md:text-4xl">{displayName}</CardTitle>
               <div className="inline-flex items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
                 <img

@@ -22,6 +22,7 @@ import {
 import ExpressDirectConnectPanel, {
   type ExpressDirectConnectRequestType,
 } from "./ExpressDirectConnectPanel";
+import { ShareButton } from "@/components/ShareButton";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -394,6 +395,14 @@ export default function WholesalerProfileTheme({
     useState<ExpressDirectConnectRequestType | null>(null);
   const normalizedInventorySearch = inventorySearch.trim().toLowerCase();
   const allInventoryStones = inventoryCatalog.flatMap((category) => category.stones);
+  // Opens a shared inventory-item link directly to that stone's lightbox
+  // instead of just the profile root -- see ShareButton in the lightbox below.
+  useEffect(() => {
+    const stoneSlug = new URLSearchParams(window.location.search).get("stone");
+    if (!stoneSlug) return;
+    const match = allInventoryStones.find((stone) => stone.slug === stoneSlug);
+    if (match) setOpenStone(match);
+  }, []);
   const jwStonePicks = [...JW_STONE_PICK_SLUGS]
     .map((slug) => allInventoryStones.find((stone) => stone.slug === slug))
     .filter((stone): stone is InventoryStone => Boolean(stone))
@@ -674,6 +683,14 @@ export default function WholesalerProfileTheme({
                 />
               </div>
               <div className="flex items-center justify-self-end gap-2">
+                <ShareButton
+                  destination={`/u/${profileSlug}`}
+                  title={displayName}
+                  text={`Check out ${displayName} on TradeScout`}
+                  size="icon"
+                  label=""
+                  className="rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
+                />
                 {isProfileHome ? null : (
                   <Link
                     href={tradeScoutExitHref}
@@ -1267,13 +1284,23 @@ export default function WholesalerProfileTheme({
                   </p>
                 ) : null}
               </div>
-              <button
-                onClick={() => setOpenStone(null)}
-                aria-label="Close gallery"
-                className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <ShareButton
+                  destination={`/u/${profileSlug}?stone=${encodeURIComponent(openStone.slug)}`}
+                  title={openStone.name}
+                  text={`${openStone.name} at JW Stone`}
+                  size="icon"
+                  label=""
+                  className="rounded-full border-white/20 bg-transparent text-white/70 hover:bg-white/10 hover:text-white"
+                />
+                <button
+                  onClick={() => setOpenStone(null)}
+                  aria-label="Close gallery"
+                  className="rounded-full p-2 text-white/70 hover:bg-white/10 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             <div className="relative flex min-h-[240px] flex-1 items-center justify-center bg-black">
