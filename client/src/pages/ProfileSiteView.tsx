@@ -154,15 +154,27 @@ export default function ProfileSiteView() {
         const response = await fetch(`/api/u/${encodeURIComponent(slug)}`);
         if (response.status === 404) {
           setNotFound(true);
+          setLoading(false);
           return;
         }
         if (!response.ok) throw new Error("Failed to fetch profile");
 
         const json = (await response.json()) as PublicProfileResponse;
+
+        // A profile with a verified custom domain is canonically served
+        // there. The server-rendered /u/:slug route already 301s for a full
+        // page load; this covers client-side navigation to /u/:slug (e.g. an
+        // in-app Link) that never hits that server route at all.
+        const customDomain = json.profile?.seoMeta?.customDomain;
+        if (typeof customDomain === "string" && customDomain.trim()) {
+          window.location.replace(`https://${customDomain.trim()}/`);
+          return; // Stay in the loading state until the browser navigates away.
+        }
+
         setData(json);
+        setLoading(false);
       } catch (e) {
         console.error("Error fetching profile:", e);
-      } finally {
         setLoading(false);
       }
     };

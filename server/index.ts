@@ -1069,6 +1069,16 @@ app.use(landingContractHeaders);
 
                   const slug = String(req.params.slug || "");
 
+                  // A profile with a verified custom domain is canonically
+                  // served there -- send visitors straight to the business's
+                  // own domain instead of dual-hosting the same profile under
+                  // /u/:slug too.
+                  const profileRecord = await storage.getProfileBySlugPublic(slug);
+                  const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
+                  if (customDomain) {
+                    return res.redirect(301, `https://${customDomain}/`);
+                  }
+
                   // Keep /p/:slug as legacy path but canonicalize to /u/:slug.
                   if (req.path.startsWith("/p/")) {
                     return res.redirect(301, `${origin}/u/${encodeURIComponent(slug)}`);

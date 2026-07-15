@@ -264,7 +264,12 @@ function buildAutoSeoMeta(args: {
   headline?: string | null;
   business?: { categories?: string[]; serviceAreas?: string[] } | null;
   servicesDescription?: string | null;
-  seoMeta?: { title?: string; description?: string; imageUrl?: string } | null;
+  seoMeta?: {
+    title?: string;
+    description?: string;
+    imageUrl?: string;
+    customDomain?: string;
+  } | null;
 }) {
   const displayName = args.displayName.trim();
   const roleContext = String(args.roleContext || "").trim();
@@ -313,8 +318,15 @@ function buildAutoSeoMeta(args: {
     typeof args.seoMeta?.imageUrl === "string" && args.seoMeta.imageUrl.trim().length > 0
       ? args.seoMeta.imageUrl.trim().slice(0, 500)
       : undefined;
+  // The server-rendered /u/:slug route already 301s a verified custom domain
+  // to itself; this lets client-side navigation (no full page load) do the
+  // same redirect instead of rendering the profile inline.
+  const customDomain =
+    typeof args.seoMeta?.customDomain === "string" && args.seoMeta.customDomain.trim().length > 0
+      ? args.seoMeta.customDomain.trim().toLowerCase()
+      : undefined;
 
-  return { title, description, imageUrl };
+  return { title, description, imageUrl, customDomain };
 }
 
 function getCanonicalBaseUrl(req: any): string {
