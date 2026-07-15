@@ -164,9 +164,16 @@ export default function ProfileSiteView() {
         // A profile with a verified custom domain is canonically served
         // there. The server-rendered /u/:slug route already 301s for a full
         // page load; this covers client-side navigation to /u/:slug (e.g. an
-        // in-app Link) that never hits that server route at all.
+        // in-app Link) that never hits that server route at all. Guard
+        // against redirecting when we're already on that domain (e.g. this
+        // component also renders profiles in place at their own custom
+        // domain root) -- otherwise it's an infinite reload loop.
         const customDomain = json.profile?.seoMeta?.customDomain;
-        if (typeof customDomain === "string" && customDomain.trim()) {
+        if (
+          typeof customDomain === "string" &&
+          customDomain.trim() &&
+          window.location.hostname.toLowerCase() !== customDomain.trim().toLowerCase()
+        ) {
           window.location.replace(`https://${customDomain.trim()}/`);
           return; // Stay in the loading state until the browser navigates away.
         }
