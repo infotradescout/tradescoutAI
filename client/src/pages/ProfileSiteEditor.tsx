@@ -156,6 +156,8 @@ export default function ProfileSiteEditor() {
   const [ctaConfigText, setCtaConfigText] = useState("{}");
   const [seoMetaText, setSeoMetaText] = useState("{}");
   const [customDomain, setCustomDomain] = useState("");
+  const [ogImageUrl, setOgImageUrl] = useState("");
+  const [faviconUrl, setFaviconUrl] = useState("");
   const [profileVisibility, setProfileVisibility] = useState<"public" | "private">(
     user?.preferences?.profileVisibility === "public" ? "public" : "private"
   );
@@ -216,6 +218,8 @@ export default function ProfileSiteEditor() {
         setCtaConfigText(JSON.stringify(detail.ctaConfig ?? {}, null, 2));
         setSeoMetaText(JSON.stringify(detail.seoMeta ?? {}, null, 2));
         setCustomDomain(String(detail.seoMeta?.customDomain || ""));
+        setOgImageUrl(String(detail.seoMeta?.imageUrl || ""));
+        setFaviconUrl(String(detail.seoMeta?.faviconUrl || ""));
       } catch (error: any) {
         console.error("Error loading profile:", error);
         toast({
@@ -418,6 +422,18 @@ export default function ProfileSiteEditor() {
         seoMetaFromText.customDomain = normalizedDomain;
       } else {
         delete (seoMetaFromText as any).customDomain;
+      }
+      const trimmedOgImageUrl = ogImageUrl.trim();
+      if (trimmedOgImageUrl) {
+        seoMetaFromText.imageUrl = trimmedOgImageUrl;
+      } else {
+        delete (seoMetaFromText as any).imageUrl;
+      }
+      const trimmedFaviconUrl = faviconUrl.trim();
+      if (trimmedFaviconUrl) {
+        seoMetaFromText.faviconUrl = trimmedFaviconUrl;
+      } else {
+        delete (seoMetaFromText as any).faviconUrl;
       }
 
       const normalizedSeoMeta = {
@@ -836,6 +852,36 @@ export default function ProfileSiteEditor() {
                 onChange={(e) => setSeoMetaText(e.target.value)}
                 rows={6}
               />
+              <p className="text-white/60 text-xs">
+                Use this for title/description overrides. Share image and favicon have their own
+                fields below and take precedence over any imageUrl/faviconUrl set here.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/70">Share image / OG banner (optional)</Label>
+              <Input
+                value={ogImageUrl}
+                onChange={(e) => setOgImageUrl(e.target.value)}
+                placeholder="https://.../logo-social-preview.png"
+              />
+              <p className="text-white/60 text-xs">
+                Wide image (1200x630 works well) shown when the profile link is shared on social or
+                in chat previews.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-white/70">Favicon (optional)</Label>
+              <Input
+                value={faviconUrl}
+                onChange={(e) => setFaviconUrl(e.target.value)}
+                placeholder="https://.../favicon.png"
+              />
+              <p className="text-white/60 text-xs">
+                Square image (512x512 works well) used as the browser tab icon. Falls back to the
+                share image above when left blank.
+              </p>
             </div>
 
             <div className="space-y-2">
