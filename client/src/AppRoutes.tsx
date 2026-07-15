@@ -607,8 +607,13 @@ export const AppRoutes = memo(function AppRoutes({
       {isCustomDomainProfileRoute ? (
         // A business's own custom domain -- every path here is that one
         // profile; no route matching needed since there's nothing else this
-        // host could mean.
-        <LazyPage Component={ProfileSiteView} />
+        // host could mean. The default Suspense fallback says "Loading
+        // TradeScout..." -- wrong brand to flash on someone else's domain
+        // while their profile chunk downloads.
+        <LazyPage
+          Component={ProfileSiteView}
+          fallback={<PageLoadingSpinner message="Loading…" />}
+        />
       ) : isLiteScoutRoute ? (
         <Switch>
           <Route path="/_scout-lite">
