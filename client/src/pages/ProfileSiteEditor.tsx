@@ -430,6 +430,15 @@ export default function ProfileSiteEditor() {
         ...(typeof (seoMetaFromText as any).imageUrl === "string"
           ? { imageUrl: String((seoMetaFromText as any).imageUrl) }
           : {}),
+        ...(typeof (seoMetaFromText as any).imageWidth === "number"
+          ? { imageWidth: Number((seoMetaFromText as any).imageWidth) }
+          : {}),
+        ...(typeof (seoMetaFromText as any).imageHeight === "number"
+          ? { imageHeight: Number((seoMetaFromText as any).imageHeight) }
+          : {}),
+        ...(typeof (seoMetaFromText as any).faviconUrl === "string"
+          ? { faviconUrl: String((seoMetaFromText as any).faviconUrl) }
+          : {}),
         ...(typeof (seoMetaFromText as any).customDomain === "string"
           ? { customDomain: String((seoMetaFromText as any).customDomain) }
           : {}),

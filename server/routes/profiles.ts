@@ -377,6 +377,11 @@ const profileSeoSchema = z
     title: z.string().max(120).optional(),
     description: z.string().max(500).optional(),
     imageUrl: z.string().max(500).optional(),
+    imageWidth: z.number().optional(),
+    imageHeight: z.number().optional(),
+    // Separate from imageUrl (the OG/share banner) -- browser tab icons need
+    // a square mark, not a wide 1200x630 crop. See publicProfileHtml.ts.
+    faviconUrl: z.string().max(500).optional(),
     customDomain: z
       .string()
       .max(255)

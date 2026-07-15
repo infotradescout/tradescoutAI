@@ -1460,6 +1460,10 @@ export const profiles = pgTable(
         imageUrl?: string;
         imageWidth?: number;
         imageHeight?: number;
+        // Separate from imageUrl (the OG/share banner) -- browser tab icons
+        // need a square mark, not a wide 1200x630 crop. Falls back to
+        // imageUrl when unset. See publicProfileHtml.ts.
+        faviconUrl?: string;
         customDomain?: string;
       }>()
       .default(sql`'{}'::jsonb`),
