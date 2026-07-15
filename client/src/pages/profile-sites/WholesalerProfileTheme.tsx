@@ -34,7 +34,7 @@ import ExpressDirectConnectPanel, {
 
 type ContentBlock = {
   type: string;
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
   title?: string | null;
   body?: string | null;
   imageUrl?: string | null;
@@ -283,7 +283,6 @@ export default function WholesalerProfileTheme({
   categories,
   serviceAreas,
   brandColors,
-  contactReason,
   hasViewerSession,
   useExpressDirectConnect,
   directConnectHref,
@@ -637,6 +636,7 @@ export default function WholesalerProfileTheme({
       className={`jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900 ${
         isJwStone ? "pt-[96px] md:pt-[112px]" : ""
       }`}
+      // eslint-disable-next-line no-restricted-syntax -- sets CSS custom properties for per-business dynamic brand colors, not literal color values
       style={themeVars}
     >
       <header
@@ -760,6 +760,7 @@ export default function WholesalerProfileTheme({
             ? "min-h-[460px] md:min-h-[600px]"
             : "min-h-[min(690px,calc(100svh-150px))] bg-cover bg-center md:min-h-[500px]"
         }`}
+        // eslint-disable-next-line no-restricted-syntax -- backgroundImage needs the runtime per-business photo URL, can't be a static class
         style={
           !isJwStone && heroImage
             ? {
@@ -1643,7 +1644,7 @@ export default function WholesalerProfileTheme({
                           Recommends
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-600/10 px-3 py-1 text-xs font-bold text-red-700">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-3 py-1 text-xs font-bold text-destructive">
                           <ThumbsDown className="h-3.5 w-3.5" />
                           Does not recommend
                         </span>
