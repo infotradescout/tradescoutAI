@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   issues: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -28,7 +29,7 @@ jobs:
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD || secrets.MASTER_ADMIN_PASSWORD }}
       MASTER_ADMIN_EMAIL: ${{ secrets.MASTER_ADMIN_EMAIL }}
       MASTER_ADMIN_PASSWORD: ${{ secrets.MASTER_ADMIN_PASSWORD }}
-      TEST_DB_LANE_LOCK_NAME: tradescout_test_db_browser_lane_v1
+      TEST_DB_LANE_LOCK_NAME: tradescout_test_db_integration_lane_v1
 
     strategy:
       fail-fast: false
@@ -188,13 +189,14 @@ jobs:
 
       - name: Comment PR with test results
         if: github.event_name == 'pull_request' && always()
+        continue-on-error: true
         uses: actions/github-script@v6
         with:
           script: |
             const fs = require('fs');
             const testResults = fs.readFileSync('tests/report/bot-army-report.html', 'utf-8');
             
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
