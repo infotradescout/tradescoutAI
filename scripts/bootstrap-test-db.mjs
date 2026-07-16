@@ -2061,6 +2061,33 @@ async function ensureCriticalSchema() {
       )
     `);
 
+    // Community saves are read by the required CTA smoke. The normal bootstrap
+    // intentionally avoids a full Drizzle sync, so keep this critical table
+    // aligned with shared/schema.ts.
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS community_post_saves (
+        id varchar PRIMARY KEY DEFAULT gen_random_uuid(),
+        post_id varchar NOT NULL REFERENCES community_posts(id) ON DELETE CASCADE,
+        user_id varchar NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at timestamp DEFAULT now()
+      )
+    `);
+
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS community_post_saves_user_post_uidx
+      ON community_post_saves(user_id, post_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_community_post_saves_user
+      ON community_post_saves(user_id)
+    `);
+
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_community_post_saves_post
+      ON community_post_saves(post_id)
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS xp_ledger (
         id bigserial PRIMARY KEY,
