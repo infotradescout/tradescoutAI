@@ -53,7 +53,7 @@ jobs:
         run: npm run build
 
       - name: Pruned production boot smoke
-        run: npm run smoke:pruned-production-boot
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run smoke:pruned-production-boot
 
       - name: Sitemap integrity guard
         run: npm run guard:sitemap-integrity
