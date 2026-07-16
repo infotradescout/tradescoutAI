@@ -132,16 +132,18 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
     .isVisible();
   if (!needsCounty) {
     const firstPostCard = page.locator('[data-testid^="card-post-"]').first();
-    if (await firstPostCard.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    const emptyFeed = page
+      .getByText(/Community feed is live|No posts here yet|No posts yet for this view/i)
+      .first();
+
+    // The shared CI database can take a few seconds to settle after the shell renders.
+    // Wait for a terminal feed state instead of assuming a slow query means an empty feed.
+    await expect(firstPostCard.or(emptyFeed).first()).toBeVisible({ timeout: 30_000 });
+
+    if (await firstPostCard.isVisible()) {
       await expect(
         firstPostCard
           .getByRole("button", { name: /Add details|Direct Connect|Message|Need Help/i })
-          .first()
-      ).toBeVisible();
-    } else {
-      await expect(
-        page
-          .getByText(/Community feed is live|No posts here yet|No posts yet for this view/i)
           .first()
       ).toBeVisible();
     }
