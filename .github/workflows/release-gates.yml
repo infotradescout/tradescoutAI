@@ -75,6 +75,11 @@ jobs:
       - name: Push schema to test DB
         run: npm run db:push:test
 
+      - name: Affiliate integrity audit
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run audit:affiliate-integrity:strict
+
       - name: JR Express endpoint integration
         run: node scripts/with-test-db-lane-lock.mjs -- npm run test:tradepartner-express:jrs:db
 
