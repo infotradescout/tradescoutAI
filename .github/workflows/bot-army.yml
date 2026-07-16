@@ -9,6 +9,10 @@ on:
     # Run nightly at 3am UTC
     - cron: '0 3 * * *'
 
+permissions:
+  contents: read
+  issues: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
