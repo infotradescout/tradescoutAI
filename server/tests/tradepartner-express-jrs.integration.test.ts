@@ -22,6 +22,7 @@ import {
 } from "@shared/schema";
 
 const describeWithDb = process.env.TEST_DATABASE_URL ? describe : describe.skip;
+const INTEGRATION_TIMEOUT_MS = 90_000;
 
 function requestBody(email: string) {
   return {
@@ -35,23 +36,13 @@ function requestBody(email: string) {
 
 async function deleteWorkRequestRows(requestIds: string[]) {
   if (requestIds.length === 0) return;
-  await db
-    .delete(workRequestAssignments)
-    .where(inArray(workRequestAssignments.workRequestId, requestIds));
-  await db.delete(workRequestEvents).where(inArray(workRequestEvents.workRequestId, requestIds));
+  await Promise.all([
+    db
+      .delete(workRequestAssignments)
+      .where(inArray(workRequestAssignments.workRequestId, requestIds)),
+    db.delete(workRequestEvents).where(inArray(workRequestEvents.workRequestId, requestIds)),
+  ]);
   await db.delete(workRequests).where(inArray(workRequests.id, requestIds));
-}
-
-async function deleteUserByEmail(email: string) {
-  if (!email) return;
-  const [user] = await db
-    .select({ id: users.id, provider: users.provider })
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
-  if (user && String(user.provider || "") === "express_profile") {
-    await db.delete(users).where(eq(users.id, String(user.id)));
-  }
 }
 
 async function loadOwnerNotifications(ownerUserId: string) {
@@ -210,10 +201,9 @@ describeWithDb("JR's Auto Glass Express Direct Connect integration", () => {
         }
       }
       await deleteWorkRequestRows(requestIds.filter(Boolean));
-      await deleteUserByEmail(requesterEmail);
       restoreEnv("DIRECT_CONNECT_BETA_ADMIN_NOTIFICATIONS", previousBetaNotifications);
     }
-  }, 45_000);
+  }, INTEGRATION_TIMEOUT_MS);
 
   it("does not publish verified owner account contact as business contact", async () => {
     const requestIds: string[] = [];
@@ -307,11 +297,14 @@ describeWithDb("JR's Auto Glass Express Direct Connect integration", () => {
       }
     } finally {
       await deleteWorkRequestRows(requestIds.filter(Boolean));
-      await deleteUserByEmail(requesterEmail);
       if (profileId) await db.delete(profiles).where(eq(profiles.id, profileId));
       if (businessId) await db.delete(businesses).where(eq(businesses.id, businessId));
-      if (owner?.id) await db.delete(users).where(eq(users.id, String(owner.id)));
+      if (owner?.id) {
+        await db.delete(notifications).where(eq(notifications.userId, String(owner.id)));
+      }
+      // UUID/no-password test users are intentionally retained: deleting from the
+      // high-fanout users table can block the shared Neon test lane.
       restoreEnv("DIRECT_CONNECT_BETA_ADMIN_NOTIFICATIONS", previousBetaNotifications);
     }
-  }, 45_000);
+  }, INTEGRATION_TIMEOUT_MS);
 });
