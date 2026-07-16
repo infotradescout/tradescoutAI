@@ -9,6 +9,8 @@ const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
 
 describe("JW Stone reconciled inventory", () => {
   it("publishes the full optimized inventory set", () => {
+    // 0fa9ad6 removed 38 verified corrupt images and Fusion Blue's only image.
+    // These counts protect the cleaned source set, not the pre-cleanup catalog.
     expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(119);
     expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(430);
     expect(new Set(stones.map((stone) => stone.slug)).size).toBe(119);
