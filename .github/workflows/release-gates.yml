@@ -75,6 +75,9 @@ jobs:
       - name: Push schema to test DB
         run: npm run db:push:test
 
+      - name: JR Express endpoint integration
+        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:tradepartner-express:jrs:db
+
       - name: Direct Connect gate integration
         run: node scripts/with-test-db-lane-lock.mjs -- npm run test:direct-connect:gates:db
 
