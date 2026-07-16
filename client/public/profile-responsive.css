@@ -1,0 +1,37 @@
+/*
+ * Responsive contracts for public business profiles.
+ *
+ * JW Stone's featured offer block is a fixed three-card set. Keep the set on
+ * one row on phones, and let the material/finish label wrap instead of
+ * forcing the third offer onto a second row to preserve label width.
+ */
+@media (max-width: 639px) {
+  #collection > .container > div:first-child > .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  #collection > .container > div:first-child > .grid > button {
+    min-width: 0;
+  }
+
+  #collection > .container > div:first-child > .grid > button > div:last-child {
+    padding: 0.5rem;
+  }
+
+  #collection
+    > .container
+    > div:first-child
+    > .grid
+    > button
+    > div:last-child
+    > p:nth-child(2) {
+    min-height: 2.2em;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    font-size: 0.45rem;
+    line-height: 1.1;
+    letter-spacing: 0.04em;
+  }
+}
