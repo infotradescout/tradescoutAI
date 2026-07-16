@@ -16,6 +16,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
       - run: npm ci
+      - name: Build app
+        run: npm run build
       - run: npm run verify
         env:
           DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
