@@ -46,7 +46,7 @@ async function exists(filePath) {
   }
 }
 
-async function waitForHttp(pathname, acceptableStatuses) {
+async function waitForHttp(pathname, acceptableStatuses, shouldRetryStatus = () => true) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
   while (Date.now() < deadline) {
@@ -54,6 +54,7 @@ async function waitForHttp(pathname, acceptableStatuses) {
       const res = await fetch(`${baseUrl}${pathname}`);
       if (acceptableStatuses(res.status)) return res;
       lastError = new Error(`${pathname} returned ${res.status}`);
+      if (!shouldRetryStatus(res.status)) break;
     } catch (error) {
       lastError = error;
     }
@@ -78,7 +79,8 @@ function getFreePort() {
 }
 
 function captureExit(child) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    child.once("error", reject);
     child.once("exit", (code, signal) => {
       resolve({ code, signal });
     });
@@ -156,7 +158,11 @@ async function main() {
     });
 
     const profile = await Promise.race([
-      waitForHttp("/u/jw-stone", (status) => status === 200),
+      waitForHttp(
+        "/u/jrs-auto-glass",
+        (status) => status === 200,
+        (status) => status >= 500
+      ),
       earlyExit,
     ]);
     console.log("[pruned-boot] public profile route responded", { status: profile.status });
