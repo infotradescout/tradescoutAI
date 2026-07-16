@@ -93,6 +93,8 @@ async function main() {
     DATABASE_URL: testDatabaseUrl,
     TEST_DATABASE_URL: testDatabaseUrl,
     RUN_INTEGRATION_TESTS: "true",
+    DIRECT_CONNECT_BETA_ADMIN_NOTIFICATIONS:
+      process.env.DIRECT_CONNECT_BETA_ADMIN_NOTIFICATIONS ?? "false",
     VITEST_SERIAL: "true",
     PORT: String(port),
     INTEGRATION_TEST_BASE_URL: baseUrl,
