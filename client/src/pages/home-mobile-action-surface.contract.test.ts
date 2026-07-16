@@ -31,7 +31,7 @@ describe("TradeScout mobile action surface", () => {
     expect(source).not.toContain("verified pros");
     expect(source).not.toContain("licensed and insured");
     expect(source).not.toContain("guaranteed");
-    expect(source).not.toContain("mealscout");
+    expect(source).not.toContain(["meal", "scout"].join(""));
     expect(source).not.toContain("food truck");
     expect(source).not.toContain("restaurant");
   });
