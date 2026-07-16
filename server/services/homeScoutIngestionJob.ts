@@ -57,6 +57,33 @@ type NormalizedListing = {
   sourceUpdatedAt?: string | Date | null;
 };
 
+class MissingJsonFileSourceError extends Error {
+  code = "MISSING_JSON_FILE_SOURCE";
+  filePath: string;
+
+  constructor(filePath: string, cause: unknown) {
+    super(`HomeScout JSON source file is missing: ${filePath}`);
+    this.name = "MissingJsonFileSourceError";
+    this.filePath = filePath;
+    this.cause = cause;
+  }
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "ENOENT"
+  );
+}
+
+function isLegacySeedSource(sourceKey: string, cfg: SourceConfigJsonFile): boolean {
+  const sourceLooksLegacy = /^seed_\d{5}$/.test(sourceKey);
+  const pathLooksLegacy = /^data[\\/]+homescout[\\/]+seed-\d{5}\.json$/i.test(cfg.path.trim());
+  return sourceLooksLegacy && pathLooksLegacy;
+}
+
 function toDate(value: any): Date | null {
   if (!value) return null;
   if (value instanceof Date) return value;
@@ -142,7 +169,15 @@ function normalizeListing(raw: any): NormalizedListing | null {
 async function loadJsonFileListings(cfg: SourceConfigJsonFile): Promise<NormalizedListing[]> {
   const rel = cfg.path.trim();
   const abs = path.resolve(process.cwd(), rel);
-  const raw = await fs.readFile(abs, "utf8");
+  let raw: string;
+  try {
+    raw = await fs.readFile(abs, "utf8");
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      throw new MissingJsonFileSourceError(rel, error);
+    }
+    throw error;
+  }
   const parsed = JSON.parse(raw);
   const arr = Array.isArray(parsed)
     ? parsed
@@ -239,12 +274,52 @@ export async function runHomeScoutIngestionJob(params?: { sourceId?: string }): 
       let staleInactivatedLocal = 0;
 
       let normalized: NormalizedListing[] = [];
+      let skippedMissingLegacySeed = false;
       if (sourceType === "json_file") {
-        normalized = await loadJsonFileListings(cfg as SourceConfigJsonFile);
+        try {
+          normalized = await loadJsonFileListings(cfg as SourceConfigJsonFile);
+        } catch (error) {
+          if (
+            error instanceof MissingJsonFileSourceError &&
+            isLegacySeedSource(sourceKey, cfg as SourceConfigJsonFile)
+          ) {
+            skippedMissingLegacySeed = true;
+            console.warn("[HomeScoutIngestion] Skipping missing legacy seed source", {
+              sourceKey,
+              path: error.filePath,
+            });
+          } else {
+            throw error;
+          }
+        }
       } else if (sourceType === "json_url") {
         normalized = await loadJsonUrlListings(cfg as SourceConfigJsonUrl);
       } else {
         throw new Error(`Unsupported source_type "${sourceType}"`);
+      }
+
+      if (skippedMissingLegacySeed) {
+        await storage.finishHomeScoutIngestRun({
+          runId: run.id,
+          status: "success",
+          stats: {
+            listings: 0,
+            created: 0,
+            updated: 0,
+            priceChanged: 0,
+            statusChanged: 0,
+            staleInactivated: 0,
+            skipped: true,
+            skipReason: "missing_legacy_seed_file",
+          },
+          error: null,
+        });
+
+        await storage.updateHomeScoutSource(source.id, {
+          lastSuccessAt: new Date(),
+          lastError: null,
+        } as any);
+        continue;
       }
 
       const seenIds: string[] = [];

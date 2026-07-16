@@ -99,7 +99,7 @@ type PublicBusinessSubset = {
 
 type PublicProfileResponse = {
   profile: PublicProfile;
-  business: PublicBusinessSubset;
+  business: PublicBusinessSubset | null;
   recommendationsDirectory?: Array<{
     id: string;
     createdAt: string | null;
@@ -278,7 +278,7 @@ export default function ProfileSiteView() {
   // The boundary is the surface, not the referrer. A CTA on an individual
   // TradePartner business profile is an express connection to that exact
   // business. The /direct-connect portal retains the full discovery path.
-  const useExpressDirectConnect = true;
+  const useExpressDirectConnect = Boolean(business);
   // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
   // Connect targeted straight at their own account (via the target/targetName
   // prefill params DirectConnectShell already reads), instead of the
@@ -296,6 +296,13 @@ export default function ProfileSiteView() {
         : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
+  const openProfileRequest = () => {
+    if (useExpressDirectConnect) {
+      setExpressPanelOpen(true);
+      return;
+    }
+    navigate(directConnectHref);
+  };
   const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
   // JW Stone's reconciled catalog is versioned with the profile experience so
   // the public page cannot silently fall back to an older database seed. Drive
@@ -400,18 +407,20 @@ export default function ProfileSiteView() {
           structuredData={structuredData}
         />
         <JrsAutoGlassProfileTheme
-          onDirectConnect={() => setExpressPanelOpen(true)}
+          onDirectConnect={openProfileRequest}
           hasViewerSession={hasViewerSession}
           recommendationsDirectory={recommendationsDirectory}
         />
-        <ExpressDirectConnectPanel
-          open={expressPanelOpen}
-          onClose={() => setExpressPanelOpen(false)}
-          profileSlug={profile.slug}
-          businessName={displayName}
-          hasViewerSession={hasViewerSession}
-          requestMode="auto_glass"
-        />
+        {useExpressDirectConnect ? (
+          <ExpressDirectConnectPanel
+            open={expressPanelOpen}
+            onClose={() => setExpressPanelOpen(false)}
+            profileSlug={profile.slug}
+            businessName={displayName}
+            hasViewerSession={hasViewerSession}
+            requestMode="auto_glass"
+          />
+        ) : null}
       </>
     );
   }
@@ -759,7 +768,7 @@ export default function ProfileSiteView() {
                   <div className="flex flex-col gap-3">
                     <Button
                       type="button"
-                      onClick={() => setExpressPanelOpen(true)}
+                      onClick={openProfileRequest}
                       className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2"
                     >
                       <MessageCircle className="h-4 w-4" />
@@ -779,14 +788,16 @@ export default function ProfileSiteView() {
           </div>
         </CardContent>
       </Card>
-      <ExpressDirectConnectPanel
-        open={expressPanelOpen}
-        onClose={() => setExpressPanelOpen(false)}
-        profileSlug={profile.slug}
-        businessName={displayName}
-        hasViewerSession={hasViewerSession}
-        requestMode="service"
-      />
+      {useExpressDirectConnect ? (
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          businessName={displayName}
+          hasViewerSession={hasViewerSession}
+          requestMode="service"
+        />
+      ) : null}
     </Page>
   );
 }

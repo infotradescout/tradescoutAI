@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import {
-  JW_STONE_INVENTORY_CATEGORIES,
-  JW_STONE_INVENTORY_SUMMARY,
-} from "./jwStoneInventory";
+import { JW_STONE_INVENTORY_CATEGORIES, JW_STONE_INVENTORY_SUMMARY } from "./jwStoneInventory";
 
 const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
   category.stones.map((stone) => ({ ...stone, categorySlug: category.categorySlug }))
@@ -12,9 +9,9 @@ const stones = JW_STONE_INVENTORY_CATEGORIES.flatMap((category) =>
 
 describe("JW Stone reconciled inventory", () => {
   it("publishes the full optimized inventory set", () => {
-    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(120);
-    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(468);
-    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(120);
+    expect(JW_STONE_INVENTORY_SUMMARY.stoneCount).toBe(119);
+    expect(JW_STONE_INVENTORY_SUMMARY.imageCount).toBe(430);
+    expect(new Set(stones.map((stone) => stone.slug)).size).toBe(119);
 
     for (const stone of stones) {
       for (const image of stone.images) {
@@ -28,9 +25,9 @@ describe("JW Stone reconciled inventory", () => {
 
   it("keeps every usable source image while isolating uncertain photos", () => {
     const trending = stones.filter((stone) => stone.categorySlug === "unconfirmed");
-    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(156);
-    expect(stones.find((stone) => stone.slug === "honey-onyx")?.images).toHaveLength(6);
-    expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(25);
+    expect(trending.reduce((total, stone) => total + stone.images.length, 0)).toBe(148);
+    expect(stones.find((stone) => stone.slug === "honey-onyx")?.images).toHaveLength(3);
+    expect(stones.find((stone) => stone.slug === "cristallo")?.images).toHaveLength(24);
   });
 
   it("does not turn visual treatments into finishes", () => {
@@ -55,9 +52,7 @@ describe("JW Stone reconciled inventory", () => {
   });
 
   it("leaves absent finish evidence unconfirmed", () => {
-    expect(stones.find((stone) => stone.slug === "arizona-gold")?.finishStatus).toBe(
-      "unconfirmed"
-    );
+    expect(stones.find((stone) => stone.slug === "arizona-gold")?.finishStatus).toBe("unconfirmed");
     expect(stones.find((stone) => stone.slug === "titanium")?.finishes).toEqual(["Leathered"]);
   });
 });

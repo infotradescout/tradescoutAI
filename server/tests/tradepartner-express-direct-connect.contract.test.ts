@@ -11,7 +11,9 @@ describe("Public-profile Express Direct Connect contract", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
 
-    expect(profileView).toContain("const useExpressDirectConnect = true");
+    expect(profileView).toContain("const useExpressDirectConnect = Boolean(business)");
+    expect(profileView).toContain("const openProfileRequest = () =>");
+    expect(profileView).toContain("navigate(directConnectHref)");
     expect(profileView).toContain("The boundary is the surface, not the referrer");
     expect(profileView).not.toContain("sameOriginReferrer");
     expect(profileView).not.toContain("explicitInternalEntry");
@@ -57,6 +59,17 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain('routingMode: "tradepartner_profile_express"');
   });
 
+  it("keeps JR Express eligible through owner-confirmed managed-profile evidence", () => {
+    const route = read("server/routes/tradepartner-express.ts");
+
+    expect(route).toContain("JRS_PROFILE_PROVISIONING_SOURCE");
+    expect(route).toContain("const ownerConfirmedManagedProfile =");
+    expect(route).toContain('row?.profileSlug === "jrs-auto-glass"');
+    expect(route).toContain("row?.businessPublicDiscoveryEnabled === false");
+    expect(route).toContain("row.businessSources.includes(JRS_PROFILE_PROVISIONING_SOURCE)");
+    expect(route).toContain("(!ownerDiscoverable && !ownerConfirmedManagedProfile)");
+  });
+
   it("creates a provisional member and invites logged-out callers to join", () => {
     const route = read("server/routes/tradepartner-express.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
@@ -70,5 +83,15 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(panel).toContain("Continue with Express signup");
     expect(panel).toContain("manage this project");
     expect(panel).toContain("My Requests");
+  });
+
+  it("uses a requester-confirmation email purpose allowed in restricted production email mode", () => {
+    const route = read("server/routes/tradepartner-express.ts");
+    const emailService = read("server/services/emailService.ts");
+
+    expect(route).toContain('"direct_connect_requester_confirmation"');
+    expect(route).not.toContain('requesterWasCreated ? "account_creation" : "notification"');
+    expect(emailService).toContain('purpose === "direct_connect_requester_confirmation"');
+    expect(emailService).toContain('this.mode === "account_creation_only"');
   });
 });

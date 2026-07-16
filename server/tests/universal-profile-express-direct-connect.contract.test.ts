@@ -20,7 +20,9 @@ describe("universal public-profile Express Direct Connect contract", () => {
   });
 
   it("tailors the form for materials, auto glass, and general services", () => {
-    expect(panelSource).toContain('export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service"');
+    expect(panelSource).toContain(
+      'export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service"'
+    );
     expect(panelSource).toContain('choiceLabel: "Request stone or material"');
     expect(panelSource).toContain('choiceLabel: "Request auto glass service"');
     expect(panelSource).toContain('choiceLabel: "Send a request"');
@@ -29,13 +31,27 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain('"schedule_service"');
   });
 
-  it("opens Express Direct Connect from JR and generic public profile CTAs", () => {
+  it("opens Express Direct Connect from business profiles and falls back for person profiles", () => {
     expect(profileSource).toContain('requestMode="auto_glass"');
     expect(profileSource).toContain('requestMode="service"');
-    expect(profileSource).toContain("onDirectConnect={() => setExpressPanelOpen(true)}");
+    expect(profileSource).toContain("const useExpressDirectConnect = Boolean(business)");
+    expect(profileSource).toContain("const openProfileRequest = () =>");
+    expect(profileSource).toContain("setExpressPanelOpen(true)");
+    expect(profileSource).toContain("navigate(directConnectHref)");
+    expect(profileSource).toContain("{useExpressDirectConnect ? (");
+    expect(profileSource).toContain("onDirectConnect={openProfileRequest}");
     expect(jrSource).toContain("onClick={onDirectConnect}");
     expect(jrSource).not.toContain("preScoutCreateHref");
     expect(jrSource).not.toContain("requestHref");
+  });
+
+  it("keeps owner-confirmed JR eligible without fake owner verification", () => {
+    expect(routeSource).toContain("JRS_PROFILE_PROVISIONING_SOURCE");
+    expect(routeSource).toContain("const ownerConfirmedManagedProfile =");
+    expect(routeSource).toContain('row?.profileSlug === "jrs-auto-glass"');
+    expect(routeSource).toContain("row?.businessPublicDiscoveryEnabled === false");
+    expect(routeSource).toContain("row.businessSources.includes(JRS_PROFILE_PROVISIONING_SOURCE)");
+    expect(routeSource).toContain("(!ownerDiscoverable && !ownerConfirmedManagedProfile)");
   });
 
   it("commits the request before onboarding and does not depend on email delivery", () => {
@@ -46,6 +62,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain('onboardingEmailStatus = "failed"');
     expect(routeSource).toContain("onboardingPath,");
     expect(routeSource).toContain("onboardingEmailStatus,");
+    expect(routeSource).toContain('"direct_connect_requester_confirmation"');
     expect(panelSource).toContain("No email is required to continue from this browser.");
   });
 
