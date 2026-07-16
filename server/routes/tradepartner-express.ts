@@ -18,7 +18,11 @@ import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
-import { JRS_PROFILE_PROVISIONING_SOURCE } from "../services/jrsAutoGlassProfileProvisioning";
+import {
+  getJrsProvisionedDirectContact,
+  JRS_PROFILE_PROVISIONING_SOURCE,
+  JRS_PROFILE_SLUG,
+} from "../services/jrsAutoGlassProfileProvisioning";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 
@@ -147,6 +151,8 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       businessPublicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       businessSources: businesses.sources,
       profileData: businesses.profileData,
+      ownerEmail: users.email,
+      ownerPhone: users.phone,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
     })
@@ -159,10 +165,8 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   const verificationStatus = String(row?.ownerVerificationStatus || "").toLowerCase();
   const ownerDiscoverable = row?.ownerVerifiedBadge === true || verificationStatus === "approved";
   const profileData = (row?.profileData || {}) as Record<string, any>;
-  const phone = String(profileData.phone || "").trim();
-  const notificationEmail = String(profileData.notificationEmail || "").trim();
   const ownerConfirmedManagedProfile =
-    row?.profileSlug === "jrs-auto-glass" &&
+    row?.profileSlug === JRS_PROFILE_SLUG &&
     String(row?.businessStatus) === "active" &&
     row?.businessPublicDiscoveryEnabled === false &&
     String(row?.businessOwnerUserId || "") === String(row?.ownerUserId || "") &&
@@ -176,6 +180,22 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   ) {
     return null;
   }
+
+  const managedProvisionedContact = ownerConfirmedManagedProfile
+    ? getJrsProvisionedDirectContact()
+    : null;
+  const verifiedOwnerPhone = ownerDiscoverable ? row?.ownerPhone : "";
+  const verifiedOwnerEmail = ownerDiscoverable ? row?.ownerEmail : "";
+  const phone = String(
+    profileData.phone || verifiedOwnerPhone || managedProvisionedContact?.phone || ""
+  ).trim();
+  const notificationEmail = String(
+    profileData.notificationEmail ||
+      profileData.email ||
+      verifiedOwnerEmail ||
+      managedProvisionedContact?.notificationEmail ||
+      ""
+  ).trim();
 
   return {
     profileId: String(row.profileId),
@@ -415,13 +435,14 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           });
         }
 
+        let businessEmailStatus: "sent" | "skipped" | "failed" = "skipped";
         if (target.notificationEmail && emailService.isConfigured()) {
           const publicBase = String(
             process.env.APP_BASE_URL || "https://www.thetradescout.com"
           ).replace(/\/$/, "");
           const inboxUrl = `${publicBase}/direct-connect/inbox`;
-          void emailService
-            .sendEmail({
+          try {
+            const emailResult = await emailService.sendEmail({
               to: target.notificationEmail,
               subject: `New request for ${target.businessName}`,
               html: [
@@ -444,14 +465,16 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                 .filter(Boolean)
                 .join("\n"),
               purpose: "tradepartner_request_notification",
-            })
-            .catch((error) =>
-              console.warn("[tradepartner-express] business notification email failed", {
-                requestId: created.id,
-                notificationEmail: target.notificationEmail,
-                error,
-              })
-            );
+            });
+            businessEmailStatus = emailResult.skipped ? "skipped" : "sent";
+          } catch (error) {
+            businessEmailStatus = "failed";
+            console.warn("[tradepartner-express] business notification email failed", {
+              requestId: created.id,
+              notificationEmail: target.notificationEmail,
+              error,
+            });
+          }
         }
 
         const requestWorkspacePath = `/direct-connect/engagements?requestId=${encodeURIComponent(String(created.id))}&offerHomeId=1&source=profile_express`;
@@ -524,6 +547,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           status: created.status,
           businessName: target.businessName,
           delivered: true,
+          businessEmailStatus,
           accountCreated: requesterWasCreated,
           onboardingPath,
           onboardingEmailStatus,

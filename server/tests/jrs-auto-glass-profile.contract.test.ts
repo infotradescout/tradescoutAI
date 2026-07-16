@@ -10,7 +10,9 @@ describe("JR's Auto Glass public profile contract", () => {
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
     const entry = read("server/index.ts");
 
-    expect(provisioning).toContain('const JRS_PROFILE_SLUG = "jrs-auto-glass"');
+    expect(provisioning).toContain('export const JRS_PROFILE_SLUG = "jrs-auto-glass"');
+    expect(provisioning).toContain("JRS_DIRECT_CONTACT_PHONE");
+    expect(provisioning).toContain("JRS_DIRECT_CONTACT_NOTIFICATION_EMAIL");
     expect(provisioning).toContain('displayName: "JR\'s Auto Glass"');
     expect(provisioning).toContain('status: "published"');
     expect(provisioning).toContain('profileVisibility: "public"');

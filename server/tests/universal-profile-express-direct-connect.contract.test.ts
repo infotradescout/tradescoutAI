@@ -47,19 +47,25 @@ describe("universal public-profile Express Direct Connect contract", () => {
 
   it("keeps owner-confirmed JR eligible without fake owner verification", () => {
     expect(routeSource).toContain("JRS_PROFILE_PROVISIONING_SOURCE");
+    expect(routeSource).toContain("getJrsProvisionedDirectContact");
     expect(routeSource).toContain("const ownerConfirmedManagedProfile =");
-    expect(routeSource).toContain('row?.profileSlug === "jrs-auto-glass"');
+    expect(routeSource).toContain("row?.profileSlug === JRS_PROFILE_SLUG");
     expect(routeSource).toContain("row?.businessPublicDiscoveryEnabled === false");
     expect(routeSource).toContain("row.businessSources.includes(JRS_PROFILE_PROVISIONING_SOURCE)");
     expect(routeSource).toContain("(!ownerDiscoverable && !ownerConfirmedManagedProfile)");
+    expect(routeSource).toContain("managedProvisionedContact?.phone");
+    expect(routeSource).toContain("managedProvisionedContact?.notificationEmail");
   });
 
   it("commits the request before onboarding and does not depend on email delivery", () => {
     expect(routeSource).toContain("const requestWorkspacePath =");
+    expect(routeSource).toContain('let businessEmailStatus: "sent" | "skipped" | "failed"');
     expect(routeSource).toContain("const onboardingPath = activation");
     expect(routeSource).toContain('let onboardingEmailStatus: "sent" | "skipped" | "failed"');
     expect(routeSource).toContain("const emailResult = await emailService.sendEmail");
+    expect(routeSource).toContain('businessEmailStatus = "failed"');
     expect(routeSource).toContain('onboardingEmailStatus = "failed"');
+    expect(routeSource).toContain("businessEmailStatus,");
     expect(routeSource).toContain("onboardingPath,");
     expect(routeSource).toContain("onboardingEmailStatus,");
     expect(routeSource).toContain('"direct_connect_requester_confirmation"');

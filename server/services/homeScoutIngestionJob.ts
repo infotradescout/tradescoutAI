@@ -299,9 +299,11 @@ export async function runHomeScoutIngestionJob(params?: { sourceId?: string }): 
       }
 
       if (skippedMissingLegacySeed) {
+        const message = `Missing legacy seed file for ${sourceKey}; skipped without stale inactivation.`;
+        errors.push({ sourceKey: String((source as any).sourceKey || source.id), error: message });
         await storage.finishHomeScoutIngestRun({
           runId: run.id,
-          status: "success",
+          status: "error",
           stats: {
             listings: 0,
             created: 0,
@@ -312,12 +314,11 @@ export async function runHomeScoutIngestionJob(params?: { sourceId?: string }): 
             skipped: true,
             skipReason: "missing_legacy_seed_file",
           },
-          error: null,
+          error: message,
         });
 
         await storage.updateHomeScoutSource(source.id, {
-          lastSuccessAt: new Date(),
-          lastError: null,
+          lastError: message,
         } as any);
         continue;
       }

@@ -77,11 +77,17 @@ function getFreePort() {
   });
 }
 
-function waitForEarlyExit(child) {
-  return new Promise((_, reject) => {
+function captureExit(child) {
+  return new Promise((resolve) => {
     child.once("exit", (code, signal) => {
-      reject(new Error(`production server exited before smoke completed (code=${code}, signal=${signal})`));
+      resolve({ code, signal });
     });
+  });
+}
+
+function failOnEarlyExit(exitPromise) {
+  return exitPromise.then(({ code, signal }) => {
+    throw new Error(`production server exited before smoke completed (code=${code}, signal=${signal})`);
   });
 }
 
@@ -135,7 +141,8 @@ async function main() {
 
   child.stdout.on("data", (chunk) => process.stdout.write(`[pruned-boot] ${chunk}`));
   child.stderr.on("data", (chunk) => process.stderr.write(`[pruned-boot] ${chunk}`));
-  const earlyExit = waitForEarlyExit(child);
+  const exitPromise = captureExit(child);
+  const earlyExit = failOnEarlyExit(exitPromise);
 
   try {
     const health = await Promise.race([
@@ -149,13 +156,15 @@ async function main() {
     });
 
     const profile = await Promise.race([
-      waitForHttp("/u/jw-stone", (status) => status < 500),
+      waitForHttp("/u/jw-stone", (status) => status === 200),
       earlyExit,
     ]);
     console.log("[pruned-boot] public profile route responded", { status: profile.status });
   } finally {
-    child.kill("SIGTERM");
-    await new Promise((resolve) => child.once("exit", resolve));
+    if (child.exitCode === null && !child.killed) {
+      child.kill("SIGTERM");
+    }
+    await exitPromise;
     if (process.env.KEEP_PRUNED_BOOT_SMOKE_DIR !== "1") {
       await fs.rm(tempDir, { recursive: true, force: true });
     }

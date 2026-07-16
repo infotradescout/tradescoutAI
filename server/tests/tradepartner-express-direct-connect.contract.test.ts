@@ -61,13 +61,19 @@ describe("Public-profile Express Direct Connect contract", () => {
 
   it("keeps JR Express eligible through owner-confirmed managed-profile evidence", () => {
     const route = read("server/routes/tradepartner-express.ts");
+    const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
 
     expect(route).toContain("JRS_PROFILE_PROVISIONING_SOURCE");
+    expect(route).toContain("getJrsProvisionedDirectContact");
     expect(route).toContain("const ownerConfirmedManagedProfile =");
-    expect(route).toContain('row?.profileSlug === "jrs-auto-glass"');
+    expect(route).toContain("row?.profileSlug === JRS_PROFILE_SLUG");
     expect(route).toContain("row?.businessPublicDiscoveryEnabled === false");
     expect(route).toContain("row.businessSources.includes(JRS_PROFILE_PROVISIONING_SOURCE)");
     expect(route).toContain("(!ownerDiscoverable && !ownerConfirmedManagedProfile)");
+    expect(route).toContain("managedProvisionedContact?.phone");
+    expect(route).toContain("managedProvisionedContact?.notificationEmail");
+    expect(provisioning).toContain("JRS_DIRECT_CONTACT_PHONE");
+    expect(provisioning).toContain("JRS_DIRECT_CONTACT_NOTIFICATION_EMAIL");
   });
 
   it("creates a provisional member and invites logged-out callers to join", () => {
@@ -90,6 +96,8 @@ describe("Public-profile Express Direct Connect contract", () => {
     const emailService = read("server/services/emailService.ts");
 
     expect(route).toContain('"direct_connect_requester_confirmation"');
+    expect(route).toContain("let businessEmailStatus");
+    expect(route).toContain('businessEmailStatus = emailResult.skipped ? "skipped" : "sent"');
     expect(route).not.toContain('requesterWasCreated ? "account_creation" : "notification"');
     expect(emailService).toContain('purpose === "direct_connect_requester_confirmation"');
     expect(emailService).toContain('this.mode === "account_creation_only"');

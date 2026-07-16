@@ -14,10 +14,16 @@ describe("HomeScout legacy seed source contract", () => {
     expect(source).toContain("/^seed_\\d{5}$/.test(sourceKey)");
     expect(source).toContain("missing_legacy_seed_file");
     expect(source).toContain("staleInactivated: 0");
+    expect(source).toContain('status: "error"');
+    expect(source).toContain("lastError: message");
 
     const skipIndex = source.indexOf("if (skippedMissingLegacySeed)");
     const staleIndex = source.indexOf("inactivateStaleHomeScoutListingsFromSource");
     expect(skipIndex).toBeGreaterThan(0);
     expect(staleIndex).toBeGreaterThan(skipIndex);
+
+    const skipBlock = source.slice(skipIndex, staleIndex);
+    expect(skipBlock).not.toContain("lastSuccessAt");
+    expect(skipBlock).not.toContain("lastError: null");
   });
 });

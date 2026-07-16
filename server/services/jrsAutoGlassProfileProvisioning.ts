@@ -2,17 +2,30 @@ import { and, eq, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
 
-const JRS_PROFILE_SLUG = "jrs-auto-glass";
+export const JRS_PROFILE_SLUG = "jrs-auto-glass";
 const JRS_OWNER_EMAIL = Buffer.from("c3J0NGxpZmUyMDA0QGdtYWlsLmNvbQ==", "base64").toString("utf8");
 export const JRS_PROFILE_PROVISIONING_SOURCE = "owner_confirmed_profile";
+export const JRS_DIRECT_CONTACT_PHONE = Buffer.from("KDk4NSkgNTA3LTYxOTI=", "base64").toString(
+  "utf8"
+);
+export const JRS_DIRECT_CONTACT_NOTIFICATION_EMAIL = JRS_OWNER_EMAIL;
+
+export function getJrsProvisionedDirectContact() {
+  return {
+    phone: JRS_DIRECT_CONTACT_PHONE,
+    notificationEmail: JRS_DIRECT_CONTACT_NOTIFICATION_EMAIL,
+  };
+}
 
 /**
  * Idempotently installs the owner, business, and published profile records for
  * JR's Auto Glass. The owner email is an account-routing key only; it is never
  * copied into business profile data, profile content, or public API responses.
  */
-export async function provisionJrsAutoGlassProfile(): Promise<void> {
-  if (process.env.NODE_ENV !== "production") return;
+export async function provisionJrsAutoGlassProfile(
+  options: { force?: boolean } = {}
+): Promise<void> {
+  if (process.env.NODE_ENV !== "production" && !options.force) return;
 
   await db.transaction(async (tx) => {
     const normalizedEmail = JRS_OWNER_EMAIL.trim().toLowerCase();
