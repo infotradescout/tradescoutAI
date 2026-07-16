@@ -55,6 +55,8 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain("(!ownerDiscoverable && !ownerConfirmedManagedProfile)");
     expect(routeSource).toContain("managedProvisionedContact?.phone");
     expect(routeSource).toContain("managedProvisionedContact?.notificationEmail");
+    expect(routeSource).not.toContain("ownerPhone: users.phone");
+    expect(routeSource).not.toContain("ownerEmail: users.email");
   });
 
   it("commits the request before onboarding and does not depend on email delivery", () => {
@@ -62,7 +64,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain('let businessEmailStatus: "sent" | "skipped" | "failed"');
     expect(routeSource).toContain("const onboardingPath = activation");
     expect(routeSource).toContain('let onboardingEmailStatus: "sent" | "skipped" | "failed"');
-    expect(routeSource).toContain("const emailResult = await emailService.sendEmail");
+    expect(routeSource).toContain("const emailResult = await withExpressEmailTimeout");
     expect(routeSource).toContain('businessEmailStatus = "failed"');
     expect(routeSource).toContain('onboardingEmailStatus = "failed"');
     expect(routeSource).toContain("businessEmailStatus,");
