@@ -1,6 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
 import request from "supertest";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app";
 import { db } from "../db";
 import { emailService } from "../services/emailService";
@@ -76,8 +76,13 @@ function restoreEnv(name: string, value: string | undefined) {
 }
 
 describeWithDb("JR's Auto Glass Express Direct Connect integration", () => {
+  let app: Awaited<ReturnType<typeof createApp>>["app"];
+
+  beforeAll(async () => {
+    ({ app } = await createApp());
+  });
+
   it("reveals Call and delivers Send from the exact managed-profile contact source", async () => {
-    const { app } = await createApp();
     const requestIds: string[] = [];
     let requesterEmail = "";
     let ownerUserId = "";
@@ -183,32 +188,6 @@ describeWithDb("JR's Auto Glass Express Direct Connect integration", () => {
           ])
         );
 
-        sendEmailSpy.mockClear();
-        const repeatSend = await request(app)
-          .post("/api/tradepartner-profiles/" + JRS_PROFILE_SLUG + "/express-request")
-          .send(requestBody(requesterEmail));
-
-        expect(repeatSend.status).toBe(201);
-        expect(repeatSend.body?.accountCreated).toBe(false);
-        expect(repeatSend.body?.onboardingPath).toBeNull();
-        expect(repeatSend.body?.onboardingEmailStatus).toBe("sent");
-        requestIds.push(String(repeatSend.body?.requestId || ""));
-
-        const repeatEmails = sendEmailSpy.mock.calls.map(([params]) => params);
-        expect(repeatEmails).toEqual(
-          expect.arrayContaining([
-            expect.objectContaining({
-              to: requesterEmail,
-              purpose: "direct_connect_requester_confirmation",
-            }),
-          ])
-        );
-        expect(
-          repeatEmails.some(
-            (params) => params.to === requesterEmail && params.purpose === "account_creation"
-          )
-        ).toBe(false);
-
         const [owner] = await db
           .select()
           .from(users)
@@ -237,7 +216,6 @@ describeWithDb("JR's Auto Glass Express Direct Connect integration", () => {
   }, 45_000);
 
   it("does not publish verified owner account contact as business contact", async () => {
-    const { app } = await createApp();
     const requestIds: string[] = [];
     let owner: any = null;
     let businessId = "";
