@@ -100,6 +100,32 @@ function normalizePhoneForTel(raw: unknown): { display: string; tel: string } | 
   return { display, tel: `tel:${e164}` };
 }
 
+const DEFAULT_EXPRESS_EMAIL_TIMEOUT_MS = 5_000;
+
+function getExpressEmailTimeoutMs(): number {
+  const configured = Number(
+    process.env.TRADEPARTNER_EXPRESS_EMAIL_TIMEOUT_MS || DEFAULT_EXPRESS_EMAIL_TIMEOUT_MS
+  );
+  if (!Number.isFinite(configured)) return DEFAULT_EXPRESS_EMAIL_TIMEOUT_MS;
+  return Math.max(250, Math.min(30_000, Math.trunc(configured)));
+}
+
+async function withExpressEmailTimeout<T>(operation: Promise<T>): Promise<T> {
+  const timeoutMs = getExpressEmailTimeoutMs();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`Express email attempt timed out after ${timeoutMs}ms`)),
+      timeoutMs
+    );
+  });
+  try {
+    return await Promise.race([operation, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -151,8 +177,6 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       businessPublicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       businessSources: businesses.sources,
       profileData: businesses.profileData,
-      ownerEmail: users.email,
-      ownerPhone: users.phone,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
     })
@@ -184,15 +208,10 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
   const managedProvisionedContact = ownerConfirmedManagedProfile
     ? getJrsProvisionedDirectContact()
     : null;
-  const verifiedOwnerPhone = ownerDiscoverable ? row?.ownerPhone : "";
-  const verifiedOwnerEmail = ownerDiscoverable ? row?.ownerEmail : "";
-  const phone = String(
-    profileData.phone || verifiedOwnerPhone || managedProvisionedContact?.phone || ""
-  ).trim();
+  const phone = String(profileData.phone || managedProvisionedContact?.phone || "").trim();
   const notificationEmail = String(
     profileData.notificationEmail ||
       profileData.email ||
-      verifiedOwnerEmail ||
       managedProvisionedContact?.notificationEmail ||
       ""
   ).trim();
@@ -442,8 +461,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
           ).replace(/\/$/, "");
           const inboxUrl = `${publicBase}/direct-connect/inbox`;
           try {
-            const emailResult = await emailService.sendEmail({
-              to: target.notificationEmail,
+            const emailResult = await withExpressEmailTimeout(
+              emailService.sendEmail({
+                to: target.notificationEmail,
               subject: `New request for ${target.businessName}`,
               html: [
                 `<p>${escapeHtml(body.name)} sent a request through your ${escapeHtml(target.businessName)} profile on TradeScout.</p>`,
@@ -464,8 +484,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               ]
                 .filter(Boolean)
                 .join("\n"),
-              purpose: "tradepartner_request_notification",
-            });
+                purpose: "tradepartner_request_notification",
+              })
+            );
             businessEmailStatus = emailResult.skipped ? "skipped" : "sent";
           } catch (error) {
             businessEmailStatus = "failed";
@@ -500,8 +521,9 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             ? `${publicBase}/verify-email?token=${verification.token}&next=${encodeURIComponent(requestWorkspacePath)}`
             : null;
           try {
-            const emailResult = await emailService.sendEmail({
-              to: requester.email,
+            const emailResult = await withExpressEmailTimeout(
+              emailService.sendEmail({
+                to: requester.email,
               subject: `Your request was sent to ${target.businessName}`,
               html: [
                 `<p>Your request was sent directly to ${escapeHtml(target.businessName)}.</p>`,
@@ -518,10 +540,11 @@ export function registerTradePartnerExpressRoutes(app: Express) {
               ]
                 .filter(Boolean)
                 .join("\n"),
-              purpose: requesterWasCreated
-                ? "account_creation"
-                : "direct_connect_requester_confirmation",
-            });
+                purpose: requesterWasCreated
+                  ? "account_creation"
+                  : "direct_connect_requester_confirmation",
+              })
+            );
             onboardingEmailStatus = emailResult.skipped ? "skipped" : "sent";
           } catch (error) {
             onboardingEmailStatus = "failed";
