@@ -12,15 +12,32 @@ concurrency:
 jobs:
   release-gates:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tradescout_release_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d tradescout_release_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     env:
       NODE_ENV: production
       REQUIRE_PROD_BYPASS_OFF: "true"
-      TEST_DATABASE_URL: ${{ secrets.NEON_TEST_DATABASE_URL }}
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tradescout_release_test
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tradescout_release_test
+      DIRECT_CONNECT_BETA_ADMIN_NOTIFICATIONS: "false"
       E2E_EMAIL: ${{ secrets.E2E_EMAIL || secrets.MASTER_ADMIN_EMAIL }}
       E2E_PASSWORD: ${{ secrets.E2E_PASSWORD || secrets.MASTER_ADMIN_PASSWORD }}
       MASTER_ADMIN_EMAIL: ${{ secrets.MASTER_ADMIN_EMAIL }}
       MASTER_ADMIN_PASSWORD: ${{ secrets.MASTER_ADMIN_PASSWORD }}
-      TEST_DB_LANE_LOCK_NAME: tradescout_test_db_integration_lane_v1
+      TEST_DB_LANE_LOCK_NAME: tradescout_release_db_lane_v1
 
     steps:
       - name: Checkout repository
@@ -72,8 +89,8 @@ jobs:
           test -n "$MASTER_ADMIN_EMAIL"
           test -n "$MASTER_ADMIN_PASSWORD"
 
-      - name: Push schema to test DB
-        run: npm run db:push:test
+      - name: Push schema to isolated test DB
+        run: node scripts/bootstrap-test-db.mjs --full-sync
 
       - name: JR Express endpoint integration
         run: node scripts/with-test-db-lane-lock.mjs -- npm run test:tradepartner-express:jrs:db
