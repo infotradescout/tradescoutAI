@@ -72,6 +72,8 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("(!ownerDiscoverable && !ownerConfirmedManagedProfile)");
     expect(route).toContain("managedProvisionedContact?.phone");
     expect(route).toContain("managedProvisionedContact?.notificationEmail");
+    expect(route).not.toContain("ownerPhone: users.phone");
+    expect(route).not.toContain("ownerEmail: users.email");
     expect(provisioning).toContain("JRS_DIRECT_CONTACT_PHONE");
     expect(provisioning).toContain("JRS_DIRECT_CONTACT_NOTIFICATION_EMAIL");
   });
@@ -97,6 +99,7 @@ describe("Public-profile Express Direct Connect contract", () => {
 
     expect(route).toContain('"direct_connect_requester_confirmation"');
     expect(route).toContain("let businessEmailStatus");
+    expect(route).toContain("withExpressEmailTimeout");
     expect(route).toContain('businessEmailStatus = emailResult.skipped ? "skipped" : "sent"');
     expect(route).not.toContain('requesterWasCreated ? "account_creation" : "notification"');
     expect(emailService).toContain('purpose === "direct_connect_requester_confirmation"');
