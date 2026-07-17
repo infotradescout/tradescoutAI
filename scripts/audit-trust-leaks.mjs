@@ -21,6 +21,10 @@ const approvedComingSoonCopy = new Map([
     "client/src/components/community/CommunitySnapshotRail.tsx",
     ["Local offers are coming soon", "Coming soon"],
   ],
+  [
+    "client/src/components/profile/PublicProfileProductCard.tsx",
+    ["Photo coming soon"],
+  ],
 ]);
 
 const lineIgnorePatterns = [

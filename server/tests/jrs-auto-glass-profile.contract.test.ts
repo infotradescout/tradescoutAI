@@ -24,7 +24,7 @@ describe("JR's Auto Glass public profile contract", () => {
       "notificationEmail: existingNotificationEmail || normalizedEmail"
     );
     expect(provisioning).toContain("/images/businesses/jrs-auto-glass/cover.webp");
-    expect(provisioning).toContain("/images/businesses/jrs-auto-glass/logo.svg");
+    expect(provisioning).toContain("/images/businesses/jrs-auto-glass/logo.webp");
     expect(provisioning).toContain("contentBlocks: JRS_AUTO_GLASS_GALLERY_BLOCKS");
     expect(profileContent).toContain('type: "gallery"');
     expect(profileContent).toContain('id: "windshield-before"');
@@ -54,11 +54,12 @@ describe("JR's Auto Glass public profile contract", () => {
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/logo.svg")
+        path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/logo.webp")
       )
     ).toBe(true);
-    expect(theme).toContain("Request auto glass service");
-    expect(theme).toContain("Send job details");
+    expect(theme.match(/Make A Request/g)?.length || 0).toBeGreaterThanOrEqual(3);
+    expect(theme).not.toContain("Request auto glass service");
+    expect(theme).not.toContain("Send job details");
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
     expect(profileView).toContain("galleryItems={galleryItems}");
     expect(profileView).toContain("sharedGallerySlug={sharedGallerySlug}");
@@ -69,6 +70,9 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("profile-gallery-${item.slug}");
     expect(theme).toContain("<ShareButton");
     expect(theme).toContain("Customer recommendations");
+    expect(theme).toContain("Recent work");
+    expect(theme).toContain("Before and after");
+    expect(theme).not.toContain("PublicProfileProductCard");
     expect(theme).toContain("You&apos;re here early");
     expect(theme).toContain("Your contact details stay private");
     expect(theme).not.toContain("TradeScout Business CV");

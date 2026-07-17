@@ -4623,7 +4623,7 @@ function MyDirectConnectRequests() {
               className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
               onClick={() => navigate("/direct-connect")}
             >
-              Start request
+              Make A Request
             </Button>
           </div>
         </CardContent>
@@ -5565,8 +5565,7 @@ export default function DirectConnectShell() {
 
     toast({
       title: "Keep this project with your home",
-      description:
-        "The request is in My Requests. Add it to HomeID only if you choose to.",
+      description: "The request is in My Requests. Add it to HomeID only if you choose to.",
       action: (
         <ToastAction
           altText="Attach this project to your HomeID"

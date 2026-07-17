@@ -42,6 +42,14 @@ function isTradePartner(business: PublicBusinessSubset): boolean {
   return Boolean(business?.tradePartner);
 }
 
+function getSafeTradeScoutHome(): string {
+  if (typeof window === "undefined") return "https://www.thetradescout.com/";
+  const host = window.location.hostname.toLowerCase();
+  return host === "localhost" || host === "127.0.0.1"
+    ? `${window.location.origin}/`
+    : "https://www.thetradescout.com/";
+}
+
 type ProfileSections = {
   about?: boolean;
   rolesAndBadges?: boolean;
@@ -157,6 +165,48 @@ export default function ProfileSiteView() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
+
+  // Public profiles are commonly opened from texts, social posts, and QR
+  // codes. Add one same-page history boundary so the browser Back control can
+  // return to a safe TradeScout destination instead of dropping the visitor
+  // onto an unrelated external app or site.
+  useEffect(() => {
+    if (!slug || typeof window === "undefined") return;
+
+    const guardKey = "__tradeScoutProfileHistoryBoundary";
+    const currentState = (window.history.state || {}) as Record<string, unknown>;
+    let safeReturnHref = getSafeTradeScoutHome();
+
+    try {
+      const referrer = new URL(document.referrer);
+      const current = new URL(window.location.href);
+      const isTradeScoutReferrer =
+        referrer.origin === current.origin || referrer.origin === "https://www.thetradescout.com";
+      const isCanonicalAliasForThisProfile =
+        referrer.origin === "https://www.thetradescout.com" &&
+        [`/u/${encodeURIComponent(slug)}`, `/p/${encodeURIComponent(slug)}`].includes(
+          referrer.pathname
+        );
+      const isSameProfile =
+        isCanonicalAliasForThisProfile ||
+        (referrer.origin === current.origin &&
+          referrer.pathname === current.pathname &&
+          referrer.search === current.search);
+      if (isTradeScoutReferrer && !isSameProfile) safeReturnHref = referrer.toString();
+    } catch {
+      // Empty and malformed referrers use the canonical TradeScout home.
+    }
+
+    const handlePopState = () => {
+      window.location.replace(safeReturnHref);
+    };
+
+    if (currentState[guardKey] !== slug) {
+      window.history.pushState({ ...currentState, [guardKey]: slug }, "", window.location.href);
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [slug]);
 
   useEffect(() => {
     if (!slug) return;
@@ -447,6 +497,11 @@ export default function ProfileSiteView() {
   const isSuperAdminViewer =
     Boolean((user as any)?.isSuperAdmin === true) || normalizedViewerRole === "super_admin";
   const hasViewerSession = isAuthenticated || Boolean((user as any)?.id);
+  const tradeScoutReturnHref = isOnProfileCustomDomain
+    ? getSafeTradeScoutHome()
+    : hasViewerSession
+      ? "/direct-connect"
+      : "/";
   // The boundary is the surface, not the referrer. A CTA on an individual
   // TradePartner business profile is an express connection to that exact
   // business. The /direct-connect portal retains the full discovery path.
@@ -574,6 +629,7 @@ export default function ProfileSiteView() {
         <JrsAutoGlassProfileTheme
           onDirectConnect={() => setExpressPanelOpen(true)}
           hasViewerSession={hasViewerSession}
+          tradeScoutReturnHref={tradeScoutReturnHref}
           profileShareDestination={profileShareDestination}
           galleryItems={galleryItems}
           sharedGallerySlug={sharedGallerySlug}
@@ -622,6 +678,7 @@ export default function ProfileSiteView() {
           allowExpressCall={canExpressCall}
           profileShareDestination={profileShareDestination}
           sharedGallerySlug={sharedGallerySlug}
+          tradeScoutReturnHref={tradeScoutReturnHref}
           directConnectHref={directConnectHref}
           preScoutCreateHref={preScoutCreateHref}
           preScoutSignInHref={preScoutSignInHref}
@@ -986,7 +1043,7 @@ export default function ProfileSiteView() {
                       className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2"
                     >
                       <MessageCircle className="h-4 w-4" />
-                      <span>Start a request</span>
+                      <span>Make A Request</span>
                     </Button>
                     {!hasViewerSession ? (
                       <Link href={preScoutSignInHref}>

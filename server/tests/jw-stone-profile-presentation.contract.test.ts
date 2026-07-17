@@ -52,14 +52,16 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("offer.badge");
   });
 
-  it("shows each complete featured slab rotated into the portrait card", () => {
-    expect(source).toContain('className="relative aspect-[2/3] overflow-hidden');
-    expect(source).toContain("rotate-90 object-contain");
-    expect(source).toContain("h-2/3 w-[150%] max-w-none");
+  it("shows featured inventory as image-forward product cards", () => {
+    expect(source).toContain('data-testid="jw-stone-featured-product-card"');
+    expect(source).toContain('className="relative aspect-[4/3] overflow-hidden');
+    expect(source).toContain("View details");
+    expect(source).toContain("buildProfileInventoryShareSearch(stone.slug)");
+    expect(source).not.toContain("rotate-90 object-contain");
   });
 
   it("turns a zero-result search into a prefilled material request", () => {
-    expect(source).toContain("Request this stone");
+    expect(source).toContain("Make A Request");
     expect(source).toContain("JW Stone may be able to source it for your project.");
     expect(source).toContain('startDirectConnect(inventorySearch.trim(), "request_material")');
   });
@@ -69,27 +71,23 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("if (expressPanelOpen)");
     expect(source).toContain("if (openStone)");
     expect(source).toContain("if (inventoryExpanded)");
-    expect(source).toContain(
-      'const tradeScoutExitHref = hasViewerSession ? "/direct-connect" : "/";'
-    );
+    expect(source).toContain("tradeScoutReturnHref");
     expect(source).toContain('"Close JW Stone and return to Direct Connect"');
     expect(source).toContain('"Close JW Stone and return to TradeScout"');
     expect(source).not.toContain("window.history.back()");
     expect(source).toContain("fixed inset-x-0 top-0 z-40");
   });
 
-  it("keeps TradeScout actions orange and JW Stone inventory actions green", () => {
+  it("keeps every Direct Connect entry action orange and consistently named", () => {
     expect(source).toContain("border-2 border-ts-orange bg-white/12");
     expect(source).toContain("hover:bg-ts-orange-dark");
-    expect(source).toContain("border-2 border-[var(--brand-accent)] bg-white/12");
-    expect(source).toContain("Request this stone");
-    expect(source).toContain(
-      "bg-[var(--brand-accent)] px-6 py-3 text-sm font-extrabold text-[#16200b]"
-    );
+    expect(source.match(/Make A Request/g)?.length || 0).toBeGreaterThanOrEqual(8);
+    expect(source).not.toContain("Request this stone");
+    expect(source).not.toContain("Ask about this stone");
+    expect(source).not.toContain("Ask JW Stone");
     expect(expressSource).toContain("text-ts-orange-dark");
-    expect(expressSource).toContain(
-      "bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
-    );
+    expect(expressSource).toContain("Make A Request");
+    expect(expressSource).toContain("Direct Connect");
   });
 
   it("keeps the JW Stone brand centered between profile navigation controls", () => {
