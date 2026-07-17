@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type SyntheticEvent } from "react";
+import { useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
@@ -124,6 +124,7 @@ type WholesalerProfileThemeProps = {
   preScoutSignInHref: string;
   recommendationsDirectory?: RecommendationEntry[];
   recommendationDirectorySummary?: RecommendationDirectorySummary;
+  profileItems?: ReactNode;
 };
 
 const DEFAULT_BRAND_COLORS: Required<WholesalerBrandColors> = {
@@ -305,6 +306,7 @@ export default function WholesalerProfileTheme({
   preScoutSignInHref,
   recommendationsDirectory = [],
   recommendationDirectorySummary,
+  profileItems,
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
@@ -1660,6 +1662,12 @@ export default function WholesalerProfileTheme({
               ))}
             </div>
           </div>
+        </section>
+      ) : null}
+
+      {profileItems ? (
+        <section className="bg-[#241d0f] py-8 md:py-11">
+          <div className="container mx-auto max-w-6xl px-4 md:px-6">{profileItems}</div>
         </section>
       ) : null}
 
