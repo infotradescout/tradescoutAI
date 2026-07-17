@@ -75,6 +75,7 @@ import {
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
+import { toPublicContractorRecommendations } from "./publicContractorRecommendations";
 import {
   TRADESCOUT_TRANSACTION_FEE_CENTS,
   TRADESCOUT_TRANSACTION_FEE_MODEL,
@@ -213,11 +214,14 @@ import {
 
 function sanitizeContractorPublic<T extends Record<string, any>>(
   contractor: T
-): Omit<T, "phone" | "email"> {
+): Omit<T, "phone" | "email" | "userId" | "businessId" | "insuranceDocUrl"> {
   if (!contractor || typeof contractor !== "object") return contractor as any;
-  const { phone, email, ...rest } = contractor as any;
+  const { phone, email, userId, businessId, insuranceDocUrl, ...rest } = contractor as any;
   void phone;
   void email;
+  void userId;
+  void businessId;
+  void insuranceDocUrl;
   return rest;
 }
 
@@ -9270,9 +9274,14 @@ export async function registerRoutes(app: any) {
         return res.status(404).json({ message: "Contractor not found" });
       }
 
-      // Get recommendations and ratings
-      const recommendations = await storage.getRecommendations(contractor.id);
-      const ratings = await storage.getContractorRatings(contractor.id);
+      // Public profiles may only publish explicitly approved recommendations.
+      // The mapper also removes contact, request, verification, and moderation internals.
+      const recommendationRows = await storage.getRecommendations(contractor.id);
+      const recommendations = toPublicContractorRecommendations(recommendationRows);
+      const ratings = {
+        count: recommendations.length,
+        average: recommendations.length > 0 ? 5 : 0,
+      };
       const ownerUserId = String((contractor as any).userId || "").trim();
       const canonicalBusinessProfile = ownerUserId
         ? await storage.getBusinessProfileByUserId(ownerUserId)
