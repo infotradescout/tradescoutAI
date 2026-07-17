@@ -10,6 +10,11 @@ import { UserBadges } from "@/components/user-badges";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { ShareButton } from "@/components/ShareButton";
+import {
+  buildProfileOfferExchangePath,
+  listProfileOfferImageUrls,
+} from "@shared/profileOfferShare";
 import {
   Dialog,
   DialogContent,
@@ -129,6 +134,7 @@ interface ProfileOfferSummary {
   itemStockQuantity?: number | null;
   metadata?: {
     itemCategory?: string;
+    exchangeCategorySlug?: string;
     taxCategory?: string;
     fulfillmentPolicy?: string;
     returnPolicy?: string;
@@ -1108,8 +1114,15 @@ export default function PublicProfileView() {
                                 : offer.fulfillmentMode === "shipping"
                                   ? "Item plus shipping"
                                   : "Item";
-                            const offerImages =
-                              offer.metadata?.imageUrls || offer.metadata?.images || [];
+                            const offerImages = listProfileOfferImageUrls(offer.metadata);
+                            const offerDetailPath =
+                              offer.offerType === "item"
+                                ? buildProfileOfferExchangePath(
+                                    offer.id,
+                                    offer.metadata?.exchangeCategorySlug ||
+                                      offer.metadata?.itemCategory
+                                  )
+                                : null;
                             return (
                               <div
                                 key={offer.id}
@@ -1178,22 +1191,40 @@ export default function PublicProfileView() {
                                   </div>
                                   <div className="shrink-0 text-right">
                                     <div className="font-bold">{amount}</div>
-                                    <Button
-                                      size="sm"
-                                      className="mt-2"
-                                      onClick={() =>
-                                        offer.offerType === "service"
-                                          ? handlePurchaseProfileOffer(offer)
-                                          : openPurchaseDialog(offer)
-                                      }
-                                      disabled={viewerIsSelf || purchasingOfferId === offer.id}
-                                    >
-                                      {purchasingOfferId === offer.id
-                                        ? "Starting..."
-                                        : offer.offerType === "service"
-                                          ? "Start Job"
-                                          : "Buy"}
-                                    </Button>
+                                    <div className="mt-2 flex flex-wrap justify-end gap-2">
+                                      {offerDetailPath ? (
+                                        <>
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => navigate(offerDetailPath)}
+                                          >
+                                            View
+                                          </Button>
+                                          <ShareButton
+                                            destination={offerDetailPath}
+                                            title={offer.title}
+                                            text={`View ${offer.title} on TradeScout Exchange`}
+                                          />
+                                        </>
+                                      ) : null}
+                                      <Button
+                                        size="sm"
+                                        onClick={() =>
+                                          offer.offerType === "service"
+                                            ? handlePurchaseProfileOffer(offer)
+                                            : openPurchaseDialog(offer)
+                                        }
+                                        disabled={viewerIsSelf || purchasingOfferId === offer.id}
+                                      >
+                                        {purchasingOfferId === offer.id
+                                          ? "Starting..."
+                                          : offer.offerType === "service"
+                                            ? "Start Job"
+                                            : "Buy"}
+                                      </Button>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
