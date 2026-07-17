@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { listProfileGalleryItems } from "@shared/profileGalleryShare";
 
 const profileRecord = {
   id: "profile-jw",
@@ -18,7 +19,7 @@ const profileRecord = {
     customDomain: "jwstonelogistics.com",
   },
   profileBooking: null,
-  contentBlocks: [],
+  contentBlocks: [] as any[],
 };
 
 vi.mock("../storage", () => ({
@@ -59,7 +60,10 @@ const templateHtml = `<!doctype html>
 </html>`;
 
 describe("public profile item HTML", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    profileRecord.contentBlocks = [];
+  });
 
   it("renders product-specific social metadata for the exact shared JW stone photo", async () => {
     const html = await buildPublicProfileHtml({
@@ -101,5 +105,53 @@ describe("public profile item HTML", () => {
     );
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).not.toContain('data-seo-profile-item="inventory"');
+  });
+
+  it("renders image-specific social metadata for an exact shared gallery item", async () => {
+    profileRecord.contentBlocks = [
+      {
+        id: "recent-work",
+        type: "gallery",
+        data: {
+          title: "Recent Work",
+          images: [
+            {
+              id: "blue-stone-patio",
+              url: "/uploads/profiles/blue-stone-patio.jpg",
+              title: "Blue Stone Patio",
+              caption: "A finished local patio installation.",
+              alt: "Finished blue stone patio",
+            },
+          ],
+        },
+      },
+    ];
+    const galleryItem = listProfileGalleryItems(profileRecord.contentBlocks)[0];
+
+    const html = await buildPublicProfileHtml({
+      slug: "jw-stone",
+      origin: "https://jwstonelogistics.com",
+      templateHtml,
+      gallerySlug: galleryItem.slug,
+    });
+
+    expect(html).toContain(
+      'property="og:title" content="Blue Stone Patio by JW Stone LLC | TradeScout"'
+    );
+    expect(html).toContain(
+      'property="og:image" content="https://jwstonelogistics.com/uploads/profiles/blue-stone-patio.jpg"'
+    );
+    expect(html).toContain(
+      `property="og:url" content="https://jwstonelogistics.com/?gallery=${galleryItem.slug}"`
+    );
+    expect(html).toContain('property="og:type" content="article"');
+    expect(html).toContain(
+      `link rel="canonical" href="https://jwstonelogistics.com/?gallery=${galleryItem.slug}"`
+    );
+    expect(html).toContain("Contact stays protected through TradeScout Direct Connect.");
+    expect(html).toContain('data-seo-profile-item="gallery"');
+    expect(html).toContain('"@type":"ImageObject"');
+    expect(html).not.toContain('property="og:image:width"');
+    expect(html).not.toContain('property="og:image:height"');
   });
 });

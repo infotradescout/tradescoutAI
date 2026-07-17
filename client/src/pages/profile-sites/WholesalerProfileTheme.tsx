@@ -27,6 +27,10 @@ import {
   buildProfileInventoryShareSearch,
   resolveProfileInventoryItem,
 } from "@shared/profileItemShare";
+import {
+  buildProfileGalleryShareSearch,
+  listProfileGalleryItems,
+} from "@shared/profileGalleryShare";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -114,6 +118,7 @@ type WholesalerProfileThemeProps = {
   useExpressDirectConnect: boolean;
   allowExpressCall: boolean;
   profileShareDestination: string;
+  sharedGallerySlug?: string | null;
   directConnectHref: string;
   preScoutCreateHref: string;
   preScoutSignInHref: string;
@@ -294,6 +299,7 @@ export default function WholesalerProfileTheme({
   useExpressDirectConnect,
   allowExpressCall,
   profileShareDestination,
+  sharedGallerySlug,
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
@@ -346,16 +352,13 @@ export default function WholesalerProfileTheme({
   const aboutBlock = findBlock(contentBlocks, "about");
   const servicesBlock = findBlock(contentBlocks, "services");
   const faqBlock = findBlock(contentBlocks, "faq");
-  const galleryBlock = findBlock(contentBlocks, "gallery");
   const trustBlock = findBlock(contentBlocks, "trust");
   const differentiatorsBlock = findBlock(contentBlocks, "differentiators");
   const inventoryCatalogBlock = findBlock(contentBlocks, "inventoryCatalog");
 
   const aboutText = blockText(aboutBlock);
   const inventoryItems = blockItems(servicesBlock);
-  const galleryImages: string[] = Array.isArray(galleryBlock?.data?.images)
-    ? galleryBlock.data.images.filter((i: unknown): i is string => typeof i === "string")
-    : [];
+  const galleryItems = listProfileGalleryItems(contentBlocks);
   const faqItems: Array<{ question?: string; answer?: string }> = Array.isArray(
     faqBlock?.data?.faqs
   )
@@ -455,7 +458,7 @@ export default function WholesalerProfileTheme({
   const heroImage =
     (profileSlug === "jw-stone" ? amazonicGreenHeroImage : undefined) ||
     inventoryCatalog.flatMap((c) => c.stones).flatMap((s) => s.images)[0] ||
-    galleryImages[0];
+    galleryItems[0]?.imageUrl;
   const heroEyebrow =
     profileSlug === "jw-stone"
       ? "Amazonic Green · current inventory"
@@ -1612,7 +1615,7 @@ export default function WholesalerProfileTheme({
             </div>
           </div>
         </section>
-      ) : galleryImages.length > 0 ? (
+      ) : galleryItems.length > 0 ? (
         <section id="materials" className="scroll-mt-28 bg-[var(--brand-surface)] py-8 md:py-11">
           <div className="container mx-auto px-4 md:px-6">
             <h2
@@ -1621,14 +1624,39 @@ export default function WholesalerProfileTheme({
               Featured Materials
             </h2>
             <div className={SCROLL_ROW}>
-              {galleryImages.map((url, i) => (
-                <img
-                  key={i}
-                  src={url}
-                  alt={`${displayName} inventory ${i + 1}`}
-                  className={`${SCROLL_CARD} h-64 rounded-xl object-cover shadow-md`}
-                  loading="lazy"
-                />
+              {galleryItems.map((item) => (
+                <article
+                  id={`profile-gallery-${item.slug}`}
+                  key={item.slug}
+                  className={`${SCROLL_CARD} scroll-mt-28 overflow-hidden rounded-xl border bg-white shadow-md transition-shadow ${
+                    item.slug === sharedGallerySlug
+                      ? "border-[var(--brand-accent)] ring-2 ring-[var(--brand-accent)]/40"
+                      : "border-black/10"
+                  }`}
+                >
+                  <img
+                    src={item.imageUrl}
+                    alt={item.imageAlt}
+                    className="h-64 w-full object-cover"
+                    loading="lazy"
+                  />
+                  <div className="space-y-3 p-4">
+                    <div>
+                      <h3 className={`font-bold text-[var(--brand-primary)] ${DISPLAY_FONT}`}>
+                        {item.title}
+                      </h3>
+                      {item.description ? (
+                        <p className="mt-1 text-sm text-[#241d0f]/70">{item.description}</p>
+                      ) : null}
+                    </div>
+                    <ShareButton
+                      destination={`${profileShareDestination}${buildProfileGalleryShareSearch(item.slug)}`}
+                      title={`${item.title} by ${displayName}`}
+                      text={`View ${item.title} from ${displayName} on TradeScout`}
+                      className="border-[var(--brand-primary)]/25 text-[var(--brand-primary)]"
+                    />
+                  </div>
+                </article>
               ))}
             </div>
           </div>

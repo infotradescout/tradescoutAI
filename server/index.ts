@@ -330,6 +330,7 @@ async function renderProfileOnCustomDomain(
     templateHtml,
     itemSlug: req.query.stone,
     itemPhoto: req.query.photo,
+    gallerySlug: req.query.gallery,
   });
   if (!html) return false;
 
@@ -1248,6 +1249,7 @@ app.use(landingContractHeaders);
                     templateHtml,
                     itemSlug: req.query.stone,
                     itemPhoto: req.query.photo,
+                    gallerySlug: req.query.gallery,
                   });
 
                   if (!html) {
