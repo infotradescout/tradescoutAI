@@ -18,6 +18,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ReportContentModal } from "@/components/ReportContentModal";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { ShareButton } from "@/components/ShareButton";
+import { buildHandmadeProductPath } from "@shared/handmadeProductShare";
 
 interface HandmadeProduct {
   id: string;
@@ -115,114 +117,134 @@ export default function HandmadeMarketplace() {
     }).format(parseFloat(price));
   };
 
-  const renderProductCard = (product: HandmadeProduct) => (
-    <Card key={product.id} className="group hover:shadow-lg transition-shadow">
-      <CardHeader className="p-0">
-        <div className="relative aspect-square overflow-hidden rounded-t-lg">
-          {product.primaryImageUrl ? (
-            <img
-              src={product.primaryImageUrl}
-              alt={product.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-            />
-          ) : (
-            <div
-              className="w-full h-full flex items-center justify-center"
-              style={{ backgroundColor: "var(--surface-frame)" }}
+  const renderProductCard = (product: HandmadeProduct) => {
+    const productPath =
+      buildHandmadeProductPath(product.id) ||
+      `/handmade/products/${encodeURIComponent(product.id)}`;
+
+    return (
+      <Card key={product.id} className="group hover:shadow-lg transition-shadow">
+        <CardHeader className="p-0">
+          <div className="relative aspect-square overflow-hidden rounded-t-lg">
+            <Link
+              href={productPath}
+              className="block h-full w-full"
+              aria-label={`View ${product.title}`}
             >
-              <ShoppingBag className="w-16 h-16 text-white/60" />
+              {product.primaryImageUrl ? (
+                <img
+                  src={product.primaryImageUrl}
+                  alt={product.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                />
+              ) : (
+                <div
+                  className="w-full h-full flex items-center justify-center"
+                  style={{ backgroundColor: "var(--surface-frame)" }}
+                >
+                  <ShoppingBag className="w-16 h-16 text-white/60" />
+                </div>
+              )}
+            </Link>
+            {product.featured && (
+              <Badge className="absolute top-2 left-2 bg-blue-500">Featured</Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-2 right-2"
+              style={{ backgroundColor: "var(--surface-frame)" }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleToggleFavorite(product.id);
+              }}
+            >
+              <Heart className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-4">
+          <Link href={productPath}>
+            <h3 className="font-medium text-lg mb-2 hover:text-blue-600 transition-colors line-clamp-2">
+              {product.title}
+            </h3>
+          </Link>
+
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-bold text-xl text-blue-600">{formatPrice(product.price)}</span>
+            {product.compareAtPrice && (
+              <span className="text-sm text-white/60 line-through">
+                {formatPrice(product.compareAtPrice)}
+              </span>
+            )}
+          </div>
+
+          {product.city && product.stateCode && (
+            <div className="flex items-center gap-1 text-sm text-white/60 mb-2">
+              <MapPin className="w-3 h-3" />
+              <span>
+                {product.city}, {product.stateCode}
+              </span>
             </div>
           )}
-          {product.featured && (
-            <Badge className="absolute top-2 left-2 bg-blue-500">Featured</Badge>
+
+          {product.materials && product.materials.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {product.materials.slice(0, 3).map((material) => (
+                <Badge key={material} variant="secondary" className="text-xs">
+                  {material}
+                </Badge>
+              ))}
+              {product.materials.length > 3 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{product.materials.length - 3} more
+                </Badge>
+              )}
+            </div>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-2 right-2"
-            style={{ backgroundColor: "var(--surface-frame)" }}
-            onClick={(e) => {
-              e.preventDefault();
-              handleToggleFavorite(product.id);
-            }}
-          >
-            <Heart className="w-4 h-4" />
+
+          <div className="flex items-center justify-between text-sm text-white/60">
+            <div className="flex items-center gap-1">
+              <Heart className="w-3 h-3" />
+              <span>{product.favoriteCount} favorites</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {product.freeShipping && (
+                <Badge variant="outline" className="text-xs">
+                  Free Shipping
+                </Badge>
+              )}
+              {!product.inStock && (
+                <Badge variant="error" className="text-xs">
+                  Out of Stock
+                </Badge>
+              )}
+            </div>
+          </div>
+        </CardContent>
+
+        <CardFooter className="flex flex-wrap gap-2 pt-0 px-4 pb-4">
+          <Button asChild size="sm" variant="outline">
+            <Link href={productPath}>View</Link>
           </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-4">
-        <Link href={`/handmade/products/${product.id}`}>
-          <h3 className="font-medium text-lg mb-2 hover:text-blue-600 transition-colors line-clamp-2">
-            {product.title}
-          </h3>
-        </Link>
-
-        <div className="flex items-center gap-2 mb-2">
-          <span className="font-bold text-xl text-blue-600">{formatPrice(product.price)}</span>
-          {product.compareAtPrice && (
-            <span className="text-sm text-white/60 line-through">
-              {formatPrice(product.compareAtPrice)}
-            </span>
-          )}
-        </div>
-
-        {product.city && product.stateCode && (
-          <div className="flex items-center gap-1 text-sm text-white/60 mb-2">
-            <MapPin className="w-3 h-3" />
-            <span>
-              {product.city}, {product.stateCode}
-            </span>
-          </div>
-        )}
-
-        {product.materials && product.materials.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
-            {product.materials.slice(0, 3).map((material) => (
-              <Badge key={material} variant="secondary" className="text-xs">
-                {material}
-              </Badge>
-            ))}
-            {product.materials.length > 3 && (
-              <Badge variant="secondary" className="text-xs">
-                +{product.materials.length - 3} more
-              </Badge>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between text-sm text-white/60">
-          <div className="flex items-center gap-1">
-            <Heart className="w-3 h-3" />
-            <span>{product.favoriteCount} favorites</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {product.freeShipping && (
-              <Badge variant="outline" className="text-xs">
-                Free Shipping
-              </Badge>
-            )}
-            {!product.inStock && (
-              <Badge variant="error" className="text-xs">
-                Out of Stock
-              </Badge>
-            )}
-          </div>
-        </div>
-      </CardContent>
-
-      {isAuthenticated && (
-        <CardFooter className="pt-0 px-4 pb-4">
-          <ReportContentModal
-            contentType="handmade_product"
-            contentId={product.id}
-            contentOwnerId={product.sellerId}
-            triggerClassName="ml-auto"
+          <ShareButton
+            destination={productPath}
+            title={product.title}
+            text={`View ${product.title} on TradeScout Handmade`}
           />
+          {isAuthenticated ? (
+            <ReportContentModal
+              contentType="handmade_product"
+              contentId={product.id}
+              contentOwnerId={product.sellerId}
+              triggerClassName="ml-auto"
+            />
+          ) : null}
         </CardFooter>
-      )}
-    </Card>
-  );
+      </Card>
+    );
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">

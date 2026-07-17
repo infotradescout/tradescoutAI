@@ -16,6 +16,10 @@ import {
   listProfileOfferImageUrls,
 } from "@shared/profileOfferShare";
 import {
+  buildHandmadeProductPath,
+  listHandmadeProductImageUrls,
+} from "@shared/handmadeProductShare";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -716,6 +720,57 @@ export default function PublicProfileView() {
     }
   };
 
+  const renderSellerProductSummary = (product: SellerProductSummary) => {
+    const productPath = buildHandmadeProductPath(product.id);
+    if (!productPath) return null;
+    const productImage = listHandmadeProductImageUrls(product)[0];
+
+    return (
+      <div
+        key={product.id}
+        className="rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] p-3"
+      >
+        <div className="flex items-start gap-3">
+          {productImage ? (
+            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-md border border-[color:var(--border-subtle)] bg-black/10">
+              <img
+                src={productImage}
+                alt={product.title}
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          ) : null}
+          <div className="min-w-0 flex-1">
+            <p className="font-medium break-words">{product.title}</p>
+            {(product.city || product.stateCode) && (
+              <p className="mt-1 flex items-center gap-1 text-xs opacity-70">
+                <MapPin className="h-3 w-3" />
+                <span>{[product.city, product.stateCode].filter(Boolean).join(", ")}</span>
+              </p>
+            )}
+            <p className="mt-1 text-sm font-semibold">
+              {new Intl.NumberFormat("en-US", {
+                style: "currency",
+                currency: "USD",
+              }).format(parseFloat(product.price || "0"))}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap justify-end gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={() => navigate(productPath)}>
+            View
+          </Button>
+          <ShareButton
+            destination={productPath}
+            title={product.title}
+            text={`View ${product.title} on TradeScout Handmade`}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-app text-primary py-8">
       <div className="max-w-5xl mx-auto p-4 md:p-6 lg:p-8">
@@ -1084,7 +1139,9 @@ export default function PublicProfileView() {
 
             {/* Services / offerings */}
             {showServices &&
-              (servicesDescription || profileOffers.length > 0 || sellerProducts.length > 0) && (
+              (servicesDescription ||
+                profileOffers.length > 0 ||
+                (!showMarketplaceListings && sellerProducts.length > 0)) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1233,39 +1290,16 @@ export default function PublicProfileView() {
                         </div>
                       )}
 
-                      {sellerProducts.length > 0 && (
+                      {!showMarketplaceListings && sellerProducts.length > 0 && (
                         <>
                           {(servicesDescription || profileOffers.length > 0) && (
                             <p className="text-xs opacity-70 mt-2">
                               Examples from this member&apos;s marketplace listings:
                             </p>
                           )}
-                          {sellerProducts.slice(0, 3).map((product) => (
-                            <div
-                              key={product.id}
-                              className="flex justify-between items-center gap-3"
-                            >
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{product.title}</p>
-                                {(product.city || product.stateCode) && (
-                                  <p className="text-xs opacity-70 truncate flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    <span>
-                                      {[product.city, product.stateCode].filter(Boolean).join(", ")}
-                                    </span>
-                                  </p>
-                                )}
-                              </div>
-                              <div className="ml-2 text-right">
-                                <span className="text-sm font-semibold">
-                                  {new Intl.NumberFormat("en-US", {
-                                    style: "currency",
-                                    currency: "USD",
-                                  }).format(parseFloat(product.price || "0"))}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
+                          <div className="space-y-3">
+                            {sellerProducts.slice(0, 3).map(renderSellerProductSummary)}
+                          </div>
                         </>
                       )}
                     </div>
@@ -1294,6 +1328,9 @@ export default function PublicProfileView() {
                     Listings and availability are managed by the seller through the Handmade
                     Marketplace.
                   </p>
+                  <div className="mt-4 space-y-3">
+                    {sellerProducts.slice(0, 3).map(renderSellerProductSummary)}
+                  </div>
                 </CardContent>
               </Card>
             )}
