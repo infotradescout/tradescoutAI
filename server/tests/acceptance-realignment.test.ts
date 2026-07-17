@@ -95,6 +95,8 @@ if (!hasTestDb) {
         role: "contractor" as any,
         firstName: "Seller",
         lastName: "User",
+        emailVerified: true,
+        addressVerified: true,
       } as any);
 
       await db.insert(marketplaceCategories).values({
@@ -135,12 +137,28 @@ if (!hasTestDb) {
         });
       expect(registerRes.status).toBe(200);
 
+      const decisionScope = `marketplace_listing:${listing.id}`;
+      const decisionCardRes = await agent
+        .post("/api/decision-cards")
+        .set("Content-Type", "application/json")
+        .send({
+          intent: "collaborate",
+          decisionScope,
+          title: "Exchange request",
+          description: "Review a protected request for this listing.",
+        });
+      expect(decisionCardRes.status).toBe(200);
+      expect(decisionCardRes.body?.id).toBeTruthy();
+
       const createConversation = await agent
         .post("/api/marketplace/conversations")
         .set("Content-Type", "application/json")
         .send({
           listingId: listing.id,
           initialMessage: "I want to buy this listing.",
+          authorityGate: "decision_card",
+          sourceDecisionCardId: decisionCardRes.body.id,
+          decisionScope,
         });
 
       expect(createConversation.status).toBe(202);

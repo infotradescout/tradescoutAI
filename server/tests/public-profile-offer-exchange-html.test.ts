@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   query: vi.fn(),
   getMarketplaceListing: vi.fn(),
+  hasExposureAuthority: vi.fn(),
 }));
 
 vi.mock("../db", () => ({
@@ -11,6 +12,10 @@ vi.mock("../db", () => ({
 
 vi.mock("../storage", () => ({
   storage: { getMarketplaceListing: mocks.getMarketplaceListing },
+}));
+
+vi.mock("../services/exposureAuthority", () => ({
+  hasExposureAuthority: mocks.hasExposureAuthority,
 }));
 
 import { buildPublicExchangeListingHtml } from "../publicExchangeListingHtml";
@@ -40,6 +45,7 @@ describe("public profile offer Exchange HTML", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getMarketplaceListing.mockResolvedValue(null);
+    mocks.hasExposureAuthority.mockResolvedValue(true);
   });
 
   it("uses a legacy imageUrls product photo as the exact social preview", async () => {
@@ -47,6 +53,9 @@ describe("public profile offer Exchange HTML", () => {
       rows: [
         {
           id: "offer-123",
+          seller_user_id: "seller-123",
+          is_active: true,
+          offer_type: "item",
           title: "Handmade Walnut Table",
           description: "A locally made solid walnut dining table.",
           price: "1200",

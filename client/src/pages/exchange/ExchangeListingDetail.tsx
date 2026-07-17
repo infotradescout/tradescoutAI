@@ -43,7 +43,6 @@ import {
   XCircle,
   Truck,
   ShieldCheck,
-  MessageSquare,
 } from "lucide-react";
 import { share } from "@/utils/share";
 import { CATEGORY_CONFIGS } from "./categoryConfigs";
@@ -169,7 +168,7 @@ export default function ExchangeListingDetail() {
   const queryClient = useQueryClient();
 
   const [photoIndex, setPhotoIndex] = useState(0);
-  const [contactOpen, setContactOpen] = useState(false);
+  const [decisionOpen, setDecisionOpen] = useState(false);
   const [inquiryMessage, setInquiryMessage] = useState("");
   const [inquiryOffer, setInquiryOffer] = useState("");
 
@@ -232,12 +231,10 @@ export default function ExchangeListingDetail() {
 
   // ── Favorites ──────────────────────────────────────────────────────────────
   const { data: favoriteIds = [] } = useQuery<string[]>({
-    queryKey: ["/api/exchange/favorites"],
+    queryKey: ["/api/marketplace/favorites"],
     enabled: isAuthenticated,
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/exchange/favorites");
-      if (!res.ok) return [];
-      const data = await res.json();
+      const data = await apiRequest("GET", "/api/marketplace/favorites");
       return (data || []).map((f: any) => String(f?.listingId || f?.id || ""));
     },
   });
@@ -245,30 +242,44 @@ export default function ExchangeListingDetail() {
 
   const toggleFavoriteMutation = useMutation({
     mutationFn: async ({ listingId: lid, wasSaved }: { listingId: string; wasSaved: boolean }) => {
-      const res = await apiRequest(
-        wasSaved ? "DELETE" : "POST",
-        `/api/exchange/favorites/${encodeURIComponent(lid)}`
-      );
-      if (!res.ok) throw new Error(await res.text());
+      if (wasSaved) {
+        await apiRequest("DELETE", `/api/marketplace/favorites/${encodeURIComponent(lid)}`);
+      } else {
+        await apiRequest("POST", "/api/marketplace/favorites", { listingId: lid });
+      }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/exchange/favorites"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/marketplace/favorites"] }),
   });
 
   // ── Inquiry ────────────────────────────────────────────────────────────────
   const sendInquiryMutation = useMutation({
     mutationFn: async () => {
       if (!listing) throw new Error("No listing");
-      const res = await apiRequest("POST", `/api/marketplace/inquiries`, {
+      const decisionScope = `marketplace_listing:${listing.id}`;
+      const decision = await apiRequest("POST", "/api/decision-cards", {
+        intent: "collaborate",
+        decisionScope,
+        title: `Exchange inquiry: ${listing.title}`,
+        description: `Review a protected in-platform inquiry about ${listing.title}.`,
+      });
+      const sourceDecisionCardId = String(decision?.id || "").trim();
+      if (!sourceDecisionCardId) throw new Error("Decision Card creation failed");
+
+      await apiRequest("POST", "/api/marketplace/inquiries", {
         listingId: listing.id,
         message: inquiryMessage,
-        offerPrice: inquiryOffer ? Number(inquiryOffer) : undefined,
+        offerAmount: inquiryOffer ? Number(inquiryOffer) : undefined,
+        authorityGate: "decision_card",
+        sourceDecisionCardId,
+        decisionScope,
       });
-      if (!res.ok)
-        throw new Error(formatUserFacingErrorMessage(await res.json(), "Failed to send inquiry"));
     },
     onSuccess: () => {
-      toast({ title: "Inquiry sent", description: "The seller will be notified." });
-      setContactOpen(false);
+      toast({
+        title: "Protected inquiry sent",
+        description: "Your Decision Card now authorizes this in-platform conversation.",
+      });
+      setDecisionOpen(false);
       setInquiryMessage("");
       setInquiryOffer("");
     },
@@ -373,6 +384,7 @@ export default function ExchangeListingDetail() {
         title={`${listing.title} — TradeScout Exchange`}
         description={listing.description.slice(0, 160)}
         canonical={`/exchange/${category}/${listing.id}`}
+        ogImage={photos[0]}
         keywords={[categoryConfig?.name ?? "", listing.brand ?? "", listing.condition]
           .filter(Boolean)
           .join(", ")}
@@ -736,34 +748,49 @@ export default function ExchangeListingDetail() {
                   return;
                 }
                 if (!isAuthenticated) {
-                  navigate("/pre-scout-setup?mode=signin");
+                  const returnTo = `/exchange/${encodeURIComponent(category || "other")}/${encodeURIComponent(listing.id)}`;
+                  navigate(`/pre-scout-setup?mode=signin&next=${encodeURIComponent(returnTo)}`);
                   return;
                 }
-                setContactOpen(true);
+                setDecisionOpen(true);
               }}
             >
-              <MessageSquare className="h-5 w-5 mr-2" />
-              {isProfileOffer ? "Review Purchase on Profile" : "Contact Seller"}
+              <ShieldCheck className="h-5 w-5 mr-2" />
+              {isProfileOffer ? "Review Purchase on Profile" : "Review Protected Connection"}
             </Button>
-            {isProfileOffer && (
+            {isProfileOffer ? (
               <p className="mt-2 text-center text-[11px] text-white/50">
                 Purchase, receipt, shipping, and accounting steps stay in review before anything is
                 posted or fulfilled.
+              </p>
+            ) : (
+              <p className="mt-2 text-center text-[11px] text-white/50">
+                Intent and a Decision Card are required before an in-platform message is sent.
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* ── Contact dialog ── */}
-      <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+      {/* ── Intent and Decision Card gate ── */}
+      <Dialog open={decisionOpen} onOpenChange={setDecisionOpen}>
         <DialogContent className="bg-tsCard border-white/10 text-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Contact Seller</DialogTitle>
+            <DialogTitle className="text-white">Exchange Decision Card</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-ts-orange/30 bg-ts-orange/10 p-3 text-sm text-white/75">
+              <p className="font-medium text-white">Review before connecting</p>
+              <p className="mt-1">
+                You are expressing interest in <strong>{listing.title}</strong>. Confirming creates
+                a durable Decision Card and sends one protected in-platform inquiry. It does not
+                reveal either person&apos;s phone number or email.
+              </p>
+            </div>
             <div>
-              <Label className="text-white/70 text-xs mb-1.5 block">Message</Label>
+              <Label className="text-white/70 text-xs mb-1.5 block">
+                What do you need to know?
+              </Label>
               <Textarea
                 placeholder={`Hi, I'm interested in your ${listing.title}. Is it still available?`}
                 value={inquiryMessage}
@@ -772,7 +799,9 @@ export default function ExchangeListingDetail() {
               />
             </div>
             <div>
-              <Label className="text-white/70 text-xs mb-1.5 block">Make an Offer (optional)</Label>
+              <Label className="text-white/70 text-xs mb-1.5 block">
+                Proposed amount (optional)
+              </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">
                   $
@@ -788,7 +817,11 @@ export default function ExchangeListingDetail() {
             </div>
           </div>
           <DialogFooter className="gap-2">
-            <Button variant="ghost" className="text-white/60" onClick={() => setContactOpen(false)}>
+            <Button
+              variant="ghost"
+              className="text-white/60"
+              onClick={() => setDecisionOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -796,7 +829,7 @@ export default function ExchangeListingDetail() {
               disabled={!inquiryMessage.trim() || sendInquiryMutation.isPending}
               onClick={() => sendInquiryMutation.mutate()}
             >
-              {sendInquiryMutation.isPending ? "Sending…" : "Send Inquiry"}
+              {sendInquiryMutation.isPending ? "Creating Decision Card…" : "Confirm & Send"}
             </Button>
           </DialogFooter>
         </DialogContent>

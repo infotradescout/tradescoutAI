@@ -42,8 +42,24 @@ export function ConversationStarter({
   const [message, setMessage] = useState("");
 
   const startConversationMutation = useMutation({
-    mutationFn: (data: { listingId: string; sellerId: string; initialMessage: string }) =>
-      apiRequest("POST", "/api/marketplace/conversations", data),
+    mutationFn: async (data: { listingId: string; sellerId: string; initialMessage: string }) => {
+      const decisionScope = `marketplace_listing:${data.listingId}`;
+      const decision = await apiRequest("POST", "/api/decision-cards", {
+        intent: "collaborate",
+        decisionScope,
+        title: `Exchange request: ${listing.title}`,
+        description: `Review a protected request about ${listing.title}.`,
+      });
+      const sourceDecisionCardId = String(decision?.id || "").trim();
+      if (!sourceDecisionCardId) throw new Error("Decision Card creation failed");
+
+      return apiRequest("POST", "/api/marketplace/conversations", {
+        ...data,
+        authorityGate: "decision_card",
+        sourceDecisionCardId,
+        decisionScope,
+      });
+    },
     onSuccess: (response) => {
       if (response?.pending) {
         setIsOpen(false);
@@ -119,7 +135,7 @@ export function ConversationStarter({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5" />
-            Request from {sellerName || "Seller"}
+            Exchange Decision Card with {sellerName || "Seller"}
           </DialogTitle>
         </DialogHeader>
 
@@ -175,7 +191,8 @@ export function ConversationStarter({
 
           <div className="text-xs text-white/60 space-y-1">
             <p>- Visibility does not unlock direct contact.</p>
-            <p>- First contact always requires seller approval.</p>
+            <p>- Your Decision Card records this request before it is sent.</p>
+            <p>- First contact still requires seller approval.</p>
             <p>- TradeScout opens chat only after approval.</p>
           </div>
         </div>
