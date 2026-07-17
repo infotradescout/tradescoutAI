@@ -1,6 +1,7 @@
 import { sanitizePublicListingText } from "./publicListingSafety";
 
 const HOME_SCOUT_LISTING_ID_PATTERN = /^[a-z0-9_-]{1,128}$/i;
+const HOME_SCOUT_INSPECTION_REPORT_ID_PATTERN = /^[a-z0-9_-]{1,128}$/i;
 const MAX_PUBLIC_PHOTOS = 16;
 const MAX_PROFILE_LISTINGS = 6;
 
@@ -86,6 +87,21 @@ export function normalizeHomeScoutListingId(value: unknown): string | null {
 export function buildHomeScoutListingPath(value: unknown): string | null {
   const listingId = normalizeHomeScoutListingId(value);
   return listingId ? `/homescout/listings/${encodeURIComponent(listingId)}` : null;
+}
+
+export function buildHomeScoutInspectionRequestDecisionScope(value: unknown): string | null {
+  const listingId = normalizeHomeScoutListingId(value);
+  return listingId ? `homescout_inspection_request:${listingId}` : null;
+}
+
+export function normalizeHomeScoutInspectionReportId(value: unknown): string | null {
+  const reportId = cleanString(Array.isArray(value) ? value[0] : value);
+  return HOME_SCOUT_INSPECTION_REPORT_ID_PATTERN.test(reportId) ? reportId : null;
+}
+
+export function buildHomeScoutInspectionServiceDecisionScope(value: unknown): string | null {
+  const reportId = normalizeHomeScoutInspectionReportId(value);
+  return reportId ? `homescout_inspection_service:${reportId}` : null;
 }
 
 export function listHomeScoutListingPhotoUrls(photosValue: unknown): string[] {

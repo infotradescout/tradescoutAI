@@ -77,6 +77,12 @@ import {
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
+import {
+  buildHomeScoutInspectionRequestDecisionScope,
+  buildHomeScoutInspectionServiceDecisionScope,
+  normalizeHomeScoutInspectionReportId,
+  normalizeHomeScoutListingId,
+} from "../shared/homeScoutListingShare";
 import { toPublicExchangeListing } from "./publicExchangeListing";
 import {
   toPublicHandmadeProduct,
@@ -85,6 +91,18 @@ import {
 } from "./publicHandmadeProduct";
 import { toPublicContractorRecommendations } from "./publicContractorRecommendations";
 import { sanitizePublicCommunityFeedPost, toPublicCommunityPost } from "./publicCommunityPost";
+import {
+  getHomeScoutAuthorityUserId,
+  HOME_SCOUT_REPORT_DOWNLOAD_MAX_BYTES,
+  normalizeHomeScoutReportSourceUrl,
+  toPublicHomeScoutCountyMetric,
+  toPublicHomeScoutInspectionReport,
+  toPublicHomeScoutListing,
+  toPublicHomeScoutListingEvent,
+  toPublicHomeScoutMarketBucket,
+  toPublicHomeScoutPartnerRecommendation,
+  toVisibleHomeScoutInspectionRequest,
+} from "./publicHomeScoutListing";
 import {
   TRADESCOUT_TRANSACTION_FEE_CENTS,
   TRADESCOUT_TRANSACTION_FEE_MODEL,
@@ -220,6 +238,8 @@ import {
   commercialProjects,
   scoutConversations,
   decisionCards,
+  homeScoutInspectionRequests,
+  homeScoutInspectionServiceRequests,
 } from "../shared/schema";
 
 function sanitizeContractorPublic<T extends Record<string, any>>(
@@ -310,17 +330,6 @@ async function attachConnectionRecommendationCounts<T extends { id: string }>(
     ...row,
     connectionRecommendationCount: countByContractorId.get(String(row.id)) ?? 0,
   }));
-}
-
-function sanitizeHomeScoutPublicListing<T extends Record<string, any>>(
-  listing: T
-): Omit<T, "sellerUserId" | "agentUserId" | "contactUserId"> {
-  if (!listing || typeof listing !== "object") return listing as any;
-  const { sellerUserId, agentUserId, contactUserId, ...rest } = listing as any;
-  void sellerUserId;
-  void agentUserId;
-  void contactUserId;
-  return rest;
 }
 
 async function attachLatestTrustSnapshotToUser<T extends Record<string, any> | null | undefined>(
@@ -23010,6 +23019,90 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       })
     : (req: any, _res: any, next: any) => next();
 
+  type HomeScoutListingAccess = {
+    viewerUserId: string | null;
+    isAdminLikeViewer: boolean;
+    isOwnerViewer: boolean;
+    isPublicVisible: boolean;
+    canView: boolean;
+  };
+
+  const resolveHomeScoutListingAccess = async (
+    req: any,
+    listing: any
+  ): Promise<HomeScoutListingAccess> => {
+    const rawViewerUserId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
+    const viewerUserId = rawViewerUserId ? String(rawViewerUserId) : null;
+    const viewer = viewerUserId ? await storage.getUser(viewerUserId) : null;
+    const viewerRole = String((viewer as any)?.role || "");
+    const isAdminLikeViewer = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
+    const isOwnerViewer =
+      Boolean(viewerUserId) &&
+      [listing?.sellerUserId, listing?.agentUserId, listing?.contactUserId].some(
+        (candidate) => String(candidate || "") === viewerUserId
+      );
+    const authorityUserId = getHomeScoutAuthorityUserId(listing);
+    const canBypassPublicGate = isAdminLikeViewer || isOwnerViewer;
+    const isPublicVisible =
+      !canBypassPublicGate &&
+      String(listing?.status || "") === "active" &&
+      Boolean(authorityUserId) &&
+      (await hasExposureAuthority(String(authorityUserId)));
+
+    return {
+      viewerUserId,
+      isAdminLikeViewer,
+      isOwnerViewer,
+      isPublicVisible,
+      canView: canBypassPublicGate || isPublicVisible,
+    };
+  };
+
+  const readHomeScoutDecisionAuthority = (
+    body: any,
+    expectedDecisionScope: string | null
+  ): { sourceDecisionCardId: string; decisionScope: string } | null => {
+    const authorityGate = String(body?.authorityGate || "").trim();
+    const sourceDecisionCardId = String(body?.sourceDecisionCardId || "").trim();
+    const decisionScope = String(body?.decisionScope || "").trim();
+    if (
+      authorityGate !== "decision_card" ||
+      !sourceDecisionCardId ||
+      !expectedDecisionScope ||
+      decisionScope !== expectedDecisionScope
+    ) {
+      return null;
+    }
+    return { sourceDecisionCardId, decisionScope };
+  };
+
+  class HomeScoutDecisionAuthorityError extends Error {}
+
+  const completeHomeScoutDecisionCard = async (args: {
+    tx: any;
+    sourceDecisionCardId: string;
+    userId: string;
+    decisionScope: string;
+  }) => {
+    const now = new Date();
+    const [completedDecision] = await args.tx
+      .update(decisionCards)
+      .set({ status: "completed", decidedAt: now, updatedAt: now })
+      .where(
+        and(
+          eq(decisionCards.id, args.sourceDecisionCardId),
+          eq(decisionCards.userId, args.userId),
+          eq(decisionCards.status, "active"),
+          eq(decisionCards.intent, "hire"),
+          eq(decisionCards.decisionScope, args.decisionScope)
+        )
+      )
+      .returning({ id: decisionCards.id });
+    if (!completedDecision) {
+      throw new HomeScoutDecisionAuthorityError("Invalid or already used Decision Card");
+    }
+  };
+
   app.get("/api/homescout/search", homeScoutSearchLimiter, async (req: any, res: any) => {
     try {
       const {
@@ -23062,7 +23155,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           ).trim();
           return authorityByUserId[authorityUserId] === true;
         })
-        .map((row: any) => sanitizeHomeScoutPublicListing(row as any));
+        .map((row: any) => toPublicHomeScoutListing(row))
+        .filter(Boolean);
 
       res.json(gatedRows);
     } catch (error: any) {
@@ -23106,7 +23200,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           ).trim();
           return authorityByUserId[authorityUserId] === true;
         })
-        .map((row: any) => sanitizeHomeScoutPublicListing(row as any));
+        .map((row: any) => toPublicHomeScoutListing(row))
+        .filter(Boolean);
 
       return res.json(gatedRows);
     } catch (error: any) {
@@ -23117,21 +23212,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.get("/api/homescout/listings/:id", async (req: any, res: any) => {
     try {
-      const { id } = req.params;
-      const listing = await storage.getHomeScoutListing(String(id));
+      const listingId = normalizeHomeScoutListingId(req.params?.id);
+      if (!listingId) return res.status(404).json({ message: "Listing not found" });
+
+      const listing = await storage.getHomeScoutListing(listingId);
       if (!listing) {
         return res.status(404).json({ message: "Listing not found" });
       }
 
-      const viewerUserId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
-      const viewer = viewerUserId ? await storage.getUser(String(viewerUserId)) : null;
-      const viewerRole = String((viewer as any)?.role || "");
-      const isAdminLikeViewer = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
+      const access = await resolveHomeScoutListingAccess(req, listing);
+      if (!access.canView) return res.status(404).json({ message: "Listing not found" });
 
-      const contactUserId =
-        (listing as any).contactUserId ||
-        (listing as any).agentUserId ||
-        (listing as any).sellerUserId;
+      const contactUserId = getHomeScoutAuthorityUserId(listing);
       let canonicalProfileUrl: string | null = null;
       if (contactUserId) {
         const [canonicalProfile] = await db
@@ -23143,35 +23235,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           .limit(1);
         if (canonicalProfile?.slug) {
           canonicalProfileUrl = `/u/${encodeURIComponent(String(canonicalProfile.slug))}`;
-        }
-      }
-      const isOwnerViewer =
-        Boolean(viewerUserId) &&
-        (String(viewerUserId) === String((listing as any).sellerUserId || "") ||
-          String(viewerUserId) === String((listing as any).agentUserId || "") ||
-          String(viewerUserId) === String((listing as any).contactUserId || ""));
-      const canBypassExposureGate = isAdminLikeViewer || isOwnerViewer;
-
-      if (!canBypassExposureGate) {
-        const authorityByUserId = await buildExposureAuthorityMap(
-          contactUserId ? [String(contactUserId)] : []
-        );
-        if (authorityByUserId[String(contactUserId || "").trim()] !== true) {
-          return res.status(404).json({ message: "Listing not found" });
-        }
-      }
-
-      // Only active listings are public. Pending/removed listings are visible only to:
-      // - the seller/agent/contact user
-      // - admins
-      const status = String((listing as any).status || "active");
-      if (status !== "active") {
-        if (!viewerUserId) {
-          return res.status(404).json({ message: "Listing not found" });
-        }
-
-        if (!isAdminLikeViewer && !isOwnerViewer) {
-          return res.status(404).json({ message: "Listing not found" });
         }
       }
 
@@ -23198,9 +23261,21 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         stateCode: stateCodeStr,
         limitPerCategory: 3,
       });
-      const inspectorRecommendations = partnerRecommendations
+      const inspectorCandidates = partnerRecommendations
         .filter((x: any) => String(x?.category || "") === "inspector")
         .slice(0, 3);
+      const inspectorAuthorityByUserId = await buildExposureAuthorityMap(
+        inspectorCandidates
+          .map((candidate: any) => String(candidate?.userId || "").trim())
+          .filter((candidateId: string) => candidateId.length > 0)
+      );
+      const inspectorRecommendations = inspectorCandidates
+        .filter((candidate: any) => {
+          const candidateId = String(candidate?.userId || "").trim();
+          return Boolean(candidateId) && inspectorAuthorityByUserId[candidateId] === true;
+        })
+        .map(toPublicHomeScoutPartnerRecommendation)
+        .filter(Boolean);
 
       const marketBucket =
         (await storage.getHomeScoutMarketBucket({
@@ -23236,7 +23311,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       } as any);
 
       // Authenticated viewers may see their own uploads (even if pending/private/removed).
-      const viewerId = viewerUserId;
+      const viewerId = access.viewerUserId;
       let myInspectionReports: any[] = [];
       let pendingInspectionReports: any[] = [];
       if (viewerId) {
@@ -23248,15 +23323,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             offset: 0,
           } as any);
 
-          const viewer = await storage.getUser(String(viewerId));
-          const viewerRole = String((viewer as any)?.role || "");
-          const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
-          const isOwner =
-            String(viewerId) === String((listing as any).sellerUserId || "") ||
-            String(viewerId) === String((listing as any).agentUserId || "") ||
-            String(viewerId) === String((listing as any).contactUserId || "");
-
-          if (isAdminLike || isOwner) {
+          if (access.isAdminLikeViewer || access.isOwnerViewer) {
             pendingInspectionReports = await storage.listHomeScoutInspectionReports({
               listingId: String((listing as any).id),
               visibility: "public",
@@ -23272,28 +23339,37 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         }
       }
 
-      const openInspectionRequests = await storage.listHomeScoutInspectionRequests({
-        listingId: String((listing as any).id),
-        status: "open",
-        limit: 50,
-        offset: 0,
-      } as any);
+      let openInspectionRequests: any[] = [];
+      if (viewerId) {
+        openInspectionRequests = await storage.listHomeScoutInspectionRequests({
+          listingId: String((listing as any).id),
+          status: "open",
+          requesterUserId:
+            access.isAdminLikeViewer || access.isOwnerViewer ? undefined : String(viewerId),
+          limit: 50,
+          offset: 0,
+        } as any);
+      }
 
-      // Do not bypass privacy: consumers may optionally call /api/users/:userId/public.
-      const sanitizedListing = sanitizeHomeScoutPublicListing(listing as any);
-      res.json({
-        listing: {
-          ...(sanitizedListing as any),
-          canonicalProfileUrl,
-        },
-        events,
-        marketBucket,
-        countyMetrics,
+      const publicListing = toPublicHomeScoutListing(listing, { canonicalProfileUrl });
+      if (!publicListing) return res.status(404).json({ message: "Listing not found" });
+
+      return res.json({
+        listing: publicListing,
+        events: events.map(toPublicHomeScoutListingEvent).filter(Boolean),
+        marketBucket: toPublicHomeScoutMarketBucket(marketBucket),
+        countyMetrics: countyMetrics.map(toPublicHomeScoutCountyMetric).filter(Boolean),
         inspectorRecommendations,
-        inspectionReports,
-        myInspectionReports,
-        pendingInspectionReports,
-        openInspectionRequests,
+        inspectionReports: inspectionReports.map(toPublicHomeScoutInspectionReport).filter(Boolean),
+        myInspectionReports: myInspectionReports
+          .map(toPublicHomeScoutInspectionReport)
+          .filter(Boolean),
+        pendingInspectionReports: pendingInspectionReports
+          .map(toPublicHomeScoutInspectionReport)
+          .filter(Boolean),
+        openInspectionRequests: openInspectionRequests
+          .map(toVisibleHomeScoutInspectionRequest)
+          .filter(Boolean),
       });
     } catch (error: any) {
       console.error("Error fetching HomeScout listing:", error);
@@ -23486,11 +23562,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.get("/api/homescout/listings/:id/inspection-insights", async (req: any, res: any) => {
     try {
-      const listingId = String(req.params.id || "").trim();
-      if (!listingId) return res.status(400).json({ message: "Listing id required" });
+      const listingId = normalizeHomeScoutListingId(req.params?.id);
+      if (!listingId) return res.status(404).json({ message: "Listing not found" });
 
       const listing = await storage.getHomeScoutListing(listingId);
       if (!listing) return res.status(404).json({ message: "Listing not found" });
+      const access = await resolveHomeScoutListingAccess(req, listing);
+      if (!access.canView) return res.status(404).json({ message: "Listing not found" });
 
       // Only published public reports are used for public insights.
       const reports = await storage.listHomeScoutInspectionReports({
@@ -23636,8 +23714,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.get("/api/homescout/inspection-reports/:reportId/download", async (req: any, res: any) => {
     try {
-      const reportId = String(req.params.reportId || "");
-      if (!reportId) return res.status(400).json({ message: "reportId required" });
+      const reportId = normalizeHomeScoutInspectionReportId(req.params?.reportId);
+      if (!reportId) {
+        return res.status(404).json({ message: "Inspection report not found" });
+      }
 
       const report = await storage.getHomeScoutInspectionReport(reportId);
       if (!report) return res.status(404).json({ message: "Inspection report not found" });
@@ -23645,61 +23725,113 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const listing = await storage.getHomeScoutListing(String((report as any).listingId || ""));
       if (!listing) return res.status(404).json({ message: "Listing not found" });
 
+      const access = await resolveHomeScoutListingAccess(req, listing);
+      if (!access.canView) return res.status(404).json({ message: "Listing not found" });
+
       const isPublicReport =
         String((report as any).status || "") === "published" &&
         String((report as any).visibility || "") === "public";
 
       if (!isPublicReport) {
-        const viewerId = (req.user as any)?.claims?.sub || (req.user as any)?.id || null;
+        const viewerId = access.viewerUserId;
         if (!viewerId) return res.status(403).json({ message: "Not allowed" });
 
-        const viewer = await storage.getUser(String(viewerId));
-        const viewerRole = String((viewer as any)?.role || "");
-        const isAdminLike = ["super_admin", "ops_admin", "moderator"].includes(viewerRole);
-        const isOwner =
-          String(viewerId) === String((listing as any).sellerUserId || "") ||
-          String(viewerId) === String((listing as any).agentUserId || "") ||
-          String(viewerId) === String((listing as any).contactUserId || "") ||
+        const isReportSubmitter =
           String(viewerId) === String((report as any).submittedByUserId || "");
-
-        if (!isAdminLike && !isOwner) {
+        if (!access.isAdminLikeViewer && !access.isOwnerViewer && !isReportSubmitter) {
           return res.status(403).json({ message: "Not allowed" });
         }
       }
 
-      const upstreamUrl = String((report as any).reportUrl || "").trim();
-      if (!upstreamUrl || !/^https?:\/\//i.test(upstreamUrl)) {
-        return res.status(400).json({ message: "Invalid report URL" });
+      const reportSourceUrl = normalizeHomeScoutReportSourceUrl((report as any).reportUrl);
+      if (!reportSourceUrl) {
+        return res.status(404).json({ message: "Report file unavailable" });
+      }
+      if (reportSourceUrl.startsWith("/")) {
+        res.setHeader("Cache-Control", "private, max-age=300");
+        return res.redirect(302, reportSourceUrl);
       }
 
-      const upstream = await fetch(upstreamUrl, {
-        headers: { Accept: "application/pdf,application/octet-stream,*/*" },
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      const clearDownloadTimeout = () => clearTimeout(timeout);
+      res.once("finish", clearDownloadTimeout);
+      res.once("close", clearDownloadTimeout);
+      const upstream = await fetch(reportSourceUrl, {
+        headers: {
+          Accept: "application/pdf,image/png,image/jpeg,image/webp,application/octet-stream",
+        },
+        redirect: "manual",
+        signal: controller.signal,
       });
       if (!upstream.ok) {
         return res.status(502).json({ message: "Failed to fetch report file" });
       }
 
+      const declaredLength = Number(upstream.headers.get("content-length") || 0);
+      if (
+        Number.isFinite(declaredLength) &&
+        declaredLength > HOME_SCOUT_REPORT_DOWNLOAD_MAX_BYTES
+      ) {
+        return res.status(413).json({ message: "Report file is too large" });
+      }
+
       const contentType = upstream.headers.get("content-type") || "application/octet-stream";
       const sourcePath = (() => {
         try {
-          return new URL(upstreamUrl).pathname || "";
+          return new URL(reportSourceUrl).pathname || "";
         } catch {
           return "";
         }
       })();
-      const ext = (sourcePath.match(/\.([a-zA-Z0-9]{2,8})$/)?.[1] || "pdf").toLowerCase();
+      const extensionByContentType: Record<string, string> = {
+        "application/pdf": "pdf",
+        "image/png": "png",
+        "image/jpeg": "jpg",
+        "image/webp": "webp",
+      };
+      const normalizedContentType = contentType.split(";")[0].trim().toLowerCase();
+      const ext = (
+        sourcePath.match(/\.([a-zA-Z0-9]{2,8})$/)?.[1] ||
+        extensionByContentType[normalizedContentType] ||
+        "pdf"
+      ).toLowerCase();
       const safeExt = /^[a-z0-9]{2,8}$/.test(ext) ? ext : "pdf";
       const baseName = `homescout-inspection-${reportId}.${safeExt}`;
+
+      if (!upstream.body) {
+        return res.status(502).json({ message: "Failed to fetch report file" });
+      }
+      const reader = upstream.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let byteLength = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (!value) continue;
+        byteLength += value.byteLength;
+        if (byteLength > HOME_SCOUT_REPORT_DOWNLOAD_MAX_BYTES) {
+          await reader.cancel();
+          return res.status(413).json({ message: "Report file is too large" });
+        }
+        chunks.push(value);
+      }
 
       res.setHeader("Content-Type", contentType);
       res.setHeader("Content-Disposition", `attachment; filename="${baseName}"`);
       res.setHeader("Cache-Control", "private, max-age=300");
 
-      const body = Buffer.from(await upstream.arrayBuffer());
+      const body = Buffer.concat(
+        chunks.map((chunk) => Buffer.from(chunk)),
+        byteLength
+      );
       res.setHeader("Content-Length", String(body.byteLength));
       return res.status(200).send(body);
     } catch (error: any) {
       console.error("Error downloading HomeScout inspection report:", error);
+      if (error?.name === "AbortError") {
+        return res.status(504).json({ message: "Report download timed out" });
+      }
       res.status(500).json({ message: "Failed to download inspection report" });
     }
   });
@@ -23713,13 +23845,22 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-        const listingId = String(req.params.id || "");
-        if (!listingId) return res.status(400).json({ message: "Listing id required" });
+        const listingId = normalizeHomeScoutListingId(req.params?.id);
+        if (!listingId) return res.status(404).json({ message: "Listing not found" });
 
         const listing = await storage.getHomeScoutListing(listingId);
         if (!listing) return res.status(404).json({ message: "Listing not found" });
+        const access = await resolveHomeScoutListingAccess(req, listing);
+        if (!access.canView) return res.status(404).json({ message: "Listing not found" });
 
         const body = req.body ?? {};
+        const decisionAuthority = readHomeScoutDecisionAuthority(
+          body,
+          buildHomeScoutInspectionRequestDecisionScope(listingId)
+        );
+        if (!decisionAuthority) {
+          return res.status(403).json({ message: "A valid Decision Card is required" });
+        }
         const requestMessage =
           typeof body.requestMessage === "string" ? body.requestMessage.trim() : "";
         const preferredWindow =
@@ -23732,18 +23873,35 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(400).json({ message: "preferredWindow must be <= 120 characters" });
         }
 
-        const created = await storage.createHomeScoutInspectionRequest({
-          listingId,
-          requesterUserId: String(userId),
-          status: "open" as any,
-          requestMessage,
-          preferredWindow: preferredWindow || null,
-          fulfilledAt: null,
-          cancelledAt: null,
-        } as any);
+        const created = await db.transaction(async (tx) => {
+          await completeHomeScoutDecisionCard({
+            tx,
+            sourceDecisionCardId: decisionAuthority.sourceDecisionCardId,
+            userId: String(userId),
+            decisionScope: decisionAuthority.decisionScope,
+          });
+          const [inspectionRequest] = await tx
+            .insert(homeScoutInspectionRequests)
+            .values({
+              listingId,
+              requesterUserId: String(userId),
+              status: "open" as any,
+              requestMessage,
+              preferredWindow: preferredWindow || null,
+              fulfilledAt: null,
+              cancelledAt: null,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            } as any)
+            .returning();
+          return inspectionRequest;
+        });
 
         res.status(201).json({ id: created.id });
       } catch (error: any) {
+        if (error instanceof HomeScoutDecisionAuthorityError) {
+          return res.status(403).json({ message: "Invalid or already used Decision Card" });
+        }
         console.error("Error creating HomeScout inspection request:", error);
         res.status(500).json({ message: "Failed to create inspection request" });
       }
@@ -23759,18 +23917,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-        const listingId = String(req.params.id || "");
-        if (!listingId) return res.status(400).json({ message: "Listing id required" });
+        const listingId = normalizeHomeScoutListingId(req.params?.id);
+        if (!listingId) return res.status(404).json({ message: "Listing not found" });
 
         const listing = await storage.getHomeScoutListing(listingId);
         if (!listing) return res.status(404).json({ message: "Listing not found" });
+        const access = await resolveHomeScoutListingAccess(req, listing);
+        if (!access.canView) return res.status(404).json({ message: "Listing not found" });
 
         const body = req.body ?? {};
         const reportType =
           typeof body.reportType === "string" && body.reportType.trim()
             ? body.reportType.trim()
             : "other";
-        const reportUrl = typeof body.reportUrl === "string" ? body.reportUrl.trim() : "";
+        const reportUrl = normalizeHomeScoutReportSourceUrl(body.reportUrl);
         const inspectionDate =
           typeof body.inspectionDate === "string" && body.inspectionDate.trim()
             ? body.inspectionDate.trim()
@@ -23801,8 +23961,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         if (!allowedReportTypes.includes(reportType)) {
           return res.status(400).json({ message: "Invalid reportType" });
         }
-        if (!reportUrl || reportUrl.length > 500 || !/^https?:\/\//i.test(reportUrl)) {
-          return res.status(400).json({ message: "reportUrl (http/https) required" });
+        if (!reportUrl) {
+          return res.status(400).json({ message: "A TradeScout report upload is required" });
         }
         if (summary.length > 4000) {
           return res.status(400).json({ message: "summary too long" });
@@ -23815,10 +23975,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           return res.status(400).json({ message: "Inspector fields exceed max length" });
         }
 
-        const isOwner =
-          String(userId) === String((listing as any).sellerUserId || "") ||
-          String(userId) === String((listing as any).agentUserId || "") ||
-          String(userId) === String((listing as any).contactUserId || "");
+        const isOwner = access.isOwnerViewer;
 
         let sourceRequest: any = null;
         if (sourceRequestId) {
@@ -23838,7 +23995,8 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         if (
           sourceRequest &&
           String((sourceRequest as any).requesterUserId) !== String(userId) &&
-          !isOwner
+          !isOwner &&
+          !access.isAdminLikeViewer
         ) {
           return res
             .status(403)
@@ -23885,8 +24043,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-        const reportId = String(req.params.reportId || "");
-        if (!reportId) return res.status(400).json({ message: "reportId required" });
+        const reportId = normalizeHomeScoutInspectionReportId(req.params?.reportId);
+        if (!reportId) {
+          return res.status(404).json({ message: "Inspection report not found" });
+        }
 
         const report = await storage.getHomeScoutInspectionReport(reportId);
         if (!report) return res.status(404).json({ message: "Inspection report not found" });
@@ -23928,8 +24088,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-        const reportId = String(req.params.reportId || "");
-        if (!reportId) return res.status(400).json({ message: "reportId required" });
+        const reportId = normalizeHomeScoutInspectionReportId(req.params?.reportId);
+        if (!reportId) {
+          return res.status(404).json({ message: "Inspection report not found" });
+        }
 
         const report = await storage.getHomeScoutInspectionReport(reportId);
         if (!report) return res.status(404).json({ message: "Inspection report not found" });
@@ -23971,20 +24133,45 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-        const reportId = String(req.params.reportId || "");
-        if (!reportId) return res.status(400).json({ message: "reportId required" });
+        const reportId = normalizeHomeScoutInspectionReportId(req.params?.reportId);
+        if (!reportId) {
+          return res.status(404).json({ message: "Inspection report not found" });
+        }
 
         const report = await storage.getHomeScoutInspectionReport(reportId);
         if (!report) return res.status(404).json({ message: "Inspection report not found" });
 
         const listing = await storage.getHomeScoutListing(String((report as any).listingId || ""));
         if (!listing) return res.status(404).json({ message: "Listing not found" });
+        const access = await resolveHomeScoutListingAccess(req, listing);
+        if (!access.canView) return res.status(404).json({ message: "Listing not found" });
 
         const body = req.body ?? {};
+        const decisionAuthority = readHomeScoutDecisionAuthority(
+          body,
+          buildHomeScoutInspectionServiceDecisionScope(reportId)
+        );
+        if (!decisionAuthority) {
+          return res.status(403).json({ message: "A valid Decision Card is required" });
+        }
         const serviceCategory =
           typeof body.serviceCategory === "string" ? body.serviceCategory.trim() : "";
         const serviceDescription =
           typeof body.serviceDescription === "string" ? body.serviceDescription.trim() : "";
+
+        const isPublicReport =
+          String((report as any).status || "") === "published" &&
+          String((report as any).visibility || "") === "public";
+        const isReportSubmitter =
+          String(access.viewerUserId || "") === String((report as any).submittedByUserId || "");
+        if (
+          !isPublicReport &&
+          !access.isAdminLikeViewer &&
+          !access.isOwnerViewer &&
+          !isReportSubmitter
+        ) {
+          return res.status(403).json({ message: "Not allowed" });
+        }
 
         const allowedCategories = [
           "roofing",
@@ -24011,60 +24198,90 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           });
         }
 
-        const [workRequest] = await db
-          .insert(workRequests)
-          .values({
-            createdByUserId: String(userId),
-            title: `Inspection follow-up: ${serviceCategory.replace(/_/g, " ")}`,
-            description: [
-              `HomeScout listing: ${(listing as any).title || "Property"}`,
-              `Inspection report: ${String((report as any).reportUrl || "")}`,
-              "",
-              serviceDescription,
-            ].join("\n"),
-            category: serviceCategory,
-            countyFips: (listing as any).countyFips || null,
-            stateCode: (listing as any).stateCode || null,
-            scope: "community",
-            source: "scout",
-            sourceRefId: `homescout_report:${reportId}`,
-            status: "open",
-            visibility: "community",
-            exposureMode: "guided",
-            competitionMode: "none",
-          })
-          .returning();
+        const safeServiceDescription = sanitizePublicListingText(serviceDescription, 4000);
+        if (safeServiceDescription.length < 12) {
+          return res.status(400).json({
+            message: "Describe the work without direct contact details",
+          });
+        }
 
-        if (workRequest) {
-          await db.insert(workRequestEvents).values({
-            workRequestId: workRequest.id,
+        const safeListingTitle =
+          sanitizePublicListingText((listing as any).title, 200) || "Property";
+
+        const { created, workRequest } = await db.transaction(async (tx) => {
+          await completeHomeScoutDecisionCard({
+            tx,
+            sourceDecisionCardId: decisionAuthority.sourceDecisionCardId,
+            userId: String(userId),
+            decisionScope: decisionAuthority.decisionScope,
+          });
+
+          const [createdWorkRequest] = await tx
+            .insert(workRequests)
+            .values({
+              createdByUserId: String(userId),
+              title: `Inspection follow-up: ${serviceCategory.replace(/_/g, " ")}`,
+              description: [
+                `HomeScout listing: ${safeListingTitle}`,
+                "Inspection report reviewed through HomeScout.",
+                "",
+                safeServiceDescription,
+              ].join("\n"),
+              category: serviceCategory,
+              countyFips: (listing as any).countyFips || null,
+              stateCode: (listing as any).stateCode || null,
+              scope: "community",
+              source: "scout",
+              sourceRefId: `homescout_report:${reportId}`,
+              status: "open",
+              visibility: "community",
+              exposureMode: "guided",
+              competitionMode: "none",
+            })
+            .returning();
+
+          await tx.insert(workRequestEvents).values({
+            workRequestId: createdWorkRequest.id,
             type: "created",
             actorUserId: String(userId),
             metadata: {
               source: "homescout_inspection_report",
               reportId,
               listingId: (listing as any).id,
+              authorityGate: "decision_card",
+              sourceDecisionCardId: decisionAuthority.sourceDecisionCardId,
+              decisionScope: decisionAuthority.decisionScope,
             },
           });
-        }
 
-        const created = await storage.createHomeScoutInspectionServiceRequest({
-          reportId,
-          listingId: String((listing as any).id),
-          requesterUserId: String(userId),
-          countyFips: String((listing as any).countyFips || ""),
-          stateCode: String((listing as any).stateCode || ""),
-          serviceCategory,
-          serviceDescription,
-          status: "open" as any,
-          workRequestId: workRequest?.id || null,
-        } as any);
+          const [createdServiceRequest] = await tx
+            .insert(homeScoutInspectionServiceRequests)
+            .values({
+              reportId,
+              listingId: String((listing as any).id),
+              requesterUserId: String(userId),
+              countyFips: String((listing as any).countyFips || ""),
+              stateCode: String((listing as any).stateCode || ""),
+              serviceCategory,
+              serviceDescription: safeServiceDescription,
+              status: "open" as any,
+              workRequestId: createdWorkRequest.id,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            } as any)
+            .returning();
+
+          return { created: createdServiceRequest, workRequest: createdWorkRequest };
+        });
 
         res.status(201).json({
           id: created.id,
-          workRequestId: workRequest?.id || null,
+          workRequestId: workRequest.id,
         });
       } catch (error: any) {
+        if (error instanceof HomeScoutDecisionAuthorityError) {
+          return res.status(403).json({ message: "Invalid or already used Decision Card" });
+        }
         console.error("Error creating HomeScout inspection service request:", error);
         res.status(500).json({ message: "Failed to create service request" });
       }
@@ -24080,11 +24297,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const userId = (req.user as any)?.claims?.sub || (req.user as any)?.id;
         if (!userId) return res.status(401).json({ message: "Authentication required" });
 
-        const listingId = String(req.params.id || "");
-        if (!listingId) return res.status(400).json({ message: "Listing id required" });
+        const listingId = normalizeHomeScoutListingId(req.params?.id);
+        if (!listingId) return res.status(404).json({ message: "Listing not found" });
 
         const listing = await storage.getHomeScoutListing(listingId);
         if (!listing) return res.status(404).json({ message: "Listing not found" });
+        const access = await resolveHomeScoutListingAccess(req, listing);
+        if (!access.canView) return res.status(404).json({ message: "Listing not found" });
 
         const body = req.body ?? {};
         const reason = typeof body.reason === "string" ? body.reason.trim() : "";

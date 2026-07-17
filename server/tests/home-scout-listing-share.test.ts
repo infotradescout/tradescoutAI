@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildHomeScoutInspectionRequestDecisionScope,
+  buildHomeScoutInspectionServiceDecisionScope,
   buildHomeScoutListingPath,
   buildPublicHomeScoutListingCards,
   createHomeScoutListingShareMetadata,
@@ -72,5 +74,13 @@ describe("HomeScout listing sharing", () => {
   it("rejects path traversal identifiers", () => {
     expect(buildHomeScoutListingPath("../private-property")).toBeNull();
     expect(buildHomeScoutListingPath("property/123")).toBeNull();
+    expect(buildHomeScoutInspectionRequestDecisionScope("property-123")).toBe(
+      "homescout_inspection_request:property-123"
+    );
+    expect(buildHomeScoutInspectionServiceDecisionScope("report-123")).toBe(
+      "homescout_inspection_service:report-123"
+    );
+    expect(buildHomeScoutInspectionRequestDecisionScope("../private-property")).toBeNull();
+    expect(buildHomeScoutInspectionServiceDecisionScope("report/private")).toBeNull();
   });
 });
