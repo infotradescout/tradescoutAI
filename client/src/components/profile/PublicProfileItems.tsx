@@ -1,4 +1,5 @@
 import {
+  BadgePercent,
   BriefcaseBusiness,
   House,
   MapPin,
@@ -24,6 +25,7 @@ import {
 } from "@shared/profileOfferShare";
 import type { PublicBusinessListingCard } from "@shared/publicBusinessListing";
 import type { PublicHomeScoutListingCard } from "@shared/homeScoutListingShare";
+import type { PublicContractorPromoCard } from "@shared/contractorPromoShare";
 
 export type CanonicalProfileOfferItem = {
   id: string;
@@ -67,6 +69,7 @@ export type CanonicalProfileItems = {
   handmadeProducts?: CanonicalHandmadeProductItem[];
   marketplaceListings?: PublicBusinessListingCard[];
   homeScoutListings?: PublicHomeScoutListingCard[];
+  contractorPromos?: PublicContractorPromoCard[];
   communityPosts?: CanonicalCommunityPostItem[];
 };
 
@@ -101,6 +104,7 @@ export function PublicProfileItems({
     ? items.marketplaceListings
     : [];
   const homeScoutListings = Array.isArray(items?.homeScoutListings) ? items.homeScoutListings : [];
+  const contractorPromos = Array.isArray(items?.contractorPromos) ? items.contractorPromos : [];
   const communityPosts = Array.isArray(items?.communityPosts) ? items.communityPosts : [];
   const visibleOffers = offers.filter((offer) =>
     offer.offerType === "service"
@@ -114,18 +118,79 @@ export function PublicProfileItems({
     profileSections?.marketplaceListings !== false && marketplaceListings.length > 0;
   const showHomeScoutListings =
     profileSections?.marketplaceListings !== false && homeScoutListings.length > 0;
+  const showContractorPromos = profileSections?.services !== false && contractorPromos.length > 0;
   const showPosts = profileSections?.communityActivity !== false && communityPosts.length > 0;
   if (
     !showOffers &&
     !showProducts &&
     !showMarketplaceListings &&
     !showHomeScoutListings &&
+    !showContractorPromos &&
     !showPosts
   )
     return null;
 
   return (
     <div className={`space-y-6 ${className}`.trim()} data-testid="canonical-profile-items">
+      {showContractorPromos ? (
+        <Card className="border-white/10 bg-tsCard">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <BadgePercent className="h-5 w-5 text-ts-orange" />
+              Promotions
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            {contractorPromos.slice(0, 6).map((promo) => (
+              <article
+                key={promo.slug}
+                className="overflow-hidden rounded-xl border border-white/10 bg-black/20"
+              >
+                {promo.imageUrl ? (
+                  <img
+                    src={promo.imageUrl}
+                    alt={promo.title}
+                    className="aspect-[16/9] w-full object-cover"
+                    loading="lazy"
+                  />
+                ) : null}
+                <div className="space-y-3 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-white break-words">{promo.title}</h3>
+                      {promo.description ? (
+                        <p className="mt-1 line-clamp-2 text-sm text-white/70">
+                          {promo.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <Badge variant="outline" className="shrink-0 border-white/20 text-white/80">
+                      {promo.discountLabel}
+                    </Badge>
+                  </div>
+                  {promo.expiresAt ? (
+                    <p className="text-xs text-white/55">
+                      Valid through {new Date(promo.expiresAt).toLocaleDateString()}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild size="sm" variant="outline">
+                      <Link href={promo.detailPath}>View</Link>
+                    </Button>
+                    <ShareButton
+                      destination={promo.detailPath}
+                      title={promo.title}
+                      text={`View ${promo.title} and continue through TradeScout Direct Connect`}
+                      className="border-white/20 text-white"
+                    />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
+
       {showOffers ? (
         <Card className="border-white/10 bg-tsCard">
           <CardHeader>

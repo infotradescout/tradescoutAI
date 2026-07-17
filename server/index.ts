@@ -75,6 +75,7 @@ import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
 import { buildPublicProfileServiceOfferHtml } from "./publicProfileServiceOfferHtml";
 import { buildPublicHomeScoutListingHtml } from "./publicHomeScoutListingHtml";
+import { buildPublicContractorPromoHtml } from "./publicContractorPromoHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
@@ -1882,6 +1883,40 @@ app.use(landingContractHeaders);
                 } catch (err) {
                   console.error("Error rendering shared work request HTML:", err);
                   res.status(500).send("Failed to render shared request");
+                }
+              });
+
+              // Contractor promotions: exact promo image (or provider work-photo fallback)
+              // with protected Direct Connect metadata.
+              app.get("/promo/:slug", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) return res.status(404).send("Application files not found");
+
+                  const html = await buildPublicContractorPromoHtml({
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                    slug: String(req.params.slug || ""),
+                  });
+
+                  if (!html) {
+                    res.setHeader("Cache-Control", "no-store");
+                    return res.sendFile(indexPath);
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=3600"
+                  );
+                  res.type("html").send(html);
+                } catch (err) {
+                  console.error("Error rendering contractor promotion page:", err);
+                  try {
+                    res.sendFile(path.join(publicDistPath, "index.html"));
+                  } catch {
+                    res.status(500).send("Failed to render contractor promotion page");
+                  }
                 }
               });
 

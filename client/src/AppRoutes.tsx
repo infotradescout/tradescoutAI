@@ -269,6 +269,7 @@ const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
 const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-dashboard"));
 const ContractorPromos = React.lazy(() => import("./pages/contractor-promos"));
+const ContractorPromoDetail = React.lazy(() => import("./pages/contractor-promo-detail"));
 
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
@@ -1021,6 +1022,9 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/contractor-promos">
                 <LazyPage Component={ContractorPromos} />
+              </Route>
+              <Route path="/promo/:slug">
+                <LazyPage Component={ContractorPromoDetail} />
               </Route>
 
               {/* Marketplace routes */}
