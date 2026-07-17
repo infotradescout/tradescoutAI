@@ -33,7 +33,9 @@ describe("Handmade product sharing contract", () => {
     const serverRoutes = read("server/routes.ts");
     const detailPage = read("client/src/pages/handmade-product-detail.tsx");
 
-    expect(serverRoutes).toContain('!product || product.status !== "active"');
+    expect(serverRoutes).toContain("buildAuthorizedPublicHandmadeProducts");
+    expect(serverRoutes).toContain("toPublicHandmadeProduct");
+    expect(serverRoutes).toContain("hasExposureAuthority");
     expect(serverRoutes).toContain("getHandmadeProducts({ sellerId: userId, limit: 100 })");
     expect(detailPage).toContain("Sharing this item does not expose");
     expect(detailPage).toContain("protected request path");

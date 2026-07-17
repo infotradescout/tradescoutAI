@@ -5,6 +5,8 @@ import {
   normalizeHandmadeProductId,
 } from "@shared/handmadeProductShare";
 import { storage } from "./storage";
+import { hasExposureAuthority } from "./services/exposureAuthority";
+import { toPublicHandmadeProduct } from "./publicHandmadeProduct";
 
 function escapeHtml(value: string): string {
   return String(value || "")
@@ -58,7 +60,8 @@ export async function buildPublicHandmadeProductHtml(
   } catch {
     return null;
   }
-  if (!product || product.status !== "active") return null;
+  product = toPublicHandmadeProduct(product);
+  if (!product || !(await hasExposureAuthority(String(product.sellerId || "")))) return null;
 
   const productPath = buildHandmadeProductPath(product.id);
   if (!productPath) return null;
@@ -70,7 +73,7 @@ export async function buildPublicHandmadeProductHtml(
     .slice(0, 100);
   const title = formatTradeScoutTitle(`${itemTitle} | Handmade`);
   const description = cleanDescription(
-    product.seoDescription || product.description,
+    product.description,
     `${itemTitle}, offered by a local maker on TradeScout Handmade.`
   );
   const imageUrl =
