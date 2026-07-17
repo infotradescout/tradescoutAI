@@ -109,8 +109,28 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain(
       "<LocalCommandCenter snapshot={localCommandSnapshot} onPromptSelect={onPromptSelect} />"
     );
-    expect(source).toContain("HomeID reminders before contact opens.");
+    expect(source).toContain("You review before anything is shared.");
     expect(source).not.toContain("Ask Scout to");
+  });
+
+  it("keeps the first Scout choice clear while preserving deeper tools", () => {
+    const homeSource = read("client/src/scout/ScoutHome.tsx");
+    const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+
+    expect(homeSource).toContain("What should we solve?");
+    expect(homeSource).toContain("Find local help");
+    expect(homeSource).toContain("Check a price");
+    expect(homeSource).toContain("Start a request");
+    expect(homeSource).toContain("See nearby activity");
+    expect(homeSource).toContain('title="Your activity"');
+    expect(homeSource).toContain('title="More ways Scout can help"');
+    expect(homeSource).toContain("function ProgressiveSection");
+    expect(homeSource).toContain("<details");
+    expect(homeSource).toContain("<ExploreGrid onPromptSelect={onPromptSelect} />");
+    expect(scoutOsSource).toContain("Fine-tune your search");
+    expect(scoutOsSource).toContain("Optional filters, sources, and timing");
+    expect(scoutOsSource).toContain('<details className="scout-v2-rail-card group">');
+    expect(scoutOsSource).toContain("Review before contact");
   });
 
   it("scopes nearby rows to user interests and dedupes by category and title", () => {
