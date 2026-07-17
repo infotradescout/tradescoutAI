@@ -23,6 +23,12 @@ import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileT
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
+import {
+  buildProfileGalleryShareSearch,
+  createProfileGalleryItemShareMetadata,
+  listProfileGalleryItems,
+  resolveProfileGalleryItem,
+} from "@shared/profileGalleryShare";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -129,7 +135,7 @@ export default function ProfileSiteView() {
   const { user, isAuthenticated } = useAuth();
   const [, paramsU] = useRoute("/u/:slug");
   const [matchP, paramsP] = useRoute("/p/:slug");
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   // Custom-domain root has no /u/:slug in the path at all -- the server
   // tells us the slug directly via this injected global (see
   // injectCustomDomainProfileSlug in server/publicProfileHtml.ts).
@@ -197,6 +203,24 @@ export default function ProfileSiteView() {
 
     run();
   }, [slug, matchP, navigate]);
+
+  useEffect(() => {
+    if (!data || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stone")) return;
+    const sharedGalleryItem = resolveProfileGalleryItem(
+      data.profile.contentBlocks,
+      params.get("gallery")
+    );
+    if (!sharedGalleryItem) return;
+
+    window.requestAnimationFrame(() => {
+      document.getElementById(`profile-gallery-${sharedGalleryItem.slug}`)?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "center",
+      });
+    });
+  }, [data, location]);
 
   if (loading) {
     return (
@@ -285,9 +309,10 @@ export default function ProfileSiteView() {
   const inventoryCategories = (
     contentBlocks.find((block: any) => block?.type === "inventoryCatalog") as any
   )?.data?.categories;
+  const galleryItems = listProfileGalleryItems(contentBlocks);
   const itemShareParams =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-  const itemShareMeta = createProfileInventoryItemShareMetadata({
+  const inventoryItemShareMeta = createProfileInventoryItemShareMetadata({
     profileName: displayName,
     profileUrl: profileCanonicalBase,
     assetOrigin: typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin(),
@@ -295,6 +320,18 @@ export default function ProfileSiteView() {
     itemSlug: itemShareParams?.get("stone"),
     photo: itemShareParams?.get("photo"),
   });
+  const galleryItemShareMeta = createProfileGalleryItemShareMetadata({
+    profileName: displayName,
+    profileUrl: profileCanonicalBase,
+    assetOrigin: typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin(),
+    contentBlocks,
+    itemSlug: itemShareParams?.get("gallery"),
+  });
+  // Existing inventory links win if a malformed URL supplies both selectors.
+  const itemShareMeta = inventoryItemShareMeta || galleryItemShareMeta;
+  const sharedGallerySlug = inventoryItemShareMeta ? null : galleryItemShareMeta?.itemSlug || null;
+  const featuredGalleryItem =
+    galleryItems.find((item) => item.slug === sharedGallerySlug) || galleryItems[0];
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const profileSeoTitle =
     typeof profile.seoMeta?.title === "string" && profile.seoMeta.title.trim().length > 0
@@ -323,7 +360,7 @@ export default function ProfileSiteView() {
     ...(business?.categories?.length ? { category: business.categories.slice(0, 6) } : {}),
     ...(business?.serviceAreas?.length ? { areaServed: business.serviceAreas.slice(0, 10) } : {}),
   };
-  const structuredData = itemShareMeta
+  const structuredData = inventoryItemShareMeta
     ? {
         "@context": "https://schema.org",
         "@graph": [
@@ -332,17 +369,35 @@ export default function ProfileSiteView() {
           ),
           {
             "@type": "Product",
-            "@id": `${itemShareMeta.canonical}#product`,
-            name: itemShareMeta.itemName,
-            description: itemShareMeta.description,
-            image: [itemShareMeta.imageUrl],
-            category: itemShareMeta.category || undefined,
-            url: itemShareMeta.canonical,
+            "@id": `${inventoryItemShareMeta.canonical}#product`,
+            name: inventoryItemShareMeta.itemName,
+            description: inventoryItemShareMeta.description,
+            image: [inventoryItemShareMeta.imageUrl],
+            category: inventoryItemShareMeta.category || undefined,
+            url: inventoryItemShareMeta.canonical,
             brand: { "@type": "Organization", name: displayName },
           },
         ],
       }
-    : profileStructuredData;
+    : galleryItemShareMeta
+      ? {
+          "@context": "https://schema.org",
+          "@graph": [
+            Object.fromEntries(
+              Object.entries(profileStructuredData).filter(([key]) => key !== "@context")
+            ),
+            {
+              "@type": "ImageObject",
+              "@id": `${galleryItemShareMeta.canonical}#image`,
+              name: galleryItemShareMeta.itemTitle,
+              description: galleryItemShareMeta.description,
+              contentUrl: galleryItemShareMeta.imageUrl,
+              url: galleryItemShareMeta.canonical,
+              creator: { "@type": "Organization", name: displayName },
+            },
+          ],
+        }
+      : profileStructuredData;
   const normalizedViewerRole = String((user as any)?.role || "")
     .trim()
     .toLowerCase();
@@ -426,7 +481,9 @@ export default function ProfileSiteView() {
   } category placeholder illustration`;
   const customBlocks = contentBlocks
     .filter((block) => block && typeof block === "object")
-    .filter((block: any) => !["about", "hero", "services", "cta"].includes(String(block?.type)))
+    .filter(
+      (block: any) => !["about", "hero", "services", "cta", "gallery"].includes(String(block?.type))
+    )
     .slice(0, 4)
     .map((block: any) => {
       const data = block?.data && typeof block.data === "object" ? block.data : {};
@@ -455,7 +512,7 @@ export default function ProfileSiteView() {
           title={seoTitle}
           description={seoDescription}
           canonical={seoCanonical}
-          ogType={itemShareMeta ? "product" : "profile"}
+          ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
@@ -485,7 +542,7 @@ export default function ProfileSiteView() {
           title={seoTitle}
           description={seoDescription}
           canonical={seoCanonical}
-          ogType={itemShareMeta ? "product" : "profile"}
+          ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
           ogImage={seoImage}
           structuredData={structuredData}
           preserveCanonicalQuery={Boolean(itemShareMeta)}
@@ -504,6 +561,7 @@ export default function ProfileSiteView() {
           useExpressDirectConnect={useExpressDirectConnect}
           allowExpressCall={canExpressCall}
           profileShareDestination={profileShareDestination}
+          sharedGallerySlug={sharedGallerySlug}
           directConnectHref={directConnectHref}
           preScoutCreateHref={preScoutCreateHref}
           preScoutSignInHref={preScoutSignInHref}
@@ -520,7 +578,7 @@ export default function ProfileSiteView() {
         title={seoTitle}
         description={seoDescription}
         canonical={seoCanonical}
-        ogType={itemShareMeta ? "product" : "profile"}
+        ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
         ogImage={seoImage}
         structuredData={structuredData}
         preserveCanonicalQuery={Boolean(itemShareMeta)}
@@ -540,9 +598,11 @@ export default function ProfileSiteView() {
               <CardTitle className="text-white text-3xl md:text-4xl">{displayName}</CardTitle>
               <div className="inline-flex items-center gap-3 rounded-md border border-white/10 bg-black/20 px-3 py-2">
                 <img
-                  src={profilePlaceholderSrc}
-                  alt={profilePlaceholderAlt}
-                  className="h-10 w-10 rounded bg-white/10 p-1"
+                  src={featuredGalleryItem?.imageUrl || profilePlaceholderSrc}
+                  alt={featuredGalleryItem?.imageAlt || profilePlaceholderAlt}
+                  className={`h-12 w-16 rounded bg-white/10 ${
+                    featuredGalleryItem ? "object-cover" : "p-1 object-contain"
+                  }`}
                   loading="lazy"
                   onError={(event) => {
                     event.currentTarget.src =
@@ -550,7 +610,11 @@ export default function ProfileSiteView() {
                   }}
                 />
                 <div className="text-xs text-white/70">
-                  Placeholder image shown until this profile adds real media.
+                  {featuredGalleryItem
+                    ? sharedGallerySlug
+                      ? "Shared work from this profile"
+                      : "Featured work from this profile"
+                    : "Placeholder image shown until this profile adds real media."}
                 </div>
               </div>
               {profileSections.about !== false ? (
@@ -700,6 +764,61 @@ export default function ProfileSiteView() {
                         )}
                       </div>
                     ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {galleryItems.length > 0 ? (
+                <section className="space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="text-white font-semibold text-lg">Work &amp; Gallery</h2>
+                    <p className="text-xs text-white/60">Share any image directly</p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {galleryItems.map((item) => {
+                      const isSharedItem = item.slug === sharedGallerySlug;
+                      return (
+                        <article
+                          id={`profile-gallery-${item.slug}`}
+                          key={item.slug}
+                          className={`scroll-mt-24 overflow-hidden rounded-xl border bg-black/20 transition-shadow ${
+                            isSharedItem
+                              ? "border-ts-orange ring-2 ring-ts-orange/40 shadow-lg"
+                              : "border-white/10"
+                          }`}
+                        >
+                          <img
+                            src={item.imageUrl}
+                            alt={item.imageAlt}
+                            className="aspect-[4/3] w-full object-cover"
+                            loading="lazy"
+                          />
+                          <div className="space-y-3 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <h3 className="font-medium text-white">{item.title}</h3>
+                                {item.description ? (
+                                  <p className="mt-1 text-sm leading-relaxed text-white/70">
+                                    {item.description}
+                                  </p>
+                                ) : null}
+                              </div>
+                              {isSharedItem ? (
+                                <Badge className="shrink-0 bg-ts-orange text-white">
+                                  Shared image
+                                </Badge>
+                              ) : null}
+                            </div>
+                            <ShareButton
+                              destination={`${profileShareDestination}${buildProfileGalleryShareSearch(item.slug)}`}
+                              title={`${item.title} by ${displayName}`}
+                              text={`View ${item.title} from ${displayName} on TradeScout`}
+                              className="border-white/20 text-white"
+                            />
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 </section>
               ) : null}

@@ -1,7 +1,9 @@
 import { storage } from "./storage";
 import { formatTradeScoutTitle } from "@shared/brand";
 import { resolveProfileItemShareMetadata } from "./profileItemShareMetadata";
+import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 import type { ProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
+import type { ProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -19,7 +21,12 @@ type PublicProfileHtmlOptions = {
   templateHtml: string;
   itemSlug?: unknown;
   itemPhoto?: unknown;
+  gallerySlug?: unknown;
 };
+
+type PublicProfileItemShareMetadata =
+  | ProfileInventoryItemShareMetadata
+  | ProfileGalleryItemShareMetadata;
 
 type PublicProfileData = {
   profile: {
@@ -153,7 +160,7 @@ function resolveProfileUrl(profile: PublicProfileData, origin: string): string {
 
 function withProfileItemJsonLd(
   baseJsonLd: Record<string, any>,
-  itemShare: ProfileInventoryItemShareMetadata | null,
+  itemShare: PublicProfileItemShareMetadata | null,
   displayName: string
 ) {
   if (!itemShare) return baseJsonLd;
@@ -162,31 +169,44 @@ function withProfileItemJsonLd(
     ? baseJsonLd["@graph"]
     : [Object.fromEntries(Object.entries(baseJsonLd).filter(([key]) => key !== "@context"))];
 
+  const itemJsonLd =
+    itemShare.itemType === "inventory"
+      ? {
+          "@type": "Product",
+          "@id": `${itemShare.canonical}#product`,
+          name: itemShare.itemName,
+          description: itemShare.description,
+          image: [itemShare.imageUrl],
+          category: itemShare.category || undefined,
+          url: itemShare.canonical,
+          brand: {
+            "@type": "Organization",
+            name: displayName,
+          },
+        }
+      : {
+          "@type": "ImageObject",
+          "@id": `${itemShare.canonical}#image`,
+          name: itemShare.itemTitle,
+          description: itemShare.description,
+          contentUrl: itemShare.imageUrl,
+          url: itemShare.canonical,
+          creator: {
+            "@type": "Organization",
+            name: displayName,
+          },
+        };
+
   return {
     "@context": "https://schema.org",
-    "@graph": [
-      ...baseGraph,
-      {
-        "@type": "Product",
-        "@id": `${itemShare.canonical}#product`,
-        name: itemShare.itemName,
-        description: itemShare.description,
-        image: [itemShare.imageUrl],
-        category: itemShare.category || undefined,
-        url: itemShare.canonical,
-        brand: {
-          "@type": "Organization",
-          name: displayName,
-        },
-      },
-    ],
+    "@graph": [...baseGraph, itemJsonLd],
   };
 }
 
 function buildJsonLd(
   profile: PublicProfileData,
   origin: string,
-  itemShare: ProfileInventoryItemShareMetadata | null
+  itemShare: PublicProfileItemShareMetadata | null
 ) {
   const profileUrl = resolveProfileUrl(profile, origin);
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
@@ -255,7 +275,7 @@ function buildJsonLd(
 function buildMeta(
   profile: PublicProfileData,
   origin: string,
-  itemShare: ProfileInventoryItemShareMetadata | null
+  itemShare: PublicProfileItemShareMetadata | null
 ) {
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
   const title = formatTradeScoutTitle(
@@ -274,9 +294,15 @@ function buildMeta(
     itemShare?.imageUrl || profileImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
   const faviconUrl = profile.profile.seoMeta?.faviconUrl || profileImageUrl;
   const canonical = itemShare?.canonical || resolveProfileUrl(profile, origin);
+  const itemName =
+    itemShare?.itemType === "inventory"
+      ? itemShare.itemName
+      : itemShare?.itemType === "gallery"
+        ? itemShare.itemTitle
+        : "";
   const keywords = [
-    itemShare?.itemName || "",
-    itemShare?.category || "",
+    itemName,
+    itemShare?.itemType === "inventory" ? itemShare.category || "" : "",
     displayName,
     profile.profile.roleContext || "",
     ...(profile.business?.categories || []),
@@ -307,7 +333,12 @@ function buildMeta(
     faviconUrl,
     canonical,
     keywords,
-    ogType: itemShare ? "product" : "profile",
+    ogType:
+      itemShare?.itemType === "inventory"
+        ? "product"
+        : itemShare?.itemType === "gallery"
+          ? "article"
+          : "profile",
   };
 }
 
@@ -317,6 +348,7 @@ export async function buildPublicProfileHtml({
   templateHtml,
   itemSlug,
   itemPhoto,
+  gallerySlug,
 }: PublicProfileHtmlOptions): Promise<string | null> {
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
@@ -355,7 +387,7 @@ export async function buildPublicProfileHtml({
   };
 
   const displayName = data.business?.name?.trim() || data.profile.displayName;
-  const itemShare = resolveProfileItemShareMetadata({
+  const inventoryItemShare = resolveProfileItemShareMetadata({
     profileSlug: data.profile.slug,
     profileName: displayName,
     profileUrl: resolveProfileUrl(data, origin),
@@ -364,6 +396,16 @@ export async function buildPublicProfileHtml({
     itemSlug,
     photo: itemPhoto,
   });
+  const galleryItemShare = createProfileGalleryItemShareMetadata({
+    profileName: displayName,
+    profileUrl: resolveProfileUrl(data, origin),
+    assetOrigin: origin,
+    contentBlocks: data.profile.contentBlocks,
+    itemSlug: gallerySlug,
+  });
+  // Existing inventory links win if conflicting query parameters are supplied.
+  // Normal profile links carry only one item selector.
+  const itemShare = inventoryItemShare || galleryItemShare;
   const meta = buildMeta(data, origin, itemShare);
   const jsonLd = buildJsonLd(data, origin, itemShare);
 
@@ -513,8 +555,10 @@ export async function buildPublicProfileHtml({
   const categoriesSummary = (businessRecord?.categories || []).slice(0, 6).join(", ");
   const areasSummary = (businessRecord?.serviceAreas || []).slice(0, 8).join(", ");
   const itemSummary = itemShare
-    ? `<section data-seo-profile-item="inventory">
-      <h2>${escapeHtml(itemShare.itemName)}</h2>
+    ? `<section data-seo-profile-item="${itemShare.itemType}">
+      <h2>${escapeHtml(
+        itemShare.itemType === "inventory" ? itemShare.itemName : itemShare.itemTitle
+      )}</h2>
       <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(itemShare.imageAlt)}" />
       <p>${escapeHtml(itemShare.description)}</p>
     </section>`

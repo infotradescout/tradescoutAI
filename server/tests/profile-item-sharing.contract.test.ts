@@ -11,6 +11,7 @@ describe("profile item sharing contract", () => {
 
     expect(serverEntry).toContain("itemSlug: req.query.stone");
     expect(serverEntry).toContain("itemPhoto: req.query.photo");
+    expect(serverEntry).toContain("gallerySlug: req.query.gallery");
     expect(serverEntry).toContain("requestSearchSuffix(req)");
     expect(serverEntry).toContain("`https://${customDomain}/${requestSearchSuffix(req)}`");
   });
@@ -22,7 +23,7 @@ describe("profile item sharing contract", () => {
     expect(helmet).toContain("preserveCanonicalQuery");
     expect(helmet).toContain("if (!preserveSearch) parsed.search");
     expect(profileView).toContain("preserveCanonicalQuery={Boolean(itemShareMeta)}");
-    expect(profileView).toContain('ogType={itemShareMeta ? "product" : "profile"}');
+    expect(profileView).toContain('galleryItemShareMeta ? "article" : "profile"');
   });
 
   it("shares and reopens the exact selected inventory photo", () => {
@@ -32,6 +33,24 @@ describe("profile item sharing contract", () => {
     expect(theme).toContain("openImageIndex");
     expect(theme).toContain('params.get("photo")');
     expect(theme).toContain("setOpenImageIndex(sharedItem.imageIndex)");
+  });
+
+  it("shares exact profile gallery images with their own preview and visible destination", () => {
+    const serverEntry = read("server/index.ts");
+    const profileHtml = read("server/publicProfileHtml.ts");
+    const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+
+    expect(serverEntry).toContain("gallerySlug: req.query.gallery");
+    expect(profileHtml).toContain("createProfileGalleryItemShareMetadata");
+    expect(profileHtml).toContain('data-seo-profile-item="${itemShare.itemType}"');
+    expect(profileHtml).toContain('"@type": "ImageObject"');
+    expect(profileView).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(profileView).toContain("profile-gallery-${item.slug}");
+    expect(profileView).toContain("sharedGallerySlug={sharedGallerySlug}");
+    expect(theme).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(theme).toContain("profile-gallery-${item.slug}");
+    expect(theme).toContain("<ShareButton");
   });
 
   it("gives icon-only share actions an accessible name", () => {
