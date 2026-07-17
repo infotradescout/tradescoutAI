@@ -78,6 +78,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
+import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -1279,6 +1280,7 @@ app.use(landingContractHeaders);
 
                   const origin = resolvePublicOrigin(req);
                   const slug = String(req.params.slug || "");
+                  const gallerySlug = normalizeProfileGalleryItemSlug(req.query.gallery);
 
                   // SEO: if this business has its own published, richer profile site
                   // (/u/:slug), consolidate authority there instead of serving a
@@ -1293,9 +1295,12 @@ app.use(landingContractHeaders);
                       )
                       .limit(1);
                     if (linkedProfile?.slug) {
+                      const gallerySearch = gallerySlug
+                        ? `?gallery=${encodeURIComponent(gallerySlug)}`
+                        : "";
                       return res.redirect(
                         301,
-                        `${origin}/u/${encodeURIComponent(linkedProfile.slug)}`
+                        `${origin}/u/${encodeURIComponent(linkedProfile.slug)}${gallerySearch}`
                       );
                     }
                   } catch (redirectCheckErr) {
@@ -1305,7 +1310,12 @@ app.use(landingContractHeaders);
                     );
                   }
 
-                  const html = await buildPublicBusinessHtml({ slug, origin, templateHtml });
+                  const html = await buildPublicBusinessHtml({
+                    slug,
+                    origin,
+                    templateHtml,
+                    gallerySlug,
+                  });
                   if (!html) {
                     return res.status(404).send("Business not found");
                   }
