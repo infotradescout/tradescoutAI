@@ -19,6 +19,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { uploadObject } from "@/lib/objectUpload";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import {
+  createHomeScoutInspectionRequestDecisionAuthority,
+  createHomeScoutInspectionServiceDecisionAuthority,
+} from "@/lib/homeScoutAuthority";
 import { formatCountyLabel } from "@/utils/countyFipsToName";
 import { share } from "@/utils/share";
 
@@ -39,18 +43,10 @@ type HomeScoutListing = {
   countyFips: string;
   stateCode: string;
   city?: string | null;
-  zipCode?: string | null;
-  address1?: string | null;
-  address2?: string | null;
-  addressVisibility?: "exact" | "approximate" | string | null;
   listedAt?: string | null;
   createdAt?: string | null;
-  sellerUserId?: string | null;
-  agentUserId?: string | null;
   listingAuthorType?: string | null;
   canonicalProfileUrl?: string | null;
-  latitude?: string | number | null;
-  longitude?: string | number | null;
 };
 
 type HomeScoutListingEvent = {
@@ -85,13 +81,12 @@ type HomeScoutInspectionReport = {
   reportType: string;
   status?: string | null;
   visibility?: string | null;
-  submittedByUserId?: string | null;
   inspectionDate?: string | null;
   inspectorName?: string | null;
   inspectorCompany?: string | null;
   summary?: string | null;
   highlights?: string[] | null;
-  reportUrl: string;
+  downloadPath: string;
   createdAt: string;
 };
 
@@ -110,14 +105,8 @@ type ListingResponse = {
   countyMetrics: CountyMetric[];
   inspectorRecommendations?: Array<{
     category: string;
-    userId: string | null;
     displayName: string;
     company: string | null;
-    cvsScore: number | null;
-    source: string;
-    rankScore: number;
-    countyEntityId: string | null;
-    metadata: Record<string, any>;
   }>;
   inspectionReports: HomeScoutInspectionReport[];
   myInspectionReports?: HomeScoutInspectionReport[];
@@ -157,7 +146,7 @@ export default function HomeScoutListingPage() {
   const [uploadSourceRequestId, setUploadSourceRequestId] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [sharing, setSharing] = useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -197,6 +186,18 @@ export default function HomeScoutListingPage() {
 
   const createInspectionRequest = useMutation({
     mutationFn: async () => {
+      const requestMessage = inspectionRequestMessage.trim();
+      if (requestMessage.length < 12 || requestMessage.length > 2000) {
+        throw new Error("Describe the inspection need in 12-2000 characters");
+      }
+      const preferredWindow = inspectionPreferredWindow.trim();
+      if (preferredWindow.length > 120) {
+        throw new Error("Keep the preferred inspection window under 120 characters");
+      }
+      const authority = await createHomeScoutInspectionRequestDecisionAuthority({
+        listingId,
+        listingTitle: listing?.title,
+      });
       const res = await fetch(
         `/api/homescout/listings/${encodeURIComponent(listingId)}/inspection-requests`,
         {
@@ -204,8 +205,9 @@ export default function HomeScoutListingPage() {
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            requestMessage: inspectionRequestMessage,
-            preferredWindow: inspectionPreferredWindow || undefined,
+            requestMessage,
+            preferredWindow: preferredWindow || undefined,
+            ...authority,
           }),
         }
       );
@@ -366,13 +368,40 @@ export default function HomeScoutListingPage() {
       serviceCategory: string;
       serviceDescription: string;
     }) => {
+      const allowedCategories = new Set([
+        "roofing",
+        "plumbing",
+        "electrical",
+        "hvac",
+        "foundation",
+        "structural",
+        "pest",
+        "mold",
+        "general_repair",
+        "follow_up_inspection",
+      ]);
+      if (!allowedCategories.has(params.serviceCategory)) {
+        throw new Error("Choose a valid service category");
+      }
+      const serviceDescription = params.serviceDescription.trim();
+      if (serviceDescription.length < 12 || serviceDescription.length > 4000) {
+        throw new Error("Describe the work needed in 12-4000 characters");
+      }
+      const authority = await createHomeScoutInspectionServiceDecisionAuthority({
+        reportId: params.reportId,
+        listingTitle: listing?.title,
+      });
       const res = await fetch(
         `/api/homescout/inspection-reports/${encodeURIComponent(params.reportId)}/service-requests`,
         {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(params),
+          body: JSON.stringify({
+            serviceCategory: params.serviceCategory,
+            serviceDescription,
+            ...authority,
+          }),
         }
       );
       const body = await res.json().catch(() => null);
@@ -451,12 +480,6 @@ export default function HomeScoutListingPage() {
 
   const statusLabel = String(listing.status || "active").replace(/_/g, " ");
   const locationLabel = [listing.city, listing.stateCode].filter(Boolean).join(", ");
-  const coordsLabel = (() => {
-    const lat = listing.latitude != null ? Number(listing.latitude) : NaN;
-    const lng = listing.longitude != null ? Number(listing.longitude) : NaN;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-    return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-  })();
 
   const targetRole =
     String((listing as any)?.listingAuthorType || "owner") === "agent" ? "Agent" : "Owner";
@@ -637,30 +660,35 @@ export default function HomeScoutListingPage() {
                 </div>
               ) : null}
 
-              <div className="space-y-2">
-                <div className="text-white font-semibold text-sm">
-                  Open inspection requests ({openInspectionRequests.length})
-                </div>
-                {openInspectionRequests.length === 0 ? (
-                  <div className="text-xs text-white/60">No open requests yet.</div>
-                ) : (
-                  <div className="space-y-2">
-                    {openInspectionRequests.slice(0, 6).map((r) => (
-                      <div key={r.id} className="rounded-md border border-white/10 p-3 bg-black/30">
-                        <div className="text-white/70">{r.requestMessage}</div>
-                        {r.preferredWindow ? (
-                          <div className="text-xs text-white/60 mt-1">
-                            Window: {r.preferredWindow}
-                          </div>
-                        ) : null}
-                        <div className="text-xs text-white/60 mt-1">
-                          {new Date(r.createdAt).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
+              {isAuthenticated ? (
+                <div className="space-y-2">
+                  <div className="text-white font-semibold text-sm">
+                    Inspection requests visible to you ({openInspectionRequests.length})
                   </div>
-                )}
-              </div>
+                  {openInspectionRequests.length === 0 ? (
+                    <div className="text-xs text-white/60">No open requests yet.</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {openInspectionRequests.slice(0, 6).map((r) => (
+                        <div
+                          key={r.id}
+                          className="rounded-md border border-white/10 p-3 bg-black/30"
+                        >
+                          <div className="text-white/70">{r.requestMessage}</div>
+                          {r.preferredWindow ? (
+                            <div className="text-xs text-white/60 mt-1">
+                              Window: {r.preferredWindow}
+                            </div>
+                          ) : null}
+                          <div className="text-xs text-white/60 mt-1">
+                            {new Date(r.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
 
               {isAuthenticated ? (
                 <>
@@ -683,7 +711,7 @@ export default function HomeScoutListingPage() {
                                 <span className="text-xs text-white/60">(pending review)</span>
                               </div>
                               <a
-                                href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
+                                href={r.downloadPath}
                                 rel="noreferrer"
                                 className="text-ts-orange hover:text-ts-orange text-xs"
                               >
@@ -743,7 +771,7 @@ export default function HomeScoutListingPage() {
                                   ) : null}
                                 </div>
                                 <a
-                                  href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
+                                  href={r.downloadPath}
                                   rel="noreferrer"
                                   className="text-ts-orange hover:text-ts-orange text-xs"
                                 >
@@ -779,7 +807,7 @@ export default function HomeScoutListingPage() {
                             {String(r.reportType || "other").replace(/_/g, " ")}
                           </div>
                           <a
-                            href={`/api/homescout/inspection-reports/${encodeURIComponent(r.id)}/download`}
+                            href={r.downloadPath}
                             rel="noreferrer"
                             className="text-ts-orange hover:text-ts-orange text-xs"
                           >
@@ -871,9 +899,9 @@ export default function HomeScoutListingPage() {
                     <div className="space-y-2 pt-1">
                       {inspectorRecommendations.slice(0, 3).map((p: any) => (
                         <div
-                          key={String(
-                            p?.countyEntityId || p?.userId || p?.displayName || Math.random()
-                          )}
+                          key={`${String(p?.category || "inspector")}:${String(
+                            p?.displayName || "Inspector"
+                          )}:${String(p?.company || "")}`}
                           className="rounded-md border border-white/10 p-3 bg-black/30 flex items-center justify-between gap-3"
                         >
                           <div className="min-w-0">
@@ -1074,12 +1102,6 @@ export default function HomeScoutListingPage() {
                   <span className="font-medium text-white">{listing.lotSqft} sqft</span>
                 </div>
               )}
-              {coordsLabel ? (
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-white/60">Coords</span>
-                  <span className="font-medium text-white">{coordsLabel}</span>
-                </div>
-              ) : null}
             </CardContent>
           </Card>
 

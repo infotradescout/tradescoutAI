@@ -6,6 +6,7 @@ import {
 import { sanitizePublicListingText } from "@shared/publicListingSafety";
 import { storage } from "./storage";
 import { hasExposureAuthority } from "./services/exposureAuthority";
+import { toPublicHomeScoutListing } from "./publicHomeScoutListing";
 
 function escapeHtml(value: string): string {
   return String(value || "")
@@ -58,8 +59,11 @@ export async function buildPublicHomeScoutListingHtml(
   ).trim();
   if (!authorityUserId || !(await hasExposureAuthority(authorityUserId))) return null;
 
+  const publicListing = toPublicHomeScoutListing(listing);
+  if (!publicListing) return null;
+
   const meta = createHomeScoutListingShareMetadata({
-    listing,
+    listing: publicListing,
     origin: options.origin.replace(/\/$/, ""),
   });
   if (!meta) return null;
@@ -68,8 +72,8 @@ export async function buildPublicHomeScoutListingHtml(
   const imageUrl =
     meta.imageUrl || `${options.origin.replace(/\/$/, "")}/tradescout-social-preview.png?v=11`;
   const usesDefaultImage = !meta.imageUrl;
-  const price = Number(listing.price);
-  const propertyType = String(listing.propertyType || "house").toLowerCase();
+  const price = Number(publicListing.price);
+  const propertyType = String(publicListing.propertyType || "house").toLowerCase();
   const schemaType =
     propertyType === "condo"
       ? "Apartment"
@@ -85,17 +89,19 @@ export async function buildPublicHomeScoutListingHtml(
     image: imageUrl,
     address: {
       "@type": "PostalAddress",
-      addressLocality: sanitizePublicListingText(listing.city, 100),
-      addressRegion: sanitizePublicListingText(listing.stateCode, 2).toUpperCase(),
+      addressLocality: sanitizePublicListingText(publicListing.city, 100),
+      addressRegion: sanitizePublicListingText(publicListing.stateCode, 2).toUpperCase(),
       addressCountry: "US",
     },
   };
-  if (listing.beds != null) residence.numberOfRooms = Number(listing.beds);
-  if (listing.baths != null) residence.numberOfBathroomsTotal = Number(listing.baths);
-  if (listing.sqft != null) {
+  if (publicListing.beds != null) residence.numberOfRooms = Number(publicListing.beds);
+  if (publicListing.baths != null) {
+    residence.numberOfBathroomsTotal = Number(publicListing.baths);
+  }
+  if (publicListing.sqft != null) {
     residence.floorSize = {
       "@type": "QuantitativeValue",
-      value: Number(listing.sqft),
+      value: Number(publicListing.sqft),
       unitCode: "FTK",
     };
   }
