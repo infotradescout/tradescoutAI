@@ -134,9 +134,11 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
     const firstPostCard = page.locator('[data-testid^="card-post-"]').first();
     if (await firstPostCard.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await expect(
-        firstPostCard.getByRole("button", {
-          name: /Ask about this|Find help for this|Tell us what you need|Message/i,
-        })
+        firstPostCard
+          .getByRole("button", {
+            name: /Ask about this|Find help for this|Tell us what you need|Message/i,
+          })
+          .first()
       ).toBeVisible();
     } else {
       await expect(
