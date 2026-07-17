@@ -6,8 +6,15 @@ import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryS
 import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
-import { and, desc, eq, sql } from "drizzle-orm";
-import { businesses, contractors, profiles, recommendations, users } from "../../shared/schema";
+import { and, desc, eq, or, sql } from "drizzle-orm";
+import {
+  businesses,
+  contractors,
+  homeScoutListings,
+  profiles,
+  recommendations,
+  users,
+} from "../../shared/schema";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
 import { listHandmadeProductImageUrls } from "../../shared/handmadeProductShare";
 import { listCommunityPostImageUrls } from "../../shared/communityPostShare";
@@ -17,6 +24,10 @@ import {
   type PublicBusinessListingCard,
 } from "../../shared/publicBusinessListing";
 import { buildExposureAuthorityMap } from "../services/exposureAuthority";
+import {
+  buildPublicHomeScoutListingCards,
+  type PublicHomeScoutListingCard,
+} from "../../shared/homeScoutListingShare";
 
 const router = Router();
 
@@ -844,6 +855,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   let publicProfileOffers: Array<Record<string, unknown>> = [];
   let publicHandmadeProducts: Array<Record<string, unknown>> = [];
   let publicMarketplaceListings: PublicBusinessListingCard[] = [];
+  let publicHomeScoutListings: PublicHomeScoutListingCard[] = [];
   let publicCommunityPosts: Array<Record<string, unknown>> = [];
   let canExposeCommercialItems = false;
 
@@ -914,6 +926,38 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     } catch (error) {
       console.error("[profiles] Failed loading public Exchange listings:", { slug, error });
     }
+
+    try {
+      const linkedListings = await db
+        .select()
+        .from(homeScoutListings)
+        .where(
+          and(
+            eq(homeScoutListings.status, "active"),
+            or(
+              eq(homeScoutListings.sellerUserId, ownerUserId),
+              eq(homeScoutListings.agentUserId, ownerUserId),
+              eq(homeScoutListings.contactUserId, ownerUserId)
+            )
+          )
+        )
+        .orderBy(desc(homeScoutListings.updatedAt))
+        .limit(24);
+      const authorityUserIds = linkedListings.map((listing) =>
+        String(listing.contactUserId || listing.agentUserId || listing.sellerUserId || "").trim()
+      );
+      const listingAuthority = await buildExposureAuthorityMap(authorityUserIds);
+      publicHomeScoutListings = buildPublicHomeScoutListingCards(
+        linkedListings.filter((listing) => {
+          const authorityUserId = String(
+            listing.contactUserId || listing.agentUserId || listing.sellerUserId || ""
+          ).trim();
+          return listingAuthority[authorityUserId] === true;
+        })
+      );
+    } catch (error) {
+      console.error("[profiles] Failed loading public HomeScout listings:", { slug, error });
+    }
   }
 
   if (profileSections.communityActivity !== false) {
@@ -958,6 +1002,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       offers: publicProfileOffers,
       handmadeProducts: publicHandmadeProducts,
       marketplaceListings: publicMarketplaceListings,
+      homeScoutListings: publicHomeScoutListings,
       communityPosts: publicCommunityPosts,
     },
   });
