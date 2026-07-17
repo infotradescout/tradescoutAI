@@ -1,5 +1,7 @@
 import { storage } from "./storage";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { resolveProfileItemShareMetadata } from "./profileItemShareMetadata";
+import type { ProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 
 // Google typically truncates meta description snippets around ~155-160
 // characters -- cap so descriptions never get cut off mid-word.
@@ -15,6 +17,8 @@ type PublicProfileHtmlOptions = {
   slug: string;
   origin: string;
   templateHtml: string;
+  itemSlug?: unknown;
+  itemPhoto?: unknown;
 };
 
 type PublicProfileData = {
@@ -147,7 +151,43 @@ function resolveProfileUrl(profile: PublicProfileData, origin: string): string {
   return `${origin}/u/${encodeURIComponent(profile.profile.slug)}`;
 }
 
-function buildJsonLd(profile: PublicProfileData, origin: string) {
+function withProfileItemJsonLd(
+  baseJsonLd: Record<string, any>,
+  itemShare: ProfileInventoryItemShareMetadata | null,
+  displayName: string
+) {
+  if (!itemShare) return baseJsonLd;
+
+  const baseGraph = Array.isArray(baseJsonLd["@graph"])
+    ? baseJsonLd["@graph"]
+    : [Object.fromEntries(Object.entries(baseJsonLd).filter(([key]) => key !== "@context"))];
+
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      ...baseGraph,
+      {
+        "@type": "Product",
+        "@id": `${itemShare.canonical}#product`,
+        name: itemShare.itemName,
+        description: itemShare.description,
+        image: [itemShare.imageUrl],
+        category: itemShare.category || undefined,
+        url: itemShare.canonical,
+        brand: {
+          "@type": "Organization",
+          name: displayName,
+        },
+      },
+    ],
+  };
+}
+
+function buildJsonLd(
+  profile: PublicProfileData,
+  origin: string,
+  itemShare: ProfileInventoryItemShareMetadata | null
+) {
   const profileUrl = resolveProfileUrl(profile, origin);
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
   const description =
@@ -189,40 +229,54 @@ function buildJsonLd(profile: PublicProfileData, origin: string) {
       }
     }
 
-    if (!faqJsonLd) return { "@context": "https://schema.org", ...localBusiness };
-    return {
-      "@context": "https://schema.org",
-      "@graph": [localBusiness, faqJsonLd],
-    };
+    const baseJsonLd = !faqJsonLd
+      ? { "@context": "https://schema.org", ...localBusiness }
+      : {
+          "@context": "https://schema.org",
+          "@graph": [localBusiness, faqJsonLd],
+        };
+    return withProfileItemJsonLd(baseJsonLd, itemShare, displayName);
   }
 
-  return {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: displayName,
-    description,
-    jobTitle: profile.profile.roleContext || undefined,
-    url: profileUrl,
-  };
+  return withProfileItemJsonLd(
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name: displayName,
+      description,
+      jobTitle: profile.profile.roleContext || undefined,
+      url: profileUrl,
+    },
+    itemShare,
+    displayName
+  );
 }
 
-function buildMeta(profile: PublicProfileData, origin: string) {
+function buildMeta(
+  profile: PublicProfileData,
+  origin: string,
+  itemShare: ProfileInventoryItemShareMetadata | null
+) {
   const displayName = profile.business?.name?.trim() || profile.profile.displayName;
   const title = formatTradeScoutTitle(
-    profile.profile.seoMeta?.title || `${displayName} | TradeScout`
+    itemShare?.title || profile.profile.seoMeta?.title || `${displayName} | TradeScout`
   );
   const description = capDescriptionLength(
-    profile.profile.seoMeta?.description ||
+    itemShare?.description ||
+      profile.profile.seoMeta?.description ||
       profile.profile.headline ||
       profile.profile.servicesDescription ||
       profile.profile.roleContext ||
       "TradeScout public profile"
   );
-  const customImageUrl = profile.profile.seoMeta?.imageUrl || null;
-  const imageUrl = customImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
-  const faviconUrl = profile.profile.seoMeta?.faviconUrl || customImageUrl;
-  const canonical = resolveProfileUrl(profile, origin);
+  const profileImageUrl = profile.profile.seoMeta?.imageUrl || null;
+  const imageUrl =
+    itemShare?.imageUrl || profileImageUrl || `${origin}/tradescout-social-preview.png?v=12`;
+  const faviconUrl = profile.profile.seoMeta?.faviconUrl || profileImageUrl;
+  const canonical = itemShare?.canonical || resolveProfileUrl(profile, origin);
   const keywords = [
+    itemShare?.itemName || "",
+    itemShare?.category || "",
     displayName,
     profile.profile.roleContext || "",
     ...(profile.business?.categories || []),
@@ -239,13 +293,21 @@ function buildMeta(profile: PublicProfileData, origin: string) {
     description,
     imageUrl,
     imageType: imageMimeType(imageUrl),
-    imageAlt: `${displayName} preview`,
-    imageWidth: customImageUrl ? profile.profile.seoMeta?.imageWidth : 1200,
-    imageHeight: customImageUrl ? profile.profile.seoMeta?.imageHeight : 630,
-    customImageUrl,
+    imageAlt: itemShare?.imageAlt || `${displayName} preview`,
+    imageWidth: itemShare
+      ? undefined
+      : profileImageUrl
+        ? profile.profile.seoMeta?.imageWidth
+        : 1200,
+    imageHeight: itemShare
+      ? undefined
+      : profileImageUrl
+        ? profile.profile.seoMeta?.imageHeight
+        : 630,
     faviconUrl,
     canonical,
     keywords,
+    ogType: itemShare ? "product" : "profile",
   };
 }
 
@@ -253,6 +315,8 @@ export async function buildPublicProfileHtml({
   slug,
   origin,
   templateHtml,
+  itemSlug,
+  itemPhoto,
 }: PublicProfileHtmlOptions): Promise<string | null> {
   const profileRecord = await storage.getProfileBySlugPublic(slug);
   if (!profileRecord) return null;
@@ -290,8 +354,18 @@ export async function buildPublicProfileHtml({
       : null,
   };
 
-  const meta = buildMeta(data, origin);
-  const jsonLd = buildJsonLd(data, origin);
+  const displayName = data.business?.name?.trim() || data.profile.displayName;
+  const itemShare = resolveProfileItemShareMetadata({
+    profileSlug: data.profile.slug,
+    profileName: displayName,
+    profileUrl: resolveProfileUrl(data, origin),
+    assetOrigin: origin,
+    contentBlocks: data.profile.contentBlocks,
+    itemSlug,
+    photo: itemPhoto,
+  });
+  const meta = buildMeta(data, origin, itemShare);
+  const jsonLd = buildJsonLd(data, origin, itemShare);
 
   let html = templateHtml;
 
@@ -310,6 +384,11 @@ export async function buildPublicProfileHtml({
     html,
     /<meta name="robots"[^>]*>/i,
     `<meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:type"[^>]*>/i,
+    `<meta property="og:type" content="${escapeHtml(meta.ogType)}" />`
   );
   html = upsertTag(
     html,
@@ -357,6 +436,10 @@ export async function buildPublicProfileHtml({
       /<meta property="og:image:height"[^>]*>/i,
       `<meta property="og:image:height" content="${meta.imageHeight}" />`
     );
+  } else {
+    html = html
+      .replace(/<meta property="og:image:width"[^>]*>\s*/gi, "")
+      .replace(/<meta property="og:image:height"[^>]*>\s*/gi, "");
   }
   html = upsertTag(
     html,
@@ -429,11 +512,19 @@ export async function buildPublicProfileHtml({
       : "Bookings not enabled.";
   const categoriesSummary = (businessRecord?.categories || []).slice(0, 6).join(", ");
   const areasSummary = (businessRecord?.serviceAreas || []).slice(0, 8).join(", ");
+  const itemSummary = itemShare
+    ? `<section data-seo-profile-item="inventory">
+      <h2>${escapeHtml(itemShare.itemName)}</h2>
+      <img src="${escapeHtml(itemShare.imageUrl)}" alt="${escapeHtml(itemShare.imageAlt)}" />
+      <p>${escapeHtml(itemShare.description)}</p>
+    </section>`
+    : "";
   const rootSummary = `
 <main data-seo-profile="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
     <h1>${escapeHtml(profileRecord.displayName)}</h1>
     <p>${escapeHtml(meta.description)}</p>
+    ${itemSummary}
     ${categoriesSummary ? `<p><strong>Categories:</strong> ${escapeHtml(categoriesSummary)}</p>` : ""}
     ${areasSummary ? `<p><strong>Service areas:</strong> ${escapeHtml(areasSummary)}</p>` : ""}
     ${profileRecord.servicesDescription ? `<p>${escapeHtml(profileRecord.servicesDescription)}</p>` : ""}

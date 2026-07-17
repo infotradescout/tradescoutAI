@@ -12,15 +12,19 @@ describe("universal public-profile Express Direct Connect contract", () => {
   const jrSource = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
   const resetSource = read("client/src/pages/reset-password.tsx");
 
-  it("supports every published active discoverable business, not only trade partners", () => {
+  it("supports published active discoverable businesses and the narrow owner-confirmed profile", () => {
     expect(routeSource).not.toContain("profileData.tradePartner !== true");
     expect(routeSource).toContain('String(row.profileStatus) !== "published"');
     expect(routeSource).toContain('String(row.businessStatus) !== "active"');
     expect(routeSource).toContain("!ownerDiscoverable");
+    expect(routeSource).toContain("!ownerConfirmedDirectProfile");
+    expect(routeSource).toContain("isOwnerConfirmedDirectProfile({");
   });
 
   it("tailors the form for materials, auto glass, and general services", () => {
-    expect(panelSource).toContain('export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service"');
+    expect(panelSource).toContain(
+      'export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service"'
+    );
     expect(panelSource).toContain('choiceLabel: "Request stone or material"');
     expect(panelSource).toContain('choiceLabel: "Request auto glass service"');
     expect(panelSource).toContain('choiceLabel: "Send a request"');
@@ -36,6 +40,15 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(jrSource).toContain("onClick={onDirectConnect}");
     expect(jrSource).not.toContain("preScoutCreateHref");
     expect(jrSource).not.toContain("requestHref");
+  });
+
+  it("does not advertise call mode when a business has no private routing phone", () => {
+    expect(profileSource).toContain("const canExpressCall =");
+    expect(profileSource).toContain("allowCall={canExpressCall}");
+    expect(panelSource).toContain(
+      'setView(initialStoneName || initialRequestType || !allowCall ? "request" : "choice")'
+    );
+    expect(panelSource).toContain('view === "choice" && allowCall');
   });
 
   it("commits the request before onboarding and does not depend on email delivery", () => {

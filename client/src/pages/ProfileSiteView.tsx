@@ -22,6 +22,7 @@ import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
+import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -95,6 +96,10 @@ type PublicBusinessSubset = {
     surface?: string;
   };
   directConnectOwnerUserId?: string;
+  expressContactCapabilities?: {
+    call?: boolean;
+    request?: boolean;
+  };
 } | null;
 
 type PublicProfileResponse = {
@@ -175,7 +180,10 @@ export default function ProfileSiteView() {
           customDomain.trim() &&
           window.location.hostname.toLowerCase() !== customDomain.trim().toLowerCase()
         ) {
-          window.location.replace(`https://${customDomain.trim()}/`);
+          const redirectUrl = new URL("/", `https://${customDomain.trim()}`);
+          redirectUrl.search = window.location.search;
+          redirectUrl.hash = window.location.hash;
+          window.location.replace(redirectUrl.toString());
           return; // Stay in the loading state until the browser navigates away.
         }
 
@@ -245,30 +253,96 @@ export default function ProfileSiteView() {
       : "America/Chicago";
   const displayName =
     business?.name && business.name.trim().length > 0 ? business.name : profile.displayName;
+  const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
+  // JW Stone's reconciled catalog is versioned with the profile experience so
+  // the public page cannot silently fall back to an older database seed. Drive
+  // folder placement is evidence, not an assertion: uncertain materials stay
+  // in "Material to Confirm" and finishes only appear when the source says so.
+  const contentBlocks =
+    profile.slug === "jw-stone"
+      ? [
+          ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
+          {
+            type: "inventoryCatalog",
+            data: { categories: JW_STONE_INVENTORY_CATEGORIES },
+          },
+        ]
+      : storedContentBlocks;
+  const profileCustomDomain =
+    typeof profile.seoMeta?.customDomain === "string"
+      ? profile.seoMeta.customDomain.trim().toLowerCase()
+      : "";
+  const profileCanonicalBase = profileCustomDomain
+    ? `https://${profileCustomDomain}/`
+    : `${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`;
+  const isOnProfileCustomDomain =
+    profileCustomDomain.length > 0 &&
+    typeof window !== "undefined" &&
+    window.location.hostname.toLowerCase() === profileCustomDomain;
+  const profileShareDestination = isOnProfileCustomDomain
+    ? "/"
+    : `/u/${encodeURIComponent(profile.slug)}`;
+  const inventoryCategories = (
+    contentBlocks.find((block: any) => block?.type === "inventoryCatalog") as any
+  )?.data?.categories;
+  const itemShareParams =
+    typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const itemShareMeta = createProfileInventoryItemShareMetadata({
+    profileName: displayName,
+    profileUrl: profileCanonicalBase,
+    assetOrigin: typeof window !== "undefined" ? window.location.origin : getCanonicalAppOrigin(),
+    categories: inventoryCategories,
+    itemSlug: itemShareParams?.get("stone"),
+    photo: itemShareParams?.get("photo"),
+  });
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const seoTitle =
+  const profileSeoTitle =
     typeof profile.seoMeta?.title === "string" && profile.seoMeta.title.trim().length > 0
       ? profile.seoMeta.title
       : `${displayName} | TradeScout`;
-  const seoDescription =
+  const profileSeoDescription =
     typeof profile.seoMeta?.description === "string" &&
     profile.seoMeta.description.trim().length > 0
       ? profile.seoMeta.description
       : profile.headline ||
         `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`;
+  const seoTitle = itemShareMeta?.title || profileSeoTitle;
+  const seoDescription = itemShareMeta?.description || profileSeoDescription;
   const seoImage =
-    typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
+    itemShareMeta?.imageUrl ||
+    (typeof profile.seoMeta?.imageUrl === "string" && profile.seoMeta.imageUrl.trim().length > 0
       ? profile.seoMeta.imageUrl
-      : undefined;
-  const structuredData = {
+      : undefined);
+  const seoCanonical = itemShareMeta?.canonical || profileCanonicalBase;
+  const profileStructuredData = {
     "@context": "https://schema.org",
     "@type": business?.name ? "LocalBusiness" : "Person",
     name: displayName,
-    description: seoDescription,
-    url: `${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`,
+    description: profileSeoDescription,
+    url: profileCanonicalBase,
     ...(business?.categories?.length ? { category: business.categories.slice(0, 6) } : {}),
     ...(business?.serviceAreas?.length ? { areaServed: business.serviceAreas.slice(0, 10) } : {}),
   };
+  const structuredData = itemShareMeta
+    ? {
+        "@context": "https://schema.org",
+        "@graph": [
+          Object.fromEntries(
+            Object.entries(profileStructuredData).filter(([key]) => key !== "@context")
+          ),
+          {
+            "@type": "Product",
+            "@id": `${itemShareMeta.canonical}#product`,
+            name: itemShareMeta.itemName,
+            description: itemShareMeta.description,
+            image: [itemShareMeta.imageUrl],
+            category: itemShareMeta.category || undefined,
+            url: itemShareMeta.canonical,
+            brand: { "@type": "Organization", name: displayName },
+          },
+        ],
+      }
+    : profileStructuredData;
   const normalizedViewerRole = String((user as any)?.role || "")
     .trim()
     .toLowerCase();
@@ -279,6 +353,7 @@ export default function ProfileSiteView() {
   // TradePartner business profile is an express connection to that exact
   // business. The /direct-connect portal retains the full discovery path.
   const useExpressDirectConnect = true;
+  const canExpressCall = business?.expressContactCapabilities?.call === true;
   // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
   // Connect targeted straight at their own account (via the target/targetName
   // prefill params DirectConnectShell already reads), instead of the
@@ -296,21 +371,6 @@ export default function ProfileSiteView() {
         : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
-  const storedContentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
-  // JW Stone's reconciled catalog is versioned with the profile experience so
-  // the public page cannot silently fall back to an older database seed. Drive
-  // folder placement is evidence, not an assertion: uncertain materials stay
-  // in "Material to Confirm" and finishes only appear when the source says so.
-  const contentBlocks =
-    profile.slug === "jw-stone"
-      ? [
-          ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
-          {
-            type: "inventoryCatalog",
-            data: { categories: JW_STONE_INVENTORY_CATEGORIES },
-          },
-        ]
-      : storedContentBlocks;
   const aboutText = contentBlocks
     .filter((block) => block && typeof block === "object")
     .map((block: any) => {
@@ -394,10 +454,11 @@ export default function ProfileSiteView() {
         <SEOHelmet
           title={seoTitle}
           description={seoDescription}
-          canonical={`${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`}
-          ogType="profile"
+          canonical={seoCanonical}
+          ogType={itemShareMeta ? "product" : "profile"}
           ogImage={seoImage}
           structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(itemShareMeta)}
         />
         <JrsAutoGlassProfileTheme
           onDirectConnect={() => setExpressPanelOpen(true)}
@@ -410,6 +471,7 @@ export default function ProfileSiteView() {
           profileSlug={profile.slug}
           businessName={displayName}
           hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
           requestMode="auto_glass"
         />
       </>
@@ -422,10 +484,11 @@ export default function ProfileSiteView() {
         <SEOHelmet
           title={seoTitle}
           description={seoDescription}
-          canonical={`${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`}
-          ogType="profile"
+          canonical={seoCanonical}
+          ogType={itemShareMeta ? "product" : "profile"}
           ogImage={seoImage}
           structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(itemShareMeta)}
         />
         <WholesalerProfileTheme
           profileSlug={profile.slug}
@@ -439,6 +502,8 @@ export default function ProfileSiteView() {
           hasViewerSession={hasViewerSession}
           isSuperAdminViewer={isSuperAdminViewer}
           useExpressDirectConnect={useExpressDirectConnect}
+          allowExpressCall={canExpressCall}
+          profileShareDestination={profileShareDestination}
           directConnectHref={directConnectHref}
           preScoutCreateHref={preScoutCreateHref}
           preScoutSignInHref={preScoutSignInHref}
@@ -454,10 +519,11 @@ export default function ProfileSiteView() {
       <SEOHelmet
         title={seoTitle}
         description={seoDescription}
-        canonical={`${getCanonicalAppOrigin()}/u/${encodeURIComponent(profile.slug)}`}
-        ogType="profile"
+        canonical={seoCanonical}
+        ogType={itemShareMeta ? "product" : "profile"}
         ogImage={seoImage}
         structuredData={structuredData}
+        preserveCanonicalQuery={Boolean(itemShareMeta)}
       />
       <Card className="bg-tsCard overflow-hidden">
         <CardHeader className="space-y-4 bg-tsCardMuted">
@@ -466,7 +532,7 @@ export default function ProfileSiteView() {
               <div className="flex items-center justify-between gap-3">
                 <Badge variant="secondary">Website Profile</Badge>
                 <ShareButton
-                  destination={`/u/${profile.slug}`}
+                  destination={profileShareDestination}
                   title={displayName}
                   text={`Check out ${displayName} on TradeScout`}
                 />
@@ -753,7 +819,9 @@ export default function ProfileSiteView() {
                     <p className="text-white/60">
                       {isSuperAdminViewer
                         ? "Super Admin oversight is active. Send the request directly to this business."
-                        : "Send or call first. TradeScout offers signup after the action so the request can be managed in My Requests."}
+                        : canExpressCall
+                          ? "Send or call first. TradeScout offers signup after the action so the request can be managed in My Requests."
+                          : "Send first. TradeScout offers signup after the action so the request can be managed in My Requests."}
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
@@ -785,6 +853,7 @@ export default function ProfileSiteView() {
         profileSlug={profile.slug}
         businessName={displayName}
         hasViewerSession={hasViewerSession}
+        allowCall={canExpressCall}
         requestMode="service"
       />
     </Page>

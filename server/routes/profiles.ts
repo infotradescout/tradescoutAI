@@ -8,7 +8,7 @@ import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, recommendations, users } from "../../shared/schema";
-import { JRS_PROFILE_PROVISIONING_SOURCE } from "../services/jrsAutoGlassProfileProvisioning";
+import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
 
 const router = Router();
 
@@ -178,7 +178,7 @@ function sanitizePublicCtaConfig(ctaConfig: unknown) {
       kind,
       // Public pages never expose direct contact values.
       value: null,
-      requiresTradeScoutAccount: true,
+      requiresTradeScoutAccount: false,
       route: "/direct-connect",
     };
   };
@@ -641,7 +641,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const business = profile.businessId
     ? await storage.getBusinessPublicById(profile.businessId)
     : undefined;
-  let verifiedOwnerUserId: string | undefined;
+  let directConnectOwnerUserId: string | undefined;
+  let ownerConfirmedDirectProfile = false;
   if (business) {
     const [profileOwner] = await db
       .select({ ownerUserId: profiles.ownerUserId })
@@ -663,17 +664,20 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       .from(businesses)
       .where(eq(businesses.id, profile.businessId!))
       .limit(1);
-    const isOwnerConfirmedDirectProfile =
-      profile.slug === "jrs-auto-glass" &&
-      linkedBusiness?.status === "active" &&
-      linkedBusiness.publicDiscoveryEnabled === false &&
-      String(linkedBusiness.ownerUserId || "") === ownerUserId &&
-      Array.isArray(linkedBusiness.sources) &&
-      linkedBusiness.sources.includes(JRS_PROFILE_PROVISIONING_SOURCE);
-    if (!isBusinessDiscoverable(ownerUser) && !isOwnerConfirmedDirectProfile) {
+    ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
+      profileSlug: profile.slug,
+      // getProfileBySlugPublic only returns published profiles.
+      profileStatus: "published",
+      profileOwnerUserId: ownerUserId,
+      businessStatus: linkedBusiness?.status,
+      businessOwnerUserId: linkedBusiness?.ownerUserId,
+      publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
+      businessSources: linkedBusiness?.sources,
+    });
+    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) {
       return res.status(404).json({ message: "Profile not found" });
     }
-    verifiedOwnerUserId = ownerUserId;
+    directConnectOwnerUserId = ownerUserId;
   }
   const safeBusiness = business
     ? {
@@ -682,12 +686,16 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         categories: business.categories || [],
         serviceAreas: business.serviceAreas || [],
         tradePartner: business.tradePartner === true,
+        expressContactCapabilities: {
+          call: Boolean(business.contactPhone),
+          request: Boolean(directConnectOwnerUserId),
+        },
         ...(business.brandColors ? { brandColors: business.brandColors } : {}),
-        // TradePartners have opted into public promotion, so it's safe to let
-        // their profile CTA target Direct Connect straight at the business's
-        // own account instead of the anonymous, business-agnostic flow.
-        ...(business.tradePartner === true && verifiedOwnerUserId
-          ? { directConnectOwnerUserId: verifiedOwnerUserId }
+        // Targeting is limited to a discoverable TradePartner or the explicit
+        // owner-confirmed direct-profile exception checked above.
+        ...((business.tradePartner === true || ownerConfirmedDirectProfile) &&
+        directConnectOwnerUserId
+          ? { directConnectOwnerUserId }
           : {}),
       }
     : null;
@@ -832,7 +840,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       profileBooking: sanitizePublicProfileBookingConfig(profile.profileBooking),
       contactPolicy: {
         mode: "direct_connect_only",
-        requiresTradeScoutAccount: true,
+        requiresTradeScoutAccount: false,
         reason: "Spam prevention",
       },
     },

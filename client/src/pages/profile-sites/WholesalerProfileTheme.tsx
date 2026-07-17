@@ -23,6 +23,10 @@ import ExpressDirectConnectPanel, {
   type ExpressDirectConnectRequestType,
 } from "./ExpressDirectConnectPanel";
 import { ShareButton } from "@/components/ShareButton";
+import {
+  buildProfileInventoryShareSearch,
+  resolveProfileInventoryItem,
+} from "@shared/profileItemShare";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -108,6 +112,8 @@ type WholesalerProfileThemeProps = {
   hasViewerSession: boolean;
   isSuperAdminViewer: boolean;
   useExpressDirectConnect: boolean;
+  allowExpressCall: boolean;
+  profileShareDestination: string;
   directConnectHref: string;
   preScoutCreateHref: string;
   preScoutSignInHref: string;
@@ -286,6 +292,8 @@ export default function WholesalerProfileTheme({
   brandColors,
   hasViewerSession,
   useExpressDirectConnect,
+  allowExpressCall,
+  profileShareDestination,
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
@@ -398,10 +406,17 @@ export default function WholesalerProfileTheme({
   // Opens a shared inventory-item link directly to that stone's lightbox
   // instead of just the profile root -- see ShareButton in the lightbox below.
   useEffect(() => {
-    const stoneSlug = new URLSearchParams(window.location.search).get("stone");
-    if (!stoneSlug) return;
-    const match = allInventoryStones.find((stone) => stone.slug === stoneSlug);
-    if (match) setOpenStone(match);
+    const params = new URLSearchParams(window.location.search);
+    const sharedItem = resolveProfileInventoryItem(
+      inventoryCatalog,
+      params.get("stone"),
+      params.get("photo")
+    );
+    if (!sharedItem) return;
+    const match = allInventoryStones.find((stone) => stone.slug === sharedItem.slug);
+    if (!match) return;
+    setOpenStone(match);
+    setOpenImageIndex(sharedItem.imageIndex);
   }, []);
   const jwStonePicks = [...JW_STONE_PICK_SLUGS]
     .map((slug) => allInventoryStones.find((stone) => stone.slug === slug))
@@ -643,7 +658,7 @@ export default function WholesalerProfileTheme({
   return (
     <div
       className={`jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900 ${
-        isJwStone ? "pt-[96px] md:pt-[112px]" : ""
+        isJwStone ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""
       }`}
       // eslint-disable-next-line no-restricted-syntax -- sets CSS custom properties for per-business dynamic brand colors, not literal color values
       style={themeVars}
@@ -684,7 +699,7 @@ export default function WholesalerProfileTheme({
               </div>
               <div className="flex items-center justify-self-end gap-2">
                 <ShareButton
-                  destination={`/u/${profileSlug}`}
+                  destination={profileShareDestination}
                   title={displayName}
                   text={`Check out ${displayName} on TradeScout`}
                   size="icon"
@@ -739,7 +754,7 @@ export default function WholesalerProfileTheme({
         <nav
           className={`scrollbar-hide items-center overflow-x-auto uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             isJwStone
-              ? "flex h-10 gap-4 px-3 pb-2 text-[11px] font-bold md:gap-5 md:px-8 md:text-xs"
+              ? "hidden h-10 gap-4 px-3 pb-2 text-[11px] font-bold sm:flex md:gap-5 md:px-8 md:text-xs"
               : "hidden gap-5 px-5 pb-2 text-xs font-semibold md:flex md:px-8"
           }`}
         >
@@ -1286,7 +1301,10 @@ export default function WholesalerProfileTheme({
               </div>
               <div className="flex items-center gap-2">
                 <ShareButton
-                  destination={`/u/${profileSlug}?stone=${encodeURIComponent(openStone.slug)}`}
+                  destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
+                    openStone.slug,
+                    openImageIndex
+                  )}`}
                   title={openStone.name}
                   text={`${openStone.name} at JW Stone`}
                   size="icon"
@@ -1764,6 +1782,7 @@ export default function WholesalerProfileTheme({
         profileSlug={profileSlug}
         businessName={displayName}
         hasViewerSession={hasViewerSession}
+        allowCall={allowExpressCall}
         requestMode="materials"
         initialStoneName={expressStoneName}
         initialRequestType={expressRequestType}
