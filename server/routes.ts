@@ -7,6 +7,7 @@ import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
 import express from "express";
+import { z } from "zod";
 import fs from "fs";
 import path from "path";
 import { createHash, randomUUID } from "crypto";
@@ -75,6 +76,8 @@ import {
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
+import { sanitizePublicListingText } from "../shared/publicListingSafety";
+import { toPublicExchangeListing } from "./publicExchangeListing";
 import { toPublicContractorRecommendations } from "./publicContractorRecommendations";
 import { sanitizePublicCommunityFeedPost, toPublicCommunityPost } from "./publicCommunityPost";
 import {
@@ -112,6 +115,7 @@ import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyOb
 import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
 import { recordTrustLedgerEvent } from "./services/trustLedgerService";
 import { buildExposureAuthorityMap } from "./services/exposureAuthority";
+import { hasExposureAuthority } from "./services/exposureAuthority";
 import { scoutcoinService } from "./services/scoutcoinService";
 import {
   buildPublicSolarPriceInsight,
@@ -181,8 +185,6 @@ import {
   insertLeadSchema,
   insertMarketplaceCategorySchema,
   insertMarketplaceListingSchema,
-  insertMarketplaceInquirySchema,
-  insertMarketplaceFavoriteSchema,
   insertMarketplaceReportSchema,
   insertVendorVerificationSchema,
   insertBuyerVerificationSchema,
@@ -212,6 +214,7 @@ import {
   commercialProjectBids,
   commercialProjects,
   scoutConversations,
+  decisionCards,
 } from "../shared/schema";
 
 function sanitizeContractorPublic<T extends Record<string, any>>(
@@ -13054,19 +13057,22 @@ export async function registerRoutes(app: any) {
   };
 
   const buildProfileOfferExchangeItem = (row: any, rawCategoryId = "") => {
-    const firstName = String(row.first_name || "").trim();
-    const lastName = String(row.last_name || "").trim();
+    const firstName = sanitizePublicListingText(row.first_name, 80);
+    const lastName = sanitizePublicListingText(row.last_name, 80);
     const sellerName =
       `${firstName} ${lastName}`.trim() ||
       (String(row.seller_user_id || "").trim() ? "TradeScout Member" : "Unknown seller");
     const trustScore = Number(row.trust_score ?? 10);
     const rating = Number.isFinite(trustScore) ? Math.max(3, Math.min(5, 3 + trustScore / 20)) : 4;
     const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
-    const categorySlug = String(metadata.exchangeCategorySlug || rawCategoryId || "other").trim();
+    const categorySlug = sanitizePublicListingText(
+      metadata.exchangeCategorySlug || rawCategoryId || "other",
+      80
+    );
     const fulfillmentMode = String(row.fulfillment_mode || "manual_review");
-    const city = String(row.city || "").trim();
-    const state = String(row.state_code || row.state || "").trim();
-    const county = String(row.county_name || row.county || "").trim();
+    const city = sanitizePublicListingText(row.city, 120);
+    const state = sanitizePublicListingText(row.state_code || row.state, 80);
+    const county = sanitizePublicListingText(row.county_name || row.county, 120);
     const location = city
       ? `${city}${state ? `, ${state}` : ""}`
       : `${county || "Profile offer"}${state ? `, ${state}` : ""}`.trim();
@@ -13075,8 +13081,10 @@ export async function registerRoutes(app: any) {
       id: toProfileOfferExchangeId(String(row.id)),
       profileOfferId: String(row.id),
       sourceType: "profile_offer",
-      title: row.title,
-      description: row.description || "Fixed-price item available from this TradeScout profile.",
+      title: sanitizePublicListingText(row.title, 200),
+      description:
+        sanitizePublicListingText(row.description, 4000) ||
+        "Fixed-price item available from this TradeScout profile.",
       price: Number(row.price || 0),
       category: categorySlug || "other",
       condition: String(metadata.condition || "new"),
@@ -13113,12 +13121,17 @@ export async function registerRoutes(app: any) {
         source: "profile_offer",
         profileOfferId: String(row.id),
         fulfillmentMode,
-        itemSku: row.item_sku || undefined,
+        itemSku: sanitizePublicListingText(row.item_sku, 120) || undefined,
         stockQuantity: row.item_stock_quantity ?? undefined,
         reviewRequired: true,
+        visibilityBoundary:
+          "Viewing an item never grants contact. Purchase and contact steps remain protected.",
       },
       slug: toProfileOfferExchangeId(String(row.id)),
       publicProfilePath: `/profile/${encodeURIComponent(String(row.seller_user_id))}?offer=${encodeURIComponent(String(row.id))}`,
+      contactAccess: {
+        mode: "purchase_review_required",
+      },
     };
   };
 
@@ -13188,7 +13201,12 @@ export async function registerRoutes(app: any) {
          LIMIT ${addParam(limit)}`,
         params
       );
-      return result.rows.map((row) => buildProfileOfferExchangeItem(row, requestedCategory));
+      const authorityByUserId = await buildExposureAuthorityMap(
+        result.rows.map((row) => String(row.seller_user_id || "").trim())
+      );
+      return result.rows
+        .filter((row) => authorityByUserId[String(row.seller_user_id || "").trim()] === true)
+        .map((row) => buildProfileOfferExchangeItem(row, requestedCategory));
     } catch (error) {
       if (isMissingProfileOffersTable(error)) return [];
       throw error;
@@ -13267,6 +13285,7 @@ export async function registerRoutes(app: any) {
 
       const listings = await storage.getMarketplaceListings({
         categoryId: resolvedCategoryId,
+        status: "active",
         // Keep explicit county/state filters available for callers that truly want filtering.
         county:
           typeof req.query.filterCounty === "string"
@@ -13343,6 +13362,7 @@ export async function registerRoutes(app: any) {
       const sellerIds = Array.from(
         new Set((listings || []).map((l: any) => String(l?.sellerId || "").trim()).filter(Boolean))
       );
+      const exposureAuthority = await buildExposureAuthorityMap(sellerIds);
 
       const sellers =
         sellerIds.length > 0
@@ -13364,6 +13384,7 @@ export async function registerRoutes(app: any) {
 
       const mapped = (listings || [])
         .filter((listing: any) => {
+          if (exposureAuthority[String(listing?.sellerId || "").trim()] !== true) return false;
           const haystack = `${String(listing?.title || "")} ${String(listing?.description || "")}`;
           return !EXCHANGE_FORBIDDEN_TEXT.test(haystack);
         })
@@ -13395,6 +13416,9 @@ export async function registerRoutes(app: any) {
 
           return {
             id: String(listing.id),
+            sellerId: String(listing.sellerId),
+            status: "active",
+            expiresAt: listing.expiresAt,
             title: listing.title,
             description: listing.description,
             price: Number(listing.price),
@@ -13430,7 +13454,9 @@ export async function registerRoutes(app: any) {
             model: listing.model ? String(listing.model) : undefined,
             specifications: listing.specifications ?? undefined,
           };
-        });
+        })
+        .map((listing: any) => toPublicExchangeListing(listing))
+        .filter(Boolean) as any[];
 
       const profileOfferItems = await listProfileOfferExchangeItems(req, rawCategoryId);
       const merged = [...mapped, ...profileOfferItems];
@@ -14777,6 +14803,14 @@ export async function registerRoutes(app: any) {
     res.json({ origin, responseHeaders });
   });
 
+  const marketplaceConversationStartSchema = z.object({
+    listingId: z.string().trim().min(1).max(160),
+    initialMessage: z.string().trim().min(1).max(4000),
+    authorityGate: z.literal("decision_card"),
+    sourceDecisionCardId: z.string().trim().min(1).max(160),
+    decisionScope: z.string().trim().min(1).max(500),
+  });
+
   // Marketplace conversation endpoints
   app.get("/api/marketplace/conversations", isAuthenticated, async (req: any, res: any) => {
     try {
@@ -14792,17 +14826,28 @@ export async function registerRoutes(app: any) {
   app.post("/api/marketplace/conversations", isAuthenticated, async (req: any, res: any) => {
     try {
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
-      const listingId = String(req.body?.listingId || "").trim();
-      const initialMessage = String(req.body?.initialMessage || "").trim();
-
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
-      if (!listingId) {
-        return res.status(400).json({ message: "Listing is required" });
+
+      const parsedStart = marketplaceConversationStartSchema.safeParse(req.body);
+      if (!parsedStart.success) {
+        return res.status(400).json({
+          message: "A valid Exchange Decision Card is required before starting contact.",
+          reasonCode: "DECISION_CARD_REQUIRED",
+          issues: parsedStart.error.issues,
+        });
       }
-      if (!initialMessage) {
-        return res.status(400).json({ message: "Request message is required" });
+
+      const buyerId = String(userId);
+      const { listingId, sourceDecisionCardId } = parsedStart.data;
+      const initialMessage = sanitizePublicListingText(parsedStart.data.initialMessage, 4000);
+      const decisionScope = `marketplace_listing:${listingId}`;
+      if (!initialMessage || parsedStart.data.decisionScope !== decisionScope) {
+        return res.status(400).json({
+          message: "Decision Card does not match this Exchange listing.",
+          reasonCode: "DECISION_SCOPE_MISMATCH",
+        });
       }
 
       const listing = await storage.getMarketplaceListing(listingId);
@@ -14813,14 +14858,38 @@ export async function registerRoutes(app: any) {
         return res.status(410).json({ message: "Listing is not available for requests" });
       }
 
-      const buyerId = String(userId);
       const sellerId = String(listing.sellerId || "");
       if (!sellerId) {
         return res.status(400).json({ message: "Listing seller unavailable" });
       }
+      if (!(await hasExposureAuthority(sellerId))) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
       if (buyerId === sellerId) {
         return res.status(400).json({ message: "Cannot request your own listing" });
       }
+
+      const [decisionCard] = await db
+        .select()
+        .from(decisionCards)
+        .where(and(eq(decisionCards.id, sourceDecisionCardId), eq(decisionCards.userId, buyerId)))
+        .limit(1);
+      if (
+        !decisionCard ||
+        decisionCard.status !== "active" ||
+        !["collaborate", "hire"].includes(String(decisionCard.intent || "")) ||
+        String(decisionCard.decisionScope || "") !== decisionScope
+      ) {
+        return res.status(403).json({
+          message: "A valid Exchange Decision Card is required before starting contact.",
+          reasonCode: "DECISION_CARD_INVALID",
+        });
+      }
+      const completeDecisionCard = () =>
+        db
+          .update(decisionCards)
+          .set({ status: "completed", decidedAt: new Date(), updatedAt: new Date() })
+          .where(eq(decisionCards.id, sourceDecisionCardId));
 
       // Keep one conversation per listing + buyer + seller.
       const existingConversation = await storage.getMarketplaceConversationByParticipants(
@@ -14829,6 +14898,7 @@ export async function registerRoutes(app: any) {
         sellerId
       );
       if (existingConversation) {
+        await completeDecisionCard();
         return res.status(200).json({
           ...existingConversation,
           created: false,
@@ -14841,6 +14911,7 @@ export async function registerRoutes(app: any) {
         await import("./utils/contactRequests");
       const permission = await getContactPermission(buyerId, sellerId);
       if (permission?.status === "pending") {
+        await completeDecisionCard();
         return res.status(202).json({
           created: false,
           pending: true,
@@ -14849,6 +14920,7 @@ export async function registerRoutes(app: any) {
         });
       }
       if (permission?.status === "declined" || permission?.status === "blocked") {
+        await completeDecisionCard();
         return res.status(403).json({
           created: false,
           reasonCode: "CONTACT_DECLINED",
@@ -14863,13 +14935,15 @@ export async function registerRoutes(app: any) {
           metadata: {
             contactType: "message",
             content: initialMessage,
-            intent: "hire",
-            authorityGate: "scout_recommendation",
-            decisionScope: `marketplace_listing:${listingId}`,
+            intent: String(decisionCard.intent || "collaborate"),
+            authorityGate: "decision_card",
+            sourceDecisionCardId,
+            decisionScope,
           },
         });
 
         if (ensure.status === "pending") {
+          await completeDecisionCard();
           return res.status(202).json({
             created: false,
             pending: true,
@@ -14884,9 +14958,10 @@ export async function registerRoutes(app: any) {
         buyerId,
         sellerId,
         status: "active",
-        intent: "hire",
-        authorityGate: "scout_recommendation",
-        decisionScope: `marketplace_listing:${listingId}`,
+        intent: String(decisionCard.intent || "collaborate"),
+        authorityGate: "decision_card",
+        sourceDecisionCardId,
+        decisionScope,
       } as any);
 
       await storage.createMarketplaceMessage({
@@ -14896,6 +14971,8 @@ export async function registerRoutes(app: any) {
         content: initialMessage,
         messageType: "text",
       });
+
+      await completeDecisionCard();
 
       res.status(201).json({ ...conversation, created: true });
     } catch (error: any) {
@@ -17452,9 +17529,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         .map((listing: any) => String(listing?.sellerId || "").trim())
         .filter((value: string) => value.length > 0);
       const authorityByUserId = await buildExposureAuthorityMap(sellerUserIds);
-      const gatedListings = listings.filter(
-        (listing: any) => authorityByUserId[String(listing?.sellerId || "").trim()] === true
-      );
+      const gatedListings = listings
+        .filter(
+          (listing: any) => authorityByUserId[String(listing?.sellerId || "").trim()] === true
+        )
+        .map((listing: any) => toPublicExchangeListing(listing))
+        .filter(Boolean);
 
       res.json(gatedListings);
     } catch (error: any) {
@@ -17495,8 +17575,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
              LIMIT 1`,
             [profileOfferId]
           );
-          if (!result.rows[0]) return res.status(404).json({ message: "Listing not found" });
-          return res.json(buildProfileOfferExchangeItem(result.rows[0], "other"));
+          const row = result.rows[0];
+          if (!row) return res.status(404).json({ message: "Listing not found" });
+          const authority = await buildExposureAuthorityMap([String(row.seller_user_id || "")]);
+          if (authority[String(row.seller_user_id || "").trim()] !== true) {
+            return res.status(404).json({ message: "Listing not found" });
+          }
+          return res.json(buildProfileOfferExchangeItem(row, "other"));
         } catch (error) {
           if (isMissingProfileOffersTable(error)) {
             return res.status(404).json({ message: "Listing not found" });
@@ -17507,14 +17592,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
       const listing = await storage.getMarketplaceListing(id);
 
-      if (!listing) {
+      if (!listing || String(listing.status || "") !== "active") {
         return res.status(404).json({ message: "Listing not found" });
       }
+      const authority = await buildExposureAuthorityMap([String(listing.sellerId || "")]);
+      if (authority[String(listing.sellerId || "").trim()] !== true) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+      const publicListing = toPublicExchangeListing(listing);
+      if (!publicListing) return res.status(404).json({ message: "Listing not found" });
 
       // Increment view count
       await storage.incrementListingView(id);
 
-      res.json(listing);
+      res.json(publicListing);
     } catch (error: any) {
       console.error("Error fetching marketplace listing:", error);
       res.status(500).json({ message: "Failed to fetch listing" });
@@ -17526,14 +17617,20 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const { slug } = req.params;
       const listing = await storage.getMarketplaceListingBySlug(slug);
 
-      if (!listing) {
+      if (!listing || String(listing.status || "") !== "active") {
         return res.status(404).json({ message: "Listing not found" });
       }
+      const authority = await buildExposureAuthorityMap([String(listing.sellerId || "")]);
+      if (authority[String(listing.sellerId || "").trim()] !== true) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+      const publicListing = toPublicExchangeListing(listing);
+      if (!publicListing) return res.status(404).json({ message: "Listing not found" });
 
       // Increment view count
       await storage.incrementListingView(listing.id);
 
-      res.json(listing);
+      res.json(publicListing);
     } catch (error: any) {
       console.error("Error fetching marketplace listing by slug:", error);
       res.status(500).json({ message: "Failed to fetch listing" });
@@ -18297,30 +18394,86 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   );
 
-  // Inquiries
+  const marketplaceInquiryRequestSchema = z.object({
+    listingId: z.string().trim().min(1).max(160),
+    message: z.string().trim().min(1).max(4000),
+    offerAmount: z.coerce.number().positive().max(1_000_000_000).optional(),
+    authorityGate: z.literal("decision_card"),
+    sourceDecisionCardId: z.string().trim().min(1).max(160),
+    decisionScope: z.string().trim().min(1).max(500),
+  });
+
+  // Inquiries are in-platform contact and require a durable Decision Card.
   app.post("/api/marketplace/inquiries", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const buyerId: string = user?.id || user?.claims?.sub;
-      const parsedInquiry = insertMarketplaceInquirySchema.safeParse(req.body);
+      const userId = String(user?.id || user?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const buyerId = String(user?.id || user?.claims?.sub || "").trim();
+      if (!buyerId) return res.status(401).json({ message: "Authentication required" });
+
+      const parsedInquiry = marketplaceInquiryRequestSchema.safeParse(req.body);
       if (!parsedInquiry.success) {
         return res.status(400).json({
-          message: "Invalid marketplace inquiry payload",
+          message: "A valid Exchange Decision Card is required before messaging a seller.",
+          reasonCode: "DECISION_CARD_REQUIRED",
           issues: parsedInquiry.error.issues,
         });
       }
 
       const validatedData = parsedInquiry.data;
+      const decisionScope = `marketplace_listing:${validatedData.listingId}`;
+      if (validatedData.decisionScope !== decisionScope) {
+        return res.status(400).json({
+          message: "Decision Card scope does not match this listing.",
+          reasonCode: "DECISION_SCOPE_MISMATCH",
+        });
+      }
 
       // Get the listing to find the seller
       const listing = await storage.getMarketplaceListing(validatedData.listingId);
-      if (!listing) {
+      if (!listing || String(listing.status || "") !== "active") {
         return res.status(404).json({ message: "Listing not found" });
       }
       const sellerId = String(listing.sellerId || "");
+      const safeListingTitle = sanitizePublicListingText(listing.title, 200) || "Exchange listing";
+      if (!sellerId || sellerId === buyerId) {
+        return res.status(400).json({ message: "You cannot inquire about your own listing." });
+      }
+      const exposureAuthority = await buildExposureAuthorityMap([sellerId]);
+      if (exposureAuthority[sellerId] !== true) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+
+      const [decision] = await db
+        .select()
+        .from(decisionCards)
+        .where(
+          and(
+            eq(decisionCards.id, validatedData.sourceDecisionCardId),
+            eq(decisionCards.userId, buyerId)
+          )
+        )
+        .limit(1);
+      if (
+        !decision ||
+        decision.status !== "active" ||
+        decision.intent !== "collaborate" ||
+        decision.decisionScope !== decisionScope
+      ) {
+        return res.status(400).json({
+          message: "Decision Card not found, inactive, or mismatched.",
+          reasonCode: "INVALID_DECISION_CARD",
+        });
+      }
+
+      const safeMessage = sanitizePublicListingText(validatedData.message, 4000);
+      if (!safeMessage) return res.status(400).json({ message: "Inquiry message is required" });
 
       const inquiry = await storage.createMarketplaceInquiry({
-        ...validatedData,
+        listingId: validatedData.listingId,
+        message: safeMessage,
+        offerAmount: validatedData.offerAmount == null ? null : String(validatedData.offerAmount),
         buyerPhone: null,
         buyerEmail: null,
         preferredContactMethod: "message",
@@ -18332,27 +18485,26 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       // Reuse an existing conversation for this listing+buyer+seller pair, or
       // create a new one so the seller can reply from their inbox.
       try {
-        const inquiryMessage =
-          (validatedData as any).message || `I'm interested in your listing "${listing.title}".`;
-        const offerPrice = (validatedData as any).offerPrice;
-        const messageContent = offerPrice
-          ? `${inquiryMessage}\n\nOffer: $${Number(offerPrice).toLocaleString()}`
-          : inquiryMessage;
+        const offerAmount = validatedData.offerAmount;
+        const messageContent = offerAmount
+          ? `${safeMessage}\n\nOffer: $${Number(offerAmount).toLocaleString()}`
+          : safeMessage;
 
         let conversation = await storage.getMarketplaceConversationByParticipants(
           validatedData.listingId,
           buyerId,
           sellerId
         );
-        if (!conversation) {
+        if (!conversation || conversation.authorityGate !== "decision_card") {
           conversation = await storage.createMarketplaceConversation({
             listingId: validatedData.listingId,
             buyerId,
             sellerId,
             status: "active",
-            intent: "hire",
-            authorityGate: "scout_recommendation",
-            decisionScope: `marketplace_listing:${validatedData.listingId}`,
+            intent: "collaborate",
+            authorityGate: "decision_card",
+            sourceDecisionCardId: validatedData.sourceDecisionCardId,
+            decisionScope,
           } as any);
         }
         await storage.createMarketplaceMessage({
@@ -18360,18 +18512,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           senderId: buyerId,
           senderType: "buyer",
           content: messageContent,
-          messageType: offerPrice ? "offer" : "text",
-          metadata: offerPrice ? { offerPrice: Number(offerPrice) } : undefined,
+          messageType: offerAmount ? "offer" : "text",
+          metadata: offerAmount ? { offerAmount: Number(offerAmount) } : undefined,
         });
 
         // ── Notify the seller ───────────────────────────────────────────────
         const buyerUser = await storage.getUser(buyerId);
         const buyerName = buyerUser?.firstName ? buyerUser.firstName : "Someone";
-        const notifTitle = offerPrice
-          ? `New offer on "${listing.title}"`
-          : `New inquiry on "${listing.title}"`;
-        const notifMsg = offerPrice
-          ? `${buyerName} made an offer of $${Number(offerPrice).toLocaleString()} on your listing.`
+        const notifTitle = offerAmount
+          ? `New offer on "${safeListingTitle}"`
+          : `New inquiry on "${safeListingTitle}"`;
+        const notifMsg = offerAmount
+          ? `${buyerName} made an offer of $${Number(offerAmount).toLocaleString()} on your listing.`
           : `${buyerName} sent you a message about your listing.`;
 
         // In-app notification (fire-and-forget)
@@ -18399,11 +18551,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         if (emailService.isConfigured()) {
           const sellerUser = await storage.getUser(sellerId);
           if (sellerUser?.email) {
+            const safeEmailMessage = notifMsg
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#39;");
             void emailService
               .sendEmail({
                 to: sellerUser.email,
                 subject: notifTitle,
-                html: `<p>${notifMsg}</p><p><a href="https://www.thetradescout.com/messages?thread=${conversation.id}&type=marketplace">Reply in TradeScout</a></p>`,
+                html: `<p>${safeEmailMessage}</p><p><a href="https://www.thetradescout.com/messages?thread=${conversation.id}&type=marketplace">Reply in TradeScout</a></p>`,
                 text: `${notifMsg}\n\nReply at: https://www.thetradescout.com/messages?thread=${conversation.id}&type=marketplace`,
                 purpose: "marketplace_inquiry",
               })
@@ -18415,6 +18573,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         console.error("[inquiries] conversation thread setup failed:", threadErr);
       }
       // ─────────────────────────────────────────────────────────────────────
+
+      await db
+        .update(decisionCards)
+        .set({ status: "completed", decidedAt: new Date(), updatedAt: new Date() })
+        .where(eq(decisionCards.id, validatedData.sourceDecisionCardId));
 
       res.status(201).json(inquiry);
     } catch (error: any) {
@@ -18494,7 +18657,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.post("/api/marketplace/favorites", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const parsedFavorite = insertMarketplaceFavoriteSchema.safeParse(req.body);
+      const userId = String(user?.id || user?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const parsedFavorite = z
+        .object({ listingId: z.string().trim().min(1).max(160) })
+        .safeParse(req.body);
       if (!parsedFavorite.success) {
         return res.status(400).json({
           message: "Invalid marketplace favorite payload",
@@ -18503,10 +18670,18 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       }
 
       const validatedData = parsedFavorite.data;
+      const listing = await storage.getMarketplaceListing(validatedData.listingId);
+      if (!listing || String(listing.status || "") !== "active") {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+      const authority = await buildExposureAuthorityMap([String(listing.sellerId || "")]);
+      if (authority[String(listing.sellerId || "").trim()] !== true) {
+        return res.status(404).json({ message: "Listing not found" });
+      }
 
       const favorite = await storage.createMarketplaceFavorite({
         ...validatedData,
-        userId: user?.id,
+        userId,
       });
 
       res.status(201).json(favorite);
@@ -18522,9 +18697,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     async (req: any, res: any) => {
       try {
         const user = req.user as any;
+        const userId = String(user?.id || user?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
         const { listingId } = req.params;
 
-        await storage.removeMarketplaceFavorite(user?.id, listingId);
+        await storage.removeMarketplaceFavorite(userId, listingId);
         res.json({ message: "Removed from favorites" });
       } catch (error: any) {
         console.error("Error removing marketplace favorite:", error);
@@ -18536,8 +18713,22 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/marketplace/favorites", isAuthenticated, async (req: any, res: any) => {
     try {
       const user = req.user as any;
-      const favorites = await storage.getUserFavorites(user?.id);
-      res.json(favorites);
+      const userId = String(user?.id || user?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
+      const favorites = await storage.getUserFavorites(userId);
+      const authority = await buildExposureAuthorityMap(
+        favorites.map((listing: any) => String(listing?.sellerId || ""))
+      );
+      res.json(
+        favorites
+          .filter(
+            (listing: any) =>
+              authority[String(listing?.sellerId || "").trim()] === true &&
+              String(listing?.status || "") === "active"
+          )
+          .map((listing: any) => toPublicExchangeListing(listing))
+          .filter(Boolean)
+      );
     } catch (error: any) {
       console.error("Error fetching marketplace favorites:", error);
       res.status(500).json({ message: "Failed to fetch favorites" });
@@ -22731,6 +22922,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       // Perform search with filters
       const searchResults = await storage.getMarketplaceListings({
         searchQuery: query as string,
+        status: "active",
         categoryId: category as string,
         priceMin: minPrice ? parseInt(minPrice as string) : undefined,
         priceMax: maxPrice ? parseInt(maxPrice as string) : undefined,
@@ -22741,9 +22933,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         .map((listing: any) => String(listing?.sellerId || "").trim())
         .filter((value: string) => value.length > 0);
       const authorityByUserId = await buildExposureAuthorityMap(sellerUserIds);
-      const gatedSearchResults = searchResults.filter(
-        (listing: any) => authorityByUserId[String(listing?.sellerId || "").trim()] === true
-      );
+      const gatedSearchResults = searchResults
+        .filter(
+          (listing: any) => authorityByUserId[String(listing?.sellerId || "").trim()] === true
+        )
+        .map((listing: any) => toPublicExchangeListing(listing))
+        .filter(Boolean);
 
       res.json(gatedSearchResults);
     } catch (error: any) {

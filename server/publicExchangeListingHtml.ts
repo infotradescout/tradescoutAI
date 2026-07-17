@@ -22,8 +22,12 @@ import {
 } from "@shared/exchangeListingRules";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "@shared/profileOfferShare";
+import { sanitizePublicListingText } from "@shared/publicListingSafety";
 import { pool } from "./db";
 import { storage } from "./storage";
+import { hasExposureAuthority } from "./services/exposureAuthority";
+import { toPublicProfileOffer } from "./publicProfileOffer";
+import { toPublicExchangeListing } from "./publicExchangeListing";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -84,22 +88,25 @@ async function getProfileOfferExchangeListing(listingId: string): Promise<any | 
     );
     const row = result.rows[0];
     if (!row) return null;
-    const metadata = row.metadata && typeof row.metadata === "object" ? row.metadata : {};
+    const offer = toPublicProfileOffer(row);
+    if (!offer || offer.offerType !== "item") return null;
+    const metadata = offer.metadata;
     return {
       id: listingId,
-      title: row.title,
-      description: row.description || "Fixed-price item available from this TradeScout profile.",
-      price: row.price,
-      city: row.city,
-      state: row.state_code || row.state,
-      county: row.county_name || row.county,
+      sellerId: offer.sellerUserId,
+      title: offer.title,
+      description: offer.description || "Fixed-price item available from this TradeScout profile.",
+      price: offer.price,
+      city: sanitizePublicListingText(row.city, 120),
+      state: sanitizePublicListingText(row.state_code || row.state, 80),
+      county: sanitizePublicListingText(row.county_name || row.county, 120),
       condition: metadata.condition || "new",
       images: listProfileOfferImageUrls(metadata),
       specifications: {
         source: "profile_offer",
         profileOfferId,
-        fulfillmentMode: row.fulfillment_mode,
-        itemSku: row.item_sku || undefined,
+        fulfillmentMode: offer.fulfillmentMode,
+        itemSku: offer.itemSku || undefined,
         itemCategory: metadata.itemCategory || metadata.exchangeCategorySlug || undefined,
         taxCategory: metadata.taxCategory || undefined,
         fulfillmentPolicy: metadata.fulfillmentPolicy || undefined,
@@ -107,7 +114,7 @@ async function getProfileOfferExchangeListing(listingId: string): Promise<any | 
         reviewRequired: true,
       },
       sellerName:
-        `${String(row.first_name || "").trim()} ${String(row.last_name || "").trim()}`.trim(),
+        `${sanitizePublicListingText(row.first_name, 80)} ${sanitizePublicListingText(row.last_name, 80)}`.trim(),
       sourceType: "profile_offer",
     };
   } catch (error: any) {
@@ -354,27 +361,39 @@ export async function buildPublicExchangeListingHtml(
 
   if (!listing) return null;
 
+  if (listing.sourceType !== "profile_offer") {
+    listing = toPublicExchangeListing(listing);
+    if (!listing) return null;
+  }
+  const authorityUserId = String(listing.sellerId || listing.seller?.id || "").trim();
+  if (!authorityUserId || !(await hasExposureAuthority(authorityUserId))) return null;
+
   // Resolve category slug
   const categorySlug = resolveCategorySlug(categoryParam, listing);
   const categoryName =
     (categorySlug && EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME[categorySlug]) ||
-    String(categoryParam || "Exchange")
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    sanitizePublicListingText(
+      String(categoryParam || "Exchange")
+        .replace(/-/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
+      80
+    );
 
   // Build canonical URL
-  const canonicalCategory = categorySlug || categoryParam || "other";
+  const canonicalCategory = categorySlug || "other";
   const listingUrl = `${origin}/exchange/${encodeURIComponent(canonicalCategory)}/${encodeURIComponent(listingId)}`;
 
   // Build title and description
-  const itemTitle = String(listing.title || "Exchange Listing").slice(0, 80);
+  const itemTitle = sanitizePublicListingText(listing.title || "Exchange Listing", 80);
   const price = Number(listing.price);
   const priceStr = Number.isFinite(price) && price > 0 ? ` — ${formatPrice(price)}` : "";
-  const locationParts = [listing.city, listing.county, listing.state].filter(Boolean);
+  const locationParts = [listing.city, listing.county, listing.state]
+    .map((value) => sanitizePublicListingText(value, 120))
+    .filter(Boolean);
   const locationStr = locationParts.length > 0 ? ` in ${locationParts.slice(0, 2).join(", ")}` : "";
 
   const title = formatTradeScoutTitle(`${itemTitle}${priceStr} | TradeScout Exchange`);
-  const rawDescription = String(listing.description || "").slice(0, 160);
+  const rawDescription = sanitizePublicListingText(listing.description, 160);
   const description =
     rawDescription || `${itemTitle}${priceStr}${locationStr} — listed on TradeScout Exchange.`;
 
@@ -385,7 +404,9 @@ export async function buildPublicExchangeListingHtml(
     Math.min(Number(listing.primaryImageIndex ?? 0), images.length - 1)
   );
   const primaryImage = images[primaryImageIndex] || images[0] || null;
-  const imageUrl = primaryImage || `${origin}/tradescout-social-preview.png?v=11`;
+  const imageUrl = primaryImage
+    ? new URL(primaryImage, origin).toString()
+    : `${origin}/tradescout-social-preview.png?v=11`;
 
   // ── Build JSON-LD ──────────────────────────────────────────────────────────
 
