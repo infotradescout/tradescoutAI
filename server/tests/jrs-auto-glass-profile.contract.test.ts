@@ -8,6 +8,7 @@ const read = (relativePath: string) =>
 describe("JR's Auto Glass public profile contract", () => {
   it("provisions the confirmed owner, business, and published profile at production boot", () => {
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
+    const profileContent = read("shared/jrsAutoGlassProfile.ts");
     const authority = read("server/services/ownerConfirmedDirectProfile.ts");
     const entry = read("server/index.ts");
 
@@ -24,12 +25,19 @@ describe("JR's Auto Glass public profile contract", () => {
     );
     expect(provisioning).toContain("/images/businesses/jrs-auto-glass/cover.webp");
     expect(provisioning).toContain("/images/businesses/jrs-auto-glass/logo.svg");
+    expect(provisioning).toContain("contentBlocks: JRS_AUTO_GLASS_GALLERY_BLOCKS");
+    expect(profileContent).toContain('type: "gallery"');
+    expect(profileContent).toContain('id: "windshield-before"');
+    expect(profileContent).toContain('id: "windshield-after"');
+    expect(profileContent).toContain("/images/businesses/jrs-auto-glass/before.webp");
+    expect(profileContent).toContain("/images/businesses/jrs-auto-glass/after.webp");
     expect(entry).toContain("await provisionJrsAutoGlassProfile()");
   });
 
   it("mounts the branded theme on the canonical dynamic route", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const theme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
+    const profileContent = read("shared/jrsAutoGlassProfile.ts");
 
     expect(profileView).toContain("import JrsAutoGlassProfileTheme");
     expect(profileView).toContain('profile.slug === "jrs-auto-glass"');
@@ -37,8 +45,8 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("/images/businesses/jrs-auto-glass");
     expect(theme).toContain("logo.webp");
     expect(theme).toContain("cover.webp");
-    expect(theme).toContain("before.webp");
-    expect(theme).toContain("after.webp");
+    expect(profileContent).toContain("before.webp");
+    expect(profileContent).toContain("after.webp");
     expect(
       fs.existsSync(
         path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/cover.webp")
@@ -50,11 +58,22 @@ describe("JR's Auto Glass public profile contract", () => {
       )
     ).toBe(true);
     expect(theme).toContain("Request auto glass service");
-    expect(theme).toContain("Direct Connect with JR&apos;s");
+    expect(theme).toContain("Send job details");
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
-    expect(theme).toContain("TradeScout Business CV");
-    expect(theme).toContain("Recommendations and completed activity");
-    expect(theme).toContain("Contact information remains protected");
+    expect(profileView).toContain("galleryItems={galleryItems}");
+    expect(profileView).toContain("sharedGallerySlug={sharedGallerySlug}");
+    expect(theme).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(theme).toContain("listProfileGalleryItems(JRS_AUTO_GLASS_GALLERY_BLOCKS)");
+    expect(theme).toContain("defaultRecentWork");
+    expect(profileView).toContain("...JRS_AUTO_GLASS_GALLERY_BLOCKS");
+    expect(theme).toContain("profile-gallery-${item.slug}");
+    expect(theme).toContain("<ShareButton");
+    expect(theme).toContain("Customer recommendations");
+    expect(theme).toContain("You&apos;re here early");
+    expect(theme).toContain("Your contact details stay private");
+    expect(theme).not.toContain("TradeScout Business CV");
+    expect(theme).not.toContain("Recommendations and completed activity");
+    expect(theme).not.toContain("Contact information remains protected");
     expect(theme).not.toContain("Skip the national-chain runaround.");
     expect(theme).not.toContain("Auto glass, wherever the vehicle is");
     expect(theme).not.toContain("Damage in. Clear glass out.");

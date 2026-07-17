@@ -549,9 +549,9 @@ export async function buildPublicProfileHtml({
   const bookingSummary =
     profileRecord.profileBooking?.enabled === true
       ? profileRecord.profileBooking?.paidBookings
-        ? `Bookings enabled. Paid booking deposit: $${Number(profileRecord.profileBooking?.bookingPriceUsd || 0).toFixed(2)}.`
-        : "Bookings enabled."
-      : "Bookings not enabled.";
+        ? `Appointments are available. Booking deposit: $${Number(profileRecord.profileBooking?.bookingPriceUsd || 0).toFixed(2)}.`
+        : "Appointments are available."
+      : "Appointments are coming soon.";
   const categoriesSummary = (businessRecord?.categories || []).slice(0, 6).join(", ");
   const areasSummary = (businessRecord?.serviceAreas || []).slice(0, 8).join(", ");
   const itemSummary = itemShare
@@ -574,7 +574,7 @@ export async function buildPublicProfileHtml({
     ${profileRecord.servicesDescription ? `<p>${escapeHtml(profileRecord.servicesDescription)}</p>` : ""}
     <p>${escapeHtml(bookingSummary)}</p>
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
-    <p>Contact is protected through TradeScout Direct Connect.</p>
+    <p>Send a private request when you are ready. Contact details stay private until both sides choose to connect.</p>
   </article>
 </main>`;
 

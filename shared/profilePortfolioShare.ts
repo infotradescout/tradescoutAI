@@ -87,7 +87,7 @@ function capForShare(value: string, limit: number): string {
 
 function composeShareDescription(item: ResolvedProfilePortfolioItem, profileName: string): string {
   const lead = `View ${item.title} by ${profileName}.`;
-  const protection = "Contact stays protected through TradeScout Direct Connect.";
+  const protection = "Your contact details stay private until you choose to connect.";
   const availableDetailLength = Math.max(
     0,
     MAX_SHARE_DESCRIPTION_LENGTH - lead.length - protection.length - 2

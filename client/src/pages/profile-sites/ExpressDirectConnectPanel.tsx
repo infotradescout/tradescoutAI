@@ -193,14 +193,18 @@ export default function ExpressDirectConnectPanel({
       );
       const json = await response.json().catch(() => ({}));
       if (!response.ok || typeof json?.tel !== "string") {
-        throw new Error(json?.message || "Calling is unavailable right now.");
+        throw new Error(
+          response.status === 404
+            ? "Calling is on the way. You can still send a request."
+            : "Calling is unavailable right now. You can still send a request."
+        );
       }
       setCallPhone(String(json.phone || ""));
       setCallTel(json.tel);
       setView("call_started");
       window.location.href = json.tel;
     } catch (cause: any) {
-      setError(cause?.message || "Calling is unavailable right now.");
+      setError(cause?.message || "Calling is unavailable right now. You can still send a request.");
     } finally {
       setBusy(false);
     }
@@ -225,7 +229,13 @@ export default function ExpressDirectConnectPanel({
       );
       const json = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(json?.message || "The request could not be sent.");
+        throw new Error(
+          response.status === 404
+            ? "This profile is still getting ready. Please check back soon."
+            : response.status === 400
+              ? "Add your name, email, phone number, and a few details about what you need."
+              : "We couldn’t send that yet. Your details are still here—please try again."
+        );
       }
       setAccountCreated(json?.accountCreated === true);
       setRequestId(String(json?.requestId || ""));
@@ -237,7 +247,9 @@ export default function ExpressDirectConnectPanel({
       );
       setView("success");
     } catch (cause: any) {
-      setError(cause?.message || "The request could not be sent.");
+      setError(
+        cause?.message || "We couldn’t send that yet. Your details are still here—please try again."
+      );
     } finally {
       setBusy(false);
     }
@@ -275,7 +287,7 @@ export default function ExpressDirectConnectPanel({
             ) : null}
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-ts-orange-dark">
-                Express Direct Connect
+                Private request
               </p>
               <h2 id="express-direct-connect-title" className="text-xl font-bold text-neutral-900">
                 {businessName}
@@ -286,7 +298,7 @@ export default function ExpressDirectConnectPanel({
             type="button"
             onClick={close}
             className="rounded-full p-2 text-neutral-900/60 hover:bg-black/5"
-            aria-label="Close Direct Connect"
+            aria-label="Close request"
           >
             <X className="h-5 w-5" />
           </button>
@@ -295,7 +307,7 @@ export default function ExpressDirectConnectPanel({
         <div className="p-5 sm:p-7">
           {view === "choice" && allowCall ? (
             <div>
-              <p className="mb-6 text-stone-700">Choose the fastest way to reach {businessName}.</p>
+              <p className="mb-6 text-stone-700">Choose how you want to reach {businessName}.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -310,7 +322,7 @@ export default function ExpressDirectConnectPanel({
                   )}
                   <span>
                     <strong className="block text-lg">Call {businessName}</strong>
-                    <span className="text-sm text-white/80">Reveal the number and call</span>
+                    <span className="text-sm text-white/80">Open the number on your phone</span>
                   </span>
                 </button>
                 <button
@@ -325,14 +337,14 @@ export default function ExpressDirectConnectPanel({
                   <span>
                     <strong className="block text-lg">{config.choiceLabel}</strong>
                     <span className="text-sm font-medium text-stone-600">
-                      Send first, signup after
+                      No account needed to send
                     </span>
                   </span>
                 </button>
               </div>
               <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
                 <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
-                Contact stays protected inside TradeScout. A phone number is required to send.
+                Your phone number lets {businessName} reply. It stays private until they accept.
               </div>
             </div>
           ) : null}
@@ -344,7 +356,7 @@ export default function ExpressDirectConnectPanel({
                   {initialStoneName ? `Ask about ${initialStoneName}` : config.heading}
                 </h3>
                 <p className="mt-1 text-sm text-stone-600">
-                  Send the details directly to {businessName}. Signup comes after send.
+                  Send the details now. You can save the request to a free account afterward.
                 </p>
               </div>
 
@@ -458,14 +470,14 @@ export default function ExpressDirectConnectPanel({
               ) : null}
               {!hasViewerSession ? (
                 <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <p className="font-bold text-neutral-900">Keep this connection in TradeScout</p>
+                  <p className="font-bold text-neutral-900">Want to keep track of this?</p>
                   <p className="mt-1 text-sm text-stone-600">
                     Create your free account after the call to save {businessName} and manage future
                     projects.
                   </p>
                   <Link href={postCallSignupHref}>
                     <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                      Continue with Express signup
+                      Save this connection
                     </button>
                   </Link>
                 </div>
@@ -484,11 +496,13 @@ export default function ExpressDirectConnectPanel({
               {!hasViewerSession ? (
                 <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
                   <p className="font-bold text-neutral-900">
-                    {accountCreated ? "Finish Express signup" : "Sign in to manage this project"}
+                    {accountCreated
+                      ? "Save and follow this request"
+                      : "Sign in to follow this request"}
                   </p>
                   <p className="mt-1 text-sm text-stone-600">
-                    This request is already saved to your TradeScout account. Continue to see it in
-                    My Requests, contact {businessName}, and manage the project.
+                    Your request is safe. Continue to follow replies from {businessName} and keep
+                    the project in one place.
                   </p>
                   {accountCreated && onboardingEmailStatus === "sent" ? (
                     <p className="mt-2 text-xs font-medium text-emerald-700">
@@ -507,12 +521,12 @@ export default function ExpressDirectConnectPanel({
                     }
                   >
                     <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                      {accountCreated ? "Continue Express signup" : "Sign in and open My Requests"}
+                      {accountCreated ? "Save my request" : "Sign in to follow it"}
                     </button>
                   </Link>
                   <p className="mt-3 text-xs text-stone-500">
-                    After signup, choose “Attach this project to your HomeID” if you want it in your
-                    home record.
+                    You can add this project to your HomeID later if you want it in your home
+                    record.
                   </p>
                 </div>
               ) : (

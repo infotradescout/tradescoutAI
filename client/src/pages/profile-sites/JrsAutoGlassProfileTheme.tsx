@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
+import { ShareButton } from "@/components/ShareButton";
+import {
+  buildProfileGalleryShareSearch,
+  listProfileGalleryItems,
+  type ResolvedProfileGalleryItem,
+} from "@shared/profileGalleryShare";
+import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import {
   Camera,
   CarFront,
@@ -40,15 +47,22 @@ type RecommendationEntry = {
 type Props = {
   onDirectConnect: () => void;
   hasViewerSession: boolean;
+  profileShareDestination: string;
+  galleryItems?: ResolvedProfileGalleryItem[];
+  sharedGallerySlug?: string | null;
   recommendationsDirectory?: RecommendationEntry[];
   profileItems?: ReactNode;
 };
 
 const assetRoot = "/images/businesses/jrs-auto-glass";
+const defaultRecentWork = listProfileGalleryItems(JRS_AUTO_GLASS_GALLERY_BLOCKS);
 
 export default function JrsAutoGlassProfileTheme({
   onDirectConnect,
   hasViewerSession,
+  profileShareDestination,
+  galleryItems = [],
+  sharedGallerySlug = null,
   recommendationsDirectory = [],
   profileItems,
 }: Props) {
@@ -56,6 +70,7 @@ export default function JrsAutoGlassProfileTheme({
   const publicRecommendations = recommendationsDirectory.filter(
     (entry) => entry.recommendationType === "positive"
   );
+  const recentWork = galleryItems.length > 0 ? galleryItems.slice(0, 2) : defaultRecentWork;
 
   return (
     <main className="bg-black text-zinc-100">
@@ -91,11 +106,11 @@ export default function JrsAutoGlassProfileTheme({
           <button
             type="button"
             onClick={onDirectConnect}
-            aria-label="Open TradeScout Direct Connect with JR's Auto Glass"
+            aria-label="Request service from JR's Auto Glass"
             className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full bg-ts-orange text-white transition-colors hover:bg-ts-orange-dark sm:w-auto sm:gap-2 sm:px-4"
           >
             <MessageCircle className="h-4 w-4" />
-            <span className="hidden text-xs font-black sm:inline">Direct Connect</span>
+            <span className="hidden text-xs font-black sm:inline">Request service</span>
           </button>
         </div>
       </header>
@@ -137,8 +152,18 @@ export default function JrsAutoGlassProfileTheme({
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-2 text-center text-[11px] font-medium text-zinc-500">
-            Private request through TradeScout Direct Connect
+            Tell JR&apos;s what happened. Your contact details stay private.
           </p>
+          <div className="mt-3 flex justify-center">
+            <ShareButton
+              destination={profileShareDestination}
+              title="JR's Auto Glass"
+              text="Mobile auto glass service in Ponchatoula, Louisiana"
+              variant="ghost"
+              className="text-zinc-300 hover:bg-white/10 hover:text-white"
+              label="Share JR's"
+            />
+          </div>
         </section>
 
         <section className="border-b border-white/10 px-4 py-5 sm:px-6">
@@ -172,26 +197,37 @@ export default function JrsAutoGlassProfileTheme({
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <figure className="relative overflow-hidden rounded-lg border border-white/10 bg-black">
-              <img
-                src={`${assetRoot}/before.webp`}
-                alt="Damaged windshield before service"
-                className="aspect-[4/3] h-full w-full object-cover"
-              />
-              <figcaption className="absolute bottom-2 left-2 rounded bg-red-600 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
-                Before
-              </figcaption>
-            </figure>
-            <figure className="relative overflow-hidden rounded-lg border border-white/10 bg-black">
-              <img
-                src={`${assetRoot}/after.webp`}
-                alt="Replaced windshield after service"
-                className="aspect-[4/3] h-full w-full object-cover"
-              />
-              <figcaption className="absolute bottom-2 left-2 rounded bg-red-600 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
-                After
-              </figcaption>
-            </figure>
+            {recentWork.map((item, index) => {
+              const isSharedItem = Boolean(item.slug && item.slug === sharedGallerySlug);
+              return (
+                <figure
+                  id={item.slug ? `profile-gallery-${item.slug}` : undefined}
+                  key={item.slug || item.imageUrl}
+                  className={`relative overflow-hidden rounded-lg border bg-black ${
+                    isSharedItem ? "border-ts-orange ring-2 ring-ts-orange/50" : "border-white/10"
+                  }`}
+                >
+                  <img
+                    src={item.imageUrl}
+                    alt={item.imageAlt}
+                    className="aspect-[4/3] h-full w-full object-cover"
+                  />
+                  <figcaption className="absolute bottom-2 left-2 rounded bg-red-600 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
+                    {index === 0 ? "Before" : index === 1 ? "After" : item.title}
+                  </figcaption>
+                  {item.slug ? (
+                    <ShareButton
+                      destination={`${profileShareDestination}${buildProfileGalleryShareSearch(item.slug)}`}
+                      title={`${item.title} from JR's Auto Glass`}
+                      text="See this recent auto glass work from JR's Auto Glass"
+                      size="icon"
+                      label=""
+                      className="absolute right-2 top-2 border-white/20 bg-black/70 text-white hover:bg-black"
+                    />
+                  ) : null}
+                </figure>
+              );
+            })}
           </div>
         </section>
 
@@ -207,10 +243,10 @@ export default function JrsAutoGlassProfileTheme({
         <section className="border-b border-white/10 px-4 py-5 sm:px-6">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-ts-orange" />
-            <h2 className="text-base font-black text-white">TradeScout Business CV</h2>
+            <h2 className="text-base font-black text-white">Customer recommendations</h2>
           </div>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Recommendations and completed activity build JR&apos;s business record on TradeScout.
+            Recommendations from customers will appear here.
           </p>
 
           {publicRecommendations.length > 0 ? (
@@ -254,7 +290,7 @@ export default function JrsAutoGlassProfileTheme({
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 px-4 py-3">
               <ShieldCheck className="h-4 w-4 flex-none text-red-500" />
               <p className="text-sm font-semibold text-zinc-300">
-                Public business profile active on TradeScout
+                You&apos;re here early. The first customer recommendations are coming soon.
               </p>
             </div>
           )}
@@ -266,7 +302,7 @@ export default function JrsAutoGlassProfileTheme({
 
         <section id="request-details" className="scroll-mt-20 px-4 py-6 sm:px-6">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-ts-orange">
-            TradeScout Direct Connect
+            Ready when you are
           </p>
           <h2 className="mt-1 text-xl font-black text-white">Send JR&apos;s the job details.</h2>
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3">
@@ -285,11 +321,11 @@ export default function JrsAutoGlassProfileTheme({
             onClick={onDirectConnect}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
           >
-            Direct Connect with JR&apos;s
+            Send job details
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-3 text-center text-xs leading-5 text-zinc-500">
-            Contact information remains protected until JR&apos;s accepts the request.
+            JR&apos;s won&apos;t see your contact details unless they accept the request.
           </p>
         </section>
       </div>

@@ -730,7 +730,7 @@ export default function WholesalerProfileTheme({
                   onClick={() => startDirectConnect()}
                   className="hidden flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark sm:inline-flex md:px-5 md:text-sm"
                 >
-                  Direct Connect
+                  Request material
                 </button>
               </div>
             </>
@@ -743,7 +743,7 @@ export default function WholesalerProfileTheme({
                   {displayName}
                 </span>
                 <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
-                  TradeScout TradePartner
+                  Natural stone supplier
                 </p>
               </div>
               <button
@@ -751,7 +751,7 @@ export default function WholesalerProfileTheme({
                 onClick={() => startDirectConnect()}
                 className="flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark md:px-5 md:text-sm"
               >
-                Direct Connect
+                Request material
               </button>
             </>
           )}
@@ -877,7 +877,7 @@ export default function WholesalerProfileTheme({
               onClick={() => startDirectConnect()}
               className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3 text-sm font-extrabold text-ts-orange-light shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
             >
-              Direct Connect
+              Ask JW Stone
               <ChevronRight className="h-4 w-4" />
             </button>
             {!isJwStone && !hasViewerSession ? (
@@ -1064,8 +1064,7 @@ export default function WholesalerProfileTheme({
                     Current Inventory
                   </h2>
                   <p className="text-sm !text-[#4a4238]">
-                    Search JW Stone's full collection or open any stone to send a protected Direct
-                    Connect request.
+                    Search the full collection, then open any stone to see photos or ask about it.
                   </p>
                 </div>
 
@@ -1148,7 +1147,7 @@ export default function WholesalerProfileTheme({
                         <p className="mt-1 text-sm text-[#241d0f]/75">
                           {profileSlug === "jw-stone" && normalizedInventorySearch
                             ? "JW Stone may be able to source it for your project."
-                            : "Try another spelling or Direct Connect with JW Stone for help."}
+                            : "Try another spelling or send JW Stone a request for help."}
                         </p>
                         {profileSlug === "jw-stone" && normalizedInventorySearch ? (
                           <button
@@ -1694,7 +1693,7 @@ export default function WholesalerProfileTheme({
         </section>
       ) : null}
 
-      {/* Recommendations Directory */}
+      {/* Customer recommendations */}
       {recommendationsDirectory.length > 0 ? (
         <section className="bg-[var(--brand-surface)] py-8 md:py-11">
           <div className="container mx-auto max-w-3xl px-4 md:px-6">
@@ -1702,14 +1701,14 @@ export default function WholesalerProfileTheme({
               <h2
                 className={`text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
               >
-                Recommendations Directory
+                What customers say
               </h2>
               <div className="text-sm font-medium text-[#241d0f]/70">
-                {summary.positive} positive, {summary.negative} negative ({summary.total} total)
+                {summary.total} {summary.total === 1 ? "recommendation" : "recommendations"}
               </div>
             </div>
             <p className="mb-8 text-sm text-[#241d0f]/75">
-              Recommendations are public, moderated, and tied to verified TradeScout activity.
+              Recommendations customers choose to share appear here.
             </p>
             <div className="space-y-4">
               {recommendationsDirectory.slice(0, 24).map((entry) => (
@@ -1739,7 +1738,7 @@ export default function WholesalerProfileTheme({
                     <div className="text-xs text-[#241d0f]/75">
                       {entry.createdAt
                         ? new Date(entry.createdAt).toLocaleDateString()
-                        : "Date unavailable"}
+                        : "Recently"}
                     </div>
                   </div>
                   <p className="mb-3 text-sm text-[#241d0f]/80">{entry.comment}</p>
@@ -1768,10 +1767,10 @@ export default function WholesalerProfileTheme({
       <section id="connect" className="scroll-mt-28 bg-[var(--brand-primary)] py-9 md:py-12">
         <div className="container mx-auto px-4 text-center md:px-6">
           <h2 className={`mb-4 text-2xl font-bold text-white md:text-4xl ${DISPLAY_FONT}`}>
-            Start a Direct Connect Request
+            Tell JW Stone what you need
           </h2>
           <p className="mx-auto mb-8 max-w-xl text-white/80">
-            Contact {displayName} to request material, match a project, or schedule a visit.
+            Ask about a stone, match material to a project, or plan a showroom visit.
           </p>
           <div className="mx-auto mb-10 flex max-w-2xl flex-wrap items-center justify-center gap-3">
             {DIRECT_CONNECT_OPTIONS.map((option) => (
@@ -1792,7 +1791,7 @@ export default function WholesalerProfileTheme({
               className="flex items-center justify-center gap-2 rounded-full bg-ts-orange px-8 py-4 text-base font-bold text-white transition-colors hover:bg-ts-orange-dark"
             >
               <MessageCircle className="h-5 w-5" />
-              Direct Connect
+              Send request
             </button>
             {!hasViewerSession ? (
               <Link href={preScoutSignInHref}>
@@ -1809,7 +1808,9 @@ export default function WholesalerProfileTheme({
       <footer className="bg-[#241d0f] py-10 text-white/70">
         <div className="container mx-auto px-4 text-center text-sm md:px-6">
           <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
-          <p>Quarry-direct sourcing. Contact protected through TradeScout Direct Connect.</p>
+          <p>
+            Quarry-direct sourcing. Your contact details stay private until you choose to connect.
+          </p>
         </div>
       </footer>
       <ExpressDirectConnectPanel

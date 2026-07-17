@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { listProfileGalleryItems } from "@shared/profileGalleryShare";
+import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 
 const profileRecord = {
   id: "profile-jw",
@@ -62,6 +63,10 @@ const templateHtml = `<!doctype html>
 describe("public profile item HTML", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    profileRecord.slug = "jw-stone";
+    profileRecord.displayName = "JW Stone LLC";
+    profileRecord.businessId = "business-jw";
+    profileRecord.seoMeta.customDomain = "jwstonelogistics.com";
     profileRecord.contentBlocks = [];
   });
 
@@ -136,7 +141,7 @@ describe("public profile item HTML", () => {
     });
 
     expect(html).toContain(
-      'property="og:title" content="Blue Stone Patio by JW Stone LLC | TradeScout"'
+      'property="og:title" content="Blue Stone Patio | JW Stone LLC | TradeScout"'
     );
     expect(html).toContain(
       'property="og:image" content="https://jwstonelogistics.com/uploads/profiles/blue-stone-patio.jpg"'
@@ -148,10 +153,38 @@ describe("public profile item HTML", () => {
     expect(html).toContain(
       `link rel="canonical" href="https://jwstonelogistics.com/?gallery=${galleryItem.slug}"`
     );
-    expect(html).toContain("Contact stays protected through TradeScout Direct Connect.");
+    expect(html).toContain("Your contact details stay private until you choose to connect.");
     expect(html).toContain('data-seo-profile-item="gallery"');
     expect(html).toContain('"@type":"ImageObject"');
     expect(html).not.toContain('property="og:image:width"');
     expect(html).not.toContain('property="og:image:height"');
+  });
+
+  it("renders JR's exact before-photo preview from its paid profile share link", async () => {
+    profileRecord.slug = "jrs-auto-glass";
+    profileRecord.displayName = "JR's Auto Glass";
+    profileRecord.businessId = "";
+    profileRecord.seoMeta.customDomain = "";
+    profileRecord.contentBlocks = [...JRS_AUTO_GLASS_GALLERY_BLOCKS] as any[];
+    const beforeItem = listProfileGalleryItems(profileRecord.contentBlocks)[0];
+
+    const html = await buildPublicProfileHtml({
+      slug: "jrs-auto-glass",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+      gallerySlug: beforeItem.slug,
+    });
+
+    expect(html).toContain(
+      'property="og:title" content="Windshield before replacement | JR&#39;s Auto Glass | TradeScout"'
+    );
+    expect(html).toContain(
+      'property="og:image" content="https://www.thetradescout.com/images/businesses/jrs-auto-glass/before.webp"'
+    );
+    expect(html).toContain(
+      `property="og:url" content="https://www.thetradescout.com/u/jrs-auto-glass?gallery=${beforeItem.slug}"`
+    );
+    expect(html).toContain('data-seo-profile-item="gallery"');
+    expect(html).toContain('"@type":"ImageObject"');
   });
 });

@@ -112,7 +112,7 @@ function buildBusinessMeta(args: {
     args.services?.length ? `Services: ${args.services.slice(0, 6).join(", ")}.` : "",
     args.serviceAreas?.length ? `Service areas: ${args.serviceAreas.slice(0, 6).join(", ")}.` : "",
     args.verificationLabel ? `Verification: ${args.verificationLabel}.` : "",
-    "Contact is protected through TradeScout Direct Connect.",
+    "Your contact details stay private until you choose to connect.",
   ]
     .filter(Boolean)
     .join(" ");
@@ -454,7 +454,7 @@ export async function buildPublicBusinessHtml({
     ${contentBlocks.length > 0 ? contentBlocks.map((block: any) => renderSeoContentBlock(block)).join("") : ""}
     <p>${escapeHtml(bookingSummary)}</p>
     ${bookingRows.length > 0 ? `<ul>${bookingRows.map((row: string) => `<li>${escapeHtml(row)}</li>`).join("")}</ul>` : ""}
-    <p>Contact is protected through TradeScout Direct Connect.</p>
+    <p>Your contact details stay private until you choose to connect.</p>
   </article>
 </main>`;
 
@@ -544,7 +544,7 @@ export async function buildPublicBusinessHtml({
     name: String((directory as any).name || safeSlug),
     headline: tagline || null,
     description: isStale
-      ? "This listing is inactive or out of date."
+      ? "You're here early. This listing is being refreshed and will be back soon."
       : description || tagline || null,
     countyName: countyNames[0] || null,
     stateCode,
@@ -693,7 +693,7 @@ export async function buildPublicBusinessHtml({
         : ""
     }
     <p><strong>Verification:</strong> ${escapeHtml(verificationLabel)}</p>
-    <p>Contact is protected through TradeScout Direct Connect.</p>
+    <p>Your contact details stay private until you choose to connect.</p>
   </article>
 </main>`;
 
@@ -702,8 +702,7 @@ export async function buildPublicBusinessHtml({
 <main data-seo-business="stale" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
     <h1>${escapeHtml(String((directory as any).name || safeSlug))}</h1>
-    <p>This listing is inactive or out of date and is not shown in public discovery.</p>
-    <p>Contact remains protected through TradeScout Direct Connect.</p>
+    <p>You're here early. This listing is being refreshed and will be back soon.</p>
   </article>
 </main>`;
     html = applyNoIndex(html);

@@ -232,7 +232,7 @@ export function createProfileGalleryItemShareMetadata(args: {
     canonicalUrl.search = buildProfileGalleryShareSearch(item.slug);
     canonicalUrl.hash = "";
 
-    const protection = "Contact stays protected through TradeScout Direct Connect.";
+    const protection = "Your contact details stay private until you choose to connect.";
     const lead = capForShare(
       `View ${item.title} from ${profileName}.`,
       MAX_SHARE_DESCRIPTION_LENGTH - protection.length - 1
@@ -247,7 +247,7 @@ export function createProfileGalleryItemShareMetadata(args: {
       itemType: "gallery",
       itemTitle: item.title,
       itemSlug: item.slug,
-      title: `${item.title} by ${profileName}`,
+      title: `${item.title} | ${profileName}`,
       description: [lead, detail, protection].filter(Boolean).join(" "),
       imageUrl,
       imageAlt: item.imageAlt,

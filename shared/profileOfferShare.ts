@@ -108,7 +108,7 @@ export function createProfileServiceOfferShareMetadata(args: {
   try {
     const rawTitle = cleanString(args.offer.title) || "TradeScout service";
     const title = capText(rawTitle, MAX_SERVICE_SHARE_TITLE_LENGTH);
-    const protection = "Start through TradeScout's protected request flow.";
+    const protection = "Your contact details stay private until you choose to connect.";
     const lead = capText(
       cleanString(args.offer.description) || `View ${title}.`,
       MAX_SERVICE_SHARE_DESCRIPTION_LENGTH - protection.length - 1

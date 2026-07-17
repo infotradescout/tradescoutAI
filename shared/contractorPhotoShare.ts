@@ -90,7 +90,7 @@ export function createContractorPhotoShareMetadata(args: {
     canonicalUrl.search = buildContractorPhotoShareSearch(item.slug);
     canonicalUrl.hash = "";
 
-    const protection = "Contact stays protected through TradeScout Direct Connect.";
+    const protection = "Your contact details stay private until you choose to connect.";
     const lead = capForShare(
       `View ${item.title} from ${contractorName}.`,
       MAX_SHARE_DESCRIPTION_LENGTH - protection.length - 1

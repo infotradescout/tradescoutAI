@@ -66,7 +66,10 @@ describe("canonical profile item parity", () => {
     expect(items).toContain("<ShareButton");
     expect(items).not.toContain("Send Message");
     expect(items).not.toContain("Start Job");
-    expect(items).toContain("Contact, job routing, and transactions continue through");
+    expect(items).toContain("See something you like?");
+    expect(items).toContain("Your contact details stay");
+    expect(items).toContain("private until you choose to connect.");
+    expect(items).not.toContain("Contact, job routing, and transactions continue through");
   });
 
   it("honors section visibility independently for services, products, and posts", () => {

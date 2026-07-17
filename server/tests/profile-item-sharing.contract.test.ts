@@ -40,6 +40,7 @@ describe("profile item sharing contract", () => {
     const profileHtml = read("server/publicProfileHtml.ts");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const autoGlassTheme = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
 
     expect(serverEntry).toContain("gallerySlug: req.query.gallery");
     expect(profileHtml).toContain("createProfileGalleryItemShareMetadata");
@@ -51,6 +52,9 @@ describe("profile item sharing contract", () => {
     expect(theme).toContain("buildProfileGalleryShareSearch(item.slug)");
     expect(theme).toContain("profile-gallery-${item.slug}");
     expect(theme).toContain("<ShareButton");
+    expect(autoGlassTheme).toContain("buildProfileGalleryShareSearch(item.slug)");
+    expect(autoGlassTheme).toContain("profile-gallery-${item.slug}");
+    expect(autoGlassTheme).toContain("<ShareButton");
   });
 
   it("gives icon-only share actions an accessible name", () => {

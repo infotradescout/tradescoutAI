@@ -35,7 +35,9 @@ describe("business profile gallery sharing contract", () => {
     const businessRoute = read("server/routes/business-profile.ts");
 
     expect(publicHtml).toContain('published?.visibility === "public"');
-    expect(publicHtml).toContain("Contact is protected through TradeScout Direct Connect.");
+    expect(publicHtml).toContain("Your contact details stay private until you choose to connect.");
+    expect(publicHtml).toContain("You're here early. This listing is being refreshed");
+    expect(publicHtml).not.toContain("Contact is protected through TradeScout Direct Connect.");
     expect(businessRoute).toContain('profile.visibility !== "public"');
     expect(businessRoute).toContain("sanitizePublicContentBlocks");
   });

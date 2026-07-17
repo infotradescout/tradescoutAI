@@ -33,6 +33,7 @@ import {
   listProfileGalleryItems,
   resolveProfileGalleryItem,
 } from "@shared/profileGalleryShare";
+import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -153,6 +154,8 @@ export default function ProfileSiteView() {
   const [data, setData] = useState<PublicProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
 
   useEffect(() => {
@@ -167,9 +170,11 @@ export default function ProfileSiteView() {
       try {
         setLoading(true);
         setNotFound(false);
+        setLoadFailed(false);
 
         const response = await fetch(`/api/u/${encodeURIComponent(slug)}`);
         if (response.status === 404) {
+          setData(null);
           setNotFound(true);
           setLoading(false);
           return;
@@ -202,12 +207,14 @@ export default function ProfileSiteView() {
         setLoading(false);
       } catch (e) {
         console.error("Error fetching profile:", e);
+        setData(null);
+        setLoadFailed(true);
         setLoading(false);
       }
     };
 
     run();
-  }, [slug, matchP, navigate]);
+  }, [slug, matchP, navigate, reloadKey]);
 
   useEffect(() => {
     if (!data || typeof window === "undefined") return;
@@ -229,25 +236,52 @@ export default function ProfileSiteView() {
 
   if (loading) {
     return (
-      <div className=" flex items-center justify-center">
-        <div className="ts-surface px-4 py-6 md:px-10 md:py-8 text-white">
-          Loading profile site…
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <div className="ts-surface rounded-2xl px-6 py-8 text-center text-white md:px-10">
+          <p className="text-lg font-semibold">Getting this page ready…</p>
+          <p className="mt-2 text-sm text-white/60">The good stuff is almost here.</p>
         </div>
+      </div>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <Card className="w-full max-w-xl border-white/10 bg-tsCard">
+          <CardHeader>
+            <CardTitle className="text-white">That page didn&apos;t load</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-white/70">The profile is still here. Let&apos;s try that again.</p>
+            <Button
+              type="button"
+              onClick={() => setReloadKey((current) => current + 1)}
+              className="bg-ts-orange text-white hover:bg-ts-orange-dark"
+            >
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (notFound || !data) {
     return (
-      <div className=" flex items-center justify-center px-4">
-        <Card className="bg-tsCard w-full max-w-xl">
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
+        <Card className="w-full max-w-xl border-white/10 bg-tsCard">
           <CardHeader>
-            <CardTitle className="text-white">Profile not found</CardTitle>
+            <CardTitle className="text-white">You&apos;re here early</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-white/70">
-              This profile may be private, unpublished, or unavailable.
+              This profile isn&apos;t public yet, or the link has changed. Check back soon or
+              explore TradeScout while it gets ready.
             </p>
+            <Button asChild className="bg-ts-orange text-white hover:bg-ts-orange-dark">
+              <Link href="/">Explore TradeScout</Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -297,7 +331,10 @@ export default function ProfileSiteView() {
             data: { categories: JW_STONE_INVENTORY_CATEGORIES },
           },
         ]
-      : storedContentBlocks;
+      : profile.slug === "jrs-auto-glass" &&
+          !storedContentBlocks.some((block: any) => block?.type === "gallery")
+        ? [...storedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
+        : storedContentBlocks;
   const profileCustomDomain =
     typeof profile.seoMeta?.customDomain === "string"
       ? profile.seoMeta.customDomain.trim().toLowerCase()
@@ -348,7 +385,7 @@ export default function ProfileSiteView() {
     profile.seoMeta.description.trim().length > 0
       ? profile.seoMeta.description
       : profile.headline ||
-        `${displayName} on TradeScout. Public profile discoverable on web search with protected contact through Direct Connect.`;
+        `${displayName} on TradeScout. See services, recent work, and local offers, then send a private request when you're ready.`;
   const seoTitle = itemShareMeta?.title || profileSeoTitle;
   const seoDescription = itemShareMeta?.description || profileSeoDescription;
   const seoImage =
@@ -484,7 +521,18 @@ export default function ProfileSiteView() {
   ]);
   const profilePlaceholderAlt = `${
     serviceTags[0] || profile.headline || "Business"
-  } category placeholder illustration`;
+  } illustration for ${displayName}`;
+  const profileTypeLabel = business ? "Local business" : "Community profile";
+  const quickFacts = [
+    serviceTags.length > 0 ? { label: "Services", value: String(serviceTags.length) } : null,
+    serviceAreas.length > 0
+      ? {
+          label: "Serves",
+          value: `${serviceAreas.length} area${serviceAreas.length === 1 ? "" : "s"}`,
+        }
+      : null,
+    bookingEnabled ? { label: "Appointments", value: "Available" } : null,
+  ].filter((fact): fact is { label: string; value: string } => Boolean(fact));
   const customBlocks = contentBlocks
     .filter((block) => block && typeof block === "object")
     .filter(
@@ -526,6 +574,9 @@ export default function ProfileSiteView() {
         <JrsAutoGlassProfileTheme
           onDirectConnect={() => setExpressPanelOpen(true)}
           hasViewerSession={hasViewerSession}
+          profileShareDestination={profileShareDestination}
+          galleryItems={galleryItems}
+          sharedGallerySlug={sharedGallerySlug}
           recommendationsDirectory={recommendationsDirectory}
           profileItems={
             <PublicProfileItems items={profileItems} profileSections={profileSections} />
@@ -600,7 +651,7 @@ export default function ProfileSiteView() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <Badge variant="secondary">Website Profile</Badge>
+                <Badge variant="secondary">Public profile</Badge>
                 <ShareButton
                   destination={profileShareDestination}
                   title={displayName}
@@ -624,52 +675,37 @@ export default function ProfileSiteView() {
                 <div className="text-xs text-white/70">
                   {featuredGalleryItem
                     ? sharedGallerySlug
-                      ? "Shared work from this profile"
-                      : "Featured work from this profile"
-                    : "Placeholder image shown until this profile adds real media."}
+                      ? "The work someone shared with you"
+                      : "Recent work"
+                    : "New photos are on the way."}
                 </div>
               </div>
               {profileSections.about !== false ? (
                 <p className="text-white/70 text-sm uppercase tracking-[0.18em]">
-                  {profile.roleContext}
+                  {profileTypeLabel}
                 </p>
               ) : null}
               {profile.headline && profileSections.about !== false ? (
                 <p className="text-white/80 max-w-2xl">{profile.headline}</p>
               ) : null}
             </div>
-            {profileSections.stats !== false ? (
-              <div className="grid grid-cols-2 gap-2 min-w-[220px]">
-                <div className="rounded-md bg-black/20 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-white/60">Services</p>
-                  <p className="text-white text-lg font-semibold">{serviceTags.length}</p>
-                </div>
-                <div className="rounded-md bg-black/20 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-white/60">Areas</p>
-                  <p className="text-white text-lg font-semibold">{serviceAreas.length}</p>
-                </div>
-                <div className="rounded-md bg-black/20 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-white/60">Availability</p>
-                  <p className="text-white text-lg font-semibold">
-                    {bookingEnabled ? "Open" : "By request"}
-                  </p>
-                </div>
-                <div className="rounded-md bg-black/20 px-3 py-2">
-                  <p className="text-[10px] uppercase tracking-wider text-white/60">Contact</p>
-                  <p className="text-white text-lg font-semibold">Protected</p>
-                </div>
+            {profileSections.stats !== false && quickFacts.length > 0 ? (
+              <div className="grid min-w-[220px] grid-cols-2 gap-2">
+                {quickFacts.map((fact) => (
+                  <div key={fact.label} className="rounded-md bg-black/20 px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wider text-white/60">
+                      {fact.label}
+                    </p>
+                    <p className="text-lg font-semibold text-white">{fact.value}</p>
+                  </div>
+                ))}
               </div>
             ) : null}
           </div>
           {profileSections.rolesAndBadges !== false ? (
             <div className="flex flex-wrap gap-2">
-              <Badge className="bg-ts-orange text-white">Verified on TradeScout</Badge>
-              {business ? (
-                <Badge className="bg-white/10 text-white">Business profile linked</Badge>
-              ) : (
-                <Badge className="bg-white/10 text-white">Individual profile</Badge>
-              )}
-              <Badge className="bg-white/10 text-white">Direct Connect protected</Badge>
+              <Badge className="bg-ts-orange text-white">{profileTypeLabel}</Badge>
+              <Badge className="bg-white/10 text-white">Requests stay private</Badge>
             </div>
           ) : null}
         </CardHeader>
@@ -713,16 +749,16 @@ export default function ProfileSiteView() {
               {profileSections.reviews !== false && recommendationsDirectory.length > 0 ? (
                 <section id="recommendations-directory" className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-white font-semibold text-lg">Recommendations Directory</h2>
+                    <h2 className="text-white font-semibold text-lg">What people say</h2>
                     <div className="text-xs text-white/70">
-                      {recommendationDirectorySummary.positive} positive,{" "}
-                      {recommendationDirectorySummary.negative} negative (
-                      {recommendationDirectorySummary.total} total)
+                      {recommendationDirectorySummary.total}{" "}
+                      {recommendationDirectorySummary.total === 1
+                        ? "recommendation"
+                        : "recommendations"}
                     </div>
                   </div>
                   <p className="text-xs text-white/60">
-                    Share this section using this profile URL. Recommendations are public,
-                    moderated, and tied to verified TradeScout activity.
+                    Recommendations people choose to share appear here.
                   </p>
                   <div className="space-y-3">
                     {recommendationsDirectory.slice(0, 24).map((entry) => (
@@ -752,7 +788,7 @@ export default function ProfileSiteView() {
                           <div className="text-xs text-white/60">
                             {entry.createdAt
                               ? new Date(entry.createdAt).toLocaleDateString()
-                              : "Date unavailable"}
+                              : "Recently"}
                           </div>
                         </div>
                         <p className="text-sm text-white/80">{entry.comment}</p>
@@ -859,7 +895,7 @@ export default function ProfileSiteView() {
                     Bookings
                   </h2>
                   <p className="text-sm text-white/70">
-                    Booking requests route through TradeScout Direct Connect for protected contact.
+                    Choose a time and send a booking request. Nothing is shared until you review it.
                   </p>
                   {calendarVisibility === "public" && slots.length > 0 ? (
                     <div className="space-y-1 text-sm text-white/70">
@@ -913,46 +949,34 @@ export default function ProfileSiteView() {
             </div>
 
             <aside className="space-y-4">
-              {business ? (
+              {business && (business.categories.length > 0 || business.serviceAreas.length > 0) ? (
                 <section className="rounded-lg bg-black/20 p-4 space-y-3">
-                  <h2 className="text-white font-semibold">Business Snapshot</h2>
+                  <h2 className="text-white font-semibold">At a glance</h2>
                   <div className="text-sm text-white/70 space-y-1">
-                    <p>
-                      <span className="text-white/50">Name:</span> {business.name}
-                    </p>
-                    <p>
-                      <span className="text-white/50">Categories:</span>{" "}
-                      {business.categories.length ? business.categories.join(", ") : "None listed"}
-                    </p>
-                    <p>
-                      <span className="text-white/50">Coverage:</span>{" "}
-                      {business.serviceAreas.length
-                        ? `${business.serviceAreas.length} service area(s)`
-                        : "No areas listed"}
-                    </p>
+                    {business.categories.length > 0 ? (
+                      <p>{business.categories.slice(0, 6).join(" · ")}</p>
+                    ) : null}
+                    {business.serviceAreas.length > 0 ? (
+                      <p className="text-white/60">
+                        Serves {business.serviceAreas.slice(0, 6).join(", ")}
+                      </p>
+                    ) : null}
                   </div>
                 </section>
               ) : null}
 
               {showContactCard ? (
                 <section className="space-y-3 rounded-lg bg-black/20 p-4">
-                  <h2 className="text-white font-semibold">Contact</h2>
+                  <h2 className="text-white font-semibold">
+                    {business ? "Ask about working together" : "Send a private request"}
+                  </h2>
                   <div className="space-y-2 text-sm text-white/70">
                     <div className="flex items-center gap-2 text-white/70">
                       <ShieldCheck className="h-4 w-4 text-ts-orange" />
-                      <span>
-                        Contact is protected to prevent spam
-                        {profile.contactPolicy?.reason
-                          ? ` (${profile.contactPolicy.reason.toLowerCase()})`
-                          : "."}
-                      </span>
+                      <span>Your contact details stay private.</span>
                     </div>
                     <p className="text-white/60">
-                      {isSuperAdminViewer
-                        ? "Super Admin oversight is active. Send the request directly to this business."
-                        : canExpressCall
-                          ? "Send or call first. TradeScout offers signup after the action so the request can be managed in My Requests."
-                          : "Send first. TradeScout offers signup after the action so the request can be managed in My Requests."}
+                      Send a request first. You can continue directly after they accept.
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
@@ -962,7 +986,7 @@ export default function ProfileSiteView() {
                       className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2"
                     >
                       <MessageCircle className="h-4 w-4" />
-                      <span>{isSuperAdminViewer ? "Open Direct Connect" : "Start a Request"}</span>
+                      <span>Start a request</span>
                     </Button>
                     {!hasViewerSession ? (
                       <Link href={preScoutSignInHref}>

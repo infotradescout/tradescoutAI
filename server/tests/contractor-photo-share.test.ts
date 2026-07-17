@@ -53,7 +53,7 @@ describe("contractor project photo sharing", () => {
       })
     );
     expect(metadata?.description).toContain(
-      "Contact stays protected through TradeScout Direct Connect."
+      "Your contact details stay private until you choose to connect."
     );
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
     expect(buildContractorPhotoShareSearch(item.slug)).toBe(`?gallery=${item.slug}`);
