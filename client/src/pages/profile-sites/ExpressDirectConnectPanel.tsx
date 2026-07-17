@@ -195,7 +195,7 @@ export default function ExpressDirectConnectPanel({
       if (!response.ok || typeof json?.tel !== "string") {
         throw new Error(
           response.status === 404
-            ? "Calling is coming soon. You can still send a request."
+            ? "Calling is on the way. You can still send a request."
             : "Calling is unavailable right now. You can still send a request."
         );
       }

@@ -677,7 +677,7 @@ export default function ProfileSiteView() {
                     ? sharedGallerySlug
                       ? "The work someone shared with you"
                       : "Recent work"
-                    : "Photos are coming soon."}
+                    : "New photos are on the way."}
                 </div>
               </div>
               {profileSections.about !== false ? (

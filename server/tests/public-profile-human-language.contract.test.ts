@@ -23,7 +23,7 @@ describe("public profile human-language contract", () => {
 
     expect(profileView).toContain('const profileTypeLabel = business ? "Local business"');
     expect(profileView).toContain("const quickFacts = [");
-    expect(profileView).toContain("Photos are coming soon.");
+    expect(profileView).toContain("New photos are on the way.");
     expect(profileView).toContain("Ask about working together");
     expect(profileView).toContain("Send a private request");
     expect(profileView).toContain("after they accept");
