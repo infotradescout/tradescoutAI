@@ -21,6 +21,10 @@ import { ShareButton } from "@/components/ShareButton";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
+import {
+  PublicProfileItems,
+  type CanonicalProfileItems,
+} from "@/components/profile/PublicProfileItems";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import {
@@ -111,6 +115,7 @@ type PublicBusinessSubset = {
 type PublicProfileResponse = {
   profile: PublicProfile;
   business: PublicBusinessSubset;
+  profileItems?: CanonicalProfileItems;
   recommendationsDirectory?: Array<{
     id: string;
     createdAt: string | null;
@@ -250,6 +255,7 @@ export default function ProfileSiteView() {
   }
 
   const { profile, business } = data;
+  const profileItems = data.profileItems || {};
   const recommendationsDirectory = Array.isArray(data.recommendationsDirectory)
     ? data.recommendationsDirectory
     : [];
@@ -521,6 +527,9 @@ export default function ProfileSiteView() {
           onDirectConnect={() => setExpressPanelOpen(true)}
           hasViewerSession={hasViewerSession}
           recommendationsDirectory={recommendationsDirectory}
+          profileItems={
+            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+          }
         />
         <ExpressDirectConnectPanel
           open={expressPanelOpen}
@@ -567,6 +576,9 @@ export default function ProfileSiteView() {
           preScoutSignInHref={preScoutSignInHref}
           recommendationsDirectory={recommendationsDirectory}
           recommendationDirectorySummary={recommendationDirectorySummary}
+          profileItems={
+            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+          }
         />
       </>
     );
@@ -966,6 +978,7 @@ export default function ProfileSiteView() {
           </div>
         </CardContent>
       </Card>
+      <PublicProfileItems items={profileItems} profileSections={profileSections} />
       <ExpressDirectConnectPanel
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}

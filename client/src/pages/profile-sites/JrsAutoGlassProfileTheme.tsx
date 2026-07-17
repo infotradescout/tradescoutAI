@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link } from "wouter";
 import {
   Camera,
@@ -40,6 +41,7 @@ type Props = {
   onDirectConnect: () => void;
   hasViewerSession: boolean;
   recommendationsDirectory?: RecommendationEntry[];
+  profileItems?: ReactNode;
 };
 
 const assetRoot = "/images/businesses/jrs-auto-glass";
@@ -48,6 +50,7 @@ export default function JrsAutoGlassProfileTheme({
   onDirectConnect,
   hasViewerSession,
   recommendationsDirectory = [],
+  profileItems,
 }: Props) {
   const exitHref = hasViewerSession ? "/direct-connect" : "/";
   const publicRecommendations = recommendationsDirectory.filter(
@@ -256,6 +259,10 @@ export default function JrsAutoGlassProfileTheme({
             </div>
           )}
         </section>
+
+        {profileItems ? (
+          <section className="border-b border-white/10 px-4 py-6 sm:px-6">{profileItems}</section>
+        ) : null}
 
         <section id="request-details" className="scroll-mt-20 px-4 py-6 sm:px-6">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-ts-orange">

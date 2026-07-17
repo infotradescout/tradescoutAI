@@ -9,6 +9,9 @@ import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, recommendations, users } from "../../shared/schema";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
+import { listHandmadeProductImageUrls } from "../../shared/handmadeProductShare";
+import { listCommunityPostImageUrls } from "../../shared/communityPostShare";
+import { sanitizePublicProfileOfferText, toPublicProfileOffer } from "../publicProfileOffer";
 
 const router = Router();
 
@@ -638,22 +641,26 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     return res.status(404).json({ message: "Profile not found" });
   }
 
+  const [profileOwner] = await db
+    .select({ ownerUserId: profiles.ownerUserId })
+    .from(profiles)
+    .where(eq(profiles.id, profile.id))
+    .limit(1);
+  const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
+  if (!ownerUserId) {
+    return res.status(404).json({ message: "Profile not found" });
+  }
+  const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
+  if (!ownerUser) {
+    return res.status(404).json({ message: "Profile not found" });
+  }
+
   const business = profile.businessId
     ? await storage.getBusinessPublicById(profile.businessId)
     : undefined;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
   if (business) {
-    const [profileOwner] = await db
-      .select({ ownerUserId: profiles.ownerUserId })
-      .from(profiles)
-      .where(eq(profiles.id, profile.id))
-      .limit(1);
-    const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
-    if (!ownerUserId) {
-      return res.status(404).json({ message: "Profile not found" });
-    }
-    const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
     const [linkedBusiness] = await db
       .select({
         ownerUserId: businesses.ownerUserId,
@@ -825,6 +832,72 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     });
   }
 
+  const profileSections =
+    profile.profileSections && typeof profile.profileSections === "object"
+      ? profile.profileSections
+      : {};
+  let publicProfileOffers: Array<Record<string, unknown>> = [];
+  let publicHandmadeProducts: Array<Record<string, unknown>> = [];
+  let publicCommunityPosts: Array<Record<string, unknown>> = [];
+
+  if (profileSections.services !== false || profileSections.marketplaceListings !== false) {
+    try {
+      const offerRows = await pool.query(
+        `SELECT *
+         FROM profile_offers
+         WHERE seller_user_id = $1
+           AND is_active = true
+         ORDER BY updated_at DESC, created_at DESC
+         LIMIT 8`,
+        [ownerUserId]
+      );
+      publicProfileOffers = offerRows.rows
+        .map(toPublicProfileOffer)
+        .filter((offer): offer is NonNullable<typeof offer> => Boolean(offer))
+        .map(({ sellerUserId: _sellerUserId, ...offer }) => offer);
+    } catch (error: any) {
+      const message = String(error?.message || "").toLowerCase();
+      if (!message.includes("profile_offers") && error?.code !== "42P01") {
+        console.error("[profiles] Failed loading public profile offers:", { slug, error });
+      }
+    }
+  }
+
+  if (profileSections.marketplaceListings !== false) {
+    try {
+      const products = await storage.getHandmadeProducts({ sellerId: ownerUserId, limit: 8 });
+      publicHandmadeProducts = products.map((product) => ({
+        id: String(product.id),
+        title: sanitizePublicProfileOfferText(product.title).slice(0, 200),
+        price: String(product.price || "0"),
+        currency: String(product.currency || "USD")
+          .toUpperCase()
+          .slice(0, 3),
+        city: product.city ? String(product.city) : null,
+        stateCode: product.stateCode ? String(product.stateCode) : null,
+        imageUrls: listHandmadeProductImageUrls(product),
+      }));
+    } catch (error) {
+      console.error("[profiles] Failed loading public Handmade products:", { slug, error });
+    }
+  }
+
+  if (profileSections.communityActivity !== false) {
+    try {
+      const posts = await storage.getCommunityPosts({ authorId: ownerUserId, limit: 6 });
+      publicCommunityPosts = posts.map((post) => ({
+        id: String(post.id),
+        title: sanitizePublicProfileOfferText(post.title || "Community post").slice(0, 200),
+        content: sanitizePublicProfileOfferText(post.content).slice(0, 500),
+        imageUrls: listCommunityPostImageUrls(post.imageUrls),
+        category: post.category ? String(post.category) : null,
+        createdAt: post.createdAt ? new Date(post.createdAt).toISOString() : null,
+      }));
+    } catch (error) {
+      console.error("[profiles] Failed loading public community activity:", { slug, error });
+    }
+  }
+
   res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
   return res.json({
     profile: {
@@ -847,6 +920,11 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     business: safeBusiness,
     recommendationsDirectory,
     recommendationDirectorySummary,
+    profileItems: {
+      offers: publicProfileOffers,
+      handmadeProducts: publicHandmadeProducts,
+      communityPosts: publicCommunityPosts,
+    },
   });
 };
 
