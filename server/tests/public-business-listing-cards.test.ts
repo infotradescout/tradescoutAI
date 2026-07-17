@@ -71,4 +71,30 @@ describe("public business listing cards", () => {
       detailPath: "/exchange/other/listing-1",
     });
   });
+
+  it("removes direct-contact vectors from public profile listing text", () => {
+    const [card] = buildPublicBusinessListingCards({
+      listings: [
+        {
+          id: "listing-contact",
+          categoryId: "other-category",
+          title: "Call 850-555-0188 for the stone",
+          description: "Email seller@example.com or visit https://seller.example/deal",
+          price: "99.00",
+          county: "Escambia County",
+          state: "FL",
+          images: ["/uploads/listings/stone.webp"],
+        },
+      ],
+      categories: [{ id: "other-category", name: "Other High-Value Items" }],
+    });
+
+    expect(card.title).toBe("Call Continue through TradeScout for the stone");
+    expect(card.description).toBe(
+      "Email Continue through TradeScout or visit Continue through TradeScout"
+    );
+    expect(JSON.stringify(card)).not.toContain("850-555-0188");
+    expect(JSON.stringify(card)).not.toContain("seller@example.com");
+    expect(JSON.stringify(card)).not.toContain("https://seller.example");
+  });
 });
