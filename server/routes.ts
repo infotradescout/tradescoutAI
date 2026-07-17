@@ -78,6 +78,11 @@ import {
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
 import { sanitizePublicListingText } from "../shared/publicListingSafety";
 import { toPublicExchangeListing } from "./publicExchangeListing";
+import {
+  toPublicHandmadeProduct,
+  toPublicHandmadeProductReview,
+  toPublicHandmadeSellerProfile,
+} from "./publicHandmadeProduct";
 import { toPublicContractorRecommendations } from "./publicContractorRecommendations";
 import { sanitizePublicCommunityFeedPost, toPublicCommunityPost } from "./publicCommunityPost";
 import {
@@ -20861,6 +20866,16 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     }
   });
 
+  const buildAuthorizedPublicHandmadeProducts = async (rows: any[]) => {
+    const products = (Array.isArray(rows) ? rows : [])
+      .map((row) => toPublicHandmadeProduct(row))
+      .filter((row): row is Record<string, unknown> => Boolean(row));
+    const authority = await buildExposureAuthorityMap(
+      products.map((product) => String(product.sellerId || ""))
+    );
+    return products.filter((product) => authority[String(product.sellerId || "").trim()] === true);
+  };
+
   // Products
   app.get("/api/handmade/products", async (req: any, res: any) => {
     try {
@@ -20884,7 +20899,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       };
 
       const products = await storage.getHandmadeProducts(filters);
-      res.json(products);
+      res.json(await buildAuthorizedPublicHandmadeProducts(products));
     } catch (error: any) {
       console.error("Error fetching handmade products:", error);
       res.status(500).json({ message: "Failed to fetch products" });
@@ -20895,15 +20910,15 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     try {
       const { id } = req.params;
       const product = await storage.getHandmadeProduct(id);
-
-      if (!product || product.status !== "active") {
+      const [publicProduct] = await buildAuthorizedPublicHandmadeProducts(product ? [product] : []);
+      if (!publicProduct) {
         return res.status(404).json({ message: "Product not found" });
       }
 
       // Increment view count
       await storage.incrementProductViews(id);
 
-      res.json(product);
+      res.json(publicProduct);
     } catch (error: any) {
       console.error("Error fetching product:", error);
       res.status(500).json({ message: "Failed to fetch product" });
@@ -20963,7 +20978,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     async (req: any, res: any) => {
       try {
         const { id: productId } = req.params;
-        const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+        const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+        if (!userId) return res.status(401).json({ message: "Authentication required" });
+        const product = await storage.getHandmadeProduct(productId);
+        const [publicProduct] = await buildAuthorizedPublicHandmadeProducts(
+          product ? [product] : []
+        );
+        if (!publicProduct) return res.status(404).json({ message: "Product not found" });
 
         const result = await storage.toggleProductFavorite(userId, productId);
         res.json(result);
@@ -20976,9 +20997,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
   app.get("/api/handmade/favorites", isAuthenticated, async (req: any, res: any) => {
     try {
-      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const userId = String((req.user as any)?.id || (req.user as any)?.claims?.sub || "").trim();
+      if (!userId) return res.status(401).json({ message: "Authentication required" });
       const favorites = await storage.getUserFavoriteProducts(userId);
-      res.json(favorites);
+      res.json(await buildAuthorizedPublicHandmadeProducts(favorites));
     } catch (error: any) {
       console.error("Error fetching favorites:", error);
       res.status(500).json({ message: "Failed to fetch favorites" });
@@ -21095,8 +21117,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/handmade/products/:id/reviews", async (req: any, res: any) => {
     try {
       const { id: productId } = req.params;
+      const product = await storage.getHandmadeProduct(productId);
+      const [publicProduct] = await buildAuthorizedPublicHandmadeProducts(product ? [product] : []);
+      if (!publicProduct) return res.status(404).json({ message: "Product not found" });
       const reviews = await storage.getProductReviews(productId);
-      res.json(reviews);
+      res.json(reviews.map(toPublicHandmadeProductReview).filter(Boolean));
     } catch (error: any) {
       console.error("Error fetching reviews:", error);
       res.status(500).json({ message: "Failed to fetch reviews" });
@@ -21106,6 +21131,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/handmade/products/:id/rating", async (req: any, res: any) => {
     try {
       const { id: productId } = req.params;
+      const product = await storage.getHandmadeProduct(productId);
+      const [publicProduct] = await buildAuthorizedPublicHandmadeProducts(product ? [product] : []);
+      if (!publicProduct) return res.status(404).json({ message: "Product not found" });
       const rating = await storage.getProductRatingSummary(productId);
       res.json(rating);
     } catch (error: any) {
@@ -21118,13 +21146,16 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/handmade/sellers/:userId", async (req: any, res: any) => {
     try {
       const { userId } = req.params;
+      if (!(await hasExposureAuthority(String(userId || "")))) {
+        return res.status(404).json({ message: "Seller profile not found" });
+      }
       const profile = await storage.getSellerProfile(userId);
-
-      if (!profile) {
+      const publicProfile = toPublicHandmadeSellerProfile(profile);
+      if (!publicProfile) {
         return res.status(404).json({ message: "Seller profile not found" });
       }
 
-      res.json(profile);
+      res.json(publicProfile);
     } catch (error: any) {
       console.error("Error fetching seller profile:", error);
       res.status(500).json({ message: "Failed to fetch seller profile" });
@@ -21182,8 +21213,11 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/handmade/sellers/:userId/products", async (req: any, res: any) => {
     try {
       const { userId } = req.params;
+      if (!(await hasExposureAuthority(String(userId || "")))) {
+        return res.status(404).json({ message: "Seller profile not found" });
+      }
       const products = await storage.getHandmadeProducts({ sellerId: userId, limit: 100 });
-      res.json(products);
+      res.json(await buildAuthorizedPublicHandmadeProducts(products));
     } catch (error: any) {
       console.error("Error fetching seller products:", error);
       res.status(500).json({ message: "Failed to fetch seller products" });
@@ -21193,6 +21227,9 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/handmade/sellers/:userId/ratings", async (req: any, res: any) => {
     try {
       const { userId } = req.params;
+      if (!(await hasExposureAuthority(String(userId || "")))) {
+        return res.status(404).json({ message: "Seller profile not found" });
+      }
       const ratings = await storage.getSellerRatings(userId);
       res.json(ratings);
     } catch (error: any) {

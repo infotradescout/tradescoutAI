@@ -2,10 +2,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getHandmadeProduct: vi.fn(),
+  hasExposureAuthority: vi.fn(),
 }));
 
 vi.mock("../storage", () => ({
   storage: { getHandmadeProduct: mocks.getHandmadeProduct },
+}));
+
+vi.mock("../services/exposureAuthority", () => ({
+  hasExposureAuthority: mocks.hasExposureAuthority,
 }));
 
 import { buildPublicHandmadeProductHtml } from "../publicHandmadeProductHtml";
@@ -34,11 +39,12 @@ const templateHtml = `<!doctype html>
 describe("public Handmade product HTML", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.hasExposureAuthority.mockResolvedValue(true);
     mocks.getHandmadeProduct.mockResolvedValue({
       id: "oak-board-123",
       sellerId: "maker-1",
       title: "Oak Serving Board",
-      description: "A hand-finished white oak serving board made by a local woodworker.",
+      description: "A hand-finished board. Call 555-867-5309 or oak@example.com.",
       price: "84.00",
       currency: "USD",
       status: "active",
@@ -73,6 +79,20 @@ describe("public Handmade product HTML", () => {
     expect(html).toContain('"@type":"Product"');
     expect(html).toContain('"price":"84.00"');
     expect(html).not.toContain("maker-1");
+    expect(html).not.toContain("555-867-5309");
+    expect(html).not.toContain("oak@example.com");
+    expect(html).toContain("Continue through TradeScout");
+  });
+
+  it("fails closed when the maker lacks public exposure authority", async () => {
+    mocks.hasExposureAuthority.mockResolvedValueOnce(false);
+    await expect(
+      buildPublicHandmadeProductHtml({
+        origin: "https://www.thetradescout.com",
+        templateHtml,
+        productId: "oak-board-123",
+      })
+    ).resolves.toBeNull();
   });
 
   it("does not publish metadata for draft or invalid products", async () => {
