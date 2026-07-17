@@ -39,6 +39,7 @@ import { CommunityCTA } from "./CommunityCTA";
 import { ContactOutcomeModal, type ContactOutcome } from "./ContactOutcomeModal";
 import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
+import { buildCommunityPostPath } from "@shared/communityPostShare";
 
 const UPLOAD_ID_PATH_PATTERN = /\/uploads\/[0-9a-f-]{36}$/i;
 const UPLOAD_FALLBACK_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"] as const;
@@ -285,7 +286,7 @@ export function CommunityPostCard({
       return;
     }
     await share({
-      path: `/community-feed?post=${encodeURIComponent(post.id)}`,
+      path: buildCommunityPostPath(post.id),
       title: post.title || "TradeScout community post",
       text: (post.content || "").toString(),
       contextLabel: "Post link",

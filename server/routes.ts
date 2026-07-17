@@ -76,6 +76,7 @@ import {
 } from "../shared/exchangeListingRules";
 import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
 import { toPublicContractorRecommendations } from "./publicContractorRecommendations";
+import { sanitizePublicCommunityFeedPost, toPublicCommunityPost } from "./publicCommunityPost";
 import {
   TRADESCOUT_TRANSACTION_FEE_CENTS,
   TRADESCOUT_TRANSACTION_FEE_MODEL,
@@ -19341,7 +19342,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             limit: filters.limit,
             offset: filters.offset,
           });
-          res.json(savedPosts);
+          res.json(savedPosts.map(sanitizePublicCommunityFeedPost));
           return;
         }
 
@@ -19483,6 +19484,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           relatedBusinessError
         );
       }
+
+      // Public feed payloads never expose moderation notes, moderator identity,
+      // or author contact fields, regardless of geographic scope.
+      posts = posts.map(sanitizePublicCommunityFeedPost);
 
       // Phase 1: Fail-safe field stripping for global scope (posts-only)
       // Strip contact fields, profile shortcuts, action-enabling metadata
@@ -20113,11 +20118,22 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const { id } = req.params;
       const post = await storage.getCommunityPost(id);
 
-      if (!post) {
+      if (!post || post.isPublished !== true || post.isHidden === true) {
         return res.status(404).json({ message: "Post not found" });
       }
+      const author = await storage.getUser(post.authorId);
+      const publicPost = toPublicCommunityPost(
+        post,
+        author
+          ? {
+              ...author,
+              profileImageUrl: normalizeProfileImageUrl(author.profileImageUrl),
+            }
+          : null
+      );
+      if (!publicPost) return res.status(404).json({ message: "Post not found" });
 
-      res.json(post);
+      res.json(publicPost);
     } catch (error: any) {
       console.error("Error fetching community post:", error);
       res.status(500).json({ message: "Failed to fetch post" });
@@ -20449,6 +20465,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/community/posts/:id/comments", async (req: any, res: any) => {
     try {
       const { id: postId } = req.params;
+      const post = await storage.getCommunityPost(postId);
+      if (!post || post.isPublished !== true || post.isHidden === true) {
+        return res.status(404).json({ message: "Post not found" });
+      }
       const comments = await db
         .select({
           comment: postComments,

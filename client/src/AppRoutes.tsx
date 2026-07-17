@@ -499,6 +499,7 @@ const ScoutLandingLite = React.lazy(() => import("./experiments/scout-landing-li
 // Advanced Social & Integration Features
 const SocialIntegration = React.lazy(() => import("./pages/social-integration"));
 const CommunityFeed = React.lazy(() => import("./pages/community-feed"));
+const CommunityPostDetail = React.lazy(() => import("./pages/community-post-detail"));
 const CommunityProfile = React.lazy(() => import("./pages/CommunityProfile"));
 const ReferralDashboard = React.lazy(() => import("./pages/referral-dashboard"));
 const EventManagement = React.lazy(() => import("./pages/event-management"));
@@ -1207,6 +1208,9 @@ export const AppRoutes = memo(function AppRoutes({
               {/* Community canonical route is /community-feed; keep /community as a legacy alias */}
               <Route path="/community">
                 <RedirectTo to="/community-feed" />
+              </Route>
+              <Route path="/community/posts/:postId">
+                <LazyPage Component={CommunityPostDetail} />
               </Route>
               <Route path="/community-feed">
                 <CommunityPageShell>

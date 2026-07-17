@@ -45,6 +45,7 @@ import { buildPublicProfileHtml } from "./publicProfileHtml";
 import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import { buildPublicContractorProfileHtml } from "./publicContractorProfileHtml";
+import { buildPublicCommunityPostHtml } from "./publicCommunityPostHtml";
 import {
   buildPublicTradeCountyHtml,
   buildPublicTradeDirectoryHtml,
@@ -1247,6 +1248,34 @@ app.use(landingContractHeaders);
                 } catch (error) {
                   console.error("Error rendering public contractor profile HTML:", error);
                   res.status(500).send("Failed to render local provider profile");
+                }
+              });
+
+              // Public community post detail pages provide a durable share target
+              // and advertise the post's first image to social link unfurlers.
+              app.get("/community/posts/:postId", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(404).send("Application files not found");
+                  }
+
+                  const html = await buildPublicCommunityPostHtml({
+                    postId: String(req.params.postId || ""),
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                  });
+                  if (!html) return res.status(404).send("Community post not found");
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(html);
+                } catch (error) {
+                  console.error("Error rendering public community post HTML:", error);
+                  res.status(500).send("Failed to render community post");
                 }
               });
 
