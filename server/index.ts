@@ -44,6 +44,7 @@ import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
 import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
+import { buildPublicContractorProfileHtml } from "./publicContractorProfileHtml";
 import {
   buildPublicTradeCountyHtml,
   buildPublicTradeDirectoryHtml,
@@ -1211,6 +1212,41 @@ app.use(landingContractHeaders);
                 } catch (error) {
                   console.error("Error rendering public helper profile HTML:", error);
                   res.status(500).send("Failed to render helper profile");
+                }
+              });
+
+              // Legacy contractor profiles: keep the normal canonical bridge to
+              // a richer business profile, while exact project-photo shares retain
+              // their own metadata and image preview.
+              app.get("/contractors/:slug", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(404).send("Application files not found");
+                  }
+
+                  const origin = resolvePublicOrigin(req);
+                  const result = await buildPublicContractorProfileHtml({
+                    slug: String(req.params.slug || ""),
+                    origin,
+                    templateHtml,
+                    gallerySlug: req.query.gallery,
+                  });
+
+                  if (!result) return res.status(404).send("Local provider not found");
+                  if (result.kind === "redirect") {
+                    return res.redirect(301, `${origin}${result.location}`);
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(result.html);
+                } catch (error) {
+                  console.error("Error rendering public contractor profile HTML:", error);
+                  res.status(500).send("Failed to render local provider profile");
                 }
               });
 

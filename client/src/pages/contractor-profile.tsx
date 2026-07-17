@@ -18,10 +18,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { RecommendationForm } from "@/components/RecommendationForm";
 import type { Contractor, Recommendation } from "@shared/schema";
 import { SEOHelmet } from "@/components/SEOHelmet";
+import { ShareButton } from "@/components/ShareButton";
+import {
+  buildContractorPhotoShareSearch,
+  createContractorPhotoShareMetadata,
+  listContractorProjectPhotos,
+} from "@shared/contractorPhotoShare";
+
+type PublicContractorRecommendation = Pick<
+  Recommendation,
+  "id" | "recommendationType" | "comment" | "projectType" | "customerName" | "createdAt"
+>;
 
 interface ContractorProfileData {
   contractor: Contractor;
-  recommendations: Recommendation[];
+  recommendations: PublicContractorRecommendation[];
   ratingSummary?: {
     average: number;
     count: number;
@@ -44,15 +55,50 @@ export default function ContractorProfile() {
     enabled: !!slug,
   });
 
+  const contractor = contractorData?.contractor;
+  const projectPhotos = listContractorProjectPhotos(contractor?.photos);
+  const requestedGallerySlug =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("gallery")
+      : null;
+  const profileCanonical = slug
+    ? `https://www.thetradescout.com/contractors/${encodeURIComponent(slug)}`
+    : "https://www.thetradescout.com/contractors";
+  const photoShareMeta =
+    contractor && slug && typeof window !== "undefined"
+      ? createContractorPhotoShareMetadata({
+          contractorName: contractor.companyName,
+          contractorUrl: profileCanonical,
+          assetOrigin: window.location.origin,
+          photos: contractor.photos,
+          itemSlug: requestedGallerySlug,
+        })
+      : null;
+
   useEffect(() => {
     const canonicalUrl =
       typeof contractorData?.canonicalBusinessProfileUrl === "string"
         ? contractorData.canonicalBusinessProfileUrl.trim()
         : "";
-    if (canonicalUrl) {
+    if (canonicalUrl && !photoShareMeta) {
       setLocation(canonicalUrl);
     }
-  }, [contractorData?.canonicalBusinessProfileUrl, setLocation]);
+  }, [contractorData?.canonicalBusinessProfileUrl, photoShareMeta, setLocation]);
+
+  useEffect(() => {
+    if (!photoShareMeta?.itemSlug) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`contractor-project-photo-${photoShareMeta.itemSlug}`)
+        ?.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "auto"
+            : "smooth",
+          block: "center",
+        });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [photoShareMeta?.itemSlug]);
 
   if (isLoading) {
     return (
@@ -64,7 +110,7 @@ export default function ContractorProfile() {
     );
   }
 
-  if (error || !contractorData) {
+  if (error || !contractorData || !contractor) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Card className="bg-red-900/20 border-red-500/50">
@@ -81,8 +127,8 @@ export default function ContractorProfile() {
     );
   }
 
-  const { contractor, recommendations = [], ratingSummary } = contractorData;
-  if (contractorData.canonicalBusinessProfileUrl) {
+  const { recommendations = [] } = contractorData;
+  if (contractorData.canonicalBusinessProfileUrl && !photoShareMeta) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center justify-center min-h-96">
@@ -106,23 +152,50 @@ export default function ContractorProfile() {
     { name: contractor.companyName, url: `/contractors/${slug}` },
   ];
 
-  const contractorStructuredData = {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    name: contractor.companyName,
-    description: contractor.about || `Local provider services by ${contractor.companyName}`,
-    url: window.location.href,
-    address: {
-      "@type": "PostalAddress",
-      addressCountry: "US",
-    },
-    priceRange: "$$",
-    serviceType: "Local Services",
-    areaServed: "Local Area",
-  };
+  const profileDescription = `Review ${contractor.companyName} as a local provider on TradeScout, including available verification, work history, and community recommendation evidence${contractor.yearsInBusiness ? ` from ${contractor.yearsInBusiness} years in business` : ""}. Contact stays gated through TradeScout.`;
+  const contractorStructuredData = photoShareMeta
+    ? {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "LocalBusiness",
+            name: contractor.companyName,
+            description: profileDescription,
+            url: profileCanonical,
+            image: projectPhotos[0]?.imageUrl,
+            address: { "@type": "PostalAddress", addressCountry: "US" },
+            serviceType: "Local Services",
+            areaServed: "Local Area",
+          },
+          {
+            "@type": "ImageObject",
+            name: photoShareMeta.itemTitle,
+            description: photoShareMeta.description,
+            contentUrl: photoShareMeta.imageUrl,
+            url: photoShareMeta.canonical,
+          },
+        ],
+      }
+    : {
+        "@context": "https://schema.org",
+        "@type": "LocalBusiness",
+        name: contractor.companyName,
+        description: profileDescription,
+        url: profileCanonical,
+        image: projectPhotos[0]?.imageUrl,
+        address: {
+          "@type": "PostalAddress",
+          addressCountry: "US",
+        },
+        serviceType: "Local Services",
+        areaServed: "Local Area",
+      };
 
-  const seoTitle = `${contractor.companyName} - Verified Local Provider | TradeScout`;
-  const seoDescription = `Review ${contractor.companyName} as a local provider on TradeScout, including available verification, work history, and community recommendation evidence${contractor.yearsInBusiness ? ` from ${contractor.yearsInBusiness} years in business` : ""}. Contact stays gated through TradeScout.`;
+  const seoTitle =
+    photoShareMeta?.title || `${contractor.companyName} - Verified Local Provider | TradeScout`;
+  const seoDescription = photoShareMeta?.description || profileDescription;
+  const seoImage = photoShareMeta?.imageUrl || projectPhotos[0]?.imageUrl;
+  const seoCanonical = photoShareMeta?.canonical || profileCanonical;
   const directConnectHref = `/direct-connect?intent=hire&targetProviderId=${encodeURIComponent(contractor.id)}&targetName=${encodeURIComponent(contractor.companyName || String(slug || contractor.id))}&contractor=${encodeURIComponent(String(slug || contractor.id))}`;
 
   return (
@@ -131,8 +204,11 @@ export default function ContractorProfile() {
         title={seoTitle}
         description={seoDescription}
         keywords={`${contractor.companyName}, local provider, local business, verified provider, TradeScout Direct Connect`}
-        canonical={`https://www.thetradescout.com/contractors/${slug}`}
+        canonical={seoCanonical}
+        ogType={photoShareMeta ? "article" : "profile"}
+        ogImage={seoImage}
         structuredData={contractorStructuredData}
+        preserveCanonicalQuery={Boolean(photoShareMeta)}
       />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -221,6 +297,13 @@ export default function ContractorProfile() {
               </div>
 
               <div className="flex flex-col space-y-3">
+                <ShareButton
+                  destination={`/contractors/${encodeURIComponent(String(slug || contractor.slug))}`}
+                  title={`${contractor.companyName} on TradeScout`}
+                  text={`View ${contractor.companyName}'s public local provider profile on TradeScout.`}
+                  className="border-white/20 text-white hover:bg-white/10"
+                  label="Share profile"
+                />
                 <div className="rounded-lg border border-white/10 bg-tsCard/60 px-4 py-3 text-xs text-white/70">
                   <div className="flex items-center gap-2 text-white/70">
                     <ShieldCheck className="h-4 w-4 text-ts-orange" />
@@ -275,6 +358,64 @@ export default function ContractorProfile() {
                 <CardContent className="p-6">
                   <h3 className="text-xl font-semibold text-white mb-4">About</h3>
                   <p className="text-white/70 leading-relaxed">{contractor.about}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Project photos are individually shareable with exact social previews. */}
+            {projectPhotos.length > 0 && (
+              <Card className="bg-tsCard border-white/10">
+                <CardContent className="p-6">
+                  <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-semibold text-white">Project Photos</h2>
+                      <p className="mt-1 text-sm text-white/60">
+                        Work examples shared by this local provider.
+                      </p>
+                    </div>
+                    {photoShareMeta ? (
+                      <Badge className="bg-ts-orange text-white">Shared image</Badge>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {projectPhotos.map((photo) => {
+                      const isSharedPhoto = photo.slug === photoShareMeta?.itemSlug;
+                      return (
+                        <article
+                          id={`contractor-project-photo-${photo.slug}`}
+                          key={photo.slug}
+                          className={`scroll-mt-24 overflow-hidden rounded-xl border bg-black/20 transition-shadow ${
+                            isSharedPhoto
+                              ? "border-ts-orange ring-2 ring-ts-orange/40 shadow-lg"
+                              : "border-white/10"
+                          }`}
+                        >
+                          <a href={photo.imageUrl} target="_blank" rel="noreferrer">
+                            <img
+                              src={photo.imageUrl}
+                              alt={photo.imageAlt}
+                              className="aspect-[4/3] w-full object-cover"
+                              loading="lazy"
+                            />
+                          </a>
+                          <div className="flex flex-wrap items-center justify-between gap-3 p-4">
+                            <div>
+                              <h3 className="font-medium text-white">{photo.title}</h3>
+                              {isSharedPhoto ? (
+                                <p className="mt-1 text-xs text-ts-orange">Shared image</p>
+                              ) : null}
+                            </div>
+                            <ShareButton
+                              destination={`/contractors/${encodeURIComponent(String(slug || contractor.slug))}${buildContractorPhotoShareSearch(photo.slug)}`}
+                              title={`${photo.title} by ${contractor.companyName}`}
+                              text={`View ${photo.title} from ${contractor.companyName} on TradeScout.`}
+                              className="border-white/20 text-white hover:bg-white/10"
+                            />
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
                 </CardContent>
               </Card>
             )}
