@@ -64,6 +64,11 @@ export function buildProfileServiceOfferPath(offerIdValue: unknown): string | nu
   return offerId ? `/services/${encodeURIComponent(offerId)}` : null;
 }
 
+export function buildProfileServiceOfferDecisionScope(offerIdValue: unknown): string | null {
+  const offerId = normalizeProfileOfferId(offerIdValue);
+  return offerId ? `profile_service_offer:${offerId}` : null;
+}
+
 export function buildProfileOfferExchangePath(
   offerIdValue: unknown,
   categoryValue: unknown

@@ -10,6 +10,7 @@ import { UserBadges } from "@/components/user-badges";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { createProfileServiceOfferDecisionAuthority } from "@/lib/profileOfferAuthority";
 import { ShareButton } from "@/components/ShareButton";
 import {
   buildProfileOfferExchangePath,
@@ -571,6 +572,13 @@ export default function PublicProfileView() {
 
     setPurchasingOfferId(offer.id);
     try {
+      const decisionAuthority =
+        offer.offerType === "service"
+          ? await createProfileServiceOfferDecisionAuthority({
+              offerId: offer.id,
+              title: offer.title,
+            })
+          : {};
       const response = await fetch(`/api/profile-offers/${encodeURIComponent(offer.id)}/purchase`, {
         method: "POST",
         credentials: "include",
@@ -578,6 +586,7 @@ export default function PublicProfileView() {
         body: JSON.stringify({
           quantity: options?.quantity || 1,
           shippingAddress: options?.shippingAddress || undefined,
+          ...decisionAuthority,
         }),
       });
       const data = await response.json().catch(() => ({}));

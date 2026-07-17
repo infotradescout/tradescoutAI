@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildProfileServiceOfferDecisionScope,
   buildProfileServiceOfferPath,
   createProfileServiceOfferShareMetadata,
   normalizeProfileOfferId,
@@ -31,12 +32,16 @@ describe("profile service offer sharing", () => {
     expect(metadata?.description).toContain("protected request flow");
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
     expect(buildProfileServiceOfferPath("service-123")).toBe("/services/service-123");
+    expect(buildProfileServiceOfferDecisionScope("service-123")).toBe(
+      "profile_service_offer:service-123"
+    );
   });
 
   it("rejects malformed service identifiers", () => {
     expect(normalizeProfileOfferId("service_abc-123")).toBe("service_abc-123");
     expect(normalizeProfileOfferId("../private")).toBeNull();
     expect(buildProfileServiceOfferPath("offer/123")).toBeNull();
+    expect(buildProfileServiceOfferDecisionScope("offer/123")).toBeNull();
     expect(
       createProfileServiceOfferShareMetadata({
         origin: "https://www.thetradescout.com",

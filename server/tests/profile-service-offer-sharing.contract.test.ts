@@ -32,14 +32,24 @@ describe("profile service offer sharing contract", () => {
 
   it("keeps service actions inside the existing protected purchase path", () => {
     const page = read("client/src/pages/profile-service-offer-detail.tsx");
+    const profile = read("client/src/pages/PublicProfileView.tsx");
+    const authority = read("client/src/lib/profileOfferAuthority.ts");
     const offerRouter = read("server/invoicingDocumentsRouter.ts");
 
     expect(page).toContain("Start protected job");
     expect(page).toContain("not release contact details");
     expect(page).toContain("/purchase");
+    expect(page).toContain("createProfileServiceOfferDecisionAuthority");
+    expect(profile).toContain("createProfileServiceOfferDecisionAuthority");
+    expect(authority).toContain('intent: "hire"');
+    expect(authority).toContain('authorityGate: "decision_card"');
     expect(offerRouter).toContain("contactBoundary");
     expect(offerRouter).toContain("'draft', 'private', 'guided', 'none'");
     expect(offerRouter).toContain("getPublicProfileServiceOffer");
+    expect(offerRouter).toContain("PROFILE_SERVICE_DECISION_CARD_REQUIRED");
+    expect(offerRouter).toContain("FROM decision_cards");
+    expect(offerRouter).toContain('String(decision.intent) !== "hire"');
+    expect(offerRouter).toContain("SET status = 'completed'");
   });
 
   it("whitelists public offer data while leaving owner data unchanged", () => {
@@ -49,6 +59,8 @@ describe("profile service offer sharing contract", () => {
     expect(publicOffer).toContain("sanitizePublicProfileOfferText");
     expect(publicOffer).toContain("listProfileOfferImageUrls(metadata)");
     expect(publicOffer).not.toContain("...metadata");
+    expect(publicOffer).toContain("hasExposureAuthority(offer.sellerUserId)");
+    expect(offerRouter).toContain("hasExposureAuthority(sellerUserId)");
     expect(offerRouter).toContain("offers.rows.map(mapProfileOffer)");
     expect(offerRouter).toContain("offers.rows");
     expect(offerRouter).toContain(".map(toPublicProfileOffer)");
