@@ -42,6 +42,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { buildPublicProfileHtml } from "./publicProfileHtml";
+import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import {
   buildPublicTradeCountyHtml,
@@ -1180,6 +1181,35 @@ app.use(landingContractHeaders);
                   },
                 })
               );
+
+              // Public helper profiles: server-rendered metadata lets shared
+              // portfolio links advertise the exact work photo before React loads.
+              app.get("/helpers/:workerId", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) {
+                    return res.status(500).send("Application build not found");
+                  }
+
+                  const html = await buildPublicHelperProfileHtml({
+                    workerId: String(req.params.workerId || ""),
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                    portfolioSlug: req.query.portfolio,
+                  });
+
+                  if (!html) return res.status(404).send("Helper not found");
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=300, stale-while-revalidate=86400"
+                  );
+                  res.send(html);
+                } catch (error) {
+                  console.error("Error rendering public helper profile HTML:", error);
+                  res.status(500).send("Failed to render helper profile");
+                }
+              });
 
               // Public profile pages: server-rendered HTML for crawlability
               app.get(["/u/:slug", "/p/:slug"], async (req, res) => {

@@ -52,4 +52,22 @@ describe("profile item sharing contract", () => {
       "navigator.share({ title, text, url: shareUrl }).catch(() => {})"
     );
   });
+
+  it("extends exact-image sharing to helper portfolio items without exposing contact", () => {
+    const serverEntry = read("server/index.ts");
+    const helperHtml = read("server/publicHelperProfileHtml.ts");
+    const helperPage = read("client/src/pages/HelperPublicProfile.tsx");
+
+    expect(serverEntry).toContain('app.get("/helpers/:workerId"');
+    expect(serverEntry).toContain("portfolioSlug: req.query.portfolio");
+    expect(helperPage).toContain("buildProfilePortfolioShareSearch(item)");
+    expect(helperPage).toContain("portfolioShareMeta?.itemSlug");
+    expect(helperPage).toContain("<ShareButton");
+    expect(helperPage).toContain("Shared portfolio item");
+    expect(helperHtml).toContain("workers.portfolioItems");
+    expect(helperHtml).not.toContain("workers.phone");
+    expect(helperHtml).not.toContain("workers.email");
+    expect(helperHtml).toContain('"@type": "CreativeWork"');
+    expect(helperHtml).toContain('const ogType = itemShare ? "article" : "profile";');
+  });
 });
