@@ -1,3 +1,4 @@
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { Page, Section } from "@/components/layout/PagePrimitives";
@@ -6,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
+import { SEOHelmet } from "@/components/SEOHelmet";
+import { ShareButton } from "@/components/ShareButton";
+import {
+  buildProfilePortfolioItemSlug,
+  buildProfilePortfolioShareSearch,
+  createProfilePortfolioItemShareMetadata,
+} from "@shared/profilePortfolioShare";
 import {
   Award,
   Briefcase,
@@ -71,6 +79,29 @@ export default function HelperPublicProfile() {
     enabled: Boolean(id),
   });
 
+  const portfolioShareMeta = useMemo(() => {
+    if (!profile?.id || !id || typeof window === "undefined") return null;
+    const profileName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
+    const origin = window.location.origin;
+    return createProfilePortfolioItemShareMetadata({
+      profileName,
+      profileUrl: `${origin}/helpers/${encodeURIComponent(id)}`,
+      assetOrigin: origin,
+      portfolioItems: profile.portfolioItems,
+      itemSlug: new URLSearchParams(window.location.search).get("portfolio"),
+    });
+  }, [id, profile]);
+
+  useEffect(() => {
+    if (!portfolioShareMeta) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`portfolio-${portfolioShareMeta.itemSlug}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [portfolioShareMeta]);
+
   if (isLoading) {
     return (
       <Page className="max-w-4xl">
@@ -101,9 +132,52 @@ export default function HelperPublicProfile() {
 
   const fullName = `${profile.firstName} ${profile.lastName}`;
   const isVerified = profile.verificationStatus === "approved";
+  const profileCanonical = `${window.location.origin}/helpers/${encodeURIComponent(id)}`;
+  const profileDescription =
+    String(profile.bio || "").trim() ||
+    `View ${fullName}'s skills, experience, availability, and portfolio. Contact stays protected through TradeScout Direct Connect.`;
+  const structuredData = portfolioShareMeta
+    ? {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Person",
+            name: fullName,
+            description: profileDescription,
+            url: profileCanonical,
+            image: profile.profileImageUrl || undefined,
+          },
+          {
+            "@type": "CreativeWork",
+            "@id": `${portfolioShareMeta.canonical}#portfolio-item`,
+            name: portfolioShareMeta.itemTitle,
+            description: portfolioShareMeta.description,
+            image: [portfolioShareMeta.imageUrl],
+            url: portfolioShareMeta.canonical,
+            creator: { "@type": "Person", name: fullName },
+          },
+        ],
+      }
+    : {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        name: fullName,
+        description: profileDescription,
+        url: profileCanonical,
+        image: profile.profileImageUrl || undefined,
+      };
 
   return (
     <Page className="max-w-4xl">
+      <SEOHelmet
+        title={portfolioShareMeta?.title || `${fullName} | TradeScout`}
+        description={portfolioShareMeta?.description || profileDescription}
+        canonical={portfolioShareMeta?.canonical || profileCanonical}
+        ogType={portfolioShareMeta ? "article" : "profile"}
+        ogImage={portfolioShareMeta?.imageUrl || profile.profileImageUrl || undefined}
+        structuredData={structuredData}
+        preserveCanonicalQuery={Boolean(portfolioShareMeta)}
+      />
       {/* Hero */}
       <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
         {/* Avatar */}
@@ -346,42 +420,72 @@ export default function HelperPublicProfile() {
                   className="grid grid-cols-1 sm:grid-cols-2 gap-4"
                   data-testid="helper-portfolio-grid"
                 >
-                  {profile.portfolioItems.map((item: any, i: number) => (
-                    <div
-                      key={i}
-                      className="rounded-xl border border-white/10 overflow-hidden bg-white/3"
-                    >
-                      {item.imageUrl && (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="w-full h-32 object-cover"
-                        />
-                      )}
-                      <div className="p-3">
-                        <p className="font-medium text-white text-sm">{item.title}</p>
-                        <p className="text-xs text-white/50 mt-0.5 line-clamp-2">
-                          {item.description}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {item.skills?.slice(0, 3).map((s: string) => (
-                            <Badge
-                              key={s}
-                              variant="outline"
-                              className="border-white/10 text-white/50 text-[10px]"
-                            >
-                              {s}
-                            </Badge>
-                          ))}
-                        </div>
-                        {item.fromPlatform && (
-                          <Badge className="mt-2 bg-ts-orange/10 text-ts-orange border-ts-orange/20 text-[10px]">
-                            <Zap className="w-2.5 h-2.5 mr-1" /> Via TradeScout
-                          </Badge>
+                  {profile.portfolioItems.map((item: any, i: number) => {
+                    const itemSlug = buildProfilePortfolioItemSlug(item);
+                    const shareSearch = buildProfilePortfolioShareSearch(item);
+                    const isSharedItem = itemSlug === portfolioShareMeta?.itemSlug;
+
+                    return (
+                      <div
+                        key={itemSlug || i}
+                        id={itemSlug ? `portfolio-${itemSlug}` : undefined}
+                        className={`rounded-xl border overflow-hidden bg-white/3 transition-shadow ${
+                          isSharedItem
+                            ? "border-ts-orange ring-2 ring-ts-orange/35 shadow-[0_0_32px_rgba(249,115,22,0.18)]"
+                            : "border-white/10"
+                        }`}
+                      >
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="w-full h-32 object-cover"
+                          />
                         )}
+                        <div className="p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-white text-sm">{item.title}</p>
+                              {isSharedItem ? (
+                                <Badge className="mt-1 bg-ts-orange/15 text-ts-orange border-ts-orange/25 text-[10px]">
+                                  Shared portfolio item
+                                </Badge>
+                              ) : null}
+                            </div>
+                            {itemSlug && shareSearch ? (
+                              <ShareButton
+                                destination={`/helpers/${encodeURIComponent(id)}${shareSearch}`}
+                                title={item.title}
+                                text={`${item.title} by ${fullName}`}
+                                size="sm"
+                                label="Share"
+                                className="shrink-0 border-white/15 text-white/70 hover:text-white"
+                              />
+                            ) : null}
+                          </div>
+                          <p className="text-xs text-white/50 mt-0.5 line-clamp-2">
+                            {item.description}
+                          </p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {item.skills?.slice(0, 3).map((s: string) => (
+                              <Badge
+                                key={s}
+                                variant="outline"
+                                className="border-white/10 text-white/50 text-[10px]"
+                              >
+                                {s}
+                              </Badge>
+                            ))}
+                          </div>
+                          {item.fromPlatform && (
+                            <Badge className="mt-2 bg-ts-orange/10 text-ts-orange border-ts-orange/20 text-[10px]">
+                              <Zap className="w-2.5 h-2.5 mr-1" /> Via TradeScout
+                            </Badge>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
