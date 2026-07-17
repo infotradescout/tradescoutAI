@@ -18,6 +18,7 @@ import { Mic, Send, Sparkles } from "lucide-react";
 interface ScoutInputRowProps {
   isBusy: boolean;
   prefillKey: number;
+  forcedPrefill?: string;
   onSend: (value: string) => void;
   onTyping: () => void;
   quickStartPrompts?: readonly string[];
@@ -36,6 +37,7 @@ const SCOUT_INPUT_ACCESSIBLE_PROMPT =
 export function ScoutInputRow({
   isBusy,
   prefillKey,
+  forcedPrefill,
   onSend,
   onTyping,
   quickStartPrompts,
@@ -117,13 +119,17 @@ export function ScoutInputRow({
 
   // Load draft
   React.useEffect(() => {
+    if (forcedPrefill) {
+      setValue(forcedPrefill);
+      return;
+    }
     try {
       const stored = window.localStorage.getItem(`scout:prefill:scout-main`);
       if (stored && !value) setValue(stored);
     } catch {
       /* ignore */
     }
-  }, [prefillKey]);
+  }, [forcedPrefill, prefillKey]);
 
   // Persist draft
   React.useEffect(() => {

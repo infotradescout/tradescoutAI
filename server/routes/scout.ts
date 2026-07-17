@@ -51,6 +51,11 @@ import { resolveCountyFips, resolveRegionSlug } from "../services/regionResolver
 import { shouldInjectSponsored } from "../services/sponsoredEligibility";
 import { COMMUNITY_TONE } from "../../shared/communityLanguage";
 import { CURRENT_PROFILE_VERSION } from "../../shared/profile";
+import {
+  buildScoutLaunchContextCacheKey,
+  normalizeScoutLaunchContext,
+  type ScoutLaunchContext,
+} from "../../shared/scoutLaunchContext";
 import { db, pool } from "../db";
 import {
   leads,
@@ -864,6 +869,7 @@ async function synthesizeResponse(
     capabilities?: string[];
     last_intent?: string;
     locality: { county?: string; state?: string; region?: string };
+    launchContext?: ScoutLaunchContext;
   },
   resolvedContext?: ResolvedContext | null
 ): Promise<{
@@ -920,6 +926,18 @@ ${JSON.stringify(resolvedContext, null, 2)}
 `;
     }
 
+    let launchContextInjection = "";
+    if (requestState?.launchContext) {
+      launchContextInjection = `
+CLASSIC VIEW CONTEXT (sanitized, user-selected reference):
+${JSON.stringify(requestState.launchContext, null, 2)}
+- Use this only to understand what the user was viewing when they opened Scout.
+- Never invent missing details from an identifier.
+- Visibility still does not grant contact, access, authority, or permission.
+- Any contact path must continue through Intent -> Decision Card -> Contact.
+`;
+    }
+
     // [USER-CONTEXT INJECTION]
     // Build user context for personalized language
     let userContextPrompt = "";
@@ -936,6 +954,8 @@ ${JSON.stringify(resolvedContext, null, 2)}
   ${stateInjection}
 
   ${resolvedContextInjection}
+
+  ${launchContextInjection}
 
   ${userContextPrompt}
 
@@ -1481,6 +1501,7 @@ interface ScoutRequest {
     lng?: number;
   };
   intent?: string;
+  launchContext?: ScoutLaunchContext;
   roles?: string[];
   recentActivity?: Array<{
     type: string;
@@ -2453,6 +2474,7 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const rawBody = (req.body ?? {}) as Partial<ScoutRequest>;
     const message = typeof rawBody.message === "string" ? rawBody.message : "";
+    const launchContext = normalizeScoutLaunchContext(rawBody.launchContext);
 
     // ===== SCOUT 2.0 OPTIMIZATION: Check cache and FAQ before processing =====
     const optimizationUserId = (requestUser as any)?.id;
@@ -2465,6 +2487,8 @@ router.post("/", async (req: Request, res: Response) => {
       const queryHash = generateQueryHash(message, {
         county: rawBody.countyCode as string | undefined,
         state: rawBody.stateCode as string | undefined,
+        trade: launchContext?.trade,
+        contextKey: buildScoutLaunchContextCacheKey(launchContext),
       });
 
       // 1. Check if response is cached
@@ -2530,6 +2554,7 @@ router.post("/", async (req: Request, res: Response) => {
       countyFips: typeof rawBody.countyHint === "string" ? rawBody.countyHint : undefined,
       history: Array.isArray(rawBody.history) ? (rawBody.history as any[]) : [],
       intent: typeof rawBody.intent === "string" ? rawBody.intent : undefined,
+      launchContext,
       sessionId: typeof rawBody.sessionId === "string" ? rawBody.sessionId : undefined,
     });
     const scaffoldDecision = runScoutDecisionPipeline(normalizedRequest);
@@ -3496,6 +3521,7 @@ router.post("/", async (req: Request, res: Response) => {
         region: stateCode ? getRegionFromState(stateCode) : undefined,
       },
       entry_intent: intent || undefined,
+      launchContext,
     };
 
     // Deterministic early-exit: if user intent maps cleanly to an allowed

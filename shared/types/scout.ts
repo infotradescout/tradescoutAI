@@ -1,3 +1,5 @@
+import type { ScoutLaunchContext } from "../scoutLaunchContext";
+
 export type ScoutDecisionType =
   | "client_shortcut_passthrough"
   | "deterministic_route"
@@ -16,6 +18,7 @@ export interface NormalizedScoutRequest {
   countyFips?: string;
   history: Array<{ role: "user" | "assistant"; content: string }>;
   intent?: string;
+  launchContext?: ScoutLaunchContext;
   sessionId?: string;
 }
 

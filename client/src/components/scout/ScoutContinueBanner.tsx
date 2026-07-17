@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 export function ScoutContinueBanner({ className }: { className?: string }) {
   const { user, isAuthenticated } = useAuth();
@@ -20,27 +21,34 @@ export function ScoutContinueBanner({ className }: { className?: string }) {
     try {
       window.localStorage.setItem("scout:prefill:scout-main", prompt);
     } catch {
-      // ignore
+      // Scout still opens even when local draft storage is unavailable.
     }
-    navigate("/scout");
+    const params = new URLSearchParams({ source: "scout_resume" });
+    if (typeof resume.intent === "string" && resume.intent.trim()) {
+      params.set("intent", resume.intent.trim());
+    }
+    navigate(`/scout?${params.toString()}`);
   };
 
   return (
     <button
       type="button"
       onClick={onContinue}
-      aria-label="Continue local summary"
-      title="Continue local summary"
+      aria-label="Continue with Scout"
+      title="Continue with Scout"
       className={[
-        "fixed z-40 h-3.5 w-3.5 rounded-full",
+        "fixed z-40 inline-flex h-11 items-center gap-2 rounded-full px-4",
         "right-3 md:right-6",
         "bottom-[calc(var(--bottom-nav-h,64px)+10px)] md:bottom-6",
-        "bg-orange-500 shadow-[0_0_0_3px_rgba(249,115,22,0.22)]",
-        "animate-pulse hover:scale-110 transition-transform duration-150",
+        "border border-orange-300/40 bg-orange-500 text-sm font-semibold text-black",
+        "shadow-[0_10px_32px_rgba(249,115,22,0.28)]",
+        "transition-transform duration-150 hover:-translate-y-0.5",
         className || "",
       ].join(" ")}
     >
-      <span className="sr-only">Continue local summary</span>
+      <Sparkles className="h-4 w-4" aria-hidden="true" />
+      <span>Continue with Scout</span>
+      <ArrowRight className="h-4 w-4" aria-hidden="true" />
     </button>
   );
 }
