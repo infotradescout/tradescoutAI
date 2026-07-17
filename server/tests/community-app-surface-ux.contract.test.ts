@@ -48,6 +48,15 @@ describe("Community app surface UX contract", () => {
       "routing matrix",
       "lead marketplace",
       "best contractor",
+      "Local hub",
+      "Search local context",
+      "Start request",
+      "Checking options...",
+      "Add details first",
+      "Contact readiness",
+      "Request context checked.",
+      "No posts here yet",
+      "Unavailable",
     ];
 
     for (const phrase of bannedVisiblePhrases) {
@@ -55,20 +64,25 @@ describe("Community app surface UX contract", () => {
     }
   });
 
-  it("keeps the Community app surface anchored to local activity actions", () => {
+  it("anchors Community in human outcomes and inviting early states", () => {
     const feed = read("client/src/pages/community-feed.tsx");
     const community = read("client/src/pages/community.tsx");
+    const emptyState = read("client/src/components/community/CommunityEmptyState.tsx");
+    const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
 
-    expect(feed).toContain("Local activity");
-    expect(feed).toContain("See what neighbors and local businesses are sharing, then start");
-    expect(feed).toContain("you need work done.");
-    expect(feed).toContain("Search local context");
-    expect(feed).toContain("Start request");
-    expect(feed).toContain("Local hub");
-    expect(feed).toContain("Share a local update");
-    expect(feed).toContain("Start a post");
-    expect(community).toContain("Local updates, questions, and projects.");
-    expect(community).toContain("Draft ready");
+    expect(feed).toContain("What&apos;s happening near you");
+    expect(feed).toContain("Ask a question, recommend someone, share an update");
+    expect(feed).toContain("Get local help");
+    expect(feed).toContain("Find someone for a job");
+    expect(feed).toContain("What would you like to share?");
+    expect(feed).toContain("Not sure what to write?");
+    expect(feed).toContain("You&apos;re here early");
+    expect(community).toContain("Ask, share, recommend");
+    expect(community).toContain("Your draft is ready");
+    expect(emptyState).toContain("You&apos;re here early");
+    expect(snapshotRail).toContain("Local offers are coming soon");
+    expect(snapshotRail).toContain("Coming soon");
+    expect(snapshotRail).toContain("Try again");
   });
 
   it("keeps default recommendation cards out of system-level framing", () => {
@@ -132,7 +146,7 @@ describe("Community app surface UX contract", () => {
       ).not.toContain(term.toLowerCase());
     }
 
-    expect(html).toContain("Recommended pro");
+    expect(html).toContain("Local match");
     expect(html).toContain("Review before contact");
     expect(html).toContain("Why this appears");
     expect(html).toContain("Jordan Lee");

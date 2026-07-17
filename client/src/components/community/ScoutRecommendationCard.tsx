@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ContactOutcomeModal } from "./ContactOutcomeModal";
-import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 
 export interface ScoutRecommendation {
   recommendationId: string;
@@ -50,6 +49,14 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   const { toast } = useToast();
   const [showContactModal, setShowContactModal] = useState(false);
   const [showFitDetails, setShowFitDetails] = useState(false);
+  const contactReason =
+    recommendation.suggestedIntent === "hire"
+      ? `I'm interested in your ${recommendation.targetRole} services and would like to talk about a local project.`
+      : recommendation.suggestedIntent === "advise"
+        ? `I'd appreciate your advice about ${recommendation.targetRole.toLowerCase()} work in my area.`
+        : recommendation.suggestedIntent === "reconnect"
+          ? "I'd like to reconnect and catch up."
+          : "I'd like to talk about working together locally.";
 
   // Action mutation (accept/dismiss)
   const actionMutation = useMutation({
@@ -81,13 +88,14 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   const handleDismiss = () => {
     actionMutation.mutate("dismiss", {
       onSuccess: () => {
-        toast({ title: "Signal dismissed" });
+        toast({ title: "Suggestion hidden" });
         onDismiss?.();
       },
       onError: (error: Error) => {
+        console.error("Failed to dismiss community suggestion", error);
         toast({
-          title: "Error",
-          description: formatUserFacingErrorMessage(error, "Failed to update recommendation"),
+          title: "That didn't work",
+          description: "We couldn't hide this suggestion just yet. Please try again.",
           variant: "destructive",
         });
       },
@@ -124,7 +132,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
     return {
       color: "bg-white/5 text-white/60 border-white/10",
       icon: <XCircle className="w-4 h-4" />,
-      label: "Unavailable",
+      label: "More details needed",
     };
   };
 
@@ -141,7 +149,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
         {/* Header */}
         <div className="flex items-center gap-2 text-sm text-white/60">
           <TrendingUp className="w-4 h-4" />
-          <span className="font-medium">Recommended pro</span>
+          <span className="font-medium">Local match</span>
         </div>
 
         {/* Target User */}
@@ -186,16 +194,19 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
           <div className="space-y-3 rounded-lg border border-white/10 bg-tsBg/60 p-3">
             <div className="space-y-1">
               <p className="text-sm font-medium text-white/70">Local fit</p>
-              <p className="text-sm text-white/60">{recommendation.reasoning}</p>
+              <p className="text-sm text-white/60">
+                This profile matches the kind of {recommendation.targetRole.toLowerCase()} help
+                you&apos;re looking for
+                {recommendation.targetLocation ? ` near ${recommendation.targetLocation}` : ""}.
+                Review the profile and choose whether you&apos;d like to connect.
+              </p>
             </div>
             {recommendation.confidenceTier === "caution" && recommendation.riskFlags.length > 0 && (
               <div className="space-y-1">
                 <p className="text-sm font-medium text-white/70">Review notes</p>
-                <ul className="space-y-0.5 text-sm text-white/60">
-                  {recommendation.riskFlags.map((flag, i) => (
-                    <li key={i}>- {flag}</li>
-                  ))}
-                </ul>
+                <p className="text-sm text-white/60">
+                  A few details deserve a closer look before you connect.
+                </p>
               </div>
             )}
           </div>
@@ -255,7 +266,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             targetRole: recommendation.targetRole,
             targetLocation: recommendation.targetLocation,
             suggestedIntent: recommendation.suggestedIntent,
-            reasonForContact: recommendation.reasoning,
+            reasonForContact: contactReason,
             confidenceScore: recommendation.confidenceScore,
             riskFlags: recommendation.riskFlags,
             sourceScoutRecommendationId: recommendation.recommendationId, // D2: Scout rec ID

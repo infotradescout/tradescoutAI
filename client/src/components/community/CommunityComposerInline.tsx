@@ -3,7 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { Image as ImageIcon, Video, Smile } from "lucide-react";
+import { Clock3, Image as ImageIcon, Video, Smile } from "lucide-react";
 import { useHandedness } from "@/hooks/useHandedness";
 import { uploadObject } from "@/lib/objectUpload";
 
@@ -89,17 +89,17 @@ export function CommunityComposerInline({
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 space-y-3">
-        {/* Post type selector: enforces intent */}
+        {/* The labels stay conversational while the selected type preserves routing behavior. */}
         <div className="flex items-center gap-2 text-[12px] text-white/70">
-          <span className="text-white/60">Type:</span>
+          <span className="text-white/60">I want to:</span>
           <div className="flex flex-wrap gap-1.5">
             {(
               [
                 { k: "alert", label: "Alert" },
-                { k: "project", label: "Project" },
-                { k: "recommendation", label: "Recommendation" },
-                { k: "discussion", label: "Discussion" },
-                { k: "admin_notice", label: "Admin Notice" },
+                { k: "project", label: "Find help" },
+                { k: "recommendation", label: "Recommend someone" },
+                { k: "discussion", label: "Share an update" },
+                { k: "admin_notice", label: "Post an announcement" },
               ] as Array<{ k: PostType; label: string }>
             ).map((opt) => (
               <button
@@ -165,13 +165,28 @@ export function CommunityComposerInline({
                 onChange={handleImagesSelected}
               />
             </label>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-white/60 dark:text-white/60">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled
+              title="Video posts are coming soon"
+              className="h-8 px-2 text-white/45 disabled:opacity-100"
+            >
               <Video className="w-4 h-4 mr-2" />
-              Video
+              Video soon
             </Button>
-            <Button variant="ghost" size="sm" className="h-8 px-2 text-white/60 dark:text-white/60">
-              <Smile className="w-4 h-4 mr-2" />
-              Feeling
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled
+              title="Mood updates are coming soon"
+              className="h-8 px-2 text-white/45 disabled:opacity-100"
+            >
+              <Smile className="w-4 h-4 mr-1.5" />
+              Mood soon
+              <Clock3 className="ml-1 h-3 w-3" />
             </Button>
           </div>
           <div

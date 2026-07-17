@@ -13,6 +13,7 @@ import { CountyRequiredGate } from "@/components/CountyRequiredGate";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { CommunityComposerInline } from "@/components/community/CommunityComposerInline";
 import { CommunityEmptyState } from "@/components/community/CommunityEmptyState";
+import { Button } from "@/components/ui/button";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 
@@ -70,7 +71,12 @@ export default function Community() {
   const countyCommitted = hasCountyContext(location);
 
   // Fetch community posts scoped to the user's local area
-  const { data: posts, isLoading: postsLoading } = useQuery<CommunityPost[]>({
+  const {
+    data: posts,
+    isLoading: postsLoading,
+    isError: postsError,
+    refetch: refetchPosts,
+  } = useQuery<CommunityPost[]>({
     queryKey: ["/api/community/posts", stateCode, countyFips],
     enabled: countyCommitted,
     queryFn: async () => {
@@ -156,8 +162,8 @@ export default function Community() {
       toast({
         title: "Posted!",
         description: isHelpLikeCategory
-          ? "Post published. Open Direct Connect for project help."
-          : "Post published.",
+          ? "Your post is live. You can also ask TradeScout to find the right person."
+          : "Your post is now visible to your local community.",
         action: (
           <button
             type="button"
@@ -172,17 +178,15 @@ export default function Community() {
               }
             }}
           >
-            Open Direct Connect
+            Find someone
           </button>
         ),
       });
     },
-    onError: (error: unknown) => {
-      const message =
-        error instanceof Error ? error.message : typeof error === "string" ? error : "";
+    onError: () => {
       toast({
-        title: "Error",
-        description: message || "Failed to create post",
+        title: "That post didn't go through",
+        description: "Your words are still here. Check your connection and try again.",
         variant: "destructive",
       });
     },
@@ -266,8 +270,8 @@ export default function Community() {
   const handleCreatePost = () => {
     if (!isAuthenticated) {
       toast({
-        title: "Sign in required",
-        description: "Sign in to post.",
+        title: "Ready when you are",
+        description: "Sign in to share this with your community.",
         variant: "destructive",
       });
       return;
@@ -284,8 +288,8 @@ export default function Community() {
   const handleLike = (postId: string) => {
     if (!isAuthenticated) {
       toast({
-        title: "Sign In Required",
-        description: "Please sign in to like posts.",
+        title: "Ready when you are",
+        description: "Sign in to like this post.",
         variant: "destructive",
       });
       return;
@@ -391,7 +395,9 @@ export default function Community() {
           {/* Header */}
           <div className="mb-4">
             <h1 className="text-lg font-semibold text-ts-orange mb-1">Community</h1>
-            <p className="text-sm text-white/70">Local updates, questions, and projects.</p>
+            <p className="text-sm text-white/70">
+              Ask, share, recommend, and see what&apos;s happening nearby.
+            </p>
           </div>
 
           {/* Navigation Tabs */}
@@ -406,7 +412,7 @@ export default function Community() {
                 }`}
                 data-testid="tab-for-you"
               >
-                Local
+                For you
               </button>
               <button
                 onClick={() => setActiveTab("projects")}
@@ -439,7 +445,7 @@ export default function Community() {
                 }`}
                 data-testid="tab-pros"
               >
-                Pros
+                Local businesses
               </button>
             </div>
           </div>
@@ -457,9 +463,9 @@ export default function Community() {
                         aria-hidden="true"
                       />
                       <div>
-                        <p className="font-medium text-sm text-white">Draft ready</p>
+                        <p className="font-medium text-sm text-white">Your draft is ready</p>
                         <p className="text-[11px] text-white/70">
-                          Review and publish your community post.
+                          Give it a quick look, then post it when you&apos;re happy.
                         </p>
                       </div>
                     </div>
@@ -480,8 +486,8 @@ export default function Community() {
                     onOpenRequest={() => {
                       if (!isAuthenticated) {
                         toast({
-                          title: "Sign in required",
-                          description: "Sign in to post.",
+                          title: "Ready when you are",
+                          description: "Sign in to share this with your community.",
                           variant: "destructive",
                         });
                         return;
@@ -517,8 +523,22 @@ export default function Community() {
               {postsLoading ? (
                 <div className="text-center py-12">
                   <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-ts-orange/30 border-r-transparent"></div>
-                  <p className="mt-2 text-white/60 dark:text-white/60">Loading posts...</p>
+                  <p className="mt-2 text-white/60 dark:text-white/60">
+                    Checking what&apos;s new nearby...
+                  </p>
                 </div>
+              ) : postsError ? (
+                <Card className="border border-white/10 bg-tsCard">
+                  <CardContent className="space-y-3 py-10 text-center">
+                    <h2 className="text-lg font-semibold text-white">That didn&apos;t load</h2>
+                    <p className="text-sm text-white/70">
+                      Your community is still here. Let&apos;s try loading it again.
+                    </p>
+                    <Button variant="outline" onClick={() => void refetchPosts()}>
+                      Try again
+                    </Button>
+                  </CardContent>
+                </Card>
               ) : visiblePosts.length === 0 ? (
                 <CommunityEmptyState
                   onCreateFirstPost={() => {

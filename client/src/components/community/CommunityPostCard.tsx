@@ -434,8 +434,11 @@ export function CommunityPostCard({
       return workRequest;
     } catch (error: any) {
       toast({
-        title: "Unable to send to Direct Connect",
-        description: formatUserFacingErrorMessage(error, "Please try again."),
+        title: "That request didn't start",
+        description: formatUserFacingErrorMessage(
+          error,
+          "Your post is safe. Give it another try in a moment."
+        ),
         variant: "destructive",
       });
     }
@@ -693,17 +696,17 @@ export function CommunityPostCard({
                       {!workBoardInfo.sent ? (
                         <DropdownMenuItem onClick={handleSendToWorkBoard}>
                           <Hammer className="w-3.5 h-3.5 mr-2" />
-                          Send to Direct Connect
+                          Find someone for this
                         </DropdownMenuItem>
                       ) : (
                         <>
                           <DropdownMenuItem disabled>
                             <Hammer className="w-3.5 h-3.5 mr-2 text-emerald-400" />
-                            <span className="text-emerald-300">✓ Sent to Direct Connect</span>
+                            <span className="text-emerald-300">✓ Request created</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => navigate("/direct-connect")}>
                             <Hammer className="w-3.5 h-3.5 mr-2" />
-                            Open Direct Connect
+                            Open request
                           </DropdownMenuItem>
                         </>
                       )}
