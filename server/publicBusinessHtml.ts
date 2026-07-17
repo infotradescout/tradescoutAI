@@ -11,11 +11,13 @@ import {
   deriveTradeSlugFromProfileData,
 } from "./publicationBusiness";
 import { formatTradeScoutTitle } from "@shared/brand";
+import { createProfileGalleryItemShareMetadata } from "@shared/profileGalleryShare";
 
 type PublicBusinessHtmlOptions = {
   slug: string;
   origin: string;
   templateHtml: string;
+  gallerySlug?: unknown;
 };
 
 function escapeHtml(value: string) {
@@ -161,14 +163,15 @@ export async function buildPublicBusinessHtml({
   slug,
   origin,
   templateHtml,
+  gallerySlug,
 }: PublicBusinessHtmlOptions): Promise<string | null> {
   const safeSlug = String(slug || "").trim();
   if (!safeSlug) return null;
 
   // First: published business profile (stored in user preferences for now).
   const published = await storage.getBusinessProfileBySlug(safeSlug);
-  if (published) {
-    const meta = buildBusinessMeta({
+  if (published?.visibility === "public") {
+    const baseMeta = buildBusinessMeta({
       origin,
       slug: safeSlug,
       name: published.name,
@@ -181,6 +184,27 @@ export async function buildPublicBusinessHtml({
       services: published.services || [],
       verificationLabel: published.verificationStatus || undefined,
     });
+    const galleryMeta = createProfileGalleryItemShareMetadata({
+      profileName: published.name,
+      profileUrl: `${origin}/business/${encodeURIComponent(safeSlug)}`,
+      assetOrigin: origin,
+      contentBlocks: published.contentBlocks,
+      itemSlug: gallerySlug,
+    });
+    const meta = galleryMeta
+      ? {
+          ...baseMeta,
+          title: formatTradeScoutTitle(galleryMeta.title),
+          description: galleryMeta.description,
+          canonical: galleryMeta.canonical,
+          imageUrl: galleryMeta.imageUrl,
+          imageType: imageMimeType(galleryMeta.imageUrl),
+          imageAlt: galleryMeta.imageAlt,
+          imageWidth: undefined,
+          imageHeight: undefined,
+          customImageUrl: null,
+        }
+      : baseMeta;
 
     const jsonLd: any = {
       "@context": "https://schema.org",
@@ -216,6 +240,16 @@ export async function buildPublicBusinessHtml({
           }
         : undefined,
     };
+    const galleryJsonLd = galleryMeta
+      ? {
+          "@context": "https://schema.org",
+          "@type": "ImageObject",
+          name: galleryMeta.itemTitle,
+          description: galleryMeta.description,
+          contentUrl: galleryMeta.imageUrl,
+          url: galleryMeta.canonical,
+        }
+      : null;
 
     let html = templateHtml;
     html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtml(meta.title)}</title>`);
@@ -238,6 +272,11 @@ export async function buildPublicBusinessHtml({
       html,
       /<meta property="og:title"[^>]*>/i,
       `<meta property="og:title" content="${escapeHtml(meta.title)}" />`
+    );
+    html = upsertTag(
+      html,
+      /<meta property="og:type"[^>]*>/i,
+      `<meta property="og:type" content="${galleryMeta ? "article" : "profile"}" />`
     );
     html = upsertTag(
       html,
@@ -280,6 +319,10 @@ export async function buildPublicBusinessHtml({
         /<meta property="og:image:height"[^>]*>/i,
         `<meta property="og:image:height" content="${meta.imageHeight}" />`
       );
+    } else if (galleryMeta) {
+      html = html
+        .replace(/<meta property="og:image:width"[^>]*>\s*/i, "")
+        .replace(/<meta property="og:image:height"[^>]*>\s*/i, "");
     }
     html = upsertTag(
       html,
@@ -399,6 +442,7 @@ export async function buildPublicBusinessHtml({
 <main data-seo-business="true" style="padding:1rem;max-width:960px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
   <article>
     <h1>${escapeHtml(published.name)}</h1>
+    ${galleryMeta ? `<section data-seo-business-gallery="${escapeHtml(galleryMeta.itemSlug)}"><h2>${escapeHtml(galleryMeta.itemTitle)}</h2><p>${escapeHtml(galleryMeta.description)}</p></section>` : ""}
     ${published.headline ? `<p><strong>${escapeHtml(String(published.headline))}</strong></p>` : ""}
     <p>${escapeHtml(meta.description)}</p>
     ${servicesSummary.length > 0 ? `<p><strong>Services:</strong> ${escapeHtml(servicesSummary.join(", "))}</p>` : ""}
@@ -416,6 +460,7 @@ export async function buildPublicBusinessHtml({
 
     html = injectSummary(html, summary);
     html = injectJsonLd(html, jsonLd);
+    if (galleryJsonLd) html = injectJsonLd(html, galleryJsonLd);
     return html;
   }
 

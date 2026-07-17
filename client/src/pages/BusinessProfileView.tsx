@@ -55,6 +55,11 @@ import { ShareButton } from "@/components/ShareButton";
 import { apiRequest } from "@/lib/queryClient";
 import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { matchFlowCopy, stripCountySuffix } from "@/lib/userFacingCopy";
+import {
+  buildProfileGalleryShareSearch,
+  createProfileGalleryItemShareMetadata,
+  listProfileGalleryItems,
+} from "@shared/profileGalleryShare";
 
 /**
  * PublicBusinessProfileView
@@ -94,6 +99,22 @@ export default function BusinessProfileView() {
   const [suggestKind, setSuggestKind] = useState<"edit" | "removal">("edit");
   const [suggestMessage, setSuggestMessage] = useState("");
   const [suggestBusy, setSuggestBusy] = useState(false);
+  const profileContentBlocks = Array.isArray(profile?.contentBlocks) ? profile.contentBlocks : [];
+  const profileGalleryItems = listProfileGalleryItems(profileContentBlocks);
+  const requestedGallerySlug =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("gallery")
+      : null;
+  const galleryShareMeta =
+    profile && slug && typeof window !== "undefined"
+      ? createProfileGalleryItemShareMetadata({
+          profileName: profile.name,
+          profileUrl: `${window.location.origin}/business/${encodeURIComponent(slug)}`,
+          assetOrigin: window.location.origin,
+          contentBlocks: profileContentBlocks,
+          itemSlug: requestedGallerySlug,
+        })
+      : null;
 
   const slugifyCity = (value: string) =>
     String(value || "")
@@ -216,6 +237,16 @@ export default function BusinessProfileView() {
     fetchProfile();
   }, [slug, user?.businessSlug]);
 
+  useEffect(() => {
+    if (!galleryShareMeta?.itemSlug) return;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById(`business-gallery-${galleryShareMeta.itemSlug}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [galleryShareMeta?.itemSlug]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -279,7 +310,7 @@ export default function BusinessProfileView() {
     communityActivity: profile.profileSections?.communityActivity === true,
     contactCard: profile.profileSections?.contactCard !== false,
   };
-  const contentBlocks = Array.isArray(profile.contentBlocks) ? profile.contentBlocks : [];
+  const contentBlocks = profileContentBlocks;
   const bookingConfig = profile.bookingConfig || null;
   const hasCustomHero = contentBlocks.some(
     (block: any) => String(block?.type || "").toLowerCase() === "hero"
@@ -432,24 +463,48 @@ export default function BusinessProfileView() {
     }
 
     if (type === "gallery") {
+      const galleryItem = profileGalleryItems.find((item) => item.blockIndex === idx);
+      const isSharedGalleryItem = galleryItem?.slug === galleryShareMeta?.itemSlug;
       return (
-        <Card key={key} style={themeStyle}>
+        <Card
+          key={key}
+          id={galleryItem ? `business-gallery-${galleryItem.slug}` : undefined}
+          style={themeStyle}
+          className={isSharedGalleryItem ? "ring-2 ring-ts-orange ring-offset-2" : undefined}
+        >
           <CardHeader>
-            <CardTitle>{block?.title || "Gallery"}</CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle>{block?.title || "Gallery"}</CardTitle>
+              {isSharedGalleryItem ? <Badge variant="secondary">Shared image</Badge> : null}
+            </div>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {block?.body ? (
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">{block.body}</p>
             ) : null}
-            {block?.imageUrl ? (
-              <a
-                href={block.imageUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-primary hover:underline"
-              >
-                Open gallery image
-              </a>
+            {galleryItem ? (
+              <>
+                <div className="overflow-hidden rounded-xl border border-border bg-muted">
+                  <img
+                    src={galleryItem.imageUrl}
+                    alt={galleryItem.imageAlt}
+                    className="max-h-[32rem] w-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm" variant="outline">
+                    <a href={galleryItem.imageUrl} target="_blank" rel="noreferrer">
+                      Open full image
+                    </a>
+                  </Button>
+                  <ShareButton
+                    destination={`/business/${encodeURIComponent(profile.slug)}${buildProfileGalleryShareSearch(galleryItem.slug)}`}
+                    title={`${galleryItem.title} by ${profile.name}`}
+                    text={`View ${galleryItem.title} from ${profile.name} on TradeScout`}
+                  />
+                </div>
+              </>
             ) : (
               <p className="text-xs text-muted-foreground">
                 Add an image URL to feature media here.
@@ -498,18 +553,21 @@ export default function BusinessProfileView() {
   // Keep discovery signals public (location, trade/category, unclaimed/claimed, basic verification label).
   // SEO metadata
   const pageTitle =
+    galleryShareMeta?.title ||
     profile.seoMeta?.title ||
     (profile.countyName && profile.stateCode
       ? `${profile.name} in ${profile.countyName}, ${profile.stateCode} | TradeScout`
       : `${profile.name} | TradeScout`);
 
   const pageDescription =
+    galleryShareMeta?.description ||
     profile.seoMeta?.description ||
     (hasDescription
       ? (profile.description || "").slice(0, 155)
       : `${profile.name} serving ${profile.countyName || "local areas"}${profile.serviceAreas && profile.serviceAreas.length > 0 ? " and nearby areas" : ""}. Contact via TradeScout.`);
 
-  const canonicalUrl = `${window.location.origin}/business/${profile.slug}`;
+  const canonicalUrl =
+    galleryShareMeta?.canonical || `${window.location.origin}/business/${profile.slug}`;
   const showClaimCta = !isOwner && profileSource === "directory" && Boolean(directoryBusinessId);
   const showUnclaimedBadge = profileSource === "directory" && directoryClaimStatus === "unclaimed";
   const showSuggestCta = profileSource === "directory" && Boolean(directoryBusinessId);
@@ -579,7 +637,7 @@ export default function BusinessProfileView() {
       icon: Search,
     },
   ];
-  const structuredData = createLocalBusinessStructuredData({
+  const businessStructuredData = createLocalBusinessStructuredData({
     slug: profile.slug,
     name: profile.name,
     description: pageDescription,
@@ -589,6 +647,21 @@ export default function BusinessProfileView() {
     category: null,
     verifiedLabel: verificationLabel || null,
   });
+  const structuredData = galleryShareMeta
+    ? {
+        "@context": "https://schema.org",
+        "@graph": [
+          businessStructuredData,
+          {
+            "@type": "ImageObject",
+            name: galleryShareMeta.itemTitle,
+            description: galleryShareMeta.description,
+            contentUrl: galleryShareMeta.imageUrl,
+            url: galleryShareMeta.canonical,
+          },
+        ],
+      }
+    : businessStructuredData;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-5 text-white sm:py-8">
@@ -597,8 +670,10 @@ export default function BusinessProfileView() {
         title={pageTitle}
         description={pageDescription}
         canonical={canonicalUrl}
-        ogType="profile"
+        ogType={galleryShareMeta ? "article" : "profile"}
+        ogImage={galleryShareMeta?.imageUrl || profile.seoMeta?.imageUrl || undefined}
         structuredData={structuredData}
+        preserveCanonicalQuery={Boolean(galleryShareMeta)}
       />
 
       <section className="ts-card mb-4 overflow-hidden" style={themeStyle}>
