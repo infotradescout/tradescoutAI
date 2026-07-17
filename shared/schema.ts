@@ -2520,6 +2520,7 @@ export const trustSnapshots = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     countyFips: varchar("county_fips", { length: 5 }).notNull(),
+    // Performance is capped at 100; audited policy boosts may make the total exceed 100.
     cvsScore: decimal("cvs_score", { precision: 5, scale: 2 }).notNull(),
     verificationStatus: varchar("verification_status"),
     licenseStatus: varchar("license_status"),

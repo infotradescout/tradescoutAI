@@ -29,32 +29,56 @@ Force insert (ignore 24h window):
 node scripts/backfill-trust-snapshots.mjs --force
 ```
 
-## Baseline Scoring (current)
+## CVS v3 Scoring (current)
 
-- If `address_verified` is false → CVS = 0
-- If contractor and license/insurance not approved → CVS = 0
-- Otherwise:
-  - Base 50
-  - +20 if `verification_status = approved`
-  - +15 if license approved
-  - +15 if insurance approved
-  - + external trust bonus (up to +10) from imported place/review evidence
-    (`businesses.profile_data.importExtras`, keyed by `gmb_average_rating`/`gmb_review_count`
-    from the bulk import pipeline, falling back to bare `average_rating`/`review_count`)
-    - +5 if `average_rating >= 4.5` and `review_count >= 50`
-    - +3 if `average_rating >= 4.2` and `review_count >= 20`
-    - +1 if `average_rating >= 4.0` and `review_count >= 5`
-    - +2 if place identity is confirmed (`google_place_id`/`place_id`/`places_place_id`/maps url)
-  - Capped at 100
+Verification is the starting line, not a performance reward.
 
-This is intentionally conservative and should be refined as full CVS logic is wired.
+- A fully verified provider starts at **CVS 50**.
+- Address and role-specific verification are hard gates. A contractor with an
+  unapproved/expired required license or insurance remains at `0`.
+- Approval, license, insurance, admin action, payment, and profile purchase add
+  **zero bonus points**. They only establish eligibility for the verified baseline.
+- A verified score moves above or below 50 from measured outcomes:
+  - completed work: `+2` each, capped at `+12`
+  - people helped: `+1` each, capped at `+5`
+  - active weeks: up to `+4`
+  - recent activity: `+2` within 30 days, `+1` within 90 days, or `-2` after a
+    year of inactivity when prior activity exists
+  - timely Direct Connect responses: up to `+3`; an honest decline is treated
+    as a response and is not penalized
+  - approved, public, verified recommendations: `+2` positive (cap `+10`) and
+    `-5` negative (cap `-20`)
+  - completed marketplace outcomes and verified-purchase reviews: bounded
+    positive signals; poor verified reviews and active disputes are bounded
+    negative signals
+  - imported place/review performance evidence: `+1` to `+5` for substantial
+    strong evidence or `-3` to `-6` for substantial poor evidence. Confirming a
+    place identity alone adds no points.
+- The live performance score is clamped to `0-100`.
+- Active, audited CVS policy boosts are added after that clamp. They are the
+  only mechanism allowed to take the displayed CVS total above `100`.
+  - Boosts are immutable Trust Ledger grants with a policy key, point value,
+    grant time, expiration, actor, and revocation path.
+  - Hard verification/compliance gates ignore boosts and still produce `0`.
+  - Paid listing boosts, promotions, subscriptions, and ad spend are never CVS boosts.
+  - The first policy is `verified_profile_launch`: `+10` for 90 days for a
+    fully verified, claimed, source-documented launch profile.
+  - `operator_firsthand_attestation`: `+5` for 180 days when a named operator
+    provides a firsthand attestation and discloses the relationship.
+  - `verified_portfolio_evidence`: `+5` for 180 days when at least five
+    attributable completed-work examples are reviewed as proof of work.
+
+Signals are read from canonical outcome tables at snapshot time. The nightly job
+is the catch-up path; audited verification changes can request an immediate
+single-user recompute through `runTrustSnapshotForUser`.
 
 ### External signal bootstrap
 
 - For non-contractor entities that are still unverified on-platform (`address_verified = false`),
   strong imported place/review evidence can produce a limited bootstrap score:
   - Requires confirmed place identity + `review_count >= 5` + `average_rating >= 3.5`
-  - Score is capped at 45 and tagged with risk flag `external_signal_bootstrap`
+  - Score is capped below the verified baseline at 45 and tagged with risk flag
+    `external_signal_bootstrap`
   - Evidence is read from the business the user owns (`businesses.owner_user_id`), so this only
     applies once an imported listing has been claimed
 - Contractor verification gates are unchanged: missing required license/insurance still yields CVS 0.

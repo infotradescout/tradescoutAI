@@ -17,14 +17,22 @@ This document is the source of truth for:
 
 ## Operational Status (User-Facing CVS Bands)
 
-For profile CVS (0-100):
+The performance component uses `0-100`. The displayed CVS total can exceed 100
+only through an active audited CVS policy boost. The bands below describe the
+performance component, not the additive boost:
 
-- `0-39`: Setup Phase
-- `40-69`: Active
-- `70-84`: Verified
-- `85-100`: High-Trust
+- `0`: hard verification/compliance gate
+- `1-34`: at risk
+- `35-49`: needs attention or still completing verification
+- `50`: verified baseline
+- `51-69`: building a positive record
+- `70-84`: proven record
+- `85-100`: exceptional sustained record
 
-These are operational states, not popularity ranks.
+Verification remains a separate badge/state. A verified business can move below
+50 when current performance or risk signals warrant it, and no business moves
+above 50 merely because an admin approved it. A policy boost is displayed and
+audited separately from performance. These are operational states, not popularity ranks.
 
 ## Canonical Layers
 
@@ -36,19 +44,29 @@ These are operational states, not popularity ranks.
 - Current source:
   - `trust_snapshots.cvs_score`
   - produced by `server/services/trustSnapshotsJob.ts`
-- Current baseline inputs:
+- Current inputs:
   - address verification
   - professional verification status
   - license status
   - insurance status
-  - imported external trust evidence (bounded):
+  - completed work, helpful outcomes, activity, and response behavior
+  - verified recommendations and verified marketplace outcomes
+  - active disputes and other explicit negative outcome signals
+  - imported external performance evidence (bounded):
     - place identity confirmation
     - review count
     - average rating
   - risk flags (stored with snapshot)
 - Dynamic behavior:
   - recomputed by scheduled job
+  - recomputed immediately after supported audited verification changes
   - can drop immediately to `0` for key compliance failures
+- Policy boost layer:
+  - active, system-verified Trust Ledger grants are additive after performance
+    is capped at 100
+  - a policy boost is the only allowed path above 100
+  - boosts cannot override a hard verification/compliance gate
+  - paid promotions and listing boosts are excluded
 - Allowed influence:
   - discovery/exposure priority
   - eligibility for trust-gated flows

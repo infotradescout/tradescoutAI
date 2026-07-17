@@ -20,6 +20,7 @@ import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
+import LocalServiceProfileTheme from "@/pages/profile-sites/LocalServiceProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import {
   PublicProfileItems,
@@ -34,6 +35,7 @@ import {
   resolveProfileGalleryItem,
 } from "@shared/profileGalleryShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
+import type { LocalServiceProfilePresentation } from "@shared/localServiceProfile";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -115,6 +117,12 @@ type PublicBusinessSubset = {
     surface?: string;
   };
   directConnectOwnerUserId?: string;
+  verificationStatus?: string | null;
+  verifiedBadge?: boolean;
+  cvsScore?: number | null;
+  cvsPerformanceScore?: number | null;
+  cvsBoostPoints?: number | null;
+  trustComputedAt?: string | null;
   expressContactCapabilities?: {
     call?: boolean;
     request?: boolean;
@@ -403,6 +411,9 @@ export default function ProfileSiteView() {
     contentBlocks.find((block: any) => block?.type === "inventoryCatalog") as any
   )?.data?.categories;
   const galleryItems = listProfileGalleryItems(contentBlocks);
+  const localServicePresentation = contentBlocks.find(
+    (block: any) => block?.type === "localServiceProfile"
+  )?.data as LocalServiceProfilePresentation | undefined;
   const itemShareParams =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const inventoryItemShareMeta = createProfileInventoryItemShareMetadata({
@@ -520,7 +531,7 @@ export default function ProfileSiteView() {
     profile.slug === "jrs-auto-glass"
       ? `/direct-connect?${jrsDirectConnectTarget}&targetName=${encodeURIComponent(displayName)}&source=profile_site&title=${encodeURIComponent("Auto glass request")}&description=${encodeURIComponent(jrsRequestDescription)}&intent=vehicle_service`
       : business?.directConnectOwnerUserId
-        ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=tradepartner_profile`
+        ? `/direct-connect?target=${encodeURIComponent(business.directConnectOwnerUserId)}&targetName=${encodeURIComponent(displayName)}&source=profile_site`
         : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
@@ -646,6 +657,49 @@ export default function ProfileSiteView() {
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
           requestMode="auto_glass"
+        />
+      </>
+    );
+  }
+
+  if (localServicePresentation?.template === "local-service") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={galleryItemShareMeta ? "article" : "profile"}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
+        />
+        <LocalServiceProfileTheme
+          businessName={displayName}
+          presentation={localServicePresentation}
+          onDirectConnect={() => setExpressPanelOpen(true)}
+          hasViewerSession={hasViewerSession}
+          tradeScoutReturnHref={tradeScoutReturnHref}
+          profileShareDestination={profileShareDestination}
+          galleryItems={galleryItems}
+          sharedGallerySlug={sharedGallerySlug}
+          recommendationsDirectory={recommendationsDirectory}
+          verificationStatus={business?.verificationStatus}
+          cvsScore={business?.cvsScore}
+          cvsPerformanceScore={business?.cvsPerformanceScore}
+          cvsBoostPoints={business?.cvsBoostPoints}
+          profileItems={
+            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+          }
+        />
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          businessName={displayName}
+          hasViewerSession={hasViewerSession}
+          allowCall={false}
+          requestMode="service"
         />
       </>
     );
