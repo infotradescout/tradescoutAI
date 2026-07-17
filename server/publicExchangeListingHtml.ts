@@ -21,6 +21,7 @@ import {
   getExchangeCategorySlugFromMarketplaceCategoryName,
 } from "@shared/exchangeListingRules";
 import type { ExchangeCategorySlug } from "@shared/exchangeListingRules";
+import { listProfileOfferImageUrls } from "@shared/profileOfferShare";
 import { pool } from "./db";
 import { storage } from "./storage";
 
@@ -93,7 +94,7 @@ async function getProfileOfferExchangeListing(listingId: string): Promise<any | 
       state: row.state_code || row.state,
       county: row.county_name || row.county,
       condition: metadata.condition || "new",
-      images: Array.isArray(metadata.images) ? metadata.images : [],
+      images: listProfileOfferImageUrls(metadata),
       specifications: {
         source: "profile_offer",
         profileOfferId,

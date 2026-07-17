@@ -74,6 +74,7 @@ import {
   getExchangeCategorySlugFromMarketplaceCategoryName,
   validateExchangeCategoryListing,
 } from "../shared/exchangeListingRules";
+import { listProfileOfferImageUrls } from "../shared/profileOfferShare";
 import {
   TRADESCOUT_TRANSACTION_FEE_CENTS,
   TRADESCOUT_TRANSACTION_FEE_MODEL,
@@ -13123,7 +13124,7 @@ export async function registerRoutes(app: any) {
       price: Number(row.price || 0),
       category: categorySlug || "other",
       condition: String(metadata.condition || "new"),
-      images: Array.isArray(metadata.images) ? metadata.images : [],
+      images: listProfileOfferImageUrls(metadata),
       location,
       state,
       county,
