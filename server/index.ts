@@ -41,7 +41,7 @@ import {
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { buildPublicProfileHtml } from "./publicProfileHtml";
+import { buildPublicProfileEarlyHtml, buildPublicProfileHtml } from "./publicProfileHtml";
 import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import { buildPublicContractorProfileHtml } from "./publicContractorProfileHtml";
@@ -1323,7 +1323,10 @@ app.use(landingContractHeaders);
                   });
 
                   if (!html) {
-                    return res.status(404).send("Profile not found");
+                    res.setHeader("Cache-Control", "no-store");
+                    return res
+                      .status(404)
+                      .send(buildPublicProfileEarlyHtml({ slug, origin, templateHtml }));
                   }
 
                   res.setHeader(
