@@ -13,6 +13,7 @@ import {
   homeScoutListings,
   profiles,
   recommendations,
+  trustSnapshots,
   users,
 } from "../../shared/schema";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
@@ -24,6 +25,7 @@ import {
   type PublicBusinessListingCard,
 } from "../../shared/publicBusinessListing";
 import { buildExposureAuthorityMap } from "../services/exposureAuthority";
+import { getActiveCvsBoostPoints } from "../services/cvsBoostPolicy";
 import {
   buildPublicHomeScoutListingCards,
   type PublicHomeScoutListingCard,
@@ -678,6 +680,43 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const business = profile.businessId
     ? await storage.getBusinessPublicById(profile.businessId)
     : undefined;
+  const [latestTrustSnapshot] = await db
+    .select({
+      cvsScore: trustSnapshots.cvsScore,
+      verificationStatus: trustSnapshots.verificationStatus,
+      computedAt: trustSnapshots.computedAt,
+    })
+    .from(trustSnapshots)
+    .where(
+      ownerUser.countyFips
+        ? and(
+            eq(trustSnapshots.userId, ownerUserId),
+            eq(trustSnapshots.countyFips, String(ownerUser.countyFips))
+          )
+        : eq(trustSnapshots.userId, ownerUserId)
+    )
+    .orderBy(desc(trustSnapshots.computedAt))
+    .limit(1);
+  const publicVerificationStatus = String(
+    latestTrustSnapshot?.verificationStatus || ownerUser.verificationStatus || ""
+  )
+    .trim()
+    .toLowerCase();
+  const publicCvsScore = Number(latestTrustSnapshot?.cvsScore);
+  let publicCvsBoostPoints = 0;
+  try {
+    publicCvsBoostPoints = await getActiveCvsBoostPoints(ownerUserId);
+  } catch (error) {
+    console.warn("[profiles] Failed to load active CVS boost breakdown", {
+      ownerUserId,
+      error,
+    });
+  }
+  const publicCvsPerformanceScore = Number.isFinite(publicCvsScore)
+    ? Math.max(0, publicCvsScore - publicCvsBoostPoints)
+    : null;
+  const isPubliclyVerified =
+    publicVerificationStatus === "approved" && ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
   if (business) {
@@ -713,13 +752,22 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         categories: business.categories || [],
         serviceAreas: business.serviceAreas || [],
         tradePartner: business.tradePartner === true,
+        verificationStatus: publicVerificationStatus || null,
+        verifiedBadge: isPubliclyVerified,
+        cvsScore: Number.isFinite(publicCvsScore) ? publicCvsScore : null,
+        cvsPerformanceScore: publicCvsPerformanceScore,
+        cvsBoostPoints: publicCvsBoostPoints,
+        trustComputedAt: latestTrustSnapshot?.computedAt?.toISOString?.() || null,
         expressContactCapabilities: {
-          call: Boolean(business.contactPhone),
+          // Public profiles always preserve the Direct Connect gate. A phone
+          // number stored for private routing never becomes a bypass.
+          call: false,
           request: Boolean(directConnectOwnerUserId),
         },
         ...(business.brandColors ? { brandColors: business.brandColors } : {}),
-        // Targeting is limited to a discoverable TradePartner or the explicit
-        // owner-confirmed direct-profile exception checked above.
+        // Targeting remains limited to a TradePartner or the explicit narrow
+        // owner-confirmed profile exception. Other approved profiles still use
+        // the slug-based Express Direct Connect resolver without exposing an id.
         ...((business.tradePartner === true || ownerConfirmedDirectProfile) &&
         directConnectOwnerUserId
           ? { directConnectOwnerUserId }
