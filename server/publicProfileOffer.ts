@@ -1,7 +1,6 @@
 import type { Pool } from "pg";
 import { listProfileOfferImageUrls, normalizeProfileOfferId } from "@shared/profileOfferShare";
-
-const PUBLIC_CONTACT_REPLACEMENT = "Continue through TradeScout";
+import { sanitizePublicListingText } from "@shared/publicListingSafety";
 
 export type PublicProfileOffer = {
   id: string;
@@ -38,15 +37,7 @@ function cleanText(value: unknown, maxLength: number): string {
 }
 
 export function sanitizePublicProfileOfferText(value: unknown): string {
-  return cleanText(value, 4000)
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, PUBLIC_CONTACT_REPLACEMENT)
-    .replace(
-      /\b(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}\b/g,
-      PUBLIC_CONTACT_REPLACEMENT
-    )
-    .replace(/\b(?:https?:\/\/|www\.)\S+/gi, PUBLIC_CONTACT_REPLACEMENT)
-    .replace(/\s+/g, " ")
-    .trim();
+  return sanitizePublicListingText(value, 4000);
 }
 
 function safeMetadata(value: unknown): PublicProfileOffer["metadata"] {
@@ -95,10 +86,7 @@ export function toPublicProfileOffer(row: any): PublicProfileOffer | null {
   const rawPrice = Number(row?.price || 0);
   const rawShippingCost = Number(row?.shipping_cost ?? row?.shippingCost ?? 0);
   const rawCurrency = cleanText(row?.currency, 3).toUpperCase();
-  const rawFulfillmentMode = cleanText(
-    row?.fulfillment_mode ?? row?.fulfillmentMode,
-    80
-  );
+  const rawFulfillmentMode = cleanText(row?.fulfillment_mode ?? row?.fulfillmentMode, 80);
   const fulfillmentMode = new Set([
     "manual_review",
     "scheduled_service",
@@ -125,8 +113,7 @@ export function toPublicProfileOffer(row: any): PublicProfileOffer | null {
       rawServiceDuration === null || rawServiceDuration === undefined
         ? null
         : Number(rawServiceDuration) || null,
-    itemSku:
-      sanitizePublicProfileOfferText(cleanText(row?.item_sku ?? row?.itemSku, 120)) || null,
+    itemSku: sanitizePublicProfileOfferText(cleanText(row?.item_sku ?? row?.itemSku, 120)) || null,
     itemStockQuantity:
       rawItemStock === null || rawItemStock === undefined ? null : Number(rawItemStock) || 0,
     fulfillmentMode,

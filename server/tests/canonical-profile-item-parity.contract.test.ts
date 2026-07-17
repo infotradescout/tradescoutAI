@@ -18,6 +18,9 @@ describe("canonical profile item parity", () => {
     expect(profilesRoute).toContain(
       "storage.getCommunityPosts({ authorId: ownerUserId, limit: 6 })"
     );
+    expect(profilesRoute).toContain("storage.getMarketplaceListings({");
+    expect(profilesRoute).toContain('status: "active"');
+    expect(profilesRoute).toContain("buildPublicBusinessListingCards({ listings, categories })");
     expect(profilesRoute).toContain("listHandmadeProductImageUrls(product)");
     expect(profilesRoute).toContain("listCommunityPostImageUrls(post.imageUrls)");
   });
@@ -29,6 +32,7 @@ describe("canonical profile item parity", () => {
     expect(profilesRoute).toContain("sanitizePublicProfileOfferText(product.title)");
     expect(profilesRoute).toContain("sanitizePublicProfileOfferText(post.content)");
     expect(profilesRoute).toContain("profileItems: {");
+    expect(profilesRoute).toContain("marketplaceListings: publicMarketplaceListings");
     expect(profilesRoute).not.toContain("profileItems: {\n      ownerUserId");
     expect(profilesRoute).not.toContain("profileItems: {\n      sellerUserId");
   });
@@ -54,6 +58,8 @@ describe("canonical profile item parity", () => {
     expect(items).toContain("buildProfileOfferExchangePath(");
     expect(items).toContain("buildHandmadeProductPath(product.id)");
     expect(items).toContain("buildCommunityPostPath(post.id)");
+    expect(items).toContain("listing.detailPath");
+    expect(items).toContain("listing.imageUrl");
     expect(items).toContain("listProfileOfferImageUrls(offer.metadata)");
     expect(items).toContain("listHandmadeProductImageUrls({");
     expect(items).toContain("listCommunityPostImageUrls(post.imageUrls)");
@@ -74,5 +80,20 @@ describe("canonical profile item parity", () => {
     expect(profilesRoute).toContain(
       "profileSections.services !== false || profileSections.marketplaceListings !== false"
     );
+  });
+
+  it("fails commercial profile exposure closed through the shared Trust/CVS authority path", () => {
+    const profilesRoute = read("server/routes/profiles.ts");
+    const legacyRoutes = read("server/routes.ts");
+    const exposureAuthority = read("server/services/exposureAuthority.ts");
+
+    expect(profilesRoute).toContain("buildExposureAuthorityMap([ownerUserId])");
+    expect(profilesRoute).toContain("canExposeCommercialItems");
+    expect(profilesRoute).toContain("Fail closed for commercial exposure");
+    expect(legacyRoutes).toContain(
+      'import { buildExposureAuthorityMap } from "./services/exposureAuthority"'
+    );
+    expect(exposureAuthority).toContain("hasEmailGate");
+    expect(exposureAuthority).toContain("hasAddressGate || hasIdentityGate || hasBusinessGate");
   });
 });

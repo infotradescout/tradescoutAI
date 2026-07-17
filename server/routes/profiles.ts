@@ -12,6 +12,11 @@ import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectP
 import { listHandmadeProductImageUrls } from "../../shared/handmadeProductShare";
 import { listCommunityPostImageUrls } from "../../shared/communityPostShare";
 import { sanitizePublicProfileOfferText, toPublicProfileOffer } from "../publicProfileOffer";
+import {
+  buildPublicBusinessListingCards,
+  type PublicBusinessListingCard,
+} from "../../shared/publicBusinessListing";
+import { buildExposureAuthorityMap } from "../services/exposureAuthority";
 
 const router = Router();
 
@@ -838,9 +843,22 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       : {};
   let publicProfileOffers: Array<Record<string, unknown>> = [];
   let publicHandmadeProducts: Array<Record<string, unknown>> = [];
+  let publicMarketplaceListings: PublicBusinessListingCard[] = [];
   let publicCommunityPosts: Array<Record<string, unknown>> = [];
+  let canExposeCommercialItems = false;
 
-  if (profileSections.services !== false || profileSections.marketplaceListings !== false) {
+  try {
+    const exposureAuthority = await buildExposureAuthorityMap([ownerUserId]);
+    canExposeCommercialItems = exposureAuthority[ownerUserId] === true;
+  } catch (error) {
+    // Fail closed for commercial exposure without hiding the public profile.
+    console.error("[profiles] Failed resolving listing exposure authority:", { slug, error });
+  }
+
+  if (
+    canExposeCommercialItems &&
+    (profileSections.services !== false || profileSections.marketplaceListings !== false)
+  ) {
     try {
       const offerRows = await pool.query(
         `SELECT *
@@ -863,7 +881,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     }
   }
 
-  if (profileSections.marketplaceListings !== false) {
+  if (canExposeCommercialItems && profileSections.marketplaceListings !== false) {
     try {
       const products = await storage.getHandmadeProducts({ sellerId: ownerUserId, limit: 8 });
       publicHandmadeProducts = products.map((product) => ({
@@ -879,6 +897,22 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       }));
     } catch (error) {
       console.error("[profiles] Failed loading public Handmade products:", { slug, error });
+    }
+
+    try {
+      const [listings, categories] = await Promise.all([
+        storage.getMarketplaceListings({
+          sellerId: ownerUserId,
+          status: "active",
+          sortBy: "date_desc",
+          limit: 6,
+          offset: 0,
+        }),
+        storage.getMarketplaceCategories(),
+      ]);
+      publicMarketplaceListings = buildPublicBusinessListingCards({ listings, categories });
+    } catch (error) {
+      console.error("[profiles] Failed loading public Exchange listings:", { slug, error });
     }
   }
 
@@ -923,6 +957,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     profileItems: {
       offers: publicProfileOffers,
       handmadeProducts: publicHandmadeProducts,
+      marketplaceListings: publicMarketplaceListings,
       communityPosts: publicCommunityPosts,
     },
   });

@@ -1,4 +1,5 @@
 import { getExchangeCategorySlugFromMarketplaceCategoryName } from "./exchangeListingRules";
+import { sanitizePublicListingText } from "./publicListingSafety";
 
 const MAX_PROFILE_LISTINGS = 6;
 
@@ -98,7 +99,7 @@ export function buildPublicBusinessListingCards(args: {
   for (const rawListing of args.listings as RawMarketplaceListing[]) {
     if (!rawListing || typeof rawListing !== "object") continue;
     const id = cleanString(rawListing.id);
-    const title = cleanString(rawListing.title);
+    const title = sanitizePublicListingText(rawListing.title, 200);
     if (!id || !title) continue;
 
     const categoryName = categoryNames.get(cleanString(rawListing.categoryId)) || null;
@@ -108,7 +109,7 @@ export function buildPublicBusinessListingCards(args: {
     cards.push({
       id,
       title,
-      description: cleanString(rawListing.description),
+      description: sanitizePublicListingText(rawListing.description, 500),
       price:
         typeof rawListing.price === "number" || typeof rawListing.price === "string"
           ? String(rawListing.price)

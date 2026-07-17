@@ -1,4 +1,11 @@
-import { BriefcaseBusiness, MapPin, MessageSquare, PackageOpen, ShieldCheck } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  MapPin,
+  MessageSquare,
+  PackageOpen,
+  ShieldCheck,
+  ShoppingBag,
+} from "lucide-react";
 import { Link } from "wouter";
 import { ShareButton } from "@/components/ShareButton";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +21,7 @@ import {
   buildProfileServiceOfferPath,
   listProfileOfferImageUrls,
 } from "@shared/profileOfferShare";
+import type { PublicBusinessListingCard } from "@shared/publicBusinessListing";
 
 export type CanonicalProfileOfferItem = {
   id: string;
@@ -55,6 +63,7 @@ export type CanonicalCommunityPostItem = {
 export type CanonicalProfileItems = {
   offers?: CanonicalProfileOfferItem[];
   handmadeProducts?: CanonicalHandmadeProductItem[];
+  marketplaceListings?: PublicBusinessListingCard[];
   communityPosts?: CanonicalCommunityPostItem[];
 };
 
@@ -85,6 +94,9 @@ export function PublicProfileItems({
 }: PublicProfileItemsProps) {
   const offers = Array.isArray(items?.offers) ? items.offers : [];
   const handmadeProducts = Array.isArray(items?.handmadeProducts) ? items.handmadeProducts : [];
+  const marketplaceListings = Array.isArray(items?.marketplaceListings)
+    ? items.marketplaceListings
+    : [];
   const communityPosts = Array.isArray(items?.communityPosts) ? items.communityPosts : [];
   const visibleOffers = offers.filter((offer) =>
     offer.offerType === "service"
@@ -94,8 +106,10 @@ export function PublicProfileItems({
   const showOffers = visibleOffers.length > 0;
   const showProducts =
     profileSections?.marketplaceListings !== false && handmadeProducts.length > 0;
+  const showMarketplaceListings =
+    profileSections?.marketplaceListings !== false && marketplaceListings.length > 0;
   const showPosts = profileSections?.communityActivity !== false && communityPosts.length > 0;
-  if (!showOffers && !showProducts && !showPosts) return null;
+  if (!showOffers && !showProducts && !showMarketplaceListings && !showPosts) return null;
 
   return (
     <div className={`space-y-6 ${className}`.trim()} data-testid="canonical-profile-items">
@@ -160,6 +174,72 @@ export function PublicProfileItems({
                             ? `View ${offer.title} and continue through TradeScout's protected request flow`
                             : `View ${offer.title} on TradeScout Exchange`
                         }
+                        className="border-white/20 text-white"
+                      />
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {showMarketplaceListings ? (
+        <Card className="border-white/10 bg-tsCard">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <ShoppingBag className="h-5 w-5 text-ts-orange" />
+              Exchange listings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            {marketplaceListings.slice(0, 6).map((listing) => {
+              const location = [listing.county, listing.state].filter(Boolean).join(", ");
+              return (
+                <article
+                  key={listing.id}
+                  className="overflow-hidden rounded-xl border border-white/10 bg-black/20"
+                >
+                  {listing.imageUrl ? (
+                    <img
+                      src={listing.imageUrl}
+                      alt={listing.title}
+                      className="aspect-[16/9] w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <div className="space-y-3 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-white break-words">{listing.title}</h3>
+                        {listing.description ? (
+                          <p className="mt-1 line-clamp-2 text-sm text-white/70">
+                            {listing.description}
+                          </p>
+                        ) : null}
+                        {location ? (
+                          <p className="mt-2 flex items-center gap-1 text-xs text-white/60">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {location}
+                          </p>
+                        ) : null}
+                      </div>
+                      {listing.categoryName ? (
+                        <Badge variant="outline" className="shrink-0 border-white/20 text-white/80">
+                          {listing.categoryName}
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="font-semibold text-ts-orange">{formatMoney(listing.price)}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild size="sm" variant="outline">
+                        <Link href={listing.detailPath}>View</Link>
+                      </Button>
+                      <ShareButton
+                        destination={listing.detailPath}
+                        title={listing.title}
+                        text={`View ${listing.title} on TradeScout Exchange`}
                         className="border-white/20 text-white"
                       />
                     </div>

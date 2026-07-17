@@ -111,6 +111,7 @@ import { getMarketSignalsSnapshot } from "./services/marketSignalsSnapshotJob";
 import { getPartnerCountyObservationSnapshots } from "./services/partnerCountyObservationSnapshotService";
 import { getTradepartnerUserEntitlement } from "./services/tradepartnerAccessService";
 import { recordTrustLedgerEvent } from "./services/trustLedgerService";
+import { buildExposureAuthorityMap } from "./services/exposureAuthority";
 import { scoutcoinService } from "./services/scoutcoinService";
 import {
   buildPublicSolarPriceInsight,
@@ -1902,61 +1903,6 @@ export async function registerRoutes(app: any) {
     if (!value) return undefined;
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? undefined : d;
-  };
-
-  const buildExposureAuthorityMap = async (userIds: string[]): Promise<Record<string, boolean>> => {
-    const uniqueUserIds = Array.from(
-      new Set(
-        userIds.map((value) => String(value || "").trim()).filter((value) => value.length > 0)
-      )
-    );
-
-    const authorityByUserId: Record<string, boolean> = {};
-    if (!uniqueUserIds.length) {
-      return authorityByUserId;
-    }
-
-    for (const userId of uniqueUserIds) {
-      authorityByUserId[userId] = false;
-    }
-
-    const [users, verificationSummary] = await Promise.all([
-      storage.getUsersByIds(uniqueUserIds),
-      storage.getUserVerificationSummary(uniqueUserIds),
-    ]);
-
-    const userMap = new Map<string, any>();
-    for (const user of users || []) {
-      const userId = String((user as any)?.id || "").trim();
-      if (userId) {
-        userMap.set(userId, user as any);
-      }
-    }
-
-    for (const userId of uniqueUserIds) {
-      const user = userMap.get(userId);
-      if (!user) continue;
-
-      const summary = verificationSummary?.[userId] ?? {
-        hasLicense: false,
-        hasInsurance: false,
-        hasEin: false,
-      };
-
-      const verificationStatus = String((user as any)?.verificationStatus || "").toLowerCase();
-      const hasIdentityGate =
-        verificationStatus === "approved" || verificationStatus === "verified";
-      const hasBusinessGate =
-        summary.hasLicense === true || summary.hasInsurance === true || summary.hasEin === true;
-      const hasAddressGate = (user as any)?.addressVerified === true;
-      const hasEmailGate = (user as any)?.emailVerified === true;
-
-      authorityByUserId[userId] = Boolean(
-        hasEmailGate && (hasAddressGate || hasIdentityGate || hasBusinessGate)
-      );
-    }
-
-    return authorityByUserId;
   };
 
   const normalizeWhitespace = (value: unknown): string =>
