@@ -67,7 +67,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(routeSource).toContain("&offerHomeId=1&source=profile_express");
     expect(resetSource).toContain("const safeNext = useMemo");
     expect(resetSource).toContain("mode=signin&next=");
-    expect(panelSource).toContain("Attach this project to your HomeID");
+    expect(panelSource).toContain("add this project to your HomeID later");
   });
 });
 

@@ -66,9 +66,9 @@ describe("Public-profile Express Direct Connect contract", () => {
     expect(route).toContain("passwordResetService.createToken");
     expect(route).toContain("emailVerificationService.createToken");
     expect(route).toContain("existing_account_match_unverified");
-    expect(panel).toContain("Keep this connection");
-    expect(panel).toContain("Continue with Express signup");
-    expect(panel).toContain("manage this project");
-    expect(panel).toContain("My Requests");
+    expect(panel).toContain("Want to keep track of this?");
+    expect(panel).toContain("Save this connection");
+    expect(panel).toContain("Save and follow this request");
+    expect(panel).toContain("Save my request");
   });
 });

@@ -86,7 +86,7 @@ type PublicProfileItemsProps = {
 function formatMoney(value: unknown, currency = "USD"): string {
   const amount = Number(value);
   const safeCurrency = /^[A-Z]{3}$/.test(currency.toUpperCase()) ? currency.toUpperCase() : "USD";
-  if (!Number.isFinite(amount)) return "Price unavailable";
+  if (!Number.isFinite(amount)) return "Ask for price";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: safeCurrency,
@@ -180,7 +180,7 @@ export function PublicProfileItems({
                     <ShareButton
                       destination={promo.detailPath}
                       title={promo.title}
-                      text={`View ${promo.title} and continue through TradeScout Direct Connect`}
+                      text={`See ${promo.title} and ask the business about it`}
                       className="border-white/20 text-white"
                     />
                   </div>
@@ -249,7 +249,7 @@ export function PublicProfileItems({
                         title={offer.title}
                         text={
                           offer.offerType === "service"
-                            ? `View ${offer.title} and continue through TradeScout's protected request flow`
+                            ? `See ${offer.title} and send a private request`
                             : `View ${offer.title} on TradeScout Exchange`
                         }
                         className="border-white/20 text-white"
@@ -498,7 +498,7 @@ export function PublicProfileItems({
                       <p className="mt-2 text-xs text-white/50">
                         {post.createdAt
                           ? new Date(post.createdAt).toLocaleDateString()
-                          : "Date unavailable"}
+                          : "Recently"}
                         {post.category ? ` • ${post.category}` : ""}
                       </p>
                     </div>
@@ -524,8 +524,8 @@ export function PublicProfileItems({
       <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-tsCard/70 p-4 text-sm text-white/70">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-ts-orange" />
         <p>
-          Shared items are public to view. Contact, job routing, and transactions continue through
-          TradeScout&apos;s protected flows.
+          See something you like? Open it to learn more or send a request. Your contact details stay
+          private until you choose to connect.
         </p>
       </div>
     </div>

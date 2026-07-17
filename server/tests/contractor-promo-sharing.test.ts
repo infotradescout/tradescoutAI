@@ -89,7 +89,9 @@ describe("contractor promotion sharing", () => {
     });
     expect(meta?.canonical).toBe("https://www.thetradescout.com/promo/summer-roof-special");
     expect(meta?.imageUrl).toBe("https://www.thetradescout.com/objects/promo-roof.webp");
-    expect(meta?.description).toContain("protected through TradeScout Direct Connect");
+    expect(meta?.description).toContain(
+      "Your contact details stay private until you choose to connect."
+    );
   });
 
   it("wires the real page, profile cards, Trust/CVS gate, image upload, and migration", () => {

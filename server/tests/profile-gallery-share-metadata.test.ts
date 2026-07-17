@@ -76,14 +76,14 @@ describe("profile gallery item sharing metadata", () => {
         itemType: "gallery",
         itemTitle: "Blue Stone Patio",
         itemSlug: item.slug,
-        title: "Blue Stone Patio by River City Masonry",
+        title: "Blue Stone Patio | River City Masonry",
         imageUrl: "https://www.thetradescout.com/uploads/profiles/blue-stone-patio.jpg",
         imageAlt: "Finished blue stone patio",
         canonical: `https://www.thetradescout.com/u/river-city-masonry?gallery=${item.slug}`,
       })
     );
     expect(metadata?.description).toContain(
-      "Contact stays protected through TradeScout Direct Connect."
+      "Your contact details stay private until you choose to connect."
     );
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
     expect(buildProfileGalleryShareSearch(item.slug)).toBe(`?gallery=${item.slug}`);
@@ -115,7 +115,7 @@ describe("profile gallery item sharing metadata", () => {
 
     expect(metadata?.description.length).toBeLessThanOrEqual(160);
     expect(metadata?.description).toMatch(
-      /Contact stays protected through TradeScout Direct Connect\.$/
+      /Your contact details stay private until you choose to connect\.$/
     );
   });
 

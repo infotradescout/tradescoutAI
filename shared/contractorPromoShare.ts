@@ -267,7 +267,7 @@ export function createContractorPromoShareMetadata(args: {
   if (!slug || !detailPath || !title || !providerName) return null;
 
   try {
-    const protection = "Next steps stay protected through TradeScout Direct Connect.";
+    const protection = "Your contact details stay private until you choose to connect.";
     const description = sanitizePublicListingText(publicPromo.description, 500);
     const offerDetails = sanitizePublicListingText(publicPromo.offerDetails, 800);
     const discountLabel = sanitizePublicListingText(publicPromo.discountLabel, 80);
