@@ -11,6 +11,8 @@ interface SEOHelmetProps {
   ogImage?: string;
   structuredData?: Record<string, any>;
   noIndex?: boolean;
+  /** Keep a deliberately shareable query (for example ?stone=...) in canonical/OG URLs. */
+  preserveCanonicalQuery?: boolean;
 }
 
 export function SEOHelmet({
@@ -22,12 +24,18 @@ export function SEOHelmet({
   ogImage = "/tradescout-social-preview.png?v=11",
   structuredData,
   noIndex = false,
+  preserveCanonicalQuery = false,
 }: SEOHelmetProps) {
   const [location] = useLocation();
   const currentUrl = normalizePublicUrl(
-    stripUrlVariantsForCanonical(new URL(location, window.location.origin).toString())
+    stripUrlVariantsForCanonical(
+      new URL(location, window.location.origin).toString(),
+      preserveCanonicalQuery
+    )
   );
-  const finalCanonical = normalizePublicUrl(stripUrlVariantsForCanonical(canonical || currentUrl));
+  const finalCanonical = normalizePublicUrl(
+    stripUrlVariantsForCanonical(canonical || currentUrl, preserveCanonicalQuery)
+  );
   const ogImageUrl = resolveAssetUrl(ogImage, finalCanonical);
   const formattedTitle = formatTradeScoutTitle(title);
 
@@ -95,6 +103,7 @@ export function SEOHelmet({
     ogImageUrl,
     structuredData,
     noIndex,
+    preserveCanonicalQuery,
   ]);
 
   return null;
@@ -147,10 +156,10 @@ function normalizePublicUrl(url: string) {
   }
 }
 
-function stripUrlVariantsForCanonical(url: string) {
+function stripUrlVariantsForCanonical(url: string, preserveSearch = false) {
   try {
     const parsed = new URL(url);
-    parsed.search = "";
+    if (!preserveSearch) parsed.search = "";
     parsed.hash = "";
     return parsed.toString();
   } catch {

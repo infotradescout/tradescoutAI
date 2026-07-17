@@ -23,6 +23,10 @@ import ExpressDirectConnectPanel, {
   type ExpressDirectConnectRequestType,
 } from "./ExpressDirectConnectPanel";
 import { ShareButton } from "@/components/ShareButton";
+import {
+  buildProfileInventoryShareSearch,
+  resolveProfileInventoryItem,
+} from "@shared/profileItemShare";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -109,6 +113,7 @@ type WholesalerProfileThemeProps = {
   isSuperAdminViewer: boolean;
   useExpressDirectConnect: boolean;
   allowExpressCall: boolean;
+  profileShareDestination: string;
   directConnectHref: string;
   preScoutCreateHref: string;
   preScoutSignInHref: string;
@@ -288,6 +293,7 @@ export default function WholesalerProfileTheme({
   hasViewerSession,
   useExpressDirectConnect,
   allowExpressCall,
+  profileShareDestination,
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
@@ -400,10 +406,17 @@ export default function WholesalerProfileTheme({
   // Opens a shared inventory-item link directly to that stone's lightbox
   // instead of just the profile root -- see ShareButton in the lightbox below.
   useEffect(() => {
-    const stoneSlug = new URLSearchParams(window.location.search).get("stone");
-    if (!stoneSlug) return;
-    const match = allInventoryStones.find((stone) => stone.slug === stoneSlug);
-    if (match) setOpenStone(match);
+    const params = new URLSearchParams(window.location.search);
+    const sharedItem = resolveProfileInventoryItem(
+      inventoryCatalog,
+      params.get("stone"),
+      params.get("photo")
+    );
+    if (!sharedItem) return;
+    const match = allInventoryStones.find((stone) => stone.slug === sharedItem.slug);
+    if (!match) return;
+    setOpenStone(match);
+    setOpenImageIndex(sharedItem.imageIndex);
   }, []);
   const jwStonePicks = [...JW_STONE_PICK_SLUGS]
     .map((slug) => allInventoryStones.find((stone) => stone.slug === slug))
@@ -686,7 +699,7 @@ export default function WholesalerProfileTheme({
               </div>
               <div className="flex items-center justify-self-end gap-2">
                 <ShareButton
-                  destination={`/u/${profileSlug}`}
+                  destination={profileShareDestination}
                   title={displayName}
                   text={`Check out ${displayName} on TradeScout`}
                   size="icon"
@@ -1288,7 +1301,10 @@ export default function WholesalerProfileTheme({
               </div>
               <div className="flex items-center gap-2">
                 <ShareButton
-                  destination={`/u/${profileSlug}?stone=${encodeURIComponent(openStone.slug)}`}
+                  destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
+                    openStone.slug,
+                    openImageIndex
+                  )}`}
                   title={openStone.name}
                   text={`${openStone.name} at JW Stone`}
                   size="icon"

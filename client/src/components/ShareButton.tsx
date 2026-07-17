@@ -53,13 +53,14 @@ export function ShareButton({
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
+  const accessibleLabel = label?.trim() || `Share ${title?.trim() || "link"}`;
 
   const handleShare = async () => {
     if (isSharing) return;
     setIsSharing(true);
     try {
       const origin = window.location.origin;
-      let shareUrl = `${origin}${destination}`;
+      let shareUrl = new URL(destination, `${origin}/`).toString();
 
       if (isAuthenticated && user?.id) {
         const slug = `s-${shortHash(`${user.id}:${destination}`)}`;
@@ -99,6 +100,8 @@ export function ShareButton({
       className={className}
       onClick={handleShare}
       disabled={isSharing}
+      aria-label={accessibleLabel}
+      title={accessibleLabel}
     >
       <Share2 className="h-4 w-4" />
       {label ? <span className="ml-1.5">{label}</span> : null}

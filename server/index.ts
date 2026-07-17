@@ -303,6 +303,12 @@ const CUSTOM_DOMAIN_CACHE = new Map<
 >();
 const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+function requestSearchSuffix(req: Request): string {
+  const requestUrl = String(req.originalUrl || req.url || "");
+  const queryIndex = requestUrl.indexOf("?");
+  return queryIndex >= 0 ? requestUrl.slice(queryIndex) : "";
+}
+
 // A verified profile custom domain (e.g. jwstonelogistics.com) should show
 // its own URL in the address bar, not redirect through /u/:slug -- so this
 // renders the same server-side HTML that route serves, in place, on the
@@ -317,7 +323,13 @@ async function renderProfileOnCustomDomain(
   const templateHtml = getCachedTemplate(indexPath);
   if (!templateHtml) return false;
   const origin = resolvePublicOrigin(req);
-  const html = await buildPublicProfileHtml({ slug, origin, templateHtml });
+  const html = await buildPublicProfileHtml({
+    slug,
+    origin,
+    templateHtml,
+    itemSlug: req.query.stone,
+    itemPhoto: req.query.photo,
+  });
   if (!html) return false;
 
   // This runs in a middleware registered ahead of the app's usual CORS,
@@ -1189,15 +1201,24 @@ app.use(landingContractHeaders);
                   const profileRecord = await storage.getProfileBySlugPublic(slug);
                   const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
                   if (customDomain) {
-                    return res.redirect(301, `https://${customDomain}/`);
+                    return res.redirect(301, `https://${customDomain}/${requestSearchSuffix(req)}`);
                   }
 
                   // Keep /p/:slug as legacy path but canonicalize to /u/:slug.
                   if (req.path.startsWith("/p/")) {
-                    return res.redirect(301, `${origin}/u/${encodeURIComponent(slug)}`);
+                    return res.redirect(
+                      301,
+                      `${origin}/u/${encodeURIComponent(slug)}${requestSearchSuffix(req)}`
+                    );
                   }
 
-                  const html = await buildPublicProfileHtml({ slug, origin, templateHtml });
+                  const html = await buildPublicProfileHtml({
+                    slug,
+                    origin,
+                    templateHtml,
+                    itemSlug: req.query.stone,
+                    itemPhoto: req.query.photo,
+                  });
 
                   if (!html) {
                     return res.status(404).send("Profile not found");
