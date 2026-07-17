@@ -6,6 +6,8 @@
  * Once published, they become the canonical source of truth for public display.
  */
 
+import type { PublicBusinessListingCard } from "./publicBusinessListing";
+
 export interface BusinessProfileSeoMeta {
   title?: string | null;
   description?: string | null;
@@ -102,6 +104,8 @@ export interface BusinessProfile {
   profileSections?: BusinessProfileSections | null;
   theme?: BusinessProfileTheme | null;
   bookingConfig?: BusinessProfileBookingConfig | null;
+  /** Public-safe, active Exchange items shown on the business profile. */
+  marketplaceListings?: PublicBusinessListingCard[];
   visibility?: "public" | "private";
   customDomain?: string | null;
   customDomainVerification?: {

@@ -13,6 +13,10 @@ import { affiliateAccounts, profiles, users } from "../../shared/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { resolveTxt } from "dns/promises";
+import {
+  buildPublicBusinessListingCards,
+  type PublicBusinessListingCard,
+} from "../../shared/publicBusinessListing";
 import type {
   PublishProfilePayload,
   UpdateProfilePayload,
@@ -352,6 +356,29 @@ export function registerBusinessProfileRoutes(app: Express) {
         return res.status(404).json({ message: "Profile not found" });
       }
 
+      // Resolve the owner's active Exchange catalog without exposing the
+      // private owner/account ID to the browser. Listing detail pages retain
+      // their existing approval, trust, and protected-contact behavior.
+      let marketplaceListings: PublicBusinessListingCard[] = [];
+      try {
+        const [ownerListings, marketplaceCategories] = await Promise.all([
+          storage.getMarketplaceListings({
+            sellerId: profile.userId,
+            status: "active",
+            sortBy: "date_desc",
+            limit: 6,
+            offset: 0,
+          }),
+          storage.getMarketplaceCategories(),
+        ]);
+        marketplaceListings = buildPublicBusinessListingCards({
+          listings: ownerListings,
+          categories: marketplaceCategories,
+        });
+      } catch (listingError) {
+        console.error("Error loading public business profile listings:", listingError);
+      }
+
       // Public-safe view: do not expose internal userId or direct-contact vectors.
       // All contact must remain intent-gated through Scout.
       res.json({
@@ -372,6 +399,7 @@ export function registerBusinessProfileRoutes(app: Express) {
         profileSections: profile.profileSections || buildDefaultSections(),
         theme: profile.theme || buildDefaultTheme(),
         bookingConfig: sanitizePublicBookingConfig(profile.bookingConfig),
+        marketplaceListings,
         visibility: profile.visibility,
         verificationStatus: profile.verificationStatus || null,
         addressVerified: profile.addressVerified ?? false,

@@ -19,6 +19,9 @@ describe("business profile public contracts", () => {
     expect(source).toContain("profileSections");
     expect(source).toContain("contentBlocks");
     expect(source).toContain("bookingConfig");
+    expect(source).toContain("buildPublicBusinessListingCards");
+    expect(source).toContain("sellerId: profile.userId");
+    expect(source).toContain("marketplaceListings");
   });
 
   it("business public page renders typed content blocks and CTA labels", () => {
@@ -36,6 +39,10 @@ describe("business profile public contracts", () => {
     expect(source).toContain('claimParams.set("businessId"');
     expect(source).toContain("bp-direct-connect-flow");
     expect(source).toContain("showListingsSection");
+    expect(source).toContain("profile.marketplaceListings");
+    expect(source).toContain("listing.detailPath");
+    expect(source).toContain("<ShareButton");
+    expect(source).not.toContain("sellerId: String(data.userId)");
   });
 
   it("business claim flow resolves profile context and starts from Google Maps", () => {
