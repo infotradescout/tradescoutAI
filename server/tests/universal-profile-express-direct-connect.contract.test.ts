@@ -25,9 +25,8 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(panelSource).toContain(
       'export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service"'
     );
-    expect(panelSource).toContain('choiceLabel: "Request stone or material"');
-    expect(panelSource).toContain('choiceLabel: "Request auto glass service"');
-    expect(panelSource).toContain('choiceLabel: "Send a request"');
+    expect(panelSource.match(/choiceLabel: "Make A Request"/g)?.length || 0).toBe(3);
+    expect(panelSource).toContain("Direct Connect");
     expect(routeSource).toContain('"request_service"');
     expect(routeSource).toContain('"request_quote"');
     expect(routeSource).toContain('"schedule_service"');
@@ -38,6 +37,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(profileSource).toContain('requestMode="service"');
     expect(profileSource).toContain("onDirectConnect={() => setExpressPanelOpen(true)}");
     expect(jrSource).toContain("onClick={onDirectConnect}");
+    expect(jrSource.match(/Make A Request/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(jrSource).not.toContain("preScoutCreateHref");
     expect(jrSource).not.toContain("requestHref");
   });

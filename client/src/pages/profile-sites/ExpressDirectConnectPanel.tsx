@@ -48,7 +48,7 @@ const REQUEST_MODE_CONFIG: Record<
   }
 > = {
   materials: {
-    choiceLabel: "Request stone or material",
+    choiceLabel: "Make A Request",
     heading: "What are you looking for?",
     placeholder: "Tell them the material, quantity, project, timing, or stone you have in mind.",
     defaultType: "match_project",
@@ -61,7 +61,7 @@ const REQUEST_MODE_CONFIG: Record<
     ],
   },
   auto_glass: {
-    choiceLabel: "Request auto glass service",
+    choiceLabel: "Make A Request",
     heading: "What does the vehicle need?",
     placeholder:
       "Include the vehicle year, make, model, damaged glass, location, and preferred timing.",
@@ -75,7 +75,7 @@ const REQUEST_MODE_CONFIG: Record<
     ],
   },
   service: {
-    choiceLabel: "Send a request",
+    choiceLabel: "Make A Request",
     heading: "What do you need?",
     placeholder: "Describe the job, location, timing, and the outcome you need.",
     defaultType: "request_service",
@@ -287,7 +287,7 @@ export default function ExpressDirectConnectPanel({
             ) : null}
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-ts-orange-dark">
-                Private request
+                Direct Connect
               </p>
               <h2 id="express-direct-connect-title" className="text-xl font-bold text-neutral-900">
                 {businessName}
@@ -321,8 +321,8 @@ export default function ExpressDirectConnectPanel({
                     <Phone className="h-6 w-6" />
                   )}
                   <span>
-                    <strong className="block text-lg">Call {businessName}</strong>
-                    <span className="text-sm text-white/80">Open the number on your phone</span>
+                    <strong className="block text-lg">Direct Connect</strong>
+                    <span className="text-sm text-white/80">Call through TradeScout</span>
                   </span>
                 </button>
                 <button
@@ -449,7 +449,7 @@ export default function ExpressDirectConnectPanel({
                 ) : (
                   <MessageCircle className="h-5 w-5" />
                 )}
-                Send request
+                Make A Request
               </button>
             </form>
           ) : null}

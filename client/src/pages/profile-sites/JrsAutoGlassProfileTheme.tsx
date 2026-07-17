@@ -47,6 +47,7 @@ type RecommendationEntry = {
 type Props = {
   onDirectConnect: () => void;
   hasViewerSession: boolean;
+  tradeScoutReturnHref: string;
   profileShareDestination: string;
   galleryItems?: ResolvedProfileGalleryItem[];
   sharedGallerySlug?: string | null;
@@ -60,13 +61,13 @@ const defaultRecentWork = listProfileGalleryItems(JRS_AUTO_GLASS_GALLERY_BLOCKS)
 export default function JrsAutoGlassProfileTheme({
   onDirectConnect,
   hasViewerSession,
+  tradeScoutReturnHref,
   profileShareDestination,
   galleryItems = [],
   sharedGallerySlug = null,
   recommendationsDirectory = [],
   profileItems,
 }: Props) {
-  const exitHref = hasViewerSession ? "/direct-connect" : "/";
   const publicRecommendations = recommendationsDirectory.filter(
     (entry) => entry.recommendationType === "positive"
   );
@@ -75,9 +76,9 @@ export default function JrsAutoGlassProfileTheme({
   return (
     <main className="bg-black text-zinc-100">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/95 backdrop-blur-xl">
-        <div className="mx-auto grid h-14 max-w-3xl grid-cols-[44px_1fr_44px] items-center px-2 sm:h-16 sm:grid-cols-[120px_1fr_120px] sm:px-4">
-          <Link
-            href={exitHref}
+        <div className="mx-auto grid h-16 max-w-3xl grid-cols-[44px_1fr_44px] items-center px-2 sm:h-20 sm:grid-cols-[150px_1fr_150px] sm:px-4">
+          <a
+            href={tradeScoutReturnHref}
             aria-label={
               hasViewerSession
                 ? "Close JR's Auto Glass and return to Direct Connect"
@@ -86,31 +87,24 @@ export default function JrsAutoGlassProfileTheme({
             className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white"
           >
             <X className="h-5 w-5" />
-          </Link>
+          </a>
 
-          <div
-            className="flex min-w-0 items-center justify-center gap-2"
-            aria-label="JR's Auto Glass"
-          >
+          <div className="flex min-w-0 items-center justify-center" aria-label="JR's Auto Glass">
             <img
               src={`${assetRoot}/logo.webp`}
-              alt=""
-              aria-hidden="true"
-              className="h-7 w-16 flex-none object-contain sm:h-8 sm:w-20"
+              alt="JR's Auto Glass"
+              className="h-10 w-[120px] flex-none object-contain sm:h-14 sm:w-[180px]"
             />
-            <span className="truncate text-[11px] font-black uppercase tracking-[0.08em] text-white sm:text-xs">
-              JR&apos;s Auto Glass
-            </span>
           </div>
 
           <button
             type="button"
             onClick={onDirectConnect}
-            aria-label="Request service from JR's Auto Glass"
+            aria-label="Make A Request with JR's Auto Glass"
             className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full bg-ts-orange text-white transition-colors hover:bg-ts-orange-dark sm:w-auto sm:gap-2 sm:px-4"
           >
             <MessageCircle className="h-4 w-4" />
-            <span className="hidden text-xs font-black sm:inline">Request service</span>
+            <span className="hidden text-xs font-black sm:inline">Make A Request</span>
           </button>
         </div>
       </header>
@@ -148,7 +142,7 @@ export default function JrsAutoGlassProfileTheme({
             onClick={onDirectConnect}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
           >
-            Request auto glass service
+            Make A Request
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-2 text-center text-[11px] font-medium text-zinc-500">
@@ -321,7 +315,7 @@ export default function JrsAutoGlassProfileTheme({
             onClick={onDirectConnect}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
           >
-            Send job details
+            Make A Request
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-3 text-center text-xs leading-5 text-zinc-500">

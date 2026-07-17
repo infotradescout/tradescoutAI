@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { ShareButton } from "@/components/ShareButton";
+import { PublicProfileProductCard } from "@/components/profile/PublicProfileProductCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,13 +107,15 @@ export function PublicProfileItems({
   const homeScoutListings = Array.isArray(items?.homeScoutListings) ? items.homeScoutListings : [];
   const contractorPromos = Array.isArray(items?.contractorPromos) ? items.contractorPromos : [];
   const communityPosts = Array.isArray(items?.communityPosts) ? items.communityPosts : [];
-  const visibleOffers = offers.filter((offer) =>
-    offer.offerType === "service"
-      ? profileSections?.services !== false
-      : profileSections?.marketplaceListings !== false
+  const serviceOffers = offers.filter(
+    (offer) => offer.offerType === "service" && profileSections?.services !== false
   );
-  const showOffers = visibleOffers.length > 0;
-  const showProducts =
+  const productOffers = offers.filter(
+    (offer) => offer.offerType === "item" && profileSections?.marketplaceListings !== false
+  );
+  const showServiceOffers = serviceOffers.length > 0;
+  const showProfileProducts = productOffers.length > 0;
+  const showHandmadeProducts =
     profileSections?.marketplaceListings !== false && handmadeProducts.length > 0;
   const showMarketplaceListings =
     profileSections?.marketplaceListings !== false && marketplaceListings.length > 0;
@@ -121,8 +124,9 @@ export function PublicProfileItems({
   const showContractorPromos = profileSections?.services !== false && contractorPromos.length > 0;
   const showPosts = profileSections?.communityActivity !== false && communityPosts.length > 0;
   if (
-    !showOffers &&
-    !showProducts &&
+    !showServiceOffers &&
+    !showProfileProducts &&
+    !showHandmadeProducts &&
     !showMarketplaceListings &&
     !showHomeScoutListings &&
     !showContractorPromos &&
@@ -191,23 +195,17 @@ export function PublicProfileItems({
         </Card>
       ) : null}
 
-      {showOffers ? (
+      {showServiceOffers ? (
         <Card className="border-white/10 bg-tsCard">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <BriefcaseBusiness className="h-5 w-5 text-ts-orange" />
-              Offers &amp; services
+              Services
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
-            {visibleOffers.slice(0, 8).map((offer) => {
-              const destination =
-                offer.offerType === "service"
-                  ? buildProfileServiceOfferPath(offer.id)
-                  : buildProfileOfferExchangePath(
-                      offer.id,
-                      offer.metadata?.exchangeCategorySlug || offer.metadata?.itemCategory
-                    );
+            {serviceOffers.slice(0, 8).map((offer) => {
+              const destination = buildProfileServiceOfferPath(offer.id);
               if (!destination) return null;
               const image = listProfileOfferImageUrls(offer.metadata)[0];
               return (
@@ -234,7 +232,7 @@ export function PublicProfileItems({
                         ) : null}
                       </div>
                       <Badge variant="outline" className="shrink-0 border-white/20 text-white/80">
-                        {offer.offerType === "service" ? "Service" : "Item"}
+                        Service
                       </Badge>
                     </div>
                     <p className="font-semibold text-ts-orange">
@@ -242,21 +240,58 @@ export function PublicProfileItems({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button asChild size="sm" variant="outline">
-                        <Link href={destination}>View</Link>
+                        <Link href={destination}>View service</Link>
                       </Button>
                       <ShareButton
                         destination={destination}
                         title={offer.title}
-                        text={
-                          offer.offerType === "service"
-                            ? `See ${offer.title} and send a private request`
-                            : `View ${offer.title} on TradeScout Exchange`
-                        }
+                        text={`See ${offer.title} and make a private request`}
                         className="border-white/20 text-white"
                       />
                     </div>
                   </div>
                 </article>
+              );
+            })}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {showProfileProducts ? (
+        <Card className="border-white/10 bg-tsCard">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <PackageOpen className="h-5 w-5 text-ts-orange" />
+              Products &amp; inventory
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-5 md:grid-cols-2">
+            {productOffers.slice(0, 8).map((offer) => {
+              const destination = buildProfileOfferExchangePath(
+                offer.id,
+                offer.metadata?.exchangeCategorySlug || offer.metadata?.itemCategory
+              );
+              if (!destination) return null;
+              const image = listProfileOfferImageUrls(offer.metadata)[0];
+              const hasStockCount =
+                offer.itemStockQuantity !== null &&
+                offer.itemStockQuantity !== undefined &&
+                Number.isFinite(Number(offer.itemStockQuantity));
+              const stock = hasStockCount ? Number(offer.itemStockQuantity) : null;
+              const availability =
+                stock === null ? null : stock > 0 ? `${stock} available` : "Currently unavailable";
+              return (
+                <PublicProfileProductCard
+                  key={offer.id}
+                  title={offer.title}
+                  description={offer.description}
+                  destination={destination}
+                  imageUrl={image}
+                  price={formatMoney(offer.price, offer.currency)}
+                  eyebrow={offer.metadata?.itemCategory || "Inventory"}
+                  availability={availability}
+                  shareText={`View ${offer.title} on TradeScout Exchange`}
+                />
               );
             })}
           </CardContent>
@@ -340,68 +375,32 @@ export function PublicProfileItems({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <ShoppingBag className="h-5 w-5 text-ts-orange" />
-              Exchange listings
+              Exchange inventory
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
+          <CardContent className="grid gap-5 md:grid-cols-2">
             {marketplaceListings.slice(0, 6).map((listing) => {
               const location = [listing.county, listing.state].filter(Boolean).join(", ");
               return (
-                <article
+                <PublicProfileProductCard
                   key={listing.id}
-                  className="overflow-hidden rounded-xl border border-white/10 bg-black/20"
-                >
-                  {listing.imageUrl ? (
-                    <img
-                      src={listing.imageUrl}
-                      alt={listing.title}
-                      className="aspect-[16/9] w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : null}
-                  <div className="space-y-3 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-white break-words">{listing.title}</h3>
-                        {listing.description ? (
-                          <p className="mt-1 line-clamp-2 text-sm text-white/70">
-                            {listing.description}
-                          </p>
-                        ) : null}
-                        {location ? (
-                          <p className="mt-2 flex items-center gap-1 text-xs text-white/60">
-                            <MapPin className="h-3.5 w-3.5" />
-                            {location}
-                          </p>
-                        ) : null}
-                      </div>
-                      {listing.categoryName ? (
-                        <Badge variant="outline" className="shrink-0 border-white/20 text-white/80">
-                          {listing.categoryName}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <p className="font-semibold text-ts-orange">{formatMoney(listing.price)}</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={listing.detailPath}>View</Link>
-                      </Button>
-                      <ShareButton
-                        destination={listing.detailPath}
-                        title={listing.title}
-                        text={`View ${listing.title} on TradeScout Exchange`}
-                        className="border-white/20 text-white"
-                      />
-                    </div>
-                  </div>
-                </article>
+                  title={listing.title}
+                  description={listing.description}
+                  destination={listing.detailPath}
+                  imageUrl={listing.imageUrl}
+                  price={formatMoney(listing.price)}
+                  eyebrow={listing.categoryName || "Exchange"}
+                  location={location}
+                  shareText={`View ${listing.title} on TradeScout Exchange`}
+                  actionLabel="View listing"
+                />
               );
             })}
           </CardContent>
         </Card>
       ) : null}
 
-      {showProducts ? (
+      {showHandmadeProducts ? (
         <Card className="border-white/10 bg-tsCard">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
@@ -409,7 +408,7 @@ export function PublicProfileItems({
               Handmade products
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
+          <CardContent className="grid gap-5 md:grid-cols-2">
             {handmadeProducts.slice(0, 8).map((product) => {
               const destination = buildHandmadeProductPath(product.id);
               if (!destination) return null;
@@ -419,44 +418,17 @@ export function PublicProfileItems({
               })[0];
               const location = [product.city, product.stateCode].filter(Boolean).join(", ");
               return (
-                <article
+                <PublicProfileProductCard
                   key={product.id}
-                  className="overflow-hidden rounded-xl border border-white/10 bg-black/20"
-                >
-                  {image ? (
-                    <img
-                      src={image}
-                      alt={product.title}
-                      className="aspect-[16/9] w-full object-cover"
-                      loading="lazy"
-                    />
-                  ) : null}
-                  <div className="space-y-3 p-4">
-                    <div>
-                      <h3 className="font-semibold text-white break-words">{product.title}</h3>
-                      {location ? (
-                        <p className="mt-1 flex items-center gap-1 text-xs text-white/60">
-                          <MapPin className="h-3.5 w-3.5" />
-                          {location}
-                        </p>
-                      ) : null}
-                    </div>
-                    <p className="font-semibold text-ts-orange">
-                      {formatMoney(product.price, product.currency || "USD")}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button asChild size="sm" variant="outline">
-                        <Link href={destination}>View</Link>
-                      </Button>
-                      <ShareButton
-                        destination={destination}
-                        title={product.title}
-                        text={`View ${product.title} on TradeScout Handmade`}
-                        className="border-white/20 text-white"
-                      />
-                    </div>
-                  </div>
-                </article>
+                  title={product.title}
+                  destination={destination}
+                  imageUrl={image}
+                  price={formatMoney(product.price, product.currency || "USD")}
+                  eyebrow="Handmade"
+                  location={location}
+                  shareText={`View ${product.title} on TradeScout Handmade`}
+                  actionLabel="View product"
+                />
               );
             })}
           </CardContent>

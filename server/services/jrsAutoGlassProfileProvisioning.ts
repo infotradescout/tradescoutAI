@@ -180,7 +180,7 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
         imageUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/cover.webp",
         imageWidth: 1122,
         imageHeight: 270,
-        faviconUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/logo.svg",
+        faviconUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/logo.webp",
       },
       status: "published" as const,
       updatedAt: new Date(),

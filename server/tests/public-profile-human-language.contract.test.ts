@@ -52,7 +52,8 @@ describe("public profile human-language contract", () => {
     expect(autoGlassTheme).toContain("Customer recommendations");
     expect(autoGlassTheme).toContain("Ready when you are");
     expect(autoGlassTheme).not.toContain("TradeScout Business CV");
-    expect(requestPanel).toContain("Private request");
+    expect(requestPanel).toContain("Direct Connect");
+    expect(requestPanel).toContain("Make A Request");
     expect(requestPanel).toContain("No account needed to send");
     expect(requestPanel).toContain("Your details are still here");
     expect(requestPanel).not.toContain("Signup comes after send");
