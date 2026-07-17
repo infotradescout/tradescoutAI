@@ -6,7 +6,7 @@ import {
 } from "@shared/profileItemShare";
 import { resolveProfileItemShareMetadata } from "../profileItemShareMetadata";
 
-const sampleCategories = [
+const inventoryCategoriesFixture = [
   {
     category: "Quartzite",
     categorySlug: "quartzite",
@@ -36,7 +36,7 @@ describe("profile inventory item sharing", () => {
       profileName: "Example Supply",
       profileUrl: "https://example.com/",
       assetOrigin: "https://example.com/",
-      categories: sampleCategories,
+      categories: inventoryCategoriesFixture,
       itemSlug: "sample-stone",
       // The unsafe middle entry is discarded, so photo 2 selects sample-two.
       photo: "2",
