@@ -108,6 +108,7 @@ type WholesalerProfileThemeProps = {
   hasViewerSession: boolean;
   isSuperAdminViewer: boolean;
   useExpressDirectConnect: boolean;
+  allowExpressCall: boolean;
   directConnectHref: string;
   preScoutCreateHref: string;
   preScoutSignInHref: string;
@@ -286,6 +287,7 @@ export default function WholesalerProfileTheme({
   brandColors,
   hasViewerSession,
   useExpressDirectConnect,
+  allowExpressCall,
   directConnectHref,
   preScoutCreateHref,
   preScoutSignInHref,
@@ -643,7 +645,7 @@ export default function WholesalerProfileTheme({
   return (
     <div
       className={`jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900 ${
-        isJwStone ? "pt-[96px] md:pt-[112px]" : ""
+        isJwStone ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""
       }`}
       // eslint-disable-next-line no-restricted-syntax -- sets CSS custom properties for per-business dynamic brand colors, not literal color values
       style={themeVars}
@@ -739,7 +741,7 @@ export default function WholesalerProfileTheme({
         <nav
           className={`scrollbar-hide items-center overflow-x-auto uppercase tracking-wide text-[#241d0f] [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
             isJwStone
-              ? "flex h-10 gap-4 px-3 pb-2 text-[11px] font-bold md:gap-5 md:px-8 md:text-xs"
+              ? "hidden h-10 gap-4 px-3 pb-2 text-[11px] font-bold sm:flex md:gap-5 md:px-8 md:text-xs"
               : "hidden gap-5 px-5 pb-2 text-xs font-semibold md:flex md:px-8"
           }`}
         >
@@ -1764,6 +1766,7 @@ export default function WholesalerProfileTheme({
         profileSlug={profileSlug}
         businessName={displayName}
         hasViewerSession={hasViewerSession}
+        allowCall={allowExpressCall}
         requestMode="materials"
         initialStoneName={expressStoneName}
         initialRequestType={expressRequestType}

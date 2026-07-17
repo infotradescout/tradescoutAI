@@ -8,14 +8,22 @@ const read = (relativePath: string) =>
 describe("JR's Auto Glass public profile contract", () => {
   it("provisions the confirmed owner, business, and published profile at production boot", () => {
     const provisioning = read("server/services/jrsAutoGlassProfileProvisioning.ts");
+    const authority = read("server/services/ownerConfirmedDirectProfile.ts");
     const entry = read("server/index.ts");
 
-    expect(provisioning).toContain('const JRS_PROFILE_SLUG = "jrs-auto-glass"');
+    expect(authority).toContain('export const JRS_PROFILE_SLUG = "jrs-auto-glass"');
+    expect(authority).toContain('OWNER_CONFIRMED_PROFILE_SOURCE = "owner_confirmed_profile"');
     expect(provisioning).toContain('displayName: "JR\'s Auto Glass"');
     expect(provisioning).toContain('status: "published"');
     expect(provisioning).toContain('profileVisibility: "public"');
     expect(provisioning).toContain("activeBusinessId: business.id");
     expect(provisioning).toContain("activeProfileId: profile.id");
+    expect(provisioning).toContain("...existingProfileData");
+    expect(provisioning).toContain(
+      "notificationEmail: existingNotificationEmail || normalizedEmail"
+    );
+    expect(provisioning).toContain("/images/businesses/jrs-auto-glass/cover.webp");
+    expect(provisioning).toContain("/images/businesses/jrs-auto-glass/logo.svg");
     expect(entry).toContain("await provisionJrsAutoGlassProfile()");
   });
 
@@ -31,6 +39,16 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("cover.webp");
     expect(theme).toContain("before.webp");
     expect(theme).toContain("after.webp");
+    expect(
+      fs.existsSync(
+        path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/cover.webp")
+      )
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/logo.svg")
+      )
+    ).toBe(true);
     expect(theme).toContain("Request auto glass service");
     expect(theme).toContain("Direct Connect with JR&apos;s");
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
@@ -69,6 +87,8 @@ describe("JR's Auto Glass public profile contract", () => {
 
   it("routes a profile CTA to its owner through a private Direct Connect assignment", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const publicRoute = read("server/routes/profiles.ts");
+    const expressRoute = read("server/routes/tradepartner-express.ts");
     const composer = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
     const route = read("server/routes/direct-connect.ts");
 
@@ -89,5 +109,10 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(route).toContain("responderUserId: targetProfileOwnerUserId");
     expect(route).toContain('routingMode: "profile_direct_connect"');
     expect(route).toContain('source: "profile_direct_connect"');
+    expect(publicRoute).toContain("isOwnerConfirmedDirectProfile({");
+    expect(expressRoute).toContain("isOwnerConfirmedDirectProfile({");
+    expect(expressRoute).toContain("(!ownerDiscoverable && !ownerConfirmedDirectProfile)");
+    expect(publicRoute).toContain("expressContactCapabilities");
+    expect(profileView).toContain("allowCall={canExpressCall}");
   });
 });

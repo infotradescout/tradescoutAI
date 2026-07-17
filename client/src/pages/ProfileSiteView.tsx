@@ -95,6 +95,10 @@ type PublicBusinessSubset = {
     surface?: string;
   };
   directConnectOwnerUserId?: string;
+  expressContactCapabilities?: {
+    call?: boolean;
+    request?: boolean;
+  };
 } | null;
 
 type PublicProfileResponse = {
@@ -279,6 +283,7 @@ export default function ProfileSiteView() {
   // TradePartner business profile is an express connection to that exact
   // business. The /direct-connect portal retains the full discovery path.
   const useExpressDirectConnect = true;
+  const canExpressCall = business?.expressContactCapabilities?.call === true;
   // TradePartners expose a directConnectOwnerUserId so their CTA opens Direct
   // Connect targeted straight at their own account (via the target/targetName
   // prefill params DirectConnectShell already reads), instead of the
@@ -410,6 +415,7 @@ export default function ProfileSiteView() {
           profileSlug={profile.slug}
           businessName={displayName}
           hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
           requestMode="auto_glass"
         />
       </>
@@ -439,6 +445,7 @@ export default function ProfileSiteView() {
           hasViewerSession={hasViewerSession}
           isSuperAdminViewer={isSuperAdminViewer}
           useExpressDirectConnect={useExpressDirectConnect}
+          allowExpressCall={canExpressCall}
           directConnectHref={directConnectHref}
           preScoutCreateHref={preScoutCreateHref}
           preScoutSignInHref={preScoutSignInHref}
@@ -753,7 +760,9 @@ export default function ProfileSiteView() {
                     <p className="text-white/60">
                       {isSuperAdminViewer
                         ? "Super Admin oversight is active. Send the request directly to this business."
-                        : "Send or call first. TradeScout offers signup after the action so the request can be managed in My Requests."}
+                        : canExpressCall
+                          ? "Send or call first. TradeScout offers signup after the action so the request can be managed in My Requests."
+                          : "Send first. TradeScout offers signup after the action so the request can be managed in My Requests."}
                     </p>
                   </div>
                   <div className="flex flex-col gap-3">
@@ -785,6 +794,7 @@ export default function ProfileSiteView() {
         profileSlug={profile.slug}
         businessName={displayName}
         hasViewerSession={hasViewerSession}
+        allowCall={canExpressCall}
         requestMode="service"
       />
     </Page>

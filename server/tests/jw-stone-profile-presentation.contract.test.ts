@@ -12,29 +12,28 @@ const expressSource = fs.readFileSync(
 );
 
 describe("JW Stone profile presentation contract", () => {
-  it("uses Amazonic Green as the centered ten-percent-cropped hero", () => {
+  it("uses the branded video hero with Amazonic Green context and a centered final crop", () => {
     expect(source).toContain('stone.slug === "amazonic-green"');
     expect(source).toContain("Amazonic Green · current inventory");
-    expect(source).toContain('className="absolute inset-0 h-full w-full scale-[1.25]');
+    expect(source).toContain("/images/businesses/jw-stone/video/hero.mp4");
+    expect(source).toContain("/images/businesses/jw-stone/video/hero-poster.jpg");
+    expect(source).toContain('heroVideoZoomed ? "scale-105 md:scale-[1.25]" : "scale-100"');
     expect(source).toContain("a 10% crop on every side");
   });
 
   it("makes the full catalog the primary JW Stone action", () => {
     expect(source).toContain("const openFullInventory = () =>");
     expect(source).toContain("Browse full inventory");
-    expect(source).toContain('stone.slug === "blue-goias"');
-    expect(source).toContain("Blue Goias · current inventory");
-    expect(source).toContain("blueGoiasInventoryCtaImage");
-    expect(source).toContain('viewBox="0 0 1600 1200"');
-    expect(source).toContain('preserveAspectRatio="xMidYMid slice"');
-    expect(source).toContain('transform="translate(1600 0) rotate(90)"');
+    expect(source).toContain('stone.slug === "rhino-white"');
+    expect(source).toContain("Rhino White · current inventory");
+    expect(source).toContain("rhinoWhiteWarehouseCtaImage");
     expect(source).toContain("rgba(7,15,18,0.66)_0%");
-    const ctaImage = source.indexOf("{blueGoiasInventoryCtaImage ?");
+    const ctaImage = source.indexOf("{rhinoWhiteWarehouseCtaImage ?");
     const ctaStart = source.lastIndexOf("<button", ctaImage);
     const ctaEnd = source.indexOf("</button>", ctaStart);
     const ctaSource = source.slice(ctaStart, ctaEnd);
     expect(ctaSource).not.toContain("<LayoutGrid");
-    expect(ctaSource).not.toContain("<ChevronRight");
+    expect(ctaSource).toContain("<ChevronRight");
     expect(source).toContain('className="-mx-4 mt-0 md:-mx-6"');
     expect(ctaSource).toContain("min-h-[320px]");
     expect(ctaSource).not.toContain("rounded-[1.75rem]");
@@ -80,11 +79,9 @@ describe("JW Stone profile presentation contract", () => {
   });
 
   it("keeps TradeScout actions orange and JW Stone inventory actions green", () => {
-    expect(source).toContain("bg-ts-orange/85");
+    expect(source).toContain("border-2 border-ts-orange bg-white/12");
     expect(source).toContain("hover:bg-ts-orange-dark");
-    expect(source).toContain(
-      "group flex min-h-14 flex-1 items-center justify-center gap-2 rounded-2xl bg-[var(--brand-accent)]"
-    );
+    expect(source).toContain("border-2 border-[var(--brand-accent)] bg-white/12");
     expect(source).toContain("Request this stone");
     expect(source).toContain(
       "bg-[var(--brand-accent)] px-6 py-3 text-sm font-extrabold text-[#16200b]"
@@ -101,5 +98,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"');
     expect(source).toContain("justify-self-start");
     expect(source).toContain("justify-self-end");
+    expect(source).toContain('isJwStone ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""');
+    expect(source).toContain("hidden h-10 gap-4 px-3 pb-2 text-[11px] font-bold sm:flex");
   });
 });

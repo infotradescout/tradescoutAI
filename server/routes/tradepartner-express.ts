@@ -18,6 +18,7 @@ import { emailVerificationService } from "../services/emailVerificationService";
 import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
+import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 
@@ -141,7 +142,10 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       ownerUserId: profiles.ownerUserId,
       businessId: businesses.id,
       businessName: businesses.name,
+      businessOwnerUserId: businesses.ownerUserId,
       businessStatus: businesses.status,
+      businessSources: businesses.sources,
+      publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
       profileData: businesses.profileData,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
@@ -154,6 +158,15 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
 
   const verificationStatus = String(row?.ownerVerificationStatus || "").toLowerCase();
   const ownerDiscoverable = row?.ownerVerifiedBadge === true || verificationStatus === "approved";
+  const ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
+    profileSlug: row?.profileSlug,
+    profileStatus: row?.profileStatus,
+    profileOwnerUserId: row?.ownerUserId,
+    businessStatus: row?.businessStatus,
+    businessOwnerUserId: row?.businessOwnerUserId,
+    publicDiscoveryEnabled: row?.publicDiscoveryEnabled,
+    businessSources: row?.businessSources,
+  });
   const profileData = (row?.profileData || {}) as Record<string, any>;
   const phone = String(profileData.phone || "").trim();
   const notificationEmail = String(profileData.notificationEmail || "").trim();
@@ -161,7 +174,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     !row ||
     String(row.profileStatus) !== "published" ||
     String(row.businessStatus) !== "active" ||
-    !ownerDiscoverable
+    (!ownerDiscoverable && !ownerConfirmedDirectProfile)
   ) {
     return null;
   }
@@ -443,8 +456,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             );
         }
 
-        const requestWorkspacePath =
-          `/direct-connect/engagements?requestId=${encodeURIComponent(String(created.id))}&offerHomeId=1&source=profile_express`;
+        const requestWorkspacePath = `/direct-connect/engagements?requestId=${encodeURIComponent(String(created.id))}&offerHomeId=1&source=profile_express`;
         const activation = requesterWasCreated
           ? passwordResetService.createToken(String(requester.id))
           : null;
@@ -476,9 +488,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
                   ? "<p>Your contact details also created your free TradeScout account so you can follow this request and Direct Connect with the business.</p>"
                   : "<p>This request is now attached to your TradeScout account.</p>",
                 `<p><a href="${activationUrl}">${requesterWasCreated ? "Set up account access" : "Open My Requests"}</a>.</p>`,
-                verificationUrl
-                  ? `<p><a href="${verificationUrl}">Verify your email</a>.</p>`
-                  : "",
+                verificationUrl ? `<p><a href="${verificationUrl}">Verify your email</a>.</p>` : "",
               ].join("\n"),
               text: [
                 `Your request was sent directly to ${target.businessName}.`,

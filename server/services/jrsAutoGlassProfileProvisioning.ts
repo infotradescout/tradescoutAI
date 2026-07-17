@@ -1,15 +1,16 @@
 import { and, eq, sql } from "drizzle-orm";
 import { businesses, profiles, users } from "@shared/schema";
 import { db } from "../db";
+import { JRS_PROFILE_SLUG, OWNER_CONFIRMED_PROFILE_SOURCE } from "./ownerConfirmedDirectProfile";
 
-const JRS_PROFILE_SLUG = "jrs-auto-glass";
 const JRS_OWNER_EMAIL = Buffer.from("c3J0NGxpZmUyMDA0QGdtYWlsLmNvbQ==", "base64").toString("utf8");
-export const JRS_PROFILE_PROVISIONING_SOURCE = "owner_confirmed_profile";
+export const JRS_PROFILE_PROVISIONING_SOURCE = OWNER_CONFIRMED_PROFILE_SOURCE;
 
 /**
  * Idempotently installs the owner, business, and published profile records for
- * JR's Auto Glass. The owner email is an account-routing key only; it is never
- * copied into business profile data, profile content, or public API responses.
+ * JR's Auto Glass. The owner email is used only for private account and request
+ * notification routing; it is never copied into public profile content or API
+ * responses.
  */
 export async function provisionJrsAutoGlassProfile(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
@@ -98,6 +99,15 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
     ) {
       throw new Error("JR's Auto Glass business slug is owned by a different account");
     }
+    const existingProfileData: Record<string, any> =
+      existingBusiness?.profileData && typeof existingBusiness.profileData === "object"
+        ? (existingBusiness.profileData as Record<string, any>)
+        : {};
+    const existingBrandColors: Record<string, any> =
+      existingProfileData.brandColors && typeof existingProfileData.brandColors === "object"
+        ? (existingProfileData.brandColors as Record<string, any>)
+        : {};
+    const existingNotificationEmail = String(existingProfileData.notificationEmail || "").trim();
 
     const businessValues = {
       name: "JR's Auto Glass",
@@ -106,9 +116,12 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
       ownerUserId: owner.id,
       roleContext: "auto_service" as const,
       profileData: {
+        ...existingProfileData,
         category: "Auto Glass",
         tradePartner: false,
+        notificationEmail: existingNotificationEmail || normalizedEmail,
         brandColors: {
+          ...existingBrandColors,
           primary: "#dc2626",
           primaryDark: "#991b1b",
           accent: "#ef4444",
@@ -163,6 +176,10 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
         title: "JR's Auto Glass | Ponchatoula Mobile Auto Glass",
         description:
           "Connect with JR's Auto Glass in Ponchatoula for mobile auto glass and windshield replacement through TradeScout.",
+        imageUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/cover.webp",
+        imageWidth: 1122,
+        imageHeight: 270,
+        faviconUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/logo.svg",
       },
       status: "published" as const,
       updatedAt: new Date(),

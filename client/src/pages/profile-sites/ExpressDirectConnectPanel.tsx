@@ -29,6 +29,7 @@ type ExpressDirectConnectPanelProps = {
   profileSlug: string;
   businessName: string;
   hasViewerSession: boolean;
+  allowCall: boolean;
   requestMode?: ExpressDirectConnectMode;
   initialStoneName?: string | null;
   initialRequestType?: ExpressDirectConnectRequestType | null;
@@ -94,6 +95,7 @@ export default function ExpressDirectConnectPanel({
   profileSlug,
   businessName,
   hasViewerSession,
+  allowCall,
   requestMode = "service",
   initialStoneName,
   initialRequestType,
@@ -139,7 +141,7 @@ export default function ExpressDirectConnectPanel({
 
   useEffect(() => {
     if (!open) return;
-    setView(initialStoneName || initialRequestType ? "request" : "choice");
+    setView(initialStoneName || initialRequestType || !allowCall ? "request" : "choice");
     setBusy(false);
     setError("");
     setCallPhone("");
@@ -153,7 +155,7 @@ export default function ExpressDirectConnectPanel({
       requestType: defaultRequestType,
       message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
     }));
-  }, [defaultRequestType, initialRequestType, initialStoneName, open]);
+  }, [allowCall, defaultRequestType, initialRequestType, initialStoneName, open]);
 
   const requestPath = useMemo(() => {
     const params = new URLSearchParams();
@@ -258,7 +260,7 @@ export default function ExpressDirectConnectPanel({
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-stone-50 px-5 py-4">
           <div className="flex items-center gap-3">
-            {view === "request" ? (
+            {view === "request" && allowCall ? (
               <button
                 type="button"
                 onClick={() => {
@@ -291,7 +293,7 @@ export default function ExpressDirectConnectPanel({
         </div>
 
         <div className="p-5 sm:p-7">
-          {view === "choice" ? (
+          {view === "choice" && allowCall ? (
             <div>
               <p className="mb-6 text-stone-700">Choose the fastest way to reach {businessName}.</p>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -301,7 +303,11 @@ export default function ExpressDirectConnectPanel({
                   disabled={busy}
                   className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-ts-orange p-5 text-left text-white transition-transform hover:-translate-y-0.5 hover:bg-ts-orange-dark disabled:opacity-60"
                 >
-                  {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Phone className="h-6 w-6" />}
+                  {busy ? (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  ) : (
+                    <Phone className="h-6 w-6" />
+                  )}
                   <span>
                     <strong className="block text-lg">Call {businessName}</strong>
                     <span className="text-sm text-white/80">Reveal the number and call</span>
@@ -318,7 +324,9 @@ export default function ExpressDirectConnectPanel({
                   <MessageCircle className="h-6 w-6 text-ts-orange" />
                   <span>
                     <strong className="block text-lg">{config.choiceLabel}</strong>
-                    <span className="text-sm font-medium text-stone-600">Send first, signup after</span>
+                    <span className="text-sm font-medium text-stone-600">
+                      Send first, signup after
+                    </span>
                   </span>
                 </button>
               </div>
@@ -379,7 +387,9 @@ export default function ExpressDirectConnectPanel({
                 </label>
               </div>
               <label className="block">
-                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">What do you need?</span>
+                <span className="mb-1.5 block text-sm font-semibold text-neutral-900">
+                  What do you need?
+                </span>
                 <select
                   value={form.requestType}
                   onChange={(event) =>
@@ -422,7 +432,11 @@ export default function ExpressDirectConnectPanel({
                 disabled={busy}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-ts-orange px-7 py-3.5 font-bold text-white transition-colors hover:bg-ts-orange-dark disabled:opacity-60"
               >
-                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <MessageCircle className="h-5 w-5" />}
+                {busy ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <MessageCircle className="h-5 w-5" />
+                )}
                 Send request
               </button>
             </form>
@@ -435,7 +449,10 @@ export default function ExpressDirectConnectPanel({
               </div>
               <h3 className="text-2xl font-bold text-neutral-900">Calling {businessName}</h3>
               {callTel ? (
-                <a href={callTel} className="mt-3 inline-block text-lg font-bold text-neutral-900 underline underline-offset-4">
+                <a
+                  href={callTel}
+                  className="mt-3 inline-block text-lg font-bold text-neutral-900 underline underline-offset-4"
+                >
                   {callPhone || "Call again"}
                 </a>
               ) : null}
@@ -443,7 +460,8 @@ export default function ExpressDirectConnectPanel({
                 <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
                   <p className="font-bold text-neutral-900">Keep this connection in TradeScout</p>
                   <p className="mt-1 text-sm text-stone-600">
-                    Create your free account after the call to save {businessName} and manage future projects.
+                    Create your free account after the call to save {businessName} and manage future
+                    projects.
                   </p>
                   <Link href={postCallSignupHref}>
                     <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
@@ -469,12 +487,17 @@ export default function ExpressDirectConnectPanel({
                     {accountCreated ? "Finish Express signup" : "Sign in to manage this project"}
                   </p>
                   <p className="mt-1 text-sm text-stone-600">
-                    This request is already saved to your TradeScout account. Continue to see it in My Requests, contact {businessName}, and manage the project.
+                    This request is already saved to your TradeScout account. Continue to see it in
+                    My Requests, contact {businessName}, and manage the project.
                   </p>
                   {accountCreated && onboardingEmailStatus === "sent" ? (
-                    <p className="mt-2 text-xs font-medium text-emerald-700">A setup email was sent. You can also continue here now.</p>
+                    <p className="mt-2 text-xs font-medium text-emerald-700">
+                      A setup email was sent. You can also continue here now.
+                    </p>
                   ) : accountCreated ? (
-                    <p className="mt-2 text-xs font-medium text-amber-700">No email is required to continue from this browser.</p>
+                    <p className="mt-2 text-xs font-medium text-amber-700">
+                      No email is required to continue from this browser.
+                    </p>
                   ) : null}
                   <Link
                     href={
@@ -488,7 +511,8 @@ export default function ExpressDirectConnectPanel({
                     </button>
                   </Link>
                   <p className="mt-3 text-xs text-stone-500">
-                    After signup, choose “Attach this project to your HomeID” if you want it in your home record.
+                    After signup, choose “Attach this project to your HomeID” if you want it in your
+                    home record.
                   </p>
                 </div>
               ) : (
