@@ -486,22 +486,179 @@ function toneClasses(tone: ContinueItem["tone"]): {
 function ScoutHero({ locationLabel }: { locationLabel?: string }) {
   const { t } = useI18n();
   return (
-    <section className="px-4 pt-2 pb-0.5">
+    <section className="px-4 pt-3 pb-1">
       <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-5xl font-black tracking-tight text-white">{t("scout.title")}</h1>
+        <h1 className="text-4xl font-black tracking-tight text-white">{t("scout.title")}</h1>
         <LanguageSwitcher />
       </div>
-      <button type="button" className="mt-1.5 inline-flex items-center gap-2 text-lg text-zinc-300">
-        <MapPin className="h-5 w-5 text-ts-orange" />
+      <button type="button" className="mt-1.5 inline-flex items-center gap-2 text-sm text-zinc-300">
+        <MapPin className="h-4 w-4 text-ts-orange" />
         {locationLabel || t("scout.setLocation")}
         <ChevronDown className="h-4 w-4" />
       </button>
-      <p className="mt-1.5 max-w-[340px] text-[15px] leading-snug text-zinc-400">
-        Scout is your local command surface for activity, saved context, and next steps.
+      <p className="mt-2 max-w-[460px] text-sm leading-relaxed text-zinc-400">
+        Search, compare, or keep local work moving. You review before anything is shared.
       </p>
-      <p className="mt-1 text-[13px] text-zinc-500">
-        Search locally, continue requests, and review HomeID reminders before contact opens.
-      </p>
+    </section>
+  );
+}
+
+const SCOUT_START_ACTIONS: Array<{
+  label: string;
+  detail: string;
+  prompt: string;
+  icon: LucideIcon;
+}> = [
+  {
+    label: "Find local help",
+    detail: "People and businesses near you",
+    prompt: "Find trusted local help for a project or problem near me.",
+    icon: Users2,
+  },
+  {
+    label: "Check a price",
+    detail: "Quotes, costs, and local ranges",
+    prompt: "Help me check whether a quote or local price is fair.",
+    icon: Tag,
+  },
+  {
+    label: "Start a request",
+    detail: "Prepare it before anyone is contacted",
+    prompt:
+      "Help me prepare a Direct Connect request. Keep it in review until I choose to share it.",
+    icon: Hammer,
+  },
+  {
+    label: "See nearby activity",
+    detail: "Useful updates from your area",
+    prompt: "Show me useful local activity and updates near me.",
+    icon: MapPin,
+  },
+];
+
+function ScoutStartCard({
+  contextualPrompt,
+  onPromptSelect,
+}: {
+  contextualPrompt: ReturnType<typeof resolveScoutFirstUseTaskPrompt>;
+  onPromptSelect: (prompt: string) => void;
+}) {
+  const hasContextualNextStep = contextualPrompt.ctaLabel !== "Pick a start";
+
+  const openContextualNextStep = () => {
+    if (contextualPrompt.ctaLabel === "Review HomeID") {
+      onPromptSelect("Review my HomeID updates and what to check next.");
+      return;
+    }
+    onPromptSelect("Review my saved context and show what I should continue.");
+  };
+
+  return (
+    <section className="px-4 pt-3">
+      <div className="overflow-hidden rounded-2xl border border-orange-500/25 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.16),rgba(9,9,11,0.98)_45%)] shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
+        <div className="p-4 sm:p-5">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">Start here</p>
+          <h2 className="mt-1 text-2xl font-black leading-tight text-white">
+            What should we solve?
+          </h2>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+            Describe it below, or choose a common starting point.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {SCOUT_START_ACTIONS.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.label}
+                  type="button"
+                  onClick={() => onPromptSelect(action.prompt)}
+                  className="group flex min-h-[70px] items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/85 p-3 text-left transition-colors hover:border-orange-500/40 hover:bg-zinc-900"
+                >
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500/12 text-ts-orange">
+                    <Icon className="h-4.5 w-4.5" />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-bold text-white">{action.label}</span>
+                    <span className="mt-0.5 block text-xs leading-snug text-zinc-500">
+                      {action.detail}
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5" />
+                </button>
+              );
+            })}
+          </div>
+
+          {hasContextualNextStep ? (
+            <button
+              type="button"
+              className="mt-3 flex w-full items-center justify-between rounded-xl border border-orange-500/25 bg-orange-500/10 px-3 py-3 text-left"
+              onClick={openContextualNextStep}
+            >
+              <span>
+                <span className="block text-xs font-bold uppercase tracking-[0.12em] text-ts-orange">
+                  Continue where you left off
+                </span>
+                <span className="mt-1 block text-sm text-zinc-300">{contextualPrompt.message}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-ts-orange" />
+            </button>
+          ) : null}
+
+          <details className="group mt-3 border-t border-zinc-800/80 pt-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-zinc-300 [&::-webkit-details-marker]:hidden">
+              How Scout works
+              <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="mt-3">
+              <FirstUseGuidanceCard
+                title="Scout is your discovery page."
+                description={SCOUT_GUIDANCE_TEXT}
+              />
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ProgressiveSection({
+  title,
+  description,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  useEffect(() => {
+    if (defaultOpen) setIsOpen(true);
+  }, [defaultOpen]);
+
+  return (
+    <section className="px-4 pt-3">
+      <details
+        className="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/80"
+        open={isOpen}
+        onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 [&::-webkit-details-marker]:hidden">
+          <span>
+            <span className="block text-base font-bold text-white">{title}</span>
+            <span className="mt-0.5 block text-sm leading-snug text-zinc-500">{description}</span>
+          </span>
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-zinc-400">
+            <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
+          </span>
+        </summary>
+        <div className="-mx-4 border-t border-zinc-800 pb-3">{children}</div>
+      </details>
     </section>
   );
 }
@@ -1362,32 +1519,7 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   return (
     <div className="scout-home-surface pb-[calc(var(--scout-search-dock-height)+var(--global-nav-height)+env(safe-area-inset-bottom)+96px)]">
       <ScoutHero locationLabel={location.label} />
-      <section className="px-4 pt-2">
-        <FirstUseGuidanceCard
-          title="Scout is your discovery page."
-          description={SCOUT_GUIDANCE_TEXT}
-        />
-        <div className="mt-2 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-          <p className="text-sm text-zinc-300">{scoutFirstTaskPrompt.message}</p>
-          <button
-            type="button"
-            className="mt-3 inline-flex rounded-lg border border-ts-orange/50 bg-ts-orange/10 px-3 py-1.5 text-xs font-semibold text-ts-orange"
-            onClick={() => {
-              if (scoutFirstTaskPrompt.ctaLabel === "Review HomeID") {
-                onPromptSelect("Review my HomeID updates and what to check next.");
-                return;
-              }
-              if (scoutFirstTaskPrompt.ctaLabel === "Review context") {
-                onPromptSelect("Review my saved context and show what I should continue.");
-                return;
-              }
-              onPromptSelect("Show me where to start with HomeID or Direct Connect.");
-            }}
-          >
-            {scoutFirstTaskPrompt.ctaLabel}
-          </button>
-        </div>
-      </section>
+      <ScoutStartCard contextualPrompt={scoutFirstTaskPrompt} onPromptSelect={onPromptSelect} />
       <OnboardingPlanCard
         bundle={objectiveBundle}
         isLoading={objectiveBundlePending}
@@ -1407,13 +1539,24 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
       {hasRealContinuation ? (
         <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />
       ) : null}
-      <LocalCommandCenter snapshot={localCommandSnapshot} onPromptSelect={onPromptSelect} />
-      <ExploreGrid onPromptSelect={onPromptSelect} />
-      {hasPersonalizedFeed ? (
-        <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />
-      ) : null}
-      {shouldShowSnapshot ? <LocalSnapshot snapshot={data?.snapshot} /> : null}
-      {shouldShowEmptyContext ? <EmptyContextHint /> : null}
+      <ProgressiveSection
+        title="Your activity"
+        description="Requests, HomeID reminders, saved work, and nearby updates."
+        defaultOpen={hasRealContinuation}
+      >
+        <LocalCommandCenter snapshot={localCommandSnapshot} onPromptSelect={onPromptSelect} />
+        {hasPersonalizedFeed ? (
+          <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />
+        ) : null}
+        {shouldShowSnapshot ? <LocalSnapshot snapshot={data?.snapshot} /> : null}
+        {shouldShowEmptyContext ? <EmptyContextHint /> : null}
+      </ProgressiveSection>
+      <ProgressiveSection
+        title="More ways Scout can help"
+        description="Browse homes, vehicles, projects, listings, people, and community."
+      >
+        <ExploreGrid onPromptSelect={onPromptSelect} />
+      </ProgressiveSection>
     </div>
   );
 }

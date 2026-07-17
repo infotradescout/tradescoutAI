@@ -40,6 +40,7 @@ import { Card } from "@/components/ui/card";
 import {
   BadgeInfo,
   BarChart3,
+  ChevronDown,
   Database,
   Car,
   FolderOpen,
@@ -6134,13 +6135,21 @@ export default function ScoutOS() {
                   </div>
                 </div>
 
-                <div className="scout-v2-rail-card">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
-                      HomeID context
-                    </p>
-                    <Home className="h-4 w-4 text-ts-orange" />
-                  </div>
+                <details className="scout-v2-rail-card group">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                    <span>
+                      <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                        HomeID context
+                      </span>
+                      <span className="mt-1 block text-xs text-[color:var(--text-muted)]">
+                        Property details, reminders, and saved evidence
+                      </span>
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                      <Home className="h-4 w-4 text-ts-orange" />
+                      <ChevronDown className="h-4 w-4 text-[color:var(--text-muted)] transition-transform group-open:rotate-180" />
+                    </span>
+                  </summary>
                   {homeIdContextRail.hasHomeId ? (
                     <div className="mt-4 space-y-3">
                       <div
@@ -6372,185 +6381,200 @@ export default function ScoutOS() {
                       </Button>
                     </div>
                   )}
-                </div>
+                </details>
 
-                <div className="scout-v2-rail-card">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
-                      Search controls
-                    </p>
-                    <Database className="h-4 w-4 text-ts-orange" />
-                  </div>
+                <details className="scout-v2-rail-card group">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                    <span>
+                      <span className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                        Fine-tune your search
+                      </span>
+                      <span className="mt-1 block text-xs text-[color:var(--text-muted)]">
+                        Optional filters, sources, and timing
+                      </span>
+                    </span>
+                    <ChevronDown className="h-4 w-4 text-[color:var(--text-muted)] transition-transform group-open:rotate-180" />
+                  </summary>
                   <div className="mt-4 space-y-3">
-                    {[
-                      ["Local matches", "contractors and services that may fit", "knowledge"],
-                      ["Nearby posts", "community signals and recent requests", "county"],
-                      ["Price guidance", "normal ranges and quote questions", "live"],
-                      ["Safety checks", "what to confirm before contact", "county"],
-                    ].map(([label, detail, sourceId]) => (
-                      <button
-                        key={label}
-                        type="button"
-                        onClick={() => {
-                          const next = {
-                            ...enabledMissionSources,
-                            [sourceId]: true,
-                          };
-                          setEnabledMissionSources(next);
-                          applyMissionDraft({ sources: next });
-                        }}
-                        className={`w-full rounded-xl border p-3 text-left ${
-                          enabledMissionSources[sourceId as keyof typeof enabledMissionSources]
-                            ? "border-ts-orange/50 bg-ts-orange/5"
-                            : ""
-                        }`}
-                        style={{
-                          borderColor: enabledMissionSources[
-                            sourceId as keyof typeof enabledMissionSources
-                          ]
-                            ? "color-mix(in oklab, var(--theme-accent-primary) 50%, transparent)"
-                            : "var(--border-subtle)",
-                          backgroundColor: "var(--surface-card)",
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold text-[color:var(--text-primary)]">
-                              {label}
-                            </p>
-                            <p className="mt-0.5 text-xs text-[color:var(--text-muted)]">
-                              {detail}
-                            </p>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {missionControlItems.map((item) => {
-                    const Icon = item.icon;
-                    const subcopy =
-                      item.id === "nearby"
-                        ? "local options"
-                        : item.id === "people"
-                          ? "questions and next steps"
-                          : item.id === "market"
-                            ? "normal ranges"
-                            : "nearby activity";
-
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => {
-                          setActiveMissionPanel(item.id);
-                          applyMissionDraft({ panel: item.id });
-                        }}
-                        className={`scout-v2-mini-card text-left ${
-                          activeMissionPanel === item.id ? "active" : ""
-                        }`}
-                      >
-                        <Icon className="h-4 w-4 text-ts-orange" />
-                        <p className="mt-3 text-sm font-semibold text-[color:var(--text-primary)]">
-                          {item.label}
+                    <div className="scout-v2-rail-card">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                          Search controls
                         </p>
-                        <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-muted)]">
-                          {subcopy}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="scout-v2-rail-card">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
-                    Build your search
-                  </p>
-                  <div className="mt-4 space-y-4">
-                    <div>
-                      <p className="scout-builder-label">What do you need?</p>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        {missionTypeOptions.map((option) => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            onClick={() => {
-                              setMissionType(option.id);
-                              applyMissionDraft({ type: option.id });
-                            }}
-                            className={`scout-builder-button ${
-                              missionType === option.id ? "active" : ""
-                            }`}
-                          >
-                            <span>{option.label}</span>
-                            <small>{option.description}</small>
-                          </button>
-                        ))}
+                        <Database className="h-4 w-4 text-ts-orange" />
                       </div>
-                    </div>
-
-                    <div>
-                      <p className="scout-builder-label">Look in</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {sourceOptions.map((source) => (
+                      <div className="mt-4 space-y-3">
+                        {[
+                          ["Local matches", "contractors and services that may fit", "knowledge"],
+                          ["Nearby posts", "community signals and recent requests", "county"],
+                          ["Price guidance", "normal ranges and quote questions", "live"],
+                          ["Safety checks", "what to confirm before contact", "county"],
+                        ].map(([label, detail, sourceId]) => (
                           <button
-                            key={source.id}
+                            key={label}
                             type="button"
                             onClick={() => {
-                              const enabledCount =
-                                Object.values(enabledMissionSources).filter(Boolean).length;
                               const next = {
                                 ...enabledMissionSources,
-                                [source.id]:
-                                  enabledCount === 1 && enabledMissionSources[source.id]
-                                    ? true
-                                    : !enabledMissionSources[source.id],
+                                [sourceId]: true,
                               };
                               setEnabledMissionSources(next);
                               applyMissionDraft({ sources: next });
                             }}
-                            className={`scout-source-toggle ${
-                              enabledMissionSources[source.id] ? "active" : ""
+                            className={`w-full rounded-xl border p-3 text-left ${
+                              enabledMissionSources[sourceId as keyof typeof enabledMissionSources]
+                                ? "border-ts-orange/50 bg-ts-orange/5"
+                                : ""
                             }`}
+                            style={{
+                              borderColor: enabledMissionSources[
+                                sourceId as keyof typeof enabledMissionSources
+                              ]
+                                ? "color-mix(in oklab, var(--theme-accent-primary) 50%, transparent)"
+                                : "var(--border-subtle)",
+                              backgroundColor: "var(--surface-card)",
+                            }}
                           >
-                            {source.label}
+                            <div className="flex items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-[color:var(--text-primary)]">
+                                  {label}
+                                </p>
+                                <p className="mt-0.5 text-xs text-[color:var(--text-muted)]">
+                                  {detail}
+                                </p>
+                              </div>
+                            </div>
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    <div>
-                      <p className="scout-builder-label">Timeframe</p>
-                      <div className="mt-2 grid grid-cols-3 gap-2">
-                        {urgencyOptions.map((option) => (
+                    <div className="grid grid-cols-2 gap-3">
+                      {missionControlItems.map((item) => {
+                        const Icon = item.icon;
+                        const subcopy =
+                          item.id === "nearby"
+                            ? "local options"
+                            : item.id === "people"
+                              ? "questions and next steps"
+                              : item.id === "market"
+                                ? "normal ranges"
+                                : "nearby activity";
+
+                        return (
                           <button
-                            key={option.id}
+                            key={item.id}
                             type="button"
                             onClick={() => {
-                              setMissionUrgency(option.id);
-                              applyMissionDraft({ urgency: option.id });
+                              setActiveMissionPanel(item.id);
+                              applyMissionDraft({ panel: item.id });
                             }}
-                            className={`scout-source-toggle ${
-                              missionUrgency === option.id ? "active" : ""
+                            className={`scout-v2-mini-card text-left ${
+                              activeMissionPanel === item.id ? "active" : ""
                             }`}
                           >
-                            {option.label}
+                            <Icon className="h-4 w-4 text-ts-orange" />
+                            <p className="mt-3 text-sm font-semibold text-[color:var(--text-primary)]">
+                              {item.label}
+                            </p>
+                            <p className="mt-1 text-xs leading-relaxed text-[color:var(--text-muted)]">
+                              {subcopy}
+                            </p>
                           </button>
-                        ))}
-                      </div>
+                        );
+                      })}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => applyMissionDraft()}
-                      className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-white"
-                    >
-                      Start search
-                    </button>
+                    <div className="scout-v2-rail-card">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                        Build your search
+                      </p>
+                      <div className="mt-4 space-y-4">
+                        <div>
+                          <p className="scout-builder-label">What do you need?</p>
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            {missionTypeOptions.map((option) => (
+                              <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => {
+                                  setMissionType(option.id);
+                                  applyMissionDraft({ type: option.id });
+                                }}
+                                className={`scout-builder-button ${
+                                  missionType === option.id ? "active" : ""
+                                }`}
+                              >
+                                <span>{option.label}</span>
+                                <small>{option.description}</small>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="scout-builder-label">Look in</p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {sourceOptions.map((source) => (
+                              <button
+                                key={source.id}
+                                type="button"
+                                onClick={() => {
+                                  const enabledCount =
+                                    Object.values(enabledMissionSources).filter(Boolean).length;
+                                  const next = {
+                                    ...enabledMissionSources,
+                                    [source.id]:
+                                      enabledCount === 1 && enabledMissionSources[source.id]
+                                        ? true
+                                        : !enabledMissionSources[source.id],
+                                  };
+                                  setEnabledMissionSources(next);
+                                  applyMissionDraft({ sources: next });
+                                }}
+                                className={`scout-source-toggle ${
+                                  enabledMissionSources[source.id] ? "active" : ""
+                                }`}
+                              >
+                                {source.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <p className="scout-builder-label">Timeframe</p>
+                          <div className="mt-2 grid grid-cols-3 gap-2">
+                            {urgencyOptions.map((option) => (
+                              <button
+                                key={option.id}
+                                type="button"
+                                onClick={() => {
+                                  setMissionUrgency(option.id);
+                                  applyMissionDraft({ urgency: option.id });
+                                }}
+                                className={`scout-source-toggle ${
+                                  missionUrgency === option.id ? "active" : ""
+                                }`}
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => applyMissionDraft()}
+                          className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-white"
+                        >
+                          Start search
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </details>
 
                 <button
                   type="button"
