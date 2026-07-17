@@ -10,7 +10,9 @@ import {
   TRADESCOUT_TRANSACTION_FEE_POLICY,
   TRADESCOUT_TRANSACTION_FEE_USD,
 } from "../shared/platformRevenue";
+import { buildProfileServiceOfferDecisionScope } from "../shared/profileOfferShare";
 import { getPublicProfileServiceOffer, toPublicProfileOffer } from "./publicProfileOffer";
+import { hasExposureAuthority } from "./services/exposureAuthority";
 
 /**
  * HTTP error with status code - for centralized error handling
@@ -788,6 +790,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
       if (!sellerUserId) throw new HttpError("SELLER_USER_ID_REQUIRED", 400);
 
       try {
+        if (!(await hasExposureAuthority(sellerUserId))) return res.json({ offers: [] });
         const offers = await pool.query(
           `SELECT *
            FROM profile_offers
@@ -1409,8 +1412,47 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
 
         const sellerUserId = String(offer.seller_user_id);
         if (sellerUserId === buyerUserId) throw new HttpError("CANNOT_PURCHASE_OWN_OFFER", 400);
+        if (!(await hasExposureAuthority(sellerUserId))) {
+          throw new HttpError("PROFILE_OFFER_NOT_FOUND", 404);
+        }
 
         const offerType = String(offer.offer_type) as "service" | "item";
+        let verifiedDecisionCardId: string | null = null;
+        let verifiedDecisionScope: string | null = null;
+        if (offerType === "service") {
+          const expectedDecisionScope = buildProfileServiceOfferDecisionScope(offerId);
+          const authorityGate = String(req.body?.authorityGate || "").trim();
+          const sourceDecisionCardId = String(req.body?.sourceDecisionCardId || "").trim();
+          const decisionScope = String(req.body?.decisionScope || "").trim();
+          if (
+            authorityGate !== "decision_card" ||
+            !sourceDecisionCardId ||
+            !expectedDecisionScope ||
+            decisionScope !== expectedDecisionScope
+          ) {
+            throw new HttpError("PROFILE_SERVICE_DECISION_CARD_REQUIRED", 403);
+          }
+
+          const decisionRes = await client.query(
+            `SELECT id, status, intent, decision_scope
+             FROM decision_cards
+             WHERE id = $1
+               AND user_id = $2
+             FOR UPDATE`,
+            [sourceDecisionCardId, buyerUserId]
+          );
+          const decision = decisionRes.rows[0];
+          if (
+            !decision ||
+            String(decision.status) !== "active" ||
+            String(decision.intent) !== "hire" ||
+            String(decision.decision_scope || "") !== expectedDecisionScope
+          ) {
+            throw new HttpError("PROFILE_SERVICE_DECISION_CARD_INVALID", 403);
+          }
+          verifiedDecisionCardId = sourceDecisionCardId;
+          verifiedDecisionScope = expectedDecisionScope;
+        }
         const quantity = offerType === "service" ? 1 : requestedQuantity;
         const stock =
           offer.item_stock_quantity === null || offer.item_stock_quantity === undefined
@@ -1475,6 +1517,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
               reviewRequired: true,
               contactBoundary:
                 "Purchase intent does not release contact details. Decision/contact gates still apply.",
+              authorityGate: verifiedDecisionCardId ? "decision_card" : null,
+              sourceDecisionCardId: verifiedDecisionCardId,
+              decisionScope: verifiedDecisionScope,
             }),
           ]
         );
@@ -1530,6 +1575,9 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
                   profileOfferPurchaseId: purchase.id,
                   sellerUserId,
                   reviewRequired: true,
+                  authorityGate: "decision_card",
+                  sourceDecisionCardId: verifiedDecisionCardId,
+                  decisionScope: verifiedDecisionScope,
                 }),
               ]
             )
@@ -1626,6 +1674,23 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
             .then((updated) => {
               purchase = updated.rows[0] || purchase;
             });
+        }
+
+        if (verifiedDecisionCardId) {
+          const completedDecision = await client.query(
+            `UPDATE decision_cards
+             SET status = 'completed',
+                 decided_at = now(),
+                 updated_at = now()
+             WHERE id = $1
+               AND user_id = $2
+               AND status = 'active'
+             RETURNING id`,
+            [verifiedDecisionCardId, buyerUserId]
+          );
+          if (!completedDecision.rows[0]) {
+            throw new HttpError("PROFILE_SERVICE_DECISION_CARD_INVALID", 403);
+          }
         }
 
         await client.query("COMMIT");

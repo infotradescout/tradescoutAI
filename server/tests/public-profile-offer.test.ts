@@ -1,5 +1,18 @@
-import { describe, expect, it } from "vitest";
-import { sanitizePublicProfileOfferText, toPublicProfileOffer } from "../publicProfileOffer";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mocks = vi.hoisted(() => ({
+  hasExposureAuthority: vi.fn(),
+}));
+
+vi.mock("../services/exposureAuthority", () => ({
+  hasExposureAuthority: mocks.hasExposureAuthority,
+}));
+
+import {
+  getPublicProfileServiceOffer,
+  sanitizePublicProfileOfferText,
+  toPublicProfileOffer,
+} from "../publicProfileOffer";
 
 const serviceRow = {
   id: "service-123",
@@ -26,6 +39,11 @@ const serviceRow = {
 };
 
 describe("public profile offer boundary", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.hasExposureAuthority.mockResolvedValue(true);
+  });
+
   it("whitelists public fields and removes contact paths and arbitrary metadata", () => {
     const offer = toPublicProfileOffer(serviceRow);
 
@@ -58,5 +76,20 @@ describe("public profile offer boundary", () => {
     expect(safe).not.toContain("555-0100");
     expect(safe).not.toContain("www.example.com");
     expect(safe).toContain("Continue through TradeScout");
+  });
+
+  it("fails closed when the service provider lacks public exposure authority", async () => {
+    const query = vi.fn().mockResolvedValue({ rows: [serviceRow] });
+
+    await expect(
+      getPublicProfileServiceOffer({ query } as any, serviceRow.id)
+    ).resolves.toMatchObject({
+      id: serviceRow.id,
+      sellerUserId: serviceRow.seller_user_id,
+    });
+    expect(mocks.hasExposureAuthority).toHaveBeenCalledWith(serviceRow.seller_user_id);
+
+    mocks.hasExposureAuthority.mockResolvedValueOnce(false);
+    await expect(getPublicProfileServiceOffer({ query } as any, serviceRow.id)).resolves.toBeNull();
   });
 });

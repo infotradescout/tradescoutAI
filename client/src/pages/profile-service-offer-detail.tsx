@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
+import { createProfileServiceOfferDecisionAuthority } from "@/lib/profileOfferAuthority";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import {
   buildProfileServiceOfferPath,
@@ -149,11 +150,15 @@ export default function ProfileServiceOfferDetail() {
 
     setStartingJob(true);
     try {
+      const decisionAuthority = await createProfileServiceOfferDecisionAuthority({
+        offerId: offer.id,
+        title: offer.title,
+      });
       const response = await fetch(`/api/profile-offers/${encodeURIComponent(offer.id)}/purchase`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quantity: 1 }),
+        body: JSON.stringify({ quantity: 1, ...decisionAuthority }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -287,8 +292,9 @@ export default function ProfileServiceOfferDetail() {
                   <div>
                     <h2 className="font-semibold">Protected from the first step</h2>
                     <p className="mt-1 text-sm opacity-80">
-                      Starting this service creates a private draft request for your review. It does
-                      not release contact details, charge payment, or route the job automatically.
+                      TradeScout records your hiring decision, then creates a private draft request
+                      for your review. It does not release contact details, charge payment, or route
+                      the job automatically.
                     </p>
                   </div>
                 </div>

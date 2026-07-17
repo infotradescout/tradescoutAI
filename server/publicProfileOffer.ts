@@ -1,6 +1,7 @@
 import type { Pool } from "pg";
 import { listProfileOfferImageUrls, normalizeProfileOfferId } from "@shared/profileOfferShare";
 import { sanitizePublicListingText } from "@shared/publicListingSafety";
+import { hasExposureAuthority } from "./services/exposureAuthority";
 
 export type PublicProfileOffer = {
   id: string;
@@ -142,7 +143,9 @@ export async function getPublicProfileServiceOffer(
        LIMIT 1`,
       [offerId]
     );
-    return toPublicProfileOffer(result.rows[0]);
+    const offer = toPublicProfileOffer(result.rows[0]);
+    if (!offer || !(await hasExposureAuthority(offer.sellerUserId))) return null;
+    return offer;
   } catch (error: any) {
     const message = String(error?.message || "").toLowerCase();
     if (message.includes("profile_offers") || error?.code === "42P01") return null;
