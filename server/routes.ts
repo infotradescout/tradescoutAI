@@ -20730,7 +20730,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       const { id } = req.params;
       const product = await storage.getHandmadeProduct(id);
 
-      if (!product) {
+      if (!product || product.status !== "active") {
         return res.status(404).json({ message: "Product not found" });
       }
 
@@ -21016,7 +21016,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
   app.get("/api/handmade/sellers/:userId/products", async (req: any, res: any) => {
     try {
       const { userId } = req.params;
-      const products = await storage.getSellerProducts(userId);
+      const products = await storage.getHandmadeProducts({ sellerId: userId, limit: 100 });
       res.json(products);
     } catch (error: any) {
       console.error("Error fetching seller products:", error);

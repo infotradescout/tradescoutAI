@@ -339,6 +339,7 @@ const ExchangeSellerDashboard = React.lazy(
 );
 const MarketplaceListing = React.lazy(() => import("./pages/marketplace-listing"));
 const HandmadeMarketplace = React.lazy(() => import("./pages/handmade-marketplace"));
+const HandmadeProductDetail = React.lazy(() => import("./pages/handmade-product-detail"));
 const Leaderboard = React.lazy(() => import("./pages/leaderboard"));
 const TradePartnersHub = React.lazy(() => import("./pages/TradePartnersHub"));
 const TradePartnerCountyLanding = React.lazy(() => import("./pages/TradePartnerCountyLanding"));
@@ -1076,6 +1077,9 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/handmade-marketplace">
                 <LazyPage Component={HandmadeMarketplace} />
+              </Route>
+              <Route path="/handmade/products/:id">
+                <LazyPage Component={HandmadeProductDetail} />
               </Route>
               <Route path="/exchange/metals">
                 <ProgressiveFeatureGate featureId="exchange">
