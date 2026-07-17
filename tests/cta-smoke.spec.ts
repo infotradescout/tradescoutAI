@@ -121,26 +121,26 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
 
   await expect(
     page
-      .getByRole("heading", { name: /Local activity/i })
-      .or(page.getByText(/Set your county/i).first())
+      .getByRole("heading", { name: /What's happening near you/i })
+      .or(page.getByText(/Set your local area/i).first())
   ).toBeVisible();
   await expect(page.getByRole("link", { name: /Direct Connect/i }).first()).toBeVisible();
 
   const needsCounty = await page
-    .getByText(/Set your county/i)
+    .getByText(/Set your local area/i)
     .first()
     .isVisible();
   if (!needsCounty) {
     const firstPostCard = page.locator('[data-testid^="card-post-"]').first();
     if (await firstPostCard.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await expect(
-        firstPostCard.getByRole("button", { name: /Add details|Direct Connect|Message|Need Help/i })
+        firstPostCard.getByRole("button", {
+          name: /Ask about this|Find help for this|Tell us what you need|Message/i,
+        })
       ).toBeVisible();
     } else {
       await expect(
-        page
-          .getByText(/Community feed is live|No posts here yet|No posts yet for this view/i)
-          .first()
+        page.getByText(/You're here early|That didn't load|No posts yet for this view/i).first()
       ).toBeVisible();
     }
   }

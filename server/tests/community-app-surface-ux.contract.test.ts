@@ -3,7 +3,9 @@ import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Router } from "wouter";
 import { describe, expect, it } from "vitest";
+import { ContactOutcomeModal } from "../../client/src/components/community/ContactOutcomeModal";
 import { ScoutRecommendationCard } from "../../client/src/components/community/ScoutRecommendationCard";
 
 const read = (relativePath: string) =>
@@ -55,6 +57,7 @@ describe("Community app surface UX contract", () => {
       "Add details first",
       "Contact readiness",
       "Request context checked.",
+      "Confirm & Send",
       "No posts here yet",
       "Unavailable",
     ];
@@ -69,6 +72,7 @@ describe("Community app surface UX contract", () => {
     const community = read("client/src/pages/community.tsx");
     const emptyState = read("client/src/components/community/CommunityEmptyState.tsx");
     const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
+    const contactModal = read("client/src/components/community/ContactOutcomeModal.tsx");
 
     expect(feed).toContain("What&apos;s happening near you");
     expect(feed).toContain("Ask a question, recommend someone, share an update");
@@ -83,6 +87,10 @@ describe("Community app surface UX contract", () => {
     expect(snapshotRail).toContain("Local offers are coming soon");
     expect(snapshotRail).toContain("Coming soon");
     expect(snapshotRail).toContain("Try again");
+    expect(contactModal).toContain("Your privacy stays protected");
+    expect(contactModal).toContain("Send message");
+    expect(contactModal).toContain("bg-[color:var(--surface-card)]");
+    expect(contactModal).not.toContain("bg-white rounded-lg");
   });
 
   it("keeps default recommendation cards out of system-level framing", () => {
@@ -150,5 +158,51 @@ describe("Community app surface UX contract", () => {
     expect(html).toContain("Review before contact");
     expect(html).toContain("Why this appears");
     expect(html).toContain("Jordan Lee");
+  });
+
+  it("renders contact review as a readable TradeScout surface", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const staticLocationHook = (): [string, (path: string) => void] => [
+      "/community-feed",
+      () => undefined,
+    ];
+    const staticSearchHook = () => "";
+
+    const html = renderToStaticMarkup(
+      React.createElement(
+        Router,
+        { hook: staticLocationHook, searchHook: staticSearchHook },
+        React.createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          React.createElement(ContactOutcomeModal, {
+            outcome: {
+              targetUserId: "user_1",
+              targetUserName: "Jordan Lee",
+              targetRole: "Local business owner",
+              targetLocation: "Fort Worth",
+              suggestedIntent: "collaborate",
+              reasonForContact: "I'd like to talk about working together locally.",
+              decisionScope: "community",
+              decisionTitle: "Community post follow-up",
+              riskFlags: [],
+            },
+            onClose: () => undefined,
+          })
+        )
+      )
+    );
+
+    expect(html).toContain("Send a message to Jordan Lee");
+    expect(html).toContain("Your privacy stays protected");
+    expect(html).toContain("Send message");
+    expect(html).toContain("bg-[color:var(--surface-card)]");
+    expect(html).not.toContain("Confirm &amp; Send");
+    expect(html).not.toContain("bg-white rounded-lg");
   });
 });
