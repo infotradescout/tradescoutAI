@@ -8,6 +8,8 @@ const read = (relativePath: string) =>
 describe("public profile human-language contract", () => {
   it("treats a failed load as retryable and an unpublished link as early access", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
+    const serverEntry = read("server/index.ts");
+    const profileHtml = read("server/publicProfileHtml.ts");
 
     expect(profileView).toContain("setLoadFailed(true)");
     expect(profileView).toContain("That page didn&apos;t load");
@@ -16,6 +18,10 @@ describe("public profile human-language contract", () => {
     expect(profileView).toContain("Check back soon");
     expect(profileView).not.toContain("Profile not found");
     expect(profileView).not.toContain("private, unpublished, or unavailable");
+    expect(serverEntry).toContain("buildPublicProfileEarlyHtml({ slug, origin, templateHtml })");
+    expect(serverEntry).not.toContain('res.status(404).send("Profile not found")');
+    expect(profileHtml).toContain('data-public-profile-state="early"');
+    expect(profileHtml).toContain("Check back soon");
   });
 
   it("shows useful profile facts without internal labels or fake zero-value stats", () => {

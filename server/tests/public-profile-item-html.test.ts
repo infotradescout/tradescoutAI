@@ -36,7 +36,7 @@ vi.mock("../storage", () => ({
   },
 }));
 
-import { buildPublicProfileHtml } from "../publicProfileHtml";
+import { buildPublicProfileEarlyHtml, buildPublicProfileHtml } from "../publicProfileHtml";
 
 const templateHtml = `<!doctype html>
 <html>
@@ -68,6 +68,21 @@ describe("public profile item HTML", () => {
     profileRecord.businessId = "business-jw";
     profileRecord.seoMeta.customDomain = "jwstonelogistics.com";
     profileRecord.contentBlocks = [];
+  });
+
+  it("renders a friendly early page when a public profile link is not ready", () => {
+    const html = buildPublicProfileEarlyHtml({
+      slug: "new-local-business",
+      origin: "https://www.thetradescout.com",
+      templateHtml,
+    });
+
+    expect(html).toContain("You're here early");
+    expect(html).toContain("Check back soon");
+    expect(html).toContain('data-public-profile-state="early"');
+    expect(html).toContain('content="noindex,follow"');
+    expect(html).toContain('href="https://www.thetradescout.com/u/new-local-business"');
+    expect(html).not.toContain("Profile not found");
   });
 
   it("renders product-specific social metadata for the exact shared JW stone photo", async () => {

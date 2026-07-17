@@ -24,6 +24,12 @@ type PublicProfileHtmlOptions = {
   gallerySlug?: unknown;
 };
 
+type PublicProfileEarlyHtmlOptions = {
+  slug: string;
+  origin: string;
+  templateHtml: string;
+};
+
 type PublicProfileItemShareMetadata =
   | ProfileInventoryItemShareMetadata
   | ProfileGalleryItemShareMetadata;
@@ -124,6 +130,62 @@ function injectJsonLd(html: string, jsonLd: object) {
 
 function injectProfileSummary(html: string, summaryHtml: string) {
   return html.replace(/<div id="root"><\/div>/i, `<div id="root">${summaryHtml}</div>`);
+}
+
+export function buildPublicProfileEarlyHtml({
+  slug,
+  origin,
+  templateHtml,
+}: PublicProfileEarlyHtmlOptions): string {
+  const title = formatTradeScoutTitle("You're here early");
+  const description =
+    "This profile isn't public yet, or the link has changed. Check back soon while it gets ready.";
+  const canonical = `${origin}/u/${encodeURIComponent(slug)}`;
+  let html = templateHtml.replace(
+    /<title>[\s\S]*?<\/title>/i,
+    `<title>${escapeHtml(title)}</title>`
+  );
+
+  html = upsertTag(
+    html,
+    /<meta name="description"[^>]*>/i,
+    `<meta name="description" content="${escapeHtml(description)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta name="robots"[^>]*>/i,
+    `<meta name="robots" content="noindex,follow" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:title"[^>]*>/i,
+    `<meta property="og:title" content="${escapeHtml(title)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:description"[^>]*>/i,
+    `<meta property="og:description" content="${escapeHtml(description)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<meta property="og:url"[^>]*>/i,
+    `<meta property="og:url" content="${escapeHtml(canonical)}" />`
+  );
+  html = upsertTag(
+    html,
+    /<link rel="canonical"[^>]*>/i,
+    `<link rel="canonical" href="${escapeHtml(canonical)}" />`
+  );
+
+  const earlySummary = `
+<main data-public-profile-state="early" style="padding:3rem 1rem;max-width:640px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <h1>You're here early</h1>
+  <p>This profile isn't public yet, or the link has changed.</p>
+  <p>Check back soon, or explore TradeScout while it gets ready.</p>
+  <p><a href="/">Explore TradeScout</a></p>
+</main>`;
+
+  return injectProfileSummary(html, earlySummary);
 }
 
 function buildFaqJsonLd(profile: PublicProfileData) {
