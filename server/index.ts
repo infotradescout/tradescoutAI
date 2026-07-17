@@ -74,6 +74,7 @@ import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
 import { buildPublicProfileServiceOfferHtml } from "./publicProfileServiceOfferHtml";
+import { buildPublicHomeScoutListingHtml } from "./publicHomeScoutListingHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
@@ -1881,6 +1882,41 @@ app.use(landingContractHeaders);
                 } catch (err) {
                   console.error("Error rendering shared work request HTML:", err);
                   res.status(500).send("Failed to render shared request");
+                }
+              });
+
+              // HomeScout property detail pages: exact property photo and protected metadata.
+              app.get("/homescout/listings/:listingId", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) return res.status(404).send("Application files not found");
+
+                  const html = await buildPublicHomeScoutListingHtml({
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                    listingId: String(req.params.listingId || ""),
+                  });
+
+                  if (!html) {
+                    res.setHeader("Cache-Control", "no-store");
+                    return res.sendFile(indexPath);
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=120, stale-while-revalidate=3600"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering HomeScout listing HTML:", err);
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  if (fs.existsSync(indexPath)) {
+                    res.setHeader("Cache-Control", "no-store");
+                    res.sendFile(indexPath);
+                  } else {
+                    res.status(500).send("Failed to render HomeScout listing page");
+                  }
                 }
               });
 
