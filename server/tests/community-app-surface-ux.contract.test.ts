@@ -3,7 +3,9 @@ import path from "node:path";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Router } from "wouter";
 import { describe, expect, it } from "vitest";
+import { ContactOutcomeModal } from "../../client/src/components/community/ContactOutcomeModal";
 import { ScoutRecommendationCard } from "../../client/src/components/community/ScoutRecommendationCard";
 
 const read = (relativePath: string) =>
@@ -48,6 +50,16 @@ describe("Community app surface UX contract", () => {
       "routing matrix",
       "lead marketplace",
       "best contractor",
+      "Local hub",
+      "Search local context",
+      "Start request",
+      "Checking options...",
+      "Add details first",
+      "Contact readiness",
+      "Request context checked.",
+      "Confirm & Send",
+      "No posts here yet",
+      "Unavailable",
     ];
 
     for (const phrase of bannedVisiblePhrases) {
@@ -55,20 +67,30 @@ describe("Community app surface UX contract", () => {
     }
   });
 
-  it("keeps the Community app surface anchored to local activity actions", () => {
+  it("anchors Community in human outcomes and inviting early states", () => {
     const feed = read("client/src/pages/community-feed.tsx");
     const community = read("client/src/pages/community.tsx");
+    const emptyState = read("client/src/components/community/CommunityEmptyState.tsx");
+    const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
+    const contactModal = read("client/src/components/community/ContactOutcomeModal.tsx");
 
-    expect(feed).toContain("Local activity");
-    expect(feed).toContain("See what neighbors and local businesses are sharing, then start");
-    expect(feed).toContain("you need work done.");
-    expect(feed).toContain("Search local context");
-    expect(feed).toContain("Start request");
-    expect(feed).toContain("Local hub");
-    expect(feed).toContain("Share a local update");
-    expect(feed).toContain("Start a post");
-    expect(community).toContain("Local updates, questions, and projects.");
-    expect(community).toContain("Draft ready");
+    expect(feed).toContain("What&apos;s happening near you");
+    expect(feed).toContain("Ask a question, recommend someone, share an update");
+    expect(feed).toContain("Get local help");
+    expect(feed).toContain("Find someone for a job");
+    expect(feed).toContain("What would you like to share?");
+    expect(feed).toContain("Not sure what to write?");
+    expect(feed).toContain("You&apos;re here early");
+    expect(community).toContain("Ask, share, recommend");
+    expect(community).toContain("Your draft is ready");
+    expect(emptyState).toContain("You&apos;re here early");
+    expect(snapshotRail).toContain("Local offers are coming soon");
+    expect(snapshotRail).toContain("Coming soon");
+    expect(snapshotRail).toContain("Try again");
+    expect(contactModal).toContain("Your privacy stays protected");
+    expect(contactModal).toContain("Send message");
+    expect(contactModal).toContain("bg-[color:var(--surface-card)]");
+    expect(contactModal).not.toContain("bg-white rounded-lg");
   });
 
   it("keeps default recommendation cards out of system-level framing", () => {
@@ -132,9 +154,55 @@ describe("Community app surface UX contract", () => {
       ).not.toContain(term.toLowerCase());
     }
 
-    expect(html).toContain("Recommended pro");
+    expect(html).toContain("Local match");
     expect(html).toContain("Review before contact");
     expect(html).toContain("Why this appears");
     expect(html).toContain("Jordan Lee");
+  });
+
+  it("renders contact review as a readable TradeScout surface", () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+    const staticLocationHook = (): [string, (path: string) => void] => [
+      "/community-feed",
+      () => undefined,
+    ];
+    const staticSearchHook = () => "";
+
+    const html = renderToStaticMarkup(
+      React.createElement(
+        Router,
+        { hook: staticLocationHook, searchHook: staticSearchHook },
+        React.createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          React.createElement(ContactOutcomeModal, {
+            outcome: {
+              targetUserId: "user_1",
+              targetUserName: "Jordan Lee",
+              targetRole: "Local business owner",
+              targetLocation: "Fort Worth",
+              suggestedIntent: "collaborate",
+              reasonForContact: "I'd like to talk about working together locally.",
+              decisionScope: "community",
+              decisionTitle: "Community post follow-up",
+              riskFlags: [],
+            },
+            onClose: () => undefined,
+          })
+        )
+      )
+    );
+
+    expect(html).toContain("Send a message to Jordan Lee");
+    expect(html).toContain("Your privacy stays protected");
+    expect(html).toContain("Send message");
+    expect(html).toContain("bg-[color:var(--surface-card)]");
+    expect(html).not.toContain("Confirm &amp; Send");
+    expect(html).not.toContain("bg-white rounded-lg");
   });
 });

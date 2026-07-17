@@ -17,8 +17,6 @@ import {
   AlertTriangle,
   DollarSign,
   Globe,
-  Search,
-  ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -524,7 +522,12 @@ const CommunityFeed = memo(function CommunityFeed() {
   }, [activeTab, isGlobalView]);
 
   // Fetch posts from the API scoped to the user's county and nav scope
-  const { data: postsData, isLoading: postsLoading } = useQuery<Post[]>({
+  const {
+    data: postsData,
+    isLoading: postsLoading,
+    isError: postsError,
+    refetch: refetchPosts,
+  } = useQuery<Post[]>({
     queryKey: ["/api/community/posts", stateCode, countyFips, serverScopeForFeed],
     // Phase 1: Global view doesn't require county commitment
     enabled: isGlobalView || countyCommitted,
@@ -940,8 +943,8 @@ const CommunityFeed = memo(function CommunityFeed() {
     const compose = params.get("compose");
     const prefill = params.get("prefill");
 
-    if (compose === "1" && prefill) {
-      setNewPostContent(prefill);
+    if (compose === "1") {
+      if (prefill) setNewPostContent(prefill);
       if (composerRef.current) {
         composerRef.current.focus();
       }
@@ -949,11 +952,11 @@ const CommunityFeed = memo(function CommunityFeed() {
   }, [route]);
 
   const seededPrompts: string[] = [
-    "Who is a reliable electrician nearby?",
-    "Looking for a fence repair recommendation.",
-    "Any trusted HVAC pros in this area?",
-    "Best local supplier for deck materials?",
-    "Who has done great work for a bathroom refresh?",
+    "Can anyone recommend a reliable electrician?",
+    "I'm looking for someone to repair a fence.",
+    "Has anyone used a local HVAC company they would recommend?",
+    "Where do you buy quality deck materials nearby?",
+    "Who has done good bathroom remodeling work?",
   ];
 
   const hasUserPosts = Array.isArray(posts) && posts.length > 0;
@@ -1001,15 +1004,41 @@ const CommunityFeed = memo(function CommunityFeed() {
       {postsLoading ? (
         <div className="text-center py-10">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30"></div>
-          <p className="mt-3 text-sm text-[color:var(--text-secondary)]">Loading posts...</p>
+          <p className="mt-3 text-sm text-[color:var(--text-secondary)]">
+            Checking what&apos;s new nearby...
+          </p>
         </div>
+      ) : postsError ? (
+        <Card className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+          <CardContent className="p-6 text-center md:p-8">
+            <h3 className="text-lg font-semibold text-white md:text-xl">That didn&apos;t load</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-[color:var(--text-secondary)]">
+              Your community is still here. Let&apos;s try loading it again.
+            </p>
+            <Button className="mt-4" variant="outline" onClick={() => void refetchPosts()}>
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
       ) : tabSortedPosts.length === 0 ? (
         <Card className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 md:p-8 text-center">
-            <h3 className="text-lg md:text-xl font-semibold text-white">No posts here yet</h3>
-            <p className="mt-2 text-sm text-[color:var(--text-secondary)]">
-              Start with a question, a recommendation, or a local update.
+            <h3 className="text-lg md:text-xl font-semibold text-white">You&apos;re here early</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-[color:var(--text-secondary)]">
+              This part of your local community is just getting started. Ask the first question,
+              share a recommendation, or post something useful.
             </p>
+            {!isGlobalView ? (
+              <Button
+                className="mt-4"
+                onClick={() => {
+                  composerRef.current?.focus();
+                  composerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              >
+                Start the conversation
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
       ) : (
@@ -1188,14 +1217,6 @@ const CommunityFeed = memo(function CommunityFeed() {
     composerRef.current?.focus();
   };
 
-  const formatMinutesCompact = (minutes: number | null | undefined) => {
-    const value = typeof minutes === "number" ? minutes : NaN;
-    if (!Number.isFinite(value) || value < 0) return "--";
-    if (value < 60) return `${Math.round(value)}m`;
-    if (value < 60 * 24) return `${Math.round(value / 60)}h`;
-    return `${Math.round(value / (60 * 24))}d`;
-  };
-
   return (
     <>
       <SEOHelmet
@@ -1223,7 +1244,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         Topic: {topicTagLabel || topicTagKey}
                       </DialogTitle>
                       <div className="mt-0.5 text-xs text-white/60">
-                        Showing posts that mention this topic in your current scope.
+                        Showing posts about this topic in the area you are viewing.
                       </div>
                     </div>
                     <button
@@ -1239,8 +1260,9 @@ const CommunityFeed = memo(function CommunityFeed() {
                     {topicPostsLoading ? (
                       <div className="text-sm text-white/60">Loading topic…</div>
                     ) : (topicPostsData || []).length === 0 ? (
-                      <div className="text-sm text-white/60">
-                        No posts found for this topic yet.
+                      <div className="space-y-1 text-sm text-white/60">
+                        <p className="font-medium text-white">You&apos;re early to this topic</p>
+                        <p>No one has posted about it yet. You can start the conversation.</p>
                       </div>
                     ) : (
                       <div className="space-y-4">
@@ -1305,26 +1327,18 @@ const CommunityFeed = memo(function CommunityFeed() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center rounded-full border border-ts-orange/25 bg-ts-orange/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ts-orange">
-                        Community
-                      </span>
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium text-white/70">
-                        <ShieldCheck className="h-3 w-3 text-emerald-300" />
-                        Local hub
+                        Your community
                       </span>
                     </div>
                     <h1 className="mt-3 text-2xl font-semibold leading-tight text-white md:mt-1 md:text-lg">
-                      Local activity
+                      What&apos;s happening near you
                     </h1>
                     <p className="mt-1.5 max-w-[28rem] text-sm leading-5 text-white/72 md:text-xs md:text-[color:var(--text-secondary)]">
-                      See what neighbors and local businesses are sharing, then start a request when
-                      you need work done.
+                      Ask a question, recommend someone, share an update, or see what nearby
+                      businesses are offering.
                     </p>
-                    <p className="mt-2 hidden text-[11px] text-white/60 md:block md:text-xs">
-                      {`${
-                        isAuthenticated && connectionActivityData
-                          ? `Connections active today: ${connectionActivityData.activeTodayCount}`
-                          : `Active today: ${communityStats.activeToday}`
-                      } | Posts today: ${communityStats.postsToday}`}
+                    <p className="mt-2 text-[11px] text-white/55 md:text-xs">
+                      Posts are shown by county. Your exact address is never displayed.
                     </p>
                   </div>
                 </div>
@@ -1334,60 +1348,44 @@ const CommunityFeed = memo(function CommunityFeed() {
                     type="button"
                     onClick={() => navigate("/scout")}
                     className="flex min-h-12 items-center gap-2 rounded-2xl border border-white/10 bg-black/18 px-3 text-left text-sm text-white/72"
-                    aria-label="Search local context"
+                    aria-label="Get help with something nearby"
                   >
-                    <Search className="h-4 w-4 shrink-0 text-white/55" />
-                    <span className="truncate">Search local context</span>
+                    <MessageSquare className="h-4 w-4 shrink-0 text-white/55" />
+                    <span className="truncate">Get local help</span>
                   </button>
                   <Button
                     type="button"
                     onClick={() => navigate("/direct-connect")}
                     className="min-h-12 rounded-2xl bg-ts-orange px-4 text-sm font-semibold text-white hover:bg-ts-orange-dark"
                   >
-                    Start request
+                    Find someone for a job
                   </Button>
                 </div>
 
-                <div className="mt-3 -mx-3 hidden px-3 overflow-x-auto overflow-y-hidden md:block">
-                  <div className="flex gap-2 min-w-max pb-1 snap-x snap-mandatory scroll-pl-3">
-                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-white/60">Members</p>
-                      <p className="text-sm font-semibold text-white">
-                        {communityStats.totalMembers}
-                      </p>
-                    </div>
-                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-white/60">
-                        Verified pros
-                      </p>
-                      <p className="text-sm font-semibold text-white">
-                        {communityStats.verifiedPros ?? 0}
-                      </p>
-                    </div>
-                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-white/60">
-                        Recommendations
-                      </p>
-                      <p className="text-sm font-semibold text-white">
-                        {communityStats.recommendations7d ?? 0}
-                      </p>
-                    </div>
-                    <div className="snap-start shrink-0 w-[132px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-white/60">Help (7d)</p>
-                      <p className="text-sm font-semibold text-white">
-                        {communityStats.helpRequests7d ?? 0}
-                      </p>
-                    </div>
-                    <div className="snap-start shrink-0 w-[148px] rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-2">
-                      <p className="text-[10px] uppercase tracking-wide text-white/60">
-                        Median reply (7d)
-                      </p>
-                      <p className="text-sm font-semibold text-white">
-                        {formatMinutesCompact(communityStats.medianFirstReplyMinutes7d)}
-                      </p>
-                    </div>
+                {(communityStats.postsToday > 0 ||
+                  (communityStats.recommendations7d ?? 0) > 0 ||
+                  (communityStats.verifiedPros ?? 0) > 0) && (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/65">
+                    {communityStats.postsToday > 0 ? (
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                        {communityStats.postsToday} new post
+                        {communityStats.postsToday === 1 ? "" : "s"} today
+                      </span>
+                    ) : null}
+                    {(communityStats.recommendations7d ?? 0) > 0 ? (
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                        {communityStats.recommendations7d} local recommendation
+                        {communityStats.recommendations7d === 1 ? "" : "s"} this week
+                      </span>
+                    ) : null}
+                    {(communityStats.verifiedPros ?? 0) > 0 ? (
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                        {communityStats.verifiedPros} verified local business
+                        {communityStats.verifiedPros === 1 ? "" : "es"}
+                      </span>
+                    ) : null}
                   </div>
-                </div>
+                )}
 
                 {activeConnections.length > 0 && (
                   <div className="mt-3 flex items-center justify-between gap-3">
@@ -1484,7 +1482,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                             }`}
                           >
                             <MapPin className="inline h-4 w-4 mr-1" />
-                            Local
+                            Near me
                           </button>
                           <button
                             onClick={() => handleScopeToggle("global")}
@@ -1496,12 +1494,12 @@ const CommunityFeed = memo(function CommunityFeed() {
                             }`}
                           >
                             <Globe className="inline h-4 w-4 mr-1" />
-                            Everywhere
+                            All communities
                           </button>
                         </div>
                         {isGlobalView ? (
                           <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/65">
-                            Read-only
+                            Browse only
                           </span>
                         ) : null}
                       </div>
@@ -1511,13 +1509,13 @@ const CommunityFeed = memo(function CommunityFeed() {
                           value="forYou"
                           className="rounded-xl px-3 py-2 text-xs font-semibold md:rounded-md md:py-1.5"
                         >
-                          Local
+                          For you
                         </TabsTrigger>
                         <TabsTrigger
                           value="recent"
                           className="rounded-xl px-3 py-2 text-xs font-semibold md:rounded-md md:py-1.5"
                         >
-                          Recent
+                          Newest
                         </TabsTrigger>
                         <TabsTrigger
                           value="vault"
@@ -1546,10 +1544,10 @@ const CommunityFeed = memo(function CommunityFeed() {
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
                                 <div className="text-sm font-semibold text-white">
-                                  Share a local update
+                                  What would you like to share?
                                 </div>
                                 <div className="text-xs text-white/55">
-                                  Post an update, or start a request for work.
+                                  Choose a type below, then write it in your own words.
                                 </div>
                               </div>
                               <button
@@ -1557,23 +1555,23 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 onClick={() => navigate("/direct-connect")}
                                 className="hidden shrink-0 rounded-full border border-ts-orange/35 bg-ts-orange/10 px-3 py-1.5 text-xs font-semibold text-ts-orange md:inline-flex"
                               >
-                                Direct Connect
+                                Need someone for a job?
                               </button>
                             </div>
                             <Textarea
                               ref={composerRef}
                               placeholder={
                                 selectedCategory === "request"
-                                  ? "What do you need help with? (e.g., 'Need someone to fix my fence')"
+                                  ? "What needs to be done? Include where, when, and any useful details."
                                   : selectedCategory === "question"
-                                    ? "What do you want to know? Ask your neighbors..."
+                                    ? "What would you like to ask your neighbors?"
                                     : selectedCategory === "forsale"
-                                      ? "What are you selling? Include price and condition..."
+                                      ? "What are you selling? Add the price, condition, and pickup area."
                                       : selectedCategory === "alert"
-                                        ? "What should everyone know about right now?"
+                                        ? "What happened, and where?"
                                         : selectedCategory === "event"
-                                          ? "What's happening? When and where?"
-                                          : "What's happening in your community today?"
+                                          ? "What is the event, and when and where is it?"
+                                          : "Share an update with your neighbors."
                               }
                               value={newPostContent}
                               onChange={(e) => setNewPostContent(e.target.value)}
@@ -1603,7 +1601,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               {[
                                 {
                                   key: "general",
-                                  label: "General",
+                                  label: "Update",
                                   icon: MessageSquare,
                                   intent: "Share with neighbors",
                                 },
@@ -1615,7 +1613,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 },
                                 {
                                   key: "recommendation",
-                                  label: "Recommend",
+                                  label: "Recommendation",
                                   icon: Award,
                                   intent: "Recommend someone you trust",
                                 },
@@ -1633,7 +1631,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 },
                                 {
                                   key: "request",
-                                  label: "Need Help",
+                                  label: "Find help",
                                   icon: Wrench,
                                   intent: "Find someone to do work",
                                 },
@@ -1692,7 +1690,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               <div className="space-y-2">
                                 <div className="flex items-center gap-2 text-xs text-white/60 uppercase tracking-wide">
                                   <MessageSquare className="h-3 w-3" />
-                                  <span>Start a post</span>
+                                  <span>Not sure what to write?</span>
                                 </div>
                                 <div className="grid gap-2">
                                   {seededPrompts.map((prompt) => (
@@ -1746,7 +1744,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 disabled={!newPostContent.trim() || createPostMutation.isPending}
                                 data-testid="button-submit-post"
                               >
-                                {createPostMutation.isPending ? "Posting..." : "Share update"}
+                                {createPostMutation.isPending ? "Posting..." : "Post"}
                               </Button>
                             </div>
                           </div>

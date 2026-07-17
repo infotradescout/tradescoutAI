@@ -33,7 +33,6 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   scoutAction,
   riskFraming,
   guidance,
-  explanation,
   onProceed,
   onAskScout,
   onCancel,
@@ -41,12 +40,12 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
 }) => {
   const actionLabel =
     action === "message"
-      ? "Message"
+      ? "Send message"
       : action === "contact_person"
-        ? "Contact"
+        ? "Review message"
         : action === "call_business"
           ? "Call"
-          : "Direct Connect";
+          : "Continue";
   const actionVerb =
     action === "message" ? "message" : action === "call_business" ? "call" : "connect with";
 
@@ -93,31 +92,29 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
   const getGuidanceText = () => {
     switch (guidanceState) {
       case "safe":
-        return "Safe to proceed";
+        return "Ready to continue";
       case "caution":
-        return "Pause advised";
+        return "A little more information will help";
       case "blocked":
-        return "Action unavailable";
+        return "We need more information first";
     }
   };
 
   return (
-    <div className="bg-white border border-white/10 rounded-lg p-6 shadow-sm space-y-5">
-      {/* 1. Context */}
+    <div className="space-y-5 rounded-xl border border-white/10 bg-[color:var(--surface-card)] p-5 shadow-lg">
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-white/70">Who am I about to {actionVerb}?</h3>
+        <h3 className="text-base font-semibold text-white">Before you {actionVerb}</h3>
         <div className="space-y-1 text-sm text-white/70">
-          <p className="font-medium">{context.targetName}</p>
+          <p className="font-medium text-white">{context.targetName}</p>
           <p className="text-white/60">{context.targetRole}</p>
           <p className="text-white/60">{context.communitySignal}</p>
           {context.absenceNote && <p className="text-white/60 italic">{context.absenceNote}</p>}
         </div>
       </div>
 
-      {/* 2. Risk Framing */}
       {riskFraming.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-white/70">What could go wrong here?</h3>
+          <h3 className="text-sm font-medium text-white/80">What we still need</h3>
           <div className="space-y-1">
             {riskFraming.slice(0, 2).map((risk, i) => (
               <p key={i} className="text-sm text-white/60">
@@ -128,9 +125,8 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
         </div>
       )}
 
-      {/* 3. Contact Readiness */}
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-white/70">Before contact opens</h3>
+        <h3 className="text-sm font-medium text-white/80">What happens next</h3>
         <div className="flex items-start gap-3">
           {getGuidanceIcon()}
           <div className="flex-1 space-y-1">
@@ -140,9 +136,8 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
         </div>
       </div>
 
-      {/* 4. Action Choice */}
       <div className="space-y-2 pt-2 border-t border-white/10">
-        <h3 className="text-sm font-medium text-white/70">What do you want to do?</h3>
+        <h3 className="text-sm font-medium text-white/80">Choose what to do</h3>
         <div className="flex flex-wrap gap-2">
           {/* Show "Contact now" only if COMPLY */}
           {scoutAction === "COMPLY" && (
@@ -162,7 +157,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
               }}
               className="bg-tsCard hover:bg-white/5 text-white"
             >
-              {actionLabel} now
+              {actionLabel}
             </Button>
           )}
 
@@ -184,7 +179,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
               variant="outline"
               className="border-white/10 text-white/70 hover:bg-white/5"
             >
-              Add details first
+              Tell us more
             </Button>
           )}
 
@@ -206,7 +201,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
               variant="outline"
               className="border-white/10 text-white/70 hover:bg-white/5"
             >
-              Proceed anyway
+              Continue without adding details
             </Button>
           )}
 
@@ -214,7 +209,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
             <Button
               onClick={() => {
                 const confirmed = window.confirm(
-                  "This action is unavailable right now. Are you sure you want to proceed?"
+                  "We still need more information for this contact. Do you want to continue anyway?"
                 );
                 if (confirmed) {
                   recordActivity({
@@ -232,7 +227,7 @@ export const DecisionCard: React.FC<DecisionCardProps> = ({
               variant="outline"
               className="border-white/10 text-white/70 hover:bg-white/5"
             >
-              I understand the risk
+              Continue anyway
             </Button>
           )}
 

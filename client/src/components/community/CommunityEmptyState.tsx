@@ -12,9 +12,10 @@ export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStatePr
       <CardContent className="py-10 text-center space-y-5">
         <MessageSquare className="w-12 h-12 mx-auto text-ts-orange/45" />
         <div>
-          <h3 className="text-xl font-semibold text-white mb-2">Start the local feed</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">You&apos;re here early</h3>
           <p className="text-white/70 text-sm max-w-xl mx-auto">
-            Share an update, ask a question, or post a useful tip for your neighbors.
+            Your local community is just getting started. Ask the first question, recommend someone
+            great, or share something worth knowing.
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-2 text-xs text-white/70">
@@ -34,7 +35,7 @@ export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStatePr
             className="bg-ts-orange hover:bg-ts-orange-dark text-white px-6 py-5 text-sm mt-1"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Create the first post
+            Start the conversation
           </Button>
         )}
       </CardContent>

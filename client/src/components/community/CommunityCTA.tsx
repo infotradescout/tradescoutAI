@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { MessagesSquare, Hammer, Info } from "lucide-react";
+import { MessagesSquare, Hammer, Clock3 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "./DecisionCard";
@@ -53,7 +53,7 @@ async function checkCTAAuthority(
       action: "DEFER",
       ctaMode: "ask_scout",
       explanation: "We could not check this action right now. Add request details first.",
-      label: "Add details first",
+      label: "Tell us a little more",
     };
   }
 }
@@ -203,20 +203,24 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     setPendingAction(null);
   };
 
-  // Determine what to show for Direct Connect CTA
+  const isTradeDeal = source === "trade_deal";
+
+  // Keep the system decision internal; show the user the outcome they can take.
   const directConnectMode = directConnectAuthority?.ctaMode || "show";
   const showDirectConnect =
     canDirectConnect && !disableDirectConnect && directConnectMode !== "hide";
   const directConnectLabel =
     directConnectMode === "ask_scout"
-      ? directConnectAuthority?.label || "Add details first"
-      : "Direct Connect";
+      ? "Tell us what you need"
+      : isTradeDeal
+        ? "Ask about this offer"
+        : "Find help for this";
+  const directConnectFallback = canDirectConnect ? "More details needed" : "Job help soon";
 
-  // Determine what to show for Message CTA
   const messageMode = messageAuthority?.ctaMode || "show";
   const showMessage = canMessage && ownerUserId && messageMode !== "hide";
-  const messageLabel =
-    messageMode === "ask_scout" ? messageAuthority?.label || "Add details first" : "Message";
+  const messageLabel = messageMode === "ask_scout" ? "Explain why you want to connect" : "Message";
+  const messageFallback = canMessage && ownerUserId ? "More details needed" : "Messaging soon";
 
   // Get authority for pending action
   const currentAuthority =
@@ -225,7 +229,6 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
   // Render DecisionCard if active
   if (showDecisionCard && pendingAction && currentAuthority) {
     const targetName = "Community member";
-    const isTradeDeal = source === "trade_deal";
     const contactOutcome: ContactOutcome | undefined =
       pendingAction === "contact_person" && ownerUserId
         ? {
@@ -234,9 +237,12 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             targetRole: isTradeDeal ? "Trade Deal Author" : "Community Post Author",
             suggestedIntent: isTradeDeal ? "hire" : "collaborate",
             reasonForContact: isTradeDeal
-              ? "Follow up on a trade deal to clarify scope and next steps."
+              ? "Ask about a local offer and confirm the details."
               : "Follow up on a community post to coordinate next steps.",
-            riskFlags: currentAuthority.explanation ? [currentAuthority.explanation] : [],
+            riskFlags:
+              currentAuthority.action === "COMPLY"
+                ? []
+                : ["Add a clear reason for contacting this person before you continue."],
             sourceDecisionCardId: decisionCardId || undefined,
             decisionScope: scope || "community",
             decisionTitle: isTradeDeal ? "Trade deal follow-up" : "Community post follow-up",
@@ -254,7 +260,13 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             absenceNote: !ownerUserId ? "No prior connections yet" : undefined,
           }}
           scoutAction={currentAuthority.action}
-          riskFraming={currentAuthority.explanation ? [currentAuthority.explanation] : []}
+          riskFraming={
+            currentAuthority.action === "COMPLY"
+              ? []
+              : currentAuthority.action === "DEFER"
+                ? ["We need a little more information about what you want to do."]
+                : ["This contact option cannot open with the information available."]
+          }
           guidance={
             currentAuthority.action === "COMPLY"
               ? "This is ready to review. You can move forward."
@@ -262,7 +274,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
                 ? "Add a little more context before moving forward."
                 : "Key details are still missing before this action can open."
           }
-          explanation={currentAuthority.explanation}
+          explanation=""
           onProceed={handleDecisionProceed}
           onAskScout={handleAskScout}
           onCancel={handleDecisionCancel}
@@ -272,21 +284,8 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
     );
   }
 
-  // Show loading state briefly
   if (loading) {
-    return (
-      <div
-        className={
-          layout === "inline"
-            ? "flex items-center gap-1 pt-2 text-[11px] text-neutral-500"
-            : "mt-2 grid grid-cols-1 sm:grid-cols-3 text-[12px] gap-px rounded-lg overflow-hidden bg-white/10"
-        }
-      >
-        <div className="flex items-center justify-center py-2 text-neutral-600">
-          Checking options...
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (layout === "inline") {
@@ -300,7 +299,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
           }}
           className="flex-1 min-w-0 px-2 py-1 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-100 text-left truncate"
         >
-          Add details
+          Ask about this
         </button>
         {showDirectConnect && (
           <button
@@ -334,10 +333,10 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             {messageLabel}
           </button>
         )}
-        {!showDirectConnect && !showMessage && directConnectAuthority?.label && (
+        {!showDirectConnect && !showMessage && (
           <div className="flex-1 min-w-0 px-2 py-1 text-neutral-500 text-xs flex items-center gap-1">
-            <Info className="w-3 h-3" />
-            <span className="truncate">{directConnectAuthority.label}</span>
+            <Clock3 className="w-3 h-3" />
+            <span className="truncate">More ways to connect are coming soon</span>
           </div>
         )}
       </div>
@@ -354,7 +353,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         className="flex items-center justify-center gap-1.5 py-2 bg-tsBg hover:bg-tsBg/80 text-white"
       >
         <MessagesSquare className="w-4 h-4" />
-        <span>Add details</span>
+        <span>Ask about this</span>
       </button>
       {showDirectConnect && (
         <button
@@ -371,9 +370,9 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         </button>
       )}
       {!showDirectConnect && (
-        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-600 border-l border-white/10">
-          <Info className="w-4 h-4" />
-          <span className="text-xs">{directConnectAuthority?.label || "Unavailable"}</span>
+        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-500 border-l border-white/10">
+          <Clock3 className="w-4 h-4" />
+          <span className="text-xs">{directConnectFallback}</span>
         </div>
       )}
       {showMessage && (
@@ -391,9 +390,9 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
         </button>
       )}
       {!showMessage && (
-        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-600 border-l border-white/10">
-          <Info className="w-4 h-4" />
-          <span className="text-xs">{messageAuthority?.label || "Unavailable"}</span>
+        <div className="flex items-center justify-center gap-1.5 py-2 bg-tsBg/50 text-neutral-500 border-l border-white/10">
+          <Clock3 className="w-4 h-4" />
+          <span className="text-xs">{messageFallback}</span>
         </div>
       )}
     </div>
