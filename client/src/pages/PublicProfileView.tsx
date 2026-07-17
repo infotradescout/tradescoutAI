@@ -13,6 +13,7 @@ import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { ShareButton } from "@/components/ShareButton";
 import {
   buildProfileOfferExchangePath,
+  buildProfileServiceOfferPath,
   listProfileOfferImageUrls,
 } from "@shared/profileOfferShare";
 import {
@@ -1178,13 +1179,13 @@ export default function PublicProfileView() {
                                   : "Item";
                             const offerImages = listProfileOfferImageUrls(offer.metadata);
                             const offerDetailPath =
-                              offer.offerType === "item"
-                                ? buildProfileOfferExchangePath(
+                              offer.offerType === "service"
+                                ? buildProfileServiceOfferPath(offer.id)
+                                : buildProfileOfferExchangePath(
                                     offer.id,
                                     offer.metadata?.exchangeCategorySlug ||
                                       offer.metadata?.itemCategory
-                                  )
-                                : null;
+                                  );
                             return (
                               <div
                                 key={offer.id}
@@ -1267,7 +1268,11 @@ export default function PublicProfileView() {
                                           <ShareButton
                                             destination={offerDetailPath}
                                             title={offer.title}
-                                            text={`View ${offer.title} on TradeScout Exchange`}
+                                            text={
+                                              offer.offerType === "service"
+                                                ? `View ${offer.title} and start through TradeScout's protected request flow`
+                                                : `View ${offer.title} on TradeScout Exchange`
+                                            }
                                           />
                                         </>
                                       ) : null}

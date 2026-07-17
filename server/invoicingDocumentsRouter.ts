@@ -10,6 +10,7 @@ import {
   TRADESCOUT_TRANSACTION_FEE_POLICY,
   TRADESCOUT_TRANSACTION_FEE_USD,
 } from "../shared/platformRevenue";
+import { getPublicProfileServiceOffer, toPublicProfileOffer } from "./publicProfileOffer";
 
 /**
  * HTTP error with status code - for centralized error handling
@@ -796,7 +797,11 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
            LIMIT 50`,
           [sellerUserId]
         );
-        res.json({ offers: offers.rows.map(mapProfileOffer) });
+        res.json({
+          offers: offers.rows
+            .map(toPublicProfileOffer)
+            .filter((offer): offer is NonNullable<typeof offer> => Boolean(offer)),
+        });
       } catch (error) {
         if (isMissingProfileOffers(error)) {
           return res.json({ offers: [], migrationRequired: "0095_profile_offers_finance_bridge" });
@@ -829,6 +834,16 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         }
         throw error;
       }
+    })
+  );
+
+  r.get(
+    "/api/profile-offers/:id/public",
+    wrap(async (req: AuthedRequest, res: Response) => {
+      const offer = await getPublicProfileServiceOffer(pool, req.params.id);
+      if (!offer) throw new HttpError("PROFILE_SERVICE_OFFER_NOT_FOUND", 404);
+      res.setHeader("Cache-Control", "public, max-age=120, stale-while-revalidate=600");
+      res.json({ offer });
     })
   );
 

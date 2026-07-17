@@ -5,9 +5,34 @@ import {
 
 const PROFILE_OFFER_ID_PATTERN = /^[a-z0-9_-]{1,128}$/i;
 const MAX_PROFILE_OFFER_IMAGES = 12;
+const MAX_SERVICE_SHARE_TITLE_LENGTH = 90;
+const MAX_SERVICE_SHARE_DESCRIPTION_LENGTH = 160;
+
+type ProfileServiceOfferShareInput = {
+  id?: unknown;
+  title?: unknown;
+  description?: unknown;
+  metadata?: unknown;
+};
+
+export type ProfileServiceOfferShareMetadata = {
+  offerId: string;
+  title: string;
+  description: string;
+  canonical: string;
+  imageUrl: string | null;
+  imageAlt: string;
+};
 
 function cleanString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function capText(value: string, limit: number): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= limit) return normalized;
+  if (limit <= 1) return "";
+  return `${normalized.slice(0, limit - 1).trimEnd()}…`;
 }
 
 function normalizePublicImageReference(value: unknown): string | null {
@@ -28,12 +53,23 @@ export function normalizeProfileOfferExchangeCategory(value: unknown): ExchangeC
   return candidate in EXCHANGE_CATEGORY_TO_MARKETPLACE_NAME ? candidate : "other";
 }
 
+export function normalizeProfileOfferId(value: unknown): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const offerId = cleanString(raw);
+  return PROFILE_OFFER_ID_PATTERN.test(offerId) ? offerId : null;
+}
+
+export function buildProfileServiceOfferPath(offerIdValue: unknown): string | null {
+  const offerId = normalizeProfileOfferId(offerIdValue);
+  return offerId ? `/services/${encodeURIComponent(offerId)}` : null;
+}
+
 export function buildProfileOfferExchangePath(
   offerIdValue: unknown,
   categoryValue: unknown
 ): string | null {
-  const offerId = cleanString(offerIdValue);
-  if (!PROFILE_OFFER_ID_PATTERN.test(offerId)) return null;
+  const offerId = normalizeProfileOfferId(offerIdValue);
+  if (!offerId) return null;
   const category = normalizeProfileOfferExchangeCategory(categoryValue);
   return `/exchange/${encodeURIComponent(category)}/profile-offer-${encodeURIComponent(offerId)}`;
 }
@@ -54,4 +90,35 @@ export function listProfileOfferImageUrls(metadataValue: unknown): string[] {
     if (images.length >= MAX_PROFILE_OFFER_IMAGES) break;
   }
   return images;
+}
+
+export function createProfileServiceOfferShareMetadata(args: {
+  offer: ProfileServiceOfferShareInput;
+  origin: string;
+}): ProfileServiceOfferShareMetadata | null {
+  const offerId = normalizeProfileOfferId(args.offer?.id);
+  const path = buildProfileServiceOfferPath(offerId);
+  if (!offerId || !path) return null;
+
+  try {
+    const rawTitle = cleanString(args.offer.title) || "TradeScout service";
+    const title = capText(rawTitle, MAX_SERVICE_SHARE_TITLE_LENGTH);
+    const protection = "Start through TradeScout's protected request flow.";
+    const lead = capText(
+      cleanString(args.offer.description) || `View ${title}.`,
+      MAX_SERVICE_SHARE_DESCRIPTION_LENGTH - protection.length - 1
+    );
+    const imageReference = listProfileOfferImageUrls(args.offer.metadata)[0] || null;
+
+    return {
+      offerId,
+      title,
+      description: `${lead} ${protection}`,
+      canonical: new URL(path, args.origin).toString(),
+      imageUrl: imageReference ? new URL(imageReference, args.origin).toString() : null,
+      imageAlt: `${title} service image`,
+    };
+  } catch {
+    return null;
+  }
 }

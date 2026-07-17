@@ -73,6 +73,7 @@ import { buildPublicLandingHtml } from "./publicLandingHtml";
 import { buildPublicExchangeHtml } from "./publicExchangeHtml";
 import { buildPublicExchangeListingHtml } from "./publicExchangeListingHtml";
 import { buildPublicHandmadeProductHtml } from "./publicHandmadeProductHtml";
+import { buildPublicProfileServiceOfferHtml } from "./publicProfileServiceOfferHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
@@ -1914,6 +1915,41 @@ app.use(landingContractHeaders);
                     res.sendFile(indexPath);
                   } else {
                     res.status(500).send("Failed to render handmade product page");
+                  }
+                }
+              });
+
+              // Fixed-price profile services: exact service photo and protected-request metadata.
+              app.get("/services/:offerId", async (req, res) => {
+                try {
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  const templateHtml = getCachedTemplate(indexPath);
+                  if (!templateHtml) return res.status(404).send("Application files not found");
+
+                  const html = await buildPublicProfileServiceOfferHtml({
+                    origin: resolvePublicOrigin(req),
+                    templateHtml,
+                    offerId: String(req.params.offerId || ""),
+                  });
+
+                  if (!html) {
+                    res.setHeader("Cache-Control", "no-store");
+                    return res.sendFile(indexPath);
+                  }
+
+                  res.setHeader(
+                    "Cache-Control",
+                    "public, max-age=120, stale-while-revalidate=3600"
+                  );
+                  res.send(html);
+                } catch (err) {
+                  console.error("Error rendering profile service offer HTML:", err);
+                  const indexPath = path.join(publicDistPath, "index.html");
+                  if (fs.existsSync(indexPath)) {
+                    res.setHeader("Cache-Control", "no-store");
+                    res.sendFile(indexPath);
+                  } else {
+                    res.status(500).send("Failed to render service page");
                   }
                 }
               });
