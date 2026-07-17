@@ -28,6 +28,10 @@ import {
   buildPublicHomeScoutListingCards,
   type PublicHomeScoutListingCard,
 } from "../../shared/homeScoutListingShare";
+import {
+  buildPublicContractorPromoCards,
+  type PublicContractorPromoCard,
+} from "../../shared/contractorPromoShare";
 
 const router = Router();
 
@@ -856,6 +860,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   let publicHandmadeProducts: Array<Record<string, unknown>> = [];
   let publicMarketplaceListings: PublicBusinessListingCard[] = [];
   let publicHomeScoutListings: PublicHomeScoutListingCard[] = [];
+  let publicContractorPromos: PublicContractorPromoCard[] = [];
   let publicCommunityPosts: Array<Record<string, unknown>> = [];
   let canExposeCommercialItems = false;
 
@@ -865,6 +870,21 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   } catch (error) {
     // Fail closed for commercial exposure without hiding the public profile.
     console.error("[profiles] Failed resolving listing exposure authority:", { slug, error });
+  }
+
+  if (canExposeCommercialItems && profileSections.services !== false) {
+    try {
+      const contractor = await storage.getContractorByUserId(ownerUserId);
+      if (contractor) {
+        const promos = await storage.getContractorPromos(contractor.id);
+        publicContractorPromos = buildPublicContractorPromoCards({
+          promos,
+          providerPhotos: contractor.photos,
+        });
+      }
+    } catch (error) {
+      console.error("[profiles] Failed loading public contractor promotions:", { slug, error });
+    }
   }
 
   if (
@@ -1003,6 +1023,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       handmadeProducts: publicHandmadeProducts,
       marketplaceListings: publicMarketplaceListings,
       homeScoutListings: publicHomeScoutListings,
+      contractorPromos: publicContractorPromos,
       communityPosts: publicCommunityPosts,
     },
   });

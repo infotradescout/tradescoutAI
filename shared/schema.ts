@@ -4453,6 +4453,7 @@ export const contractorPromos = pgTable("contractor_promos", {
   title: varchar("title", { length: 100 }).notNull(),
   description: text("description").notNull(),
   offerDetails: text("offer_details").notNull(), // "20% off all roofing jobs", "Free estimate + 10% discount"
+  imageUrl: varchar("image_url", { length: 2048 }), // Exact image used on profile cards and shared previews
 
   // Discount structure
   discountType: varchar("discount_type", {

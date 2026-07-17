@@ -743,6 +743,13 @@
       "when": 1780854180000,
       "tag": "0102_property_participant_invites",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1784221200000,
+      "tag": "0103_contractor_promo_image",
+      "breakpoints": true
     }
   ]
 }

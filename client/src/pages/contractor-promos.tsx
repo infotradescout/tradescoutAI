@@ -12,6 +12,9 @@ import {
   MapPin,
   Edit,
   Trash2,
+  ImagePlus,
+  Loader2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,11 +54,13 @@ import { share } from "@/utils/share";
 import { getDeviceType, trackShellEvent } from "@/lib/analytics";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
+import { uploadObject } from "@/lib/objectUpload";
 
 const promoFormSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be under 100 characters"),
   description: z.string().min(1, "Description is required"),
   offerDetails: z.string().min(1, "Offer details are required"),
+  imageUrl: z.string().max(2048).optional(),
   discountType: z.enum(["percentage", "fixed_amount", "free_service", "bundle_deal"]),
   discountValue: z.string().optional(),
   minimumJobValue: z.string().optional(),
@@ -71,6 +76,7 @@ interface ContractorPromo {
   title: string;
   description: string;
   offerDetails: string;
+  imageUrl?: string | null;
   discountType: string;
   discountValue: string;
   minimumJobValue: string;
@@ -101,6 +107,7 @@ function PromoForm({
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const form = useForm<PromoFormValues>({
     resolver: zodResolver(promoFormSchema),
@@ -108,6 +115,7 @@ function PromoForm({
       title: initialValues?.title ?? promo?.title ?? "",
       description: initialValues?.description ?? promo?.description ?? "",
       offerDetails: initialValues?.offerDetails ?? promo?.offerDetails ?? "",
+      imageUrl: initialValues?.imageUrl ?? promo?.imageUrl ?? "",
       discountType:
         (initialValues?.discountType as any) ?? (promo?.discountType as any) ?? "percentage",
       discountValue: initialValues?.discountValue ?? promo?.discountValue ?? "",
@@ -126,6 +134,7 @@ function PromoForm({
         method: "POST",
         body: {
           ...data,
+          imageUrl: data.imageUrl?.trim() || null,
           discountValue: data.discountValue ? parseFloat(data.discountValue) : null,
           minimumJobValue: data.minimumJobValue ? parseFloat(data.minimumJobValue) : null,
           maxUses: data.maxUses ? parseInt(data.maxUses) : null,
@@ -151,6 +160,7 @@ function PromoForm({
         method: "PUT",
         body: {
           ...data,
+          imageUrl: data.imageUrl?.trim() || null,
           discountValue: data.discountValue ? parseFloat(data.discountValue) : null,
           minimumJobValue: data.minimumJobValue ? parseFloat(data.minimumJobValue) : null,
           maxUses: data.maxUses ? parseInt(data.maxUses) : null,
@@ -172,6 +182,30 @@ function PromoForm({
       updateMutation.mutate(data);
     } else {
       createMutation.mutate(data);
+    }
+  };
+
+  const imageUrl = form.watch("imageUrl");
+  const imageInputId = `contractor-promo-image-${promo?.id || "new"}`;
+  const handleImageSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const { publicUrl } = await uploadObject(file);
+      form.setValue("imageUrl", publicUrl, { shouldDirty: true, shouldValidate: true });
+      toast({ title: "Promotion image added" });
+    } catch (error) {
+      console.error("Failed to upload contractor promotion image", error);
+      toast({
+        title: "Image upload failed",
+        description: "Please try another image.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -201,6 +235,73 @@ function PromoForm({
                 <Input placeholder="Winter Special - 20% Off All Services" {...field} />
               </FormControl>
               <FormDescription>This will be the main headline for your promo</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="imageUrl"
+          render={() => (
+            <FormItem>
+              <FormLabel>Promotion image</FormLabel>
+              <FormControl>
+                <div className="space-y-3">
+                  {imageUrl ? (
+                    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/20">
+                      <img
+                        src={imageUrl}
+                        alt="Promotion preview"
+                        className="aspect-[16/9] w-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="destructive"
+                        className="absolute right-2 top-2"
+                        onClick={() =>
+                          form.setValue("imageUrl", "", {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }
+                        aria-label="Remove promotion image"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : null}
+                  <input
+                    id={imageInputId}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={uploadingImage}
+                    onChange={handleImageSelected}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploadingImage}
+                    onClick={() => document.getElementById(imageInputId)?.click()}
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ImagePlus className="h-4 w-4" />
+                    )}
+                    {uploadingImage
+                      ? "Uploading…"
+                      : imageUrl
+                        ? "Replace image"
+                        : "Add promotion image"}
+                  </Button>
+                </div>
+              </FormControl>
+              <FormDescription>
+                This exact image appears on your profile card and in shared-link previews.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -407,7 +508,17 @@ function PromoCard({ promo }: { promo: ContractorPromo }) {
   const isUsageLimitReached = promo.maxUses && promo.currentUses >= promo.maxUses;
 
   return (
-    <Card className={`${!promo.isActive || isExpired || isUsageLimitReached ? "opacity-60" : ""}`}>
+    <Card
+      className={`overflow-hidden ${!promo.isActive || isExpired || isUsageLimitReached ? "opacity-60" : ""}`}
+    >
+      {promo.imageUrl ? (
+        <img
+          src={promo.imageUrl}
+          alt={promo.title}
+          className="aspect-[16/7] w-full object-cover"
+          loading="lazy"
+        />
+      ) : null}
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
