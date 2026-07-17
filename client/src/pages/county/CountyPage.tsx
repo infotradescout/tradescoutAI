@@ -251,7 +251,9 @@ const CountyPage = memo(function CountyPage() {
   const directConnectHref = `/direct-connect?county=${county.fipsCode}&source=county-community-path`;
   const localSearchHref = `/scout?intent=local-search&county=${encodeURIComponent(
     county.name
-  )}&countyFips=${encodeURIComponent(county.fipsCode)}&source=county-community-path`;
+  )}&countyFips=${encodeURIComponent(county.fipsCode)}&stateCode=${encodeURIComponent(
+    state.code
+  )}&source=county-community-path`;
   const communityFeedHref = `/community-feed?county=${county.fipsCode}`;
   const featuredTradeSlugs = [
     "plumbing",

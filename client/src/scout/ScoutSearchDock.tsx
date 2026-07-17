@@ -5,6 +5,7 @@ type ScoutSearchDockProps = {
   isMobile: boolean;
   isBusy: boolean;
   prefillKey: number;
+  forcedPrefill?: string;
   hasMessages: boolean;
   quickStartPrompts: readonly string[];
   autoDemoText?: string;
@@ -17,6 +18,7 @@ export function ScoutSearchDock({
   isMobile,
   isBusy,
   prefillKey,
+  forcedPrefill,
   hasMessages,
   quickStartPrompts,
   autoDemoText,
@@ -36,6 +38,7 @@ export function ScoutSearchDock({
         <ScoutInputRow
           isBusy={isBusy}
           prefillKey={prefillKey}
+          forcedPrefill={forcedPrefill}
           onSend={onSend}
           onTyping={onTyping}
           quickStartPrompts={

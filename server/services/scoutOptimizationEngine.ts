@@ -16,6 +16,7 @@ export interface ScoutMissionCacheInput {
   countyFips?: string;
   stateCode?: string;
   trade?: string;
+  contextKey?: string;
   learningMode?: boolean;
 }
 
@@ -30,24 +31,28 @@ function normalize(value: unknown): string {
 }
 
 export function buildScoutMissionCacheKey(input: ScoutMissionCacheInput): string {
-  return [
+  const parts = [
     normalize(input.query),
     normalize(input.countyFips),
     normalize(input.stateCode),
     normalize(input.trade),
-    input.learningMode ? "learning" : "standard",
-  ].join("|");
+  ];
+  const contextKey = normalize(input.contextKey);
+  if (contextKey) parts.push(`context:${contextKey}`);
+  parts.push(input.learningMode ? "learning" : "standard");
+  return parts.join("|");
 }
 
 export function generateQueryHash(
   query: string,
-  context?: { county?: string; state?: string; trade?: string }
+  context?: { county?: string; state?: string; trade?: string; contextKey?: string }
 ): string {
   return buildScoutMissionCacheKey({
     query,
     countyFips: context?.county,
     stateCode: context?.state,
     trade: context?.trade,
+    contextKey: context?.contextKey,
   });
 }
 

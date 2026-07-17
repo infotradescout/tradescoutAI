@@ -282,6 +282,25 @@ describe("Scout entry framing contracts", () => {
     expect(scoutOsSource).toContain('title: "Recommended paths"');
   });
 
+  it("preserves explicit context when classic pages open Scout", () => {
+    const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+    const inputSource = read("client/src/scout/ScoutInputRow.tsx");
+    const apiSource = read("client/src/scout/api.ts");
+    const serverSource = read("server/routes/scout.ts");
+
+    expect(scoutOsSource).toContain("readScoutBrowserLocation");
+    expect(scoutOsSource).toContain("parseScoutLaunchLocation");
+    expect(scoutOsSource).toContain("launchContext: scoutLaunch.context || undefined");
+    expect(scoutOsSource).toContain("forcedPrefill={scoutLaunch.prompt}");
+    expect(scoutOsSource).toContain("<ScoutLaunchContextCard");
+    expect(inputSource).toContain("if (forcedPrefill)");
+    expect(inputSource).toContain("setValue(forcedPrefill)");
+    expect(apiSource).toContain("launchContext: options.launchContext");
+    expect(serverSource).toContain("CLASSIC VIEW CONTEXT");
+    expect(serverSource).toContain("Visibility still does not grant contact");
+    expect(serverSource).toContain("Intent -> Decision Card -> Contact");
+  });
+
   it("saved Scout related links can reopen stable home and vehicle records", () => {
     const homesSource = read("client/src/pages/homes.tsx");
     const vehiclesSource = read("client/src/pages/vehicles.tsx");

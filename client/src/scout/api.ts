@@ -3,6 +3,7 @@
 import type { ScoutMessage, ScoutAction } from "./state";
 import type { RecentActivityEvent } from "../agent/activity";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
+import type { ScoutLaunchContext } from "@shared/scoutLaunchContext";
 
 const apiBaseEnv = (import.meta as any).env?.VITE_SCOUT_API_BASE as string | undefined;
 
@@ -31,6 +32,7 @@ export interface SendToScoutOptions {
   locality?: ScoutLocality;
   mode?: ScoutMode;
   intent?: string;
+  launchContext?: ScoutLaunchContext;
   knowledgeMode?: KnowledgeMode;
   filters?: Record<string, unknown>;
   roles?: string[];
@@ -236,6 +238,7 @@ export async function sendToScout(options: SendToScoutOptions): Promise<ScoutBac
     // extra fields are allowed but ignored by current server
     mode,
     intent: options.intent,
+    launchContext: options.launchContext,
     knowledgeMode: options.knowledgeMode ?? "local-first",
     filters: options.filters ?? {},
     hyperlocalPricing: true,

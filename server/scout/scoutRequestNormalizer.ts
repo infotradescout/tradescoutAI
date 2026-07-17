@@ -1,4 +1,5 @@
 import type { NormalizedScoutRequest } from "../../shared/types/scout";
+import { normalizeScoutLaunchContext } from "../../shared/scoutLaunchContext";
 
 type NormalizeInput = {
   message: string;
@@ -10,6 +11,7 @@ type NormalizeInput = {
   countyFips?: string;
   history?: Array<{ role?: string; content?: string }>;
   intent?: string;
+  launchContext?: unknown;
   sessionId?: string;
 };
 
@@ -37,6 +39,7 @@ export function normalizeScoutRequest(input: NormalizeInput): NormalizedScoutReq
     countyFips: typeof input.countyFips === "string" ? input.countyFips : undefined,
     history,
     intent: typeof input.intent === "string" ? input.intent : undefined,
+    launchContext: normalizeScoutLaunchContext(input.launchContext),
     sessionId: typeof input.sessionId === "string" ? input.sessionId : undefined,
   };
 }

@@ -116,6 +116,8 @@ import {
   LIVE_READINESS_QUICK_START_PROMPT,
   SCOUT_QUICK_START_PROMPTS,
 } from "./scoutQuickStartPrompts";
+import { ScoutLaunchContextCard } from "./ScoutLaunchContextCard";
+import { parseScoutLaunchLocation } from "@shared/scoutLaunchContext";
 
 const INTRO_DEMO_TEXT = "What can TradeScout do in my local area?";
 // Must match the key used by ScoutInput so the demo only runs once per session.
@@ -1759,10 +1761,32 @@ function objectiveStatusToProgress(status: Objective["status"]): number {
   return 0;
 }
 
+function readScoutBrowserLocation(fallback: string): string {
+  return typeof window === "undefined"
+    ? fallback
+    : `${window.location.pathname}${window.location.search}`;
+}
+
 export default function ScoutOS() {
   const { user, isAuthenticated } = useAuth();
   const [location, navigate] = useLocation();
   const isMobile = useIsMobile();
+  const [scoutBrowserLocation, setScoutBrowserLocation] = useState(() =>
+    readScoutBrowserLocation(location)
+  );
+  const scoutLaunch = useMemo(
+    () => parseScoutLaunchLocation(scoutBrowserLocation),
+    [scoutBrowserLocation]
+  );
+  const hasExplicitScoutLaunch = Boolean(scoutLaunch.context || scoutLaunch.prompt);
+  const appliedLaunchPromptRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const syncBrowserLocation = () => setScoutBrowserLocation(readScoutBrowserLocation(location));
+    syncBrowserLocation();
+    window.addEventListener("popstate", syncBrowserLocation);
+    return () => window.removeEventListener("popstate", syncBrowserLocation);
+  }, [location]);
 
   const [toolsOpen, setToolsOpen] = useState(false);
   const [workAreaOpen, setWorkAreaOpen] = useState(false);
@@ -2526,36 +2550,29 @@ export default function ScoutOS() {
     }
 
     if (forceIntro) return true;
+    if (hasExplicitScoutLaunch) return false;
     if (isAuthenticated) return false;
     if (!isFirstGuestVisit) return false;
     if (hasPlayedDemoThisSession) return false;
     return true;
-  }, [hasPlayedDemoThisSession, isAuthenticated, isFirstGuestVisit, location]);
+  }, [
+    hasExplicitScoutLaunch,
+    hasPlayedDemoThisSession,
+    isAuthenticated,
+    isFirstGuestVisit,
+    location,
+  ]);
 
-  // Parse URL search params to detect explicit intent (e.g. /scout?intent=estimate)
-  const urlIntent = useMemo(() => {
-    try {
-      if (!location.startsWith("/scout")) return undefined;
-      const searchIndex = location.indexOf("?");
-      if (searchIndex === -1) return undefined;
-      const search = location.substring(searchIndex);
-      const params = new URLSearchParams(search);
-      const raw = params.get("intent") || undefined;
-      return raw ? raw.toLowerCase() : undefined;
-    } catch {
-      return undefined;
-    }
-  }, [location]);
+  const urlIntent = scoutLaunch.context?.intent;
 
   useEffect(() => {
     if (!urlIntent) return;
 
     try {
-      const searchIndex = location.indexOf("?");
-      const search = searchIndex >= 0 ? location.substring(searchIndex) : "";
+      const search = typeof window === "undefined" ? "" : window.location.search;
       const params = new URLSearchParams(search);
-      const source = params.get("source");
-      const prompt = params.get("prompt");
+      const source = scoutLaunch.context?.source;
+      const prompt = scoutLaunch.prompt;
       const signature = [
         urlIntent,
         source || "",
@@ -2575,7 +2592,7 @@ export default function ScoutOS() {
     } catch {
       // fail-soft: analytics must never impact scout flow
     }
-  }, [location, urlIntent]);
+  }, [location, scoutLaunch.context?.source, scoutLaunch.prompt, urlIntent]);
 
   // PHASE 3d-A: Scout Onboarding Flow with Claim Inference
   const onboarding = useScoutOnboarding();
@@ -2680,9 +2697,37 @@ export default function ScoutOS() {
     }
   }, [isAuthenticated, isGuest, hasMessages, hasUserMessages, shouldPlayIntroDemo]);
 
-  // Clear any stale prefill on first guest visit so input is always empty
+  // Keep an explicit classic-to-Scout handoff as a user-reviewed draft.
   useEffect(() => {
-    if (isFirstGuestVisit) {
+    if (!scoutLaunch.prompt) return;
+    if (appliedLaunchPromptRef.current === scoutLaunch.signature) return;
+
+    appliedLaunchPromptRef.current = scoutLaunch.signature;
+    try {
+      window.localStorage.setItem("scout:prefill:scout-main", scoutLaunch.prompt);
+    } catch {
+      // fail-soft: the visible context still survives without local storage
+    }
+    setHasGuestInteracted(true);
+    setPrefillKey((key) => key + 1);
+  }, [scoutLaunch.prompt, scoutLaunch.signature]);
+
+  // Remove only the one-time prompt after it becomes a real user message.
+  // The structured launch context stays in the URL for the rest of the conversation.
+  useEffect(() => {
+    if (!scoutLaunch.prompt || !hasUserMessages) return;
+    const params = new URLSearchParams(
+      typeof window === "undefined" ? "" : window.location.search
+    );
+    params.delete("prompt");
+    const nextLocation = params.toString() ? `/scout?${params.toString()}` : "/scout";
+    navigate(nextLocation, { replace: true });
+    setScoutBrowserLocation(nextLocation);
+  }, [hasUserMessages, location, navigate, scoutLaunch.prompt]);
+
+  // Clear stale drafts on a plain first guest visit, but never erase an explicit handoff.
+  useEffect(() => {
+    if (isFirstGuestVisit && !hasExplicitScoutLaunch && !appliedLaunchPromptRef.current) {
       try {
         window.localStorage.removeItem("scout:prefill:scout-main");
       } catch {
@@ -2690,7 +2735,7 @@ export default function ScoutOS() {
       }
       setPrefillKey((k) => k + 1);
     }
-  }, [isFirstGuestVisit]);
+  }, [hasExplicitScoutLaunch, isFirstGuestVisit]);
 
   // Load public config (first intro appendix text) once
   useEffect(() => {
@@ -3096,6 +3141,7 @@ export default function ScoutOS() {
           locality,
           mode,
           intent: urlIntent,
+          launchContext: scoutLaunch.context || undefined,
           knowledgeMode: "local-first",
           filters: {
             intentDetails,
@@ -3688,6 +3734,7 @@ export default function ScoutOS() {
       recordUserMessage,
       sessionRole,
       setPrefillKey,
+      scoutLaunch.context,
       state.messages,
       queueAutoRoute,
       refreshObjective,
@@ -3982,6 +4029,7 @@ export default function ScoutOS() {
     if (typeof window === "undefined") return;
     if (!isAuthenticated) return;
     if (!location.startsWith("/scout")) return;
+    if (hasExplicitScoutLaunch) return;
 
     const params = new URLSearchParams(location.split("?")[1] || "");
     if (params.get("onboarding") === "true") return;
@@ -4012,7 +4060,15 @@ export default function ScoutOS() {
 
     setHasGuestInteracted(true);
     void handleSend(kickoff, undefined, { isScriptedIntro: true });
-  }, [isAuthenticated, location, state.messages, shouldPlayIntroDemo, user, handleSend]);
+  }, [
+    handleSend,
+    hasExplicitScoutLaunch,
+    isAuthenticated,
+    location,
+    shouldPlayIntroDemo,
+    state.messages,
+    user,
+  ]);
 
   // Intro demo typing is handled by ScoutInput; we only supply
   // session-scoped enable flag and the demo text.
@@ -4940,6 +4996,13 @@ export default function ScoutOS() {
     [handleClusterAction, localDiscoveryLaunchers, prefillScoutMission]
   );
   const showDiscoveryRail = !isMobile && !hasUserMessages;
+  const clearScoutLaunchContext = useCallback(() => {
+    navigate("/scout", { replace: true });
+    setScoutBrowserLocation("/scout");
+  }, [navigate]);
+  const openScoutLaunchSource = useCallback(() => {
+    if (scoutLaunch.returnPath) navigate(scoutLaunch.returnPath);
+  }, [navigate, scoutLaunch.returnPath]);
 
   return (
     <div className="scout-shell scout-shell-refined flex flex-col flex-1 min-h-0 w-full items-center overflow-hidden">
@@ -5020,6 +5083,15 @@ export default function ScoutOS() {
                   </Sheet>
                 </div>
               )}
+
+              {scoutLaunch.context ? (
+                <ScoutLaunchContextCard
+                  context={scoutLaunch.context}
+                  returnPath={scoutLaunch.returnPath}
+                  onOpenOriginal={openScoutLaunchSource}
+                  onClear={clearScoutLaunchContext}
+                />
+              ) : null}
 
               {!hasUserMessages && (
                 <ScoutHome
@@ -5998,6 +6070,7 @@ export default function ScoutOS() {
                 isMobile={isMobile}
                 isBusy={isBusy}
                 prefillKey={prefillKey}
+                forcedPrefill={scoutLaunch.prompt}
                 hasMessages={hasMessages}
                 quickStartPrompts={hasMessages ? SCOUT_QUICK_START_PROMPTS : []}
                 autoDemoText={introDemoText}
