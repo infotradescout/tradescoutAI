@@ -68,9 +68,9 @@ You can always tell Scout directly if your role changes (for example: "I also ru
 If you are ever unsure what to do next, you can:
 
 - Open the Help Center and use the quick actions or articles for your role.
-- Search in plain language, for example:
-  - "Give me a tour of TradeScout for homeowners."
-  - "Show me how to get more local leads."
+- Search with Scout in plain language, for example:  
+  - "Give me a tour of TradeScout for homeowners."  
+  - "Show me how to get more local leads."  
   - "Explain TradeScout for Dummies and suggest my next step."
 
 This document lives in the TradeScout Brain knowledge base so Scout can pull from it when explaining TradeScout or designing an onboarding path for you.

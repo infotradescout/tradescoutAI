@@ -173,41 +173,22 @@ const TradeCountyPage = memo(function TradeCountyPage() {
         noIndex={shouldNoIndex}
       />
 
-      <div className="min-h-screen bg-tsBg text-white">
-        <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-          <div className="mb-5 flex flex-col gap-4 border-b border-[color:var(--border-subtle)] pb-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <div className="mb-3 inline-flex items-center gap-2 rounded-[var(--ts-radius-chip)] border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-ts-orange">
-                <MapPinned className="h-4 w-4" />
-                County market
-              </div>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                {trade.name} in {marketLabel}
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/62">
-                Start with the local market, then narrow by city or neighborhood.{" "}
-                {localBrowseCopy()}
-              </p>
+      <div className="bg-tsBg text-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+          <div className="mb-8 max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1 text-sm font-medium text-ts-orange">
+              <MapPinned className="h-4 w-4" />
+              County market
             </div>
-            <div className="grid grid-cols-3 overflow-hidden rounded-[var(--ts-radius-card)] border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] text-center">
-              <div className="px-4 py-3">
-                <div className="text-lg font-semibold">{items.length}</div>
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">Shown</div>
-              </div>
-              <div className="border-x border-[color:var(--border-subtle)] px-4 py-3">
-                <div className="text-lg font-semibold">{limit}</div>
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">
-                  Page size
-                </div>
-              </div>
-              <div className="px-4 py-3">
-                <div className="text-lg font-semibold">{offset}</div>
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/45">Offset</div>
-              </div>
-            </div>
+            <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
+              {trade.name} in {marketLabel}
+            </h1>
+            <p className="text-lg leading-relaxed text-white/70">
+              Start with the local market, then narrow by city or neighborhood. {localBrowseCopy()}
+            </p>
           </div>
 
-          <Card className="mb-4">
+          <Card className="mb-6 border-white/10 bg-white/[0.04] shadow-[0_22px_70px_rgba(0,0,0,0.32)]">
             <CardContent className="p-4">
               <form className="grid gap-3 md:grid-cols-[1fr_0.75fr_auto]" onSubmit={onSearch}>
                 <div className="relative">
@@ -216,13 +197,14 @@ const TradeCountyPage = memo(function TradeCountyPage() {
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     placeholder={`Search ${trade.name} in ${stripCountySuffix(county.name)}...`}
-                    className="pl-10"
+                    className="border-white/10 bg-tsBg/70 pl-10 text-white placeholder:text-white/35"
                   />
                 </div>
                 <Input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="City (optional)"
+                  className="border-white/10 bg-tsBg/70 text-white placeholder:text-white/35"
                 />
                 <Button type="submit" variant="secondary" className="gap-2">
                   <Search className="h-4 w-4" />
@@ -288,35 +270,35 @@ const TradeCountyPage = memo(function TradeCountyPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="overflow-hidden rounded-[var(--ts-radius-panel)] border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
-              <div className="grid grid-cols-[minmax(0,1fr)_112px] border-b border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white/45 sm:grid-cols-[minmax(0,1fr)_132px_44px]">
-                <div>Business</div>
-                <div>Status</div>
-                <div className="hidden sm:block" />
-              </div>
+            <div className="grid grid-cols-1 gap-3">
               {items.map((biz) => (
-                <Link key={biz.id} href={`/business/${encodeURIComponent(biz.slug)}`}>
-                  <a className="group grid grid-cols-[minmax(0,1fr)_112px] items-center border-b border-[color:var(--border-subtle)] px-4 py-3 transition-colors last:border-b-0 hover:bg-white/[0.055] sm:grid-cols-[minmax(0,1fr)_132px_44px]">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--ts-radius-control)] border border-ts-orange/25 bg-ts-orange/10 text-ts-orange">
-                        <Building2 className="h-4 w-4" />
-                      </span>
-                      <span className="truncate font-semibold group-hover:text-ts-orange">
-                        {biz.name}
-                      </span>
-                    </div>
-                    <Badge
-                      variant={biz.claimStatus === "claimed" ? "default" : "secondary"}
-                      className="w-fit shrink-0"
-                    >
-                      {biz.claimStatus === "claimed" ? (
-                        <ShieldCheck className="mr-1 h-3 w-3" />
-                      ) : null}
-                      {biz.claimStatus === "claimed" ? "Claimed" : "Unclaimed"}
-                    </Badge>
-                    <ArrowRight className="hidden h-4 w-4 justify-self-end text-white/30 transition group-hover:translate-x-0.5 group-hover:text-ts-orange sm:block" />
-                  </a>
-                </Link>
+                <Card
+                  key={biz.id}
+                  className="border-white/10 bg-white/[0.04] transition hover:border-ts-orange/35 hover:bg-white/[0.07]"
+                >
+                  <CardHeader className="py-4">
+                    <CardTitle className="flex items-center justify-between gap-3 text-lg text-white">
+                      <Link href={`/business/${encodeURIComponent(biz.slug)}`}>
+                        <a className="group flex min-w-0 items-center gap-3 hover:text-ts-orange">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-ts-orange/15 text-ts-orange">
+                            <Building2 className="h-4 w-4" />
+                          </span>
+                          <span className="truncate">{biz.name}</span>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-white/30 transition group-hover:translate-x-0.5 group-hover:text-ts-orange" />
+                        </a>
+                      </Link>
+                      <Badge
+                        variant={biz.claimStatus === "claimed" ? "default" : "secondary"}
+                        className="shrink-0"
+                      >
+                        {biz.claimStatus === "claimed" ? (
+                          <ShieldCheck className="mr-1 h-3 w-3" />
+                        ) : null}
+                        {biz.claimStatus === "claimed" ? "Claimed" : "Unclaimed"}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                </Card>
               ))}
             </div>
           )}

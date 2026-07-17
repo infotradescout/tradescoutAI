@@ -60,9 +60,8 @@ export default function TradeScoutLandingPage() {
           <h1 id="ts-hero-title">Connection Without Compromise</h1>
 
           <p className="ts-hero-subheadline">
-            Post what you need done in Direct Connect — no one gets your phone number until you say
-            so. We organize the job and the details first, so you're in control from the first
-            message.
+            Start a local work request before anyone gets your phone number. TradeScout organizes
+            the job, location, and context first — then contact happens only when you decide.
           </p>
 
           <div className="ts-hero-actions" aria-label="Primary actions">
@@ -84,7 +83,7 @@ export default function TradeScoutLandingPage() {
       <section className="ts-sequence" aria-labelledby="ts-sequence-title">
         <div className="ts-section-heading">
           <p className="ts-section-kicker">How it works</p>
-          <h2 id="ts-sequence-title">Here's exactly what happens when you post a request.</h2>
+          <h2 id="ts-sequence-title">Simple sequence. Clear control.</h2>
         </div>
 
         <div className="ts-step-grid">
@@ -92,21 +91,18 @@ export default function TradeScoutLandingPage() {
             <div className="ts-step-number" aria-hidden="true">
               1
             </div>
-            <h3>Tell us what's going on</h3>
-            <p>
-              A repair, an install, or just a quote — describe it in your own words, no forms to
-              decode.
-            </p>
+            <h3>Describe the work</h3>
+            <p>Tell TradeScout what needs fixed, improved, quoted, or checked.</p>
           </article>
 
           <article className="ts-step-card">
             <div className="ts-step-number" aria-hidden="true">
               2
             </div>
-            <h3>Matched using real recommendations</h3>
+            <h3>Organize by local fit</h3>
             <p>
-              We connect you with local pros your community already trusts — not the highest bidder
-              in a lead auction.
+              Your request is matched to relevant local providers without selling your info as a
+              lead.
             </p>
           </article>
 
@@ -114,8 +110,8 @@ export default function TradeScoutLandingPage() {
             <div className="ts-step-number" aria-hidden="true">
               3
             </div>
-            <h3>You choose who reaches out</h3>
-            <p>Review the responses and release contact details only when you're ready.</p>
+            <h3>Decide before contact</h3>
+            <p>You review the path forward before contact details are shared.</p>
           </article>
         </div>
       </section>
@@ -123,12 +119,12 @@ export default function TradeScoutLandingPage() {
       <section className="ts-record-layer" aria-labelledby="ts-record-title">
         <div>
           <p className="ts-section-kicker">Record layer</p>
-          <h2 id="ts-record-title">Everything's saved for next time</h2>
+          <h2 id="ts-record-title">Keep a record as you go</h2>
         </div>
 
         <p>
-          Requests, photos, quotes, and finished work stay on your HomeID, so the next job starts
-          with the full story already there.
+          Save requests, documents, updates, and completed work to your HomeID so the next job
+          starts with better context.
         </p>
       </section>
     </main>

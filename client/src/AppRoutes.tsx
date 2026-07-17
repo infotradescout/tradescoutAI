@@ -272,7 +272,6 @@ const ProfilePurchaseStatus = React.lazy(() => import("./pages/profile-purchase-
 const ContractorsTop = React.lazy(() => import("./pages/contractors-top"));
 const BusinessListing = React.lazy(() => import("./pages/business-listing"));
 const BusinessOwnerDashboard = React.lazy(() => import("./pages/business-owner-dashboard"));
-const ContractorPromos = React.lazy(() => import("./pages/contractor-promos"));
 
 // Admin Features (heavy components)
 const AdminShell = React.lazy(() => import("./pages/admin"));
@@ -366,7 +365,6 @@ const FinancesReports = React.lazy(() => import("./pages/finances-reports"));
 const FinancesRecords = React.lazy(() => import("./pages/finances-records"));
 const FinancesSettings = React.lazy(() => import("./pages/finances-settings"));
 const DirectConnectShell = React.lazy(() => import("./pages/direct-connect/DirectConnectShell"));
-const DirectConnectPros = React.lazy(() => import("./pages/direct-connect/DirectConnectPros"));
 const DirectConnectSharePage = React.lazy(() => import("./pages/direct-connect-share"));
 // NOTE: CommunityFeedOld mock has been quarantined to client/src/playgrounds/CommunityFeedMock.tsx
 // and should not be routed. This lazy import is intentionally removed.
@@ -431,7 +429,6 @@ const FindLocalBusinessesPage = React.lazy(() => import("./pages/find-local-busi
 const PensacolaPage = React.lazy(() => import("./pages/pensacola"));
 const PensacolaClusterPage = React.lazy(() => import("./pages/pensacola-cluster"));
 const TangipahoaPage = React.lazy(() => import("./pages/tangipahoa"));
-const TradeUpForTradeSchools = React.lazy(() => import("./pages/trade-up-for-trade-schools"));
 const TrustModel = React.lazy(() => import("./pages/trust-model"));
 const DirectConnectInfo = React.lazy(() => import("./pages/direct-connect-info"));
 const GiveawayRules = React.lazy(() => import("./pages/giveaway-rules"));
@@ -592,13 +589,11 @@ const LazyPage = memo(function LazyPage({
 export const AppRoutes = memo(function AppRoutes({
   isLiteScoutRoute,
   isLandingRoute,
-  isPublicCampaignRoute,
   isPublicRootLanding,
   isShareRoute,
 }: {
   isLiteScoutRoute: boolean;
   isLandingRoute: boolean;
-  isPublicCampaignRoute: boolean;
   isPublicRootLanding: boolean;
   isShareRoute: boolean;
 }) {
@@ -619,15 +614,6 @@ export const AppRoutes = memo(function AppRoutes({
         <Switch>
           <Route path="/r/:shareToken">
             <LazyPage Component={DirectConnectSharePage} />
-          </Route>
-          <Route path=":rest*">
-            <LazyPage Component={NotFound} />
-          </Route>
-        </Switch>
-      ) : isPublicCampaignRoute ? (
-        <Switch>
-          <Route path="/trade-up-for-trade-schools">
-            <LazyPage Component={TradeUpForTradeSchools} />
           </Route>
           <Route path=":rest*">
             <LazyPage Component={NotFound} />
@@ -885,15 +871,15 @@ export const AppRoutes = memo(function AppRoutes({
               <Route path="/contractors/top">
                 <LazyPage Component={ContractorsTop} />
               </Route>
-              {/* Legacy contractor routes now land on browse-first directory search. */}
+              {/* Legacy alias: older pages link to /contractors/board for contractor search */}
               <Route path="/contractors/board">
-                <LazyPage Component={DirectConnectPros} />
+                <RedirectTo to="/direct-connect" />
               </Route>
               <Route path="/contractors/:slug">
                 <LazyPage Component={ContractorProfile} />
               </Route>
               <Route path="/contractors">
-                <LazyPage Component={DirectConnectPros} />
+                <RedirectTo to="/direct-connect" />
               </Route>
 
               {/* Business/provider project requests. Legacy contractor paths remain compatibility aliases. */}
@@ -1006,9 +992,6 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/business-owner-dashboard">
                 <RedirectTo to="/business-dashboard" />
-              </Route>
-              <Route path="/contractor-promos">
-                <LazyPage Component={ContractorPromos} />
               </Route>
 
               {/* Marketplace routes */}
@@ -1918,9 +1901,6 @@ export const AppRoutes = memo(function AppRoutes({
               </Route>
               <Route path="/tangipahoa">
                 <LazyPage Component={TangipahoaPage} />
-              </Route>
-              <Route path="/trade-up-for-trade-schools">
-                <LazyPage Component={TradeUpForTradeSchools} />
               </Route>
               <Route path="/trust-model">
                 <LazyPage Component={TrustModel} />

@@ -134,7 +134,7 @@ describe("direct connect requester status contracts", () => {
 
   it("avoids homeowner-only language in generic requester surfaces", () => {
     const uiSource = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
-    expect(uiSource).toContain("My Requests");
+    expect(uiSource).toContain("My requests");
     expect(uiSource).toContain("A local business responded");
     expect(uiSource).toContain("They are asking to contact you");
     expect(uiSource).not.toContain("homeowner status");

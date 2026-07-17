@@ -6,10 +6,6 @@
   "scripts": {
     "dev": "node scripts/check-node-spawn.mjs && cross-env NODE_ENV=development tsx -r dotenv/config server/index.ts",
     "build": "node scripts/check-node-spawn.mjs && node scripts/generate-sitemap.mjs && vite build && node build-server.mjs",
-    "mobile:web": "npm run build",
-    "mobile:sync": "npm run mobile:web && npx cap sync",
-    "mobile:open:android": "npx cap open android",
-    "mobile:open:ios": "npx cap open ios",
     "printful:list-variants": "node scripts/printful-list-variants.mjs",
     "audit:ui": "node ./scripts/ui-surface-audit.mjs",
     "audit:ui:next5": "node ./scripts/ui-surface-next5.mjs",
@@ -22,7 +18,6 @@
     "smoke:staff-kpi": "npx tsx scripts/tradescout-staff-kpi-smoke.ts",
     "smoke:universal-attribution-ref": "node scripts/universal-attribution-ref-smoke.mjs",
     "smoke:direct-connect-production": "node scripts/direct-connect-production-smoke.mjs",
-    "smoke:production-public-entry": "node scripts/tradescout-production-public-entry-smoke.mjs",
     "report:test-skip-delta": "node scripts/report-test-skip-delta.mjs",
     "enforce:scout-behaviors": "node scripts/enforce-scout-behavior-registry.mjs",
     "start": "cross-env NODE_ENV=production node dist/index.js",
@@ -58,10 +53,10 @@
     "seed:e2e-user": "node scripts/withTestDb.mjs cross-env NODE_ENV=test tsx -r dotenv/config scripts/seed-e2e-user.ts",
     "seed:procurement-pilot": "cross-env NODE_ENV=development tsx -r dotenv/config scripts/seed-procurement-pilot-accounts.ts",
     "seed:businesses": "node scripts/seed_businesses_places_new.mjs",
-    "test:run:db": "npm run db:push:test && cross-env TEST_DATABASE_URL= DATABASE_URL= RUN_INTEGRATION_TESTS= npm run test:run && npm run test:integration",
+    "test:run:db": "npm run db:push:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run",
     "test:direct-connect:gates": "npm run test:run -- server/tests/direct-connect-gates.regression.test.ts",
     "test:direct-connect:gates:db": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run -- server/tests/direct-connect-gates.integration.test.ts",
-    "test:run:db:strict": "npm run db:bootstrap:test && cross-env TEST_DATABASE_URL= DATABASE_URL= RUN_INTEGRATION_TESTS= npm run test:run && npm run test:integration:strict",
+    "test:run:db:strict": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run test:run",
     "test:run:no-skips": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true VITEST_SERIAL=true npm run test:run -- --reporter=json --outputFile=test-results/vitest-results.no-skips.json && npm run report:test-skip-delta -- --report test-results/vitest-results.no-skips.json --out artifacts/test-skip-delta.no-skips.json --markdown artifacts/test-skip-delta.no-skips.md --baseline .github/test-baselines/nightly-db-skip-baseline.json --fail-on-increase",
     "verify:db": "npm run db:bootstrap:test && node scripts/withTestDb.mjs cross-env RUN_INTEGRATION_TESTS=true npm run verify",
     "verify:release": "npm run verify:db && npm run test:release-gates:local",
@@ -118,9 +113,6 @@
     "split:workspaces": "node scripts/split-workspaces.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "^7.4.3",
-    "@capacitor/core": "^7.4.3",
-    "@capacitor/ios": "^7.4.3",
     "@anthropic-ai/sdk": "^0.37.0",
     "@aws-sdk/client-s3": "^3.958.0",
     "@aws-sdk/s3-request-presigner": "^3.958.0",
@@ -266,7 +258,6 @@
     "fast-xml-parser": "5.4.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^7.4.3",
     "@express-rate-limit/tsconfig": "^1.0.2",
     "@playwright/test": "^1.57.0",
     "@replit/vite-plugin-cartographer": "^0.4.2",

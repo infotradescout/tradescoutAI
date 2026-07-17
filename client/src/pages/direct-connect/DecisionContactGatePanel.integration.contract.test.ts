@@ -44,7 +44,7 @@ describe("Direct Connect DecisionContactGatePanel integration", () => {
     expect(source).toContain('normalized === "user_approved"');
     expect(source).toContain('normalized === "released"');
     expect(source).toContain('contactState !== "contact_released"');
-    expect(source).toContain('return "Review the request status before taking the next step."');
+    expect(source).toContain('return "Review the request state before taking contact action."');
   });
 
   it("keeps requester list/detail card contact rendering routed through DecisionContactGatePanel", () => {

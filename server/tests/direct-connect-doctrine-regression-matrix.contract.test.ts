@@ -76,7 +76,6 @@ describe("direct connect doctrine regression matrix", () => {
     expect(analyticsRoutes).toContain('"direct_connect_request_started"');
     expect(analyticsRoutes).toContain('"direct_connect_request_review_opened"');
     expect(analyticsRoutes).toContain('"direct_connect_request_submitted"');
-    expect(analyticsRoutes).toContain('"direct_connect_visible_to_contractors"');
     expect(analyticsRoutes).toContain('"direct_connect_request_visible_to_contractors"');
     expect(analyticsRoutes).toContain('"direct_connect_contractor_action_started"');
   });

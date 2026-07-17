@@ -26,21 +26,18 @@ import { bootstrapDemandAttribution, trackDemandEvent } from "@/lib/demandEngine
 import { trackShellEvent } from "@/lib/analytics";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { resolveDirectConnectLandingRoute } from "@/lib/postOnboardingRoute";
-import { resolveCanonicalCountyForState } from "@/lib/countyNameNormalization";
 
 type AuthMode = "create" | "signin";
 type CountyInferenceStatus = "idle" | "loading" | "inferred" | "ambiguous" | "error";
 
 function sanitizePostSetupNext(next: string) {
-  const setupLanding = resolveDirectConnectLandingRoute({ entry: "setup" });
-  if (!next.startsWith("/")) return setupLanding;
+  if (!next.startsWith("/")) return "/scout";
   if (
     next.startsWith("/login") ||
     next.startsWith("/create-account") ||
     next.startsWith("/pre-scout-setup")
   ) {
-    return setupLanding;
+    return "/scout";
   }
   return next;
 }
@@ -86,7 +83,6 @@ export default function PreScoutSetup() {
   const nextParam = (searchParams.get("next") || "").trim();
   const safeNext = nextParam.startsWith("/") ? nextParam : "";
   const postSetupNext = sanitizePostSetupNext(safeNext);
-  const isDirectConnectDestination = postSetupNext.startsWith("/direct-connect");
   const isAdminDestination = postSetupNext.startsWith("/admin");
   const anyUser: any = user || {};
   const currentProfileVersion: number =
@@ -97,14 +93,11 @@ export default function PreScoutSetup() {
     anyUser.firstName.trim().length > 0 &&
     typeof anyUser.lastName === "string" &&
     anyUser.lastName.trim().length > 0;
-  const hasPhone =
-    typeof anyUser.phone === "string" && String(anyUser.phone).replace(/\D+/g, "").length >= 10;
   const hasCanonicalLocation =
     typeof anyUser.stateCode === "string" &&
     anyUser.stateCode.length === 2 &&
     typeof anyUser.countyFips === "string" &&
     anyUser.countyFips.length === 5;
-  const hasDay1ProfileBasics = hasAccountName && hasPhone && hasCanonicalLocation;
   const prefilledEmail = (searchParams.get("email") || "").trim();
   const claimSlug = (searchParams.get("claim") || "").trim();
   const claimBusinessIdParam = (searchParams.get("claimBusinessId") || "").trim();
@@ -128,9 +121,6 @@ export default function PreScoutSetup() {
   // Track whether location was resolved via Google Places (vs. manual typing)
   const [locationSource, setLocationSource] = useState<"places" | "manual" | "none">("none");
   const [businessName, setBusinessName] = useState(existingDraft?.businessName || "");
-  const [businessType, setBusinessType] = useState<ProfileDraft["businessType"]>(
-    existingDraft?.businessType || "contractor_trades"
-  );
   const [submitting, setSubmitting] = useState(false);
 
   const [authMode, setAuthMode] = useState<AuthMode>(requestedAuthMode);
@@ -150,34 +140,6 @@ export default function PreScoutSetup() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createErrorCode, setCreateErrorCode] = useState<string | null>(null);
-
-  const authStepTitle = isDirectConnectDestination
-    ? authMode === "create"
-      ? "Create your account to send this Direct Connect request."
-      : "Sign in to send this Direct Connect request."
-    : authMode === "create"
-      ? "Create your account, then set your area."
-      : "Sign in, then set your area.";
-  const authStepDescription = isDirectConnectDestination
-    ? authMode === "create"
-      ? "Your request draft is safe. Create a free account, set your area, and go straight back to finish sending it."
-      : "Your request draft is safe. Sign in, confirm your area, and go straight back to finish sending it."
-    : authMode === "create"
-      ? "Start here so Scout can save your progress and keep your local context attached to your account."
-      : "Sign in to pick up where you left off and confirm your local area.";
-  const areaStepTitle = isDirectConnectDestination
-    ? "Set your area, then return to your request"
-    : "Set your local area";
-  const areaStepDescription = isDirectConnectDestination
-    ? "Pick the county this request should use first. Then we will send you right back to Direct Connect."
-    : "Pick the county you want Scout to use first.";
-  const authenticatedNextPath = useMemo(() => {
-    if (isAdminDestination) return postSetupNext;
-    if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
-      return `/onboarding/profile?next=${encodeURIComponent(postSetupNext)}`;
-    }
-    return postSetupNext;
-  }, [currentProfileVersion, isAdminDestination, onboardingCompleted, postSetupNext]);
   const setAuthModeAndSyncUrl = (nextMode: AuthMode) => {
     setCreateError(null);
     setCreateErrorCode(null);
@@ -215,7 +177,6 @@ export default function PreScoutSetup() {
     setCountyName(existingDraft.countyName);
     setCity(existingDraft.city || "");
     setBusinessName(existingDraft.businessName || "");
-    setBusinessType(existingDraft.businessType || "contractor_trades");
   }, [existingDraft]);
 
   // handlePlaceSelected: called when user picks a result from Google Places Autocomplete
@@ -229,17 +190,6 @@ export default function PreScoutSetup() {
     setLocationSource("places");
 
     // Reset county while we resolve FIPS
-    const canonicalFromPlace = resolveCanonicalCountyForState(newCountyName, newState);
-    if (canonicalFromPlace?.countyFips) {
-      setCountyFips(canonicalFromPlace.countyFips);
-      setCountyName(canonicalFromPlace.countyName);
-      setCountyInferenceStatus("inferred");
-      setCountyInferenceNote(
-        `Confirmed: ${canonicalFromPlace.countyName}, ${canonicalFromPlace.stateCode}`
-      );
-      return;
-    }
-
     setCountyFips("");
     setCountyName(newCountyName || undefined);
     setCountyInferenceStatus("loading");
@@ -269,20 +219,12 @@ export default function PreScoutSetup() {
         setCountyInferenceStatus("ambiguous");
         setCountyInferenceNote("Multiple counties match — select yours below.");
       } else {
-        const normalizedFound = resolveCanonicalCountyForState(newCountyName, newState);
-        if (normalizedFound?.countyName) {
-          setCountyInferenceStatus("ambiguous");
-          setCountyInferenceNote(
-            `Found "${normalizedFound.countyName}" — confirm your county below.`
-          );
-        } else {
-          setCountyInferenceStatus("ambiguous");
-          setCountyInferenceNote(
-            newCountyName
-              ? `Found "${newCountyName}" — confirm your county below.`
-              : "Select your county below to confirm."
-          );
-        }
+        setCountyInferenceStatus("ambiguous");
+        setCountyInferenceNote(
+          newCountyName
+            ? `Found "${newCountyName}" — confirm your county below.`
+            : "Select your county below to confirm."
+        );
       }
     } catch {
       setCountyInferenceStatus("error");
@@ -307,17 +249,6 @@ export default function PreScoutSetup() {
 
     // Trigger county resolution if we have enough data
     if (newState && (newCity || newCountyName)) {
-      const canonicalFromBusinessPlace = resolveCanonicalCountyForState(newCountyName, newState);
-      if (canonicalFromBusinessPlace?.countyFips) {
-        setCountyFips(canonicalFromBusinessPlace.countyFips);
-        setCountyName(canonicalFromBusinessPlace.countyName);
-        setCountyInferenceStatus("inferred");
-        setCountyInferenceNote(
-          `Confirmed: ${canonicalFromBusinessPlace.countyName}, ${canonicalFromBusinessPlace.stateCode}`
-        );
-        return;
-      }
-
       setCountyFips("");
       setCountyName(newCountyName || undefined);
       setCountyInferenceStatus("loading");
@@ -335,14 +266,11 @@ export default function PreScoutSetup() {
             `Confirmed: ${inferred.inferred.countyName}, ${inferred.inferred.stateCode}`
           );
         } else {
-          const normalizedFound = resolveCanonicalCountyForState(newCountyName, newState);
           setCountyInferenceStatus("ambiguous");
           setCountyInferenceNote(
-            normalizedFound?.countyName
-              ? `Found "${normalizedFound.countyName}" — confirm your county below.`
-              : newCountyName
-                ? `Found "${newCountyName}" — confirm your county below.`
-                : "Select your county below to confirm."
+            newCountyName
+              ? `Found "${newCountyName}" — confirm your county below.`
+              : "Select your county below to confirm."
           );
         }
       } catch {
@@ -434,19 +362,37 @@ export default function PreScoutSetup() {
     navigate(postSetupNext);
   }, [isAuthenticated, isAdminDestination, postSetupNext, navigate]);
 
-  // Pre-scout setup is an auth handoff only. Main onboarding owns setup data.
+  // If the user already has a committed location, don't send them through local setup again.
+  // Route them into profile normalization if needed, otherwise take them to their destination.
   useEffect(() => {
     if (!isAuthenticated) return;
     if (isAdminDestination) return;
-    navigate(authenticatedNextPath);
-  }, [authenticatedNextPath, isAuthenticated, isAdminDestination, navigate]);
+    if (!hasCanonicalLocation) return;
+
+    const next = postSetupNext;
+    if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
+      const onboardingEntry = hasAccountName ? "/onboarding/intent" : "/onboarding/profile";
+      navigate(`${onboardingEntry}?next=${encodeURIComponent(next)}`);
+      return;
+    }
+
+    navigate(next);
+  }, [
+    isAuthenticated,
+    isAdminDestination,
+    hasAccountName,
+    hasCanonicalLocation,
+    currentProfileVersion,
+    onboardingCompleted,
+    postSetupNext,
+    navigate,
+  ]);
 
   const canContinue = useMemo(() => {
     if (!presenceType || !stateCode || !countyFips) return false;
     if (presenceType === "represent_business" && !businessName.trim()) return false;
-    if (presenceType === "represent_business" && !businessType) return false;
     return true;
-  }, [presenceType, stateCode, countyFips, businessName, businessType]);
+  }, [presenceType, stateCode, countyFips, businessName]);
 
   const buildAuthReturnPath = useCallback(
     (mode: AuthMode) => {
@@ -538,8 +484,12 @@ export default function PreScoutSetup() {
         });
       }
       void trackDemandEvent("signin_success", { mode: "signin" });
-      toast({ title: "Signed in", description: "Opening onboarding." });
-      navigate(isAdminDestination ? postSetupNext : authenticatedNextPath);
+      toast({ title: "Signed in", description: "Now let's set your local area." });
+      if (isAdminDestination) {
+        navigate(postSetupNext);
+      } else {
+        navigate(buildAuthReturnPath("signin"));
+      }
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
       const rawMessage = String(error?.message || "Please try again.");
@@ -663,8 +613,8 @@ export default function PreScoutSetup() {
 
       await ensureSessionEstablished();
       void trackDemandEvent("create_success", { mode: "create", verificationRequired: false });
-      toast({ title: "Account created", description: "Opening onboarding." });
-      navigate(isAdminDestination ? postSetupNext : authenticatedNextPath);
+      toast({ title: "Account created", description: "Now let's set your local area." });
+      navigate(buildAuthReturnPath("create"));
     } catch (error: any) {
       const code = typeof error?.code === "string" ? error.code : null;
       const message = error?.message || "Unable to create account.";
@@ -714,7 +664,6 @@ export default function PreScoutSetup() {
         countyName: countyName || undefined,
         city: city.trim() || undefined,
         businessName: presenceType === "represent_business" ? businessName.trim() : undefined,
-        businessType: presenceType === "represent_business" ? businessType : undefined,
         serviceAreas: [
           {
             countyFips,
@@ -796,7 +745,7 @@ export default function PreScoutSetup() {
       // After local setup, continue into the guided start choice. If account identity
       // is incomplete, route through profile normalization first.
       if (currentProfileVersion < CURRENT_PROFILE_VERSION || !onboardingCompleted) {
-        const onboardingEntry = hasDay1ProfileBasics ? "/onboarding/intent" : "/onboarding/profile";
+        const onboardingEntry = hasAccountName ? "/onboarding/intent" : "/onboarding/profile";
         navigate(`${onboardingEntry}?next=${encodeURIComponent(postSetupNext)}`);
         return;
       }
@@ -829,15 +778,15 @@ export default function PreScoutSetup() {
                 Step 1 of 2
               </div>
               <h1 className="text-2xl md:text-4xl font-semibold tracking-tight text-white leading-tight">
-                {authStepTitle}
+                {authMode === "create"
+                  ? "Create your account, then set your area."
+                  : "Sign in, then set your area."}
               </h1>
-              <p className="max-w-md text-sm text-white/60">{authStepDescription}</p>
-              {isDirectConnectDestination && (
-                <div className="max-w-md rounded-2xl border border-ts-orange/25 bg-ts-orange/10 px-4 py-3 text-sm text-white/80">
-                  Direct contact stays protected. You will return to your request before anything is
-                  sent.
-                </div>
-              )}
+              <p className="max-w-md text-sm text-white/60">
+                {authMode === "create"
+                  ? "Start here so Scout can save your progress and keep your local context attached to your account."
+                  : "Sign in to pick up where you left off and confirm your local area."}
+              </p>
             </div>
 
             <Card className="rounded-2xl border border-white/10 bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
@@ -1003,11 +952,7 @@ export default function PreScoutSetup() {
                         disabled={authSubmitting}
                         className="h-9 bg-ts-orange text-white hover:bg-ts-orange/90"
                       >
-                        {authSubmitting
-                          ? "Signing in..."
-                          : isDirectConnectDestination
-                            ? "Sign in to continue"
-                            : "Sign in"}
+                        {authSubmitting ? "Signing in..." : "Sign in"}
                       </Button>
                     </div>
                   </form>
@@ -1186,11 +1131,7 @@ export default function PreScoutSetup() {
                         disabled={authSubmitting}
                         className="h-9 bg-ts-orange text-white hover:bg-ts-orange/90"
                       >
-                        {authSubmitting
-                          ? "Creating..."
-                          : isDirectConnectDestination
-                            ? "Create account to continue"
-                            : "Create account"}
+                        {authSubmitting ? "Creating..." : "Create account"}
                       </Button>
                     </div>
                     <div className="flex justify-end">
@@ -1225,26 +1166,141 @@ export default function PreScoutSetup() {
         noIndex
       />
       <div className="flex justify-center px-3 py-4 md:px-4 md:py-8 text-white">
-        <div className="w-full max-w-2xl space-y-3">
+        <div className="w-full max-w-3xl space-y-3">
           <Card className="rounded-2xl border border-white/10 bg-tsCard/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)]">
             <CardHeader className="space-y-2">
-              <div className="space-y-0.5">
-                <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">Routing</div>
-                <CardTitle className="text-xl text-white">Opening onboarding</CardTitle>
-                <p className="text-sm text-white/60">
-                  Account access is ready. TradeScout is sending you into the main onboarding flow
-                  so profile setup, local context, and first-use guidance all stay in one place.
-                </p>
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <CardTitle className="text-xl text-white">Set your local area</CardTitle>
+                  <p className="text-sm text-white/60">
+                    Pick the county you want Scout to use first.
+                  </p>
+                </div>
+                <div className="text-[11px] uppercase tracking-[0.15em] text-white/60">
+                  Step 2/2
+                </div>
               </div>
             </CardHeader>
 
             <CardContent>
-              <Button
-                className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
-                onClick={() => navigate(authenticatedNextPath)}
-              >
-                Continue
-              </Button>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                    Using TradeScout as
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPresenceType("personal")}
+                      className={`w-full text-center rounded-lg border px-3 py-2.5 transition ${
+                        presenceType === "personal"
+                          ? "border-ts-orange bg-ts-orange/10"
+                          : "border-white/10 hover:border-ts-orange/60"
+                      }`}
+                    >
+                      <div className="text-sm font-semibold text-white">Personal</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPresenceType("represent_business")}
+                      className={`w-full text-center rounded-lg border px-3 py-2.5 transition ${
+                        presenceType === "represent_business"
+                          ? "border-ts-orange bg-ts-orange/10"
+                          : "border-white/10 hover:border-ts-orange/60"
+                      }`}
+                    >
+                      <div className="text-sm font-semibold text-white">Business</div>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                    City or area (optional)
+                  </Label>
+                  <GooglePlacesLocationInput
+                    placeholder="Search your city or neighborhood"
+                    defaultValue={city}
+                    onPlaceSelected={handlePlaceSelected}
+                    className="w-full"
+                    data-testid="places-city-input"
+                  />
+                  <p className="text-[10px] text-white/40">
+                    Start typing to search — we'll fill in your county automatically.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                    Primary county
+                  </Label>
+                  <StateCountySelector
+                    selectedState={stateCode}
+                    selectedCounty={countyFips}
+                    onStateChange={setStateCode}
+                    onCountyChange={setCountyFips}
+                    className="gap-2"
+                    onCountySelected={(county) => {
+                      setCountyName(county?.name);
+                    }}
+                  />
+                  {countyInferenceStatus !== "idle" && countyInferenceNote && (
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] mt-1 ${
+                        countyInferenceStatus === "inferred"
+                          ? "text-emerald-400"
+                          : countyInferenceStatus === "loading"
+                            ? "text-white/60"
+                            : "text-amber-400"
+                      }`}
+                    >
+                      {countyInferenceStatus === "loading" && (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      )}
+                      {countyInferenceStatus === "inferred" && <CheckCircle2 className="h-3 w-3" />}
+                      {(countyInferenceStatus === "ambiguous" ||
+                        countyInferenceStatus === "error") && <AlertTriangle className="h-3 w-3" />}
+                      <span>
+                        {countyInferenceStatus === "loading"
+                          ? "Detecting county…"
+                          : countyInferenceNote}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {presenceType === "represent_business" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-[0.12em] text-white/60">
+                      Business name
+                    </Label>
+                    <GooglePlacesBusinessInput
+                      defaultValue={businessName}
+                      placeholder="Search for your business"
+                      onBusinessSelected={handleBusinessSelected}
+                      className="h-10"
+                      data-testid="business-name-input"
+                    />
+                    {/* Fallback: let user type freely if they don't find their business */}
+                    {businessName && (
+                      <p className="text-[10px] text-white/40 mt-0.5">
+                        Can't find it? Just type your business name above.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[11px] text-white/60">
+                    {canContinue
+                      ? "Ready to keep going."
+                      : "Choose your state and county, or enter a city to help find it faster."}
+                  </p>
+                  <Button type="submit" disabled={!canContinue || submitting}>
+                    {submitting ? "Saving..." : "Keep going"}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         </div>

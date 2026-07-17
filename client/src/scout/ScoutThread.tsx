@@ -121,49 +121,6 @@ function trimToSummary(content: string): string {
   return `${clean.slice(0, SUMMARY_MAX_CHARS - 3).trim()}...`;
 }
 
-function tryParseScoutEnvelope(raw: string): Record<string, unknown> | null {
-  const text = String(raw || "").trim();
-  if (!text || (!text.startsWith("{") && !text.startsWith("["))) return null;
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as Record<string, unknown>;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function coerceReadableAssistantContent(content: string): string {
-  const envelope = tryParseScoutEnvelope(content);
-  if (!envelope) return content;
-
-  const nestedResponse =
-    envelope.response && typeof envelope.response === "object" && !Array.isArray(envelope.response)
-      ? (envelope.response as Record<string, unknown>)
-      : null;
-
-  const primaryMessage = [
-    envelope.message,
-    envelope.summary,
-    envelope.answer,
-    envelope.text,
-    nestedResponse?.message,
-    nestedResponse?.text,
-  ].find((value) => typeof value === "string" && value.trim().length > 0) as string | undefined;
-
-  if (!primaryMessage) return content;
-
-  const intent =
-    typeof envelope.intent === "string" && envelope.intent.trim().length > 0
-      ? humanizeToken(envelope.intent)
-      : "";
-
-  if (!intent) return primaryMessage.trim();
-  return `${primaryMessage.trim()}\n\nIntent: ${intent}`;
-}
-
 function shouldSummarizeAssistantMessage(msg: ScoutMessage): boolean {
   const hasResultSurface = Boolean(
     msg.frame ||
@@ -218,13 +175,11 @@ function IntentDetailCollector({
   if (!shouldShow) return null;
 
   return (
-    <div className="scout-intent-collector" aria-label="Request context">
+    <div className="scout-intent-collector" aria-label="Details Scout can use">
       <div className="min-w-0">
-        <p className="scout-intent-collector__title">Request context</p>
+        <p className="scout-intent-collector__title">Details Scout can use</p>
         <p className="scout-intent-collector__copy">
-          {chips.length > 0
-            ? chips.join(" | ")
-            : "Add anything that matters. Results will update when you are ready."}
+          {chips.length > 0 ? chips.join(" | ") : "Add anything that matters. Scout will wait."}
         </p>
       </div>
       <div className="scout-intent-collector__chips">
@@ -315,7 +270,7 @@ function clusterKindMeta(kind: ScoutCluster["kind"]) {
     case "rules":
       return { label: "What to check", icon: BadgeCheck };
     case "site":
-      return { label: "Search", icon: Search };
+      return { label: "Search with Scout", icon: Search };
     case "account":
       return { label: "Account", icon: BadgeCheck, emoji: "👤" };
     default:
@@ -352,7 +307,7 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
     return [
       {
         type: "ASK_SCOUT",
-        label: "Refine search",
+        label: "Search with Scout",
         prompt: `Help me with ${cluster.title || "this"}.`,
       },
     ];
@@ -362,8 +317,8 @@ function defaultActionsForCluster(cluster: ScoutCluster): ScoutAction[] {
     return [
       {
         type: "ASK_SCOUT",
-        label: "Review before contact",
-        prompt: `Help me review what to check before contact for ${cluster.title || "this"}.`,
+        label: "Ask before calling",
+        prompt: `Tell me what I should check before calling about ${cluster.title || "this"}.`,
       },
     ];
   }
@@ -380,8 +335,8 @@ function buildAskScoutAction(cluster: ScoutCluster): ScoutAction {
   const bodyHint = cluster.body ? ` Context: ${cluster.body.slice(0, 180)}` : "";
   return {
     type: "ASK_SCOUT",
-    label: "Choose next step",
-    prompt: `Help me review ${title} and choose the safest next step.${bodyHint}`,
+    label: "Search with Scout",
+    prompt: `Tell me more about ${title} and what I can safely do next.${bodyHint}`,
   };
 }
 
@@ -1220,9 +1175,9 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
             ]
           : mode === "admin"
             ? [
-                "Reviewing admin activity...",
-                "Gathering current reports...",
-                "Preparing control settings...",
+                "Checking system status...",
+                "Gathering activity reports...",
+                "Compiling control settings...",
               ]
             : [
                 "Reading what you shared...",
@@ -1287,10 +1242,6 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
           }
         }
 
-        if (!isUser) {
-          displayContent = coerceReadableAssistantContent(displayContent);
-        }
-
         const msgTime = msg.timestamp
           ? new Date(msg.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
           : "";
@@ -1319,7 +1270,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                     <img src="/tradescout-logo.png" alt="Scout" />
                   </div>
                   <span className="scout-assistant-bubble__name">Scout</span>
-                  <span className="scout-assistant-bubble__badge">Local results</span>
+                  <span className="scout-assistant-bubble__badge">Community-Powered</span>
                   {msgTime && <span className="scout-assistant-bubble__time">{msgTime}</span>}
                 </div>
                 {displayContent && (
@@ -1377,7 +1328,7 @@ const ScoutThread: React.FC<ScoutThreadProps> = ({
                   className="mt-1 text-sm leading-relaxed"
                   style={{ color: "var(--text-primary)" }}
                 >
-                  Reviewing the minimum details so you can choose one clear next step.
+                  I’ll lock in the minimum details first, then I’ll give you one clear next step.
                 </p>
                 {canShowBranchingActions && (
                   <div className="mt-3 flex flex-wrap gap-2">

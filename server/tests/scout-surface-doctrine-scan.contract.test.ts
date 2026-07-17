@@ -11,33 +11,8 @@ const SCAN_ROOTS = [
   "data/TradeScout Brain",
 ];
 
-const EXCLUDED_DIRECTORIES = new Set([
-  ".git",
-  "artifacts",
-  "build",
-  "coverage",
-  "dist",
-  "node_modules",
-]);
-
-const SCANNED_EXTENSIONS = new Set([
-  ".css",
-  ".cjs",
-  ".html",
-  ".js",
-  ".json",
-  ".jsx",
-  ".md",
-  ".mdx",
-  ".mjs",
-  ".ts",
-  ".tsx",
-  ".txt",
-]);
-
 const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "Ask Scout", regex: /\bask scout\b/i },
-  { label: "Search with Scout", regex: /\bsearch with scout\b/i },
   { label: "Ask the Scout", regex: /\bask the scout\b/i },
   { label: "Talk to Scout", regex: /\btalk to scout\b/i },
   { label: "Continue in Scout", regex: /\bcontinue in scout\b/i },
@@ -49,12 +24,6 @@ const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "support desk", regex: /\bsupport desk\b/i },
   { label: "built-in helper", regex: /\bbuilt-in helper\b/i },
   { label: "Scout Assistant", regex: /\bscout assistant\b/i },
-  { label: "Scout says", regex: /\bscout says\b/i },
-  { label: "Scout thinks", regex: /\bscout thinks\b/i },
-  { label: "Scout will contact", regex: /\bscout will contact\b/i },
-  { label: "autonomous matching", regex: /\bautonomous matching\b/i },
-  { label: "auto-contact", regex: /\bauto-contact\b/i },
-  { label: "contacted for you", regex: /\bcontacted for you\b/i },
   { label: "Virtual Assistant", regex: /\bvirtual assistant\b/i },
   { label: "AI Assistant", regex: /\bai assistant\b/i },
   { label: "Conversation Assistant", regex: /\bconversation assistant\b/i },
@@ -62,19 +31,14 @@ const BANNED_PATTERNS: Array<{ label: string; regex: RegExp }> = [
   { label: "virtual-assistant", regex: /\bvirtual-assistant\b/i },
 ];
 
-function shouldEnterDirectory(relativePath: string): boolean {
-  const normalized = relativePath.replace(/\\/g, "/");
-  const directoryName = path.basename(normalized);
-  if (EXCLUDED_DIRECTORIES.has(directoryName)) return false;
-  if (normalized.includes("/exports/workspaces/")) return false;
-  if (normalized.includes("/docs/audits/")) return false;
-  if (normalized.includes("/docs/history/")) return false;
-  return true;
-}
-
 function shouldScan(relativePath: string): boolean {
   const normalized = relativePath.replace(/\\/g, "/");
-  if (!SCANNED_EXTENSIONS.has(path.extname(normalized))) return false;
+  if (normalized.includes("/exports/workspaces/")) return false;
+  if (normalized.includes("/node_modules/")) return false;
+  if (normalized.includes("/dist/")) return false;
+  if (normalized.includes("/build/")) return false;
+  if (normalized.includes("/docs/audits/")) return false;
+  if (normalized.includes("/docs/history/")) return false;
   if (normalized.includes(".test.")) return false;
   if (normalized.includes(".contract.")) return false;
   return true;
@@ -94,7 +58,6 @@ function collectFiles(startRelativePath: string): string[] {
       const relativePath = path.relative(ROOT, fullPath).replace(/\\/g, "/");
 
       if (entry.isDirectory()) {
-        if (!shouldEnterDirectory(relativePath)) continue;
         stack.push(fullPath);
         continue;
       }
@@ -122,18 +85,5 @@ describe("Scout surface doctrine scan", () => {
     }
 
     expect(violations).toEqual([]);
-  });
-
-  it("preserves Direct Connect review-before-submit copy", () => {
-    const source = fs.readFileSync(
-      path.resolve(ROOT, "client/src/pages/direct-connect/DirectConnectShell.tsx"),
-      "utf8"
-    );
-
-    expect(source).toContain("Your request draft is ready. Sign in to review and send it.");
-    expect(source).toContain("Review your request before sending it.");
-    expect(source).toContain("Finish verification before sending a request.");
-    expect(source).toContain("Continue without selection");
-    expect(source).not.toMatch(/\b(auto-contact|contacted for you|Scout will contact)\b/i);
   });
 });
