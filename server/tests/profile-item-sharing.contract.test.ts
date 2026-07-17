@@ -41,4 +41,15 @@ describe("profile item sharing contract", () => {
     expect(shareButton).toContain("aria-label={accessibleLabel}");
     expect(shareButton).toContain("title={accessibleLabel}");
   });
+
+  it("falls back to a visible copy path when native sharing fails", () => {
+    const shareButton = read("client/src/components/ShareButton.tsx");
+
+    expect(shareButton).toContain('if (err?.name === "AbortError") return;');
+    expect(shareButton).toContain("await navigator.clipboard.writeText(shareUrl)");
+    expect(shareButton).toContain('title: "Unable to share automatically"');
+    expect(shareButton).not.toContain(
+      "navigator.share({ title, text, url: shareUrl }).catch(() => {})"
+    );
+  });
 });

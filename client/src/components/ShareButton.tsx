@@ -81,11 +81,29 @@ export function ShareButton({
         }
       }
 
-      if (navigator.share) {
-        await navigator.share({ title, text, url: shareUrl }).catch(() => {});
-      } else {
+      if (typeof navigator.share === "function") {
+        try {
+          await navigator.share({ title, text, url: shareUrl });
+          return;
+        } catch (err: any) {
+          // Closing the native share sheet is an intentional user action. Other
+          // failures should still leave the visitor with a usable share link.
+          if (err?.name === "AbortError") return;
+        }
+      }
+
+      try {
+        if (!navigator.clipboard?.writeText) {
+          throw new Error("Clipboard API unavailable");
+        }
         await navigator.clipboard.writeText(shareUrl);
         toast({ title: "Link copied", description: shareUrl });
+      } catch {
+        toast({
+          title: "Unable to share automatically",
+          description: "Copy the link from your browser address bar to share.",
+          variant: "destructive",
+        });
       }
     } finally {
       setIsSharing(false);
