@@ -19,6 +19,7 @@ import {
   buildHandmadeProductPath,
   listHandmadeProductImageUrls,
 } from "@shared/handmadeProductShare";
+import { buildCommunityPostPath, listCommunityPostImageUrls } from "@shared/communityPostShare";
 import {
   Dialog,
   DialogContent,
@@ -122,6 +123,8 @@ interface SellerRatingsSummary {
 interface CommunityPostSummary {
   id: string;
   title: string;
+  content?: string;
+  imageUrls?: string[];
   createdAt?: string;
   category?: string | null;
 }
@@ -399,6 +402,8 @@ export default function PublicProfileView() {
               const mapped: CommunityPostSummary[] = data.map((p: any) => ({
                 id: String(p.id),
                 title: String(p.title ?? ""),
+                content: typeof p.content === "string" ? p.content : "",
+                imageUrls: listCommunityPostImageUrls(p.imageUrls),
                 createdAt: p.createdAt,
                 category: p.category ?? null,
               }));
@@ -1376,17 +1381,57 @@ export default function PublicProfileView() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2 text-sm">
-                    {communityPosts.slice(0, 3).map((post) => (
-                      <div key={post.id} className="flex flex-col">
-                        <span className="font-medium truncate">{post.title}</span>
-                        <span className="text-xs opacity-70">
-                          {post.createdAt
-                            ? new Date(post.createdAt).toLocaleDateString()
-                            : "Date not available"}
-                          {post.category ? ` • ${post.category}` : ""}
-                        </span>
-                      </div>
-                    ))}
+                    {communityPosts.slice(0, 3).map((post) => {
+                      const postPath = buildCommunityPostPath(post.id);
+                      const postImage = listCommunityPostImageUrls(post.imageUrls)[0];
+                      const postTitle = post.title.trim() || "Community post";
+                      return (
+                        <article
+                          key={post.id}
+                          className="overflow-hidden rounded-lg border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)]"
+                        >
+                          {postImage ? (
+                            <img
+                              src={postImage}
+                              alt={`${postTitle} preview`}
+                              className="aspect-[16/9] w-full object-cover"
+                              loading="lazy"
+                            />
+                          ) : null}
+                          <div className="space-y-3 p-3">
+                            <div>
+                              <h3 className="font-medium break-words">{postTitle}</h3>
+                              {post.content ? (
+                                <p className="mt-1 line-clamp-2 text-xs opacity-75">
+                                  {post.content}
+                                </p>
+                              ) : null}
+                              <p className="mt-1 text-xs opacity-70">
+                                {post.createdAt
+                                  ? new Date(post.createdAt).toLocaleDateString()
+                                  : "Date not available"}
+                                {post.category ? ` • ${post.category}` : ""}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => navigate(postPath)}
+                              >
+                                View
+                              </Button>
+                              <ShareButton
+                                destination={postPath}
+                                title={postTitle}
+                                text={post.content || `View ${postTitle} on TradeScout`}
+                              />
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

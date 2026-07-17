@@ -6461,7 +6461,6 @@ export class DatabaseStorage implements IStorage {
           id: string;
           name: string;
           avatar?: string | null;
-          email?: string | null;
           role?: string | null;
           verified: boolean;
           isPrivateProfile: boolean;
@@ -6672,7 +6671,6 @@ export class DatabaseStorage implements IStorage {
             ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous"
             : "Anonymous",
           avatar: user?.profileImageUrl,
-          email: user?.email,
           role: user?.role,
           verified: user?.addressVerified || false,
           isPrivateProfile: (user as any)?.isPrivateProfile ?? false,
@@ -6701,7 +6699,6 @@ export class DatabaseStorage implements IStorage {
           id: string;
           name: string;
           avatar?: string | null;
-          email?: string | null;
           role?: string | null;
           verified: boolean;
           isPrivateProfile: boolean;
@@ -6758,7 +6755,6 @@ export class DatabaseStorage implements IStorage {
           ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || "Anonymous"
           : "Anonymous",
         avatar: user?.profileImageUrl,
-        email: user?.email,
         role: user?.role,
         verified: user?.addressVerified || false,
         isPrivateProfile: (user as any)?.isPrivateProfile ?? false,

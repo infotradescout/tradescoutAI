@@ -53,6 +53,7 @@ import {
   type ContactOutcome,
 } from "@/components/community/ContactOutcomeModal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { buildCommunityPostPath, normalizeCommunityPostId } from "@shared/communityPostShare";
 
 interface Post {
   id: string;
@@ -64,7 +65,6 @@ interface Post {
     username?: string | null;
     avatar?: string | null;
     profileImageUrl?: string | null;
-    email?: string | null;
     role?: string | null;
     verified: boolean;
   };
@@ -374,6 +374,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const rawGeoParam = queryParams.get("geo");
   const rawFeedParam = queryParams.get("feed");
   const rawTagParam = queryParams.get("tag");
+  const legacySharedPostId = normalizeCommunityPostId(queryParams.get("post"));
   const topicTagKey = toContextTagKey(rawTagParam);
   const topicTagLabel = topicTagKey ? formatContextTag(topicTagKey) : "";
 
@@ -403,6 +404,11 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
   // Prefer explicit geo param; fall back to legacy scope param.
   const geoScopeFromRoute = normalizeGeoScope(rawGeoParam) ?? normalizeGeoScope(rawScopeParam);
+
+  useEffect(() => {
+    const postPath = buildCommunityPostPath(legacySharedPostId);
+    if (postPath) navigate(postPath, { replace: true });
+  }, [legacySharedPostId, navigate]);
 
   // Phase 1: Global community toggle (default: local/county)
   const effectiveGeoScope = geoScopeFromRoute || "local";
@@ -1054,7 +1060,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const handleSharePost = async (post: any) => {
     try {
       await share({
-        path: `/community-feed?post=${encodeURIComponent(post.id)}`,
+        path: buildCommunityPostPath(post.id),
         title: post.title || "TradeScout community post",
         text: (post.content || "").toString(),
         contextLabel: "Post link",
