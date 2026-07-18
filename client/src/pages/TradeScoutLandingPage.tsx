@@ -17,7 +17,11 @@ const LANDING_PRIMARY_REQUEST_SOURCE = "landing_primary_cta";
 
 function TradeScoutLogo({ backToTop = false }: { backToTop?: boolean }) {
   return (
-    <a className="ts-logo" href={backToTop ? "#top" : "/"} aria-label="TradeScout home">
+    <a
+      className="ts-logo"
+      href={backToTop ? "#top" : "/"}
+      aria-label={backToTop ? "Back to top" : "TradeScout home"}
+    >
       <span className="ts-logo-initials" aria-hidden="true">
         TS
       </span>

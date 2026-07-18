@@ -47,6 +47,10 @@ describe("TradeScout plain-language landing explainer", () => {
     expect(landingSource).not.toContain("mrplatypus4777.chatgpt.site");
   });
 
+  it("keeps the header home link and footer back-to-top link unambiguous", () => {
+    expect(landingSource).toContain('aria-label={backToTop ? "Back to top" : "TradeScout home"}');
+  });
+
   it("keeps pricing in the approved reveal order", () => {
     const madeYouLook = landingSource.indexOf("Made you look.");
     const freeForever = landingSource.indexOf("TradeScout is free forever.");
