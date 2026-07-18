@@ -16,7 +16,7 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
     type: "hero",
     data: {
       eyebrow: "Translucent natural stone",
-      headerLabel: "Honey Onyx",
+      headerLabel: "Natural stone collection",
       teaser: "Natural movement by day. A warm golden glow when the light comes on.",
     },
   },
@@ -89,7 +89,7 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
     data: {
       title: "See Honey Onyx in both kinds of light",
       description:
-        "Open the product to compare all six source photos. Share any individual view and its photo will become the link preview.",
+        "Open the product to compare all six real photos. Share any individual view and its photo will become the link preview.",
       categories: [
         {
           category: "Onyx",
@@ -101,6 +101,7 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
               images: HONEY_ONYX_PROFILE_IMAGES,
               materialStatus: "user_confirmed",
               finishStatus: "unconfirmed",
+              hideFinishDetails: true,
               sourceNote:
                 "Six real material photos show Honey Onyx in both daylight and backlit conditions.",
             },

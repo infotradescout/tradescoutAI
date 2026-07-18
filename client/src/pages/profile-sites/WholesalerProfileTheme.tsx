@@ -87,6 +87,7 @@ type InventoryStone = {
     | "unconfirmed";
   finishes?: string[];
   finishStatus?: "explicit" | "unconfirmed";
+  hideFinishDetails?: boolean;
   sourceNote?: string;
 };
 
@@ -725,11 +726,13 @@ export default function WholesalerProfileTheme({
               : `Bundle counts: ${stone.slabCounts.join(", ")} slabs`}
           </p>
         ) : null}
-        <p className="mt-1 text-xs font-medium !text-[#4a4238]">
-          {stone.finishes?.length
-            ? stone.finishes.join(" · ")
-            : `Finish details: ask ${displayName}`}
-        </p>
+        {!stone.hideFinishDetails ? (
+          <p className="mt-1 text-xs font-medium !text-[#4a4238]">
+            {stone.finishes?.length
+              ? stone.finishes.join(" · ")
+              : `Finish details: ask ${displayName}`}
+          </p>
+        ) : null}
         {stone.materialStatus === "unconfirmed" ? (
           <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
             Details being confirmed
@@ -1442,11 +1445,13 @@ export default function WholesalerProfileTheme({
                 <h3 className={`text-lg font-bold text-white sm:text-xl ${DISPLAY_FONT}`}>
                   {openStone.name}
                 </h3>
-                <p className="mt-1 text-xs text-white/60">
-                  {openStone.finishes?.length
-                    ? `Finish: ${openStone.finishes.join(" · ")}`
-                    : `Finish not confirmed — ask ${displayName}`}
-                </p>
+                {!openStone.hideFinishDetails ? (
+                  <p className="mt-1 text-xs text-white/60">
+                    {openStone.finishes?.length
+                      ? `Finish: ${openStone.finishes.join(" · ")}`
+                      : `Finish not confirmed — ask ${displayName}`}
+                  </p>
+                ) : null}
                 {openStone.imageFinishes?.[openImageIndex]?.length ? (
                   <p className="mt-1 text-xs font-semibold text-[var(--brand-accent)]">
                     This photo: {openStone.imageFinishes[openImageIndex]?.join(" · ")}
