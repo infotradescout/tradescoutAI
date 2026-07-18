@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { isDefaultLookingAffiliateTag } from "./universalAttributionRef";
+import { mirrorInfinityConversion } from "../integrations/infinityShadow";
 
 export const SUPPORTED_ATTRIBUTION_CONVERSION_TYPES = [
   "signup_completed",
@@ -182,5 +183,12 @@ export async function recordAttributionConversionEvent(params: {
   };
 
   await params.persist(event);
+  void mirrorInfinityConversion({
+    conversionEventId: event.conversionEventId,
+    conversionType: event.conversionType,
+    targetPath: event.targetPath,
+    targetId: event.targetId,
+    attributionProofId: event.conversionEventId,
+  });
   return { ok: true, event };
 }
