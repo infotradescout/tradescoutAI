@@ -490,7 +490,12 @@ export default function ProfileSiteView() {
         setNotFound(false);
         setLoadFailed(false);
 
-        const response = await fetch(`/api/u/${encodeURIComponent(slug)}`);
+        const response = await fetch(`/api/u/${encodeURIComponent(slug)}`, {
+          // Public profiles are edited and published independently of the app
+          // bundle. Revalidate cached profile data so a successful publish does
+          // not leave visitors looking at an older profile for another hour.
+          cache: "no-cache",
+        });
         if (response.status === 404) {
           setData(null);
           setNotFound(true);

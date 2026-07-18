@@ -8,6 +8,13 @@ const read = (relativePath: string) => {
 };
 
 describe("public profile compatibility contracts", () => {
+  it("revalidates public profile data when a profile page is opened", () => {
+    const source = read("client/src/pages/ProfileSiteView.tsx");
+
+    expect(source).toContain('cache: "no-cache"');
+    expect(source).not.toContain('cache: "force-cache"');
+  });
+
   it("legacy public profile API exposes canonical slug when a published profile site exists", () => {
     const source = read("server/routes.ts");
 
