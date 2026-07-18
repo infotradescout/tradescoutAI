@@ -50,6 +50,21 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect((inventoryBlock?.data as any)?.categories?.[0]?.stones?.[0]?.images).toHaveLength(6);
   });
 
+  it("uses the reusable editorial product template below the hero", () => {
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+    const sections = read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx");
+    const premiumBlock = HONEY_ONYX_PROFILE_CONTENT_BLOCKS.find(
+      (block) => block.type === "premiumProduct"
+    );
+
+    expect((premiumBlock?.data as any)?.variant).toBe("editorial-product");
+    expect(theme).toContain("isPremiumProductProfileData");
+    expect(theme).toContain("<PremiumProductProfileSections");
+    expect(JSON.stringify(premiumBlock)).toContain("One stone. Two atmospheres.");
+    expect(sections).toContain("buildProfileInventoryShareSearch");
+    expect(sections).toContain("<TradeScoutProfileHandoff");
+  });
+
   it("keeps market-facing copy focused on the product and Direct Connect", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");

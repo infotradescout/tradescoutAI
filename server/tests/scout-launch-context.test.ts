@@ -70,9 +70,7 @@ describe("Scout classic-to-conversation launch context", () => {
       trade: "roofing",
     };
 
-    expect(buildScoutMissionCacheKey(baseInput)).toBe(
-      "need a roofer|12095|fl|roofing|standard"
-    );
+    expect(buildScoutMissionCacheKey(baseInput)).toBe("need a roofer|12095|fl|roofing|standard");
     expect(
       buildScoutMissionCacheKey({
         ...baseInput,
@@ -112,5 +110,14 @@ describe("Scout classic-to-conversation launch context", () => {
       businessId: "business-123",
       businessSlug: "local-roofing-co",
     });
+  });
+
+  it("returns profile-launched Scout conversations to the public profile", () => {
+    const launch = parseScoutLaunchLocation(
+      "/scout?source=business_profile_call&businessSlug=la-plumbing-solutions&prompt=Help%20me%20plan%20this%20job"
+    );
+
+    expect(launch.context?.contextType).toBe("business_profile");
+    expect(launch.returnPath).toBe("/u/la-plumbing-solutions");
   });
 });

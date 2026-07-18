@@ -53,8 +53,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(profileView).toContain('localServicePresentation?.template === "local-service"');
     expect(profileView).toContain("<LocalServiceProfileTheme");
     expect(theme).toContain('data-testid="local-service-profile-theme"');
-    expect(theme.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
+    expect(theme.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(4);
     expect(theme).toContain("Verified by TradeScout");
+    expect(theme).toContain("TradeScout trust snapshot");
     expect(theme).toContain("CVS {normalizedCvsScore}");
     expect(theme).toContain("You&apos;re here early");
     expect(theme).not.toContain("Request service");
@@ -62,9 +63,17 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(theme).not.toContain("window.history.back()");
     expect(presentation).toContain("completed plumbing work—not products or inventory");
     expect(presentation).toContain(
-      'heroImage: "/images/businesses/la-plumbing-solutions/bathroom.jpg"'
+      'heroImage: "/images/businesses/la-plumbing-solutions/hero.jpg"'
     );
     expect(presentation).toContain("Master licensed plumbers");
+    expect(presentation).toContain("Your comfort is our mission.");
+    expect(presentation).toContain("serviceGroups:");
+    expect(theme).toContain('id="work"');
+    expect(theme).toContain('id="story"');
+    expect(theme).toContain('id="services"');
+    expect(theme).toContain('id="trust"');
+    expect(theme).toContain("Open any photo full screen");
+    expect(presentation).toContain("Flexible project financing");
 
     for (const asset of [
       "logo.jpg",
@@ -108,6 +117,7 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(presentation).toContain("Form details stay private");
     expect(theme).not.toContain("tel:");
     expect(theme).not.toContain("mailto:");
+    expect(theme).toContain("Call or send the job details privately");
   });
 
   it("supports sharing each completed-work photo with its own preview target", () => {

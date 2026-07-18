@@ -10,6 +10,8 @@ export type LocalServiceProfileIcon =
 export type LocalServiceProfilePresentation = {
   template: "local-service";
   eyebrow: string;
+  missionEyebrow?: string;
+  missionStatement?: string;
   heroTitle: string;
   heroDescription: string;
   heroImage: string;
@@ -26,9 +28,18 @@ export type LocalServiceProfilePresentation = {
     description: string;
     icon: LocalServiceProfileIcon;
   }>;
+  serviceGroups?: Array<{
+    eyebrow: string;
+    title: string;
+    description: string;
+    imageUrl: string;
+    imageAlt: string;
+    services: string[];
+  }>;
   aboutTitle: string;
   aboutBody: string;
   aboutEyebrow: string;
+  commitments?: string[];
   aboutImage?: string;
   aboutImageAlt?: string;
   serviceAreas: string[];
@@ -40,6 +51,9 @@ export type LocalServiceProfilePresentation = {
   credentialLabel: string;
   credentials: Array<{ label: string; value: string }>;
   credentialDisclosure: string;
+  hoursLabel?: string;
+  financingTitle?: string;
+  financingDescription?: string;
   requestTitle: string;
   requestDescription: string;
   brand: {
@@ -54,13 +68,14 @@ export const LA_PLUMBING_PROFILE_SLUG = "la-plumbing-solutions";
 
 export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation = {
   template: "local-service",
-  eyebrow: "Licensed · Family-owned · Residential + commercial",
-  heroTitle: "Residential and commercial plumbers serving southeast Louisiana.",
+  eyebrow: "Residential + commercial plumbing",
+  missionEyebrow: "The LA Plumbing promise",
+  missionStatement: "Your comfort is our mission.",
+  heroTitle: "Reliable plumbing, handled professionally from start to finish.",
   heroDescription:
-    "Repairs, fixtures, drain cameras, backflow, gas, tank and tankless water heaters, renovations, and complete new-construction plumbing.",
-  heroImage: "/images/businesses/la-plumbing-solutions/bathroom.jpg",
-  heroImageAlt:
-    "Finished freestanding bath and plumbing fixtures installed by LA Plumbing Solutions",
+    "From repairs and drain diagnostics to tankless systems, renovations, and complete new construction, LA Plumbing brings licensed expertise and clear communication to homes and businesses across southeast Louisiana.",
+  heroImage: "/images/businesses/la-plumbing-solutions/hero.jpg",
+  heroImageAlt: "LA Plumbing Solutions plumber installing a tankless water-heater system",
   logoImage: "/images/businesses/la-plumbing-solutions/logo.jpg",
   logoAlt: "LA Plumbing Solutions",
   locationLabel: "Hammond, Louisiana",
@@ -123,10 +138,60 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
       icon: "bath",
     },
   ],
-  aboutTitle: "Family-owned and raised in the plumbing trade.",
+  serviceGroups: [
+    {
+      eyebrow: "Solve a problem",
+      title: "Repairs, diagnostics, and system protection",
+      description:
+        "Find the source, explain the options, and make the repair with the right tools and the least unnecessary disruption.",
+      imageUrl: "/images/businesses/la-plumbing-solutions/tankless.jpg",
+      imageAlt: "Tankless water heater with organized copper piping and filtration",
+      services: [
+        "Plumbing repairs and replacements",
+        "Drain clearing, cameras, and locating",
+        "Backflow testing and prevention",
+        "Water, sewer, gas, and leak detection",
+      ],
+    },
+    {
+      eyebrow: "Improve a space",
+      title: "Fixtures, water heating, and renovations",
+      description:
+        "Coordinate the plumbing behind a more comfortable, efficient kitchen, bathroom, utility room, or whole property.",
+      imageUrl: "/images/businesses/la-plumbing-solutions/bathroom.jpg",
+      imageAlt: "Finished freestanding bath and plumbing fixtures",
+      services: [
+        "Fixture and appliance installation",
+        "Tank and tankless water heaters",
+        "Kitchen and bath renovations",
+        "Efficiency upgrades and replacements",
+      ],
+    },
+    {
+      eyebrow: "Build from the ground up",
+      title: "Residential and commercial construction",
+      description:
+        "Plan and install complete plumbing systems with the project team before the walls and finishes make changes expensive.",
+      imageUrl: "/images/businesses/la-plumbing-solutions/new-construction.jpg",
+      imageAlt: "Underground plumbing rough-in for new construction",
+      services: [
+        "New residential construction",
+        "Commercial plumbing systems",
+        "Underground water and drainage",
+        "Mechanical rooms and multi-unit systems",
+      ],
+    },
+  ],
+  aboutTitle: "Family-owned. Raised in the trade. Here for the next job too.",
   aboutBody:
-    "LA Plumbing Solutions is a local, family-owned company founded by two brothers who grew up learning the plumbing trade from their father. Their team brings licensed plumbers, apprentices, and office support together so the work stays coordinated from the first request through the final follow-up.",
+    "LA Plumbing Solutions is a local, family-owned company founded by two brothers who learned the plumbing trade from their father. Master plumbers, journeymen, apprentices, and office staff work as one team so scheduling, communication, installation, and follow-up stay coordinated—not passed from one disconnected person to the next.",
   aboutEyebrow: "The people behind the work",
+  commitments: [
+    "Do the job right the first time",
+    "Explain the work without surprises",
+    "Use modern tools where they save time and guesswork",
+    "Treat the current job like the start of a long relationship",
+  ],
   aboutImage: "/images/businesses/la-plumbing-solutions/family.jpg",
   aboutImageAlt: "A family moment shared by LA Plumbing Solutions",
   serviceAreas: ["Hammond", "Ponchatoula", "Baton Rouge", "Covington", "Mandeville", "Slidell"],
@@ -145,6 +210,10 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   ],
   credentialDisclosure:
     "TradeScout has reviewed this profile and its required provider credentials. Credential numbers are also published by LA Plumbing Solutions.",
+  hoursLabel: "Monday–Friday · 7:00am–4:00pm",
+  financingTitle: "Flexible project financing is available.",
+  financingDescription:
+    "Qualifying customers can explore monthly payment options for larger repairs, replacements, renovations, and construction work. Ask LA Plumbing through Direct Connect for the current options.",
   requestTitle: "Call now or send LA Plumbing the job details.",
   requestDescription:
     "Choose Call for a direct conversation, or fill out the form with the property, problem, timing, and photos. Form details stay private unless LA Plumbing accepts.",

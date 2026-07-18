@@ -27,7 +27,7 @@ describe("universal public-profile Express Direct Connect contract", () => {
     );
     expect(panelSource).toContain("Direct Connect");
     expect(panelSource).toContain("Fill out the form");
-    expect(panelSource).toContain("Send through Direct Connect");
+    expect(panelSource).toContain("Make A Request");
     expect(routeSource).toContain('"request_service"');
     expect(routeSource).toContain('"request_quote"');
     expect(routeSource).toContain('"schedule_service"');
@@ -64,8 +64,11 @@ describe("universal public-profile Express Direct Connect contract", () => {
   });
 
   it("returns signup to My Requests and offers HomeID only after signup", () => {
-    expect(routeSource).toContain("/direct-connect/engagements?requestId=");
-    expect(routeSource).toContain("&offerHomeId=1&source=profile_express");
+    expect(routeSource).toContain("const requestWorkspaceParams = new URLSearchParams");
+    expect(routeSource).toContain('from: "public_profile"');
+    expect(routeSource).toContain("profile: target.profileSlug");
+    expect(panelSource).toContain("setRequestWorkspacePath");
+    expect(panelSource).toContain("Manage this request");
     expect(resetSource).toContain("const safeNext = useMemo");
     expect(resetSource).toContain("mode=signin&next=");
     expect(panelSource).toContain("add this project to your HomeID later");

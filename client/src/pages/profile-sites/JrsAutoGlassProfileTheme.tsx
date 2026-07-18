@@ -46,6 +46,8 @@ type RecommendationEntry = {
 };
 
 type Props = {
+  profileSlug: string;
+  platformBaseHref?: string;
   onDirectConnect: () => void;
   hasViewerSession: boolean;
   tradeScoutReturnHref: string;
@@ -60,6 +62,8 @@ const assetRoot = "/images/businesses/jrs-auto-glass";
 const defaultRecentWork = listProfileGalleryItems(JRS_AUTO_GLASS_GALLERY_BLOCKS);
 
 export default function JrsAutoGlassProfileTheme({
+  profileSlug,
+  platformBaseHref = "",
   onDirectConnect,
   hasViewerSession,
   tradeScoutReturnHref,
@@ -324,7 +328,12 @@ export default function JrsAutoGlassProfileTheme({
           </p>
         </section>
 
-        <TradeScoutProfileHandoff className="border-t border-white/10" />
+        <TradeScoutProfileHandoff
+          profileSlug={profileSlug}
+          profileName="JR's Auto Glass"
+          platformBaseHref={platformBaseHref}
+          className="border-t border-white/10"
+        />
       </div>
     </main>
   );

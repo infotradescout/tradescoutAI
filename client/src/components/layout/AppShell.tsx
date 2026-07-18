@@ -46,6 +46,7 @@ import { hasAdminUiAccess, isSuperAdminLike } from "@/lib/roleChecks";
 import { getRecentActivity } from "@/agent/activity";
 import { evaluateFeatureUnlocks, getUnlockedAdvancedHrefs } from "@/lib/progressiveFeatureUnlocks";
 import { DEFAULT_LANDING } from "@/lib/postOnboardingRoute";
+import { parsePublicProfileContinuation } from "@/lib/publicProfileContinuation";
 import { FEATURE_PROGRESSIVE_EXPOSURE_CORE_NAV_GATING } from "@shared/governanceFlags";
 
 export type NavItem = {
@@ -556,6 +557,10 @@ export function AppShell({ children, footer }: AppShellProps) {
     String(import.meta.env.VITE_SURFACE_ORIENTATION_V1 ?? "false") === "true";
   const surfaceOrientation = isAdminSurface ? null : resolveSurfaceOrientation(location);
   const currentPath = location.split("?")[0].split("#")[0];
+  const publicProfileContinuation = useMemo(
+    () => parsePublicProfileContinuation(location),
+    [location]
+  );
   const pinRightToolsEnabled =
     String(import.meta.env.VITE_PIN_RIGHT_TOOLS_V1 ?? "false") === "true";
   const shouldPinRightTools =
@@ -1085,6 +1090,35 @@ export function AppShell({ children, footer }: AppShellProps) {
         }}
       >
         <div className={`app-page ${isAuthSurface ? "app-page--auth" : ""}`}>
+          {publicProfileContinuation && !isAuthOrSetupSurface ? (
+            <section
+              className="mx-auto w-full max-w-6xl px-3 pt-2 sm:px-4 md:px-6 md:pt-3"
+              data-testid="public-profile-continuation"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] px-3 py-2 shadow-sm">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-sky-500">
+                    Continuing from a public profile
+                  </p>
+                  <p className="truncate text-xs font-semibold sm:text-sm">
+                    {publicProfileContinuation.itemName || publicProfileContinuation.profileName}
+                    {publicProfileContinuation.itemName ? (
+                      <span className="font-normal text-[color:var(--text-secondary)]">
+                        {" "}
+                        · {publicProfileContinuation.profileName}
+                      </span>
+                    ) : null}
+                  </p>
+                </div>
+                <Link
+                  href={`/u/${encodeURIComponent(publicProfileContinuation.profileSlug)}`}
+                  className="inline-flex min-h-8 items-center rounded-full border border-[color:var(--border-subtle)] px-3 text-[11px] font-bold"
+                >
+                  Back to profile
+                </Link>
+              </div>
+            </section>
+          ) : null}
           {showSurfaceOrientation && !isAuthOrSetupSurface && surfaceOrientation && !isMobile && (
             <section className="mx-auto mb-3 max-w-6xl px-3 pt-3 sm:px-4 md:px-6">
               <div className="ts-shell-orientation rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)] p-3">

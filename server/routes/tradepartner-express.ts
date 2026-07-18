@@ -445,7 +445,16 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             );
         }
 
-        const requestWorkspacePath = `/direct-connect/engagements?requestId=${encodeURIComponent(String(created.id))}&offerHomeId=1&source=profile_express`;
+        const requestWorkspaceParams = new URLSearchParams({
+          requestId: String(created.id),
+          offerHomeId: "1",
+          source: "profile_express",
+          from: "public_profile",
+          profile: target.profileSlug,
+          profileName: target.businessName,
+        });
+        if (body.stoneName) requestWorkspaceParams.set("item", body.stoneName);
+        const requestWorkspacePath = `/direct-connect/engagements?${requestWorkspaceParams.toString()}`;
         const activation = requesterWasCreated
           ? passwordResetService.createToken(String(requester.id))
           : null;

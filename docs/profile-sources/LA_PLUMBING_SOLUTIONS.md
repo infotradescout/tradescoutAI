@@ -29,11 +29,16 @@ Profile slug: `la-plumbing-solutions`
 
 - Family owned and operated; founded by two brothers raised in the plumbing
   trade: official company story.
+- `Your comfort is our mission`, clear communication, modern tools, and
+  coordinated follow-up: official company story and approved market language.
 - Residential and commercial plumbing, repairs, replacements, drains/hydro
   jetting, fixtures, backflow, gas/water systems, water heaters, renovations,
   and new construction: official services page.
 - Hammond base and the listed southeast Louisiana service cities: official
   site and Chamber listing.
+- Weekday operating hours and the availability of qualifying project-financing
+  options: official site. The profile intentionally avoids fixed lender terms
+  so stale financing offers cannot be presented as current.
 - Public business address `13073 Hwy 190 West, Hammond, LA 70401`: Chamber
   listing. Tangipahoa Parish county FIPS is `22105`.
 - Commercial license `CL 75460`: company site, BBB listing, and LSLBC public

@@ -23,7 +23,7 @@ describe("public profile product-card contract", () => {
   });
 
   it("gives JW Stone inventory exact sharing, details, and protected request entry", () => {
-    expect(stone).toContain('data-testid="jw-stone-inventory-card"');
+    expect(stone).toContain('"jw-stone-inventory-card"');
     expect(stone).toContain('data-testid="jw-stone-featured-product-card"');
     expect(stone).toContain("buildProfileInventoryShareSearch(stone.slug)");
     expect(stone).toContain("View details");
@@ -47,15 +47,16 @@ describe("public profile Direct Connect entry contract", () => {
   const express = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
   const directConnect = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
-  it("names every request-entry button Direct Connect and opens call-or-form choices", () => {
+  it("limits request entry to Direct Connect or Make A Request and opens call-or-form choices", () => {
     expect(profile).toContain("Direct Connect");
     expect(stone.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(8);
     expect(autoGlass.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(express).toContain("Direct Connect");
+    expect(express).toContain("Make A Request");
     expect(express).toContain("Call");
     expect(express).toContain("Fill out the form");
     expect(directConnect).toContain("Direct Connect");
-    for (const source of [profile, stone, autoGlass, express, directConnect]) {
+    for (const source of [profile, stone, autoGlass, directConnect]) {
       expect(source).not.toContain("Make A Request");
     }
     expect(directConnect).not.toContain("Start request\n            </Button>");
