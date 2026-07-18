@@ -287,6 +287,11 @@ function blockItems(block: ContentBlock | undefined): string[] {
     : [];
 }
 
+function blockString(block: ContentBlock | undefined, key: string): string {
+  const value = block?.data?.[key];
+  return typeof value === "string" ? value.trim() : "";
+}
+
 export default function WholesalerProfileTheme({
   profileSlug,
   displayName,
@@ -352,11 +357,14 @@ export default function WholesalerProfileTheme({
   };
 
   const aboutBlock = findBlock(contentBlocks, "about");
+  const heroBlock = findBlock(contentBlocks, "hero");
   const servicesBlock = findBlock(contentBlocks, "services");
   const faqBlock = findBlock(contentBlocks, "faq");
   const trustBlock = findBlock(contentBlocks, "trust");
   const differentiatorsBlock = findBlock(contentBlocks, "differentiators");
+  const audienceBlock = findBlock(contentBlocks, "audience");
   const inventoryCatalogBlock = findBlock(contentBlocks, "inventoryCatalog");
+  const ctaBlock = findBlock(contentBlocks, "cta");
 
   const aboutText = blockText(aboutBlock);
   const inventoryItems = blockItems(servicesBlock);
@@ -382,6 +390,19 @@ export default function WholesalerProfileTheme({
           body: item.body || "",
         }))
       : DEFAULT_DIFFERENTIATORS;
+  const audienceItems: Array<{ title?: string; body?: string }> = Array.isArray(
+    audienceBlock?.data?.items
+  )
+    ? audienceBlock.data.items
+    : [];
+  const audiencePaths =
+    audienceItems.length > 0
+      ? audienceItems.map((item, index) => ({
+          icon: AUDIENCE_PATHS[index % AUDIENCE_PATHS.length].icon,
+          label: item.title || AUDIENCE_PATHS[index % AUDIENCE_PATHS.length].label,
+          body: item.body || "",
+        }))
+      : AUDIENCE_PATHS;
   // Real, named inventory grouped by material category -- no pricing here by
   // design; priced/featured stones are a separate, later concern.
   const inventoryCatalog: InventoryCategory[] = Array.isArray(
@@ -464,7 +485,7 @@ export default function WholesalerProfileTheme({
   const heroEyebrow =
     profileSlug === "jw-stone"
       ? "Amazonic Green · current inventory"
-      : categories.slice(0, 3).join(" · ");
+      : blockString(heroBlock, "eyebrow") || categories.slice(0, 3).join(" · ");
   const heroHeadline =
     profileSlug === "jw-stone"
       ? "Natural stone, selected at the source."
@@ -474,7 +495,37 @@ export default function WholesalerProfileTheme({
   const heroTeaser =
     profileSlug === "jw-stone"
       ? "Search the full collection or ask JW Stone about your project."
-      : aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
+      : blockString(heroBlock, "teaser") || aboutText.split(/(?<=[.!?])\s+/)[0] || aboutText;
+  const headerLabel =
+    blockString(heroBlock, "headerLabel") || categories.slice(0, 2).join(" · ") || "Natural stone";
+  const inventoryTitle =
+    blockString(inventoryCatalogBlock, "title") ||
+    (isJwStone ? "Current Inventory" : "Explore the collection");
+  const inventoryDescription =
+    blockString(inventoryCatalogBlock, "description") ||
+    "Open any material to see the available photos or start a private request.";
+  const audienceTitle = blockString(audienceBlock, "title") || "Who We Work With";
+  const ctaHeading =
+    blockString(ctaBlock, "heading") ||
+    (isJwStone ? "Tell JW Stone what you need" : `Tell ${displayName} what you need`);
+  const ctaDescription =
+    blockString(ctaBlock, "description") ||
+    "Ask about the material, match it to a project, or plan the next step.";
+  const contactOperatorName = blockString(ctaBlock, "contactOperatorName");
+  const contactOperatorRole = blockString(ctaBlock, "contactOperatorRole");
+  const footerText =
+    blockString(ctaBlock, "footerText") ||
+    (isJwStone
+      ? "Quarry-direct sourcing. Your contact details stay private until you choose to connect."
+      : "Explore the material, then use Direct Connect when you are ready. Your contact details stay private until the recipient accepts your request.");
+  const configuredRequestExamples = Array.isArray(ctaBlock?.data?.requestExamples)
+    ? ctaBlock.data.requestExamples.filter(
+        (value: unknown): value is string => typeof value === "string" && value.trim().length > 0
+      )
+    : [];
+  const requestExamples = configuredRequestExamples.length
+    ? configuredRequestExamples
+    : REQUEST_EXAMPLES;
 
   // Each hero element reveals at its own stage rather than all together --
   // stone type leading, then headline/teaser/buttons in turn as heroStage
@@ -577,9 +628,8 @@ export default function WholesalerProfileTheme({
     }
   };
 
-  // Falls through the stone's other photos before giving up and showing the
-  // JW Stone mark, so a corrupted or failed photo never just leaves a blank
-  // box -- covers both real network errors and the silent-black-decode case.
+  // Falls through the material's other photos before giving up. JW Stone has
+  // an approved fallback mark; other profiles must never inherit that brand.
   const advanceStoneImage = (img: HTMLImageElement, stone: InventoryStone) => {
     const nextIndex = Number(img.dataset.fallbackIndex || "0") + 1;
     if (nextIndex < stone.images.length) {
@@ -588,9 +638,15 @@ export default function WholesalerProfileTheme({
       return;
     }
     img.onerror = null;
-    img.src = "/images/businesses/jw-stone/logo.svg";
-    img.className =
-      "h-full w-full bg-stone-200 object-contain p-10 opacity-40 transition-transform duration-300 group-hover:scale-105";
+    if (isJwStone) {
+      img.src = "/images/businesses/jw-stone/logo.svg";
+      img.className =
+        "h-full w-full bg-stone-200 object-contain p-10 opacity-40 transition-transform duration-300 group-hover:scale-105";
+      return;
+    }
+    img.removeAttribute("src");
+    img.alt = `${stone.name} photo temporarily unavailable`;
+    img.style.visibility = "hidden";
   };
 
   const handleStoneImageError =
@@ -614,7 +670,7 @@ export default function WholesalerProfileTheme({
     <article
       key={stone.slug}
       className={`group flex flex-col overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg ${wrapperClassName}`}
-      data-testid="jw-stone-inventory-card"
+      data-testid={isJwStone ? "jw-stone-inventory-card" : "profile-inventory-card"}
     >
       <div className="relative h-52 overflow-hidden bg-stone-200">
         <button
@@ -649,7 +705,7 @@ export default function WholesalerProfileTheme({
         <ShareButton
           destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
           title={stone.name}
-          text={`${stone.name} at JW Stone`}
+          text={`${stone.name} from ${displayName}`}
           size="icon"
           label=""
           className="absolute right-3 top-3 rounded-full border-white/25 bg-black/70 text-white hover:bg-black"
@@ -670,11 +726,13 @@ export default function WholesalerProfileTheme({
           </p>
         ) : null}
         <p className="mt-1 text-xs font-medium !text-[#4a4238]">
-          {stone.finishes?.length ? stone.finishes.join(" · ") : "Finish: ask JW Stone"}
+          {stone.finishes?.length
+            ? stone.finishes.join(" · ")
+            : `Finish details: ask ${displayName}`}
         </p>
         {stone.materialStatus === "unconfirmed" ? (
           <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
-            Trending at JW Stone
+            Details being confirmed
           </span>
         ) : null}
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -702,7 +760,7 @@ export default function WholesalerProfileTheme({
 
   return (
     <div
-      className={`jw-stone-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900 ${
+      className={`wholesaler-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900 ${
         isJwStone ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""
       }`}
       // eslint-disable-next-line no-restricted-syntax -- sets CSS custom properties for per-business dynamic brand colors, not literal color values
@@ -783,16 +841,26 @@ export default function WholesalerProfileTheme({
                   {displayName}
                 </span>
                 <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-secondary)]">
-                  Natural stone supplier
+                  {headerLabel}
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => startDirectConnect()}
-                className="flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark md:px-5 md:text-sm"
-              >
-                Direct Connect
-              </button>
+              <div className="flex flex-shrink-0 items-center gap-2">
+                <ShareButton
+                  destination={profileShareDestination}
+                  title={displayName}
+                  text={`Check out ${displayName} on TradeScout`}
+                  size="icon"
+                  label=""
+                  className="rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => startDirectConnect()}
+                  className="flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark md:px-5 md:text-sm"
+                >
+                  Direct Connect
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -1114,18 +1182,36 @@ export default function WholesalerProfileTheme({
                   </button>
                 </div>
               ) : (
-                <div className="flex justify-center py-4">
-                  <button
-                    type="button"
-                    onClick={openFullInventory}
-                    className="group inline-flex items-center gap-2.5 rounded-full bg-[var(--brand-primary)] px-8 py-4 text-base font-bold text-white shadow-lg shadow-[var(--brand-primary)]/25 transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-primary-dark)]"
-                  >
-                    <LayoutGrid className="h-5 w-5 flex-shrink-0" />
-                    See full inventory
-                    <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-sm">
-                      {allInventoryStones.length}
-                    </span>
-                  </button>
+                <div className="py-4">
+                  <div className="mx-auto mb-6 max-w-2xl text-center">
+                    <h2
+                      className={`text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
+                    >
+                      {inventoryTitle}
+                    </h2>
+                    <p className="mt-2 text-sm leading-relaxed !text-[#4a4238] md:text-base">
+                      {inventoryDescription}
+                    </p>
+                  </div>
+                  {allInventoryStones.length === 1 ? (
+                    <div className="mx-auto max-w-xl">
+                      {renderStoneCard(allInventoryStones[0], "high", "")}
+                    </div>
+                  ) : (
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={openFullInventory}
+                        className="group inline-flex items-center gap-2.5 rounded-full bg-[var(--brand-primary)] px-8 py-4 text-base font-bold text-white shadow-lg shadow-[var(--brand-primary)]/25 transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-primary-dark)]"
+                      >
+                        <LayoutGrid className="h-5 w-5 flex-shrink-0" />
+                        Explore the collection
+                        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-sm">
+                          {allInventoryStones.length}
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             ) : (
@@ -1134,18 +1220,16 @@ export default function WholesalerProfileTheme({
                   <h2
                     className={`mb-1 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
                   >
-                    Current Inventory
+                    {inventoryTitle}
                   </h2>
-                  <p className="text-sm !text-[#4a4238]">
-                    Search the full collection, then open any stone to see photos or ask about it.
-                  </p>
+                  <p className="text-sm !text-[#4a4238]">{inventoryDescription}</p>
                 </div>
 
                 <div className="mb-6 rounded-2xl border border-[#241d0f]/15 bg-white p-3 shadow-sm md:p-4">
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px_auto] md:items-center">
                     <label className="flex min-h-12 items-center gap-3 rounded-xl border border-[var(--brand-primary)]/15 bg-white px-4 focus-within:border-[var(--brand-primary)]/50">
                       <Search className="h-4 w-4 flex-shrink-0 text-[var(--brand-primary)]/60" />
-                      <span className="sr-only">Search JW Stone inventory</span>
+                      <span className="sr-only">Search {displayName} inventory</span>
                       <input
                         type="search"
                         value={inventorySearch}
@@ -1220,7 +1304,7 @@ export default function WholesalerProfileTheme({
                         <p className="mt-1 text-sm text-[#241d0f]/75">
                           {profileSlug === "jw-stone" && normalizedInventorySearch
                             ? "JW Stone may be able to source it for your project."
-                            : "Try another spelling or send JW Stone a request for help."}
+                            : `Try another spelling or send ${displayName} a request for help.`}
                         </p>
                         {profileSlug === "jw-stone" && normalizedInventorySearch ? (
                           <button
@@ -1361,7 +1445,7 @@ export default function WholesalerProfileTheme({
                 <p className="mt-1 text-xs text-white/60">
                   {openStone.finishes?.length
                     ? `Finish: ${openStone.finishes.join(" · ")}`
-                    : "Finish not confirmed — ask JW Stone"}
+                    : `Finish not confirmed — ask ${displayName}`}
                 </p>
                 {openStone.imageFinishes?.[openImageIndex]?.length ? (
                   <p className="mt-1 text-xs font-semibold text-[var(--brand-accent)]">
@@ -1383,7 +1467,7 @@ export default function WholesalerProfileTheme({
                     openImageIndex
                   )}`}
                   title={openStone.name}
-                  text={`${openStone.name} at JW Stone`}
+                  text={`${openStone.name} from ${displayName}`}
                   size="icon"
                   label=""
                   className="rounded-full border-white/20 bg-transparent text-white/70 hover:bg-white/10 hover:text-white"
@@ -1401,13 +1485,19 @@ export default function WholesalerProfileTheme({
             <div className="relative flex min-h-[240px] flex-1 items-center justify-center bg-black">
               {lightboxImageFailed ? (
                 <div className="flex flex-col items-center gap-3 px-6 py-16 text-center text-white/60">
-                  <img
-                    src="/images/businesses/jw-stone/logo.svg"
-                    alt=""
-                    className="w-28 opacity-40"
-                  />
+                  {isJwStone ? (
+                    <img
+                      src="/images/businesses/jw-stone/logo.svg"
+                      alt=""
+                      className="w-28 opacity-40"
+                    />
+                  ) : (
+                    <p className={`text-xl font-bold text-white/70 ${DISPLAY_FONT}`}>
+                      {displayName}
+                    </p>
+                  )}
                   <p className="text-sm">
-                    Photo unavailable right now — ask JW Stone for updated photos.
+                    Photo unavailable right now — ask {displayName} for an updated view.
                   </p>
                 </div>
               ) : (
@@ -1594,10 +1684,10 @@ export default function WholesalerProfileTheme({
           <h2
             className={`mb-6 text-2xl font-bold text-[var(--brand-primary)] md:text-3xl ${DISPLAY_FONT}`}
           >
-            Who We Work With
+            {audienceTitle}
           </h2>
           <div className={SCROLL_ROW}>
-            {AUDIENCE_PATHS.map((path, i) => {
+            {audiencePaths.map((path, i) => {
               const Icon = path.icon;
               return (
                 <article key={i} className={`${SCROLL_CARD} text-left`}>
@@ -1861,13 +1951,11 @@ export default function WholesalerProfileTheme({
       <section id="connect" className="scroll-mt-28 bg-[var(--brand-primary)] py-9 md:py-12">
         <div className="container mx-auto px-4 text-center md:px-6">
           <h2 className={`mb-4 text-2xl font-bold text-white md:text-4xl ${DISPLAY_FONT}`}>
-            Tell JW Stone what you need
+            {ctaHeading}
           </h2>
-          <p className="mx-auto mb-8 max-w-xl text-white/80">
-            Ask about a stone, match material to a project, or plan a showroom visit.
-          </p>
+          <p className="mx-auto mb-8 max-w-xl text-white/80">{ctaDescription}</p>
           <div className="mx-auto mb-10 flex max-w-2xl flex-wrap items-center justify-center gap-3">
-            {REQUEST_EXAMPLES.map((example) => (
+            {requestExamples.map((example) => (
               <span
                 key={example}
                 className="rounded-full border border-white/25 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white/90"
@@ -1902,9 +1990,7 @@ export default function WholesalerProfileTheme({
       <footer className="bg-[#241d0f] py-10 text-white/70">
         <div className="container mx-auto px-4 text-center text-sm md:px-6">
           <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
-          <p>
-            Quarry-direct sourcing. Your contact details stay private until you choose to connect.
-          </p>
+          <p>{footerText}</p>
         </div>
       </footer>
       <ExpressDirectConnectPanel
@@ -1917,6 +2003,8 @@ export default function WholesalerProfileTheme({
         requestMode="materials"
         initialStoneName={expressStoneName}
         initialRequestType={expressRequestType}
+        contactOperatorName={contactOperatorName || undefined}
+        contactOperatorRole={contactOperatorRole || undefined}
       />
     </div>
   );

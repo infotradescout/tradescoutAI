@@ -151,6 +151,8 @@ export function createProfileInventoryItemShareMetadata(args: {
     canonicalUrl.search = buildProfileInventoryShareSearch(item.slug, item.imageIndex);
     canonicalUrl.hash = "";
     const categoryDetail = item.category ? ` (${item.category})` : "";
+    const itemIsProfile =
+      item.name.localeCompare(profileName, undefined, { sensitivity: "base" }) === 0;
 
     return {
       itemType: "inventory",
@@ -158,12 +160,16 @@ export function createProfileInventoryItemShareMetadata(args: {
       itemSlug: item.slug,
       category: item.category,
       imageIndex: item.imageIndex,
-      title: `${item.name} at ${profileName}`,
+      title: itemIsProfile ? `${item.name} | TradeScout` : `${item.name} at ${profileName}`,
       description: capDescription(
-        `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo and ask about availability through protected TradeScout Direct Connect.`
+        itemIsProfile
+          ? `View ${item.name}${categoryDetail}, explore the material photos, and ask about availability through protected TradeScout Direct Connect.`
+          : `View ${item.name}${categoryDetail} in ${profileName}'s current inventory. See this photo and ask about availability through protected TradeScout Direct Connect.`
       ),
       imageUrl,
-      imageAlt: `${item.name} — ${profileName} inventory photo ${item.imageIndex + 1}`,
+      imageAlt: itemIsProfile
+        ? `${item.name} material photo ${item.imageIndex + 1}`
+        : `${item.name} — ${profileName} inventory photo ${item.imageIndex + 1}`,
       canonical: canonicalUrl.toString(),
     };
   } catch {
