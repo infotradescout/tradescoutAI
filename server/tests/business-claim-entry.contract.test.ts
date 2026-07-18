@@ -25,6 +25,17 @@ describe("business claim/profile entry contracts", () => {
     expect(compatibilityRedirects).not.toContain('to: "/onboarding?lane=offer_services"');
   });
 
+  it("carries incoming county, state, project, and return context into the canonical claim path", () => {
+    expect(appRoutes).toContain("window.location.pathname");
+    expect(appRoutes).toContain("window.location.search");
+    expect(appRoutes).toContain("window.location.hash");
+    expect(appRoutes).toContain("mergeCompatibilityRedirectTarget(to, raw)");
+    expect(compatibilityRedirects).toContain("sourceParams.forEach((value, key)");
+    expect(compatibilityRedirects).toContain(
+      "if (!targetParams.has(key)) targetParams.set(key, value)"
+    );
+  });
+
   it("frames claim and apply entry as broad business/provider surfaces while preserving contractor compatibility detail", () => {
     expect(claimPage).toContain("Claim from Google Maps");
     expect(claimPage).toContain("verify ownership before the");
