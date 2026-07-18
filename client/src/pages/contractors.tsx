@@ -122,7 +122,7 @@ export default function ForContractors() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/businesses/apply">
+                <Link href="/claim-my-business?source=contractor_directory">
                   <Button
                     variant="outline"
                     className="border-ts-orange/30 text-ts-orange hover:bg-ts-orange hover:text-white hover:text-white"

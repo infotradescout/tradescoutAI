@@ -157,7 +157,11 @@ const ALL_NAVIGATION: NavItem[] = [
         icon: Star,
         requiresBusinessProvider: true,
       },
-      { label: "Apply as Business", href: "/businesses/apply", icon: UserPlus },
+      {
+        label: "Claim or Create Business",
+        href: "/claim-my-business?source=comprehensive_navigation",
+        icon: UserPlus,
+      },
     ],
   },
 

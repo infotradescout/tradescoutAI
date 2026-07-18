@@ -42,13 +42,16 @@ describe("TradeScout public discovery and business entry surfaces", () => {
 
   it("frames for-businesses as a broad business entry surface", () => {
     expect(forBusinesses).toContain("TradeScout for Local Businesses");
-    expect(forBusinesses).toContain("help, services, or products");
-    expect(forBusinesses).toContain("publish fixed-price services or items");
-    expect(forBusinesses).toContain("without pay-to-play lead selling");
-    expect(forBusinesses).toContain("Claim Tangipahoa coverage");
-    expect(forBusinesses).toContain("/businesses/apply");
+    expect(forBusinesses).toContain("Give people a clear reason to choose your business.");
+    expect(forBusinesses).toContain("Claim or create your business");
+    expect(forBusinesses).toContain("/claim-my-business?source=for_businesses");
+    expect(forBusinesses).toContain("Selective Inheritance");
     expect(forBusinesses).toContain("Direct Connect");
-    expect(forBusinesses).toContain("local requests");
+    expect(forBusinesses).toContain("customer requests");
+    expect(forBusinesses).not.toContain("/businesses/apply");
+    expect(forBusinesses).not.toContain("BUSINESS_POPULAR_QUERIES");
+    expect(forBusinesses).not.toContain("High-intent business queries");
+    expect(forBusinesses).not.toContain("Launch Focus");
 
     const normalized = forBusinesses.toLowerCase();
     expect(normalized).not.toContain("only contractors");
@@ -60,5 +63,6 @@ describe("TradeScout public discovery and business entry surfaces", () => {
     expect(normalized).not.toContain("handoff doctrine");
     expect(normalized).not.toContain("backend routing system");
     expect(normalized).not.toContain("operating system architecture");
+    expect(normalized).not.toContain("built for");
   });
 });

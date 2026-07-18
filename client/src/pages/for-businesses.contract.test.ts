@@ -6,26 +6,30 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 describe("ForBusinessesPage acquisition contracts", () => {
-  it("targets generic local business SEO without changing trust-first positioning", () => {
+  it("presents one human business proposition without exposing acquisition machinery", () => {
     const source = read("client/src/pages/for-businesses.tsx");
 
     expect(source).toContain('title="TradeScout for Local Businesses"');
-    expect(source).toContain("local businesses win more trusted local work and sales");
-    expect(source).toContain('keywords="local business growth, small business marketing');
-    expect(source).toContain("without pay-to-play lead selling");
-    expect(source).toContain("publish fixed-price services or items");
+    expect(source).toContain("Give people a clear reason to choose your business.");
+    expect(source).toContain("Claim or create your business");
+    expect(source).toContain("Selective Inheritance");
+    expect(source).toContain("No lead fees. No paid placement.");
+    expect(source).toContain("Direct Connect");
+    expect(source).not.toContain("BUSINESS_POPULAR_QUERIES");
+    expect(source).not.toContain("High-intent business queries");
+    expect(source).not.toContain("Launch Focus");
+    expect(source).not.toContain("Tangipahoa Parish, LA business launch");
+    expect(source).not.toContain("Pensacola, FL business launch");
   });
 
-  it("keeps business search intent focused on smaller operators", () => {
-    const source = read("client/src/lib/popularSearchQueries.ts");
+  it("uses the claims-first route as the only business onboarding destination", () => {
+    const source = read("client/src/pages/for-businesses.tsx");
 
     expect(source).toContain(
-      '{ query: "small local business marketing", href: "/for-businesses" }'
+      'const BUSINESS_ENTRY_HREF = "/claim-my-business?source=for_businesses"'
     );
-    expect(source).toContain('{ query: "small service business leads", href: "/for-businesses" }');
-    expect(source).toContain(
-      '{ query: "local business profile platform", href: "/for-businesses" }'
-    );
-    expect(source).toContain('{ query: "small hvac business leads", href: "/trade/hvac" }');
+    expect(source.match(/href={BUSINESS_ENTRY_HREF}/g)?.length).toBe(2);
+    expect(source).not.toContain("/businesses/apply");
+    expect(source).not.toContain("/onboarding?");
   });
 });

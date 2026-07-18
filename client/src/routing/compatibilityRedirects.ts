@@ -24,7 +24,7 @@ export const COMPATIBILITY_REDIRECTS = [
   },
   {
     from: "/contractors/apply",
-    to: "/onboarding?lane=offer_services",
+    to: "/claim-my-business?source=contractors_apply_legacy",
     access: "public",
     slot: "before-contractor-slug",
   },
@@ -81,7 +81,12 @@ export const COMPATIBILITY_REDIRECTS = [
     access: "public",
     slot: "standard",
   },
-  { from: "/contractor-apply", to: "/businesses/apply", access: "public", slot: "standard" },
+  {
+    from: "/contractor-apply",
+    to: "/claim-my-business?source=contractor_apply_legacy",
+    access: "public",
+    slot: "standard",
+  },
   {
     from: "/admin-observability",
     to: "/admin/live-stream",
@@ -147,17 +152,22 @@ export const COMPATIBILITY_REDIRECTS = [
   { from: "/county/transparency", to: "/county-hub", access: "public", slot: "standard" },
   {
     from: "/contractors/signup",
-    to: "/businesses/apply",
+    to: "/claim-my-business?source=contractors_signup_legacy",
     access: "public",
     slot: "before-contractor-slug",
   },
   {
     from: "/contractors/accelerator",
-    to: "/businesses/apply",
+    to: "/claim-my-business?source=contractors_accelerator_legacy",
     access: "public",
     slot: "before-contractor-slug",
   },
-  { from: "/contractor-join", to: "/businesses/apply", access: "public", slot: "standard" },
+  {
+    from: "/contractor-join",
+    to: "/claim-my-business?source=contractor_join_legacy",
+    access: "public",
+    slot: "standard",
+  },
   { from: "/payroll-helper", to: "/finances/payroll", access: "public", slot: "standard" },
   { from: "/cookie-preferences", to: "/privacy", access: "public", slot: "standard" },
   {

@@ -61,7 +61,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(theme).not.toContain("Request service");
     expect(theme).not.toContain("Contact now");
     expect(theme).not.toContain("window.history.back()");
-    expect(presentation).toContain("completed plumbing work—not products or inventory");
+    expect(presentation).toContain("LA Plumbing Solutions on the job.");
+    expect(presentation).toContain("Selected residential, commercial, renovation");
+    expect(presentation).not.toContain("See their plumbing work.");
     expect(presentation).toContain(
       'heroImage: "/images/businesses/la-plumbing-solutions/hero.jpg"'
     );

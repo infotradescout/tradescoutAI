@@ -12,12 +12,17 @@ describe("business claim/profile entry contracts", () => {
   const businessProfileView = read("client/src/pages/BusinessProfileView.tsx");
   const compatibilityRedirects = read("client/src/routing/compatibilityRedirects.ts");
 
-  it("keeps canonical claim/apply routes and legacy apply aliases registered", () => {
+  it("keeps one canonical claims-first entry and redirects every legacy apply alias to it", () => {
     expect(appRoutes).toContain('<Route path="/claim-my-business">');
     expect(appRoutes).toContain("<LazyPage Component={ClaimMyBusiness} />");
     expect(appRoutes).toContain('<Route path="/businesses/apply">');
+    expect(appRoutes).toContain(
+      '<RedirectTo to="/claim-my-business?source=businesses_apply_legacy" />'
+    );
     expect(compatibilityRedirects).toContain('from: "/contractors/apply"');
     expect(compatibilityRedirects).toContain('from: "/contractor-apply"');
+    expect(compatibilityRedirects).not.toContain('to: "/businesses/apply"');
+    expect(compatibilityRedirects).not.toContain('to: "/onboarding?lane=offer_services"');
   });
 
   it("frames claim and apply entry as broad business/provider surfaces while preserving contractor compatibility detail", () => {

@@ -164,13 +164,20 @@ describe("onboarding flow contracts", () => {
     expect(actionSource).toContain('destination: "/finances/records"');
   });
 
-  it("maps legacy onboarding entry routes to unified onboarding lanes", () => {
+  it("maps legacy public business entry routes to the single claims-first path", () => {
     const appRoutesSource = read("client/src/AppRoutes.tsx");
 
     expect(appRoutesSource).toContain('<Route path="/businesses/apply">');
-    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=business" />');
+    expect(appRoutesSource).toContain(
+      '<RedirectTo to="/claim-my-business?source=businesses_apply_legacy" />'
+    );
     expect(appRoutesSource).toContain('<Route path="/contractor-signup">');
-    expect(appRoutesSource).toContain('<RedirectTo to="/onboarding?lane=offer_services" />');
+    expect(appRoutesSource).toContain(
+      '<RedirectTo to="/claim-my-business?source=contractor_signup_legacy" />'
+    );
     expect(appRoutesSource).toContain('<Route path="/provider-setup">');
+    expect(appRoutesSource).toContain(
+      '<RedirectTo to="/claim-my-business?source=provider_setup_legacy" />'
+    );
   });
 });

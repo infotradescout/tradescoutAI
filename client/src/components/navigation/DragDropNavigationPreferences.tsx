@@ -226,7 +226,7 @@ function getDefaultNavigationItems(userRole: string): NavigationItem[] {
         id: "contractor-network",
         label: "For Businesses",
         icon: "Wrench",
-        href: "/businesses/apply",
+        href: "/claim-my-business?source=navigation_preferences",
         visible: true,
       },
       {

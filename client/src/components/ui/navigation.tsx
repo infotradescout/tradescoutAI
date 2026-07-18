@@ -109,7 +109,7 @@ export default function Navigation() {
               </>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link href="/businesses/apply">
+                <Link href="/claim-my-business?source=public_navigation">
                   <Button
                     variant="outline"
                     size="sm"
@@ -193,7 +193,7 @@ export default function Navigation() {
               </>
             ) : (
               <div className="space-y-2">
-                <Link href="/businesses/apply">
+                <Link href="/claim-my-business?source=public_navigation_mobile">
                   <Button
                     variant="outline"
                     size="sm"
