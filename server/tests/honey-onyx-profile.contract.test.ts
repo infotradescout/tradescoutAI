@@ -61,7 +61,19 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(theme).toContain("isPremiumProductProfileData");
     expect(theme).toContain("<PremiumProductProfileSections");
     expect(JSON.stringify(premiumBlock)).toContain("One stone. Two atmospheres.");
+    expect((premiumBlock?.data as any)?.gallery?.title).toBe("See what backlighting changes.");
+    expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(6);
+    expect((premiumBlock?.data as any)?.gallery?.photos?.map((photo: any) => photo.label)).toEqual([
+      "Backlit",
+      "Backlit",
+      "Natural light",
+      "Natural light",
+      "Natural light",
+      "Low natural light",
+    ]);
     expect(sections).toContain("buildProfileInventoryShareSearch");
+    expect(sections).toContain("data.gallery.photos?.[index]");
+    expect(sections).toContain("activePhotoDetail.body");
     expect(sections).toContain("<TradeScoutProfileHandoff");
   });
 
@@ -76,6 +88,7 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(profileCopy).not.toMatch(/independent|ownership|distribut(?:or|ed|ion)/i);
     expect(profileCopy).not.toContain("JW Stone");
     expect(profileCopy).toContain("actual material");
+    expect(profileCopy).not.toContain("Pick the view that stopped you.");
     expect(profileCopy).not.toMatch(/\bbuilt (?:for|to|around)\b/i);
     expect(theme).toContain("text={`${stone.name} from ${displayName}`}");
     expect(theme).toContain("{ctaHeading}");

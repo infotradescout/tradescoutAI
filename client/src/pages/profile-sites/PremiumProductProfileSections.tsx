@@ -66,6 +66,7 @@ export default function PremiumProductProfileSections({
   const openPhoto = (index: number) => setActivePhoto(index);
   const startProductRequest = () => onDirectConnect(product.name);
   const activePhotoIndex = activePhoto ?? 0;
+  const activePhotoDetail = data.gallery.photos?.[activePhotoIndex];
 
   return (
     <div data-testid="premium-product-profile-sections" className="overflow-hidden bg-stone-950">
@@ -167,6 +168,7 @@ export default function PremiumProductProfileSections({
 
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-12 sm:gap-4">
             {product.images.map((image, index) => {
+              const photoDetail = data.gallery.photos?.[index];
               const desktopPlacement = [
                 "sm:col-span-7 sm:row-span-2 sm:min-h-[580px]",
                 "sm:col-span-5 sm:min-h-[282px]",
@@ -183,17 +185,33 @@ export default function PremiumProductProfileSections({
                   className={`group relative min-h-[190px] overflow-hidden rounded-2xl bg-stone-300 text-left shadow-sm ${
                     index === 0 ? "col-span-2 min-h-[280px]" : ""
                   } ${desktopPlacement || "sm:col-span-4 sm:min-h-[330px]"}`}
-                  aria-label={`Open ${product.name} photo ${index + 1} of ${product.images.length}`}
+                  aria-label={`Open ${photoDetail?.title || `${product.name} photo ${index + 1}`} of ${product.images.length}`}
                 >
                   <img
                     src={image}
-                    alt={`${product.name} material photo ${index + 1}`}
+                    alt={
+                      photoDetail
+                        ? `${product.name}: ${photoDetail.title}`
+                        : `${product.name} material photo ${index + 1}`
+                    }
                     loading={index < 2 ? "eager" : "lazy"}
                     className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
                   />
                   <span className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-80" />
-                  <span className="absolute bottom-3 left-3 inline-flex h-8 min-w-8 items-center justify-center rounded-full border border-white/25 bg-black/45 px-2 text-[10px] font-black tracking-[0.14em] text-white backdrop-blur-md sm:bottom-4 sm:left-4">
-                    {String(index + 1).padStart(2, "0")}
+                  <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 sm:p-5">
+                    <span className="min-w-0">
+                      {photoDetail ? (
+                        <span className="block text-[10px] font-black uppercase tracking-[0.2em] text-amber-300">
+                          {photoDetail.label}
+                        </span>
+                      ) : null}
+                      <span className="mt-1 block text-base font-black leading-tight text-white sm:text-lg">
+                        {photoDetail?.title || `Photo ${String(index + 1).padStart(2, "0")}`}
+                      </span>
+                    </span>
+                    <span className="inline-flex h-8 min-w-8 flex-none items-center justify-center rounded-full border border-white/25 bg-black/45 px-2 text-[10px] font-black tracking-[0.14em] text-white backdrop-blur-md">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
                   </span>
                 </button>
               );
@@ -379,7 +397,12 @@ export default function PremiumProductProfileSections({
           <div className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl border border-white/10 bg-stone-950 text-white shadow-2xl">
             <div className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6 sm:py-4">
               <div>
-                <p className="text-sm font-black">{product.name}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-300">
+                  {activePhotoDetail?.label || product.name}
+                </p>
+                <p className="mt-0.5 text-sm font-black">
+                  {activePhotoDetail?.title || product.name}
+                </p>
                 <p className="text-xs text-stone-400">
                   Photo {activePhotoIndex + 1} of {product.images.length}
                 </p>
@@ -410,7 +433,11 @@ export default function PremiumProductProfileSections({
             <div className="relative flex min-h-[280px] flex-1 items-center justify-center bg-black">
               <img
                 src={product.images[activePhotoIndex]}
-                alt={`${product.name} material photo ${activePhotoIndex + 1}`}
+                alt={
+                  activePhotoDetail
+                    ? `${product.name}: ${activePhotoDetail.title}`
+                    : `${product.name} material photo ${activePhotoIndex + 1}`
+                }
                 className="max-h-[68vh] w-full object-contain"
               />
               {product.images.length > 1 ? (
@@ -440,22 +467,31 @@ export default function PremiumProductProfileSections({
             </div>
 
             <div className="flex flex-col gap-3 border-t border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <div className="flex gap-2 overflow-x-auto">
-                {product.images.map((image, index) => (
-                  <button
-                    key={image}
-                    type="button"
-                    onClick={() => setActivePhoto(index)}
-                    className={`h-12 w-16 flex-none overflow-hidden rounded-lg border-2 transition ${
-                      index === activePhotoIndex
-                        ? "border-amber-300 opacity-100"
-                        : "border-transparent opacity-55 hover:opacity-100"
-                    }`}
-                    aria-label={`View photo ${index + 1}`}
-                  >
-                    <img src={image} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
+              <div className="min-w-0 flex-1">
+                {activePhotoDetail?.body ? (
+                  <p className="mb-3 max-w-2xl text-xs leading-5 text-stone-300 sm:text-sm">
+                    {activePhotoDetail.body}
+                  </p>
+                ) : null}
+                <div className="flex gap-2 overflow-x-auto">
+                  {product.images.map((image, index) => (
+                    <button
+                      key={image}
+                      type="button"
+                      onClick={() => setActivePhoto(index)}
+                      className={`h-12 w-16 flex-none overflow-hidden rounded-lg border-2 transition ${
+                        index === activePhotoIndex
+                          ? "border-amber-300 opacity-100"
+                          : "border-transparent opacity-55 hover:opacity-100"
+                      }`}
+                      aria-label={`View ${
+                        data.gallery.photos?.[index]?.title || `photo ${index + 1}`
+                      }`}
+                    >
+                      <img src={image} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
               </div>
               <button
                 type="button"

@@ -6,6 +6,12 @@ export type PremiumProductApplication = {
   imageIndex: number;
 };
 
+export type PremiumProductGalleryPhoto = {
+  label: string;
+  title: string;
+  body?: string;
+};
+
 export type PremiumProductProfileData = {
   variant: typeof PREMIUM_PRODUCT_PROFILE_VARIANT;
   contrast: {
@@ -21,6 +27,7 @@ export type PremiumProductProfileData = {
     eyebrow: string;
     title: string;
     body: string;
+    photos?: PremiumProductGalleryPhoto[];
   };
   applications: {
     eyebrow: string;
