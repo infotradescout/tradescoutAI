@@ -50,8 +50,12 @@ describe("TradeScout About explainer route", () => {
     expect(explainerStyles).toContain(
       ".content-section[open] > summary::after { transform: rotate(225deg); }",
     );
-    expect(explainerStyles).not.toContain('summary::after { content: "+";');
-    expect(explainerStyles).not.toContain('summary::after { content: "−";');
+    expect(explainerStyles).toContain(
+      '.explainer-stack > summary::after {\n  content: "";',
+    );
+    expect(explainerStyles).toContain(
+      '.content-section > summary::after {\n  content: "";',
+    );
   });
 
   it("removes the unsupported legacy About claims", () => {
