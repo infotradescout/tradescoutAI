@@ -27,10 +27,12 @@ describe("TradeScout production public-entry freshness smoke contract", () => {
     expect(source).toContain('const publicEntryPaths = ["/", "/landing", "/lp"]');
     expect(source).toContain("Connection Without Compromise");
     expect(source).toContain("Direct Connect");
-    expect(source).toContain("Start a Request");
-    expect(source).toContain("Claim Provider Profile");
+    expect(source).toContain("Make A Request");
+    expect(source).toContain("Claim my business");
+    expect(source).toContain("Made you look");
+    expect(source).toContain("free forever");
     expect(source).toContain('href="/direct-connect?source=landing_primary_cta"');
-    expect(source).toContain('href="/register?role=provider"');
+    expect(source).toContain('href="/claim-my-business?source=landing_business"');
 
     expect(source).toContain("Ask Scout");
     expect(source).toContain("Search with Scout");

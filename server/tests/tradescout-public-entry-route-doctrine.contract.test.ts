@@ -39,18 +39,17 @@ describe("TradeScout public entry route doctrine contracts", () => {
 
   it("keeps canonical public landing doctrine copy bound to entry surfaces", () => {
     expect(landing).toContain("Connection Without Compromise");
-    expect(landing).toContain("Start a Request");
-    expect(landing).toContain("Claim Provider Profile");
+    expect(landing).toContain("Make A Request");
+    expect(landing).toContain("Claim my business");
     expect(landing).toContain("Direct Connect");
+    expect(landing).toContain("Made you look.");
   });
 
   it("keeps CTA routing stable for request, claim, and community exploration", () => {
-    expect(landing).toContain(
-      "const LANDING_PRIMARY_REQUEST_HREF = `/direct-connect?source=${LANDING_PRIMARY_REQUEST_SOURCE}`;"
-    );
-    expect(landing).toContain('href="/register?role=provider"');
-    expect(landing).toContain('href="/community"');
-    expect(landing).toContain("Browse Local Activity");
+    expect(landing).toContain("`/direct-connect?source=${LANDING_PRIMARY_REQUEST_SOURCE}`");
+    expect(landing).toContain("/claim-my-business?source=landing_business");
+    expect(landing).toContain('href="/community-feed"');
+    expect(landing).toContain("Open Community");
   });
 
   it("blocks forbidden public-entry framing regressions", () => {

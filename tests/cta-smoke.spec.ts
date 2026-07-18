@@ -62,11 +62,11 @@ async function prepareDirectConnectEntry(page: Page) {
   return countyFips;
 }
 
-test("Public landing CTA says Start a Request and opens the request composer", async ({ page }) => {
+test("Public landing CTA says Make A Request and opens the request composer", async ({ page }) => {
   await page.context().clearCookies();
   await page.goto("/");
 
-  const primaryCta = page.getByRole("link", { name: "Start a Request" }).first();
+  const primaryCta = page.getByRole("link", { name: "Make A Request" }).first();
   await expect(primaryCta).toBeVisible();
 
   const href = await primaryCta.getAttribute("href");
@@ -91,7 +91,7 @@ test("Public landing mobile first viewport fits without horizontal clipping", as
   await expect(page.getByRole("link", { name: "TradeScout home" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Connection Without Compromise" })).toBeVisible();
 
-  const primaryCta = page.getByRole("link", { name: "Start a Request" }).first();
+  const primaryCta = page.getByRole("link", { name: "Make A Request" }).first();
   await expect(primaryCta).toBeVisible();
 
   const layout = await page.evaluate(() => {

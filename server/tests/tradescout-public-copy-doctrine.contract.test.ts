@@ -11,6 +11,7 @@ const PUBLIC_SURFACE_FILES = [
 ] as const;
 
 const CANONICAL_PUBLIC_LANDING = "client/src/pages/TradeScoutLandingPage.tsx";
+const PRICING_PAGE = "client/src/pages/pricing.tsx";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
@@ -23,9 +24,11 @@ describe("TradeScout public copy doctrine contracts", () => {
     const corpus = readPublicSurfaceCorpus();
 
     expect(landing).toContain("Connection Without Compromise");
-    expect(landing).toContain("Start a Request");
-    expect(landing).toContain("Claim Provider Profile");
+    expect(landing).toContain("Make A Request");
+    expect(landing).toContain("Claim my business");
     expect(landing).toContain("Direct Connect");
+    expect(landing).toContain("Made you look.");
+    expect(landing).toContain("TradeScout is free forever.");
 
     const normalized = corpus.toLowerCase();
     expect(normalized).toContain("direct connect");
@@ -33,6 +36,22 @@ describe("TradeScout public copy doctrine contracts", () => {
     expect(normalized).toContain("community");
     expect(normalized.includes("profile") || normalized.includes("claim")).toBe(true);
     expect(normalized).toContain("connection");
+  });
+
+  it("lands the joke before the free-forever promise and revenue explanation", () => {
+    const landing = read(CANONICAL_PUBLIC_LANDING);
+    const pricing = read(PRICING_PAGE);
+
+    expect(landing.indexOf("Made you look.")).toBeLessThan(
+      landing.indexOf("TradeScout is free forever.")
+    );
+    expect(pricing.indexOf("Made you look.")).toBeLessThan(
+      pricing.lastIndexOf("TradeScout is free forever")
+    );
+    expect(landing).toContain("See how we earn revenue here");
+    expect(pricing).toContain("See how we earn revenue here");
+    expect(landing).not.toContain("$0.");
+    expect(pricing).not.toContain("$0.");
   });
 
   it("rejects lead-marketplace framing drift in public copy", () => {
