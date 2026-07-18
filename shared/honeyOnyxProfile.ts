@@ -15,9 +15,9 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
   {
     type: "hero",
     data: {
-      eyebrow: "Natural onyx · translucent stone",
-      headerLabel: "Independent product · distributed by JW Stone",
-      teaser: "Soft green and amber movement in daylight. Warm gold when the light comes on.",
+      eyebrow: "Translucent natural stone",
+      headerLabel: "Honey Onyx",
+      teaser: "Natural movement by day. A warm golden glow when the light comes on.",
     },
   },
   {
@@ -30,10 +30,10 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
     type: "trust",
     data: {
       items: [
-        "Independently owned product",
-        "Distributed by JW Stone",
-        "Six source photos — no stock imagery",
+        "Six real material photos",
         "Daylight and backlit views",
+        "Project-ready conversations",
+        "Private Direct Connect",
       ],
     },
   },
@@ -47,7 +47,7 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
         },
         {
           title: "See the real material",
-          body: "Every image on this profile came from the source inventory folder. Open the gallery and compare all six before you ask about availability.",
+          body: "Every image shows the actual material. Open the gallery and compare all six before you ask about availability.",
         },
         {
           title: "Made to be the focal point",
@@ -102,7 +102,7 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
               materialStatus: "user_confirmed",
               finishStatus: "unconfirmed",
               sourceNote:
-                "Product identity confirmed by the TradeScout operator; photography preserved from the distributor source folder.",
+                "Six real material photos show Honey Onyx in both daylight and backlit conditions.",
             },
           ],
         },
@@ -124,9 +124,9 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
             "Yes. Open that photo, tap Direct Connect, and include the view you are interested in along with your dimensions, timing, and project location.",
         },
         {
-          question: "Who handles distribution?",
+          question: "How do I check availability?",
           answer:
-            "Honey Onyx is independently owned. JW Stone currently handles product distribution and availability inquiries.",
+            "Open Direct Connect and send the photo you like along with your dimensions, timing, and project location. You can also choose the call option for a faster answer.",
         },
         {
           question: "Where can this material be used?",
@@ -139,19 +139,16 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
   {
     type: "cta",
     data: {
-      heading: "Have a place in mind for Honey Onyx?",
+      heading: "See Honey Onyx in your project.",
       description:
-        "Call the distributor or send the product, project, dimensions, timing, and location through one private Direct Connect.",
-      contactOperatorName: HONEY_ONYX_DISTRIBUTOR_NAME,
-      contactOperatorRole: "distributor",
+        "Call or send the product, project, dimensions, timing, and location through one private Direct Connect.",
       requestExamples: [
         "Product availability",
         "Slab dimensions",
         "Backlighting plans",
         "Fabrication questions",
       ],
-      footerText:
-        "Honey Onyx is independently owned and distributed by JW Stone. Your contact details stay private until the recipient accepts your request.",
+      footerText: "Your contact details stay private until the recipient accepts your request.",
     },
   },
 ] as const;
