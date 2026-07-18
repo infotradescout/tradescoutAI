@@ -44,6 +44,14 @@ describe("TradeScout About explainer route", () => {
     );
     expect(explainerStyles).toContain("grid-column: 2;");
     expect(explainerStyles).toContain("grid-row: 1 / span 2;");
+    expect(explainerStyles).toContain(
+      ".explainer-stack[open] > summary::after { transform: rotate(225deg); }",
+    );
+    expect(explainerStyles).toContain(
+      ".content-section[open] > summary::after { transform: rotate(225deg); }",
+    );
+    expect(explainerStyles).not.toContain('summary::after { content: "+";');
+    expect(explainerStyles).not.toContain('summary::after { content: "−";');
   });
 
   it("removes the unsupported legacy About claims", () => {
