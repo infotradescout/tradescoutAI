@@ -114,6 +114,7 @@ export default function ExpressDirectConnectPanel({
   const [callTel, setCallTel] = useState("");
   const [accountCreated, setAccountCreated] = useState(false);
   const [requestId, setRequestId] = useState("");
+  const [requestWorkspacePath, setRequestWorkspacePath] = useState("");
   const [onboardingPath, setOnboardingPath] = useState("");
   const [onboardingEmailStatus, setOnboardingEmailStatus] = useState<
     "sent" | "skipped" | "failed" | "unknown"
@@ -151,6 +152,7 @@ export default function ExpressDirectConnectPanel({
     setCallTel("");
     setAccountCreated(false);
     setRequestId("");
+    setRequestWorkspacePath("");
     setOnboardingPath("");
     setOnboardingEmailStatus("unknown");
     setForm((current) => ({
@@ -161,17 +163,28 @@ export default function ExpressDirectConnectPanel({
   }, [defaultRequestType, initialRequestType, initialStoneName, open]);
 
   const requestPath = useMemo(() => {
+    if (requestWorkspacePath) return requestWorkspacePath;
     const params = new URLSearchParams();
     if (requestId) params.set("requestId", requestId);
     params.set("offerHomeId", "1");
     params.set("source", "profile_express");
+    params.set("from", "public_profile");
+    params.set("profile", profileSlug);
+    params.set("profileName", businessName);
+    if (initialStoneName) params.set("item", initialStoneName);
     return `/direct-connect/engagements?${params.toString()}`;
-  }, [requestId]);
+  }, [businessName, initialStoneName, profileSlug, requestId, requestWorkspacePath]);
 
   if (!open) return null;
 
+  const postCallParams = new URLSearchParams({
+    from: "public_profile",
+    profile: profileSlug,
+    profileName: businessName,
+  });
+  if (initialStoneName) postCallParams.set("item", initialStoneName);
   const postCallSignupHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(
-    `/u/${profileSlug}`
+    `/direct-connect?${postCallParams.toString()}`
   )}`;
 
   const close = () => {
@@ -242,6 +255,9 @@ export default function ExpressDirectConnectPanel({
       }
       setAccountCreated(json?.accountCreated === true);
       setRequestId(String(json?.requestId || ""));
+      setRequestWorkspacePath(
+        typeof json?.requestWorkspacePath === "string" ? json.requestWorkspacePath : ""
+      );
       setOnboardingPath(typeof json?.onboardingPath === "string" ? json.onboardingPath : "");
       setOnboardingEmailStatus(
         ["sent", "skipped", "failed"].includes(json?.onboardingEmailStatus)
@@ -466,7 +482,7 @@ export default function ExpressDirectConnectPanel({
                 ) : (
                   <MessageCircle className="h-5 w-5" />
                 )}
-                Send through Direct Connect
+                Make A Request
               </button>
             </form>
           ) : null}
@@ -487,14 +503,14 @@ export default function ExpressDirectConnectPanel({
               ) : null}
               {!hasViewerSession ? (
                 <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <p className="font-bold text-neutral-900">Want to keep track of this?</p>
+                  <p className="font-bold text-neutral-900">Keep this connection organized.</p>
                   <p className="mt-1 text-sm text-stone-600">
-                    Create your free account after the call to save {businessName} and manage future
-                    projects.
+                    Create a free TradeScout account to keep {businessName}, job notes, replies,
+                    progress, and follow-up together.
                   </p>
                   <Link href={postCallSignupHref}>
                     <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                      Save this connection
+                      Manage this in TradeScout
                     </button>
                   </Link>
                 </div>
@@ -516,12 +532,12 @@ export default function ExpressDirectConnectPanel({
                 <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
                   <p className="font-bold text-neutral-900">
                     {accountCreated
-                      ? "Save and follow this request"
-                      : "Sign in to follow this request"}
+                      ? "Finish setup and manage this request"
+                      : "Sign in to manage this request"}
                   </p>
                   <p className="mt-1 text-sm text-stone-600">
-                    Your request is safe. Continue to follow replies from {businessName} and keep
-                    the project in one place.
+                    See replies from {businessName}, decisions, job progress, and follow-up in one
+                    convenient place.
                   </p>
                   {accountCreated && onboardingEmailStatus === "sent" ? (
                     <p className="mt-2 text-xs font-medium text-emerald-700">
@@ -540,7 +556,7 @@ export default function ExpressDirectConnectPanel({
                     }
                   >
                     <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                      {accountCreated ? "Save my request" : "Sign in to follow it"}
+                      {accountCreated ? "Manage my request" : "Sign in and manage it"}
                     </button>
                   </Link>
                   <p className="mt-3 text-xs text-stone-500">
@@ -551,7 +567,7 @@ export default function ExpressDirectConnectPanel({
               ) : (
                 <Link href={requestPath}>
                   <button className="mt-6 rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                    View in My Requests
+                    Manage this request
                   </button>
                 </Link>
               )}

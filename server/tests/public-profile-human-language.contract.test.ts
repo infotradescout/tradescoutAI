@@ -60,7 +60,7 @@ describe("public profile human-language contract", () => {
     expect(requestPanel).toContain("Direct Connect");
     expect(requestPanel).toContain("Call");
     expect(requestPanel).toContain("Fill out the form");
-    expect(requestPanel).toContain("Send through Direct Connect");
+    expect(requestPanel).toContain("Make A Request");
     expect(requestPanel).toContain("Your details are still here");
     expect(requestPanel).not.toContain("Signup comes after send");
     expect(requestPanel).not.toContain("Express Direct Connect");

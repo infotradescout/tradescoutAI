@@ -1,3 +1,8 @@
+import {
+  PREMIUM_PRODUCT_PROFILE_VARIANT,
+  type PremiumProductProfileData,
+} from "./premiumProductProfile";
+
 export const HONEY_ONYX_PROFILE_SLUG = "honey-onyx";
 
 export const HONEY_ONYX_DISTRIBUTOR_NAME = "JW Stone";
@@ -36,6 +41,71 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
         "Private Direct Connect",
       ],
     },
+  },
+  {
+    type: "premiumProduct",
+    data: {
+      variant: PREMIUM_PRODUCT_PROFILE_VARIANT,
+      contrast: {
+        eyebrow: "One stone. Two atmospheres.",
+        title: "Cool and sculptural by day. Warm and luminous after dark.",
+        body: "The same movement reads completely differently when light passes through it. Compare the actual material—not a rendering—before deciding where the drama belongs.",
+        daylightLabel: "Natural light",
+        backlitLabel: "Backlit",
+        daylightImageIndex: 2,
+        backlitImageIndex: 0,
+      },
+      gallery: {
+        eyebrow: "The actual material",
+        title: "Pick the view that stopped you.",
+        body: "Six real photos, in real lighting. Open any one full screen or share that exact view with the people helping plan the project.",
+      },
+      applications: {
+        eyebrow: "Ideas worth exploring",
+        title: "Use the glow where it earns attention.",
+        body: "Honey Onyx is not background material. It makes the most sense where the stone can become part of the lighting and the room can respond to it.",
+        items: [
+          {
+            title: "Bar fronts",
+            body: "Turn the face of a bar into a warm source of light and a natural gathering point.",
+            imageIndex: 0,
+          },
+          {
+            title: "Feature walls",
+            body: "Create one strong illuminated plane instead of filling the room with competing finishes.",
+            imageIndex: 1,
+          },
+          {
+            title: "Vanities and counters",
+            body: "Let the green, cream, amber, and rust movement lead in daylight, then change after dark.",
+            imageIndex: 2,
+          },
+          {
+            title: "Reception and hospitality",
+            body: "Give arrival spaces a focal point people remember without relying on a temporary trend.",
+            imageIndex: 3,
+          },
+        ],
+      },
+      brief: {
+        eyebrow: "From inspiration to a real answer",
+        title: "Send the idea, not a perfect specification.",
+        body: "Choose the photo you like, add rough dimensions, location, timing, and what you want the stone to do. Direct Connect gives you a call option or a private form.",
+        steps: [
+          "The photo you like",
+          "Rough dimensions",
+          "Project location and timing",
+          "How you want to use or light it",
+        ],
+        note: "Availability, exact dimensions, fabrication, support, lighting, and final suitability still need to be confirmed for the project.",
+      },
+      closing: {
+        eyebrow: "Ready when the idea is",
+        title: "Put Honey Onyx in the conversation.",
+        body: "Call now or send the project through Direct Connect. Your contact details stay private unless the request is accepted.",
+        imageIndex: 1,
+      },
+    } satisfies PremiumProductProfileData,
   },
   {
     type: "differentiators",

@@ -223,6 +223,9 @@ export function getScoutLaunchReturnPath(context: ScoutLaunchContext): string | 
   if (context.contextType === "community_post") return "/community";
   if (context.contextType === "trade_deal") return "/trade-deals";
   if (context.contextType === "business_profile" && context.businessSlug) {
+    if (context.source === "business_profile_call") {
+      return `/u/${encodeURIComponent(context.businessSlug)}`;
+    }
     return `/business/${encodeURIComponent(context.businessSlug)}`;
   }
   if (context.contextType === "map_entity") return "/maps";
@@ -245,10 +248,7 @@ export function getScoutLaunchReturnPath(context: ScoutLaunchContext): string | 
 }
 
 export function parseScoutLaunchLocation(location: string): ScoutLaunchEnvelope {
-  if (
-    typeof location !== "string" ||
-    (location !== "/scout" && !location.startsWith("/scout?"))
-  ) {
+  if (typeof location !== "string" || (location !== "/scout" && !location.startsWith("/scout?"))) {
     return { context: null, signature: "" };
   }
 

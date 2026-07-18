@@ -42,7 +42,15 @@ import {
   resolveProfileGalleryItem,
 } from "@shared/profileGalleryShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
-import type { LocalServiceProfilePresentation } from "@shared/localServiceProfile";
+import {
+  HONEY_ONYX_PROFILE_CONTENT_BLOCKS,
+  HONEY_ONYX_PROFILE_SLUG,
+} from "@shared/honeyOnyxProfile";
+import {
+  LA_PLUMBING_PROFILE_PRESENTATION,
+  LA_PLUMBING_PROFILE_SLUG,
+  type LocalServiceProfilePresentation,
+} from "@shared/localServiceProfile";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -123,13 +131,13 @@ function ProfileArrivalState({
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#071016] px-4 py-6 text-white sm:px-6 lg:px-10">
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-6 text-white sm:px-6 lg:px-10">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-90"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 16% 16%, rgba(249,115,22,.18), transparent 34%), radial-gradient(circle at 84% 26%, rgba(14,165,233,.16), transparent 36%), linear-gradient(145deg, #071016 0%, #0b1921 58%, #071016 100%)",
+            "radial-gradient(circle at 16% 16%, rgba(249,115,22,.18), transparent 34%), radial-gradient(circle at 84% 26%, rgba(14,165,233,.16), transparent 36%), linear-gradient(145deg, rgb(2 6 23) 0%, rgb(15 23 42) 58%, rgb(2 6 23) 100%)",
         }}
       />
       <div
@@ -159,7 +167,7 @@ function ProfileArrivalState({
           </a>
         </header>
 
-        <section className="my-auto grid overflow-hidden rounded-[2rem] border border-white/10 bg-[#0c171e]/95 shadow-[0_36px_110px_rgba(0,0,0,.45)] backdrop-blur-xl lg:grid-cols-[1.15fr_.85fr]">
+        <section className="my-auto grid overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/95 shadow-[0_36px_110px_rgba(0,0,0,.45)] backdrop-blur-xl lg:grid-cols-[1.15fr_.85fr]">
           <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-14">
             <div className="mb-7 inline-flex w-fit items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-orange-300">
               {isRetry ? (
@@ -242,7 +250,7 @@ function ProfileArrivalState({
             </div>
           </div>
 
-          <div className="relative flex min-h-[330px] items-center justify-center overflow-hidden border-t border-white/10 bg-[#0a222d] p-8 lg:min-h-[600px] lg:border-l lg:border-t-0">
+          <div className="relative flex min-h-[330px] items-center justify-center overflow-hidden border-t border-white/10 bg-slate-900 p-8 lg:min-h-[600px] lg:border-l lg:border-t-0">
             <div
               aria-hidden="true"
               className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,.18),transparent_58%)]"
@@ -256,7 +264,7 @@ function ProfileArrivalState({
               className="absolute bottom-[10%] right-[10%] h-28 w-28 rounded-full border border-ts-orange/25 bg-ts-orange/[0.06]"
             />
 
-            <div className="relative w-full max-w-sm rounded-[1.75rem] border border-white/12 bg-[#07141b]/90 p-6 shadow-2xl sm:p-8">
+            <div className="relative w-full max-w-sm rounded-[1.75rem] border border-white/12 bg-slate-950/90 p-6 shadow-2xl sm:p-8">
               <div className="mb-7 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">
@@ -623,18 +631,20 @@ export default function ProfileSiteView() {
   // folder placement is evidence, not an assertion: uncertain materials stay
   // in "Material to Confirm" and finishes only appear when the source says so.
   const contentBlocks =
-    profile.slug === "jw-stone"
-      ? [
-          ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
-          {
-            type: "inventoryCatalog",
-            data: { categories: JW_STONE_INVENTORY_CATEGORIES },
-          },
-        ]
-      : profile.slug === "jrs-auto-glass" &&
-          !storedContentBlocks.some((block: any) => block?.type === "gallery")
-        ? [...storedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
-        : storedContentBlocks;
+    profile.slug === HONEY_ONYX_PROFILE_SLUG
+      ? [...HONEY_ONYX_PROFILE_CONTENT_BLOCKS]
+      : profile.slug === "jw-stone"
+        ? [
+            ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
+            {
+              type: "inventoryCatalog",
+              data: { categories: JW_STONE_INVENTORY_CATEGORIES },
+            },
+          ]
+        : profile.slug === "jrs-auto-glass" &&
+            !storedContentBlocks.some((block: any) => block?.type === "gallery")
+          ? [...storedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
+          : storedContentBlocks;
   const profileCustomDomain =
     typeof profile.seoMeta?.customDomain === "string"
       ? profile.seoMeta.customDomain.trim().toLowerCase()
@@ -646,6 +656,7 @@ export default function ProfileSiteView() {
     profileCustomDomain.length > 0 &&
     typeof window !== "undefined" &&
     window.location.hostname.toLowerCase() === profileCustomDomain;
+  const platformBaseHref = isOnProfileCustomDomain ? getCanonicalAppOrigin() : "";
   const profileShareDestination = isOnProfileCustomDomain
     ? "/"
     : `/u/${encodeURIComponent(profile.slug)}`;
@@ -653,9 +664,13 @@ export default function ProfileSiteView() {
     contentBlocks.find((block: any) => block?.type === "inventoryCatalog") as any
   )?.data?.categories;
   const galleryItems = listProfileGalleryItems(contentBlocks);
-  const localServicePresentation = contentBlocks.find(
+  const storedLocalServicePresentation = contentBlocks.find(
     (block: any) => block?.type === "localServiceProfile"
   )?.data as LocalServiceProfilePresentation | undefined;
+  const localServicePresentation =
+    profile.slug === LA_PLUMBING_PROFILE_SLUG
+      ? LA_PLUMBING_PROFILE_PRESENTATION
+      : storedLocalServicePresentation;
   const itemShareParams =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const inventoryItemShareMeta = createProfileInventoryItemShareMetadata({
@@ -880,6 +895,8 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(itemShareMeta)}
         />
         <JrsAutoGlassProfileTheme
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
           onDirectConnect={() => setExpressPanelOpen(true)}
           hasViewerSession={hasViewerSession}
           tradeScoutReturnHref={tradeScoutReturnHref}
@@ -917,6 +934,8 @@ export default function ProfileSiteView() {
           preserveCanonicalQuery={Boolean(galleryItemShareMeta)}
         />
         <LocalServiceProfileTheme
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
           businessName={displayName}
           presentation={localServicePresentation}
           onDirectConnect={() => setExpressPanelOpen(true)}
@@ -973,6 +992,7 @@ export default function ProfileSiteView() {
           useExpressDirectConnect={useExpressDirectConnect}
           allowExpressCall={canExpressCall}
           profileShareDestination={profileShareDestination}
+          platformBaseHref={platformBaseHref}
           sharedGallerySlug={sharedGallerySlug}
           tradeScoutReturnHref={tradeScoutReturnHref}
           directConnectHref={directConnectHref}
@@ -1356,7 +1376,13 @@ export default function ProfileSiteView() {
         </CardContent>
       </Card>
       <PublicProfileItems items={profileItems} profileSections={profileSections} />
-      <TradeScoutProfileHandoff className="rounded-3xl" />
+      <TradeScoutProfileHandoff
+        profileSlug={profile.slug}
+        profileName={displayName}
+        itemName={inventoryItemShareMeta?.itemName || galleryItemShareMeta?.itemTitle}
+        platformBaseHref={platformBaseHref}
+        className="rounded-3xl"
+      />
       <ExpressDirectConnectPanel
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}
