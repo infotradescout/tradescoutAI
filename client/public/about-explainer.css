@@ -210,7 +210,8 @@ a:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: 4px; 
   display: grid;
   grid-template-columns: minmax(0, 1fr) 26px;
   align-items: center;
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 0;
   list-style: none;
   cursor: pointer;
   background: color-mix(in srgb, currentColor 4%, transparent);
@@ -218,6 +219,9 @@ a:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: 4px; 
 .content-section > summary::-webkit-details-marker { display: none; }
 .content-section > summary::after {
   content: "+";
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
   color: var(--orange);
   font-size: 22px;
   line-height: 1;
@@ -226,8 +230,8 @@ a:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: 4px; 
 .content-section[open] > summary::after { content: "−"; }
 .content-section[open] > summary { border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
 .content-section > summary:focus-visible { outline: 3px solid var(--orange); outline-offset: -4px; }
-.content-section > summary strong { display: block; font-size: 17px; line-height: 1.25; }
-.content-section > summary small { display: block; margin-top: 5px; color: color-mix(in srgb, currentColor 66%, transparent); font-size: 11px; line-height: 1.42; }
+.content-section > summary strong { grid-column: 1; display: block; min-width: 0; font-size: 17px; line-height: 1.25; }
+.content-section > summary small { grid-column: 1; display: block; min-width: 0; margin-top: 5px; color: color-mix(in srgb, currentColor 66%, transparent); font-size: 11px; line-height: 1.42; }
 .content-section-body { padding: 0 18px 18px; }
 .content-section > .scout-stage-group,
 .content-section > .connection-stage,
