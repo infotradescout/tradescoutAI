@@ -54,6 +54,7 @@ async function post(
 }
 
 export async function mirrorInfinityTouch(input: {
+  partnerId?: string;
   affiliateTag: string;
   canonicalPath: string;
   source: string;
@@ -62,7 +63,7 @@ export async function mirrorInfinityTouch(input: {
   const current = config();
   return post("/v1/attribution-touches", {
     programId: current.programId,
-    partnerId: input.affiliateTag,
+    partnerId: input.partnerId || input.affiliateTag,
     carrier: input.carrier,
     target: {
       object: {
