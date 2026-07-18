@@ -25,6 +25,7 @@ describe("TradeScout production public-entry freshness smoke contract", () => {
     const forbiddenBlock = source.match(/const forbiddenCopy = \[(.*?)\];/s)?.[1] || "";
 
     expect(source).toContain('const publicEntryPaths = ["/", "/landing", "/lp"]');
+    expect(source).toContain("TradeScoutBot production public-entry freshness smoke");
     expect(source).toContain("Connection Without Compromise");
     expect(source).toContain("Direct Connect");
     expect(source).toContain("Make A Request");
