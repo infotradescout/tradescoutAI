@@ -167,6 +167,7 @@ import {
 } from "./services/propertyLifecycleService";
 import { recordAttributionConversionEvent } from "./utils/attributionConversionLedger";
 import { handleUniversalAttributionClick } from "./utils/universalAttributionRef";
+import { mirrorInfinityConversion, mirrorInfinityTouch } from "./integrations/infinityShadow";
 import { buildMarketplaceConversationPresentation } from "./utils/conversationContext";
 import {
   users,
@@ -3771,6 +3772,12 @@ export async function registerRoutes(app: any) {
           source: "universal_ref",
           conversionType: "click",
         }).catch(() => {});
+        void mirrorInfinityTouch({
+          affiliateTag: tag,
+          canonicalPath: target,
+          source: "universal_ref",
+          carrier: "path_segment",
+        });
       },
     });
   });
@@ -3808,6 +3815,13 @@ export async function registerRoutes(app: any) {
             payoutCalculated: false,
             paymentTriggered: false,
           } as any);
+          void mirrorInfinityConversion({
+            conversionEventId: event.conversionEventId,
+            conversionType: event.conversionType,
+            targetPath: event.targetPath,
+            targetId: event.targetId,
+            attributionProofId: event.conversionEventId,
+          });
         },
       });
 
