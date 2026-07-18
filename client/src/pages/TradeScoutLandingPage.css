@@ -136,6 +136,8 @@
 }
 
 .ts-hero-copy {
+  width: 100%;
+  min-width: 0;
   max-width: 1040px;
 }
 
@@ -916,7 +918,11 @@
     line-height: 1.55;
   }
 
-  .ts-hero-actions,
+  .ts-hero-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
   .ts-button {
     width: 100%;
   }

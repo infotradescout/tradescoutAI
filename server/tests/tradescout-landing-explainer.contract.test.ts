@@ -9,6 +9,7 @@ function read(relativePath: string): string {
 
 describe("TradeScout plain-language landing explainer", () => {
   const landingSource = read("client/src/pages/TradeScoutLandingPage.tsx");
+  const landingStyles = read("client/src/pages/TradeScoutLandingPage.css");
   const fallbackSource = read("server/publicLandingHtml.ts");
 
   it("keeps the eight canonical explainer chapters in order", () => {
@@ -49,6 +50,15 @@ describe("TradeScout plain-language landing explainer", () => {
 
   it("keeps the header home link and footer back-to-top link unambiguous", () => {
     expect(landingSource).toContain('aria-label={backToTop ? "Back to top" : "TradeScout home"}');
+  });
+
+  it("lets the hero shrink and stacks its actions so mobile calls to action never clip", () => {
+    expect(landingStyles).toMatch(
+      /\.ts-hero-copy\s*\{[^}]*\bwidth:\s*100%;[^}]*\bmin-width:\s*0;[^}]*\}/
+    );
+    expect(landingStyles).toMatch(
+      /\.ts-hero-actions\s*\{[^}]*\bwidth:\s*100%;[^}]*\bflex-direction:\s*column;[^}]*\}/
+    );
   });
 
   it("keeps pricing in the approved reveal order", () => {
