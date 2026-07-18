@@ -137,7 +137,7 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
         ...existingProfileData,
         tagline: "Natural onyx that shifts from soft daylight movement to a warm backlit glow.",
         description:
-          "Honey Onyx is an independently owned translucent natural stone product distributed through JW Stone.",
+          "Honey Onyx is a translucent natural stone with soft daylight movement and a dramatic warm glow when backlit.",
         category: "Natural Onyx",
         services: [
           "Honey Onyx slab availability",

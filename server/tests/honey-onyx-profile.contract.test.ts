@@ -50,14 +50,16 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect((inventoryBlock?.data as any)?.categories?.[0]?.stones?.[0]?.images).toHaveLength(6);
   });
 
-  it("renders accurate product copy and distributor-aware Direct Connect", () => {
+  it("keeps market-facing copy focused on the product and Direct Connect", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
     const profileCopy = JSON.stringify(HONEY_ONYX_PROFILE_CONTENT_BLOCKS);
 
-    expect(profileCopy).toContain("Independently owned product");
-    expect(profileCopy).toContain("Distributed by JW Stone");
-    expect(profileCopy).toContain("six source photos");
+    expect(profileCopy).toContain("Six real material photos");
+    expect(profileCopy).toContain("Private Direct Connect");
+    expect(profileCopy).not.toMatch(/independent|ownership|distribut(?:or|ed|ion)/i);
+    expect(profileCopy).not.toContain("JW Stone");
+    expect(profileCopy).toContain("actual material");
     expect(profileCopy).not.toMatch(/\bbuilt (?:for|to|around)\b/i);
     expect(theme).toContain("text={`${stone.name} from ${displayName}`}");
     expect(theme).toContain("{ctaHeading}");
