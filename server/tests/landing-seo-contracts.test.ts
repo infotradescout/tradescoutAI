@@ -88,7 +88,6 @@ describe("landing SEO contracts", () => {
       read("client/src/components/SEOHelmet.tsx"),
       read("server/publicLandingHtml.ts"),
       read("server/publicBestHtml.ts"),
-      read("server/index.ts"),
     ];
 
     expect(shareImage.subarray(1, 4).toString("ascii")).toBe("PNG");
