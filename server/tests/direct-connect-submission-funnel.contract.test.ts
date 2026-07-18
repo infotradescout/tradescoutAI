@@ -81,7 +81,7 @@ describe("direct connect submission funnel contract harness", () => {
     expect(shellSource).toContain("navigate(`/pre-scout-setup?mode=signin&next=${next}`)");
     expect(shellSource).toContain("Your request draft is ready. Sign in to review and send it.");
     expect(shellSource).toContain(
-      "Save it so the next repair starts with this history already on file."
+      "Save it with your property or project so the next step starts with the right"
     );
     expect(shellSource).toContain("Skip for now");
   });

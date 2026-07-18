@@ -82,6 +82,21 @@ describe("directConnectEntryContext", () => {
     });
   });
 
+  it("carries an explicit public-profile product into Direct Connect", () => {
+    expect(
+      parseDirectConnectEntryContext(
+        "/direct-connect?from=public_profile&profile=jw-stone&profileName=JW%20Stone%20LLC&item=Honey%20Onyx&subject=product"
+      )
+    ).toMatchObject({
+      contextType: "profile",
+      contextId: "jw-stone",
+      targetSelector: "jw-stone",
+      targetName: "Honey Onyx",
+      source: "public_profile",
+      subjectType: "product",
+    });
+  });
+
   it("creates a readable fallback label without inventing identity", () => {
     const context = parseDirectConnectEntryContext("/direct-connect?profile=jane-doe");
     expect(getDirectConnectContextLabel(context)).toBe("jane doe");

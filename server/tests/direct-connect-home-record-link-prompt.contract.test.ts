@@ -13,7 +13,7 @@ describe("direct connect home record link prompt conversion contract", () => {
     const source = fs.readFileSync(shellPath, "utf8");
     expect(source).toContain("Save to HomeID");
     expect(source).toContain(
-      "Save it so the next repair starts with this history already on file."
+      "Save it with your property or project so the next step starts with the right"
     );
     expect(source).toContain("Add HomeID details");
     expect(source).toContain("Use saved home details");
@@ -43,8 +43,10 @@ describe("direct connect home record link prompt conversion contract", () => {
     const source = fs.readFileSync(shellPath, "utf8");
     expect(source).toContain("const hasExistingHomes = homes.length > 0;");
     expect(source).toContain('{hasExistingHomes ? "Select a saved home" : "No saved homes yet"}');
-    expect(source).toContain("if (!hasExistingHomes) return;");
-    expect(source).toContain('setHomeContextIntent("link_existing")');
+    expect(source).not.toContain("setSelectedHomeId(firstHomeId)");
+    expect(source).toContain(
+      'selectHomeRecordIntent("link_existing", "home_record_compact_link_selected")'
+    );
     expect(source).toContain("function toCleanHomeLabel(home: any): string");
     expect(source).toContain('return nickname ? "My home" : "Saved home";');
     expect(source).toContain(
@@ -71,7 +73,7 @@ describe("direct connect home record link prompt conversion contract", () => {
 
   it("keeps core request fields before home record controls", () => {
     const source = fs.readFileSync(shellPath, "utf8");
-    const requestTypeIndex = source.indexOf("What do you need done?");
+    const requestTypeIndex = source.indexOf("What do you need?");
     const homeRecordIndex = source.indexOf("Save to HomeID");
     const requestPhotosIndex = source.indexOf("Request photos");
     expect(requestTypeIndex).toBeGreaterThan(-1);

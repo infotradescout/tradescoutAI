@@ -35,6 +35,7 @@ export type DirectConnectEntryContext = {
   tradeId?: string;
   contextType?: DirectConnectEntryContextType;
   contextId?: string;
+  subjectType?: "business" | "product" | "service" | "evidence";
 };
 
 function readFirst(params: URLSearchParams, ...keys: string[]): string | undefined {
@@ -88,6 +89,18 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
   const businessSlug = readFirst(params, "prefill_businessSlug");
   const contractorSlug = readFirst(params, "contractor");
   const profileSlug = readFirst(params, "profile");
+  const profileName = readFirst(params, "profileName");
+  const itemName = readFirst(params, "item");
+  const rawSubject = readFirst(params, "subject");
+  const subjectType =
+    rawSubject === "business" ||
+    rawSubject === "product" ||
+    rawSubject === "service" ||
+    rawSubject === "evidence"
+      ? rawSubject
+      : itemName
+        ? "product"
+        : undefined;
   const postId = readFirst(params, "postId");
   const dealId = readFirst(params, "dealId");
   const clientId = readFirst(params, "clientId");
@@ -123,7 +136,7 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
   }
 
   const source =
-    readFirst(params, "source") ||
+    readFirst(params, "source", "from") ||
     (contextType === "business"
       ? "business_profile"
       : contextType === "provider"
@@ -142,7 +155,7 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
     countyFips: readFirst(params, "county", "prefill_countyFips"),
     targetProviderId: providerId,
     targetUserId: readFirst(params, "target"),
-    targetName: readFirst(params, "targetName", "prefill_businessName"),
+    targetName: readFirst(params, "targetName", "prefill_businessName") || itemName || profileName,
     targetSelector: businessSlug || contractorSlug || profileSlug,
     source,
     title: readFirst(params, "title"),
@@ -152,6 +165,7 @@ export function parseDirectConnectEntryContext(path: string): DirectConnectEntry
     tradeId: readFirst(params, "trade", "tradeId", "category"),
     contextType,
     contextId,
+    subjectType,
   };
 }
 
