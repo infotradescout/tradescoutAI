@@ -1,9 +1,19 @@
-import { memo } from "react";
+import { memo, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { SEOHelmet } from "@/components/SEOHelmet";
-
-const EXPLAINER_URL = "https://tradescout.mrplatypus4777.chatgpt.site/";
+import { AboutExplainerContent } from "@/pages/about-explainer-content";
 
 const About = memo(function About() {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
+
+  useLayoutEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+
+    setShadowRoot(host.shadowRoot ?? host.attachShadow({ mode: "open" }));
+  }, []);
+
   return (
     <>
       <SEOHelmet
@@ -11,12 +21,20 @@ const About = memo(function About() {
         description="A complete plain-language explanation of TradeScout for requesters, businesses, property owners, communities, and Exchange participants."
         canonical="https://www.thetradescout.com/about"
       />
-      <div className="fixed inset-0 z-[9999] bg-[#0a1016]">
-        <iframe
-          className="h-full w-full border-0 bg-[#0a1016]"
-          src={EXPLAINER_URL}
-          title="About TradeScout — complete system explainer"
-        />
+      <div
+        ref={hostRef}
+        className="fixed inset-0 z-[9999] overflow-y-auto bg-[#0a1016]"
+        aria-label="About TradeScout — complete system explainer"
+      >
+        {shadowRoot
+          ? createPortal(
+              <>
+                <link rel="stylesheet" href="/about-explainer.css" />
+                <AboutExplainerContent />
+              </>,
+              shadowRoot,
+            )
+          : null}
       </div>
     </>
   );
