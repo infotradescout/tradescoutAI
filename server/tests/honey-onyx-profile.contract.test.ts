@@ -57,6 +57,7 @@ describe("Honey Onyx standalone public profile contract", () => {
 
     expect(profileCopy).toContain("Six real material photos");
     expect(profileCopy).toContain("Private Direct Connect");
+    expect(profileCopy).toContain('"hideFinishDetails":true');
     expect(profileCopy).not.toMatch(/independent|ownership|distribut(?:or|ed|ion)/i);
     expect(profileCopy).not.toContain("JW Stone");
     expect(profileCopy).toContain("actual material");
@@ -64,6 +65,8 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(theme).toContain("text={`${stone.name} from ${displayName}`}");
     expect(theme).toContain("{ctaHeading}");
     expect(theme).toContain("contactOperatorName={contactOperatorName || undefined}");
+    expect(theme).toContain("!stone.hideFinishDetails");
+    expect(theme).toContain("!openStone.hideFinishDetails");
     expect(theme).not.toContain("Finish not confirmed — ask JW Stone");
     expect(panel).toContain("hasSeparateOperator");
     expect(panel).toContain("Your ${businessName} request was sent to ${operatorName}.");
