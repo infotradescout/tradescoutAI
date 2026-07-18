@@ -51,7 +51,10 @@ const RedirectTo = memo(function RedirectTo({ to }: { to: string }) {
   const [location, navigate] = useLocation();
 
   useEffect(() => {
-    const raw = String(location || "");
+    const raw =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}${window.location.hash}`
+        : String(location || "");
     const target = mergeCompatibilityRedirectTarget(to, raw);
     if (raw !== target) navigate(target);
   }, [location, navigate, to]);
