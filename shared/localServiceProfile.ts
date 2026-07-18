@@ -54,23 +54,24 @@ export const LA_PLUMBING_PROFILE_SLUG = "la-plumbing-solutions";
 
 export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation = {
   template: "local-service",
-  eyebrow: "Residential + commercial plumbing",
-  heroTitle: "Plumbing work built to hold up.",
+  eyebrow: "Licensed · Family-owned · Residential + commercial",
+  heroTitle: "Residential and commercial plumbers serving southeast Louisiana.",
   heroDescription:
-    "Repairs, replacements, renovations, and complete plumbing systems for homes and businesses across southeast Louisiana.",
-  heroImage: "/images/businesses/la-plumbing-solutions/hero.jpg",
-  heroImageAlt: "LA Plumbing Solutions technician working on an exterior water-heater system",
+    "Repairs, fixtures, drain cameras, backflow, gas, tank and tankless water heaters, renovations, and complete new-construction plumbing.",
+  heroImage: "/images/businesses/la-plumbing-solutions/bathroom.jpg",
+  heroImageAlt:
+    "Finished freestanding bath and plumbing fixtures installed by LA Plumbing Solutions",
   logoImage: "/images/businesses/la-plumbing-solutions/logo.jpg",
   logoAlt: "LA Plumbing Solutions",
   locationLabel: "Hammond, Louisiana",
-  serviceNote: "Serving homes, businesses, renovations, and new construction.",
-  servicesEyebrow: "What they handle",
-  servicesTitle: "One plumbing team for the small fixes and the full systems.",
+  serviceNote: "Licensed plumbing for homes, businesses, renovations, and new construction.",
+  servicesEyebrow: "Complete plumbing service",
+  servicesTitle: "From the first repair to a complete new system.",
   highlights: [
-    "Family owned and operated",
-    "Residential and commercial",
-    "Repairs through new construction",
-    "Financing options available",
+    "Master licensed plumbers",
+    "Residential + commercial",
+    "Tank + tankless specialists",
+    "Project financing available",
   ],
   services: [
     {
@@ -122,7 +123,7 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
       icon: "bath",
     },
   ],
-  aboutTitle: "Raised in the trade. Built around doing it right.",
+  aboutTitle: "Family-owned and raised in the plumbing trade.",
   aboutBody:
     "LA Plumbing Solutions is a local, family-owned company founded by two brothers who grew up learning the plumbing trade from their father. Their team brings licensed plumbers, apprentices, and office support together so the work stays coordinated from the first request through the final follow-up.",
   aboutEyebrow: "The people behind the work",
@@ -131,7 +132,7 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   serviceAreas: ["Hammond", "Ponchatoula", "Baton Rouge", "Covington", "Mandeville", "Slidell"],
   serviceAreaDescription: "Based in Hammond and serving projects across southeast Louisiana.",
   galleryEyebrow: "Completed work",
-  galleryTitle: "The work speaks in pipes, fixtures, and finished rooms.",
+  galleryTitle: "See their plumbing work.",
   galleryDescription: "These are examples of completed plumbing work—not products or inventory.",
   galleryShareText: "See this completed plumbing work",
   credentialLabel: "Credentials listed by LA Plumbing Solutions",
@@ -144,9 +145,9 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   ],
   credentialDisclosure:
     "TradeScout has reviewed this profile and its required provider credentials. Credential numbers are also published by LA Plumbing Solutions.",
-  requestTitle: "Tell LA Plumbing what needs attention.",
+  requestTitle: "Call now or send LA Plumbing the job details.",
   requestDescription:
-    "Share the property, problem, timing, and any photos. Your contact details stay private unless LA Plumbing accepts the request.",
+    "Choose Call for a direct conversation, or fill out the form with the property, problem, timing, and photos. Form details stay private unless LA Plumbing accepts.",
   brand: {
     primary: "#1ba9dc",
     primaryDark: "#0878a6",

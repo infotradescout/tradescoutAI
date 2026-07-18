@@ -358,7 +358,7 @@ const ScoutInfoShowcase = memo(function ScoutInfoShowcase() {
                               {index === 1 &&
                                 "Seeing the best matches first helps you avoid contacting the wrong person or opening the wrong page."}
                               {index === 2 &&
-                                "Open the best match, save it, ask a follow-up, or make a request when it makes sense."}
+                                "Open the best match, save it, ask a follow-up, or start Direct Connect when it makes sense."}
                             </p>
                           </div>
                         ))}

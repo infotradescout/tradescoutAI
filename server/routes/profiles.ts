@@ -26,6 +26,7 @@ import {
 } from "../../shared/publicBusinessListing";
 import { buildExposureAuthorityMap } from "../services/exposureAuthority";
 import { getActiveCvsBoostPoints } from "../services/cvsBoostPolicy";
+import { hasDirectConnectPhone } from "../services/directConnectPhone";
 import {
   buildPublicHomeScoutListingCards,
   type PublicHomeScoutListingCard,
@@ -719,6 +720,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     publicVerificationStatus === "approved" && ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
+  let hasGatedDirectConnectPhone = false;
   if (business) {
     const [linkedBusiness] = await db
       .select({
@@ -726,6 +728,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         sources: businesses.sources,
         publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
         status: businesses.status,
+        profileData: businesses.profileData,
       })
       .from(businesses)
       .where(eq(businesses.id, profile.businessId!))
@@ -744,6 +747,9 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
       return res.status(404).json({ message: "Profile not found" });
     }
     directConnectOwnerUserId = ownerUserId;
+    const linkedProfileData = (linkedBusiness?.profileData || {}) as Record<string, unknown>;
+    const gatedPhone = linkedProfileData.phone || ownerUser.phone;
+    hasGatedDirectConnectPhone = hasDirectConnectPhone(gatedPhone);
   }
   const safeBusiness = business
     ? {
@@ -761,7 +767,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         expressContactCapabilities: {
           // Public profiles always preserve the Direct Connect gate. A phone
           // number stored for private routing never becomes a bypass.
-          call: false,
+          call: hasGatedDirectConnectPhone,
           request: Boolean(directConnectOwnerUserId),
         },
         ...(business.brandColors ? { brandColors: business.brandColors } : {}),

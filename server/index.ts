@@ -23,6 +23,7 @@ import {
   ensureBusinessPublicDiscoveryEnabledColumn,
   ensureDocumentsTables,
   ensureProfilesTable,
+  ensureTrustLedgerEventsTable,
 } from "./ensureDb";
 import { runSchemaPreflight } from "./schemaPreflight";
 import { runRuntimeMigrations } from "./runtimeMigrations";
@@ -733,6 +734,19 @@ app.use(landingContractHeaders);
           (err as Error)?.message
         );
       }
+    }
+
+    try {
+      await ensureTrustLedgerEventsTable();
+    } catch (err) {
+      if (process.env.NODE_ENV === "production") {
+        console.error("FATAL: ensureTrustLedgerEventsTable failed in production:", err);
+        throw err;
+      }
+      console.warn(
+        "[DEV] ensureTrustLedgerEventsTable failed; continuing without trust ledger:",
+        (err as Error)?.message
+      );
     }
 
     const ensureMasterAdmin = async () => {

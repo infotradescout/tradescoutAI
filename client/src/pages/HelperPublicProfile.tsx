@@ -254,7 +254,7 @@ export default function HelperPublicProfile() {
             data-testid="helper-contact-cta"
           >
             <Link href="/direct-connect">
-              <MessageSquare className="w-4 h-4 mr-2" /> Request via Direct Connect
+              <MessageSquare className="w-4 h-4 mr-2" /> Direct Connect
             </Link>
           </Button>
         </div>

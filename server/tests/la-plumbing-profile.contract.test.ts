@@ -33,6 +33,10 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(provisioning).toContain("noPaidBoost: true");
     expect(provisioning).toContain("runTrustSnapshotForUser");
     expect(provisioning).not.toContain("trustScore: 100");
+    expect(entry).toContain("await ensureTrustLedgerEventsTable()");
+    expect(entry.indexOf("await ensureTrustLedgerEventsTable()")).toBeLessThan(
+      entry.indexOf("await provisionLaPlumbingProfile()")
+    );
     expect(entry).toContain("await provisionLaPlumbingProfile()");
     expect(sourceRecord).toContain("CVS 50 baseline");
     expect(sourceRecord).toContain("No external rating/review score was imported");
@@ -49,7 +53,7 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(profileView).toContain('localServicePresentation?.template === "local-service"');
     expect(profileView).toContain("<LocalServiceProfileTheme");
     expect(theme).toContain('data-testid="local-service-profile-theme"');
-    expect(theme.match(/Make A Request/g)?.length || 0).toBeGreaterThanOrEqual(3);
+    expect(theme.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(theme).toContain("Verified by TradeScout");
     expect(theme).toContain("CVS {normalizedCvsScore}");
     expect(theme).toContain("You&apos;re here early");
@@ -57,6 +61,10 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(theme).not.toContain("Contact now");
     expect(theme).not.toContain("window.history.back()");
     expect(presentation).toContain("completed plumbing work—not products or inventory");
+    expect(presentation).toContain(
+      'heroImage: "/images/businesses/la-plumbing-solutions/bathroom.jpg"'
+    );
+    expect(presentation).toContain("Master licensed plumbers");
 
     for (const asset of [
       "logo.jpg",
@@ -87,14 +95,17 @@ describe("LA Plumbing Solutions public profile contract", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const theme = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
     const presentation = read("shared/localServiceProfile.ts");
+    const provisioning = read("server/services/laPlumbingProfileProvisioning.ts");
 
     expect(publicRoute).toContain("directConnectOwnerUserId = ownerUserId");
-    expect(publicRoute).toContain("call: false");
+    expect(publicRoute).toContain("call: hasGatedDirectConnectPhone");
+    expect(publicRoute).toContain("hasDirectConnectPhone(gatedPhone)");
     expect(publicRoute).toContain("verificationStatus: publicVerificationStatus");
     expect(publicRoute).toContain("cvsScore: Number.isFinite(publicCvsScore)");
     expect(profileView).toContain("source=profile_site");
-    expect(profileView).toContain("allowCall={false}");
-    expect(presentation).toContain("Your contact details stay private");
+    expect(profileView).toContain("allowCall={canExpressCall}");
+    expect(provisioning).toContain("LA_PLUMBING_ROUTING_PHONE");
+    expect(presentation).toContain("Form details stay private");
     expect(theme).not.toContain("tel:");
     expect(theme).not.toContain("mailto:");
   });

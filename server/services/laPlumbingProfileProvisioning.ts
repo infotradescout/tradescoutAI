@@ -21,6 +21,7 @@ const LA_PLUMBING_OWNER_EMAIL = Buffer.from(
   "dHJhY3lAbGFwbHVtYmluZ3NvbHV0aW9ucy5jb20=",
   "base64"
 ).toString("utf8");
+const LA_PLUMBING_ROUTING_PHONE = Buffer.from("KDk4NSkgNTUxLTA1ODk=", "base64").toString("utf8");
 
 const PROFILE_SOURCE = "admin_verified_profile_provisioning";
 const ADMIN_AUDIT_ACTION = "admin_business_profile_verify_and_publish";
@@ -132,6 +133,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       role: "specialty_tradesperson" as const,
       roles,
       activeRole: "specialty_tradesperson",
+      phone: existingOwner?.phone || LA_PLUMBING_ROUTING_PHONE,
       provider: existingOwner?.provider || "admin_provisioned",
       emailVerified: true,
       addressVerified: true,
@@ -316,7 +318,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       roleContext: "specialty_tradesperson" as const,
       profileData: {
         ...existingProfileData,
-        tagline: "Plumbing work built to hold up.",
+        tagline: "Residential and commercial plumbers serving southeast Louisiana.",
         description:
           "Family-owned residential and commercial plumbing serving southeast Louisiana.",
         category: "Plumbing",
@@ -333,6 +335,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
         stateCode: "LA",
         zipCode: "70401",
         contactPreference: "message",
+        phone: LA_PLUMBING_ROUTING_PHONE,
         notificationEmail: normalizedEmail,
         importExtras: {
           ...(existingProfileData.importExtras || {}),
@@ -394,7 +397,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       contentBlocks: LA_PLUMBING_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {
-          label: "Make A Request",
+          label: "Direct Connect",
           kind: "message" as const,
           value: "/direct-connect",
         },
@@ -403,9 +406,10 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
         title: "LA Plumbing Solutions | Hammond, Louisiana",
         description:
           "See residential and commercial work from LA Plumbing Solutions, then make a private request through TradeScout Direct Connect.",
-        imageUrl: "https://www.thetradescout.com/images/businesses/la-plumbing-solutions/hero.jpg",
-        imageWidth: 1920,
-        imageHeight: 2560,
+        imageUrl:
+          "https://www.thetradescout.com/images/businesses/la-plumbing-solutions/bathroom.jpg",
+        imageWidth: 640,
+        imageHeight: 480,
         faviconUrl:
           "https://www.thetradescout.com/images/businesses/la-plumbing-solutions/logo.jpg",
       },

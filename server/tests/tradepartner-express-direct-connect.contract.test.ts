@@ -35,9 +35,11 @@ describe("Public-profile Express Direct Connect contract", () => {
 
   it("uses required phone entry—not SMS or OTP—as request friction", () => {
     const route = read("server/routes/tradepartner-express.ts");
+    const phoneAuthority = read("server/services/directConnectPhone.ts");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
 
-    expect(route).toContain("digits.length >= 10 && digits.length <= 15");
+    expect(phoneAuthority).toContain("digits.length < 10 || digits.length > 15");
+    expect(route).toContain("normalizeDirectConnectPhone(target.phone)");
     expect(route).toContain('contactCheck: "phone_required"');
     expect(panel).toContain('type="tel"');
     expect(panel).toContain('autoComplete="tel"');

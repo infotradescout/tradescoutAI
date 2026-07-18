@@ -57,7 +57,7 @@ describe("JR's Auto Glass public profile contract", () => {
         path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/logo.webp")
       )
     ).toBe(true);
-    expect(theme.match(/Make A Request/g)?.length || 0).toBeGreaterThanOrEqual(3);
+    expect(theme.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(theme).not.toContain("Request auto glass service");
     expect(theme).not.toContain("Send job details");
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");

@@ -61,7 +61,7 @@ describe("JW Stone profile presentation contract", () => {
   });
 
   it("turns a zero-result search into a prefilled material request", () => {
-    expect(source).toContain("Make A Request");
+    expect(source).toContain("Direct Connect");
     expect(source).toContain("JW Stone may be able to source it for your project.");
     expect(source).toContain('startDirectConnect(inventorySearch.trim(), "request_material")');
   });
@@ -81,12 +81,12 @@ describe("JW Stone profile presentation contract", () => {
   it("keeps every Direct Connect entry action orange and consistently named", () => {
     expect(source).toContain("border-2 border-ts-orange bg-white/12");
     expect(source).toContain("hover:bg-ts-orange-dark");
-    expect(source.match(/Make A Request/g)?.length || 0).toBeGreaterThanOrEqual(8);
+    expect(source.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(8);
     expect(source).not.toContain("Request this stone");
     expect(source).not.toContain("Ask about this stone");
     expect(source).not.toContain("Ask JW Stone");
     expect(expressSource).toContain("text-ts-orange-dark");
-    expect(expressSource).toContain("Make A Request");
+    expect(expressSource).toContain("Fill out the form");
     expect(expressSource).toContain("Direct Connect");
   });
 

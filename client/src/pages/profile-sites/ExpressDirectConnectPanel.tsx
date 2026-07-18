@@ -40,7 +40,6 @@ type PanelView = "choice" | "request" | "call_started" | "success";
 const REQUEST_MODE_CONFIG: Record<
   ExpressDirectConnectMode,
   {
-    choiceLabel: string;
     heading: string;
     placeholder: string;
     defaultType: ExpressDirectConnectRequestType;
@@ -48,7 +47,6 @@ const REQUEST_MODE_CONFIG: Record<
   }
 > = {
   materials: {
-    choiceLabel: "Make A Request",
     heading: "What are you looking for?",
     placeholder: "Tell them the material, quantity, project, timing, or stone you have in mind.",
     defaultType: "match_project",
@@ -61,7 +59,6 @@ const REQUEST_MODE_CONFIG: Record<
     ],
   },
   auto_glass: {
-    choiceLabel: "Make A Request",
     heading: "What does the vehicle need?",
     placeholder:
       "Include the vehicle year, make, model, damaged glass, location, and preferred timing.",
@@ -75,7 +72,6 @@ const REQUEST_MODE_CONFIG: Record<
     ],
   },
   service: {
-    choiceLabel: "Make A Request",
     heading: "What do you need?",
     placeholder: "Describe the job, location, timing, and the outcome you need.",
     defaultType: "request_service",
@@ -141,7 +137,7 @@ export default function ExpressDirectConnectPanel({
 
   useEffect(() => {
     if (!open) return;
-    setView(initialStoneName || initialRequestType || !allowCall ? "request" : "choice");
+    setView("choice");
     setBusy(false);
     setError("");
     setCallPhone("");
@@ -155,7 +151,7 @@ export default function ExpressDirectConnectPanel({
       requestType: defaultRequestType,
       message: initialStoneName ? `I'm interested in ${initialStoneName}.` : "",
     }));
-  }, [allowCall, defaultRequestType, initialRequestType, initialStoneName, open]);
+  }, [defaultRequestType, initialRequestType, initialStoneName, open]);
 
   const requestPath = useMemo(() => {
     const params = new URLSearchParams();
@@ -272,7 +268,7 @@ export default function ExpressDirectConnectPanel({
       >
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-stone-50 px-5 py-4">
           <div className="flex items-center gap-3">
-            {view === "request" && allowCall ? (
+            {view === "request" ? (
               <button
                 type="button"
                 onClick={() => {
@@ -298,21 +294,21 @@ export default function ExpressDirectConnectPanel({
             type="button"
             onClick={close}
             className="rounded-full p-2 text-neutral-900/60 hover:bg-black/5"
-            aria-label="Close request"
+            aria-label="Close Direct Connect"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         <div className="p-5 sm:p-7">
-          {view === "choice" && allowCall ? (
+          {view === "choice" ? (
             <div>
-              <p className="mb-6 text-stone-700">Choose how you want to reach {businessName}.</p>
+              <p className="mb-6 text-stone-700">Call now or send {businessName} the details.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
                   onClick={startCall}
-                  disabled={busy}
+                  disabled={busy || !allowCall}
                   className="flex min-h-32 flex-col items-start justify-between rounded-2xl bg-ts-orange p-5 text-left text-white transition-transform hover:-translate-y-0.5 hover:bg-ts-orange-dark disabled:opacity-60"
                 >
                   {busy ? (
@@ -321,8 +317,10 @@ export default function ExpressDirectConnectPanel({
                     <Phone className="h-6 w-6" />
                   )}
                   <span>
-                    <strong className="block text-lg">Direct Connect</strong>
-                    <span className="text-sm text-white/80">Call through TradeScout</span>
+                    <strong className="block text-lg">Call</strong>
+                    <span className="text-sm text-white/80">
+                      {allowCall ? "Call now through Direct Connect" : "Calling is coming soon"}
+                    </span>
                   </span>
                 </button>
                 <button
@@ -335,16 +333,16 @@ export default function ExpressDirectConnectPanel({
                 >
                   <MessageCircle className="h-6 w-6 text-ts-orange" />
                   <span>
-                    <strong className="block text-lg">{config.choiceLabel}</strong>
+                    <strong className="block text-lg">Fill out the form</strong>
                     <span className="text-sm font-medium text-stone-600">
-                      No account needed to send
+                      Send the job details privately
                     </span>
                   </span>
                 </button>
               </div>
               <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
                 <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
-                Your phone number lets {businessName} reply. It stays private until they accept.
+                Your details stay private unless {businessName} accepts what you send.
               </div>
             </div>
           ) : null}
@@ -449,7 +447,7 @@ export default function ExpressDirectConnectPanel({
                 ) : (
                   <MessageCircle className="h-5 w-5" />
                 )}
-                Make A Request
+                Send through Direct Connect
               </button>
             </form>
           ) : null}
