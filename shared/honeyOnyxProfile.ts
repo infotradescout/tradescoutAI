@@ -56,9 +56,41 @@ export const HONEY_ONYX_PROFILE_CONTENT_BLOCKS = [
         backlitImageIndex: 0,
       },
       gallery: {
-        eyebrow: "The actual material",
-        title: "Pick the view that stopped you.",
-        body: "Six real photos, in real lighting. Open any one full screen or share that exact view with the people helping plan the project.",
+        eyebrow: "Natural light vs. backlit",
+        title: "See what backlighting changes.",
+        body: "Photos 1–2 show Honey Onyx illuminated from behind. Photos 3–6 show it without backlighting. Compare color, translucency, and movement, then open or share the exact view you want to discuss.",
+        photos: [
+          {
+            label: "Backlit",
+            title: "Single slab, illuminated",
+            body: "Warm gold light reveals the translucent areas and darker natural movement.",
+          },
+          {
+            label: "Backlit",
+            title: "Two slabs, illuminated",
+            body: "Two slabs shown together under backlighting for a wider view of color and movement.",
+          },
+          {
+            label: "Natural light",
+            title: "Two slabs in daylight",
+            body: "Pale green, cream, amber, and rust are visible without illumination.",
+          },
+          {
+            label: "Natural light",
+            title: "Full slab in daylight",
+            body: "A full daylight view for judging the scale and direction of the natural movement.",
+          },
+          {
+            label: "Natural light",
+            title: "Stronger amber movement",
+            body: "A daylight view with stronger amber and rust movement across the material.",
+          },
+          {
+            label: "Low natural light",
+            title: "Full slab at dusk",
+            body: "A lower-light view of the cooler green and cream character without backlighting.",
+          },
+        ],
       },
       applications: {
         eyebrow: "Ideas worth exploring",
