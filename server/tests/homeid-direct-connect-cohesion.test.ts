@@ -14,7 +14,7 @@ const notificationSafetySource = read(
 
 describe("HomeID and Direct Connect cohesion contract", () => {
   it("keeps request creation action-first with HomeID below required request inputs", () => {
-    const requestTypeIndex = shellSource.indexOf("What do you need done?");
+    const requestTypeIndex = shellSource.indexOf("What do you need?");
     const photosIndex = shellSource.indexOf("Request photos");
     const homeRecordIndex = shellSource.indexOf("Save to HomeID");
 
@@ -29,7 +29,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
     expect(shellSource).toContain("const [homeContextIntent, setHomeContextIntent] = useState<");
     expect(shellSource).toContain('>("skip_for_now")');
     expect(shellSource).toContain(
-      "Save it so the next repair starts with this history already on file."
+      "Save it with your property or project so the next step starts with the right"
     );
     expect(shellSource).toContain("Add HomeID details");
     expect(shellSource).toContain("Skip for now");
@@ -44,7 +44,7 @@ describe("HomeID and Direct Connect cohesion contract", () => {
     expect(shellSource).toContain("Request sent");
     expect(shellSource).toContain("Your request is live.");
     expect(shellSource).toContain("Save this request to your HomeID so future work is easier.");
-    expect(shellSource).toContain("Attach this project to your HomeID");
+    expect(shellSource).toContain("Keep this request in HomeID");
     expect(shellSource).not.toContain("Attach/update HomeID");
     expect(shellSource).not.toContain("Create from request");
     expect(shellSource).toContain('params.get("offerHomeId") !== "1"');

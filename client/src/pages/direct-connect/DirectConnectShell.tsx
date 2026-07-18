@@ -291,7 +291,7 @@ function getPostSubmitHomeIdMemoryCopy(hasHomes: boolean) {
     description: hasHomes
       ? "Save this request to your HomeID so future work is easier. You can attach it to a saved home or update property history when you are ready."
       : "Save this request to your HomeID so future work is easier. You can create a home record from the request when you are ready.",
-    actionLabel: "Attach this project to your HomeID",
+    actionLabel: "Keep this request in HomeID",
   };
 }
 
@@ -1318,6 +1318,7 @@ function RequestAttachmentStrip({
 }
 
 function DirectConnectRequestComposer({
+  entryLocation,
   defaultCountyFips,
   prefillTargetUserId,
   prefillTargetProviderId,
@@ -1325,6 +1326,7 @@ function DirectConnectRequestComposer({
   prefillTargetSelector,
   prefillContextType,
   prefillContextId,
+  prefillSubjectType,
   prefillSource,
   prefillTitle,
   prefillDescription,
@@ -1332,6 +1334,7 @@ function DirectConnectRequestComposer({
   prefillBudgetMax,
   prefillTradeId,
 }: {
+  entryLocation?: string;
   defaultCountyFips?: string;
   prefillTargetUserId?: string;
   prefillTargetProviderId?: string;
@@ -1339,6 +1342,7 @@ function DirectConnectRequestComposer({
   prefillTargetSelector?: string;
   prefillContextType?: DirectConnectEntryContextType;
   prefillContextId?: string;
+  prefillSubjectType?: "business" | "product" | "service" | "evidence";
   prefillSource?: string;
   prefillTitle?: string;
   prefillDescription?: string;
@@ -1351,7 +1355,10 @@ function DirectConnectRequestComposer({
   const { t } = useI18n();
   const queryClient = useQueryClient();
   const [location, navigate] = useLocation();
-  const directConnectIntent = useMemo(() => getDirectConnectIntent(location), [location]);
+  const directConnectIntent = useMemo(
+    () => getDirectConnectIntent(entryLocation || location),
+    [entryLocation, location]
+  );
   const intentConfig = directConnectIntent
     ? localizeIntentConfig(DIRECT_CONNECT_INTENT_CONFIG[directConnectIntent], t)
     : null;
@@ -1371,7 +1378,6 @@ function DirectConnectRequestComposer({
     prefillContextType ||
     prefillContextId
   );
-  const isTradePartnerScoped = prefillSource === "tradepartner_profile";
   const [requestType, setRequestType] = useState<
     | "service_request"
     | "business_request"
@@ -1379,19 +1385,9 @@ function DirectConnectRequestComposer({
     | "employment"
     | "buy_sell"
     | "other"
-  >("service_request");
-  const [title, setTitle] = useState(
-    () => prefillTitle?.trim() || (initialTargetName ? `Request for ${initialTargetName}` : "")
-  );
-  const [description, setDescription] = useState(
-    () =>
-      prefillDescription?.trim() ||
-      (initialTargetName
-        ? isTradePartnerScoped
-          ? `Sent directly to ${initialTargetName} through their TradeScout profile.`
-          : `This request is intended for ${initialTargetName}.`
-        : "")
-  );
+  >(() => (prefillSubjectType === "product" ? "buy_sell" : "service_request"));
+  const [title, setTitle] = useState(() => prefillTitle?.trim() || "");
+  const [description, setDescription] = useState(() => prefillDescription?.trim() || "");
   const [draftAttachmentKeys, setDraftAttachmentKeys] = useState<string[]>([]);
   const [budgetMin, setBudgetMin] = useState(() => prefillBudgetMin?.trim() || "");
   const [budgetMax, setBudgetMax] = useState(() => prefillBudgetMax?.trim() || "");
@@ -1432,7 +1428,6 @@ function DirectConnectRequestComposer({
   const [showRequestReady, setShowRequestReady] = useState(false);
   const [describeStep, setDescribeStep] = useState<0 | 1>(0);
   const [reviewAttempted, setReviewAttempted] = useState(false);
-  const [autofillSources, setAutofillSources] = useState<string[]>([]);
   const [detailAnswers, setDetailAnswers] = useState<
     Record<"what" | "where" | "when" | "details", string>
   >({
@@ -1444,13 +1439,6 @@ function DirectConnectRequestComposer({
   const hasAppliedIntentDefaultsRef = useRef(false);
   const requestStartedRef = useRef(false);
   const draftInitializedRef = useRef(false);
-  const contextualAutofillAppliedRef = useRef(false);
-  const contextualAutofillSnapshotRef = useRef<{
-    title?: string;
-    description?: string;
-    where?: string;
-    requestType?: RequestType;
-  }>({});
   const homeRecordPromptViewedRef = useRef(false);
   const homeRecordSkippedRef = useRef(false);
 
@@ -1463,29 +1451,6 @@ function DirectConnectRequestComposer({
     : [];
   const hasExistingHomes = homes.length > 0;
 
-  const recentRequestsQuery = useQuery<DirectConnectRequest[]>({
-    queryKey: ["/api/direct-connect/requests", "composer_autofill"],
-    queryFn: async () => {
-      const res = await fetch("/api/direct-connect/requests?scope=all");
-      if (!res.ok) return [];
-      const payload = await res.json();
-      return Array.isArray(payload) ? (payload as DirectConnectRequest[]) : [];
-    },
-    enabled: isAuthenticated,
-    staleTime: 60 * 1000,
-  });
-
-  const latestRequest = useMemo(() => {
-    const rows = Array.isArray(recentRequestsQuery.data) ? recentRequestsQuery.data : [];
-    if (rows.length < 1) return null;
-    return [...rows]
-      .filter((request) => !looksLikeHiddenOrTestRequest(request))
-      .sort((a, b) => {
-        const aTs = new Date(a.updatedAt || a.createdAt || 0).getTime();
-        const bTs = new Date(b.updatedAt || b.createdAt || 0).getTime();
-        return bTs - aTs;
-      })[0];
-  }, [recentRequestsQuery.data]);
   const currentReturnPath = () => {
     if (typeof window === "undefined") return location || "/direct-connect";
     return `${window.location.pathname}${window.location.search || ""}`;
@@ -1670,37 +1635,6 @@ function DirectConnectRequestComposer({
     setAttachments([]);
   };
 
-  const clearContextualAutofill = () => {
-    const snapshot = contextualAutofillSnapshotRef.current;
-
-    if (snapshot.title && title.trim() === snapshot.title.trim()) {
-      setTitle("");
-      setDetailAnswers((current) => ({
-        ...current,
-        what: current.what.trim() === snapshot.title?.trim() ? "" : current.what,
-      }));
-    }
-
-    if (snapshot.description && description.trim() === snapshot.description.trim()) {
-      setDescription("");
-      setDetailAnswers((current) => ({
-        ...current,
-        details: current.details.trim() === snapshot.description?.trim() ? "" : current.details,
-      }));
-    }
-
-    if (snapshot.where && detailAnswers.where.trim() === snapshot.where.trim()) {
-      setDetailAnswers((current) => ({ ...current, where: "" }));
-    }
-
-    if (snapshot.requestType && requestType === snapshot.requestType) {
-      setRequestType("service_request");
-    }
-
-    contextualAutofillSnapshotRef.current = {};
-    setAutofillSources([]);
-  };
-
   const requestTypeMeta: Record<
     | "service_request"
     | "business_request"
@@ -1722,33 +1656,34 @@ function DirectConnectRequestComposer({
     }
   > = {
     service_request: {
-      label: "One-time project",
-      hint: "Get a local pro to complete a specific job",
-      bestFor: "Repairs, installs, upgrades, urgent fixes",
+      label: "A project or service",
+      hint: "Repair, install, design, delivery, or one-time help",
+      bestFor: "Repairs, installs, projects, appointments, and urgent needs",
       category: "service_request",
-      titlePlaceholder: "Need help with...",
-      descriptionPlaceholder: "Describe what needs to be done, where it is, and your timeline.",
+      titlePlaceholder: "What would you like to get done?",
+      descriptionPlaceholder:
+        "Share the useful details, timing, and what a good result looks like.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "500",
       budgetPlaceholderMax: "2500",
     },
     business_request: {
-      label: "Ongoing service",
-      hint: "Set up recurring service for your home or business",
-      bestFor: "Weekly or monthly service, maintenance plans, repeat work",
+      label: "Ongoing support",
+      hint: "Recurring service, supply, maintenance, or a partnership",
+      bestFor: "Repeat service, maintenance plans, supply, and business relationships",
       category: "business_request",
-      titlePlaceholder: "Need ongoing service for...",
-      descriptionPlaceholder: "Explain ongoing scope, service expectations, and start timeline.",
+      titlePlaceholder: "What ongoing help are you looking for?",
+      descriptionPlaceholder: "Share the scope, frequency, expectations, and ideal start date.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "300",
       budgetPlaceholderMax: "5000",
     },
     customer_support: {
-      label: "Property or tenant issue",
-      hint: "Coordinate service for a tenant, resident, or managed property",
-      bestFor: "HOA, landlord, property manager, resident requests",
+      label: "A property or resident need",
+      hint: "Home, rental, HOA, tenant, or managed property",
+      bestFor: "Homeowners, residents, landlords, HOAs, and property managers",
       category: "customer_support",
       titlePlaceholder: "Property issue at...",
       descriptionPlaceholder: "Describe the issue, property context, who is affected, and urgency.",
@@ -1758,9 +1693,9 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "1500",
     },
     employment: {
-      label: "Hiring and staffing",
-      hint: "Fill a role, shift, or contract position",
-      bestFor: "Employees, shift coverage, contract labor",
+      label: "Work or staffing",
+      hint: "Hire, find work, fill a shift, or staff a contract",
+      bestFor: "Jobs, crews, shifts, contract work, and local opportunities",
       category: "employment",
       titlePlaceholder: "Hiring for role or contract...",
       descriptionPlaceholder: "Share role, schedule, required skills, and expected start date.",
@@ -1770,23 +1705,23 @@ function DirectConnectRequestComposer({
       budgetPlaceholderMax: "35",
     },
     buy_sell: {
-      label: "Materials and equipment",
-      hint: "Buy, sell, or source inventory, tools, and equipment",
-      bestFor: "Material orders, equipment sourcing, inventory moves",
+      label: "A product or material",
+      hint: "Find, order, sell, or source something",
+      bestFor: "Products, materials, inventory, tools, equipment, and special orders",
       category: "buy_sell",
-      titlePlaceholder: "Looking to buy or sell...",
-      descriptionPlaceholder: "List items, quantity, condition, and needed timeline.",
+      titlePlaceholder: "What product, material, or item are you looking for or offering?",
+      descriptionPlaceholder: "Share quantity, use, condition, timing, or questions that matter.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
       budgetPlaceholderMin: "100",
       budgetPlaceholderMax: "1500",
     },
     other: {
-      label: "Not sure yet",
-      hint: "Start here if your request does not fit the options above",
-      bestFor: "Unclear scope, mixed needs, early-stage request",
+      label: "Something else",
+      hint: "Start here and describe it in your own words",
+      bestFor: "Mixed needs, early ideas, introductions, and anything unusual",
       category: "other",
-      titlePlaceholder: "What do you need help with?",
+      titlePlaceholder: "What do you need?",
       descriptionPlaceholder: "Add enough detail so the right people can understand the request.",
       budgetLabelMin: "Budget min (optional)",
       budgetLabelMax: "Budget max (optional)",
@@ -1903,10 +1838,6 @@ function DirectConnectRequestComposer({
     });
   };
 
-  useEffect(() => {
-    markRequestStarted("type");
-  }, []);
-
   const { data: localDirectoryCandidates = [], isLoading: isDirectoryLoading } = useQuery<
     DirectoryCandidate[]
   >({
@@ -2008,16 +1939,6 @@ function DirectConnectRequestComposer({
   }, [assetComponentType, hasExistingHomes, selectedHomeId, user?.id]);
 
   useEffect(() => {
-    if (!hasExistingHomes) return;
-    if (selectedHomeId) return;
-    if (homeContextIntent !== "skip_for_now") return;
-    const firstHomeId = String((homes[0] as any)?.id || "").trim();
-    if (!firstHomeId) return;
-    setSelectedHomeId(firstHomeId);
-    setHomeContextIntent("link_existing");
-  }, [hasExistingHomes, homeContextIntent, homes, selectedHomeId]);
-
-  useEffect(() => {
     if (!intentConfig) return;
     if (hasAppliedIntentDefaultsRef.current) return;
     hasAppliedIntentDefaultsRef.current = true;
@@ -2029,167 +1950,6 @@ function DirectConnectRequestComposer({
         : `${intentConfig.prompt} Share details, timing, and location.`
     );
   }, [intentConfig]);
-
-  useEffect(() => {
-    if (contextualAutofillAppliedRef.current) return;
-    if (!isAuthenticated) return;
-    if (!homesQuery.isFetched || !recentRequestsQuery.isFetched) return;
-
-    const profile = (user as any) || {};
-    const home = hasExistingHomes ? (homes[0] as any) : null;
-
-    const profileCity =
-      typeof profile.city === "string"
-        ? profile.city.trim()
-        : typeof profile.preferences?.geo?.homeLocation?.city === "string"
-          ? String(profile.preferences.geo.homeLocation.city).trim()
-          : "";
-    const profileState =
-      typeof profile.stateCode === "string"
-        ? profile.stateCode.trim().toUpperCase()
-        : typeof profile.preferences?.geo?.homeLocation?.state === "string"
-          ? String(profile.preferences.geo.homeLocation.state).trim().toUpperCase()
-          : "";
-    const profileZip =
-      typeof profile.zipCode === "string"
-        ? profile.zipCode.trim()
-        : typeof profile.zip === "string"
-          ? profile.zip.trim()
-          : typeof profile.preferences?.geo?.homeLocation?.zip === "string"
-            ? String(profile.preferences.geo.homeLocation.zip).trim()
-            : "";
-
-    const homeCity = typeof home?.city === "string" ? home.city.trim() : "";
-    const homeState =
-      typeof home?.stateCode === "string" ? String(home.stateCode).trim().toUpperCase() : "";
-    const homeZip =
-      typeof home?.zipCode === "string"
-        ? String(home.zipCode).trim()
-        : typeof home?.postalCode === "string"
-          ? String(home.postalCode).trim()
-          : "";
-
-    const city = homeCity || profileCity;
-    const state = homeState || profileState;
-    const zip = homeZip || profileZip;
-
-    const countySource =
-      defaultCountyFips ||
-      (typeof profile.countyFips === "string" ? profile.countyFips : "") ||
-      (typeof home?.countyFips === "string" ? home.countyFips : "");
-    const countyLabel = countySource ? formatCountyLabel(countySource) : "";
-
-    const locationBits = [
-      [city, state].filter(Boolean).join(", "),
-      zip,
-      countyLabel && countyLabel !== countySource ? countyLabel : "",
-    ].filter((part) => typeof part === "string" && part.trim().length > 0);
-    const locationSuggestion = locationBits.join(" · ");
-
-    const laneSignal = String(
-      profile?.onboarding?.lane ||
-        profile?.preferences?.onboarding?.lane ||
-        profile?.userIntent ||
-        ""
-    ).toLowerCase();
-    const roleSignal = String(profile?.role || "").toLowerCase();
-    const latestTitle = String(latestRequest?.title || "").trim();
-    const latestDescription = String(latestRequest?.description || "").trim();
-
-    let suggestedType: RequestType | null = null;
-    if (
-      /(offer_services|business|provider|contractor)/.test(laneSignal) ||
-      /contractor|business/.test(roleSignal)
-    ) {
-      suggestedType = "business_request";
-    } else if (/(hire|job|staff|employment)/.test(laneSignal)) {
-      suggestedType = "employment";
-    } else if (/(sell|buy|exchange|marketplace|inventory|material)/.test(laneSignal)) {
-      suggestedType = "buy_sell";
-    } else if (/(property|tenant|hoa|resident)/.test(laneSignal)) {
-      suggestedType = "customer_support";
-    }
-
-    let changed = false;
-    const nextSources: string[] = [];
-    const nextSnapshot: {
-      title?: string;
-      description?: string;
-      where?: string;
-      requestType?: RequestType;
-    } = {};
-
-    if (!title.trim() && latestTitle) {
-      setTitle(latestTitle);
-      setDetailAnswers((current) => ({
-        ...current,
-        what: current.what.trim() ? current.what : latestTitle,
-      }));
-      changed = true;
-      nextSources.push("Recent activity");
-      nextSnapshot.title = latestTitle;
-    }
-
-    if (!description.trim() && latestDescription) {
-      const concise = latestDescription.slice(0, 280).trim();
-      setDescription(concise);
-      setDetailAnswers((current) => ({
-        ...current,
-        details: current.details.trim() ? current.details : concise,
-      }));
-      changed = true;
-      nextSources.push("Recent activity");
-      nextSnapshot.description = concise;
-    }
-
-    if (!detailAnswers.where.trim() && locationSuggestion) {
-      setDetailAnswers((current) => ({ ...current, where: locationSuggestion }));
-      changed = true;
-      nextSources.push("Location profile");
-      nextSnapshot.where = locationSuggestion;
-    }
-
-    if (!prefillSource && requestType === "service_request" && suggestedType) {
-      setRequestType(suggestedType);
-      changed = true;
-      nextSources.push("Onboarding profile");
-      nextSnapshot.requestType = suggestedType;
-    }
-
-    if (changed) {
-      contextualAutofillSnapshotRef.current = nextSnapshot;
-      setAutofillSources(Array.from(new Set(nextSources)));
-      void trackShellEvent({
-        type: "direct_connect_request_started",
-        category: activeRequestMeta.category,
-        field: "type",
-        source: prefillSource || "profile_activity",
-        deviceType: getDeviceType(),
-        ts: new Date().toISOString(),
-      });
-    } else {
-      contextualAutofillSnapshotRef.current = {};
-      setAutofillSources([]);
-    }
-
-    contextualAutofillAppliedRef.current = true;
-  }, [
-    activeRequestMeta.category,
-    defaultCountyFips,
-    detailAnswers.where,
-    description,
-    hasExistingHomes,
-    homes,
-    homesQuery.isFetched,
-    isAuthenticated,
-    latestRequest?.description,
-    latestRequest?.title,
-    prefillSource,
-    recentRequestsQuery.isFetched,
-    requestType,
-    title,
-    user,
-  ]);
 
   const createMutation = useMutation<any, any, DirectConnectCreateDispatch | undefined>({
     mutationFn: async (dispatch?: DirectConnectCreateDispatch) => {
@@ -2688,29 +2448,35 @@ function DirectConnectRequestComposer({
 
   return (
     <div
-      className="mx-auto w-full max-w-xl space-y-6 px-0 pb-5 md:max-w-3xl"
+      className="mx-auto w-full max-w-4xl space-y-4 px-0 pb-8"
       data-testid="direct-connect-mobile-composer"
     >
-      <div className="space-y-2 rounded-2xl border border-ts-orange/25 bg-[radial-gradient(circle_at_18%_20%,rgba(255,149,40,0.22),rgba(1,8,20,0.92)_62%)] px-4 py-4 shadow-[0_18px_48px_rgba(2,9,21,0.45)]">
-        <p className="text-sm font-semibold tracking-wide text-[color:var(--theme-accent-primary)]">
+      <header className="space-y-3 border-b border-white/10 px-1 pb-5 pt-1 md:pb-6">
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[color:var(--theme-accent-primary)]">
           Direct Connect
         </p>
-        <h1 className="text-[1.9rem] font-semibold leading-[1.1] text-[color:var(--text-primary)]">
-          {describeStep === 0 ? "What do you need done?" : "Review your request"}
-        </h1>
-        <p className="max-w-[36ch] text-[0.95rem] leading-6 text-[color:var(--text-secondary)]">
+        <h1 className="max-w-3xl text-[2rem] font-black leading-[1.04] tracking-[-0.03em] text-[color:var(--text-primary)] md:text-5xl">
           {describeStep === 0
-            ? "Tell local businesses what you need. Add photos on the next step."
-            : "Check the details, add photos if useful, then choose who receives it."}
+            ? hasEntryContext
+              ? `Direct Connect with ${prefillTargetLabel}`
+              : "What do you need?"
+            : "Review before anything is shared"}
+        </h1>
+        <p className="max-w-2xl text-[0.95rem] leading-6 text-[color:var(--text-secondary)] md:text-base">
+          {describeStep === 0
+            ? hasEntryContext
+              ? `${prefillTargetLabel} is already attached. Add what matters for this request, then choose the next step.`
+              : "Describe the result, product, service, opportunity, or support you are looking for. You decide who sees it."
+            : "Check the details, add anything useful, and choose who receives it. Nothing is sent until you confirm."}
         </p>
-      </div>
+      </header>
 
       <div
-        className="rounded-2xl border border-white/70 bg-[linear-gradient(180deg,rgba(8,13,24,0.95),rgba(5,10,20,0.95))] px-3 py-3"
+        className="rounded-2xl border border-white/10 bg-black/25 px-2 py-2 backdrop-blur-sm"
         aria-label="Request progress"
       >
         <div className="flex items-center gap-1.5">
-          {(["Describe", "Review", "Send"] as const).map((step, index) => {
+          {(["Details", "Review", "Choose"] as const).map((step, index) => {
             const active =
               (showDispatchSheet && index === 2) ||
               (!showDispatchSheet && describeStep === 0 && index === 0) ||
@@ -2724,7 +2490,7 @@ function DirectConnectRequestComposer({
                 className={cn(
                   "relative flex flex-1 items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-semibold transition-colors",
                   active || complete
-                    ? "bg-[color:var(--theme-accent-primary)]/18 text-[color:var(--text-primary)]"
+                    ? "bg-white/[0.07] text-[color:var(--text-primary)]"
                     : "text-[color:var(--text-secondary)]/72"
                 )}
               >
@@ -2754,58 +2520,11 @@ function DirectConnectRequestComposer({
       </div>
 
       <div className="space-y-5">
-        {describeStep === 0 && autofillSources.length > 0 && (
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-[color:var(--text-secondary)]">Autofilled:</span>
-              {autofillSources.map((source) => (
-                <span
-                  key={source}
-                  className="inline-flex items-center rounded-full border border-[color:var(--border-subtle)] bg-[color:var(--surface-intermediate)] px-2.5 py-1 text-[11px] text-[color:var(--text-secondary)]"
-                >
-                  {source}
-                </span>
-              ))}
-              <button
-                type="button"
-                onClick={clearContextualAutofill}
-                className="text-[11px] font-medium text-[color:var(--theme-accent-primary)] hover:underline"
-              >
-                Clear autofill
-              </button>
-            </div>
-          </div>
-        )}
         {describeStep === 0 && (
-          <div className="space-y-5 rounded-2xl border border-ts-orange/25 bg-[linear-gradient(180deg,rgba(29,19,7,0.62),rgba(7,13,27,0.92))] p-4 shadow-[0_20px_50px_rgba(2,8,22,0.55)]">
-            {hasEntryContext && (
-              <div className="rounded-lg border border-ts-orange/25 bg-ts-orange/10 px-3 py-2.5">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange">
-                  {isTradePartnerScoped ? "Direct Connect" : "Request context"}
-                </p>
-                <p className="mt-1 text-xs text-[color:var(--text-primary)]">
-                  {isTradePartnerScoped ? (
-                    <>
-                      This request goes directly to{" "}
-                      <span className="font-semibold">{prefillTargetLabel}</span>.
-                    </>
-                  ) : (
-                    <>
-                      This request is scoped to{" "}
-                      <span className="font-semibold">{prefillTargetLabel}</span>.
-                      {prefillSource === "community_active_now"
-                        ? " They will see it in Direct Connect if they are eligible to respond."
-                        : prefillTargetProviderId
-                          ? " That provider is already selected. Contact stays locked until the request is accepted and approved."
-                          : " The selected context has been preserved. Choose the matching recipient before sending if one is not already selected."}
-                    </>
-                  )}
-                </p>
-              </div>
-            )}
-            <div className="space-y-4 rounded-xl border border-white/8 bg-[linear-gradient(180deg,rgba(14,20,33,0.72),rgba(8,13,24,0.8))] p-3.5">
+          <div className="space-y-6 rounded-3xl border border-white/10 bg-[#121212]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)] md:p-7">
+            <div className="space-y-4">
               {intentConfig ? (
-                <div className="rounded-lg bg-[color:var(--surface-intermediate)]/35 px-3 py-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-4">
                   <h2 className="text-sm font-semibold text-[color:var(--text-primary)]">
                     {intentConfig.heading}
                   </h2>
@@ -2830,21 +2549,40 @@ function DirectConnectRequestComposer({
                   </div>
                 </div>
               ) : null}
-              <label className={REQUEST_LABEL_CLASS}>Project type</label>
-              <select
-                value={requestType}
-                onChange={(event) => {
-                  markRequestStarted("type");
-                  setRequestType(event.target.value as keyof typeof requestTypeMeta);
-                }}
-                className={REQUEST_SELECT_CLASS}
-              >
+              <div className="space-y-1">
+                <h2 className="text-base font-bold text-[color:var(--text-primary)]">
+                  What are you looking for?
+                </h2>
+                <p className={REQUEST_HELPER_CLASS}>
+                  Choose the closest match. You can change it before anything is sent.
+                </p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {requestTypeOrder.map((key) => (
-                  <option key={key} value={key}>
-                    {requestTypeMeta[key].label}
-                  </option>
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={requestType === key}
+                    onClick={() => {
+                      markRequestStarted("type");
+                      setRequestType(key);
+                    }}
+                    className={cn(
+                      "min-h-[92px] rounded-2xl border px-4 py-3 text-left transition-all",
+                      requestType === key
+                        ? "border-ts-orange/70 bg-ts-orange/[0.09] shadow-[inset_3px_0_0_#ff8a00]"
+                        : "border-white/10 bg-white/[0.025] hover:border-white/25 hover:bg-white/[0.05]"
+                    )}
+                  >
+                    <span className="block text-sm font-bold text-[color:var(--text-primary)]">
+                      {requestTypeMeta[key].label}
+                    </span>
+                    <span className="mt-1.5 block text-xs leading-4 text-[color:var(--text-secondary)]">
+                      {requestTypeMeta[key].hint}
+                    </span>
+                  </button>
                 ))}
-              </select>
+              </div>
               {directConnectIntent && INTENTS_WITH_TIMING_WHEN.has(directConnectIntent) && (
                 <div className="grid grid-cols-2 gap-2 pt-1">
                   {[
@@ -2938,7 +2676,7 @@ function DirectConnectRequestComposer({
             {!intentConfig && (
               <>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>What do you need help with?</label>
+                  <label className={REQUEST_LABEL_CLASS}>What do you need?</label>
                   <Input
                     value={title}
                     onChange={(event) => {
@@ -2947,7 +2685,11 @@ function DirectConnectRequestComposer({
                       setTitle(next);
                       setDetailAnswers((current) => ({ ...current, what: next }));
                     }}
-                    placeholder="Fix a leaking kitchen faucet"
+                    placeholder={
+                      prefillSubjectType === "product" && hasEntryContext
+                        ? `What would you like to know or do with ${prefillTargetLabel}?`
+                        : activeRequestMeta.titlePlaceholder
+                    }
                     className={REQUEST_FIELD_CLASS}
                   />
                   {reviewAttempted && showTitleMissingHint && (
@@ -2955,7 +2697,7 @@ function DirectConnectRequestComposer({
                   )}
                 </div>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Details</label>
+                  <label className={REQUEST_LABEL_CLASS}>Details that matter</label>
                   <Textarea
                     value={description}
                     onChange={(event) => {
@@ -2964,7 +2706,11 @@ function DirectConnectRequestComposer({
                       setDescription(next);
                       setDetailAnswers((current) => ({ ...current, details: next }));
                     }}
-                    placeholder="What is happening? What have you tried? Any deadline?"
+                    placeholder={
+                      prefillSubjectType === "product" && hasEntryContext
+                        ? "Share quantity, intended use, dimensions, timing, or any questions."
+                        : activeRequestMeta.descriptionPlaceholder
+                    }
                     rows={4}
                     className={REQUEST_TEXTAREA_CLASS}
                   />
@@ -2973,7 +2719,10 @@ function DirectConnectRequestComposer({
                   )}
                 </div>
                 <div className="space-y-2.5">
-                  <label className={REQUEST_LABEL_CLASS}>Where is the job?</label>
+                  <label className={REQUEST_LABEL_CLASS}>
+                    Location or service area{" "}
+                    <span className="font-normal opacity-65">(optional)</span>
+                  </label>
                   <GooglePlacesLocationInput
                     defaultValue={detailAnswers.where}
                     onPlaceSelected={handleWherePlaceSelected}
@@ -3150,7 +2899,7 @@ function DirectConnectRequestComposer({
                       Add photos to this request
                     </div>
                     <div className={REQUEST_HELPER_CLASS}>
-                      Pros respond faster and quote more accurately when they can see the job.
+                      Photos help businesses understand the request and respond more accurately.
                     </div>
                   </div>
                 </div>
@@ -3199,7 +2948,8 @@ function DirectConnectRequestComposer({
                     Save to HomeID
                   </p>
                   <p className="mt-1 text-xs leading-5 text-[color:var(--text-secondary)]">
-                    Save it so the next repair starts with this history already on file.
+                    Save it with your property or project so the next step starts with the right
+                    context.
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-end gap-1.5">
@@ -5518,11 +5268,27 @@ export default function DirectConnectShell() {
   const { toast } = useToast();
   const homeIdOfferShownRef = useRef<string | null>(null);
   const firstUseUserState = isAuthenticated ? "authenticated" : "anonymous";
-  const pathOnly = useMemo(() => getDirectConnectPathOnly(location), [location]);
-  const directConnectEntry = useMemo(() => getDirectConnectEntry(location), [location]);
-  const activeSection = useMemo<Section>(() => getDirectConnectSection(location), [location]);
+  const directConnectLocation =
+    typeof window === "undefined"
+      ? location
+      : `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  const pathOnly = useMemo(
+    () => getDirectConnectPathOnly(directConnectLocation),
+    [directConnectLocation]
+  );
+  const directConnectEntry = useMemo(
+    () => getDirectConnectEntry(directConnectLocation),
+    [directConnectLocation]
+  );
+  const activeSection = useMemo<Section>(
+    () => getDirectConnectSection(directConnectLocation),
+    [directConnectLocation]
+  );
 
-  const requestPrefill = useMemo(() => parseDirectConnectEntryContext(location), [location]);
+  const requestPrefill = useMemo(
+    () => parseDirectConnectEntryContext(directConnectLocation),
+    [directConnectLocation]
+  );
   const defaultCountyFips = requestPrefill?.countyFips;
 
   // Deep links from the Messages job-assist card (e.g. ?jobWorkspaceId=...&action=create_estimate)
@@ -5564,18 +5330,18 @@ export default function DirectConnectShell() {
     navigate(cleanLocation, { replace: true });
 
     toast({
-      title: "Keep this project with your home",
+      title: "Keep this request with your home",
       description: "The request is in My Requests. Add it to HomeID only if you choose to.",
       action: (
         <ToastAction
-          altText="Attach this project to your HomeID"
+          altText="Keep this request in HomeID"
           onClick={() =>
             navigate(
               `/homes?source=direct_connect_submitted&requestId=${encodeURIComponent(requestId)}`
             )
           }
         >
-          Attach this project to your HomeID
+          Keep this request in HomeID
         </ToastAction>
       ),
     });
@@ -5786,6 +5552,7 @@ export default function DirectConnectShell() {
     case "post":
       centerContent = (
         <DirectConnectRequestComposer
+          entryLocation={directConnectLocation}
           defaultCountyFips={defaultCountyFips}
           prefillTargetUserId={requestPrefill?.targetUserId}
           prefillTargetProviderId={requestPrefill?.targetProviderId}
@@ -5793,6 +5560,7 @@ export default function DirectConnectShell() {
           prefillTargetSelector={requestPrefill?.targetSelector}
           prefillContextType={requestPrefill?.contextType}
           prefillContextId={requestPrefill?.contextId}
+          prefillSubjectType={requestPrefill?.subjectType}
           prefillSource={requestPrefill?.source}
           prefillTitle={requestPrefill?.title}
           prefillDescription={requestPrefill?.description}
@@ -5909,78 +5677,75 @@ export default function DirectConnectShell() {
           )}
         </div>
 
-        <div className={cn(activeSection === "post" ? "hidden md:block" : "")}>
-          <FirstUseGuidanceCard
-            title="Start your request."
-            description={DIRECT_CONNECT_GUIDANCE_TEXT}
-          />
-        </div>
-        <Card
-          className={cn(
-            "border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]",
-            activeSection === "post" ? "hidden md:block" : ""
-          )}
-        >
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
-            <p className="text-sm text-[color:var(--text-primary)]">
-              {directConnectFirstTaskPrompt.message}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-[color:var(--border-subtle)]"
-              onClick={() => {
-                let targetRoute = "/direct-connect";
-                trackRepeatedFrictionSignal({
-                  key: `direct-connect-first-task:${directConnectFirstTaskPrompt.ctaLabel}`,
-                  type: "direct_connect_repeated_cta_click",
-                  threshold: 3,
-                  windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
-                  payload: {
-                    source: location || "/direct-connect",
-                    section: "first_task_prompt",
-                    reason: directConnectFirstTaskPrompt.ctaLabel,
-                    blocked: false,
-                  },
-                });
-                if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
-                  targetRoute = "/homes";
-                  trackFirstUseTaskPromptClicked({
-                    surface: "direct_connect",
-                    promptMessage: directConnectFirstTaskPrompt.message,
-                    ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                    targetRoute,
-                    userState: firstUseUserState,
-                  });
-                  navigate("/homes");
-                  return;
-                }
-                if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
-                  targetRoute = "/direct-connect/active";
-                  trackFirstUseTaskPromptClicked({
-                    surface: "direct_connect",
-                    promptMessage: directConnectFirstTaskPrompt.message,
-                    ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                    targetRoute,
-                    userState: firstUseUserState,
-                  });
-                  navigate("/direct-connect/active");
-                  return;
-                }
-                trackFirstUseTaskPromptClicked({
-                  surface: "direct_connect",
-                  promptMessage: directConnectFirstTaskPrompt.message,
-                  ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
-                  targetRoute,
-                  userState: firstUseUserState,
-                });
-                navigate("/direct-connect");
-              }}
-            >
-              {directConnectFirstTaskPrompt.ctaLabel}
-            </Button>
-          </CardContent>
-        </Card>
+        {activeSection !== "post" ? (
+          <>
+            <FirstUseGuidanceCard
+              title="Start your request."
+              description={DIRECT_CONNECT_GUIDANCE_TEXT}
+            />
+            <Card className="border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                <p className="text-sm text-[color:var(--text-primary)]">
+                  {directConnectFirstTaskPrompt.message}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-[color:var(--border-subtle)]"
+                  onClick={() => {
+                    let targetRoute = "/direct-connect";
+                    trackRepeatedFrictionSignal({
+                      key: `direct-connect-first-task:${directConnectFirstTaskPrompt.ctaLabel}`,
+                      type: "direct_connect_repeated_cta_click",
+                      threshold: 3,
+                      windowMs: DIRECT_CONNECT_REPEATED_CTA_WINDOW_MS,
+                      payload: {
+                        source: location || "/direct-connect",
+                        section: "first_task_prompt",
+                        reason: directConnectFirstTaskPrompt.ctaLabel,
+                        blocked: false,
+                      },
+                    });
+                    if (directConnectFirstTaskPrompt.ctaLabel === "Link HomeID") {
+                      targetRoute = "/homes";
+                      trackFirstUseTaskPromptClicked({
+                        surface: "direct_connect",
+                        promptMessage: directConnectFirstTaskPrompt.message,
+                        ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                        targetRoute,
+                        userState: firstUseUserState,
+                      });
+                      navigate("/homes");
+                      return;
+                    }
+                    if (directConnectFirstTaskPrompt.ctaLabel === "Review requests") {
+                      targetRoute = "/direct-connect/active";
+                      trackFirstUseTaskPromptClicked({
+                        surface: "direct_connect",
+                        promptMessage: directConnectFirstTaskPrompt.message,
+                        ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                        targetRoute,
+                        userState: firstUseUserState,
+                      });
+                      navigate("/direct-connect/active");
+                      return;
+                    }
+                    trackFirstUseTaskPromptClicked({
+                      surface: "direct_connect",
+                      promptMessage: directConnectFirstTaskPrompt.message,
+                      ctaLabel: directConnectFirstTaskPrompt.ctaLabel,
+                      targetRoute,
+                      userState: firstUseUserState,
+                    });
+                    navigate("/direct-connect");
+                  }}
+                >
+                  {directConnectFirstTaskPrompt.ctaLabel}
+                </Button>
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
 
         {!isAuthenticated && isPensacolaLaunchPath ? (
           <div className="rounded-lg border border-ts-orange/35 bg-ts-orange/10 px-3 py-2.5 md:px-4 md:py-3">
