@@ -21,7 +21,7 @@ export function SEOHelmet({
   keywords = "scout, local helper, local businesses, direct connect, exchange, business profiles, local services, local products, trusted providers",
   canonical,
   ogType = "website",
-  ogImage = "/tradescout-social-preview.png?v=11",
+  ogImage = "/tradescout-social-preview.png?v=12",
   structuredData,
   noIndex = false,
   preserveCanonicalQuery = false,

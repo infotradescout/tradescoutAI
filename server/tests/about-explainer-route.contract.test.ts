@@ -35,6 +35,29 @@ describe("TradeScout About explainer route", () => {
     expect(explainerSource).toContain("Trade-Up For Trade Schools");
   });
 
+  it("keeps expandable summaries readable at phone widths", () => {
+    expect(explainerStyles).toContain(
+      ".content-section > summary strong { grid-column: 1;",
+    );
+    expect(explainerStyles).toContain(
+      ".content-section > summary small { grid-column: 1;",
+    );
+    expect(explainerStyles).toContain("grid-column: 2;");
+    expect(explainerStyles).toContain("grid-row: 1 / span 2;");
+    expect(explainerStyles).toContain(
+      ".explainer-stack[open] > summary::after { transform: rotate(225deg); }",
+    );
+    expect(explainerStyles).toContain(
+      ".content-section[open] > summary::after { transform: rotate(225deg); }",
+    );
+    expect(explainerStyles).toContain(
+      '.explainer-stack > summary::after {\n  content: "";',
+    );
+    expect(explainerStyles).toContain(
+      '.content-section > summary::after {\n  content: "";',
+    );
+  });
+
   it("removes the unsupported legacy About claims", () => {
     const nativeAbout = `${aboutSource}\n${explainerSource}`;
 

@@ -168,12 +168,16 @@ a:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: 4px; 
 }
 .explainer-stack > summary::-webkit-details-marker { display: none; }
 .explainer-stack > summary::after {
-  content: "+";
-  color: var(--orange-bright);
-  font: 400 30px/1 var(--font-geist-sans), Arial, sans-serif;
-  text-align: right;
+  content: "";
+  grid-column: 3;
+  width: 12px;
+  height: 12px;
+  justify-self: end;
+  border-right: 2px solid var(--orange-bright);
+  border-bottom: 2px solid var(--orange-bright);
+  transform: rotate(45deg);
 }
-.explainer-stack[open] > summary::after { content: "−"; }
+.explainer-stack[open] > summary::after { transform: rotate(225deg); }
 .explainer-stack[open] > summary { border-bottom: 2px solid var(--orange); }
 .explainer-stack > summary:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: -4px; }
 .stack-number {
@@ -210,24 +214,30 @@ a:focus-visible { outline: 3px solid var(--orange-bright); outline-offset: 4px; 
   display: grid;
   grid-template-columns: minmax(0, 1fr) 26px;
   align-items: center;
-  gap: 12px;
+  column-gap: 12px;
+  row-gap: 0;
   list-style: none;
   cursor: pointer;
   background: color-mix(in srgb, currentColor 4%, transparent);
 }
 .content-section > summary::-webkit-details-marker { display: none; }
 .content-section > summary::after {
-  content: "+";
-  color: var(--orange);
-  font-size: 22px;
-  line-height: 1;
-  text-align: right;
+  content: "";
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  width: 9px;
+  height: 9px;
+  align-self: center;
+  justify-self: end;
+  border-right: 2px solid var(--orange);
+  border-bottom: 2px solid var(--orange);
+  transform: rotate(45deg);
 }
-.content-section[open] > summary::after { content: "−"; }
+.content-section[open] > summary::after { transform: rotate(225deg); }
 .content-section[open] > summary { border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
 .content-section > summary:focus-visible { outline: 3px solid var(--orange); outline-offset: -4px; }
-.content-section > summary strong { display: block; font-size: 17px; line-height: 1.25; }
-.content-section > summary small { display: block; margin-top: 5px; color: color-mix(in srgb, currentColor 66%, transparent); font-size: 11px; line-height: 1.42; }
+.content-section > summary strong { grid-column: 1; display: block; min-width: 0; font-size: 17px; line-height: 1.25; }
+.content-section > summary small { grid-column: 1; display: block; min-width: 0; margin-top: 5px; color: color-mix(in srgb, currentColor 66%, transparent); font-size: 11px; line-height: 1.42; }
 .content-section-body { padding: 0 18px 18px; }
 .content-section > .scout-stage-group,
 .content-section > .connection-stage,
