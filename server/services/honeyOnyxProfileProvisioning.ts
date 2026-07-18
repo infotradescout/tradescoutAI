@@ -36,9 +36,13 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       or(eq(users.verifiedBadge, true), eq(users.verificationStatus, "approved"))
     );
 
+    const stewardSelection = {
+      id: users.id,
+      preferences: users.preferences,
+    };
     const [configuredSteward] = configuredMasterAdminEmail
       ? await tx
-          .select({ id: users.id })
+          .select(stewardSelection)
           .from(users)
           .where(
             and(
@@ -50,7 +54,7 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       : [];
     const [fallbackSteward] = configuredSteward
       ? []
-      : await tx.select({ id: users.id }).from(users).where(discoverableAdminPredicate).limit(1);
+      : await tx.select(stewardSelection).from(users).where(discoverableAdminPredicate).limit(1);
     const steward = configuredSteward || fallbackSteward;
     if (!steward?.id) {
       throw new Error("Honey Onyx needs a verified admin steward before publication");
@@ -101,6 +105,28 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       ? existingBusiness.sources.filter((value): value is string => typeof value === "string")
       : [];
     const now = new Date();
+
+    // The canonical public-profile read requires the owning account to opt in
+    // to public visibility. During temporary TradeScout stewardship, make that
+    // opt-in explicit instead of bypassing the public-profile gate. Once the
+    // owner account is attached, its own visibility preference remains in
+    // control because this update only applies to the selected admin steward.
+    if (profileOwnerUserId === String(steward.id)) {
+      const stewardPreferences = recordValue(steward.preferences);
+      if (stewardPreferences.profileVisibility !== "public") {
+        await tx
+          .update(users)
+          .set({
+            preferences: {
+              ...stewardPreferences,
+              profileVisibility: "public",
+            },
+            updatedAt: now,
+          })
+          .where(eq(users.id, steward.id));
+      }
+    }
+
     const businessValues = {
       name: "Honey Onyx",
       slug: HONEY_ONYX_PROFILE_SLUG,

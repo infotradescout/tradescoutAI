@@ -26,6 +26,8 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(provisioner).toContain("claimStatus:");
     expect(provisioner).toContain('status: "published"');
     expect(provisioner).toContain("publicDiscoveryEnabled: true");
+    expect(provisioner).toContain('profileVisibility: "public"');
+    expect(provisioner).toContain("profileOwnerUserId === String(steward.id)");
     expect(provisioner).not.toContain("activeBusinessId");
     expect(provisioner).not.toContain("activeProfileId");
     expect(entry).toContain("await provisionHoneyOnyxProfile()");
