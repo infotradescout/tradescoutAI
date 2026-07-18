@@ -85,6 +85,7 @@ import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
 import { provisionLaPlumbingProfile } from "./services/laPlumbingProfileProvisioning";
+import { provisionHoneyOnyxProfile } from "./services/honeyOnyxProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
 
 // ES module equivalent of __dirname
@@ -785,6 +786,7 @@ app.use(landingContractHeaders);
     await ensureMasterAdmin();
     await provisionJrsAutoGlassProfile();
     await provisionLaPlumbingProfile();
+    await provisionHoneyOnyxProfile();
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {
       await runSchemaPreflight();

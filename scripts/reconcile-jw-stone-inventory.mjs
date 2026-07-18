@@ -2,7 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
 
-const require = createRequire(path.join(path.resolve(import.meta.dirname, "..", ".."), "runner.cjs"));
+const require = createRequire(
+  path.join(path.resolve(import.meta.dirname, "..", ".."), "runner.cjs")
+);
 const sharp = require("sharp");
 
 const repoRoot = path.resolve(import.meta.dirname, "..");
@@ -20,12 +22,36 @@ const assetSpecs = currentModule
   .split("\n")
   .map((line) => line.split("|")[0].split("/")[1]);
 
-const outputRoot = path.join(
-  repoRoot,
-  "client/public/images/businesses/jw-stone/inventory-source"
-);
+const outputRoot = path.join(repoRoot, "client/public/images/businesses/jw-stone/inventory-source");
 const dataOutput = path.join(repoRoot, "client/src/data/jwStoneInventory.generated.json");
-const auditOutput = path.join(repoRoot, "docs/audits/data/jw-stone-image-reconciliation-2026-07-13.json");
+const auditOutput = path.join(
+  repoRoot,
+  "docs/audits/data/jw-stone-image-reconciliation-2026-07-13.json"
+);
+
+// Three Honey Onyx source files are not browser-ready, but their approved
+// conversions are already preserved in the versioned inventory tree. Keep the
+// complete six-photo product set when this reconciliation script is rerun.
+const supplementalPublishedImagesBySlug = {
+  "honey-onyx": {
+    images: [
+      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/2.jpg",
+      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/6.jpg",
+      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/1.webp",
+      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/3.jpg",
+      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/4.jpg",
+      "/images/businesses/jw-stone/inventory/onyx/honey-onyx/5.jpg",
+    ],
+    sourceFileIds: [
+      "1Kfn1NfVZwueiPoGrpteEjSdBm9WTIVIC",
+      "1ldPDW2qNe82fjs33B-67cnwrz6k7jC5S",
+      "189iSyURMwlxoeYfM1ksoLwgkJNSvFzCB",
+      "1yJx_wc5icvkwJCU4r7weJtOvpWztrXK-",
+      "1_9h4B1GmZNrClfPk3ehT72bt55OQN_-i",
+      "1VzCA95gOYzhCA7CP6GaL9f73Ijv05QCf",
+    ],
+  },
+};
 
 const directCategoryByFolder = {
   Basalt: "basalt",
@@ -189,6 +215,13 @@ for (let index = 0; index < trendingUnidentified.length; index += 8) {
     sourceFolders: new Set(batch.map((item) => item.folder)),
     sourceFileIds: batch.map((item) => item.driveFileId),
   });
+}
+
+for (const group of groups.values()) {
+  const supplemental = supplementalPublishedImagesBySlug[group.slug];
+  if (!supplemental) continue;
+  group.images = supplemental.images;
+  group.sourceFileIds = supplemental.sourceFileIds;
 }
 
 const catalog = [...groups.values()]

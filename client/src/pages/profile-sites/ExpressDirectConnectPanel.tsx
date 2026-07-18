@@ -33,6 +33,8 @@ type ExpressDirectConnectPanelProps = {
   requestMode?: ExpressDirectConnectMode;
   initialStoneName?: string | null;
   initialRequestType?: ExpressDirectConnectRequestType | null;
+  contactOperatorName?: string | null;
+  contactOperatorRole?: string | null;
 };
 
 type PanelView = "choice" | "request" | "call_started" | "success";
@@ -95,11 +97,16 @@ export default function ExpressDirectConnectPanel({
   requestMode = "service",
   initialStoneName,
   initialRequestType,
+  contactOperatorName,
+  contactOperatorRole,
 }: ExpressDirectConnectPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const config = REQUEST_MODE_CONFIG[requestMode];
   const defaultRequestType =
     initialRequestType || (initialStoneName ? "request_material" : config.defaultType);
+  const operatorName = String(contactOperatorName || "").trim() || businessName;
+  const operatorRole = String(contactOperatorRole || "").trim();
+  const hasSeparateOperator = operatorName.toLowerCase() !== businessName.toLowerCase();
   const [view, setView] = useState<PanelView>("choice");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -303,7 +310,11 @@ export default function ExpressDirectConnectPanel({
         <div className="p-5 sm:p-7">
           {view === "choice" ? (
             <div>
-              <p className="mb-6 text-stone-700">Call now or send {businessName} the details.</p>
+              <p className="mb-6 text-stone-700">
+                {hasSeparateOperator
+                  ? `Call ${operatorName}${operatorRole ? `, the ${operatorRole} for ${businessName},` : ""} or send the product details.`
+                  : `Call now or send ${businessName} the details.`}
+              </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -317,9 +328,15 @@ export default function ExpressDirectConnectPanel({
                     <Phone className="h-6 w-6" />
                   )}
                   <span>
-                    <strong className="block text-lg">Call</strong>
+                    <strong className="block text-lg">
+                      {hasSeparateOperator && operatorRole ? `Call ${operatorRole}` : "Call"}
+                    </strong>
                     <span className="text-sm text-white/80">
-                      {allowCall ? "Call now through Direct Connect" : "Calling is coming soon"}
+                      {allowCall
+                        ? hasSeparateOperator
+                          ? `Connect with ${operatorName}`
+                          : "Call now through Direct Connect"
+                        : "Calling is coming soon"}
                     </span>
                   </span>
                 </button>
@@ -342,7 +359,9 @@ export default function ExpressDirectConnectPanel({
               </div>
               <div className="mt-5 flex items-start gap-2 rounded-xl border border-black/5 bg-white px-4 py-3 text-sm leading-relaxed text-stone-700">
                 <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
-                Your details stay private unless {businessName} accepts what you send.
+                {hasSeparateOperator
+                  ? `Your details stay private unless ${operatorName} accepts what you send.`
+                  : `Your details stay private unless ${businessName} accepts what you send.`}
               </div>
             </div>
           ) : null}
@@ -457,7 +476,7 @@ export default function ExpressDirectConnectPanel({
               <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-ts-orange/10 text-ts-orange">
                 <Phone className="h-7 w-7" />
               </div>
-              <h3 className="text-2xl font-bold text-neutral-900">Calling {businessName}</h3>
+              <h3 className="text-2xl font-bold text-neutral-900">Calling {operatorName}</h3>
               {callTel ? (
                 <a
                   href={callTel}
@@ -488,7 +507,9 @@ export default function ExpressDirectConnectPanel({
               <CheckCircle2 className="mx-auto mb-5 h-14 w-14 text-emerald-600" />
               <h3 className="text-2xl font-bold text-neutral-900">Request sent</h3>
               <p className="mx-auto mt-2 max-w-md text-stone-600">
-                {businessName} received your project details.
+                {hasSeparateOperator
+                  ? `Your ${businessName} request was sent to ${operatorName}.`
+                  : `${businessName} received your project details.`}
               </p>
 
               {!hasViewerSession ? (

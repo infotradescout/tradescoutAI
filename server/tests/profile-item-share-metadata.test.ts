@@ -53,6 +53,36 @@ describe("profile inventory item sharing", () => {
     expect(metadata?.description).toContain("protected TradeScout Direct Connect");
   });
 
+  it("does not describe a standalone product profile as its own inventory", () => {
+    const metadata = createProfileInventoryItemShareMetadata({
+      profileName: "Honey Onyx",
+      profileUrl: "https://example.com/u/honey-onyx",
+      assetOrigin: "https://example.com/",
+      categories: [
+        {
+          category: "Onyx",
+          categorySlug: "onyx",
+          stones: [
+            {
+              name: "Honey Onyx",
+              slug: "honey-onyx",
+              images: ["/images/businesses/honey-onyx/2.jpg"],
+            },
+          ],
+        },
+      ],
+      itemSlug: "honey-onyx",
+    });
+
+    expect(metadata).toMatchObject({
+      title: "Honey Onyx | TradeScout",
+      imageUrl: "https://example.com/images/businesses/honey-onyx/2.jpg",
+      canonical: "https://example.com/u/honey-onyx?stone=honey-onyx",
+    });
+    expect(metadata?.description).not.toContain("Honey Onyx's current inventory");
+    expect(metadata?.imageAlt).toBe("Honey Onyx material photo 1");
+  });
+
   it("resolves JW Stone shares from the reconciled catalog instead of stale profile data", () => {
     const metadata = resolveProfileItemShareMetadata({
       profileSlug: "jw-stone",
