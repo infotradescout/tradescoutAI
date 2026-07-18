@@ -34,6 +34,7 @@ type RecommendationEntry = {
   recommendationType: "positive" | "negative";
   comment: string;
   projectType: string | null;
+  customerName: string;
   contractor: {
     companyName: string;
     canonicalBusinessProfileUrl?: string | null;
@@ -52,6 +53,7 @@ type Props = {
   galleryItems?: ResolvedProfileGalleryItem[];
   sharedGallerySlug?: string | null;
   recommendationsDirectory?: RecommendationEntry[];
+  trustActions?: ReactNode;
   profileItems?: ReactNode;
   verificationStatus?: string | null;
   cvsScore?: number | null;
@@ -81,6 +83,7 @@ export default function LocalServiceProfileTheme({
   galleryItems = [],
   sharedGallerySlug = null,
   recommendationsDirectory = [],
+  trustActions,
   profileItems,
   verificationStatus = null,
   cvsScore = null,
@@ -346,6 +349,7 @@ export default function LocalServiceProfileTheme({
                 </span>
               </div>
             </div>
+            {trustActions ? <div className="mt-4">{trustActions}</div> : null}
           </aside>
         </div>
       </section>
@@ -463,37 +467,24 @@ export default function LocalServiceProfileTheme({
               </h2>
             </div>
             <div className="mt-7 grid gap-4 md:grid-cols-2">
-              {publicRecommendations.slice(0, 6).map((entry) => {
-                const content = (
-                  <>
-                    <p className="font-black text-white">{entry.contractor.companyName}</p>
-                    {entry.projectType ? (
-                      <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-[var(--service-brand)]">
-                        {entry.projectType}
-                      </p>
-                    ) : null}
-                    {entry.comment ? (
-                      <p className="mt-3 text-sm leading-6 text-slate-300">{entry.comment}</p>
-                    ) : null}
-                  </>
-                );
-                return entry.contractor.canonicalBusinessProfileUrl ? (
-                  <a
-                    key={entry.id}
-                    href={entry.contractor.canonicalBusinessProfileUrl}
-                    className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 transition hover:border-[var(--service-brand)]/40"
-                  >
-                    {content}
-                  </a>
-                ) : (
-                  <div
-                    key={entry.id}
-                    className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"
-                  >
-                    {content}
-                  </div>
-                );
-              })}
+              {publicRecommendations.slice(0, 6).map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"
+                >
+                  <p className="font-black text-white">
+                    {entry.customerName || "TradeScout member"}
+                  </p>
+                  {entry.projectType ? (
+                    <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-[var(--service-brand)]">
+                      {entry.projectType}
+                    </p>
+                  ) : null}
+                  {entry.comment ? (
+                    <p className="mt-3 text-sm leading-6 text-slate-300">{entry.comment}</p>
+                  ) : null}
+                </div>
+              ))}
             </div>
           </div>
         </section>

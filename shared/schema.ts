@@ -15,6 +15,7 @@ import {
   numeric,
   pgEnum,
   primaryKey,
+  check,
   date,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
@@ -1476,6 +1477,36 @@ export const profiles = pgTable(
     index("profile_business_idx").on(table.businessId),
     index("profile_role_ctx_idx").on(table.roleContext),
     index("profile_status_idx").on(table.status),
+  ]
+);
+
+// Public-profile actions are intentionally separate from CVS, trust snapshots,
+// and exposure/ranking inputs. A Like is lightweight appreciation; a Favorite
+// is a private save. Neither can buy or manufacture TradeScout trust.
+export const publicProfileEngagements = pgTable(
+  "public_profile_engagements",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    action: varchar("action", { length: 24 }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("public_profile_engagements_profile_user_action_uidx").on(
+      table.profileId,
+      table.userId,
+      table.action
+    ),
+    index("public_profile_engagements_profile_action_idx").on(table.profileId, table.action),
+    index("public_profile_engagements_user_idx").on(table.userId),
+    check("public_profile_engagements_action_check", sql`${table.action} in ('like', 'favorite')`),
   ]
 );
 

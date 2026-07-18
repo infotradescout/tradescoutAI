@@ -12,6 +12,7 @@ import {
   contractors,
   homeScoutListings,
   profiles,
+  publicProfileEngagements,
   recommendations,
   trustSnapshots,
   users,
@@ -795,6 +796,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     recommendationType: "positive" | "negative";
     comment: string;
     projectType: string | null;
+    customerName: string;
     contractor: {
       id: string;
       companyName: string;
@@ -807,15 +809,11 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     positive: 0,
     negative: 0,
   };
+  let recommendationDirectoryMode: "received" | "authored" = "authored";
 
   try {
-    const [owner] = await db
-      .select({ ownerUserId: profiles.ownerUserId })
-      .from(profiles)
-      .where(eq(profiles.id, profile.id))
-      .limit(1);
-
-    const ownerUserId = String(owner?.ownerUserId || "").trim();
+    const ownerContractor = await storage.getContractorByUserId(ownerUserId);
+    recommendationDirectoryMode = ownerContractor ? "received" : "authored";
     if (ownerUserId) {
       const rows = await db
         .select({
@@ -824,6 +822,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
           recommendationType: recommendations.recommendationType,
           comment: recommendations.comment,
           projectType: recommendations.projectType,
+          customerName: recommendations.customerName,
           contractorId: contractors.id,
           contractorUserId: contractors.userId,
           contractorCompanyName: contractors.companyName,
@@ -833,7 +832,12 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         .innerJoin(contractors, eq(recommendations.contractorId, contractors.id))
         .where(
           and(
-            eq(recommendations.userId, ownerUserId),
+            ownerContractor
+              ? // Business/provider profiles show approved experiences they
+                // received. Community profiles retain the existing directory
+                // of recommendations the member authored about providers.
+                eq(recommendations.contractorId, ownerContractor.id)
+              : eq(recommendations.userId, ownerUserId),
             eq(recommendations.isPublic, true),
             eq(recommendations.moderationStatus, "approved")
           )
@@ -842,30 +846,32 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         .limit(100);
 
       const canonicalBusinessUrlByUserId = new Map<string, string>();
-      await Promise.all(
-        rows.map(async (row) => {
-          const contractorUserId = String(row.contractorUserId || "").trim();
-          if (!contractorUserId || canonicalBusinessUrlByUserId.has(contractorUserId)) return;
+      if (!ownerContractor) {
+        await Promise.all(
+          rows.map(async (row) => {
+            const contractorUserId = String(row.contractorUserId || "").trim();
+            if (!contractorUserId || canonicalBusinessUrlByUserId.has(contractorUserId)) return;
 
-          const businessProfile = await storage.getBusinessProfileByUserId(contractorUserId);
-          const [contractorUser] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, contractorUserId))
-            .limit(1);
-          const canShowBusinessProfile =
-            businessProfile?.visibility === "public" &&
-            typeof businessProfile.slug === "string" &&
-            businessProfile.slug.trim() &&
-            isBusinessDiscoverable(contractorUser);
-          if (canShowBusinessProfile) {
-            canonicalBusinessUrlByUserId.set(
-              contractorUserId,
-              `/business/${encodeURIComponent(businessProfile.slug.trim())}`
-            );
-          }
-        })
-      );
+            const businessProfile = await storage.getBusinessProfileByUserId(contractorUserId);
+            const [contractorUser] = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, contractorUserId))
+              .limit(1);
+            const canShowBusinessProfile =
+              businessProfile?.visibility === "public" &&
+              typeof businessProfile.slug === "string" &&
+              businessProfile.slug.trim() &&
+              isBusinessDiscoverable(contractorUser);
+            if (canShowBusinessProfile) {
+              canonicalBusinessUrlByUserId.set(
+                contractorUserId,
+                `/business/${encodeURIComponent(businessProfile.slug.trim())}`
+              );
+            }
+          })
+        );
+      }
 
       recommendationsDirectory = rows
         .filter((row) => {
@@ -880,12 +886,18 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
             | "negative",
           comment: String(row.comment || ""),
           projectType: row.projectType ? String(row.projectType) : null,
+          customerName: String(row.customerName || "TradeScout member"),
           contractor: {
             id: String(row.contractorId),
             companyName: String(row.contractorCompanyName || "Service provider"),
             slug: String(row.contractorSlug || ""),
-            canonicalBusinessProfileUrl:
-              canonicalBusinessUrlByUserId.get(String(row.contractorUserId || "").trim()) ?? null,
+            // This directory already lives on the provider's canonical
+            // profile, so linking each customer quote back to the same
+            // provider page would be a circular and misleading attribution.
+            canonicalBusinessProfileUrl: ownerContractor
+              ? null
+              : (canonicalBusinessUrlByUserId.get(String(row.contractorUserId || "").trim()) ??
+                null),
           },
         }));
 
@@ -1072,6 +1084,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     business: safeBusiness,
     recommendationsDirectory,
     recommendationDirectorySummary,
+    recommendationDirectoryMode,
     profileItems: {
       offers: publicProfileOffers,
       handmadeProducts: publicHandmadeProducts,
@@ -1083,6 +1096,131 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   });
 };
 
+const publicProfileTrustActionSchema = z.enum(["like", "favorite"]);
+
+type PublicProfileTrustContext = {
+  profileId: string;
+  profileSlug: string;
+  ownerUserId: string;
+  contractor: { id: string; companyName: string } | null;
+};
+
+async function getPublicProfileTrustContext(
+  rawSlug: string
+): Promise<PublicProfileTrustContext | null> {
+  const slug = rawSlug.trim();
+  if (!slug) return null;
+
+  const profile = await storage.getProfileBySlugPublic(slug);
+  if (!profile) return null;
+
+  const [profileOwner] = await db
+    .select({ ownerUserId: profiles.ownerUserId })
+    .from(profiles)
+    .where(eq(profiles.id, profile.id))
+    .limit(1);
+  const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
+  if (!ownerUserId) return null;
+
+  const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
+  if (!ownerUser) return null;
+
+  if (profile.businessId) {
+    const [linkedBusiness] = await db
+      .select({
+        ownerUserId: businesses.ownerUserId,
+        sources: businesses.sources,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+        status: businesses.status,
+      })
+      .from(businesses)
+      .where(eq(businesses.id, profile.businessId))
+      .limit(1);
+    const ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
+      profileSlug: profile.slug,
+      profileStatus: "published",
+      profileOwnerUserId: ownerUserId,
+      businessStatus: linkedBusiness?.status,
+      businessOwnerUserId: linkedBusiness?.ownerUserId,
+      publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
+      businessSources: linkedBusiness?.sources,
+    });
+    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) return null;
+  }
+
+  const contractor = await storage.getContractorByUserId(ownerUserId);
+  return {
+    profileId: String(profile.id),
+    profileSlug: String(profile.slug),
+    ownerUserId,
+    contractor: contractor
+      ? {
+          id: String(contractor.id),
+          companyName: String(contractor.companyName || profile.displayName),
+        }
+      : null,
+  };
+}
+
+async function readPublicProfileTrustActions(
+  context: PublicProfileTrustContext,
+  viewerUserId: string
+) {
+  const [engagementCounts, viewerRows, recommendationRows] = await Promise.all([
+    db
+      .select({
+        action: publicProfileEngagements.action,
+        total: sql<number>`count(*)::int`,
+      })
+      .from(publicProfileEngagements)
+      .where(eq(publicProfileEngagements.profileId, context.profileId))
+      .groupBy(publicProfileEngagements.action),
+    viewerUserId
+      ? db
+          .select({ action: publicProfileEngagements.action })
+          .from(publicProfileEngagements)
+          .where(
+            and(
+              eq(publicProfileEngagements.profileId, context.profileId),
+              eq(publicProfileEngagements.userId, viewerUserId)
+            )
+          )
+      : Promise.resolve([]),
+    context.contractor
+      ? db
+          .select({ total: sql<number>`count(*)::int` })
+          .from(recommendations)
+          .where(
+            and(
+              eq(recommendations.contractorId, context.contractor.id),
+              eq(recommendations.recommendationType, "positive"),
+              eq(recommendations.isPublic, true),
+              eq(recommendations.moderationStatus, "approved")
+            )
+          )
+      : Promise.resolve([{ total: 0 }]),
+  ]);
+
+  const totals = new Map(engagementCounts.map((row) => [row.action, Number(row.total || 0)]));
+  const viewerActions = new Set(viewerRows.map((row) => row.action));
+
+  return {
+    profileSlug: context.profileSlug,
+    likeCount: totals.get("like") || 0,
+    favoriteCount: totals.get("favorite") || 0,
+    recommendationCount: Number(recommendationRows[0]?.total || 0),
+    viewerLiked: viewerActions.has("like"),
+    viewerFavorited: viewerActions.has("favorite"),
+    viewerIsOwner: Boolean(viewerUserId && viewerUserId === context.ownerUserId),
+    recommendationTarget: context.contractor
+      ? {
+          contractorId: context.contractor.id,
+          contractorName: context.contractor.companyName,
+        }
+      : null,
+  };
+}
+
 // Public website read (canonical): returns public Profile + public Business subset if linked.
 router.get("/api/u/:slug", async (req, res) => {
   try {
@@ -1091,6 +1229,83 @@ router.get("/api/u/:slug", async (req, res) => {
   } catch (error: any) {
     console.error("Error fetching public profile:", error);
     res.status(500).json({ message: "Failed to fetch profile" });
+  }
+});
+
+// Public-profile actions never write to CVS, trust snapshots, boosts, or
+// exposure/ranking state. Recommend continues through the separately
+// moderated contractor recommendation endpoint.
+router.get("/api/u/:slug/trust-actions", async (req, res) => {
+  try {
+    const context = await getPublicProfileTrustContext(String(req.params.slug || ""));
+    if (!context) return res.status(404).json({ message: "Profile not found" });
+
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(await readPublicProfileTrustActions(context, getAuthedUserId(req)));
+  } catch (error) {
+    console.error("[profiles] Failed loading public profile trust actions:", error);
+    return res.status(500).json({ message: "Failed to load profile actions" });
+  }
+});
+
+router.post("/api/u/:slug/trust-actions/:action", isAuthenticated, async (req, res) => {
+  try {
+    const viewerUserId = getAuthedUserId(req);
+    if (!viewerUserId) return res.status(401).json({ message: "Not authenticated" });
+    const action = publicProfileTrustActionSchema.parse(req.params.action);
+    const context = await getPublicProfileTrustContext(String(req.params.slug || ""));
+    if (!context) return res.status(404).json({ message: "Profile not found" });
+    if (viewerUserId === context.ownerUserId) {
+      return res.status(403).json({
+        message: "Profile owners cannot engage with their own profile",
+      });
+    }
+
+    await db
+      .insert(publicProfileEngagements)
+      .values({ profileId: context.profileId, userId: viewerUserId, action })
+      .onConflictDoNothing();
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(await readPublicProfileTrustActions(context, viewerUserId));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Action must be like or favorite" });
+    }
+    console.error("[profiles] Failed saving public profile trust action:", error);
+    return res.status(500).json({ message: "Failed to save profile action" });
+  }
+});
+
+router.delete("/api/u/:slug/trust-actions/:action", isAuthenticated, async (req, res) => {
+  try {
+    const viewerUserId = getAuthedUserId(req);
+    if (!viewerUserId) return res.status(401).json({ message: "Not authenticated" });
+    const action = publicProfileTrustActionSchema.parse(req.params.action);
+    const context = await getPublicProfileTrustContext(String(req.params.slug || ""));
+    if (!context) return res.status(404).json({ message: "Profile not found" });
+    if (viewerUserId === context.ownerUserId) {
+      return res.status(403).json({
+        message: "Profile owners cannot engage with their own profile",
+      });
+    }
+
+    await db
+      .delete(publicProfileEngagements)
+      .where(
+        and(
+          eq(publicProfileEngagements.profileId, context.profileId),
+          eq(publicProfileEngagements.userId, viewerUserId),
+          eq(publicProfileEngagements.action, action)
+        )
+      );
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(await readPublicProfileTrustActions(context, viewerUserId));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Action must be like or favorite" });
+    }
+    console.error("[profiles] Failed removing public profile trust action:", error);
+    return res.status(500).json({ message: "Failed to remove profile action" });
   }
 });
 

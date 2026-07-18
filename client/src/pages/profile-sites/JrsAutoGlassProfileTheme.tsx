@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Link } from "wouter";
 import { ShareButton } from "@/components/ShareButton";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import {
@@ -39,6 +38,7 @@ type RecommendationEntry = {
   recommendationType: "positive" | "negative";
   comment: string;
   projectType: string | null;
+  customerName: string;
   contractor: {
     companyName: string;
     canonicalBusinessProfileUrl?: string | null;
@@ -55,6 +55,7 @@ type Props = {
   galleryItems?: ResolvedProfileGalleryItem[];
   sharedGallerySlug?: string | null;
   recommendationsDirectory?: RecommendationEntry[];
+  trustActions?: ReactNode;
   profileItems?: ReactNode;
 };
 
@@ -71,6 +72,7 @@ export default function JrsAutoGlassProfileTheme({
   galleryItems = [],
   sharedGallerySlug = null,
   recommendationsDirectory = [],
+  trustActions,
   profileItems,
 }: Props) {
   const publicRecommendations = recommendationsDirectory.filter(
@@ -247,43 +249,27 @@ export default function JrsAutoGlassProfileTheme({
           <p className="mt-2 text-sm leading-6 text-zinc-400">
             Recommendations from customers will appear here.
           </p>
+          {trustActions ? <div className="mt-4">{trustActions}</div> : null}
 
           {publicRecommendations.length > 0 ? (
             <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
-              {publicRecommendations.slice(0, 6).map((entry) => {
-                const content = (
-                  <>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-white">{entry.contractor.companyName}</p>
-                      {entry.projectType ? (
-                        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-ts-orange">
-                          {entry.projectType}
-                        </p>
-                      ) : null}
-                      {entry.comment ? (
-                        <p className="mt-2 text-sm leading-5 text-zinc-400">{entry.comment}</p>
-                      ) : null}
-                    </div>
-                    {entry.contractor.canonicalBusinessProfileUrl ? (
-                      <ChevronRight className="h-4 w-4 flex-none text-zinc-500" />
+              {publicRecommendations.slice(0, 6).map((entry) => (
+                <div key={entry.id} className="flex items-center gap-3 p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-white">
+                      {entry.customerName || "TradeScout member"}
+                    </p>
+                    {entry.projectType ? (
+                      <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-ts-orange">
+                        {entry.projectType}
+                      </p>
                     ) : null}
-                  </>
-                );
-
-                return entry.contractor.canonicalBusinessProfileUrl ? (
-                  <Link
-                    key={entry.id}
-                    href={entry.contractor.canonicalBusinessProfileUrl}
-                    className="flex items-center gap-3 p-4 transition-colors hover:bg-white/5"
-                  >
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={entry.id} className="flex items-center gap-3 p-4">
-                    {content}
+                    {entry.comment ? (
+                      <p className="mt-2 text-sm leading-5 text-zinc-400">{entry.comment}</p>
+                    ) : null}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 px-4 py-3">
