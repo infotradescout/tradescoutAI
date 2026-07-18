@@ -51,10 +51,12 @@ describe("TradeScout public entry rendered smoke", () => {
 
       expect(html).toContain("Connection Without Compromise");
       expect(html).toContain("Direct Connect");
-      expect(html).toContain(">Start a Request</a>");
-      expect(html).toContain(">Claim Provider Profile</a>");
+      expect(html).toContain(">Make A Request</a>");
+      expect(html).toContain(">Claim my business</a>");
+      expect(html).toContain("Made you look");
+      expect(html).toContain("free forever");
       expect(html).toContain('href="/direct-connect?source=landing_primary_cta"');
-      expect(html).toContain('href="/register?role=provider"');
+      expect(html).toContain('href="/claim-my-business?source=landing_business"');
       expect(html).not.toContain("Ask Scout");
       expect(html).not.toContain("Scout chatbot");
       expect(html).not.toContain("lead marketplace");
@@ -104,11 +106,13 @@ describe("TradeScout public entry rendered smoke", () => {
     const html = renderToStaticMarkup(React.createElement(TradeScoutLandingPage));
 
     expect(html).toContain("Connection Without Compromise");
-    expect(html).toContain("Start a Request");
-    expect(html).toContain("Claim Provider Profile");
+    expect(html).toContain("Make A Request");
+    expect(html).toContain("Claim my business");
+    expect(html).toContain("Made you look.");
+    expect(html).toContain("TradeScout is free forever.");
 
-    expect(html).toContain('href="/register?role=provider"');
-    expect(html).toContain('href="/community"');
+    expect(html).toContain("/claim-my-business?source=landing_business");
+    expect(html).toContain('href="/community-feed"');
     expect(html).toContain("/direct-connect?source=landing_primary_cta");
   });
 

@@ -32,13 +32,15 @@ const expectedCommit =
 const requiredCopy = [
   "Connection Without Compromise",
   "Direct Connect",
-  "Start a Request",
-  "Claim Provider Profile",
+  "Make A Request",
+  "Claim my business",
+  "Made you look",
+  "free forever",
 ];
 
 const requiredHtmlFragments = [
   'href="/direct-connect?source=landing_primary_cta"',
-  'href="/register?role=provider"',
+  'href="/claim-my-business?source=landing_business"',
 ];
 
 const forbiddenCopy = [

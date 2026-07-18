@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-describe("locked landing conversion instrumentation contract", () => {
+describe("hybrid landing conversion instrumentation contract", () => {
   const landingPath = path.resolve(process.cwd(), "client/src/pages/TradeScoutLandingPage.tsx");
   const directConnectShellPath = path.resolve(
     process.cwd(),
@@ -19,22 +19,22 @@ describe("locked landing conversion instrumentation contract", () => {
   const directConnectEntryContextSource = fs.readFileSync(directConnectEntryContextPath, "utf8");
   const analyticsRoutesSource = fs.readFileSync(analyticsRoutesPath, "utf8");
 
-  it("tracks locked landing page views through demand analytics", () => {
+  it("tracks hybrid landing page views through demand analytics", () => {
     expect(landingSource).toContain("bootstrapDemandAttribution");
     expect(landingSource).toContain('trackDemandEvent("landing_view"');
-    expect(landingSource).toContain('"locked_public_landing"');
+    expect(landingSource).toContain('"hybrid_public_landing"');
     expect(analyticsRoutesSource).toContain('"demand.landing_view"');
   });
 
-  it("tracks Start a Request clicks and preserves the landing request source", () => {
+  it("tracks Make A Request clicks and preserves the landing request source", () => {
     expect(landingSource).toContain('trackDemandEvent("cta_click"');
-    expect(landingSource).toContain('"start_request"');
+    expect(landingSource).toContain('"make_a_request"');
     expect(landingSource).toContain('"landing_primary_cta"');
-    expect(landingSource).toContain("withDemandQueryParams(LANDING_PRIMARY_REQUEST_HREF)");
+    expect(landingSource).toContain("withDemandQueryParams(");
     expect(analyticsRoutesSource).toContain('"demand.cta_click"');
   });
 
-  it("attributes request composer starts back to the locked landing CTA", () => {
+  it("attributes request composer starts back to the hybrid landing CTA", () => {
     expect(directConnectEntryContextSource).toContain('readFirst(params, "source")');
     expect(directConnectSource).toContain("parseDirectConnectEntryContext(location)");
     expect(directConnectSource).toContain("prefillSource={requestPrefill?.source}");
@@ -43,16 +43,18 @@ describe("locked landing conversion instrumentation contract", () => {
     expect(analyticsRoutesSource).toContain('"direct_connect_request_started"');
   });
 
-  it("attributes request submissions back to the locked landing CTA when source is present", () => {
+  it("attributes request submissions back to the hybrid landing CTA when source is present", () => {
     expect(directConnectSource).toContain('"direct_connect_request_submitted"');
     expect(directConnectSource).toContain("source: prefillSource || null");
     expect(analyticsRoutesSource).toContain('"direct_connect_request_submitted"');
   });
 
-  it("keeps forbidden old landing copy out of the locked public landing", () => {
+  it("keeps the hybrid promise and public language aligned", () => {
     expect(landingSource).toContain("Connection Without Compromise");
-    expect(landingSource).toContain("Start a Request");
+    expect(landingSource).toContain("Make A Request");
     expect(landingSource).toContain("Direct Connect");
+    expect(landingSource).toContain("Made you look.");
+    expect(landingSource).toContain("TradeScout is free forever.");
     expect(landingSource).not.toContain("Ask Scout");
     expect(landingSource).not.toContain("Scout routes");
     expect(landingSource).not.toContain("Find Any Local Business Near You");

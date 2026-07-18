@@ -66,8 +66,8 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
     displayVariant ? `${displayVariant} | TradeScout` : "TradeScout | Connection Without Compromise"
   );
   const description = displayVariant
-    ? `TradeScout for ${displayVariant}. Start a local work request before anyone gets your phone number. Contact happens only when you decide.`
-    : "Start a local work request before anyone gets your phone number. TradeScout organizes the job, location, and context first. Contact happens only when you decide.";
+    ? `TradeScout for ${displayVariant}. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.`
+    : "Find what you need. Show what you offer. TradeScout connects people and local businesses without sold leads, paid ranking, or contact before acceptance.";
 
   return {
     title,
@@ -77,10 +77,10 @@ function buildMeta(opts: PublicLandingHtmlOptions) {
     keywords: [
       "TradeScout",
       "Connection Without Compromise",
-      "local work request",
-      "trusted local providers",
-      "home services",
-      "provider request",
+      "local businesses",
+      "local products and services",
+      "Direct Connect request",
+      "free local operating system",
       displayVariant,
     ]
       .map((value) => String(value || "").trim())
@@ -101,26 +101,32 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
       <span>TradeScout</span>
     </p>
     <h1>Connection Without Compromise</h1>
+    <h2>Find what you need. Show what you offer.</h2>
     <p>${escapeHtml(meta.description)}</p>
-    <p>Direct Connect is the TradeScout request surface for starting local work with context intact.</p>
-    <p>TradeScout is not a lead funnel. Your request starts with the work, location, and context before any contact details are shared.</p>
-    <h2>How TradeScout works</h2>
+    <p>Use normal TradeScout pages or open Scout for guidance. Both paths keep the same businesses, requests, jobs, properties, and outcomes connected.</p>
+    <p>Direct Connect sends a request only to businesses the person chooses. Contact information opens after acceptance.</p>
+    <h2>For people</h2>
     <ol>
-      <li>Describe the work.</li>
-      <li>TradeScout organizes the job, location, and context.</li>
-      <li>Review the path forward.</li>
-      <li>Contact opens only when you decide.</li>
+      <li>Start with a need, question, product, service, property, or local opportunity.</li>
+      <li>Compare useful options and real proof.</li>
+      <li>Choose who receives a Direct Connect request.</li>
+      <li>Keep the completed outcome for next time.</li>
     </ol>
-    <h2>What makes it different</h2>
+    <h2>For businesses</h2>
     <ul>
-      <li>No lead reselling.</li>
-      <li>No pay-to-play ranking.</li>
-      <li>Trust signals stay visible.</li>
-      <li>Contact stays governed instead of chaotic.</li>
+      <li>Claim or create a public business profile.</li>
+      <li>Show products, services, availability, proof, and completed work.</li>
+      <li>Review chosen requests before contact opens.</li>
+      <li>Never buy a resold lead.</li>
     </ul>
+    <h2>Made you look.</h2>
+    <p>TradeScout is free forever. Verified TradePartners and local businesses may present relevant offers only when they provide value and quality. Sponsored offers cannot buy CVS, organic ranking, routing, or contact access.</p>
+    <p><a href="/pricing#how-tradescout-earns">See how we earn revenue here</a></p>
     <nav aria-label="Public entry actions">
-      <a href="/direct-connect?source=landing_primary_cta">Start a Request</a>
-      <a href="/register?role=provider">Claim Provider Profile</a>
+      <a href="/scout?source=landing_scout">Open Scout</a>
+      <a href="/find-local-businesses">Find local businesses</a>
+      <a href="/direct-connect?source=landing_primary_cta">Make A Request</a>
+      <a href="/claim-my-business?source=landing_business">Claim my business</a>
     </nav>
   </article>
 </main>`;
@@ -208,7 +214,7 @@ export async function buildPublicLandingHtml(opts: PublicLandingHtmlOptions): Pr
     url: opts.origin,
     logo: `${opts.origin}/tradescout-logo.jpg`,
     description:
-      "Connection Without Compromise. Start a local work request before contact details are shared.",
+      "Connection Without Compromise. Find what you need or show what you offer without sold leads, paid ranking, or contact before acceptance.",
     sameAs: ["https://www.thetradescout.com"],
   });
   return html;

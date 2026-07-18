@@ -17,12 +17,10 @@ describe("TradeScout Direct Connect primary product surface", () => {
   it("treats Direct Connect as the named public request product", () => {
     expect(publicLanding).toContain("Direct Connect");
     expect(serverLanding).toContain("Direct Connect");
-    expect(publicLanding).toContain(
-      "const LANDING_PRIMARY_REQUEST_HREF = `/direct-connect?source=${LANDING_PRIMARY_REQUEST_SOURCE}`;"
-    );
+    expect(publicLanding).toContain("`/direct-connect?source=${LANDING_PRIMARY_REQUEST_SOURCE}`");
     expect(serverLanding).toContain('href="/direct-connect?source=landing_primary_cta"');
-    expect(publicLanding).toContain("Start a Request");
-    expect(serverLanding).toContain("Start a Request");
+    expect(publicLanding).toContain("Make A Request");
+    expect(serverLanding).toContain("Make A Request");
   });
 
   it("keeps Direct Connect routes available as the request-start surface", () => {
@@ -45,8 +43,8 @@ describe("TradeScout Direct Connect primary product surface", () => {
   });
 
   it("keeps provider claim/profile paths available beside Direct Connect", () => {
-    expect(publicLanding).toContain('href="/register?role=provider"');
-    expect(serverLanding).toContain('href="/register?role=provider"');
+    expect(publicLanding).toContain("/claim-my-business?source=landing_business");
+    expect(serverLanding).toContain('href="/claim-my-business?source=landing_business"');
     expect(appRoutes).toContain('<Route path="/claim-my-business">');
     expect(businessProfileView).toContain("const directConnectUrl = `/direct-connect?");
     expect(businessProfileView).toContain("const claimUrl = `/claim-my-business?");
@@ -55,13 +53,13 @@ describe("TradeScout Direct Connect primary product surface", () => {
   });
 
   it("keeps community/explore secondary to Direct Connect as the primary product CTA", () => {
-    const requestCtaIndex = publicLanding.indexOf("LANDING_PRIMARY_REQUEST_HREF");
-    const communityHrefIndex = publicLanding.indexOf('href="/community"');
+    const requestCtaIndex = publicLanding.indexOf("LANDING_PRIMARY_REQUEST_SOURCE");
+    const communityHrefIndex = publicLanding.indexOf('href="/community-feed"');
 
     expect(requestCtaIndex).toBeGreaterThan(-1);
     expect(communityHrefIndex).toBeGreaterThan(-1);
     expect(requestCtaIndex).toBeLessThan(communityHrefIndex);
-    expect(publicLanding).toContain("Browse Local Activity");
+    expect(publicLanding).toContain("Open Community");
   });
 
   it("places Direct Connect in primary navigation understanding", () => {

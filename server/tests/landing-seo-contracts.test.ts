@@ -22,12 +22,14 @@ describe("landing SEO contracts", () => {
     expect(source).toContain("noIndex={!shouldIndexLandingPage}");
   });
 
-  it("keeps the server-rendered public landing fallback aligned with locked copy", () => {
+  it("keeps the server-rendered public landing fallback aligned with hybrid copy", () => {
     const source = read("server/publicLandingHtml.ts");
 
     expect(source).toContain("Connection Without Compromise");
-    expect(source).toContain("Start a Request");
-    expect(source).toContain("Claim Provider Profile");
+    expect(source).toContain("Make A Request");
+    expect(source).toContain("Claim my business");
+    expect(source).toContain("Made you look");
+    expect(source).toContain("free forever");
     expect(source).toContain("Direct Connect");
     expect(source).toContain("/tradescout-logo-circle.png");
     expect(source).not.toContain("Find Any Local Business Near You");
@@ -42,7 +44,7 @@ describe("landing SEO contracts", () => {
     expect(source).not.toContain("operating system architecture");
   });
 
-  it("renders locked landing copy into the server HTML body", async () => {
+  it("renders hybrid landing copy into the server HTML body", async () => {
     const templateHtml = `<!doctype html>
 <html>
   <head><title>TradeScout</title></head>
@@ -60,10 +62,12 @@ describe("landing SEO contracts", () => {
 
     expect(html).toContain("<h1>Connection Without Compromise</h1>");
     expect(html).toContain('alt="TradeScout logo"');
-    expect(html).toContain(">Start a Request</a>");
-    expect(html).toContain(">Claim Provider Profile</a>");
+    expect(html).toContain(">Make A Request</a>");
+    expect(html).toContain(">Claim my business</a>");
+    expect(html).toContain("Made you look");
+    expect(html).toContain("free forever");
     expect(html).toContain('href="/direct-connect?source=landing_primary_cta"');
-    expect(html).toContain('href="/register?role=provider"');
+    expect(html).toContain('href="/claim-my-business?source=landing_business"');
     expect(html).toContain("Direct Connect");
     expect(html).not.toContain("Find Any Local Business Near You");
     expect(html).not.toContain("Ask Scout");
