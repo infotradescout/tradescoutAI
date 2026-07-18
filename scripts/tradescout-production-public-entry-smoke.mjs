@@ -99,7 +99,7 @@ async function fetchWithTimeout(url) {
       method: "GET",
       headers: {
         Accept: "text/html,application/json",
-        "User-Agent": "TradeScout production public-entry freshness smoke",
+        "User-Agent": "TradeScoutBot production public-entry freshness smoke",
       },
       signal: controller.signal,
     });
