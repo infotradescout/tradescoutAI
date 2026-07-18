@@ -49,18 +49,22 @@ type RecommendationFormData = z.infer<typeof recommendationSchema>;
 interface RecommendationFormProps {
   contractorId: string;
   contractorName: string;
+  defaultOpen?: boolean;
+  onCancel?: () => void;
   onSuccess?: () => void;
 }
 
 export function RecommendationForm({
   contractorId,
   contractorName,
+  defaultOpen = false,
+  onCancel,
   onSuccess,
 }: RecommendationFormProps) {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(defaultOpen);
 
   const form = useForm<RecommendationFormData>({
     resolver: zodResolver(recommendationSchema),
@@ -468,7 +472,10 @@ export function RecommendationForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  onCancel?.();
+                }}
                 className="border-white/10 text-white hover:bg-tsCard"
                 data-testid="button-cancel-recommendation"
               >

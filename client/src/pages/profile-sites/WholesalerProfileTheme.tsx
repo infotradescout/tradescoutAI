@@ -58,6 +58,7 @@ type RecommendationEntry = {
   recommendationType: "positive" | "negative";
   comment: string;
   projectType: string | null;
+  customerName: string;
   contractor: {
     id: string;
     companyName: string;
@@ -130,6 +131,7 @@ type WholesalerProfileThemeProps = {
   preScoutSignInHref: string;
   recommendationsDirectory?: RecommendationEntry[];
   recommendationDirectorySummary?: RecommendationDirectorySummary;
+  trustActions?: ReactNode;
   profileItems?: ReactNode;
 };
 
@@ -316,6 +318,7 @@ export default function WholesalerProfileTheme({
   preScoutSignInHref,
   recommendationsDirectory = [],
   recommendationDirectorySummary,
+  trustActions,
   profileItems,
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
@@ -1026,6 +1029,12 @@ export default function WholesalerProfileTheme({
           </div>
         </div>
       </section>
+
+      {trustActions ? (
+        <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-4">
+          <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
+        </section>
+      ) : null}
 
       {premiumProductData && premiumProduct ? (
         <PremiumProductProfileSections
@@ -1981,20 +1990,9 @@ export default function WholesalerProfileTheme({
                         </div>
                       </div>
                       <p className="mb-3 text-sm text-[#241d0f]/80">{entry.comment}</p>
-                      {entry.contractor?.slug ? (
-                        <Link
-                          href={
-                            entry.contractor.canonicalBusinessProfileUrl ||
-                            `/contractors/${encodeURIComponent(entry.contractor.slug)}`
-                          }
-                        >
-                          <span className="text-sm font-semibold text-[var(--brand-primary)] underline underline-offset-2">
-                            {entry.contractor.companyName}
-                          </span>
-                        </Link>
-                      ) : (
-                        <p className="text-xs text-[#241d0f]/75">{entry.contractor.companyName}</p>
-                      )}
+                      <p className="text-xs font-semibold text-[#241d0f]/75">
+                        Shared by {entry.customerName || "a TradeScout member"}
+                      </p>
                     </div>
                   ))}
                 </div>
