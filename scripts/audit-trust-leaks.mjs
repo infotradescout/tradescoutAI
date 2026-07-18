@@ -25,6 +25,10 @@ const approvedComingSoonCopy = new Map([
     "client/src/components/profile/PublicProfileProductCard.tsx",
     ["Photo coming soon"],
   ],
+  [
+    "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
+    ["Calling is coming soon"],
+  ],
 ]);
 
 const lineIgnorePatterns = [

@@ -12,16 +12,21 @@ describe("public profile human-language contract", () => {
     const profileHtml = read("server/publicProfileHtml.ts");
 
     expect(profileView).toContain("setLoadFailed(true)");
-    expect(profileView).toContain("That page didn&apos;t load");
+    expect(profileView).toContain("This page took a quick pit stop.");
     expect(profileView).toContain("Try again");
-    expect(profileView).toContain("You&apos;re here early");
-    expect(profileView).toContain("Check back soon");
+    expect(profileView).toContain("You found it before opening day.");
+    expect(profileView).toContain("Browse the Community");
+    expect(profileView).toContain("Report this link");
+    expect(profileView).toContain('fetch("/api/error-reports"');
     expect(profileView).not.toContain("Profile not found");
     expect(profileView).not.toContain("private, unpublished, or unavailable");
     expect(serverEntry).toContain("buildPublicProfileEarlyHtml({ slug, origin, templateHtml })");
     expect(serverEntry).not.toContain('res.status(404).send("Profile not found")');
     expect(profileHtml).toContain('data-public-profile-state="early"');
-    expect(profileHtml).toContain("Check back soon");
+    expect(profileHtml).toContain("You found it before opening day.");
+    expect(profileHtml).toContain("Browse the Community");
+    expect(profileHtml).toContain('id="ts-report-link"');
+    expect(profileHtml).toContain('fetch("/api/error-reports"');
   });
 
   it("shows useful profile facts without internal labels or fake zero-value stats", () => {
@@ -53,8 +58,9 @@ describe("public profile human-language contract", () => {
     expect(autoGlassTheme).toContain("Ready when you are");
     expect(autoGlassTheme).not.toContain("TradeScout Business CV");
     expect(requestPanel).toContain("Direct Connect");
-    expect(requestPanel).toContain("Make A Request");
-    expect(requestPanel).toContain("No account needed to send");
+    expect(requestPanel).toContain("Call");
+    expect(requestPanel).toContain("Fill out the form");
+    expect(requestPanel).toContain("Send through Direct Connect");
     expect(requestPanel).toContain("Your details are still here");
     expect(requestPanel).not.toContain("Signup comes after send");
     expect(requestPanel).not.toContain("Express Direct Connect");

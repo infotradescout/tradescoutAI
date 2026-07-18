@@ -4623,7 +4623,7 @@ function MyDirectConnectRequests() {
               className="bg-ts-orange text-text-black hover:bg-ts-orange/90"
               onClick={() => navigate("/direct-connect")}
             >
-              Make A Request
+              Direct Connect
             </Button>
           </div>
         </CardContent>

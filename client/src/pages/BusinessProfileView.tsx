@@ -455,7 +455,7 @@ export default function BusinessProfileView() {
                 setLocation(`/direct-connect?${params.toString()}`);
               }}
             >
-              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Start a Request"}
+              Direct Connect
             </Button>
           </CardContent>
         </Card>
@@ -826,7 +826,7 @@ export default function BusinessProfileView() {
                     onClick={handleDirectConnect}
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    {profile.ctaConfig?.primary?.label || "Start a Request"}
+                    Direct Connect
                     <ArrowRight className="h-4 w-4 ml-auto" />
                   </Button>
 
@@ -1197,7 +1197,7 @@ export default function BusinessProfileView() {
               <div className="flex flex-col items-center gap-2">
                 <Button size="lg" data-testid="bp-contact-cta" onClick={handleDirectConnect}>
                   <MessageSquare className="h-5 w-5 mr-2" />
-                  {profile.ctaConfig?.primary?.label || "Start a Request"}
+                  Direct Connect
                 </Button>
 
                 {/* Directory-only: verified users can call after Decision Card confirmation */}

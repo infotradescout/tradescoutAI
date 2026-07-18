@@ -22,6 +22,7 @@ import {
 import ExpressDirectConnectPanel, {
   type ExpressDirectConnectRequestType,
 } from "./ExpressDirectConnectPanel";
+import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import { ShareButton } from "@/components/ShareButton";
 import {
   buildProfileInventoryShareSearch,
@@ -692,7 +693,7 @@ export default function WholesalerProfileTheme({
             onClick={() => startDirectConnect(stone.name, "request_material")}
             className="min-h-10 rounded-xl bg-ts-orange px-3 text-xs font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
           >
-            Make A Request
+            Direct Connect
           </button>
         </div>
       </div>
@@ -769,7 +770,7 @@ export default function WholesalerProfileTheme({
                   onClick={() => startDirectConnect()}
                   className="hidden flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark sm:inline-flex md:px-5 md:text-sm"
                 >
-                  Make A Request
+                  Direct Connect
                 </button>
               </div>
             </>
@@ -790,7 +791,7 @@ export default function WholesalerProfileTheme({
                 onClick={() => startDirectConnect()}
                 className="flex-shrink-0 rounded-full bg-ts-orange px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-ts-orange-dark md:px-5 md:text-sm"
               >
-                Make A Request
+                Direct Connect
               </button>
             </>
           )}
@@ -916,7 +917,7 @@ export default function WholesalerProfileTheme({
               onClick={() => startDirectConnect()}
               className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3 text-sm font-extrabold text-ts-orange-light shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
             >
-              Make A Request
+              Direct Connect
               <ChevronRight className="h-4 w-4" />
             </button>
             {!isJwStone && !hasViewerSession ? (
@@ -1072,7 +1073,7 @@ export default function WholesalerProfileTheme({
                               onClick={() => startDirectConnect(stone.name, "request_material")}
                               className="min-h-10 rounded-xl bg-ts-orange px-2 text-[10px] font-extrabold text-white transition-colors hover:bg-ts-orange-dark sm:text-xs"
                             >
-                              Make A Request
+                              Direct Connect
                             </button>
                           </div>
                         </div>
@@ -1229,7 +1230,7 @@ export default function WholesalerProfileTheme({
                             }
                             className="mt-5 rounded-full bg-ts-orange px-6 py-3 text-sm font-extrabold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-ts-orange-dark"
                           >
-                            Make A Request
+                            Direct Connect
                           </button>
                         ) : null}
                       </div>
@@ -1504,7 +1505,7 @@ export default function WholesalerProfileTheme({
                 }}
                 className="rounded-full bg-ts-orange px-6 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
               >
-                Make A Request
+                Direct Connect
               </button>
             </div>
           </div>
@@ -1611,7 +1612,7 @@ export default function WholesalerProfileTheme({
                       onClick={() => startDirectConnect()}
                       className="mt-5 min-h-10 rounded-xl bg-ts-orange px-4 text-xs font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
                     >
-                      Make A Request
+                      Direct Connect
                     </button>
                   </div>
                 </article>
@@ -1701,7 +1702,7 @@ export default function WholesalerProfileTheme({
                       onClick={() => startDirectConnect(stone.name, "request_material")}
                       className="w-full rounded-xl bg-ts-orange px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
                     >
-                      Make A Request
+                      Direct Connect
                     </button>
                   </div>
                 </article>
@@ -1882,7 +1883,7 @@ export default function WholesalerProfileTheme({
               className="flex items-center justify-center gap-2 rounded-full bg-ts-orange px-8 py-4 text-base font-bold text-white transition-colors hover:bg-ts-orange-dark"
             >
               <MessageCircle className="h-5 w-5" />
-              Make A Request
+              Direct Connect
             </button>
             {!hasViewerSession ? (
               <Link href={preScoutSignInHref}>
@@ -1894,6 +1895,8 @@ export default function WholesalerProfileTheme({
           </div>
         </div>
       </section>
+
+      <TradeScoutProfileHandoff />
 
       {/* Footer */}
       <footer className="bg-[#241d0f] py-10 text-white/70">

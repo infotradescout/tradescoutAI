@@ -1515,7 +1515,7 @@ export default function PublicProfileView() {
                         window.location.href = `/pre-scout-setup?mode=create&next=${encodeURIComponent("/direct-connect")}`;
                       }}
                     >
-                      Request Booking
+                      Direct Connect
                     </Button>
                     {paidBookings && bookingPriceUsd > 0 && (
                       <Button variant="outline" onClick={handleBookingDeposit}>
@@ -1535,8 +1535,18 @@ export default function PublicProfileView() {
                   Interested in connecting with {profile.firstName || "this user"}?
                 </h3>
                 <p className="mb-4 opacity-90">Send a message or inquiry through TradeScout</p>
-                <Button size="lg" className="ts-btn-ghost ts-focus">
-                  Send Message
+                <Button
+                  size="lg"
+                  className="ts-btn-ghost ts-focus"
+                  onClick={() => {
+                    if (user) {
+                      window.location.href = "/direct-connect";
+                      return;
+                    }
+                    window.location.href = `/pre-scout-setup?mode=create&next=${encodeURIComponent("/direct-connect")}`;
+                  }}
+                >
+                  Direct Connect
                 </Button>
               </div>
             )}

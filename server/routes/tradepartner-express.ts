@@ -19,6 +19,7 @@ import { passwordResetService } from "../services/passwordResetService";
 import { notificationService } from "../notification-service";
 import { notifySuperAdminsOfDirectConnectRequest } from "../services/directConnectBetaOversight";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
+import { normalizeDirectConnectPhone } from "../services/directConnectPhone";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { redactContactDetails } from "../utils/workRequestShare";
 
@@ -83,19 +84,6 @@ function normalizeEmail(value: unknown): string {
     .toLowerCase();
 }
 
-function normalizePhoneForTel(raw: unknown): { display: string; tel: string } | null {
-  const display = String(raw || "").trim();
-  const digits = display.replace(/\D/g, "");
-  if (digits.length < 10 || digits.length > 15) return null;
-  const e164 =
-    digits.length === 10
-      ? `+1${digits}`
-      : digits.length === 11 && digits.startsWith("1")
-        ? `+${digits}`
-        : `+${digits}`;
-  return { display, tel: `tel:${e164}` };
-}
-
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -149,6 +137,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
       profileData: businesses.profileData,
       ownerVerifiedBadge: users.verifiedBadge,
       ownerVerificationStatus: users.verificationStatus,
+      ownerPhone: users.phone,
     })
     .from(profiles)
     .innerJoin(businesses, eq(profiles.businessId, businesses.id))
@@ -168,7 +157,7 @@ async function resolveTradePartnerTarget(slug: string): Promise<TradePartnerTarg
     businessSources: row?.businessSources,
   });
   const profileData = (row?.profileData || {}) as Record<string, any>;
-  const phone = String(profileData.phone || "").trim();
+  const phone = String(profileData.phone || row?.ownerPhone || "").trim();
   const notificationEmail = String(profileData.notificationEmail || "").trim();
   if (
     !row ||
@@ -235,7 +224,7 @@ export function registerTradePartnerExpressRoutes(app: Express) {
         if (!parsed.success) return res.status(400).json({ message: "Choose a contact option." });
         const target = await resolveTradePartnerTarget(req.params.slug);
         if (!target) return res.status(404).json({ message: "Profile not found." });
-        const phone = normalizePhoneForTel(target.phone);
+        const phone = normalizeDirectConnectPhone(target.phone);
         if (!phone) return res.status(404).json({ message: "Calling is unavailable right now." });
 
         console.info("[tradepartner-express] phone revealed after profile decision", {

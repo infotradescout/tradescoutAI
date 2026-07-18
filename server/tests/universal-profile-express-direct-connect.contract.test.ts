@@ -25,8 +25,9 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(panelSource).toContain(
       'export type ExpressDirectConnectMode = "materials" | "auto_glass" | "service"'
     );
-    expect(panelSource.match(/choiceLabel: "Make A Request"/g)?.length || 0).toBe(3);
     expect(panelSource).toContain("Direct Connect");
+    expect(panelSource).toContain("Fill out the form");
+    expect(panelSource).toContain("Send through Direct Connect");
     expect(routeSource).toContain('"request_service"');
     expect(routeSource).toContain('"request_quote"');
     expect(routeSource).toContain('"schedule_service"');
@@ -37,18 +38,18 @@ describe("universal public-profile Express Direct Connect contract", () => {
     expect(profileSource).toContain('requestMode="service"');
     expect(profileSource).toContain("onDirectConnect={() => setExpressPanelOpen(true)}");
     expect(jrSource).toContain("onClick={onDirectConnect}");
-    expect(jrSource.match(/Make A Request/g)?.length || 0).toBeGreaterThanOrEqual(3);
+    expect(jrSource.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(jrSource).not.toContain("preScoutCreateHref");
     expect(jrSource).not.toContain("requestHref");
   });
 
-  it("does not advertise call mode when a business has no private routing phone", () => {
+  it("always opens the call-or-form choice and marks unavailable calling as coming soon", () => {
     expect(profileSource).toContain("const canExpressCall =");
     expect(profileSource).toContain("allowCall={canExpressCall}");
-    expect(panelSource).toContain(
-      'setView(initialStoneName || initialRequestType || !allowCall ? "request" : "choice")'
-    );
-    expect(panelSource).toContain('view === "choice" && allowCall');
+    expect(panelSource).toContain('setView("choice")');
+    expect(panelSource).toContain('view === "choice"');
+    expect(panelSource).toContain("disabled={busy || !allowCall}");
+    expect(panelSource).toContain("Calling is coming soon");
   });
 
   it("commits the request before onboarding and does not depend on email delivery", () => {

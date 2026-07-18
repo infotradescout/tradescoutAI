@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "wouter";
 import { ShareButton } from "@/components/ShareButton";
+import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import {
   buildProfileGalleryShareSearch,
   listProfileGalleryItems,
@@ -100,11 +101,11 @@ export default function JrsAutoGlassProfileTheme({
           <button
             type="button"
             onClick={onDirectConnect}
-            aria-label="Make A Request with JR's Auto Glass"
+            aria-label="Direct Connect with JR's Auto Glass"
             className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full bg-ts-orange text-white transition-colors hover:bg-ts-orange-dark sm:w-auto sm:gap-2 sm:px-4"
           >
             <MessageCircle className="h-4 w-4" />
-            <span className="hidden text-xs font-black sm:inline">Make A Request</span>
+            <span className="hidden text-xs font-black sm:inline">Direct Connect</span>
           </button>
         </div>
       </header>
@@ -142,7 +143,7 @@ export default function JrsAutoGlassProfileTheme({
             onClick={onDirectConnect}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
           >
-            Make A Request
+            Direct Connect
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-2 text-center text-[11px] font-medium text-zinc-500">
@@ -315,13 +316,15 @@ export default function JrsAutoGlassProfileTheme({
             onClick={onDirectConnect}
             className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
           >
-            Make A Request
+            Direct Connect
             <ChevronRight className="h-4 w-4" />
           </button>
           <p className="mt-3 text-center text-xs leading-5 text-zinc-500">
             JR&apos;s won&apos;t see your contact details unless they accept the request.
           </p>
         </section>
+
+        <TradeScoutProfileHandoff className="border-t border-white/10" />
       </div>
     </main>
   );

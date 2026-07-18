@@ -85,6 +85,29 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#39;");
 }
 
+function profileNameFromSlug(value: string): string {
+  const acronyms = new Set(["co", "inc", "la", "llc", "usa", "jw", "hvac"]);
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    // Keep the original path segment when a shared URL is malformed.
+  }
+
+  const words = decoded
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) =>
+      acronyms.has(word.toLowerCase())
+        ? word.toUpperCase()
+        : `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
+    );
+
+  return words.join(" ") || "This TradeScout profile";
+}
+
 function upsertTag(html: string, regex: RegExp, tag: string) {
   if (regex.test(html)) {
     return html.replace(regex, tag);
@@ -137,10 +160,21 @@ export function buildPublicProfileEarlyHtml({
   origin,
   templateHtml,
 }: PublicProfileEarlyHtmlOptions): string {
-  const title = formatTradeScoutTitle("You're here early");
+  const profileName = profileNameFromSlug(slug);
+  const title = formatTradeScoutTitle(`${profileName} is opening soon`);
   const description =
-    "This profile isn't public yet, or the link has changed. Check back soon while it gets ready.";
+    "You found this TradeScout profile before opening day. Keep the link—the finished profile will live right here.";
   const canonical = `${origin}/u/${encodeURIComponent(slug)}`;
+  const tradeScoutHome = `${origin}/`;
+  const scoutUrl = `${origin}/scout`;
+  const communityUrl = `${origin}/community-feed`;
+  const logoUrl = `${origin}/tradescout-logo.png`;
+  const reportPayload = JSON.stringify({
+    title: `Public profile link reported: ${profileName}`,
+    description: `A visitor reported the early public-profile fallback at /u/${slug}.`,
+    errorType: "ui_issue",
+    browserInfo: { profileSlug: slug, arrivalMode: "early" },
+  }).replace(/</g, "\\u003c");
   let html = templateHtml.replace(
     /<title>[\s\S]*?<\/title>/i,
     `<title>${escapeHtml(title)}</title>`
@@ -178,12 +212,72 @@ export function buildPublicProfileEarlyHtml({
   );
 
   const earlySummary = `
-<main data-public-profile-state="early" style="padding:3rem 1rem;max-width:640px;margin:0 auto;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
-  <h1>You're here early</h1>
-  <p>This profile isn't public yet, or the link has changed.</p>
-  <p>Check back soon, or explore TradeScout while it gets ready.</p>
-  <p><a href="/">Explore TradeScout</a></p>
-</main>`;
+<style>
+  .ts-early{min-height:100vh;box-sizing:border-box;overflow:hidden;position:relative;padding:24px 22px;background:radial-gradient(circle at 16% 16%,rgba(249,115,22,.2),transparent 34%),radial-gradient(circle at 84% 26%,rgba(14,165,233,.17),transparent 36%),linear-gradient(145deg,#071016 0%,#0b1921 58%,#071016 100%);color:#fff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}.ts-early *{box-sizing:border-box}.ts-early-shell{position:relative;z-index:1;max-width:1180px;min-height:calc(100vh - 48px);margin:0 auto;display:flex;flex-direction:column}.ts-early-top{display:flex;align-items:center;justify-content:space-between;padding:4px 0 18px}.ts-early-logo{display:block;height:38px;width:auto}.ts-early-close{display:grid;place-items:center;width:44px;height:44px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);text-decoration:none;font-size:25px;line-height:1}.ts-early-card{margin:auto 0;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(330px,.85fr);overflow:hidden;border:1px solid rgba(255,255,255,.11);border-radius:32px;background:rgba(12,23,30,.96);box-shadow:0 36px 110px rgba(0,0,0,.45)}.ts-early-copy{display:flex;flex-direction:column;justify-content:center;padding:56px}.ts-early-badge{display:inline-flex;align-items:center;gap:8px;width:max-content;margin:0 0 28px;padding:8px 12px;border:1px solid rgba(249,115,22,.32);border-radius:999px;background:rgba(249,115,22,.1);color:#fdba74;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase}.ts-early-name{margin:0 0 12px;color:rgba(125,211,252,.82);font-size:14px;font-weight:750;letter-spacing:.16em;text-transform:uppercase}.ts-early h1{max-width:760px;margin:0;font-size:clamp(42px,6vw,76px);line-height:1.01;letter-spacing:-.045em}.ts-early-lede{max-width:690px;margin:24px 0 0;color:rgba(255,255,255,.68);font-size:18px;line-height:1.7}.ts-early-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}.ts-early-button{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border:0;border-radius:999px;background:transparent;color:inherit;cursor:pointer;font:inherit;font-size:15px;font-weight:800;text-decoration:none}.ts-early-button.primary{background:#f97316;color:#fff;box-shadow:0 12px 34px rgba(124,45,18,.3)}.ts-early-button.secondary{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.04);color:#fff}.ts-early-button.quiet{padding:0 12px;color:rgba(255,255,255,.62)}.ts-early-button:disabled{cursor:default;color:#86efac}.ts-early-visual{position:relative;display:flex;align-items:center;justify-content:center;min-height:570px;padding:42px;border-left:1px solid rgba(255,255,255,.1);background:radial-gradient(circle at center,rgba(14,165,233,.19),transparent 58%),#0a222d}.ts-early-status{position:relative;width:100%;max-width:370px;padding:30px;border:1px solid rgba(255,255,255,.12);border-radius:28px;background:rgba(7,20,27,.92);box-shadow:0 24px 70px rgba(0,0,0,.4)}.ts-early-status-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px}.ts-early-kicker{margin:0;color:rgba(255,255,255,.42);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.ts-early-path{max-width:240px;margin:7px 0 0;overflow:hidden;color:rgba(255,255,255,.92);font-weight:700;text-overflow:ellipsis;white-space:nowrap}.ts-early-spark{display:grid;place-items:center;width:44px;height:44px;border-radius:16px;background:#f97316;color:#fff;font-size:20px;box-shadow:0 12px 28px rgba(124,45,18,.42)}.ts-early-step{display:flex;align-items:center;gap:12px;margin-top:11px;padding:15px 16px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:rgba(255,255,255,.035);color:rgba(255,255,255,.76);font-size:14px;font-weight:700}.ts-early-step.next{border-color:rgba(249,115,22,.26);background:rgba(249,115,22,.08)}.ts-early-dot{width:10px;height:10px;border-radius:50%;background:#34d399}.ts-early-step.next .ts-early-dot{background:#f97316;box-shadow:0 0 18px rgba(249,115,22,.8)}.ts-early-note{margin:24px 0 0;color:rgba(255,255,255,.5);font-size:14px;line-height:1.65}.ts-early-footer{padding:18px 0 2px;text-align:center;color:rgba(255,255,255,.35);font-size:11px;font-weight:750;letter-spacing:.18em;text-transform:uppercase}@media(max-width:840px){.ts-early{padding:16px}.ts-early-shell{min-height:calc(100vh - 32px)}.ts-early-card{grid-template-columns:1fr}.ts-early-copy{padding:38px 28px}.ts-early-visual{min-height:340px;padding:28px;border-top:1px solid rgba(255,255,255,.1);border-left:0}.ts-early h1{font-size:clamp(40px,12vw,60px)}}@media(max-width:520px){.ts-early-actions{flex-direction:column}.ts-early-button{width:100%}.ts-early-copy{padding:32px 22px}.ts-early-visual{padding:22px}.ts-early-status{padding:24px}}
+</style>
+<main data-public-profile-state="early" class="ts-early">
+  <div class="ts-early-shell">
+    <header class="ts-early-top">
+      <a href="${escapeHtml(tradeScoutHome)}" aria-label="Return to TradeScout"><img class="ts-early-logo" src="${escapeHtml(logoUrl)}" alt="TradeScout" /></a>
+      <a class="ts-early-close" href="${escapeHtml(tradeScoutHome)}" aria-label="Close this profile and return to TradeScout">&times;</a>
+    </header>
+    <section class="ts-early-card">
+      <div class="ts-early-copy">
+        <p class="ts-early-badge"><span aria-hidden="true">&#10022;</span> Opening soon</p>
+        <p class="ts-early-name">${escapeHtml(profileName)}</p>
+        <h1>You found it before opening day.</h1>
+        <p class="ts-early-lede">This TradeScout profile is getting its finishing touches. Keep this link—when the doors open, it will happen right here.</p>
+        <div class="ts-early-actions">
+          <a class="ts-early-button primary" href="${escapeHtml(communityUrl)}">Browse the Community &rarr;</a>
+          <a class="ts-early-button secondary" href="${escapeHtml(scoutUrl)}">Open Scout</a>
+          <a class="ts-early-button quiet" href="${escapeHtml(canonical)}">&#8635;&nbsp; Check again</a>
+          <button class="ts-early-button quiet" id="ts-report-link" type="button">&#9873;&nbsp; Report this link</button>
+        </div>
+      </div>
+      <div class="ts-early-visual">
+        <div class="ts-early-status">
+          <div class="ts-early-status-head">
+            <div><p class="ts-early-kicker">This address</p><p class="ts-early-path">/u/${escapeHtml(slug)}</p></div>
+            <span class="ts-early-spark" aria-hidden="true">&#10022;</span>
+          </div>
+          <div class="ts-early-step"><span class="ts-early-dot"></span>Right address</div>
+          <div class="ts-early-step"><span class="ts-early-dot"></span>Finishing touches</div>
+          <div class="ts-early-step next"><span class="ts-early-dot"></span>Public profile next</div>
+          <p class="ts-early-note">No detour and no dead end. This same link is where the finished profile will live.</p>
+        </div>
+      </div>
+    </section>
+    <footer class="ts-early-footer">Connection Without Compromise</footer>
+  </div>
+</main>
+<script>
+  (() => {
+    const button = document.getElementById("ts-report-link");
+    if (!button) return;
+    button.addEventListener("click", async () => {
+      if (button.disabled) return;
+      button.disabled = true;
+      button.textContent = "Reporting…";
+      try {
+        const response = await fetch("/api/error-reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            ...${reportPayload},
+            currentUrl: window.location.href,
+            userAgent: navigator.userAgent
+          })
+        });
+        if (!response.ok) throw new Error("Report failed");
+        button.textContent = "Reported — thank you";
+      } catch {
+        button.disabled = false;
+        button.textContent = "Try reporting again";
+      }
+    });
+  })();
+</script>`;
 
   return injectProfileSummary(html, earlySummary);
 }

@@ -8,13 +8,19 @@ import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { getCanonicalAppOrigin } from "@/lib/canonicalOrigin";
 import { useAuth } from "@/hooks/useAuth";
 import {
+  ArrowRight,
   MessageCircle,
   ShieldCheck,
   Calendar,
   Clock3,
+  Compass,
   DollarSign,
+  Flag,
+  RefreshCw,
+  Sparkles,
   ThumbsDown,
   ThumbsUp,
+  X,
 } from "lucide-react";
 import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
@@ -22,6 +28,7 @@ import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
 import LocalServiceProfileTheme from "@/pages/profile-sites/LocalServiceProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
+import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
   PublicProfileItems,
   type CanonicalProfileItems,
@@ -50,6 +57,259 @@ function getSafeTradeScoutHome(): string {
   return host === "localhost" || host === "127.0.0.1"
     ? `${window.location.origin}/`
     : "https://www.thetradescout.com/";
+}
+
+function getProfileNameFromSlug(value: string): string {
+  const acronyms = new Set(["co", "inc", "la", "llc", "usa", "jw", "hvac"]);
+  let decoded = value;
+  try {
+    decoded = decodeURIComponent(value);
+  } catch {
+    // Keep the original URL segment when a shared link is malformed.
+  }
+
+  const words = decoded
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) =>
+      acronyms.has(word.toLowerCase())
+        ? word.toUpperCase()
+        : `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
+    );
+
+  return words.join(" ") || "This TradeScout profile";
+}
+
+function ProfileArrivalState({
+  slug,
+  mode,
+  onRetry,
+}: {
+  slug: string;
+  mode: "early" | "retry";
+  onRetry: () => void;
+}) {
+  const profileName = getProfileNameFromSlug(slug);
+  const tradeScoutHome = getSafeTradeScoutHome();
+  const scoutHref = new URL("scout", tradeScoutHome).toString();
+  const communityHref = new URL("community-feed", tradeScoutHome).toString();
+  const isRetry = mode === "retry";
+  const [reportState, setReportState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+
+  const reportThisLink = async () => {
+    if (reportState === "sending" || reportState === "sent") return;
+    setReportState("sending");
+    try {
+      const response = await fetch("/api/error-reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          title: `Public profile link reported: ${profileName}`,
+          description: `A visitor reported the ${mode} public-profile fallback at /u/${slug}.`,
+          errorType: "ui_issue",
+          currentUrl: window.location.href,
+          userAgent: navigator.userAgent,
+          browserInfo: { profileSlug: slug, arrivalMode: mode },
+        }),
+      });
+      if (!response.ok) throw new Error("Report failed");
+      setReportState("sent");
+    } catch {
+      setReportState("failed");
+    }
+  };
+
+  return (
+    <main className="relative min-h-screen overflow-hidden bg-[#071016] px-4 py-6 text-white sm:px-6 lg:px-10">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-90"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 16% 16%, rgba(249,115,22,.18), transparent 34%), radial-gradient(circle at 84% 26%, rgba(14,165,233,.16), transparent 36%), linear-gradient(145deg, #071016 0%, #0b1921 58%, #071016 100%)",
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-24 top-1/3 h-64 w-64 rounded-full border border-white/10"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 bottom-16 h-80 w-80 rounded-full border border-ts-orange/20"
+      />
+
+      <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] max-w-6xl flex-col">
+        <header className="flex items-center justify-between py-2">
+          <a
+            href={tradeScoutHome}
+            aria-label="Return to TradeScout"
+            className="inline-flex items-center"
+          >
+            <img src="/tradescout-logo.png" alt="TradeScout" className="h-9 w-auto" />
+          </a>
+          <a
+            href={tradeScoutHome}
+            aria-label="Close this profile and return to TradeScout"
+            className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:border-white/25 hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-5 w-5" />
+          </a>
+        </header>
+
+        <section className="my-auto grid overflow-hidden rounded-[2rem] border border-white/10 bg-[#0c171e]/95 shadow-[0_36px_110px_rgba(0,0,0,.45)] backdrop-blur-xl lg:grid-cols-[1.15fr_.85fr]">
+          <div className="flex flex-col justify-center p-7 sm:p-10 lg:p-14">
+            <div className="mb-7 inline-flex w-fit items-center gap-2 rounded-full border border-ts-orange/30 bg-ts-orange/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-orange-300">
+              {isRetry ? (
+                <RefreshCw className="h-3.5 w-3.5" />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" />
+              )}
+              {isRetry ? "Quick pit stop" : "Opening soon"}
+            </div>
+
+            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-sky-300/80">
+              {profileName}
+            </p>
+            <h1 className="max-w-3xl text-4xl font-black leading-[1.02] tracking-[-0.04em] sm:text-5xl lg:text-6xl">
+              {isRetry ? "This page took a quick pit stop." : "You found it before opening day."}
+            </h1>
+            <p className="mt-6 max-w-2xl text-base leading-7 text-white/68 sm:text-lg">
+              {isRetry
+                ? "The profile is still here; it just did not finish loading. Your link is fine, so give it another try."
+                : "This TradeScout profile is getting its finishing touches. Keep this link—when the doors open, it will happen right here."}
+            </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+              {isRetry ? (
+                <Button
+                  type="button"
+                  onClick={onRetry}
+                  className="h-12 rounded-full bg-ts-orange px-6 font-bold text-white shadow-lg shadow-orange-950/30 hover:bg-ts-orange-dark"
+                >
+                  Try again
+                  <RefreshCw className="ml-2 h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  className="h-12 rounded-full bg-ts-orange px-6 font-bold text-white shadow-lg shadow-orange-950/30 hover:bg-ts-orange-dark"
+                >
+                  <a href={communityHref}>
+                    Browse the Community
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+              )}
+              <Button
+                asChild
+                variant="outline"
+                className="h-12 rounded-full border-white/15 bg-white/[0.04] px-6 font-bold text-white hover:bg-white/10 hover:text-white"
+              >
+                <a href={scoutHref}>
+                  <Compass className="mr-2 h-4 w-4" />
+                  Open Scout
+                </a>
+              </Button>
+              {!isRetry ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="inline-flex h-12 items-center justify-center gap-2 px-3 text-sm font-semibold text-white/60 transition hover:text-white"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Check again
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={reportThisLink}
+                disabled={reportState === "sending" || reportState === "sent"}
+                className="inline-flex h-12 items-center justify-center gap-2 px-3 text-sm font-semibold text-white/60 transition hover:text-white disabled:cursor-default disabled:text-emerald-300"
+                aria-live="polite"
+              >
+                <Flag className="h-4 w-4" />
+                {reportState === "sending"
+                  ? "Reporting…"
+                  : reportState === "sent"
+                    ? "Reported — thank you"
+                    : reportState === "failed"
+                      ? "Try reporting again"
+                      : "Report this link"}
+              </button>
+            </div>
+          </div>
+
+          <div className="relative flex min-h-[330px] items-center justify-center overflow-hidden border-t border-white/10 bg-[#0a222d] p-8 lg:min-h-[600px] lg:border-l lg:border-t-0">
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,165,233,.18),transparent_58%)]"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute left-[12%] top-[14%] h-20 w-20 rounded-3xl border border-sky-300/20 bg-sky-300/[0.06] rotate-12"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute bottom-[10%] right-[10%] h-28 w-28 rounded-full border border-ts-orange/25 bg-ts-orange/[0.06]"
+            />
+
+            <div className="relative w-full max-w-sm rounded-[1.75rem] border border-white/12 bg-[#07141b]/90 p-6 shadow-2xl sm:p-8">
+              <div className="mb-7 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/40">
+                    This address
+                  </p>
+                  <p className="mt-2 max-w-[240px] truncate font-semibold text-white/90">
+                    /u/{slug}
+                  </p>
+                </div>
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-ts-orange text-white shadow-lg shadow-orange-950/40">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  "Right address",
+                  isRetry ? "Loading again" : "Finishing touches",
+                  "Public profile next",
+                ].map((label, index) => (
+                  <div
+                    key={label}
+                    className={`flex items-center gap-3 rounded-2xl border px-4 py-3.5 ${
+                      index === 2
+                        ? "border-ts-orange/25 bg-ts-orange/[0.08]"
+                        : "border-white/8 bg-white/[0.035]"
+                    }`}
+                  >
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full ${
+                        index === 2
+                          ? "bg-ts-orange shadow-[0_0_18px_rgba(249,115,22,.8)]"
+                          : "bg-emerald-400"
+                      }`}
+                    />
+                    <span className="text-sm font-semibold text-white/76">{label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-7 text-sm leading-6 text-white/48">
+                No detour and no dead end. This same link is where the finished profile will live.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <footer className="py-5 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/35">
+          Connection Without Compromise
+        </footer>
+      </div>
+    </main>
+  );
 }
 
 type ProfileSections = {
@@ -305,44 +565,21 @@ export default function ProfileSiteView() {
 
   if (loadFailed) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center px-4">
-        <Card className="w-full max-w-xl border-white/10 bg-tsCard">
-          <CardHeader>
-            <CardTitle className="text-white">That page didn&apos;t load</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-white/70">The profile is still here. Let&apos;s try that again.</p>
-            <Button
-              type="button"
-              onClick={() => setReloadKey((current) => current + 1)}
-              className="bg-ts-orange text-white hover:bg-ts-orange-dark"
-            >
-              Try again
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ProfileArrivalState
+        slug={slug}
+        mode="retry"
+        onRetry={() => setReloadKey((current) => current + 1)}
+      />
     );
   }
 
   if (notFound || !data) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center px-4">
-        <Card className="w-full max-w-xl border-white/10 bg-tsCard">
-          <CardHeader>
-            <CardTitle className="text-white">You&apos;re here early</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-white/70">
-              This profile isn&apos;t public yet, or the link has changed. Check back soon or
-              explore TradeScout while it gets ready.
-            </p>
-            <Button asChild className="bg-ts-orange text-white hover:bg-ts-orange-dark">
-              <Link href="/">Explore TradeScout</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <ProfileArrivalState
+        slug={slug}
+        mode="early"
+        onRetry={() => setReloadKey((current) => current + 1)}
+      />
     );
   }
 
@@ -698,7 +935,7 @@ export default function ProfileSiteView() {
           profileSlug={profile.slug}
           businessName={displayName}
           hasViewerSession={hasViewerSession}
-          allowCall={false}
+          allowCall={canExpressCall}
           requestMode="service"
         />
       </>
@@ -1041,7 +1278,7 @@ export default function ProfileSiteView() {
                   <div className="flex flex-wrap gap-3">
                     <Link href={hasViewerSession ? directConnectHref : preScoutCreateHref}>
                       <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                        Request Booking
+                        Direct Connect
                       </Button>
                     </Link>
                     {paidBookings && bookingPriceUsd > 0 ? (
@@ -1097,7 +1334,7 @@ export default function ProfileSiteView() {
                       className="w-full bg-ts-orange hover:bg-ts-orange-dark text-white flex items-center justify-center gap-2"
                     >
                       <MessageCircle className="h-4 w-4" />
-                      <span>Make A Request</span>
+                      <span>Direct Connect</span>
                     </Button>
                     {!hasViewerSession ? (
                       <Link href={preScoutSignInHref}>
@@ -1114,6 +1351,7 @@ export default function ProfileSiteView() {
         </CardContent>
       </Card>
       <PublicProfileItems items={profileItems} profileSections={profileSections} />
+      <TradeScoutProfileHandoff className="rounded-3xl" />
       <ExpressDirectConnectPanel
         open={expressPanelOpen}
         onClose={() => setExpressPanelOpen(false)}

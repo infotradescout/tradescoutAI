@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
+import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import {
   buildProfileGalleryShareSearch,
   type ResolvedProfileGalleryItem,
@@ -122,7 +123,7 @@ export default function LocalServiceProfileTheme({
       className="min-h-screen bg-[var(--service-background)] text-slate-100"
       data-testid="local-service-profile-theme"
     >
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[var(--service-background)]/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 shadow-[0_8px_28px_rgba(2,12,18,0.16)] backdrop-blur-xl">
         <div className="mx-auto grid h-16 max-w-6xl grid-cols-[44px_1fr_44px] items-center gap-2 px-3 sm:h-20 sm:grid-cols-[170px_1fr_170px] sm:px-6">
           <a
             href={tradeScoutReturnHref}
@@ -131,83 +132,91 @@ export default function LocalServiceProfileTheme({
                 ? `Close ${businessName} and return to Direct Connect`
                 : `Close ${businessName} and return to TradeScout`
             }
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/75 transition hover:bg-white/10 hover:text-white"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
           >
             <X className="h-5 w-5" />
           </a>
 
-          <div className="flex min-w-0 items-center justify-center">
-            <div className="rounded-lg bg-white px-3 py-1.5 shadow-sm">
-              <img
-                src={presentation.logoImage}
-                alt={presentation.logoAlt}
-                className="h-8 w-[150px] object-contain sm:h-11 sm:w-[220px]"
-              />
-            </div>
+          <div className="flex min-w-0 items-center justify-center overflow-hidden">
+            <img
+              src={presentation.logoImage}
+              alt={presentation.logoAlt}
+              className="h-11 w-[190px] object-contain sm:h-14 sm:w-[250px]"
+            />
           </div>
 
           <button
             type="button"
             onClick={onDirectConnect}
-            aria-label={`Make A Request with ${businessName}`}
+            aria-label={`Direct Connect with ${businessName}`}
             className="inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full bg-ts-orange text-white transition hover:bg-ts-orange-dark sm:w-auto sm:gap-2 sm:px-4"
           >
             <MessageCircle className="h-4 w-4" />
-            <span className="hidden text-xs font-black sm:inline">Make A Request</span>
+            <span className="hidden text-xs font-black sm:inline">Direct Connect</span>
           </button>
         </div>
       </header>
 
-      <section className="relative isolate min-h-[580px] overflow-hidden sm:min-h-[650px]">
+      <section className="relative isolate min-h-[620px] overflow-hidden sm:min-h-[650px]">
         <img
           src={presentation.heroImage}
           alt={presentation.heroImageAlt}
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          className="absolute inset-0 h-full w-full object-cover object-center sm:object-[62%_center]"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,14,20,0.96)_0%,rgba(3,14,20,0.77)_48%,rgba(3,14,20,0.38)_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(3,14,20,0.18)_0%,rgba(3,14,20,0.68)_38%,rgba(3,14,20,0.98)_78%)] sm:bg-[linear-gradient(90deg,rgba(3,14,20,0.97)_0%,rgba(3,14,20,0.82)_48%,rgba(3,14,20,0.32)_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[var(--service-background)] to-transparent" />
 
-        <div className="relative mx-auto flex min-h-[580px] max-w-6xl items-end px-4 pb-16 pt-24 sm:min-h-[650px] sm:px-6 sm:pb-20">
+        <div className="relative mx-auto flex min-h-[620px] max-w-6xl items-end px-4 pb-12 pt-36 sm:min-h-[650px] sm:px-6 sm:pb-20 sm:pt-24">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-white backdrop-blur-md">
-              <MapPin className="h-3.5 w-3.5 text-[var(--service-brand)]" />
-              {presentation.locationLabel}
-            </div>
-            {isVerified ? (
-              <div className="ml-2 mt-2 inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-950/55 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-emerald-100 backdrop-blur-md sm:mt-0">
-                <BadgeCheck className="h-3.5 w-3.5" />
-                Verified by TradeScout
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white backdrop-blur-md">
+                <MapPin className="h-3.5 w-3.5 text-[var(--service-brand)]" />
+                {presentation.locationLabel}
               </div>
-            ) : null}
+              {isVerified ? (
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300/25 bg-emerald-950/65 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.11em] text-emerald-100 backdrop-blur-md">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  Verified by TradeScout
+                </div>
+              ) : null}
+            </div>
             {isVerified && normalizedCvsScore !== null && cvsStanding ? (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold text-white/65">
-                <span>
-                  CVS {normalizedCvsScore} · {cvsStanding}
+              <div
+                className="mt-3 flex flex-wrap items-center gap-2 text-[11px] font-black uppercase tracking-[0.08em]"
+                aria-label={`Community Verification Score ${normalizedCvsScore}`}
+              >
+                <span className="rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-white">
+                  CVS {normalizedCvsScore}
                 </span>
+                {normalizedPerformanceScore !== null ? (
+                  <span className="rounded-full border border-white/10 bg-black/35 px-3 py-1.5 text-white/70">
+                    {normalizedPerformanceScore} {cvsStanding.toLowerCase()}
+                  </span>
+                ) : null}
                 {normalizedBoostPoints > 0 ? (
-                  <span className="rounded-full border border-sky-300/20 bg-sky-950/50 px-2.5 py-1 text-sky-100">
-                    +{normalizedBoostPoints} active TradeScout boost
+                  <span className="rounded-full border border-sky-300/25 bg-sky-950/60 px-3 py-1.5 text-sky-100">
+                    +{normalizedBoostPoints} active boost
                   </span>
                 ) : null}
               </div>
             ) : null}
-            <p className="mt-6 text-xs font-black uppercase tracking-[0.2em] text-[var(--service-brand)]">
+            <p className="mt-5 text-[11px] font-black uppercase tracking-[0.18em] text-[var(--service-brand)] sm:mt-6 sm:text-xs sm:tracking-[0.2em]">
               {presentation.eyebrow}
             </p>
-            <h1 className="mt-3 max-w-2xl text-4xl font-black leading-[0.98] tracking-[-0.045em] text-white sm:text-6xl lg:text-7xl">
+            <h1 className="mt-3 max-w-2xl text-[2.25rem] font-black leading-[1.01] tracking-[-0.04em] text-white sm:text-6xl lg:text-7xl">
               {presentation.heroTitle}
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-200 sm:text-lg sm:leading-8">
+            <p className="mt-4 max-w-2xl text-[15px] leading-6 text-slate-200 sm:mt-5 sm:text-lg sm:leading-8">
               {presentation.heroDescription}
             </p>
 
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:items-center">
               <button
                 type="button"
                 onClick={onDirectConnect}
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-ts-orange px-7 text-sm font-black text-white shadow-[0_18px_50px_rgba(249,115,22,0.28)] transition hover:-translate-y-0.5 hover:bg-ts-orange-dark"
               >
-                Make A Request
+                Direct Connect
                 <ChevronRight className="h-4 w-4" />
               </button>
               <ShareButton
@@ -219,7 +228,7 @@ export default function LocalServiceProfileTheme({
                 className="min-h-12 rounded-full border-white/20 bg-black/25 px-6 text-white hover:bg-white/10 hover:text-white"
               />
             </div>
-            <p className="mt-3 max-w-xl text-xs leading-5 text-white/55">
+            <p className="mt-3 max-w-2xl text-xs leading-5 text-white/60">
               {presentation.requestDescription}
             </p>
           </div>
@@ -229,9 +238,14 @@ export default function LocalServiceProfileTheme({
       <section className="border-y border-white/10 bg-[var(--service-surface)]">
         <div className="mx-auto grid max-w-6xl grid-cols-2 divide-x divide-y divide-white/10 px-4 sm:grid-cols-4 sm:divide-y-0 sm:px-6">
           {presentation.highlights.map((highlight) => (
-            <div key={highlight} className="flex min-h-24 items-center gap-3 px-3 py-5 sm:px-5">
+            <div
+              key={highlight}
+              className="flex min-h-20 items-center gap-3 px-3 py-4 sm:min-h-24 sm:px-5 sm:py-5"
+            >
               <BadgeCheck className="h-5 w-5 flex-none text-[var(--service-brand)]" />
-              <p className="text-sm font-bold leading-5 text-slate-100">{highlight}</p>
+              <p className="text-[13px] font-bold leading-5 text-slate-100 sm:text-sm">
+                {highlight}
+              </p>
             </div>
           ))}
         </div>
@@ -488,12 +502,14 @@ export default function LocalServiceProfileTheme({
               onClick={onDirectConnect}
               className="inline-flex min-h-12 flex-none items-center justify-center gap-2 rounded-full bg-ts-orange px-7 text-sm font-black text-white transition hover:bg-ts-orange-dark"
             >
-              Make A Request
+              Direct Connect
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
       </section>
+
+      <TradeScoutProfileHandoff className="border-t border-white/10" />
 
       <footer className="border-t border-white/10 px-4 py-8 text-center sm:px-6">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">

@@ -320,7 +320,7 @@ export default function ContractorProfile() {
                     onClick={() => setLocation(directConnectHref)}
                   >
                     <MessageSquare className="h-4 w-4 mr-2" />
-                    Start a Request
+                    Direct Connect
                   </Button>
                 ) : (
                   <>
@@ -329,7 +329,7 @@ export default function ContractorProfile() {
                     >
                       <Button className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 w-full">
                         <MessageSquare className="h-4 w-4 mr-2" />
-                        Create Account to Connect
+                        Direct Connect
                       </Button>
                     </Link>
                     <Link

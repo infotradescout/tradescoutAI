@@ -77,8 +77,11 @@ describe("public profile item HTML", () => {
       templateHtml,
     });
 
-    expect(html).toContain("You're here early");
-    expect(html).toContain("Check back soon");
+    expect(html).toContain("You found it before opening day.");
+    expect(html).toContain("Browse the Community");
+    expect(html).toContain("Open Scout");
+    expect(html).toContain("Report this link");
+    expect(html).toContain('href="https://www.thetradescout.com/community-feed"');
     expect(html).toContain('data-public-profile-state="early"');
     expect(html).toContain('content="noindex,follow"');
     expect(html).toContain('href="https://www.thetradescout.com/u/new-local-business"');
