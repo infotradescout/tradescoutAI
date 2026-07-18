@@ -31,7 +31,7 @@ export default function PensacolaPage() {
   const localSearchHref = `/direct-connect?county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch&intent=local_search`;
   const providerDemandHref = `/direct-connect?county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch&intent=provider_demand`;
   const createAccountHref = `/create-account?source=pensacola-launch&county=${PENSACOLA_COUNTY_CODE}`;
-  const applyHref = `/businesses/apply?state=FL&county=${PENSACOLA_COUNTY_CODE}&source=pensacola-launch`;
+  const applyHref = `/claim-my-business?stateCode=FL&countyFips=${PENSACOLA_COUNTY_CODE}&source=pensacola`;
 
   const homeownerQueries = HOMEOWNER_POPULAR_QUERIES.slice(0, 12);
   const businessQueries = BUSINESS_POPULAR_QUERIES.slice(0, 10);

@@ -81,7 +81,7 @@ export default function Navigation() {
     ...(!isHomeowner
       ? [
           {
-            href: "/businesses/apply",
+            href: "/claim-my-business?source=main_navigation",
             label: "For Businesses",
             icon: Wrench,
             public: true,
@@ -489,12 +489,12 @@ export default function Navigation() {
 
             {/* For Businesses - marketing entry point for non-homeowners */}
             {!isHomeowner && (
-              <Link href="/businesses/apply">
+              <Link href="/claim-my-business?source=main_navigation">
                 <Button
                   variant="ghost"
                   size="sm"
                   className={`text-[11px] px-2 py-1 rounded-md ${
-                    location === "/businesses/apply"
+                    location.startsWith("/claim-my-business")
                       ? "text-ts-orange bg-ts-orange/15"
                       : "text-white/70 hover:text-white"
                   }`}

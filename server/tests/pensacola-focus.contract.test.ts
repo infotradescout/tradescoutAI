@@ -28,14 +28,13 @@ describe("pensacola focus contracts", () => {
     expect(source).toContain("/pensacola/hvac-repair");
   });
 
-  it("for businesses page contains pensacola onboarding focus and query cluster", () => {
+  it("keeps regional acquisition machinery off the universal business entry page", () => {
     const source = read("client/src/pages/for-businesses.tsx");
-    expect(source).toContain("Launch Focus");
-    expect(source).toContain("Pensacola, FL business launch");
-    expect(source).toContain("county=12033");
-    expect(source).toContain("BUSINESS_POPULAR_QUERIES");
-    expect(source).toContain("/pensacola");
-    expect(source).toContain("/pensacola/electrical-contractors");
+    expect(source).toContain("/claim-my-business?source=for_businesses");
+    expect(source).not.toContain("Launch Focus");
+    expect(source).not.toContain("Pensacola, FL business launch");
+    expect(source).not.toContain("county=12033");
+    expect(source).not.toContain("BUSINESS_POPULAR_QUERIES");
   });
 
   it("route and public pages link to the pensacola hub", () => {

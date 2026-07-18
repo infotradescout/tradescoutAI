@@ -4,39 +4,72 @@ import {
   createBreadcrumbStructuredData,
   createFAQStructuredData,
 } from "@/components/SEOHelmet";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BUSINESS_POPULAR_QUERIES } from "@/lib/popularSearchQueries";
+import {
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  CheckCircle2,
+  FileCheck2,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
+
+const BUSINESS_ENTRY_HREF = "/claim-my-business?source=for_businesses";
 
 const faqItems = [
   {
-    question: "How does TradeScout help local businesses get work or sales?",
+    question: "How does TradeScout help my business?",
     answer:
-      "TradeScout routes real local requests and profile purchases through gated flows. Businesses get matched on trust and fit instead of pay-to-play lead buying.",
+      "TradeScout brings your public presence, proof, customer requests, active work, and follow-up together so people can choose you with confidence and you can manage the relationship in one place.",
   },
   {
-    question: "Does paying more increase ranking on TradeScout?",
+    question: "Does paying more increase my ranking on TradeScout?",
     answer:
-      "No. Visibility and contact pathways are governed by trust and platform rules, not paid priority placement.",
+      "No. Businesses cannot buy placement or purchase customer leads. Visibility is shaped by relevance, verified facts, trust, and real outcomes.",
   },
   {
-    question: "Can I use TradeScout if I serve only specific counties?",
+    question: "Do I have to rebuild everything from scratch?",
     answer:
-      "Yes. County routing is core to TradeScout. You can focus where you operate and respond to requests in those service areas.",
+      "No. Selective Inheritance can bring forward useful, provable material from your existing website, public reputation, credentials, catalogs, and other outside sources while leaving weak or outdated material behind.",
   },
   {
-    question: "How do I join as a business?",
+    question: "Where do I start?",
     answer:
-      "Use business onboarding, complete your profile and verification prompts, publish fixed-price services or items if you want, then respond to matched local requests in Direct Connect.",
+      "Search for your business first. Claim it if it is already here, or create it if it is not. Then confirm what is true and publish when it is ready.",
   },
 ];
 
-export default function ForBusinessesPage() {
-  const tangipahoaApplyHref = "/businesses/apply?state=LA&county=22105&source=tangipahoa-launch";
-  const tangipahoaDemandHref =
-    "/direct-connect?county=22105&source=tangipahoa-launch&intent=provider_demand";
-  const topQueries = BUSINESS_POPULAR_QUERIES.slice(0, 16);
+const advantages = [
+  {
+    icon: FileCheck2,
+    title: "Keep what already works",
+    body: "Selective Inheritance carries forward the strongest provable parts of your website, reputation, credentials, products, services, and past work—without copying the weak parts.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Show proof before promises",
+    body: "Verification, trust context, real media, recommendations, availability, and completed outcomes help customers understand why you are the right fit.",
+  },
+  {
+    icon: BriefcaseBusiness,
+    title: "Run the relationship in one place",
+    body: "Direct Connect carries the customer's real intent into the request, conversation, job, follow-up, and recommendation cycle without selling the lead.",
+  },
+  {
+    icon: RefreshCw,
+    title: "Improve as the business evolves",
+    body: "Your presence can stay current with new work, stronger proof, changing availability, and verified outcomes instead of becoming another forgotten website.",
+  },
+];
 
+const startSteps = [
+  "Find your business or create it once.",
+  "Confirm the facts, ownership, service area, and proof that matter.",
+  "Publish when it is ready, then respond, work, and evolve.",
+];
+
+export default function ForBusinessesPage() {
   const structuredData = {
     "@context": "https://schema.org",
     "@graph": [
@@ -44,7 +77,7 @@ export default function ForBusinessesPage() {
         "@type": "WebPage",
         name: "TradeScout for Local Businesses",
         description:
-          "TradeScout helps local businesses earn trusted demand without pay-to-play lead selling. Build trust, sell services or items, respond to real requests, and grow county by county.",
+          "TradeScout gives local businesses one trusted public presence for discovery, proof, Direct Connect requests, active work, outcomes, and follow-up without pay-to-play lead selling.",
         url: "https://www.thetradescout.com/for-businesses",
       },
       createBreadcrumbStructuredData([
@@ -56,193 +89,128 @@ export default function ForBusinessesPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+    <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 md:space-y-8 md:py-12">
       <SEOHelmet
         title="TradeScout for Local Businesses"
-        description="TradeScout helps local businesses win more trusted local work and sales without pay-to-play lead selling. Build trust, publish offers, respond to real requests, and grow county by county."
-        keywords="local business growth, small business marketing, local service business growth, sell local services online, sell local products online, direct connect requests, business profile platform"
+        description="Bring your public presence, proof, customer requests, active work, and follow-up together without buying leads or paying for placement."
+        keywords="local business profile, trusted local business, business verification, customer requests, direct connect, local business discovery"
         canonical="https://www.thetradescout.com/for-businesses"
         structuredData={structuredData}
       />
 
-      <section className="space-y-3">
-        <h1 className="text-3xl md:text-4xl font-bold text-white">
-          Get more work from people who already need it
-        </h1>
-        <p className="text-white/70 max-w-3xl">
-          {
-            "We put your business in front of people in your area who are actively looking for help, services, or products. No bidding for placement, no buying your way to the top — just real requests."
-          }
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Link href={tangipahoaApplyHref}>
-            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Claim Tangipahoa coverage
-            </Button>
-          </Link>
-          <Link href={tangipahoaDemandHref}>
-            <Button variant="outline" className="border-white/20 text-white">
-              View Tangipahoa demand flow
-            </Button>
-          </Link>
+      <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(255,106,0,0.18),transparent_42%),linear-gradient(145deg,rgba(17,29,36,0.98),rgba(10,15,19,0.98))] px-6 py-10 shadow-2xl md:px-10 md:py-14">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-ts-orange/20" />
+        <div className="relative max-w-4xl space-y-6">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-ts-orange">
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            <span>Connection Without Compromise</span>
+          </div>
+          <div className="space-y-4">
+            <h1 className="max-w-4xl text-4xl font-black leading-[0.98] tracking-[-0.04em] text-white sm:text-5xl md:text-6xl">
+              Give people a clear reason to choose your business.
+            </h1>
+            <p className="max-w-3xl text-base leading-7 text-white/70 md:text-lg md:leading-8">
+              TradeScout brings your best proof, real offers, customer requests, active work, and
+              follow-up together. Customers get clarity. You keep control. The relationship is never
+              sold to the highest bidder.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            <Link href={BUSINESS_ENTRY_HREF}>
+              <Button className="h-12 rounded-full bg-ts-orange px-6 text-base font-bold text-white shadow-[0_14px_35px_rgba(255,106,0,0.28)] hover:bg-ts-orange-dark">
+                Claim or create your business
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </Button>
+            </Link>
+            <Link href="/how-it-works">
+              <a className="inline-flex h-12 items-center px-3 text-sm font-semibold text-white/75 transition-colors hover:text-white">
+                See what customers experience
+                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+              </a>
+            </Link>
+          </div>
+
+          <p className="text-sm font-medium text-white/60">
+            Free forever. No lead fees. No paid placement. Start once and keep everything connected.
+          </p>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/15 bg-white/5 p-5 md:p-6 space-y-3">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-white/70 font-semibold">
-          Popular Searches Right Now
-        </p>
-        <h2 className="text-2xl font-semibold text-white">High-intent business queries</h2>
-        <p className="text-sm text-white/70 max-w-3xl">
-          These are the terms businesses are actively using. Build profile coverage around these
-          clusters so demand lands on your surface first.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {topQueries.map((item) => (
-            <Link key={item.query} href={item.href}>
-              <a className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:border-ts-orange/50 hover:text-white transition-colors">
-                {item.query}
-              </a>
-            </Link>
+      <section className="rounded-[2rem] border border-white/10 bg-white/[0.035] p-5 md:p-8">
+        <div className="mb-6 max-w-3xl space-y-3">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-sky-400">
+            More than a website
+          </p>
+          <h2 className="text-3xl font-black tracking-[-0.03em] text-white md:text-4xl">
+            Your business should not have to manage five disconnected systems.
+          </h2>
+          <p className="leading-7 text-white/70">
+            TradeScout connects the public presence to the real work behind it. What a customer
+            sees, asks, decides, and completes stays connected instead of disappearing into tabs,
+            inboxes, lead marketplaces, and forgotten software.
+          </p>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {advantages.map(({ icon: Icon, title, body }) => (
+            <article
+              key={title}
+              className="rounded-2xl border border-white/10 bg-black/20 p-5 transition-colors hover:border-white/20"
+            >
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-ts-orange/12 text-ts-orange">
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <h3 className="text-lg font-bold text-white">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/70">{body}</p>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 p-5 md:p-6 space-y-3">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
-          Launch Focus
-        </p>
-        <h2 className="text-2xl font-bold text-white">Tangipahoa Parish, LA business launch</h2>
-        <p className="text-sm text-white/75 max-w-3xl">
-          We are concentrating onboarding in Tangipahoa Parish first. Businesses that activate now
-          get early local visibility with county-level demand coverage.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Link href={tangipahoaApplyHref}>
-            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Start Tangipahoa onboarding
-            </Button>
-          </Link>
-          <Link href="/tangipahoa">
-            <Button variant="outline" className="border-white/20 text-white">
-              Open Tangipahoa hub
-            </Button>
-          </Link>
-          <Link href="/trade/hvac/la">
-            <Button variant="outline" className="border-white/20 text-white">
-              Browse LA trade demand
-            </Button>
-          </Link>
-          <Link href="/trade/electrical/la">
-            <Button variant="outline" className="border-white/20 text-white">
-              Louisiana electrical lane
+      <section className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="rounded-[2rem] border border-white/10 bg-[#0c171d] p-6 md:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">One way in</p>
+          <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-white">
+            Claim it if it exists. Create it if it does not.
+          </h2>
+          <div className="mt-6 space-y-4">
+            {startSteps.map((step, index) => (
+              <div key={step} className="flex gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-ts-orange/35 bg-ts-orange/10 text-xs font-black text-ts-orange">
+                  {index + 1}
+                </span>
+                <p className="pt-0.5 text-sm leading-6 text-white/70">{step}</p>
+              </div>
+            ))}
+          </div>
+          <Link href={BUSINESS_ENTRY_HREF}>
+            <Button className="mt-7 rounded-full bg-ts-orange px-6 font-bold text-white hover:bg-ts-orange-dark">
+              Find my business
+              <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
             </Button>
           </Link>
         </div>
-      </section>
 
-      {/* Pensacola, FL business launch — expanding market */}
-      <section className="rounded-2xl border border-ts-orange/35 bg-ts-orange/10 p-5 md:p-6 space-y-3">
-        <p className="text-[11px] uppercase tracking-[0.16em] text-ts-orange font-semibold">
-          Launch Focus
-        </p>
-        <h2 className="text-2xl font-bold text-white">Pensacola, FL business launch</h2>
-        <p className="text-sm text-white/75 max-w-3xl">
-          TradeScout is expanding into Pensacola, FL. Businesses in Escambia and Santa Rosa County
-          can activate now to get early local visibility and county-level demand coverage.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <Link href={`/businesses/apply?state=FL&county=12033&source=pensacola-launch`}>
-            <Button className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-              Start Pensacola onboarding
-            </Button>
-          </Link>
-          <Link href="/pensacola">
-            <Button variant="outline" className="border-white/20 text-white">
-              Pensacola hub
-            </Button>
-          </Link>
-          <Link href="/pensacola/electrical-contractors">
-            <Button variant="outline" className="border-white/20 text-white">
-              Electrical services
-            </Button>
-          </Link>
-          <Link href="/pensacola/hvac-repair">
-            <Button variant="outline" className="border-white/20 text-white">
-              HVAC repair
-            </Button>
-          </Link>
+        <div className="rounded-[2rem] border border-ts-orange/25 bg-[linear-gradient(145deg,rgba(255,106,0,0.13),rgba(255,255,255,0.025))] p-6 md:p-8">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">The deal</p>
+          <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-white">
+            You respond, work, and evolve. TradeScout carries the rest.
+          </h2>
+          <div className="mt-5 space-y-3">
+            {[
+              "Your information is not packaged and sold as a lead.",
+              "A bigger ad budget cannot buy trust or priority.",
+              "Customers can move from discovery through follow-up without losing context.",
+            ].map((item) => (
+              <div key={item} className="flex gap-3 text-sm leading-6 text-white/70">
+                <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-ts-orange" aria-hidden="true" />
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
-
-      <section className="space-y-3">
-        <h2 className="text-2xl font-semibold text-white">Built for any local business</h2>
-        <p className="text-white/70 max-w-3xl">
-          TradeScout started with contractors, but it's not just for contractors. Salons, bakeries,
-          retail shops, tutors, pet groomers, photographers, auto repair shops, cleaners, and any
-          other local business can build a profile, publish offers, and respond to real local
-          requests the same way.
-        </p>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-white/5 border-white/10">
-          <CardContent className="p-5 space-y-2">
-            <h2 className="text-lg font-semibold text-white">Real requests, not clicks</h2>
-            <p className="text-sm text-white/70">
-              Every request comes from someone nearby who actually needs the work done — not an ad
-              click with no intent behind it.
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 border-white/10">
-          <CardContent className="p-5 space-y-2">
-            <h2 className="text-lg font-semibold text-white">You can't buy your way to the top</h2>
-            <p className="text-sm text-white/70">
-              How you show up depends on trust and fit for the job — not who pays the most.
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-white/5 border-white/10">
-          <CardContent className="p-5 space-y-2">
-            <h2 className="text-lg font-semibold text-white">Only jobs where you actually work</h2>
-            <p className="text-sm text-white/70">
-              We organize everything by county, so you only see requests from the areas you cover.
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-2xl font-semibold text-white">Where to start</h2>
-        <ul className="list-disc pl-5 text-white/70 space-y-2">
-          <li>Complete your business profile and role setup.</li>
-          <li>Publish service details and county coverage.</li>
-          <li>Use Direct Connect to review and respond to local requests.</li>
-          <li>Build trust through high-quality outcomes and consistency.</li>
-        </ul>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-2xl font-semibold text-white">See where the work is</h2>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/trade">
-            <Button variant="outline" className="border-white/20 text-white">
-              Browse trade categories
-            </Button>
-          </Link>
-          <Link href="/county-directory">
-            <Button variant="outline" className="border-white/20 text-white">
-              Browse counties
-            </Button>
-          </Link>
-          <Link href="/how-it-works">
-            <Button variant="outline" className="border-white/20 text-white">
-              Read how TradeScout works
-            </Button>
-          </Link>
-        </div>
-      </section>
-    </div>
+    </main>
   );
 }

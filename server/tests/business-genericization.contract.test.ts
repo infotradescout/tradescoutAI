@@ -57,7 +57,7 @@ describe("generic business profile and tool contracts", () => {
     expect(routes).toContain('path="/businesses/apply"');
     expect(routes).toContain('path="/business-dashboard"');
     expect(routes).toContain('path="/business/requests"');
-    expect(redirects).toContain('to: "/businesses/apply"');
+    expect(redirects).toContain('to: "/claim-my-business?source=contractor_apply_legacy"');
     expect(redirects).toContain('to: "/business-dashboard"');
     expect(redirects).toContain('to: "/business/requests"');
   });
@@ -68,11 +68,13 @@ describe("generic business profile and tool contracts", () => {
     const redirects = read("client/src/routing/compatibilityRedirects.ts");
 
     expect(routes).toContain('path="/businesses/apply"');
-    expect(routes).toContain("<LazyPage Component={ContractorApply} />");
+    expect(routes).toContain(
+      '<RedirectTo to="/claim-my-business?source=businesses_apply_legacy" />'
+    );
     expect(redirects).toContain('from: "/contractors/apply"');
-    expect(redirects).toContain('to: "/onboarding?lane=offer_services"');
+    expect(redirects).toContain('to: "/claim-my-business?source=contractors_apply_legacy"');
     expect(redirects).toContain('from: "/contractor-apply"');
-    expect(redirects).toContain('to: "/businesses/apply"');
+    expect(redirects).toContain('to: "/claim-my-business?source=contractor_apply_legacy"');
     expect(routes).toContain('path="/business-dashboard"');
     expect(routes).toContain("<LazyPage Component={BusinessOwnerDashboard} />");
     expect(redirects).toContain('from: "/business-owner-dashboard"');
@@ -84,7 +86,7 @@ describe("generic business profile and tool contracts", () => {
     expect(redirects).toContain('to: "/business/requests"');
 
     expect(routeConstants).toContain('BUSINESS_DASHBOARD: "/business-dashboard"');
-    expect(routeConstants).toContain('BUSINESS_APPLY: "/businesses/apply"');
+    expect(routeConstants).toContain('BUSINESS_APPLY: "/claim-my-business"');
     expect(routeConstants).toContain('BUSINESS_REQUESTS: "/business/requests"');
     expect(routeConstants).toContain("ALIASES: COMPATIBILITY_REDIRECT_ALIASES");
   });
@@ -110,7 +112,10 @@ describe("generic business profile and tool contracts", () => {
     expect(comprehensiveNav).toContain('label: "Local Businesses"');
     expect(comprehensiveNav).toContain('label: "Find Local Help"');
     expect(comprehensiveNav).toContain('label: "Business Dashboard"');
-    expect(comprehensiveNav).toContain('label: "Apply as Business"');
+    expect(comprehensiveNav).toContain('label: "Claim or Create Business"');
+    expect(comprehensiveNav).toContain(
+      'href: "/claim-my-business?source=comprehensive_navigation"'
+    );
     expect(comprehensiveNav).not.toContain('label: "Contractors"');
     expect(comprehensiveNav).not.toContain('label: "Contractor Dashboard"');
 

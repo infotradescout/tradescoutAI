@@ -196,10 +196,11 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   aboutImageAlt: "A family moment shared by LA Plumbing Solutions",
   serviceAreas: ["Hammond", "Ponchatoula", "Baton Rouge", "Covington", "Mandeville", "Slidell"],
   serviceAreaDescription: "Based in Hammond and serving projects across southeast Louisiana.",
-  galleryEyebrow: "Completed work",
-  galleryTitle: "See their plumbing work.",
-  galleryDescription: "These are examples of completed plumbing work—not products or inventory.",
-  galleryShareText: "See this completed plumbing work",
+  galleryEyebrow: "Proof from the field",
+  galleryTitle: "LA Plumbing Solutions on the job.",
+  galleryDescription:
+    "Selected residential, commercial, renovation, and new-construction plumbing work from across southeast Louisiana.",
+  galleryShareText: "See this LA Plumbing Solutions project",
   credentialLabel: "Credentials listed by LA Plumbing Solutions",
   credentials: [
     { label: "Commercial plumbing", value: "CL 75460" },

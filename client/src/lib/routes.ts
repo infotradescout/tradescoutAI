@@ -26,10 +26,10 @@ export const ROUTES = {
 
   // Contractor routes
   BUSINESS_DASHBOARD: "/business-dashboard",
-  BUSINESS_APPLY: "/businesses/apply",
+  BUSINESS_APPLY: "/claim-my-business",
   BUSINESS_REQUESTS: "/business/requests",
   CONTRACTOR_DASHBOARD: "/business-dashboard",
-  CONTRACTOR_APPLY: "/businesses/apply",
+  CONTRACTOR_APPLY: "/claim-my-business",
   CONTRACTOR_BOARD: "/contractor-board",
   CONTRACTORS_LANDING: "/contractors",
   connections: "/connections",
