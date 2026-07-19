@@ -1,7 +1,9 @@
 import request from "supertest";
 import { createApp } from "../../app";
+import { db } from "../../db";
 import { storage } from "../../storage";
 import { hashPassword } from "../../auth";
+import { users } from "../../../shared/schema";
 import { CURRENT_PROFILE_VERSION } from "../../../shared/profile";
 
 type Role =
@@ -20,6 +22,41 @@ export type TestLoginResult = {
   password: string;
 };
 
+let sharedIntegrationApp: Promise<Awaited<ReturnType<typeof createApp>>["app"]> | null = null;
+
+async function getTestApp() {
+  if (process.env.RUN_INTEGRATION_TESTS !== "true") {
+    return (await createApp()).app;
+  }
+
+  // Integration suites create many independent cookie agents. They can share
+  // one Express app while keeping their cookie jars isolated, avoiding dozens
+  // of duplicate PostgreSQL session stores and Passport registrations.
+  sharedIntegrationApp ??= createApp().then(({ app }) => app);
+  return sharedIntegrationApp;
+}
+
+async function createFixtureUser(values: Record<string, any>) {
+  const email = String(values.email || "").toLowerCase();
+  const isSyntheticIntegrationSuperAdmin =
+    process.env.RUN_INTEGRATION_TESTS === "true" &&
+    values.role === "super_admin" &&
+    email.endsWith("@tradescout.test");
+
+  if (!isSyntheticIntegrationSuperAdmin) {
+    return storage.createUser(values as any);
+  }
+
+  // These privileged-path fixtures test authorization, not the production
+  // super-admin-to-every-user backfill. Running that historical sweep for each
+  // synthetic admin makes the shared integration database slower on every run.
+  const [user] = await db
+    .insert(users)
+    .values(values as any)
+    .returning();
+  return user;
+}
+
 export async function createAuthedAgent(
   overrides: Partial<{
     role: Role | null;
@@ -34,7 +71,7 @@ export async function createAuthedAgent(
     countyFips: string;
   }> = {}
 ): Promise<TestLoginResult> {
-  const { app } = await createApp();
+  const app = await getTestApp();
   const agent = request.agent(app);
 
   const email = `test+${crypto.randomUUID()}@tradescout.test`;
@@ -42,7 +79,7 @@ export async function createAuthedAgent(
 
   const passwordHash = await hashPassword(password);
 
-  const user = await storage.createUser({
+  const user = await createFixtureUser({
     email,
     password: passwordHash,
     firstName: overrides.firstName ?? "Test",
@@ -91,7 +128,7 @@ export async function createUserOnly(
 ) {
   const email = `user+${crypto.randomUUID()}@tradescout.test`;
 
-  const user = await storage.createUser({
+  const user = await createFixtureUser({
     email,
     password: null,
     firstName: overrides.firstName ?? "Recipient",

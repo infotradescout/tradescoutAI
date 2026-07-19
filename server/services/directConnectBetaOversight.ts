@@ -34,7 +34,6 @@ export async function notifySuperAdminsOfDirectConnectRequest({
         OR active_role::text = 'super_admin'
         OR COALESCE(to_jsonb(roles), '[]'::jsonb) ? 'super_admin'
       )
-        AND is_active IS TRUE
         AND LOWER(COALESCE(email, '')) NOT LIKE '%@tradescout.test'
       ORDER BY id`
   );
