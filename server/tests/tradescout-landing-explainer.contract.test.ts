@@ -69,7 +69,14 @@ describe("TradeScout plain-language landing explainer", () => {
     expect(renderedHtml).not.toContain("<details");
     expect(landingSource).not.toContain("useState");
     expect(landingSource).toContain('window.addEventListener("hashchange", scrollToCurrentAnchor)');
-    expect(landingSource).toContain('scrollIntoView({ block: "start" })');
+    expect(landingSource).toContain('window.addEventListener("popstate", scrollToCurrentAnchor)');
+    expect(landingSource).toContain("event.preventDefault()");
+    expect(landingSource).toContain('window.history.pushState(null, "", nextHash)');
+    expect(landingSource).toContain('document.getElementById("root")');
+    expect(landingSource).toContain('document.getElementById("top")');
+    expect(landingSource).toContain('surface.style.scrollBehavior = "auto"');
+    expect(landingSource).toContain('scrollIntoView({ block: "start", behavior: "auto" })');
+    expect(landingSource).toContain("scrollRoot.scrollTop = Math.max(0, nextScrollTop)");
     expect(landingSource).not.toContain("iframe");
     expect(landingSource).not.toContain("mrplatypus4777.chatgpt.site");
   });

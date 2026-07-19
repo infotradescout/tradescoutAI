@@ -25,12 +25,43 @@ const EXPLAINER_FEATURE_COUNT = explainerChapters.reduce(
   0
 );
 
+function scrollToExplainerAnchor(targetId: string) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+
+  const scrollRoot = [document.scrollingElement, document.body].find(
+    (surface): surface is HTMLElement =>
+      surface instanceof HTMLElement && surface.scrollHeight > surface.clientHeight + 1
+  );
+  if (!scrollRoot) {
+    target.scrollIntoView({ block: "start", behavior: "auto" });
+    return;
+  }
+
+  const scrollMarginTop = Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+  const nextScrollTop = scrollRoot.scrollTop + target.getBoundingClientRect().top - scrollMarginTop;
+  scrollRoot.scrollTop = Math.max(0, nextScrollTop);
+}
+
+function navigateToExplainerAnchor(event: React.MouseEvent<HTMLAnchorElement>, targetId: string) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+    return;
+
+  event.preventDefault();
+  const nextHash = `#${encodeURIComponent(targetId)}`;
+  if (window.location.hash !== nextHash) {
+    window.history.pushState(null, "", nextHash);
+  }
+  scrollToExplainerAnchor(targetId);
+}
+
 function TradeScoutLogo({ backToTop = false }: { backToTop?: boolean }) {
   return (
     <a
       className="ts-logo"
       href={backToTop ? "#top" : "/"}
       aria-label={backToTop ? "Back to top" : "TradeScout home"}
+      onClick={backToTop ? (event) => navigateToExplainerAnchor(event, "top") : undefined}
     >
       <span className="ts-logo-initials" aria-hidden="true">
         TS
@@ -144,7 +175,11 @@ function ChapterPanel({ chapter }: { chapter: ExplainerChapter }) {
         <span>{String(chapter.topics.length).padStart(2, "0")} topics in this chapter</span>
         <div>
           {chapter.topics.map((topic, index) => (
-            <a href={`#${chapter.id}-${topic.id}`} key={topic.id}>
+            <a
+              href={`#${chapter.id}-${topic.id}`}
+              key={topic.id}
+              onClick={(event) => navigateToExplainerAnchor(event, `${chapter.id}-${topic.id}`)}
+            >
               <span>{String(index + 1).padStart(2, "0")}</span>
               {topic.label}
             </a>
@@ -187,6 +222,17 @@ export default function TradeScoutLandingPage() {
   }, []);
 
   useEffect(() => {
+    const scrollSurfaces = [
+      document.documentElement,
+      document.body,
+      document.getElementById("root"),
+      document.getElementById("top"),
+    ].filter((surface): surface is HTMLElement => Boolean(surface));
+    const previousScrollBehaviors = scrollSurfaces.map((surface) => surface.style.scrollBehavior);
+    scrollSurfaces.forEach((surface) => {
+      surface.style.scrollBehavior = "auto";
+    });
+
     const scrollToCurrentAnchor = () => {
       const encodedId = String(window.location.hash || "").replace(/^#/, "");
       if (!encodedId) return;
@@ -198,9 +244,7 @@ export default function TradeScoutLandingPage() {
         // Keep the literal hash when it is not valid URI encoding.
       }
 
-      const scrollToTarget = () => {
-        document.getElementById(targetId)?.scrollIntoView({ block: "start" });
-      };
+      const scrollToTarget = () => scrollToExplainerAnchor(targetId);
 
       window.requestAnimationFrame(scrollToTarget);
       void document.fonts.ready.then(() => {
@@ -210,7 +254,14 @@ export default function TradeScoutLandingPage() {
 
     scrollToCurrentAnchor();
     window.addEventListener("hashchange", scrollToCurrentAnchor);
-    return () => window.removeEventListener("hashchange", scrollToCurrentAnchor);
+    window.addEventListener("popstate", scrollToCurrentAnchor);
+    return () => {
+      window.removeEventListener("hashchange", scrollToCurrentAnchor);
+      window.removeEventListener("popstate", scrollToCurrentAnchor);
+      scrollSurfaces.forEach((surface, index) => {
+        surface.style.scrollBehavior = previousScrollBehaviors[index];
+      });
+    };
   }, []);
 
   const directConnectHref = withDemandQueryParams(
@@ -291,7 +342,11 @@ export default function TradeScoutLandingPage() {
         </div>
         <div className="ts-chapter-track">
           {explainerChapters.map((chapter) => (
-            <a href={`#${chapter.id}`} key={chapter.id}>
+            <a
+              href={`#${chapter.id}`}
+              key={chapter.id}
+              onClick={(event) => navigateToExplainerAnchor(event, chapter.id)}
+            >
               <span>{chapter.number}</span>
               {chapter.navLabel}
             </a>
