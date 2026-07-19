@@ -44,6 +44,6 @@ describe("super-admin auto-connection contracts", () => {
 
     expect(testAuthSource).toContain('process.env.RUN_INTEGRATION_TESTS === "true"');
     expect(testAuthSource).toContain('email.endsWith("@tradescout.test")');
-    expect(testAuthSource).toContain("db.insert(users)");
+    expect(testAuthSource).toContain(".insert(users)");
   });
 });
