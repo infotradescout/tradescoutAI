@@ -455,7 +455,7 @@ export default function BusinessProfileView() {
                 setLocation(`/direct-connect?${params.toString()}`);
               }}
             >
-              Direct Connect
+              {block?.ctaLabel || profile.ctaConfig?.primary?.label || "Contact via TradeScout"}
             </Button>
           </CardContent>
         </Card>

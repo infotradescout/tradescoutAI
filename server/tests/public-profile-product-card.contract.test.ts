@@ -28,7 +28,7 @@ describe("public profile product-card contract", () => {
     expect(stone).toContain("buildProfileInventoryShareSearch(stone.slug)");
     expect(stone).toContain("View details");
     expect(stone).toContain('startDirectConnect(stone.name, "request_material")');
-    expect(stone).toContain("Direct Connect");
+    expect(stone).toContain("Ask about {stone.name}");
   });
 
   it("keeps JR's before-and-after proof separate from product inventory", () => {
@@ -49,19 +49,31 @@ describe("public profile Direct Connect entry contract", () => {
 
   it("limits request entry to Direct Connect or Make A Request and opens call-or-form choices", () => {
     expect(profile).toContain("Direct Connect");
-    expect(stone.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(8);
+    // The feature name stays as the underlying mechanism (nav references, copy
+    // describing what happens), but per-button labels are contextual and
+    // honest rather than "Direct Connect" repeated on every card and CTA.
+    expect(stone.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(2);
     expect(autoGlass.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(express).toContain("Direct Connect");
     expect(express).toContain("Make A Request");
     expect(express).toContain("Call");
     expect(express).toContain("Fill out the form");
     expect(directConnect).toContain("Direct Connect");
-    for (const source of [profile, stone, autoGlass, directConnect]) {
+    for (const source of [profile, autoGlass, directConnect]) {
       expect(source).not.toContain("Make A Request");
     }
     expect(directConnect).not.toContain("Start request\n            </Button>");
 
-    for (const source of [stone, autoGlass]) {
+    // Wholesaler product cards use contextual labels tied to the actual stone
+    // or moment, not a single flattened phrase repeated everywhere.
+    expect(stone).toContain("Ask about {stone.name}");
+    expect(stone).toContain("Ask about this stone");
+    expect(stone).toContain("Request material");
+    expect(stone).toContain("Request this stone");
+    expect(stone).toContain("Send request");
+    expect(stone).toContain("Get started");
+
+    for (const source of [autoGlass]) {
       expect(source).not.toContain("Request material");
       expect(source).not.toContain("Request service");
       expect(source).not.toContain("Send request");

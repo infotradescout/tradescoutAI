@@ -1,6 +1,6 @@
 import { memo, useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { CheckCircle, PartyPopper, Shield, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle, PartyPopper, Shield, Sparkles } from "lucide-react";
 import { RevenueDisclosureSection } from "@/components/RevenueDisclosureSection";
 import { SEOHelmet } from "@/components/SEOHelmet";
 
@@ -138,6 +138,20 @@ const Pricing = memo(function Pricing() {
 
         <Reveal>
           <RevenueDisclosureSection id="how-tradescout-earns" />
+        </Reveal>
+
+        <Reveal>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <h2 className="font-semibold text-red-300 text-sm">Payment Safety Notice</h2>
+            </div>
+            <p className="text-sm text-white/70 leading-relaxed">
+              It's $0 for access to TradeScout features, connections, and information. TradeScout
+              does not charge for access or visibility. Any request for payment in TradeScout's name
+              to unlock features, ranking, or access is a scam. Do not pay.
+            </p>
+          </div>
         </Reveal>
 
         <Reveal>
