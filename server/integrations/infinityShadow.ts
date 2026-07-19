@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
 
+import {
+  filterTradeScoutInheritanceCandidates,
+  tradeScoutSelectiveInheritancePolicy,
+  type TradeScoutInheritanceCandidate,
+  type TradeScoutInheritanceOverride,
+} from "./infinitySelectiveInheritance";
+
 type InfinityShadowResult = "sent" | "disabled" | "failed";
 
 function config() {
@@ -100,4 +107,30 @@ export async function mirrorInfinityConversion(input: {
     },
     `tradescout:${input.conversionEventId}`
   );
+}
+
+export async function mirrorInfinitySelectiveInheritance(input: {
+  evaluationId: string;
+  profileId: string;
+  targetVersion: string;
+  candidates: TradeScoutInheritanceCandidate[];
+  overrides?: TradeScoutInheritanceOverride[];
+}): Promise<InfinityShadowResult> {
+  const current = config();
+  const policy = tradeScoutSelectiveInheritancePolicy(current.tenantId);
+  const candidates = filterTradeScoutInheritanceCandidates(current.tenantId, input.candidates);
+
+  return post("/v1/selective-inheritance/evaluations", {
+    evaluationId: input.evaluationId,
+    target: {
+      tenantId: current.tenantId,
+      objectType: "public_profile",
+      objectId: objectId(input.profileId),
+    },
+    targetVersion: input.targetVersion,
+    policy,
+    candidates,
+    overrides: input.overrides || [],
+    evaluatedAt: new Date().toISOString(),
+  });
 }
