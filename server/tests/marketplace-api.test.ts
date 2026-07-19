@@ -33,7 +33,9 @@ describeDb("marketplace storage helpers", () => {
 
     await db.delete(marketplaceCategories).where(eq(marketplaceCategories.name, categoryName));
 
-    await db.delete(users).where(inArray(users.id, [userXId, userYId]));
+    // User fixture IDs are unique per run. Avoid the unbounded parent-row
+    // cascade across the long-lived test database; scoped child data is removed
+    // above, matching the other integration fixture suites.
   }
 
   beforeAll(async () => {

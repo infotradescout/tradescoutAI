@@ -15,33 +15,35 @@ describeDb("community feed scoping", () => {
   const stateCode = "TX";
 
   beforeAll(async () => {
-    // Clear any existing test posts and users for our fake counties
+    // Clear existing posts for our fake counties. Keep the two stable fixture
+    // users: deleting parent user rows from the long-lived test database fans
+    // out across hundreds of foreign keys and can exceed the hook timeout.
     await db
       .delete(communityPosts)
       .where(inArray(communityPosts.countyFips, [countyAFips, countyBFips]));
 
+    // Seed minimal users once to satisfy FK constraints, then reuse them.
     await db
-      .delete(users)
-      .where(inArray(users.id, ["test-user-a", "test-user-b"]));
-
-    // Seed minimal users to satisfy FK constraints
-    await db.insert(users).values({
-      id: "test-user-a",
-      email: "test-a@example.com",
-      firstName: "Test",
-      lastName: "A",
-      state: stateCode,
-      county: "Test County A",
-    } as any);
-
-    await db.insert(users).values({
-      id: "test-user-b",
-      email: "test-b@example.com",
-      firstName: "Test",
-      lastName: "B",
-      state: stateCode,
-      county: "Test County B",
-    } as any);
+      .insert(users)
+      .values([
+        {
+          id: "test-user-a",
+          email: "test-a@example.com",
+          firstName: "Test",
+          lastName: "A",
+          state: stateCode,
+          county: "Test County A",
+        } as any,
+        {
+          id: "test-user-b",
+          email: "test-b@example.com",
+          firstName: "Test",
+          lastName: "B",
+          state: stateCode,
+          county: "Test County B",
+        } as any,
+      ])
+      .onConflictDoNothing();
 
     // Seed one post in County A and one in County B
     await db.insert(communityPosts).values({
