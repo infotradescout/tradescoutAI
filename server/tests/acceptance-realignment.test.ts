@@ -48,6 +48,8 @@ if (!hasTestDb) {
         firstName: "Promo",
         lastName: "Owner",
         role: "contractor" as any,
+        emailVerified: true,
+        addressVerified: true,
       } as any);
 
       await db.insert(contractors).values({
