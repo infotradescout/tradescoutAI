@@ -213,7 +213,7 @@ export const LA_PLUMBING_PROFILE_PRESENTATION: LocalServiceProfilePresentation =
   credentialDisclosure:
     "TradeScout has reviewed this profile and its required provider credentials. Credential numbers are also published by LA Plumbing Solutions.",
   verificationHistoryNote:
-    "Historical jobs, reviews, and recommendations have not yet been imported into this calculation.",
+    "Score changes shown here begin with TradeScout's recorded snapshot history for this profile.",
   hoursLabel: "Monday–Friday · 7:00am–4:00pm",
   financingTitle: "Flexible project financing is available.",
   financingDescription:

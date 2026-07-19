@@ -77,6 +77,7 @@ describe("canonical public-profile trust actions", () => {
 
   it("renders Like, Recommend, Favorite, and Share in every canonical profile theme", () => {
     const actions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
+    const app = read("client/src/App.tsx");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const themes = [
       "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
@@ -90,6 +91,8 @@ describe("canonical public-profile trust actions", () => {
     expect(actions).toContain(">Favorite</span>");
     expect(actions).toContain('label="Share"');
     expect(actions).not.toMatch(/\bStar(s|Icon)?\b/);
+    expect(app).toContain('import { Toaster } from "./components/ui/toaster"');
+    expect(app).toContain("<Toaster />");
     expect(profileView).toContain('renderProfileTrustActions("light")');
     expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(4);
     themes.forEach((theme) => {
@@ -104,5 +107,13 @@ describe("canonical public-profile trust actions", () => {
     expect(readme).toContain("## Codex Contributions");
     expect(readme).toContain("active engineering collaborator on TradeScout");
     expect(readme).toContain("reviewable through the same source-control");
+  });
+
+  it("keeps the Express Direct Connect form legible inside themed profile pages", () => {
+    const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+
+    expect(panel.match(/!bg-white/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(panel.match(/!text-neutral-900/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(panel.match(/placeholder:!text-stone-400/g)?.length).toBeGreaterThanOrEqual(4);
   });
 });

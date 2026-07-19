@@ -1,17 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-labelledby="title desc">
-  <title id="title">Pro Fab welding and metal fabrication</title>
-  <desc id="desc">A sharp black and red geometric fabrication illustration with the Pro Fab wordmark.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="480" viewBox="0 0 1200 480" role="img" aria-label="Pro Fab welding and metal fabrication">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#030303"/>
-      <stop offset="0.58" stop-color="#151518"/>
+      <stop offset="0" stop-color="#020202"/>
+      <stop offset="0.55" stop-color="#111114"/>
       <stop offset="1" stop-color="#050505"/>
     </linearGradient>
-    <radialGradient id="flare" cx="78%" cy="62%" r="42%">
-      <stop offset="0" stop-color="#fff" stop-opacity=".94"/>
-      <stop offset=".06" stop-color="#dbeafe" stop-opacity=".78"/>
-      <stop offset=".2" stop-color="#60a5fa" stop-opacity=".28"/>
-      <stop offset=".55" stop-color="#2563eb" stop-opacity=".07"/>
+    <radialGradient id="arc" cx="72%" cy="58%" r="38%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="0.05" stop-color="#dbeafe" stop-opacity="0.95"/>
+      <stop offset="0.18" stop-color="#60a5fa" stop-opacity="0.55"/>
+      <stop offset="0.42" stop-color="#2563eb" stop-opacity="0.15"/>
       <stop offset="1" stop-color="#020202" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="red" x1="0" y1="0" x2="1" y2="0">
@@ -20,35 +18,26 @@
     </linearGradient>
   </defs>
   <rect width="1200" height="480" fill="url(#bg)"/>
-  <path d="M0 0h615L450 480H0z" fill="#050505" fill-opacity=".92"/>
-  <g opacity=".34" stroke="#3f3f46" stroke-width="2">
-    <path d="M608 0 438 480M748 0 578 480M888 0 718 480M1028 0 858 480M1168 0 998 480"/>
-    <path d="M500 92h700M470 210h730M442 328h758"/>
-  </g>
-  <rect width="1200" height="480" fill="url(#flare)"/>
-  <path d="M686 358h442l-40 48H646z" fill="#202024" stroke="#71717a" stroke-width="3"/>
-  <path d="M827 112c84-16 164 21 195 98l-70 38c-25-54-71-74-136-56z" fill="#202024" stroke="#a1a1aa" stroke-width="4"/>
-  <path d="m838 164 124 25-23 64-126-25z" fill="#09090b" stroke="#d4d4d8" stroke-width="3"/>
-  <path d="M826 238c36 24 51 61 34 108h-104c13-50 30-86 70-108z" fill="#27272a"/>
-  <path d="m854 292 91 68" stroke="#e4e4e7" stroke-width="15" stroke-linecap="round"/>
-  <circle cx="960" cy="372" r="16" fill="#fff"/>
-  <circle cx="960" cy="372" r="48" fill="#60a5fa" opacity=".25"/>
+  <rect x="0" y="0" width="1200" height="480" fill="url(#arc)"/>
+  <path d="M700 360 L1130 360 L1090 405 L660 405 Z" fill="#18181b" stroke="#52525b" stroke-width="3"/>
+  <path d="M825 110 C900 95 980 130 1010 205 L950 245 C925 190 880 170 820 182 Z" fill="#18181b" stroke="#71717a" stroke-width="4"/>
+  <path d="M838 155 L952 180 L930 240 L815 215 Z" fill="#09090b" stroke="#a1a1aa" stroke-width="3"/>
+  <path d="M820 230 C850 250 865 285 850 330 L758 330 C770 285 782 252 820 230 Z" fill="#27272a"/>
+  <path d="M846 280 L925 345" stroke="#d4d4d8" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="940" cy="358" r="14" fill="#ffffff"/>
+  <circle cx="940" cy="358" r="38" fill="#60a5fa" opacity="0.35"/>
   <g stroke="url(#red)" stroke-width="5" stroke-linecap="round">
-    <path d="m970 363 140-104M976 377l164-30M969 390l128 67M944 362l-130-95M947 383l-164 42M978 357l73-150"/>
+    <path d="M950 350 L1080 255"/><path d="M955 365 L1110 335"/><path d="M946 375 L1075 440"/>
+    <path d="M925 350 L805 260"/><path d="M930 370 L775 410"/><path d="M962 345 L1035 210"/>
   </g>
   <g fill="#f97316">
-    <circle cx="1110" cy="259" r="6"/><circle cx="1140" cy="347" r="6"/><circle cx="1097" cy="457" r="6"/>
-    <circle cx="814" cy="267" r="6"/><circle cx="783" cy="425" r="6"/><circle cx="1051" cy="207" r="6"/>
+    <circle cx="1080" cy="255" r="5"/><circle cx="1110" cy="335" r="6"/><circle cx="1075" cy="440" r="5"/>
+    <circle cx="805" cy="260" r="5"/><circle cx="775" cy="410" r="5"/><circle cx="1035" cy="210" r="6"/>
   </g>
-  <g transform="translate(44 72) scale(.64)">
-    <path d="M0 0h162l-28 30H42v32h72L86 92H42v68H0z" fill="#dc2626"/>
-    <path d="M54 0h112c36 0 58 18 58 48 0 32-24 52-64 52h-42l28-30h16c13 0 21-7 21-19 0-13-8-21-23-21H82z" fill="#fff"/>
-    <path d="M164 116h56l-28 44h-56z" fill="#dc2626"/>
-  </g>
-  <text x="204" y="142" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="900" letter-spacing="-4">PRO</text>
-  <text x="340" y="142" fill="#dc2626" font-family="Arial, Helvetica, sans-serif" font-size="70" font-weight="900" letter-spacing="-4">FAB</text>
-  <rect x="48" y="244" width="440" height="5" rx="2.5" fill="#dc2626"/>
-  <text x="48" y="292" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="800">SPECIALTY SERVICES LLC</text>
-  <text x="48" y="346" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="800">BUILT STRONG. WELDED RIGHT.</text>
-  <text x="48" y="390" fill="#a1a1aa" font-family="Arial, Helvetica, sans-serif" font-size="20">Custom fabrication • Welding • Field service</text>
+  <rect x="0" y="0" width="560" height="480" fill="#020202" opacity="0.7"/>
+  <text x="52" y="212" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="86" font-weight="900" letter-spacing="-5">PRO <tspan fill="#dc2626">FAB</tspan></text>
+  <text x="56" y="260" fill="#d4d4d8" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" letter-spacing="6">SPECIALTY SERVICES LLC</text>
+  <rect x="52" y="350" width="410" height="4" rx="2" fill="#dc2626"/>
+  <text x="52" y="395" fill="#ffffff" font-family="Arial, sans-serif" font-size="27" font-weight="800">BUILT STRONG. WELDED RIGHT.</text>
+  <text x="52" y="430" fill="#a1a1aa" font-family="Arial, sans-serif" font-size="19">Custom fabrication • Welding • Field service</text>
 </svg>

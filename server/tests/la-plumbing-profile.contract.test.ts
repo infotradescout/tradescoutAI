@@ -39,8 +39,8 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(provisioning).toContain('status: "published"');
     expect(provisioning).toContain('claimStatus: "claimed"');
     expect(provisioning).toContain("publicDiscoveryEnabled: true");
-    expect(provisioning).toContain('"community_builder"');
-    expect(provisioning).toContain('"Community Builder Badge"');
+    expect(provisioning).not.toContain('"community_builder"');
+    expect(provisioning).not.toContain('"Community Builder Badge"');
     expect(provisioning).toContain("show: shouldShowBadges");
     expect(provisioning).toContain("rolesAndBadges: shouldShowRolesAndBadges");
     expect(provisioning).toContain("communityActivity: true");
@@ -80,8 +80,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(sourceRecord).toContain("internal matching, deduplication");
     expect(presentation).not.toContain("Pristine Plumbing");
     expect(presentation).toContain(
-      "Historical jobs, reviews, and recommendations have not yet been imported"
+      "Score changes shown here begin with TradeScout's recorded snapshot history"
     );
+    expect(presentation).not.toContain("Historical jobs, reviews, and recommendations");
   });
 
   it("renders the reusable local-service theme with real LA Plumbing assets", () => {

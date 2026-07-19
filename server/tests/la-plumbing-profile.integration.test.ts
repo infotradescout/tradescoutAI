@@ -157,8 +157,8 @@ async function cleanupLaPlumbingFixture(): Promise<void> {
       .limit(1);
     expect(owner?.verificationStatus).toBe("approved");
     expect(owner?.verifiedBadge).toBe(true);
-    expect(owner?.roles).toContain("community_builder");
-    expect(owner?.badges).toContain("Community Builder Badge");
+    expect(owner?.roles).not.toContain("community_builder");
+    expect(owner?.badges).not.toContain("Community Builder Badge");
     expect(owner?.preferences?.badges?.show).toBe(true);
     expect(owner?.preferences?.profileSections?.communityActivity).toBe(true);
 

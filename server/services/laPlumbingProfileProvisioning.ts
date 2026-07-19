@@ -118,11 +118,12 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
         ? (existingOwner.preferences as Record<string, any>)
         : {};
     const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(
-      new Set([...existingRoles, "specialty_tradesperson", "contractor", "community_builder"])
-    );
+    const roles = Array.from(new Set([...existingRoles, "specialty_tradesperson", "contractor"]));
     const existingBadges = Array.isArray(existingOwner?.badges) ? existingOwner.badges : [];
-    const badges = Array.from(new Set([...existingBadges, "Community Builder Badge"]));
+    // Community Builder is earned through its own program events. Preserve an
+    // existing award, but never manufacture the role or badge during profile
+    // provisioning.
+    const badges = Array.from(new Set(existingBadges));
     const shouldShowBadges = existingPreferences.badges?.show !== false;
     const shouldShowRolesAndBadges = existingPreferences.profileSections?.rolesAndBadges !== false;
 
@@ -207,7 +208,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       serviceTags: ["plumber", "commercial plumbing", "residential plumbing"],
       sellerTags: [],
       role: "specialty_tradesperson" as const,
-      roles: ["specialty_tradesperson", "contractor", "community_builder"],
+      roles,
       profileVisibility: "discoverable" as const,
       verifiedBadge: true,
       trustScore: existingVerificationProfile ? existingVerificationProfile.trustScore : 50,
@@ -264,7 +265,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
           ARRAY['plumber', 'commercial plumbing', 'residential plumbing']::text[],
           ARRAY[]::text[],
           'specialty_tradesperson',
-          ARRAY['specialty_tradesperson', 'contractor', 'community_builder']::text[],
+          ARRAY['specialty_tradesperson', 'contractor']::text[],
           'discoverable',
           true,
           50,

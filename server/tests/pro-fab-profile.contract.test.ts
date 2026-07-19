@@ -109,9 +109,11 @@ describe("Pro Fab Specialty Services public profile contract", () => {
     expect(entry).toContain("await provisionProFabProfile()");
   });
 
-  it("renders sharp brand artwork, responsive DOM service cards, and community actions near the top", () => {
+  it("renders honest business-name artwork, responsive DOM service cards, and community actions near the top", () => {
     const theme = read("client/src/pages/profile-sites/ProFabProfileTheme.tsx");
     const provisioning = read("server/services/proFabProfileProvisioning.ts");
+    const logo = read("client/public/images/businesses/pro-fab-specialty-services/logo.svg");
+    const cover = read("client/public/images/businesses/pro-fab-specialty-services/cover.svg");
 
     expect(theme).toContain("/images/businesses/pro-fab-specialty-services");
     expect(theme).toContain("logo.svg");
@@ -132,6 +134,11 @@ describe("Pro Fab Specialty Services public profile contract", () => {
     expect(
       exists("client/public/images/businesses/pro-fab-specialty-services/social-preview.jpg")
     ).toBe(true);
+    expect(logo).toContain('aria-label="Pro Fab Specialty Services LLC"');
+    expect(logo).toContain("SPECIALTY SERVICES LLC");
+    expect(logo).not.toContain("data:image/");
+    expect(cover).toContain("SPECIALTY SERVICES LLC");
+    expect(cover).not.toContain('<image href="/images/businesses/');
     expect(theme).toContain("services.map");
     expect(theme).toContain('className="hidden border-b border-white/10 px-6 py-7 md:block"');
     expect(theme.indexOf("{trustActions ?")).toBeLessThan(theme.indexOf("services.map"));
