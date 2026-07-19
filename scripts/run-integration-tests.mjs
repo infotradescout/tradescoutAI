@@ -42,13 +42,38 @@ function run(command, args, env = process.env) {
   return runCommand(command, args, { cwd: repoRoot, stdio: "inherit", env });
 }
 
-function stopProcessTree(child) {
+function waitForProcessExit(child, timeoutMs) {
+  if (!child || child.exitCode !== null || child.signalCode !== null) {
+    return Promise.resolve(true);
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (exited) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      child.off("exit", onExit);
+      resolve(exited);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    child.once("exit", onExit);
+  });
+}
+
+async function stopProcessTree(child) {
   if (!child?.pid) return Promise.resolve();
   if (process.platform === "win32") {
-    return run("taskkill", ["/PID", String(child.pid), "/T", "/F"]).then(() => undefined);
+    await run("taskkill", ["/PID", String(child.pid), "/T", "/F"]);
+    return;
   }
+
   child.kill("SIGTERM");
-  return Promise.resolve();
+  if (await waitForProcessExit(child, 5_000)) return;
+
+  child.kill("SIGKILL");
+  await waitForProcessExit(child, 5_000);
 }
 
 function waitForHealth(url, timeoutMs = 90_000) {
@@ -106,11 +131,16 @@ async function main() {
     process.exit(bootstrapCode);
   }
 
-  const server = await spawnCommand("npx", ["tsx", "-r", "dotenv/config", "server/index.ts"], {
-    cwd: repoRoot,
-    stdio: "inherit",
-    env,
-  });
+  const tsxCli = path.join(repoRoot, "node_modules", "tsx", "dist", "cli.mjs");
+  const server = await spawnCommand(
+    process.execPath,
+    [tsxCli, "-r", "dotenv/config", "server/index.ts"],
+    {
+      cwd: repoRoot,
+      stdio: "inherit",
+      env,
+    }
+  );
 
   let testExitCode = 1;
   try {
