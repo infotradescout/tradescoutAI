@@ -123,7 +123,7 @@ describe("Scout home personalization contracts", () => {
     expect(homeSource).toContain("Start a request");
     expect(homeSource).toContain("See nearby activity");
     expect(homeSource).toContain('title="Your activity"');
-    expect(homeSource).toContain('title="More ways Scout can help"');
+    expect(homeSource).toContain('title="More to explore"');
     expect(homeSource).toContain("function ProgressiveSection");
     expect(homeSource).toContain("<details");
     expect(homeSource).toContain("<ExploreGrid onPromptSelect={onPromptSelect} />");

@@ -131,7 +131,7 @@ function ProfileArrivalState({
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-6 text-white sm:px-6 lg:px-10">
+    <main className="relative overflow-hidden bg-slate-950 px-4 py-6 text-white sm:px-6 lg:px-10">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-90"

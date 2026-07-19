@@ -10,7 +10,7 @@ describe("Direct Connect mobile composer hierarchy", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
     expect(source).toContain('data-testid="direct-connect-mobile-composer"');
-    expect(source).toContain("Tell local businesses what you need. Add photos on the next step.");
+    expect(source).toContain("What do you need?");
     expect(source).not.toContain("Want the directory instead?");
     expect(source).not.toContain("Calling opens from the profile after the contact gate.");
   });
@@ -29,7 +29,7 @@ describe("Direct Connect mobile composer hierarchy", () => {
   it("uses compact app-flow language for progress and primary CTA", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
-    expect(source).toContain('(["Describe", "Review", "Send"] as const)');
+    expect(source).toContain('(["Details", "Review", "Choose"] as const)');
     expect(source).toContain("Review request");
     expect(source).toContain("Send when ready");
     expect(source).not.toContain(">Continue<");

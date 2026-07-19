@@ -10,8 +10,8 @@ describe("Scout routing/copy doctrine", () => {
   it("keeps landing explore routed to community and request CTA to direct connect", () => {
     const landing = read("client/src/pages/TradeScoutLandingPage.tsx");
 
-    expect(landing).toContain('href="/community"');
-    expect(landing).toContain("Browse Local Activity");
+    expect(landing).toContain('href="/community-feed"');
+    expect(landing).toContain("Open Community");
     expect(landing).toContain("`/direct-connect?source=${LANDING_PRIMARY_REQUEST_SOURCE}`");
   });
 

@@ -47,8 +47,9 @@ describe("contractor project photo sharing contract", () => {
     const page = read("client/src/pages/contractor-profile.tsx");
 
     expect(page).toContain("const directConnectHref = `/direct-connect?intent=hire");
-    expect(page).toContain("Create Account to Connect");
-    expect(page).toContain("Start a Request");
+    expect(page).toContain("/pre-scout-setup?mode=create&next=");
+    expect(page).toContain("/pre-scout-setup?mode=signin&next=");
+    expect(page).toContain("Sign In");
     expect(page).toContain("Contact is protected to prevent spam.");
     expect(page).toContain("Start a request to route work through TradeScout's trust policy.");
   });

@@ -49,10 +49,12 @@ describe("public profile Direct Connect entry contract", () => {
 
   it("limits request entry to Direct Connect or Make A Request and opens call-or-form choices", () => {
     expect(profile).toContain("Direct Connect");
-    // The feature name stays as the underlying mechanism (nav references, copy
-    // describing what happens), but per-button labels are contextual and
-    // honest rather than "Direct Connect" repeated on every card and CTA.
-    expect(stone.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(2);
+    // "Direct Connect" labels the general, no-context entry points (nav
+    // references, and any button that opens the flow with no specific item
+    // attached). Buttons that carry something specific forward -- a stone
+    // name, a search term -- get a contextual label instead of the generic
+    // phrase repeated on every card and CTA.
+    expect(stone.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(5);
     expect(autoGlass.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(express).toContain("Direct Connect");
     expect(express).toContain("Make A Request");
@@ -64,14 +66,19 @@ describe("public profile Direct Connect entry contract", () => {
     }
     expect(directConnect).not.toContain("Start request\n            </Button>");
 
-    // Wholesaler product cards use contextual labels tied to the actual stone
-    // or moment, not a single flattened phrase repeated everywhere.
+    // Wholesaler product cards use a contextual label only when the button
+    // actually carries something specific forward (a stone name, a search
+    // term). General entry points with no attached context stay "Direct
+    // Connect" rather than being given a label that overpromises specificity.
+    expect(stone).toContain('startDirectConnect(stone.name, "request_material")');
     expect(stone).toContain("Ask about {stone.name}");
+    expect(stone).toContain("startDirectConnect(stoneName)");
     expect(stone).toContain("Ask about this stone");
-    expect(stone).toContain("Request material");
+    expect(stone).toContain("startDirectConnect(inventorySearch.trim()");
     expect(stone).toContain("Request this stone");
-    expect(stone).toContain("Send request");
-    expect(stone).toContain("Get started");
+    expect(stone).not.toContain("Request material");
+    expect(stone).not.toContain("Send request");
+    expect(stone).not.toContain("Get started");
 
     for (const source of [autoGlass]) {
       expect(source).not.toContain("Request material");

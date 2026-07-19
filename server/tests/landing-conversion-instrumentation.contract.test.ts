@@ -35,8 +35,8 @@ describe("hybrid landing conversion instrumentation contract", () => {
   });
 
   it("attributes request composer starts back to the hybrid landing CTA", () => {
-    expect(directConnectEntryContextSource).toContain('readFirst(params, "source")');
-    expect(directConnectSource).toContain("parseDirectConnectEntryContext(location)");
+    expect(directConnectEntryContextSource).toContain('readFirst(params, "source", "from")');
+    expect(directConnectSource).toContain("parseDirectConnectEntryContext(directConnectLocation)");
     expect(directConnectSource).toContain("prefillSource={requestPrefill?.source}");
     expect(directConnectSource).toContain('"direct_connect_request_started"');
     expect(directConnectSource).toContain('source: prefillSource || "direct_connect_start"');

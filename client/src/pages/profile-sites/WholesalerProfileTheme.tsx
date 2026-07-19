@@ -841,7 +841,7 @@ export default function WholesalerProfileTheme({
                   onClick={() => startDirectConnect()}
                   className="hidden flex-shrink-0 rounded-full border border-ts-orange/45 bg-ts-orange/5 px-3.5 py-2.5 text-xs font-bold text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 sm:inline-flex md:px-5 md:text-sm"
                 >
-                  Request material
+                  Direct Connect
                 </button>
               </div>
             </>
@@ -871,7 +871,7 @@ export default function WholesalerProfileTheme({
                   onClick={() => startDirectConnect()}
                   className="flex-shrink-0 rounded-full border border-ts-orange/45 bg-transparent px-3.5 py-2 text-xs font-bold text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 md:px-5 md:text-sm"
                 >
-                  Request material
+                  Direct Connect
                 </button>
               </div>
             </>
@@ -1013,7 +1013,7 @@ export default function WholesalerProfileTheme({
               onClick={() => startDirectConnect()}
               className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3 text-sm font-extrabold text-ts-orange-light shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
             >
-              Ask {displayName}
+              Direct Connect
               <ChevronRight className="h-4 w-4" />
             </button>
             {!isJwStone && !hasViewerSession ? (
@@ -1749,7 +1749,7 @@ export default function WholesalerProfileTheme({
                           onClick={() => startDirectConnect()}
                           className="mt-5 min-h-10 rounded-xl bg-ts-orange px-4 text-xs font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
                         >
-                          Get started
+                          Direct Connect
                         </button>
                       </div>
                     </article>
@@ -2026,7 +2026,7 @@ export default function WholesalerProfileTheme({
                   className="flex items-center justify-center gap-2 rounded-full bg-ts-orange px-8 py-4 text-base font-bold text-white transition-colors hover:bg-ts-orange-dark"
                 >
                   <MessageCircle className="h-5 w-5" />
-                  Send request
+                  Direct Connect
                 </button>
                 {!hasViewerSession ? (
                   <Link href={preScoutSignInHref}>

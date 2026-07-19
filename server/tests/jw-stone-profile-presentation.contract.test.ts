@@ -81,12 +81,12 @@ describe("JW Stone profile presentation contract", () => {
   it("keeps every Direct Connect entry action orange and honestly, contextually labeled", () => {
     expect(source).toContain("border-2 border-ts-orange bg-white/12");
     expect(source).toContain("hover:bg-ts-orange-dark");
-    // Every entry action still routes through startDirectConnect(...); the
-    // visible label is contextual (per-stone, per-moment) rather than the
-    // same "Direct Connect" phrase repeated on every button on the page.
+    // Every entry action still routes through startDirectConnect(...). The
+    // hero button opens a general request (no arguments) and stays labeled
+    // "Direct Connect"; buttons that carry a stone name or search term
+    // forward get a contextual label instead.
     expect(source).toContain("Request this stone");
     expect(source).toContain("Ask about this stone");
-    expect(source).toContain("Ask {displayName}");
     expect(expressSource).toContain("text-ts-orange-dark");
     expect(expressSource).toContain("Fill out the form");
     expect(expressSource).toContain("Direct Connect");

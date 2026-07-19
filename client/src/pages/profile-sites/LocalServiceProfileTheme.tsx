@@ -162,7 +162,7 @@ export default function LocalServiceProfileTheme({
   return (
     <main
       style={themeStyle}
-      className="min-h-screen bg-[var(--service-background)] text-slate-100"
+      className="bg-[var(--service-background)] text-slate-100"
       data-testid="local-service-profile-theme"
     >
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#041017]/95 shadow-[0_10px_35px_rgba(0,0,0,0.3)] backdrop-blur-xl">
