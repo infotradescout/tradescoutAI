@@ -7,6 +7,8 @@ type BetaOversightInput = {
   businessName?: string | null;
 };
 
+const ADMIN_NOTIFICATION_CONCURRENCY = 8;
+
 /**
  * Beta-only operational visibility for Direct Connect.
  *
@@ -27,9 +29,13 @@ export async function notifySuperAdminsOfDirectConnectRequest({
   const result = await pool.query<{ id: string }>(
     `SELECT id
        FROM users
-      WHERE role::text = 'super_admin'
-         OR active_role::text = 'super_admin'
-         OR COALESCE(to_jsonb(roles), '[]'::jsonb) ? 'super_admin'`
+      WHERE (
+        role::text = 'super_admin'
+        OR active_role::text = 'super_admin'
+        OR COALESCE(to_jsonb(roles), '[]'::jsonb) ? 'super_admin'
+      )
+        AND LOWER(COALESCE(email, '')) NOT LIKE '%@tradescout.test'
+      ORDER BY id`
   );
 
   const title = "Beta Direct Connect request";
@@ -38,27 +44,32 @@ export async function notifySuperAdminsOfDirectConnectRequest({
     ? `${requestTitle} was submitted to ${target}.`
     : `${requestTitle} was submitted.`;
 
-  const deliveries = result.rows.map(({ id }) =>
-    notificationService.createNotification({
-      userId: String(id),
-      type: "direct_connect_beta_request",
-      title,
-      message,
-      actionUrl: `/admin/direct-connect-requests?requestId=${encodeURIComponent(requestId)}`,
-      actionText: "Review request",
-      iconName: "briefcase",
-      iconColor: "orange",
-      deliveryMethods: ["in_app"],
-    })
-  );
+  let failed = 0;
+  for (let offset = 0; offset < result.rows.length; offset += ADMIN_NOTIFICATION_CONCURRENCY) {
+    const batch = result.rows.slice(offset, offset + ADMIN_NOTIFICATION_CONCURRENCY);
+    const settled = await Promise.allSettled(
+      batch.map(({ id }) =>
+        notificationService.createNotification({
+          userId: String(id),
+          type: "new_project_request",
+          title,
+          message,
+          actionUrl: `/admin/direct-connect-requests?requestId=${encodeURIComponent(requestId)}`,
+          actionText: "Review request",
+          iconName: "briefcase",
+          iconColor: "orange",
+          deliveryMethods: ["in_app"],
+        })
+      )
+    );
+    failed += settled.filter((entry) => entry.status === "rejected").length;
+  }
 
-  const settled = await Promise.allSettled(deliveries);
-  const rejected = settled.filter((entry) => entry.status === "rejected");
-  if (rejected.length > 0) {
+  if (failed > 0) {
     console.warn("[direct-connect] beta super-admin notification failures", {
       requestId,
-      failed: rejected.length,
-      attempted: deliveries.length,
+      failed,
+      attempted: result.rows.length,
     });
   }
 }

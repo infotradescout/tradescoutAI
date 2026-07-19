@@ -41,14 +41,16 @@ describe("canonical profile item parity", () => {
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const wholesaler = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const autoGlass = read("client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx");
+    const localService = read("client/src/pages/profile-sites/LocalServiceProfileTheme.tsx");
+    const proFab = read("client/src/pages/profile-sites/ProFabProfileTheme.tsx");
 
     expect(profileView).toContain("const profileItems = data.profileItems || {};");
-    expect(profileView.match(/<PublicProfileItems/g)?.length).toBe(3);
+    expect(profileView.match(/<PublicProfileItems/g)?.length).toBe(5);
     expect(profileView).toContain("profileItems={");
-    expect(wholesaler).toContain("profileItems?: ReactNode");
-    expect(wholesaler).toContain("{profileItems}");
-    expect(autoGlass).toContain("profileItems?: ReactNode");
-    expect(autoGlass).toContain("{profileItems}");
+    for (const theme of [wholesaler, autoGlass, localService, proFab]) {
+      expect(theme).toContain("profileItems?: ReactNode");
+      expect(theme).toContain("{profileItems}");
+    }
   });
 
   it("uses every durable item route and exact-image helper without adding contact actions", () => {

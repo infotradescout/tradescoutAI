@@ -38,27 +38,52 @@ describe("canonical public-profile trust actions", () => {
 
   it("shows recommendations received by the provider with moderated customer attribution", () => {
     const routes = read("server/routes/profiles.ts");
+    const binding = routes.slice(
+      routes.indexOf("async function getPublicProfileContractorBinding"),
+      routes.indexOf("const sendPublicProfileBySlug")
+    );
     const directory = routes.slice(
       routes.indexOf("let recommendationsDirectory"),
       routes.indexOf("const profileSections")
     );
 
+    expect(binding).toContain("eq(contractors.userId, normalizedOwnerUserId)");
+    expect(binding).toContain("eq(contractors.businessId, normalizedBusinessId)");
+    expect(binding).toContain("return matches.length === 1 ? matches[0] : null");
+    expect(directory).toContain("getPublicProfileContractorBinding(");
     expect(directory).toContain("eq(recommendations.contractorId, ownerContractor.id)");
     expect(directory).toContain("eq(recommendations.userId, ownerUserId)");
     expect(directory).toContain(
-      'recommendationDirectoryMode = ownerContractor ? "received" : "authored"'
+      'recommendationDirectoryMode = hasLinkedBusiness ? "received" : "authored"'
     );
+    expect(directory).toContain("ownerContractor || !hasLinkedBusiness");
+    expect(directory).not.toContain("getContractorByUserId");
     expect(directory).toContain('eq(recommendations.moderationStatus, "approved")');
     expect(directory).toContain("customerName: recommendations.customerName");
   });
 
+  it("binds Recommend to the exact linked business and fails closed on ambiguity", () => {
+    const routes = read("server/routes/profiles.ts");
+    const trustContext = routes.slice(
+      routes.indexOf("async function getPublicProfileTrustContext"),
+      routes.indexOf("async function readPublicProfileTrustActions")
+    );
+
+    expect(trustContext).toContain(
+      "getPublicProfileContractorBinding(ownerUserId, profile.businessId)"
+    );
+    expect(trustContext).not.toContain("getContractorByUserId");
+  });
+
   it("renders Like, Recommend, Favorite, and Share in every canonical profile theme", () => {
     const actions = read("client/src/components/profile/PublicProfileTrustActions.tsx");
+    const app = read("client/src/App.tsx");
     const profileView = read("client/src/pages/ProfileSiteView.tsx");
     const themes = [
       "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
+      "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
     ].map(read);
 
     expect(actions).toContain(">Like</span>");
@@ -66,8 +91,10 @@ describe("canonical public-profile trust actions", () => {
     expect(actions).toContain(">Favorite</span>");
     expect(actions).toContain('label="Share"');
     expect(actions).not.toMatch(/\bStar(s|Icon)?\b/);
+    expect(app).toContain('import { Toaster } from "./components/ui/toaster"');
+    expect(app).toContain("<Toaster />");
     expect(profileView).toContain('renderProfileTrustActions("light")');
-    expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(3);
+    expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(4);
     themes.forEach((theme) => {
       expect(theme).toContain("trustActions?: ReactNode");
       expect(theme).toContain("{trustActions}");
@@ -80,5 +107,13 @@ describe("canonical public-profile trust actions", () => {
     expect(readme).toContain("## Codex Contributions");
     expect(readme).toContain("active engineering collaborator on TradeScout");
     expect(readme).toContain("reviewable through the same source-control");
+  });
+
+  it("keeps the Express Direct Connect form legible inside themed profile pages", () => {
+    const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
+
+    expect(panel.match(/!bg-white/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(panel.match(/!text-neutral-900/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(panel.match(/placeholder:!text-stone-400/g)?.length).toBeGreaterThanOrEqual(4);
   });
 });

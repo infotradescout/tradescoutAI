@@ -56,6 +56,10 @@ describe("TradeScout About explainer route", () => {
     expect(explainerStyles).toContain(
       '.content-section > summary::after {\n  content: "";',
     );
+    expect(explainerStyles).toContain(
+      ".public-tool-grid details[open] summary::after { top: 8px; transform: rotate(225deg); }",
+    );
+    expect(explainerStyles).not.toContain('.public-tool-grid summary::after { content: "+"');
   });
 
   it("removes the unsupported legacy About claims", () => {

@@ -64,7 +64,7 @@ export async function buildPublicContractorPromoHtml(
   if (!meta) return null;
 
   const title = formatTradeScoutTitle(`${meta.title} | Local promotion`);
-  const imageUrl = meta.imageUrl || `${origin}/tradescout-social-preview.png?v=11`;
+  const imageUrl = meta.imageUrl || `${origin}/tradescout-social-preview.png?v=12`;
   const usesDefaultImage = !meta.imageUrl;
   const offer: Record<string, unknown> = {
     "@context": "https://schema.org",

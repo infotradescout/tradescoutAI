@@ -86,6 +86,7 @@ import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
 import { provisionLaPlumbingProfile } from "./services/laPlumbingProfileProvisioning";
 import { provisionHoneyOnyxProfile } from "./services/honeyOnyxProfileProvisioning";
+import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
 
 // ES module equivalent of __dirname
@@ -320,6 +321,23 @@ function requestSearchSuffix(req: Request): string {
   return queryIndex >= 0 ? requestUrl.slice(queryIndex) : "";
 }
 
+function alternateCustomDomainHost(host: string): string {
+  return host.startsWith("www.") ? host.slice(4) : `www.${host}`;
+}
+
+function isCustomDomainRootRequest(req: Request): boolean {
+  const requestPath = req.path || "/";
+  return requestPath === "/" || requestPath === "";
+}
+
+function redirectToCanonicalCustomDomain(req: Request, res: Response, canonicalHost: string) {
+  const requestPathAndQuery = String(req.originalUrl || req.url || "/");
+  const normalizedPathAndQuery = requestPathAndQuery.startsWith("/")
+    ? requestPathAndQuery
+    : `/${requestPathAndQuery}`;
+  return res.redirect(301, `https://${canonicalHost}${normalizedPathAndQuery}`);
+}
+
 // A verified profile custom domain (e.g. jwstonelogistics.com) should show
 // its own URL in the address bar, not redirect through /u/:slug -- so this
 // renders the same server-side HTML that route serves, in place, on the
@@ -355,7 +373,7 @@ async function renderProfileOnCustomDomain(
   res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
   res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
   res.setHeader("X-TradeScout-Action-Hint", contract.actionHint);
-  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=86400");
+  res.setHeader("Cache-Control", "no-cache, must-revalidate");
   res.on("finish", () => {
     void recordCrawlerRequestEvent(req, res.statusCode, {
       responseTimeMs: Date.now() - start,
@@ -438,7 +456,12 @@ app.use(async (req, res, next) => {
     }
 
     const now = Date.now();
-    const cached = CUSTOM_DOMAIN_CACHE.get(host);
+    const shouldRevalidateProfileDomain = isCustomDomainRootRequest(req);
+    // Root profile requests carry attribution and public identity. Re-resolve
+    // them on every request so a disconnected or reassigned domain cannot keep
+    // serving (or crediting) the cached owner for up to an hour.
+    if (shouldRevalidateProfileDomain) CUSTOM_DOMAIN_CACHE.delete(host);
+    const cached = shouldRevalidateProfileDomain ? undefined : CUSTOM_DOMAIN_CACHE.get(host);
     if (cached && now - cached.at < CUSTOM_DOMAIN_TTL_MS) {
       if (cached.kind === "profile") {
         if (await serveCustomDomainProfilePath(req, res, host, cached.slug, cached.ownerUserId))
@@ -463,19 +486,41 @@ app.use(async (req, res, next) => {
       return res.redirect(301, url.toString());
     }
 
-    // Profile custom domains are defined in profile seoMeta.customDomain.
-    const [profileDomain] = await db
-      .select({ slug: profiles.slug, ownerUserId: profiles.ownerUserId })
+    // Profile custom domains are defined in profile seoMeta.customDomain. The
+    // configured host is canonical, while its apex/www counterpart is accepted
+    // only as a redirect alias. Exact matches win, and duplicate matches fail
+    // closed instead of routing a host to an arbitrary profile.
+    const alternateHost = alternateCustomDomainHost(host);
+    const profileDomainRows = await db
+      .select({
+        slug: profiles.slug,
+        ownerUserId: profiles.ownerUserId,
+        configuredHost: sql<string>`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), ''))`,
+      })
       .from(profiles)
       .innerJoin(users, eq(profiles.ownerUserId, users.id))
       .where(
         and(
           eq(profiles.status, "published" as any),
           sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`,
-          sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) = ${host}`
+          sql`lower(COALESCE((${profiles.seoMeta} ->> 'customDomain'), '')) IN (${host}, ${alternateHost})`
         )
       )
-      .limit(1);
+      .limit(3);
+
+    const exactProfileDomains = profileDomainRows.filter(
+      (row) => String(row.configuredHost || "").trim() === host
+    );
+    const aliasProfileDomains = profileDomainRows.filter(
+      (row) => String(row.configuredHost || "").trim() === alternateHost
+    );
+    // An exact profile-domain collision is unsafe to resolve by row order.
+    if (exactProfileDomains.length > 1) return next();
+    const profileDomain = exactProfileDomains.length === 1 ? exactProfileDomains[0] : undefined;
+    const aliasProfileDomain =
+      exactProfileDomains.length === 0 && aliasProfileDomains.length === 1
+        ? aliasProfileDomains[0]
+        : undefined;
 
     const profileSlug = typeof profileDomain?.slug === "string" ? profileDomain.slug.trim() : "";
     if (profileSlug) {
@@ -517,14 +562,26 @@ app.use(async (req, res, next) => {
       .limit(1);
 
     const ref = typeof account?.referralCode === "string" ? account.referralCode.trim() : "";
-    if (!ref) return next();
+    if (ref) {
+      CUSTOM_DOMAIN_CACHE.set(host, { kind: "affiliate", ref, at: now });
 
-    CUSTOM_DOMAIN_CACHE.set(host, { kind: "affiliate", ref, at: now });
+      const targetHost = CANONICAL_WEB_HOST;
+      const url = new URL(`https://${targetHost}${req.originalUrl || "/"}`);
+      if (!url.searchParams.has("ref")) url.searchParams.set("ref", ref);
+      return res.redirect(301, url.toString());
+    }
 
-    const targetHost = CANONICAL_WEB_HOST;
-    const url = new URL(`https://${targetHost}${req.originalUrl || "/"}`);
-    if (!url.searchParams.has("ref")) url.searchParams.set("ref", ref);
-    return res.redirect(301, url.toString());
+    // Only use the apex/www counterpart after proving this exact host is not
+    // configured for a profile, business, or affiliate. That prevents an alias
+    // from taking precedence over another surface's explicit domain claim.
+    const aliasProfileSlug =
+      typeof aliasProfileDomain?.slug === "string" ? aliasProfileDomain.slug.trim() : "";
+    const aliasCanonicalHost = String(aliasProfileDomain?.configuredHost || "").trim();
+    if (aliasProfileSlug && aliasCanonicalHost) {
+      return redirectToCanonicalCustomDomain(req, res, aliasCanonicalHost);
+    }
+
+    return next();
   } catch {
     return next();
   }
@@ -787,6 +844,7 @@ app.use(landingContractHeaders);
     await provisionJrsAutoGlassProfile();
     await provisionLaPlumbingProfile();
     await provisionHoneyOnyxProfile();
+    await provisionProFabProfile();
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {
       await runSchemaPreflight();
@@ -1149,7 +1207,7 @@ app.use(landingContractHeaders);
 
               // Legacy social preview image path compatibility.
               app.get("/tradescout-logo.jpg", (_req, res) => {
-                res.redirect(301, "/tradescout-social-preview.png?v=11");
+                res.redirect(301, "/tradescout-social-preview.png?v=12");
               });
 
               app.get(Array.from(identityAssets), (req, res, next) => {
@@ -1215,7 +1273,7 @@ app.use(landingContractHeaders);
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
                   if (!templateHtml) {
-                    return res.status(500).send("Application build not found");
+                    return res.status(503).send("Application temporarily unavailable");
                   }
 
                   const html = await buildPublicHelperProfileHtml({

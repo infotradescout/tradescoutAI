@@ -1,5 +1,5 @@
 import { and, eq, or, sql } from "drizzle-orm";
-import { businesses, profiles, users } from "@shared/schema";
+import { businesses, contractors, profiles, users } from "@shared/schema";
 import {
   HONEY_ONYX_DISTRIBUTOR_NAME,
   HONEY_ONYX_PROFILE_CONTENT_BLOCKS,
@@ -196,6 +196,58 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
           .values(businessValues as any)
           .returning();
     if (!business) throw new Error("Honey Onyx business provisioning failed");
+
+    // Recommendations require a legacy contractor foreign key. During
+    // temporary admin stewardship this is a Honey-specific row, never a
+    // fallback to another contractor owned by the steward. A new compatibility
+    // record starts inactive and unverified; an existing exact record keeps its
+    // earned directory and credential state.
+    const exactRecommendationTargets = await tx
+      .select()
+      .from(contractors)
+      .where(
+        and(eq(contractors.userId, profileOwnerUserId), eq(contractors.businessId, business.id))
+      )
+      .limit(2);
+    const slugRecommendationTargets = await tx
+      .select()
+      .from(contractors)
+      .where(eq(contractors.slug, HONEY_ONYX_PROFILE_SLUG))
+      .limit(2);
+    const hasNoRecommendationBinding =
+      exactRecommendationTargets.length === 0 && slugRecommendationTargets.length === 0;
+    const hasSingleExactRecommendationBinding =
+      exactRecommendationTargets.length === 1 &&
+      slugRecommendationTargets.length === 1 &&
+      String(exactRecommendationTargets[0].id) === String(slugRecommendationTargets[0].id) &&
+      String(exactRecommendationTargets[0].slug) === HONEY_ONYX_PROFILE_SLUG;
+
+    if (!hasNoRecommendationBinding && !hasSingleExactRecommendationBinding) {
+      // Fail closed for Recommend without rolling back the otherwise valid
+      // profile. A later data repair can establish one exact binding.
+      console.warn(
+        "[profile-provisioning] Skipping Honey Onyx recommendation target mutation: contractor binding is ambiguous or conflicting"
+      );
+    } else if (hasNoRecommendationBinding) {
+      await tx.insert(contractors).values({
+        userId: profileOwnerUserId,
+        businessId: business.id,
+        companyName: "Honey Onyx",
+        slug: HONEY_ONYX_PROFILE_SLUG,
+        verifiedLicensed: false,
+        verifiedInsured: false,
+        isActive: false,
+      });
+    } else {
+      const recommendationTarget = exactRecommendationTargets[0];
+      await tx
+        .update(contractors)
+        .set({
+          companyName: "Honey Onyx",
+          updatedAt: now,
+        })
+        .where(eq(contractors.id, recommendationTarget.id));
+    }
 
     const profileValues = {
       ownerUserId: profileOwnerUserId,

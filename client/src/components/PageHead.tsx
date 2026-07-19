@@ -13,7 +13,7 @@ export function PageHead({
   title = "TradeScout | Connection Without Compromise",
   description = "TradeScout helps people find trusted local help, make decisions, and move work forward. Connection without compromise.",
   keywords = "scout, local helper, local businesses, direct connect, exchange, local services, local products, business profiles",
-  ogImage = "/tradescout-social-preview.png?v=11",
+  ogImage = "/tradescout-social-preview.png?v=12",
   canonicalUrl,
 }: PageHeadProps) {
   const currentUrl = normalizePublicUrl(stripUrlVariantsForCanonical(window.location.href));

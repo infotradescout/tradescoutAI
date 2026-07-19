@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import { businesses, profiles, users } from "@shared/schema";
+import { businesses, contractors, profiles, users } from "@shared/schema";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import { db } from "../db";
 import { JRS_PROFILE_SLUG, OWNER_CONFIRMED_PROFILE_SOURCE } from "./ownerConfirmedDirectProfile";
@@ -149,6 +149,56 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
           .returning();
     if (!business) throw new Error("JR's Auto Glass business provisioning failed");
 
+    // Recommendations still use the legacy contractor foreign key. Ignore any
+    // other businesses owned by this account and mutate only a single record
+    // already bound to this exact owner, business, and canonical slug. A new
+    // compatibility record starts inactive and unverified; an existing exact
+    // record keeps its earned directory and credential state.
+    const exactRecommendationTargets = await tx
+      .select()
+      .from(contractors)
+      .where(and(eq(contractors.userId, owner.id), eq(contractors.businessId, business.id)))
+      .limit(2);
+    const slugRecommendationTargets = await tx
+      .select()
+      .from(contractors)
+      .where(eq(contractors.slug, JRS_PROFILE_SLUG))
+      .limit(2);
+    const hasNoRecommendationBinding =
+      exactRecommendationTargets.length === 0 && slugRecommendationTargets.length === 0;
+    const hasSingleExactRecommendationBinding =
+      exactRecommendationTargets.length === 1 &&
+      slugRecommendationTargets.length === 1 &&
+      String(exactRecommendationTargets[0].id) === String(slugRecommendationTargets[0].id) &&
+      String(exactRecommendationTargets[0].slug) === JRS_PROFILE_SLUG;
+
+    if (!hasNoRecommendationBinding && !hasSingleExactRecommendationBinding) {
+      // Fail closed for Recommend without rolling back the otherwise valid
+      // profile. A later data repair can establish one exact binding.
+      console.warn(
+        "[profile-provisioning] Skipping JR's Auto Glass recommendation target mutation: contractor binding is ambiguous or conflicting"
+      );
+    } else if (hasNoRecommendationBinding) {
+      await tx.insert(contractors).values({
+        userId: owner.id,
+        businessId: business.id,
+        companyName: "JR's Auto Glass",
+        slug: JRS_PROFILE_SLUG,
+        verifiedLicensed: false,
+        verifiedInsured: false,
+        isActive: false,
+      });
+    } else {
+      const recommendationTarget = exactRecommendationTargets[0];
+      await tx
+        .update(contractors)
+        .set({
+          companyName: "JR's Auto Glass",
+          updatedAt: new Date(),
+        })
+        .where(eq(contractors.id, recommendationTarget.id));
+    }
+
     const [existingProfile] = await tx
       .select()
       .from(profiles)
@@ -177,9 +227,10 @@ export async function provisionJrsAutoGlassProfile(): Promise<void> {
         title: "JR's Auto Glass | Ponchatoula Mobile Auto Glass",
         description:
           "See recent work from JR's Auto Glass in Ponchatoula, then send a private request for mobile auto glass or windshield replacement.",
-        imageUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/cover.webp",
-        imageWidth: 1122,
-        imageHeight: 270,
+        imageUrl:
+          "https://www.thetradescout.com/images/businesses/jrs-auto-glass/social-preview.jpg",
+        imageWidth: 1200,
+        imageHeight: 630,
         faviconUrl: "https://www.thetradescout.com/images/businesses/jrs-auto-glass/logo.webp",
       },
       status: "published" as const,

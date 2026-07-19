@@ -323,27 +323,31 @@ export default function WholesalerProfileTheme({
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
-  // The hero copy reveals in stages *during* video playback, not after it
-  // ends -- stone name first at 0.5s, then headline/teaser/buttons spaced
-  // out across the rest of the 7s clip. Driven by wall-clock timers off
-  // mount rather than video events, so it still runs on schedule even if
-  // autoplay is blocked and the video never actually plays.
-  const [heroStage, setHeroStage] = useState(isJwStone ? 0 : 4);
-  // Starts framed at the video's full, uncropped shot and slowly zooms into
-  // the 1.25x crop used everywhere else -- timed to land exactly when the
-  // last CTA (stage 4) finishes revealing, so the zoom and the copy resolve
-  // together instead of the crop just jumping in on mount.
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [heroVideoZoomed, setHeroVideoZoomed] = useState(false);
   useEffect(() => {
     if (!isJwStone) return;
-    const timers = [
-      window.setTimeout(() => setHeroVideoZoomed(true), 100),
-      window.setTimeout(() => setHeroStage(1), 500),
-      window.setTimeout(() => setHeroStage(2), 3000),
-      window.setTimeout(() => setHeroStage(3), 5000),
-      window.setTimeout(() => setHeroStage(4), 6500),
-    ];
-    return () => timers.forEach((timer) => window.clearTimeout(timer));
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let zoomTimer: number | null = null;
+    const syncMotionPreference = () => {
+      const reduceMotion = motionQuery.matches;
+      setPrefersReducedMotion(reduceMotion);
+      if (zoomTimer !== null) window.clearTimeout(zoomTimer);
+      if (reduceMotion) {
+        setHeroVideoZoomed(false);
+        heroVideoRef.current?.pause();
+      } else {
+        zoomTimer = window.setTimeout(() => setHeroVideoZoomed(true), 100);
+        void heroVideoRef.current?.play().catch(() => undefined);
+      }
+    };
+    syncMotionPreference();
+    motionQuery.addEventListener("change", syncMotionPreference);
+    return () => {
+      if (zoomTimer !== null) window.clearTimeout(zoomTimer);
+      motionQuery.removeEventListener("change", syncMotionPreference);
+    };
   }, [isJwStone]);
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
@@ -431,6 +435,27 @@ export default function WholesalerProfileTheme({
   useEffect(() => {
     triedLightboxIndexesRef.current = new Set();
     setLightboxImageFailed(false);
+  }, [openStone]);
+  useEffect(() => {
+    if (!openStone) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenStone(null);
+      if (event.key === "ArrowLeft" && openStone.images.length > 1) {
+        setOpenImageIndex(
+          (current) => (current - 1 + openStone.images.length) % openStone.images.length
+        );
+      }
+      if (event.key === "ArrowRight" && openStone.images.length > 1) {
+        setOpenImageIndex((current) => (current + 1) % openStone.images.length);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
   }, [openStone]);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
   const [expressStoneName, setExpressStoneName] = useState<string | null>(null);
@@ -541,15 +566,10 @@ export default function WholesalerProfileTheme({
     ? configuredRequestExamples
     : REQUEST_EXAMPLES;
 
-  // Each hero element reveals at its own stage rather than all together --
-  // stone type leading, then headline/teaser/buttons in turn as heroStage
-  // climbs on its own schedule (see the timers above).
-  const heroReveal = (stage: number) =>
-    isJwStone
-      ? `transition-all duration-700 ease-out ${
-          heroStage >= stage ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-        }`
-      : "";
+  // Primary profile information and actions must be available immediately;
+  // the background video may still provide motion when the visitor permits it.
+  const heroReveal = (_stage: number) =>
+    isJwStone ? "translate-y-0 opacity-100 transition-all duration-700 ease-out" : "";
 
   const ctaHref = hasViewerSession ? directConnectHref : preScoutCreateHref;
   const startDirectConnect = (
@@ -705,7 +725,7 @@ export default function WholesalerProfileTheme({
               data-fallback-index="0"
               onError={handleStoneImageError(stone)}
               onLoad={handleStoneImageLoad(stone)}
-              className="h-full w-full bg-stone-200 object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full bg-stone-200 object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
             />
           ) : (
             <span className="flex h-full items-center justify-center px-5 text-sm font-semibold text-stone-600">
@@ -790,14 +810,25 @@ export default function WholesalerProfileTheme({
         <div
           className={`container mx-auto items-center px-3 md:px-8 ${
             isJwStone
-              ? "grid h-14 grid-cols-[1fr_auto_1fr] md:h-[72px]"
+              ? "grid h-14 grid-cols-[44px_1fr_auto] gap-1 md:h-[72px] md:grid-cols-[1fr_auto_1fr]"
               : "flex justify-between gap-3 py-2 md:py-3"
           }`}
         >
           {isJwStone ? (
             <>
               {isProfileHome ? (
-                <span aria-hidden="true" className="h-10 w-10 justify-self-start" />
+                <a
+                  href={tradeScoutReturnHref}
+                  aria-label={
+                    hasViewerSession
+                      ? "Close JW Stone and return to Direct Connect"
+                      : "Close JW Stone and return to TradeScout"
+                  }
+                  title={hasViewerSession ? "Return to Direct Connect" : "Return to TradeScout"}
+                  className="inline-flex h-10 w-10 items-center justify-center justify-self-start rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
+                >
+                  <X className="h-4.5 w-4.5" />
+                </a>
               ) : (
                 <button
                   type="button"
@@ -825,26 +856,16 @@ export default function WholesalerProfileTheme({
                   label=""
                   className="rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
                 />
-                {isProfileHome ? null : (
-                  <a
-                    href={tradeScoutReturnHref}
-                    aria-label={
-                      hasViewerSession
-                        ? "Close JW Stone and return to Direct Connect"
-                        : "Close JW Stone and return to TradeScout"
-                    }
-                    title={hasViewerSession ? "Return to Direct Connect" : "Return to TradeScout"}
-                    className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
-                  >
-                    <X className="h-4.5 w-4.5" />
-                  </a>
-                )}
                 <button
                   type="button"
                   onClick={() => startDirectConnect()}
-                  className="hidden flex-shrink-0 rounded-full border border-ts-orange/45 bg-ts-orange/5 px-3.5 py-2.5 text-xs font-bold text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 sm:inline-flex md:px-5 md:text-sm"
+                  aria-label="Direct Connect with JW Stone"
+                  className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-ts-orange/45 bg-ts-orange/5 text-ts-orange shadow-sm transition-colors hover:bg-ts-orange/10 sm:h-auto sm:w-auto sm:px-3.5 sm:py-2.5 md:px-5 md:text-sm"
                 >
-                  Direct Connect
+                  <MessageCircle className="h-4 w-4 sm:hidden" />
+                  <span className="hidden text-xs font-bold sm:inline md:text-sm">
+                    Direct Connect
+                  </span>
                 </button>
               </div>
             </>
@@ -932,30 +953,40 @@ export default function WholesalerProfileTheme({
             ? "min-h-[460px] md:min-h-[600px]"
             : "min-h-[min(690px,calc(100svh-150px))] bg-cover bg-center md:min-h-[500px]"
         }`}
-        // eslint-disable-next-line no-restricted-syntax -- backgroundImage needs the runtime per-business photo URL, can't be a static class
-        style={
-          !isJwStone && heroImage
-            ? {
-                backgroundImage: `linear-gradient(to bottom, rgba(20,14,8,0.12) 0%, rgba(20,14,8,0.42) 40%, rgba(20,14,8,0.92) 100%), url(${heroImage})`,
-              }
-            : undefined
-        }
       >
+        {!isJwStone && heroImage ? (
+          <img
+            src={heroImage}
+            alt=""
+            aria-hidden="true"
+            className={`absolute inset-0 h-full w-full bg-stone-950 object-center ${
+              premiumProductData ? "object-contain" : "object-cover"
+            }`}
+          />
+        ) : null}
         {isJwStone ? (
           <video
-            autoPlay
+            ref={heroVideoRef}
+            autoPlay={!prefersReducedMotion}
             muted
             playsInline
             poster="/images/businesses/jw-stone/video/hero-poster.jpg"
             aria-hidden="true"
             className={`absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[5500ms] ease-out ${
-              heroVideoZoomed ? "scale-105 md:scale-[1.25]" : "scale-100"
+              heroVideoZoomed ? "scale-100 md:scale-[1.12]" : "scale-100"
             }`}
           >
             <source src="/images/businesses/jw-stone/video/hero.mp4" type="video/mp4" />
           </video>
         ) : null}
-        {/* A 1.25x centered scale shows the middle 80% of the image: a 10% crop on every side. */}
+        <span
+          aria-hidden="true"
+          className={`absolute inset-0 ${
+            isJwStone
+              ? "bg-[linear-gradient(90deg,rgba(9,7,4,0.92)_0%,rgba(9,7,4,0.72)_44%,rgba(9,7,4,0.3)_78%,rgba(9,7,4,0.5)_100%)]"
+              : "bg-[linear-gradient(180deg,rgba(20,14,8,0.22)_0%,rgba(20,14,8,0.54)_42%,rgba(20,14,8,0.96)_100%)] md:bg-[linear-gradient(90deg,rgba(20,14,8,0.82)_0%,rgba(20,14,8,0.5)_55%,rgba(20,14,8,0.26)_100%)]"
+          }`}
+        />
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
             isJwStone ? "md:px-8" : "md:px-6 md:text-center"
@@ -1097,14 +1128,14 @@ export default function WholesalerProfileTheme({
                         project.
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-4">
+                    <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0">
                       {featuredStones.map((offer, offerIndex) => {
                         const stone = offer.stone;
                         if (!stone) return null;
                         return (
                           <article
                             key={offer.slug}
-                            className="group flex flex-col overflow-hidden rounded-xl border border-[#241d0f]/15 bg-white text-left shadow-[0_10px_30px_rgba(36,29,15,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-accent)]/55 hover:shadow-[0_18px_40px_rgba(36,29,15,0.14)] sm:rounded-2xl"
+                            className="group flex w-[82vw] max-w-[320px] flex-none snap-start flex-col overflow-hidden rounded-xl border border-[#241d0f]/15 bg-white text-left shadow-[0_10px_30px_rgba(36,29,15,0.08)] transition duration-300 hover:-translate-y-1 hover:border-[var(--brand-accent)]/55 hover:shadow-[0_18px_40px_rgba(36,29,15,0.14)] sm:w-auto sm:max-w-none sm:rounded-2xl"
                             data-testid="jw-stone-featured-product-card"
                           >
                             <div className="relative aspect-[4/3] overflow-hidden bg-[#e9e5dc]">
@@ -1123,7 +1154,7 @@ export default function WholesalerProfileTheme({
                                   data-fallback-index="0"
                                   onError={handleStoneImageError(stone)}
                                   onLoad={handleStoneImageLoad(stone)}
-                                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                                  className="h-full w-full bg-[#e9e5dc] object-contain p-1 transition-transform duration-500 group-hover:scale-[1.02]"
                                 />
                               </button>
                               <span className="absolute left-2 top-2 inline-flex items-center rounded-full border border-white/40 bg-black/55 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
@@ -1485,12 +1516,14 @@ export default function WholesalerProfileTheme({
           {openStone ? (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-3 sm:p-6"
-              onClick={() => setOpenStone(null)}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${openStone.name} photo gallery`}
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setOpenStone(null);
+              }}
             >
-              <div
-                className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#0f0d09]"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[#0f0d09]">
                 <div className="flex items-start justify-between gap-4 px-5 py-4">
                   <div>
                     <h3 className={`text-lg font-bold text-white sm:text-xl ${DISPLAY_FONT}`}>
@@ -1711,16 +1744,14 @@ export default function WholesalerProfileTheme({
                     <figure
                       key={image.src}
                       className={`group relative overflow-hidden rounded-2xl bg-black ${
-                        index === 0 ? "sm:col-span-2" : ""
-                      }`}
+                        index < 2 ? "aspect-[40/27]" : "aspect-square"
+                      } ${index === 0 ? "sm:col-span-2" : ""}`}
                     >
                       <img
                         src={image.src}
                         alt={image.alt}
                         loading="lazy"
-                        className={`w-full object-cover transition-transform duration-500 group-hover:scale-[1.02] ${
-                          index === 0 ? "h-64 sm:h-[28rem]" : "h-72 sm:h-80"
-                        }`}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                       />
                       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent px-5 pb-5 pt-16">
                         <figcaption className="text-sm font-semibold text-white md:text-base">
@@ -1788,11 +1819,11 @@ export default function WholesalerProfileTheme({
                     View all inventory
                   </a>
                 </div>
-                <div className="grid gap-5 md:grid-cols-3">
+                <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
                   {jwStonePicks.map((stone, index) => (
                     <article
                       key={stone.slug}
-                      className="overflow-hidden rounded-2xl border border-[var(--brand-primary)]/10 bg-white shadow-sm"
+                      className="w-[82vw] max-w-[340px] flex-none snap-start overflow-hidden rounded-2xl border border-[var(--brand-primary)]/10 bg-white shadow-sm md:w-auto md:max-w-none"
                     >
                       <div className="relative h-64 overflow-hidden bg-stone-200">
                         <button
@@ -1808,7 +1839,7 @@ export default function WholesalerProfileTheme({
                             src={stone.images[0]}
                             alt={stone.name}
                             loading={index === 0 ? "eager" : "lazy"}
-                            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                            className="h-full w-full bg-stone-200 object-contain p-1 transition-transform duration-300 hover:scale-[1.02]"
                           />
                         </button>
                         <ShareButton

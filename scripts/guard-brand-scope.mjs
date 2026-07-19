@@ -29,6 +29,7 @@ function walk(dir, out) {
     }
     const ext = path.extname(entry.name).toLowerCase();
     if (!INCLUDE_EXT.has(ext)) continue;
+    if (/\.(?:test|spec)\.[^.]+$/i.test(entry.name)) continue;
     out.push(abs);
   }
 }

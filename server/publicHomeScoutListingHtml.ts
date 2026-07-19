@@ -70,7 +70,7 @@ export async function buildPublicHomeScoutListingHtml(
 
   const title = formatTradeScoutTitle(`${meta.title} | HomeScout`);
   const imageUrl =
-    meta.imageUrl || `${options.origin.replace(/\/$/, "")}/tradescout-social-preview.png?v=11`;
+    meta.imageUrl || `${options.origin.replace(/\/$/, "")}/tradescout-social-preview.png?v=12`;
   const usesDefaultImage = !meta.imageUrl;
   const price = Number(publicListing.price);
   const propertyType = String(publicListing.propertyType || "house").toLowerCase();

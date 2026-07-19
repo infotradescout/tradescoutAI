@@ -18,6 +18,7 @@ import { registerStarterActionDescriptors } from "./lib/actionDescriptorSeeds";
 import { getRecentActivity } from "./agent/activity";
 import { evaluateProgressiveExposure } from "./lib/progressiveExposure";
 import TradeScoutBackground from "./components/TradeScoutBackground";
+import { Toaster } from "./components/ui/toaster";
 
 // Only load essential components eagerly
 import SimpleMobileGestures from "./components/SimpleMobileGestures";
@@ -378,6 +379,7 @@ const App = memo(function App() {
                 <Router>
                   <AppLayout />
                 </Router>
+                <Toaster />
               </SessionProvider>
             </ThemeProvider>
           </QueryClientProvider>

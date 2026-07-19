@@ -400,7 +400,7 @@ export default function ExpressDirectConnectPanel({
                   autoComplete="name"
                   value={form.name}
                   onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
+                  className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -412,7 +412,7 @@ export default function ExpressDirectConnectPanel({
                     autoComplete="email"
                     value={form.email}
                     onChange={(event) => setForm({ ...form, email: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
+                    className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
                   />
                 </label>
                 <label className="block">
@@ -427,7 +427,7 @@ export default function ExpressDirectConnectPanel({
                     placeholder="(555) 555-5555"
                     value={form.phone}
                     onChange={(event) => setForm({ ...form, phone: event.target.value })}
-                    className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
+                    className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
                   />
                 </label>
               </div>
@@ -443,7 +443,7 @@ export default function ExpressDirectConnectPanel({
                       requestType: event.target.value as ExpressDirectConnectRequestType,
                     })
                   }
-                  className="w-full rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
+                  className="w-full rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none focus:border-ts-orange"
                 >
                   {config.requestTypes.map((type) => (
                     <option key={type.value} value={type.value}>
@@ -461,7 +461,7 @@ export default function ExpressDirectConnectPanel({
                   value={form.message}
                   onChange={(event) => setForm({ ...form, message: event.target.value })}
                   placeholder={config.placeholder}
-                  className="w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-neutral-900 outline-none focus:border-ts-orange"
+                  className="w-full resize-y rounded-xl border border-black/15 !bg-white px-4 py-3 !text-neutral-900 outline-none placeholder:!text-stone-400 focus:border-ts-orange"
                 />
               </label>
               <input

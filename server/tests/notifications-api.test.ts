@@ -42,7 +42,10 @@ describeDb("notifications summary helpers", () => {
     await db.delete(homeownerAssociations).where(eq(homeownerAssociations.name, hoaName));
 
     await db.delete(contractors).where(eq(contractors.slug, contractorSlug));
-    await db.delete(users).where(inArray(users.id, [userId, contractorUserId]));
+
+    // User fixture IDs are unique per run. Avoid the unbounded parent-row
+    // cascade across the long-lived test database; scoped child data is removed
+    // above, matching the other integration fixture suites.
   }
 
   beforeAll(async () => {
