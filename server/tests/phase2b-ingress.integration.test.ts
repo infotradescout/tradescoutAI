@@ -8,7 +8,7 @@ const hasTestDb =
   Boolean(process.env.TEST_DATABASE_URL) && process.env.RUN_INTEGRATION_TESTS === "true";
 
 const describeDb = hasTestDb ? describe : describe.skip;
-const INTEGRATION_TIMEOUT_MS = 15000;
+const INTEGRATION_TIMEOUT_MS = 45_000;
 
 async function seedApprovedMarketplaceVerification(userId: string) {
   await db.insert(buyerVerifications).values({

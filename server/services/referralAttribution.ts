@@ -3,6 +3,7 @@ import { eq, and, isNull } from "drizzle-orm";
 import { db } from "../db";
 import { storage } from "../storage";
 import { affiliateAccounts, affiliateReferrals, users } from "@shared/schema";
+import { mirrorInfinityTouch } from "../integrations/infinityShadow";
 
 // Shared by every surface that can attribute a visit or signup to an
 // affiliate: the normal www routes (server/routes.ts), the generic /r/:slug
@@ -80,6 +81,13 @@ export async function recordReferralClick(params: {
     conversionType: params.conversionType || "click",
     couponCode: null,
   } as any);
+  void mirrorInfinityTouch({
+    partnerId: String(account.affiliateId || account.id),
+    affiliateTag: referralCode,
+    canonicalPath: params.destination,
+    source: params.source || "unknown",
+    carrier: params.source === "universal_ref" ? "path_segment" : "query_ref",
+  });
 }
 
 export async function persistLifetimeReferralOwner(params: {

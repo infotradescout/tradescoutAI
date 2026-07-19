@@ -2,11 +2,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+const read = (relativePath: string) =>
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
+
 const profileCopySources = [
   "shared/localServiceProfile.ts",
   "shared/jrsAutoGlassProfile.ts",
   "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
   "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
+  "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
   "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
   "client/src/pages/ProfileSiteView.tsx",
   "client/src/pages/PublicProfileView.tsx",
@@ -38,5 +42,21 @@ describe("public profile copy patterns", () => {
         expect(source, relativePath).not.toMatch(forbiddenLabel);
       }
     }
+  });
+
+  it("keeps deprecated trust-card filler off the public profile experience", () => {
+    const trustSurfaces = [
+      "client/src/components/profile/PublicProfileTrustActions.tsx",
+      "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
+      "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
+      "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
+      "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+    ].map((relativePath) => read(relativePath));
+    const publicCopy = trustSurfaces.join("\n");
+
+    expect(publicCopy).toContain("Community Verification Score");
+    expect(publicCopy).not.toContain("TradeScout Trust Snapshot");
+    expect(publicCopy).not.toContain("The useful proof, without the sales fog.");
+    expect(publicCopy).not.toContain("You&apos;re here early");
   });
 });

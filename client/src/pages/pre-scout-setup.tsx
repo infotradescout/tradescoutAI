@@ -1166,7 +1166,13 @@ export default function PreScoutSetup() {
                     </label>
                     {createError && (
                       <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2">
-                        <p className="text-xs text-destructive">{createError}</p>
+                        <p
+                          role="alert"
+                          data-testid="signup-error"
+                          className="text-xs text-destructive"
+                        >
+                          {createError}
+                        </p>
                         {(createErrorCode === "AUTH_ACCOUNT_EXISTS" ||
                           createErrorCode === "AUTH_ACCOUNT_EXISTS_SOCIAL_ONLY") && (
                           <button

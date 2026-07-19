@@ -1552,7 +1552,7 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
         {shouldShowEmptyContext ? <EmptyContextHint /> : null}
       </ProgressiveSection>
       <ProgressiveSection
-        title="More to explore"
+        title="More ways to use Scout"
         description="Browse homes, vehicles, projects, listings, people, and community."
       >
         <ExploreGrid onPromptSelect={onPromptSelect} />

@@ -34,7 +34,10 @@ describeDb("community causes route integration", () => {
       .delete(communityCauses)
       .where(inArray(communityCauses.id, [...causeIds, ...noVoteCauseIds]));
     await db.delete(profiles).where(inArray(profiles.id, [profileId, noVoteProfileId]));
-    await db.delete(users).where(inArray(users.id, [ownerUserId, noVoteOwnerUserId, ...voterIds]));
+
+    // User fixture IDs are unique per run. Deleting parent user rows from the
+    // long-lived test database fans out across hundreds of foreign keys and can
+    // turn an otherwise passing suite into a teardown timeout.
   }
 
   beforeAll(async () => {

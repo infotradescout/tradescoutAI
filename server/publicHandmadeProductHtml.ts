@@ -79,7 +79,7 @@ export async function buildPublicHandmadeProductHtml(
   const imageUrl =
     listHandmadeProductImageUrls(product)
       .map((image) => absoluteImageUrl(origin, image))
-      .find(Boolean) || `${origin}/tradescout-social-preview.png?v=11`;
+      .find(Boolean) || `${origin}/tradescout-social-preview.png?v=12`;
   const price = Number(product.price);
   const currency = String(product.currency || "USD")
     .toUpperCase()

@@ -11,6 +11,9 @@ describe("Direct Connect mobile composer hierarchy", () => {
 
     expect(source).toContain('data-testid="direct-connect-mobile-composer"');
     expect(source).toContain("What do you need?");
+    expect(source).toContain(
+      "Describe the result, product, service, opportunity, or support you are looking for. You decide who sees it."
+    );
     expect(source).not.toContain("Want the directory instead?");
     expect(source).not.toContain("Calling opens from the profile after the contact gate.");
   });

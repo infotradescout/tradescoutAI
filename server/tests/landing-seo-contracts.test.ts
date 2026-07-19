@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { buildPublicLandingHtml } from "../publicLandingHtml";
@@ -77,5 +78,47 @@ describe("landing SEO contracts", () => {
     expect(html).not.toContain("handoff doctrine");
     expect(html).not.toContain("backend routing system");
     expect(html).not.toContain("operating system architecture");
+  });
+
+  it("serves the reviewed Connection Without Compromise share card", () => {
+    const shareImage = fs.readFileSync(
+      path.resolve(process.cwd(), "client/public/tradescout-social-preview.png")
+    );
+    const metadataSources = [
+      read("client/index.html"),
+      read("client/src/components/PageHead.tsx"),
+      read("client/src/components/SEOHelmet.tsx"),
+      read("client/src/pages/TradePartnerCumulusLanding.tsx"),
+      read("server/index.ts"),
+      read("server/invoicingDocumentsRouter.ts"),
+      read("server/publicCityHtml.ts"),
+      read("server/publicContractorPromoHtml.ts"),
+      read("server/publicCountyHtml.ts"),
+      read("server/publicDatasetsHtml.ts"),
+      read("server/publicExchangeHtml.ts"),
+      read("server/publicExchangeListingHtml.ts"),
+      read("server/publicHandmadeProductHtml.ts"),
+      read("server/publicHomeScoutListingHtml.ts"),
+      read("server/publicLandingHtml.ts"),
+      read("server/publicBestHtml.ts"),
+      read("server/publicRecentHtml.ts"),
+      read("server/publicTradeCityHtml.ts"),
+      read("server/publicTradeHtml.ts"),
+      read("server/routes.ts"),
+      read("server/routes/worker-tasks.ts"),
+      read("server/workRequestShareHtml.ts"),
+    ];
+
+    expect(shareImage.subarray(1, 4).toString("ascii")).toBe("PNG");
+    expect(shareImage.readUInt32BE(16)).toBe(1200);
+    expect(shareImage.readUInt32BE(20)).toBe(630);
+    expect(createHash("sha256").update(shareImage).digest("hex")).toBe(
+      "7fd82d236c22abfd8b29c35f609624c50517db22040a512b981472e2727ca806"
+    );
+
+    for (const source of metadataSources) {
+      expect(source).toContain("/tradescout-social-preview.png?v=12");
+      expect(source).not.toContain("/tradescout-social-preview.png?v=11");
+    }
   });
 });

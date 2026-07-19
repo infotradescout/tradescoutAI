@@ -6,12 +6,14 @@ import { ensureSeoDirectoryScopeSnapshotTables } from "../services/seoDirectoryS
 import { db, pool } from "../db";
 import { ensureTradePartnerTables } from "../db/ensureTradePartnerTables";
 import { PRIMARY_TRADE_SLUGS, slugifyCountyName } from "../../shared/tradeSeo";
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, or, sql } from "drizzle-orm";
 import {
+  businessVerifications,
   businesses,
   contractors,
   homeScoutListings,
   profiles,
+  publicProfileEngagements,
   recommendations,
   trustSnapshots,
   users,
@@ -25,7 +27,7 @@ import {
   type PublicBusinessListingCard,
 } from "../../shared/publicBusinessListing";
 import { buildExposureAuthorityMap } from "../services/exposureAuthority";
-import { getActiveCvsBoostPoints } from "../services/cvsBoostPolicy";
+import { getActiveCvsBoosts, type ActiveCvsBoost } from "../services/cvsBoostPolicy";
 import { hasDirectConnectPhone } from "../services/directConnectPhone";
 import {
   buildPublicHomeScoutListingCards,
@@ -37,6 +39,25 @@ import {
 } from "../../shared/contractorPromoShare";
 
 const router = Router();
+
+// Trust snapshots are produced daily. Two days permits one delayed run while
+// preventing a stale approval or score from remaining public indefinitely.
+const PUBLIC_TRUST_SNAPSHOT_MAX_AGE_MS = 48 * 60 * 60 * 1000;
+const THIRTY_DAY_COMPARATOR_TARGET_MS = 30 * 24 * 60 * 60 * 1000;
+const THIRTY_DAY_COMPARATOR_TOLERANCE_MS = 2 * 24 * 60 * 60 * 1000;
+
+const CONTRACTOR_VERIFICATION_ROLES = new Set([
+  "contractor",
+  "handyman",
+  "service_provider",
+  "specialty_tradesperson",
+  "inspector",
+  "realtor",
+  "mortgage_broker",
+  "insurance_agent",
+  "car_dealer",
+  "auto_service",
+]);
 
 const CORE_STATIC_PATHS = [
   "/",
@@ -657,6 +678,45 @@ router.put("/api/users/active-profile", isAuthenticated, async (req, res) => {
   }
 });
 
+type PublicProfileContractorBinding = {
+  id: string;
+  userId: string | null;
+  businessId: string | null;
+  companyName: string;
+  slug: string;
+};
+
+async function getPublicProfileContractorBinding(
+  ownerUserId: string,
+  businessId: string | null | undefined
+): Promise<PublicProfileContractorBinding | null> {
+  const normalizedOwnerUserId = String(ownerUserId || "").trim();
+  const normalizedBusinessId = String(businessId || "").trim();
+  if (!normalizedOwnerUserId || !normalizedBusinessId) return null;
+
+  const matches = await db
+    .select({
+      id: contractors.id,
+      userId: contractors.userId,
+      businessId: contractors.businessId,
+      companyName: contractors.companyName,
+      slug: contractors.slug,
+    })
+    .from(contractors)
+    .where(
+      and(
+        eq(contractors.userId, normalizedOwnerUserId),
+        eq(contractors.businessId, normalizedBusinessId)
+      )
+    )
+    .limit(2);
+
+  // A provider action must identify exactly one contractor row for this
+  // profile's linked business. Never fall back to another company owned by the
+  // same account, and fail closed if legacy data contains duplicate bindings.
+  return matches.length === 1 ? matches[0] : null;
+}
+
 const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const profile = await storage.getProfileBySlugPublic(slug);
 
@@ -678,46 +738,282 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     return res.status(404).json({ message: "Profile not found" });
   }
 
+  const now = new Date();
+  const ownerRoles = Array.isArray(ownerUser.roles) ? ownerUser.roles : [];
+  const isContractorRole = [ownerUser.role, profile.roleContext, ...ownerRoles].some((role) =>
+    CONTRACTOR_VERIFICATION_ROLES.has(
+      String(role || "")
+        .trim()
+        .toLowerCase()
+    )
+  );
+  const currentCredentialStatuses: Record<"license" | "insurance", string | null> = {
+    license: null,
+    insurance: null,
+  };
+  if (isContractorRole) {
+    const currentCredentialRows = await db
+      .select({
+        verificationType: businessVerifications.verificationType,
+        status: businessVerifications.status,
+        expiresAt: businessVerifications.expiresAt,
+      })
+      .from(businessVerifications)
+      .where(
+        and(
+          eq(businessVerifications.providerUserId, ownerUserId),
+          or(
+            eq(businessVerifications.verificationType, "license"),
+            eq(businessVerifications.verificationType, "insurance")
+          )
+        )
+      )
+      .orderBy(
+        desc(sql`COALESCE(${businessVerifications.verifiedAt}, ${businessVerifications.createdAt})`)
+      );
+    for (const row of currentCredentialRows) {
+      const verificationType = String(row.verificationType) as "license" | "insurance";
+      if (!Object.prototype.hasOwnProperty.call(currentCredentialStatuses, verificationType)) {
+        continue;
+      }
+      if (currentCredentialStatuses[verificationType] !== null) continue;
+      const normalizedStatus = String(row.status || "")
+        .trim()
+        .toLowerCase();
+      currentCredentialStatuses[verificationType] =
+        row.expiresAt && row.expiresAt <= now ? "expired" : normalizedStatus;
+    }
+  }
+
   const business = profile.businessId
     ? await storage.getBusinessPublicById(profile.businessId)
     : undefined;
+  const latestTrustSnapshotScope = ownerUser.countyFips
+    ? and(
+        eq(trustSnapshots.userId, ownerUserId),
+        eq(trustSnapshots.countyFips, String(ownerUser.countyFips))
+      )
+    : eq(trustSnapshots.userId, ownerUserId);
   const [latestTrustSnapshot] = await db
     .select({
       cvsScore: trustSnapshots.cvsScore,
       verificationStatus: trustSnapshots.verificationStatus,
+      licenseStatus: trustSnapshots.licenseStatus,
+      insuranceStatus: trustSnapshots.insuranceStatus,
       computedAt: trustSnapshots.computedAt,
+      countyFips: trustSnapshots.countyFips,
+      riskFlags: trustSnapshots.riskFlags,
+      version: trustSnapshots.version,
     })
     .from(trustSnapshots)
-    .where(
-      ownerUser.countyFips
-        ? and(
-            eq(trustSnapshots.userId, ownerUserId),
-            eq(trustSnapshots.countyFips, String(ownerUser.countyFips))
-          )
-        : eq(trustSnapshots.userId, ownerUserId)
-    )
+    .where(latestTrustSnapshotScope)
     .orderBy(desc(trustSnapshots.computedAt))
     .limit(1);
-  const publicVerificationStatus = String(
-    latestTrustSnapshot?.verificationStatus || ownerUser.verificationStatus || ""
-  )
+  let firstTrustSnapshot: { cvsScore: string; computedAt: Date | null } | undefined;
+  let prior30DayTrustSnapshot: { cvsScore: string; computedAt: Date | null } | undefined;
+  if (
+    latestTrustSnapshot?.computedAt &&
+    latestTrustSnapshot.countyFips &&
+    latestTrustSnapshot.version != null
+  ) {
+    const lifetimeTrustSnapshotScope = and(
+      eq(trustSnapshots.userId, ownerUserId),
+      eq(trustSnapshots.countyFips, latestTrustSnapshot.countyFips),
+      eq(trustSnapshots.version, latestTrustSnapshot.version)
+    );
+    const thirtyDayTarget = new Date(now.getTime() - THIRTY_DAY_COMPARATOR_TARGET_MS);
+    const thirtyDayWindowStart = new Date(
+      thirtyDayTarget.getTime() - THIRTY_DAY_COMPARATOR_TOLERANCE_MS
+    );
+    const thirtyDayWindowEnd = new Date(
+      thirtyDayTarget.getTime() + THIRTY_DAY_COMPARATOR_TOLERANCE_MS
+    );
+    const [[firstSnapshot], prior30DayCandidates] = await Promise.all([
+      db
+        .select({
+          cvsScore: trustSnapshots.cvsScore,
+          computedAt: trustSnapshots.computedAt,
+        })
+        .from(trustSnapshots)
+        .where(lifetimeTrustSnapshotScope)
+        .orderBy(asc(trustSnapshots.computedAt))
+        .limit(1),
+      db
+        .select({
+          cvsScore: trustSnapshots.cvsScore,
+          computedAt: trustSnapshots.computedAt,
+        })
+        .from(trustSnapshots)
+        .where(
+          and(
+            lifetimeTrustSnapshotScope,
+            gte(trustSnapshots.computedAt, thirtyDayWindowStart),
+            lte(trustSnapshots.computedAt, thirtyDayWindowEnd)
+          )
+        )
+        .orderBy(desc(trustSnapshots.computedAt))
+        .limit(10),
+    ]);
+    firstTrustSnapshot = firstSnapshot;
+    prior30DayTrustSnapshot = prior30DayCandidates.reduce(
+      (
+        closest: { cvsScore: string; computedAt: Date | null } | undefined,
+        candidate: { cvsScore: string; computedAt: Date | null }
+      ) => {
+        if (!candidate.computedAt) return closest;
+        if (!closest?.computedAt) return candidate;
+        const candidateDistance = Math.abs(
+          candidate.computedAt.getTime() - thirtyDayTarget.getTime()
+        );
+        const closestDistance = Math.abs(closest.computedAt.getTime() - thirtyDayTarget.getTime());
+        return candidateDistance < closestDistance ? candidate : closest;
+      },
+      undefined as { cvsScore: string; computedAt: Date | null } | undefined
+    );
+  }
+  const currentVerificationStatus = String(ownerUser.verificationStatus || "")
     .trim()
     .toLowerCase();
-  const publicCvsScore = Number(latestTrustSnapshot?.cvsScore);
-  let publicCvsBoostPoints = 0;
-  try {
-    publicCvsBoostPoints = await getActiveCvsBoostPoints(ownerUserId);
-  } catch (error) {
-    console.warn("[profiles] Failed to load active CVS boost breakdown", {
-      ownerUserId,
-      error,
-    });
+  const snapshotVerificationStatus = String(latestTrustSnapshot?.verificationStatus || "")
+    .trim()
+    .toLowerCase();
+  // Current account state is authoritative. A rejected/suspended account or a
+  // newly unverified address must override yesterday's approved snapshot.
+  const publicVerificationStatus = currentVerificationStatus || snapshotVerificationStatus;
+  const latestSnapshotAgeMs = latestTrustSnapshot?.computedAt
+    ? now.getTime() - latestTrustSnapshot.computedAt.getTime()
+    : Number.POSITIVE_INFINITY;
+  const snapshotIsFresh =
+    latestSnapshotAgeMs >= 0 && latestSnapshotAgeMs <= PUBLIC_TRUST_SNAPSHOT_MAX_AGE_MS;
+  const snapshotVerificationMatchesCurrent =
+    Boolean(currentVerificationStatus) && currentVerificationStatus === snapshotVerificationStatus;
+  const currentCredentialHardFailure = (
+    Object.keys(currentCredentialStatuses) as Array<keyof typeof currentCredentialStatuses>
+  ).some((type) => {
+    const status = currentCredentialStatuses[type];
+    return status !== null && status !== "approved";
+  });
+  const currentCredentialsMatchSnapshot = (
+    Object.keys(currentCredentialStatuses) as Array<keyof typeof currentCredentialStatuses>
+  ).every((type) => {
+    const currentStatus = currentCredentialStatuses[type];
+    if (currentStatus === null) return true;
+    const snapshotStatus = String(
+      type === "license"
+        ? latestTrustSnapshot?.licenseStatus || ""
+        : latestTrustSnapshot?.insuranceStatus || ""
+    )
+      .trim()
+      .toLowerCase();
+    return currentStatus === snapshotStatus;
+  });
+  const currentTrustStateEligible =
+    publicVerificationStatus === "approved" &&
+    ownerUser.addressVerified === true &&
+    !currentCredentialHardFailure;
+  const snapshotCvsScore = Number(latestTrustSnapshot?.cvsScore);
+  const snapshotRiskFlags = Array.isArray(latestTrustSnapshot?.riskFlags)
+    ? latestTrustSnapshot.riskFlags
+    : [];
+  const snapshotBoostEligible =
+    snapshotIsFresh &&
+    snapshotVerificationMatchesCurrent &&
+    currentCredentialsMatchSnapshot &&
+    currentTrustStateEligible &&
+    !snapshotRiskFlags.some((flag) =>
+      [
+        "unverified_address",
+        "verification_not_approved",
+        "license_unverified",
+        "insurance_unverified",
+        "verification_rejected",
+        "verification_suspended",
+      ].includes(String(flag))
+    );
+  let activeCvsBoosts: ActiveCvsBoost[] = [];
+  let publicCvsScore: number | null = null;
+  let publicCvsPerformanceScore: number | null = null;
+  if (
+    Number.isFinite(snapshotCvsScore) &&
+    latestTrustSnapshot?.computedAt &&
+    snapshotIsFresh &&
+    snapshotVerificationMatchesCurrent &&
+    currentCredentialsMatchSnapshot &&
+    currentTrustStateEligible
+  ) {
+    if (!snapshotBoostEligible) {
+      // The scorer does not apply policy boosts until all verification gates
+      // pass, even if a grant exists in the ledger.
+      publicCvsPerformanceScore = Math.min(100, Math.max(0, snapshotCvsScore));
+      publicCvsScore = snapshotCvsScore;
+    } else {
+      try {
+        const currentBoostAsOf = now;
+        const [snapshotCvsBoosts, currentCvsBoosts] = await Promise.all([
+          getActiveCvsBoosts(ownerUserId, latestTrustSnapshot.computedAt),
+          getActiveCvsBoosts(ownerUserId, currentBoostAsOf),
+        ]);
+        const snapshotCvsBoostPoints = snapshotCvsBoosts.reduce(
+          (sum, boost) => sum + boost.points,
+          0
+        );
+        publicCvsPerformanceScore = Math.min(
+          100,
+          Math.max(0, snapshotCvsScore - snapshotCvsBoostPoints)
+        );
+        activeCvsBoosts = currentCvsBoosts;
+        publicCvsScore =
+          publicCvsPerformanceScore + activeCvsBoosts.reduce((sum, boost) => sum + boost.points, 0);
+      } catch (error) {
+        // Fail closed instead of publishing a historical total with a current
+        // boost breakdown that no longer reconciles to it.
+        console.warn("[profiles] Failed to reconcile Community Verification Score boosts", {
+          ownerUserId,
+          error,
+        });
+      }
+    }
   }
-  const publicCvsPerformanceScore = Number.isFinite(publicCvsScore)
-    ? Math.max(0, publicCvsScore - publicCvsBoostPoints)
-    : null;
+  const publicCvsBoostPoints = activeCvsBoosts.reduce((sum, boost) => sum + boost.points, 0);
+  const prior30DayScore = Number(prior30DayTrustSnapshot?.cvsScore);
+  const publicScoreChange30d =
+    publicCvsScore !== null && Number.isFinite(prior30DayScore)
+      ? Number((publicCvsScore - prior30DayScore).toFixed(2))
+      : null;
+  const firstSnapshotScore = Number(firstTrustSnapshot?.cvsScore);
+  const hasDistinctLifetimeSnapshot = Boolean(
+    firstTrustSnapshot?.computedAt &&
+    latestTrustSnapshot?.computedAt &&
+    firstTrustSnapshot.computedAt.getTime() < latestTrustSnapshot.computedAt.getTime()
+  );
+  const publicLifetimeScoreChange =
+    publicCvsScore !== null && hasDistinctLifetimeSnapshot && Number.isFinite(firstSnapshotScore)
+      ? Number((publicCvsScore - firstSnapshotScore).toFixed(2))
+      : null;
+  const ownerPreferences =
+    ownerUser.preferences && typeof ownerUser.preferences === "object" ? ownerUser.preferences : {};
+  const ownerAllowsPublicBadges =
+    ownerPreferences.badges?.show !== false &&
+    ownerPreferences.profileSections?.rolesAndBadges !== false;
+  const publicProfileBadges = !ownerAllowsPublicBadges
+    ? []
+    : Array.from(
+        new Set(
+          [
+            ...(Array.isArray(ownerUser.badges) ? ownerUser.badges : []),
+            ...(ownerRoles.includes("community_builder") ? ["Community Builder Badge"] : []),
+          ]
+            .filter((badge): badge is string => typeof badge === "string")
+            .map((badge) => badge.trim())
+            .filter(Boolean)
+        )
+      );
   const isPubliclyVerified =
-    publicVerificationStatus === "approved" && ownerUser.verifiedBadge === true;
+    currentTrustStateEligible &&
+    snapshotIsFresh &&
+    snapshotVerificationMatchesCurrent &&
+    currentCredentialsMatchSnapshot &&
+    ownerUser.verifiedBadge === true;
   let directConnectOwnerUserId: string | undefined;
   let ownerConfirmedDirectProfile = false;
   let hasGatedDirectConnectPhone = false;
@@ -760,10 +1056,21 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         tradePartner: business.tradePartner === true,
         verificationStatus: publicVerificationStatus || null,
         verifiedBadge: isPubliclyVerified,
-        cvsScore: Number.isFinite(publicCvsScore) ? publicCvsScore : null,
+        cvsScore: publicCvsScore,
         cvsPerformanceScore: publicCvsPerformanceScore,
         cvsBoostPoints: publicCvsBoostPoints,
         trustComputedAt: latestTrustSnapshot?.computedAt?.toISOString?.() || null,
+        communityVerification: {
+          score: publicCvsScore,
+          scoreHistoryStartsAt: firstTrustSnapshot?.computedAt?.toISOString?.() || null,
+          lifetimeScoreChange: publicLifetimeScoreChange,
+          scoreChange30d: publicScoreChange30d,
+          scoreChange30dComparedAt: prior30DayTrustSnapshot?.computedAt?.toISOString?.() || null,
+          activePolicyBoostPoints: publicCvsBoostPoints,
+          activeBoosts: activeCvsBoosts,
+          badges: publicProfileBadges,
+          computedAt: latestTrustSnapshot?.computedAt?.toISOString?.() || null,
+        },
         expressContactCapabilities: {
           // Public profiles always preserve the Direct Connect gate. A phone
           // number stored for private routing never becomes a bypass.
@@ -795,6 +1102,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     recommendationType: "positive" | "negative";
     comment: string;
     projectType: string | null;
+    customerName: string;
     contractor: {
       id: string;
       companyName: string;
@@ -807,16 +1115,16 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     positive: 0,
     negative: 0,
   };
+  let recommendationDirectoryMode: "received" | "authored" = "authored";
 
   try {
-    const [owner] = await db
-      .select({ ownerUserId: profiles.ownerUserId })
-      .from(profiles)
-      .where(eq(profiles.id, profile.id))
-      .limit(1);
-
-    const ownerUserId = String(owner?.ownerUserId || "").trim();
-    if (ownerUserId) {
+    const hasLinkedBusiness = Boolean(profile.businessId);
+    const ownerContractor = await getPublicProfileContractorBinding(
+      ownerUserId,
+      profile.businessId
+    );
+    recommendationDirectoryMode = hasLinkedBusiness ? "received" : "authored";
+    if (ownerUserId && (ownerContractor || !hasLinkedBusiness)) {
       const rows = await db
         .select({
           id: recommendations.id,
@@ -824,6 +1132,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
           recommendationType: recommendations.recommendationType,
           comment: recommendations.comment,
           projectType: recommendations.projectType,
+          customerName: recommendations.customerName,
           contractorId: contractors.id,
           contractorUserId: contractors.userId,
           contractorCompanyName: contractors.companyName,
@@ -833,7 +1142,12 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         .innerJoin(contractors, eq(recommendations.contractorId, contractors.id))
         .where(
           and(
-            eq(recommendations.userId, ownerUserId),
+            hasLinkedBusiness && ownerContractor
+              ? // Business/provider profiles show approved experiences they
+                // received. Community profiles retain the existing directory
+                // of recommendations the member authored about providers.
+                eq(recommendations.contractorId, ownerContractor.id)
+              : eq(recommendations.userId, ownerUserId),
             eq(recommendations.isPublic, true),
             eq(recommendations.moderationStatus, "approved")
           )
@@ -842,30 +1156,32 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         .limit(100);
 
       const canonicalBusinessUrlByUserId = new Map<string, string>();
-      await Promise.all(
-        rows.map(async (row) => {
-          const contractorUserId = String(row.contractorUserId || "").trim();
-          if (!contractorUserId || canonicalBusinessUrlByUserId.has(contractorUserId)) return;
+      if (!hasLinkedBusiness) {
+        await Promise.all(
+          rows.map(async (row) => {
+            const contractorUserId = String(row.contractorUserId || "").trim();
+            if (!contractorUserId || canonicalBusinessUrlByUserId.has(contractorUserId)) return;
 
-          const businessProfile = await storage.getBusinessProfileByUserId(contractorUserId);
-          const [contractorUser] = await db
-            .select()
-            .from(users)
-            .where(eq(users.id, contractorUserId))
-            .limit(1);
-          const canShowBusinessProfile =
-            businessProfile?.visibility === "public" &&
-            typeof businessProfile.slug === "string" &&
-            businessProfile.slug.trim() &&
-            isBusinessDiscoverable(contractorUser);
-          if (canShowBusinessProfile) {
-            canonicalBusinessUrlByUserId.set(
-              contractorUserId,
-              `/business/${encodeURIComponent(businessProfile.slug.trim())}`
-            );
-          }
-        })
-      );
+            const businessProfile = await storage.getBusinessProfileByUserId(contractorUserId);
+            const [contractorUser] = await db
+              .select()
+              .from(users)
+              .where(eq(users.id, contractorUserId))
+              .limit(1);
+            const canShowBusinessProfile =
+              businessProfile?.visibility === "public" &&
+              typeof businessProfile.slug === "string" &&
+              businessProfile.slug.trim() &&
+              isBusinessDiscoverable(contractorUser);
+            if (canShowBusinessProfile) {
+              canonicalBusinessUrlByUserId.set(
+                contractorUserId,
+                `/business/${encodeURIComponent(businessProfile.slug.trim())}`
+              );
+            }
+          })
+        );
+      }
 
       recommendationsDirectory = rows
         .filter((row) => {
@@ -880,12 +1196,18 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
             | "negative",
           comment: String(row.comment || ""),
           projectType: row.projectType ? String(row.projectType) : null,
+          customerName: String(row.customerName || "TradeScout member"),
           contractor: {
             id: String(row.contractorId),
             companyName: String(row.contractorCompanyName || "Service provider"),
             slug: String(row.contractorSlug || ""),
-            canonicalBusinessProfileUrl:
-              canonicalBusinessUrlByUserId.get(String(row.contractorUserId || "").trim()) ?? null,
+            // This directory already lives on the provider's canonical
+            // profile, so linking each customer quote back to the same
+            // provider page would be a circular and misleading attribution.
+            canonicalBusinessProfileUrl: hasLinkedBusiness
+              ? null
+              : (canonicalBusinessUrlByUserId.get(String(row.contractorUserId || "").trim()) ??
+                null),
           },
         }));
 
@@ -1072,6 +1394,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
     business: safeBusiness,
     recommendationsDirectory,
     recommendationDirectorySummary,
+    recommendationDirectoryMode,
     profileItems: {
       offers: publicProfileOffers,
       handmadeProducts: publicHandmadeProducts,
@@ -1083,6 +1406,131 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   });
 };
 
+const publicProfileTrustActionSchema = z.enum(["like", "favorite"]);
+
+type PublicProfileTrustContext = {
+  profileId: string;
+  profileSlug: string;
+  ownerUserId: string;
+  contractor: { id: string; companyName: string } | null;
+};
+
+async function getPublicProfileTrustContext(
+  rawSlug: string
+): Promise<PublicProfileTrustContext | null> {
+  const slug = rawSlug.trim();
+  if (!slug) return null;
+
+  const profile = await storage.getProfileBySlugPublic(slug);
+  if (!profile) return null;
+
+  const [profileOwner] = await db
+    .select({ ownerUserId: profiles.ownerUserId })
+    .from(profiles)
+    .where(eq(profiles.id, profile.id))
+    .limit(1);
+  const ownerUserId = String(profileOwner?.ownerUserId || "").trim();
+  if (!ownerUserId) return null;
+
+  const [ownerUser] = await db.select().from(users).where(eq(users.id, ownerUserId)).limit(1);
+  if (!ownerUser) return null;
+
+  if (profile.businessId) {
+    const [linkedBusiness] = await db
+      .select({
+        ownerUserId: businesses.ownerUserId,
+        sources: businesses.sources,
+        publicDiscoveryEnabled: businesses.publicDiscoveryEnabled,
+        status: businesses.status,
+      })
+      .from(businesses)
+      .where(eq(businesses.id, profile.businessId))
+      .limit(1);
+    const ownerConfirmedDirectProfile = isOwnerConfirmedDirectProfile({
+      profileSlug: profile.slug,
+      profileStatus: "published",
+      profileOwnerUserId: ownerUserId,
+      businessStatus: linkedBusiness?.status,
+      businessOwnerUserId: linkedBusiness?.ownerUserId,
+      publicDiscoveryEnabled: linkedBusiness?.publicDiscoveryEnabled,
+      businessSources: linkedBusiness?.sources,
+    });
+    if (!isBusinessDiscoverable(ownerUser) && !ownerConfirmedDirectProfile) return null;
+  }
+
+  const contractor = await getPublicProfileContractorBinding(ownerUserId, profile.businessId);
+  return {
+    profileId: String(profile.id),
+    profileSlug: String(profile.slug),
+    ownerUserId,
+    contractor: contractor
+      ? {
+          id: String(contractor.id),
+          companyName: String(contractor.companyName || profile.displayName),
+        }
+      : null,
+  };
+}
+
+async function readPublicProfileTrustActions(
+  context: PublicProfileTrustContext,
+  viewerUserId: string
+) {
+  const [engagementCounts, viewerRows, recommendationRows] = await Promise.all([
+    db
+      .select({
+        action: publicProfileEngagements.action,
+        total: sql<number>`count(*)::int`,
+      })
+      .from(publicProfileEngagements)
+      .where(eq(publicProfileEngagements.profileId, context.profileId))
+      .groupBy(publicProfileEngagements.action),
+    viewerUserId
+      ? db
+          .select({ action: publicProfileEngagements.action })
+          .from(publicProfileEngagements)
+          .where(
+            and(
+              eq(publicProfileEngagements.profileId, context.profileId),
+              eq(publicProfileEngagements.userId, viewerUserId)
+            )
+          )
+      : Promise.resolve([]),
+    context.contractor
+      ? db
+          .select({ total: sql<number>`count(*)::int` })
+          .from(recommendations)
+          .where(
+            and(
+              eq(recommendations.contractorId, context.contractor.id),
+              eq(recommendations.recommendationType, "positive"),
+              eq(recommendations.isPublic, true),
+              eq(recommendations.moderationStatus, "approved")
+            )
+          )
+      : Promise.resolve([{ total: 0 }]),
+  ]);
+
+  const totals = new Map(engagementCounts.map((row) => [row.action, Number(row.total || 0)]));
+  const viewerActions = new Set(viewerRows.map((row) => row.action));
+
+  return {
+    profileSlug: context.profileSlug,
+    likeCount: totals.get("like") || 0,
+    favoriteCount: totals.get("favorite") || 0,
+    recommendationCount: Number(recommendationRows[0]?.total || 0),
+    viewerLiked: viewerActions.has("like"),
+    viewerFavorited: viewerActions.has("favorite"),
+    viewerIsOwner: Boolean(viewerUserId && viewerUserId === context.ownerUserId),
+    recommendationTarget: context.contractor
+      ? {
+          contractorId: context.contractor.id,
+          contractorName: context.contractor.companyName,
+        }
+      : null,
+  };
+}
+
 // Public website read (canonical): returns public Profile + public Business subset if linked.
 router.get("/api/u/:slug", async (req, res) => {
   try {
@@ -1091,6 +1539,83 @@ router.get("/api/u/:slug", async (req, res) => {
   } catch (error: any) {
     console.error("Error fetching public profile:", error);
     res.status(500).json({ message: "Failed to fetch profile" });
+  }
+});
+
+// Public-profile actions never write to CVS, trust snapshots, boosts, or
+// exposure/ranking state. Recommend continues through the separately
+// moderated contractor recommendation endpoint.
+router.get("/api/u/:slug/trust-actions", async (req, res) => {
+  try {
+    const context = await getPublicProfileTrustContext(String(req.params.slug || ""));
+    if (!context) return res.status(404).json({ message: "Profile not found" });
+
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(await readPublicProfileTrustActions(context, getAuthedUserId(req)));
+  } catch (error) {
+    console.error("[profiles] Failed loading public profile trust actions:", error);
+    return res.status(500).json({ message: "Failed to load profile actions" });
+  }
+});
+
+router.post("/api/u/:slug/trust-actions/:action", isAuthenticated, async (req, res) => {
+  try {
+    const viewerUserId = getAuthedUserId(req);
+    if (!viewerUserId) return res.status(401).json({ message: "Not authenticated" });
+    const action = publicProfileTrustActionSchema.parse(req.params.action);
+    const context = await getPublicProfileTrustContext(String(req.params.slug || ""));
+    if (!context) return res.status(404).json({ message: "Profile not found" });
+    if (viewerUserId === context.ownerUserId) {
+      return res.status(403).json({
+        message: "Profile owners cannot engage with their own profile",
+      });
+    }
+
+    await db
+      .insert(publicProfileEngagements)
+      .values({ profileId: context.profileId, userId: viewerUserId, action })
+      .onConflictDoNothing();
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(await readPublicProfileTrustActions(context, viewerUserId));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Action must be like or favorite" });
+    }
+    console.error("[profiles] Failed saving public profile trust action:", error);
+    return res.status(500).json({ message: "Failed to save profile action" });
+  }
+});
+
+router.delete("/api/u/:slug/trust-actions/:action", isAuthenticated, async (req, res) => {
+  try {
+    const viewerUserId = getAuthedUserId(req);
+    if (!viewerUserId) return res.status(401).json({ message: "Not authenticated" });
+    const action = publicProfileTrustActionSchema.parse(req.params.action);
+    const context = await getPublicProfileTrustContext(String(req.params.slug || ""));
+    if (!context) return res.status(404).json({ message: "Profile not found" });
+    if (viewerUserId === context.ownerUserId) {
+      return res.status(403).json({
+        message: "Profile owners cannot engage with their own profile",
+      });
+    }
+
+    await db
+      .delete(publicProfileEngagements)
+      .where(
+        and(
+          eq(publicProfileEngagements.profileId, context.profileId),
+          eq(publicProfileEngagements.userId, viewerUserId),
+          eq(publicProfileEngagements.action, action)
+        )
+      );
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.json(await readPublicProfileTrustActions(context, viewerUserId));
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ message: "Action must be like or favorite" });
+    }
+    console.error("[profiles] Failed removing public profile trust action:", error);
+    return res.status(500).json({ message: "Failed to remove profile action" });
   }
 });
 

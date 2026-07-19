@@ -754,8 +754,22 @@
     {
       "idx": 107,
       "version": "7",
-      "when": 1784221260000,
-      "tag": "0104_notification_type_direct_connect_beta_request",
+      "when": 1784397115000,
+      "tag": "0104_public_profile_engagements",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1784435802514,
+      "tag": "0105_contractor_promo_project_request_count",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1784435862514,
+      "tag": "0106_notification_type_direct_connect_beta_request",
       "breakpoints": true
     }
   ]

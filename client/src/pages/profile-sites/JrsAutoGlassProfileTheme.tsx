@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Link } from "wouter";
 import { ShareButton } from "@/components/ShareButton";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import {
@@ -39,6 +38,7 @@ type RecommendationEntry = {
   recommendationType: "positive" | "negative";
   comment: string;
   projectType: string | null;
+  customerName: string;
   contractor: {
     companyName: string;
     canonicalBusinessProfileUrl?: string | null;
@@ -55,6 +55,7 @@ type Props = {
   galleryItems?: ResolvedProfileGalleryItem[];
   sharedGallerySlug?: string | null;
   recommendationsDirectory?: RecommendationEntry[];
+  trustActions?: ReactNode;
   profileItems?: ReactNode;
 };
 
@@ -71,6 +72,7 @@ export default function JrsAutoGlassProfileTheme({
   galleryItems = [],
   sharedGallerySlug = null,
   recommendationsDirectory = [],
+  trustActions,
   profileItems,
 }: Props) {
   const publicRecommendations = recommendationsDirectory.filter(
@@ -115,7 +117,10 @@ export default function JrsAutoGlassProfileTheme({
       </header>
 
       <div className="mx-auto max-w-3xl bg-[#0d0d0d] sm:border-x sm:border-white/10">
-        <section aria-label="JR's Auto Glass cover" className="border-b border-white/10 bg-black">
+        <section
+          aria-label="JR's Auto Glass cover"
+          className="hidden border-b border-white/10 bg-black sm:block"
+        >
           <img
             src={`${assetRoot}/cover.webp`}
             alt="JR's Auto Glass"
@@ -150,25 +155,16 @@ export default function JrsAutoGlassProfileTheme({
             Direct Connect
             <ChevronRight className="h-4 w-4" />
           </button>
-          <p className="mt-2 text-center text-[11px] font-medium text-zinc-500">
+          <p className="mt-2 text-center text-[11px] font-medium text-zinc-400">
             Tell JR&apos;s what happened. Your contact details stay private.
           </p>
-          <div className="mt-3 flex justify-center">
-            <ShareButton
-              destination={profileShareDestination}
-              title="JR's Auto Glass"
-              text="Mobile auto glass service in Ponchatoula, Louisiana"
-              variant="ghost"
-              className="text-zinc-300 hover:bg-white/10 hover:text-white"
-              label="Share JR's"
-            />
-          </div>
+          {trustActions ? <div className="mt-4">{trustActions}</div> : null}
         </section>
 
         <section className="border-b border-white/10 px-4 py-5 sm:px-6">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-base font-black text-white">Services</h2>
-            <p className="text-xs font-semibold text-zinc-500">All makes and models</p>
+            <p className="text-xs font-semibold text-zinc-400">All makes and models</p>
           </div>
 
           <div className="mt-4 grid grid-cols-2 overflow-hidden rounded-xl border border-white/10 sm:grid-cols-4">
@@ -184,7 +180,10 @@ export default function JrsAutoGlassProfileTheme({
           </div>
         </section>
 
-        <section className="border-b border-white/10 px-4 py-5 sm:px-6">
+        <section
+          id="recent-work"
+          className="scroll-mt-20 border-b border-white/10 px-4 py-5 sm:px-6"
+        >
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-red-500">
@@ -192,7 +191,7 @@ export default function JrsAutoGlassProfileTheme({
               </p>
               <h2 className="mt-1 text-xl font-black text-white">Windshield replacement</h2>
             </div>
-            <p className="text-xs font-semibold text-zinc-500">Before and after</p>
+            <p className="text-xs font-semibold text-zinc-400">Before and after</p>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
@@ -209,7 +208,7 @@ export default function JrsAutoGlassProfileTheme({
                   <img
                     src={item.imageUrl}
                     alt={item.imageAlt}
-                    className="aspect-[4/3] h-full w-full object-cover"
+                    className="aspect-video w-full object-contain"
                   />
                   <figcaption className="absolute bottom-2 left-2 rounded bg-red-600 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-white">
                     {index === 0 ? "Before" : index === 1 ? "After" : item.title}
@@ -245,51 +244,34 @@ export default function JrsAutoGlassProfileTheme({
             <h2 className="text-base font-black text-white">Customer recommendations</h2>
           </div>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Recommendations from customers will appear here.
+            Published customer recommendations from TradeScout.
           </p>
 
           {publicRecommendations.length > 0 ? (
             <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
-              {publicRecommendations.slice(0, 6).map((entry) => {
-                const content = (
-                  <>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-white">{entry.contractor.companyName}</p>
-                      {entry.projectType ? (
-                        <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-ts-orange">
-                          {entry.projectType}
-                        </p>
-                      ) : null}
-                      {entry.comment ? (
-                        <p className="mt-2 text-sm leading-5 text-zinc-400">{entry.comment}</p>
-                      ) : null}
-                    </div>
-                    {entry.contractor.canonicalBusinessProfileUrl ? (
-                      <ChevronRight className="h-4 w-4 flex-none text-zinc-500" />
+              {publicRecommendations.slice(0, 6).map((entry) => (
+                <div key={entry.id} className="flex items-center gap-3 p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-white">
+                      {entry.customerName || "TradeScout member"}
+                    </p>
+                    {entry.projectType ? (
+                      <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-ts-orange">
+                        {entry.projectType}
+                      </p>
                     ) : null}
-                  </>
-                );
-
-                return entry.contractor.canonicalBusinessProfileUrl ? (
-                  <Link
-                    key={entry.id}
-                    href={entry.contractor.canonicalBusinessProfileUrl}
-                    className="flex items-center gap-3 p-4 transition-colors hover:bg-white/5"
-                  >
-                    {content}
-                  </Link>
-                ) : (
-                  <div key={entry.id} className="flex items-center gap-3 p-4">
-                    {content}
+                    {entry.comment ? (
+                      <p className="mt-2 text-sm leading-5 text-zinc-400">{entry.comment}</p>
+                    ) : null}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="mt-4 flex items-center gap-3 rounded-xl border border-white/10 px-4 py-3">
               <ShieldCheck className="h-4 w-4 flex-none text-red-500" />
               <p className="text-sm font-semibold text-zinc-300">
-                You&apos;re here early. The first customer recommendations are coming soon.
+                0 customer recommendations have been published.
               </p>
             </div>
           )}
@@ -323,7 +305,7 @@ export default function JrsAutoGlassProfileTheme({
             Direct Connect
             <ChevronRight className="h-4 w-4" />
           </button>
-          <p className="mt-3 text-center text-xs leading-5 text-zinc-500">
+          <p className="mt-3 text-center text-xs leading-5 text-zinc-400">
             JR&apos;s won&apos;t see your contact details unless they accept the request.
           </p>
         </section>

@@ -10,6 +10,29 @@ Before making changes to platform architecture, routing, onboarding, HomeID, Sco
 
 This document is the canonical platform architecture and doctrine reference.
 
+## Codex Contributions
+
+OpenAI Codex is an active engineering collaborator on TradeScout. Codex-assisted work in this
+repository includes production implementation, debugging, tests, release verification, and UX
+polish across several core surfaces:
+
+- Public-profile architecture and branded operating profiles for JW Stone, Honey Onyx,
+  LA Plumbing, JR's Auto Glass, and ProFab Specialty Services.
+- TradeScout-native Like, Recommend, Favorite, and Share actions that preserve recommendation
+  moderation, contact privacy, and the separation between community engagement and verification.
+- Clear public verification context, including available score history, 30-day movement, active
+  policy boosts, visible profile badges, and honest incomplete-history states.
+- Direct Connect request clarity, profile-to-request context preservation, and privacy-gated
+  contact paths.
+- The public landing/About explainer, responsive mobile behavior, dropdown affordances, and
+  the Connection Without Compromise social-share presentation.
+- Mobile profile and image QA, custom-domain cache hardening, regression contracts, deployment
+  checks, crawler/SEO verification, and production hardening.
+
+Product doctrine, business rules, and final acceptance remain owned by the TradeScout team. Codex
+contributions are kept reviewable through the same source-control and pull-request process as all
+other production changes.
+
 ## Local Development
 
 **Prerequisites:** Node.js + a Postgres database

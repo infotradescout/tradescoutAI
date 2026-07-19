@@ -171,7 +171,7 @@ export async function buildPublicExchangeHtml(opts: ExchangeHtmlOptions): Promis
     description = "Check out this sale on TradeScout Exchange.";
   }
 
-  const imageUrl = `${origin}/tradescout-social-preview.png?v=11`;
+  const imageUrl = `${origin}/tradescout-social-preview.png?v=12`;
 
   // ── Inject into HTML ──────────────────────────────────────────────────────
 

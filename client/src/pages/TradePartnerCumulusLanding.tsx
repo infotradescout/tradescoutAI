@@ -1067,7 +1067,7 @@ export default function TradePartnerCumulusLanding() {
           description={seoDescription}
           keywords={seoKeywords}
           canonical={seoCanonical}
-          ogImage="/tradescout-social-preview.png?v=11"
+          ogImage="/tradescout-social-preview.png?v=12"
           structuredData={structuredData}
         />
         <header className="tpc-hero tpc-rise">

@@ -26,13 +26,17 @@ import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
-import LocalServiceProfileTheme from "@/pages/profile-sites/LocalServiceProfileTheme";
+import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
+import LocalServiceProfileTheme, {
+  type PublicCommunityVerification,
+} from "@/pages/profile-sites/LocalServiceProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
   PublicProfileItems,
   type CanonicalProfileItems,
 } from "@/components/profile/PublicProfileItems";
+import { PublicProfileTrustActions } from "@/components/profile/PublicProfileTrustActions";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import {
@@ -391,6 +395,7 @@ type PublicBusinessSubset = {
   cvsPerformanceScore?: number | null;
   cvsBoostPoints?: number | null;
   trustComputedAt?: string | null;
+  communityVerification?: PublicCommunityVerification | null;
   expressContactCapabilities?: {
     call?: boolean;
     request?: boolean;
@@ -407,6 +412,7 @@ type PublicProfileResponse = {
     recommendationType: "positive" | "negative";
     comment: string;
     projectType: string | null;
+    customerName: string;
     contractor: {
       id: string;
       companyName: string;
@@ -419,6 +425,7 @@ type PublicProfileResponse = {
     positive: number;
     negative: number;
   };
+  recommendationDirectoryMode?: "received" | "authored";
 };
 
 export default function ProfileSiteView() {
@@ -608,6 +615,7 @@ export default function ProfileSiteView() {
     negative: recommendationsDirectory.filter((row) => row.recommendationType === "negative")
       .length,
   };
+  const recommendationDirectoryMode = data.recommendationDirectoryMode || "authored";
   const profileSections = profile.profileSections || {};
   const showContactCard = profileSections.contactCard !== false;
   const booking = profile.profileBooking || {};
@@ -792,6 +800,20 @@ export default function ProfileSiteView() {
         : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
+  const profileActionSignInHref = `${platformBaseHref}/pre-scout-setup?mode=signin&next=${encodeURIComponent(
+    `/u/${profile.slug}`
+  )}`;
+  const renderProfileTrustActions = (tone: "light" | "dark") => (
+    <PublicProfileTrustActions
+      profileSlug={profile.slug}
+      profileName={displayName}
+      profileShareDestination={profileShareDestination}
+      signInHref={profileActionSignInHref}
+      hasViewerSession={hasViewerSession}
+      initialRecommendationCount={recommendationDirectorySummary.positive}
+      tone={tone}
+    />
+  );
   const aboutText = contentBlocks
     .filter((block) => block && typeof block === "object")
     .map((block: any) => {
@@ -904,6 +926,7 @@ export default function ProfileSiteView() {
           galleryItems={galleryItems}
           sharedGallerySlug={sharedGallerySlug}
           recommendationsDirectory={recommendationsDirectory}
+          trustActions={renderProfileTrustActions("dark")}
           profileItems={
             <PublicProfileItems items={profileItems} profileSections={profileSections} />
           }
@@ -916,6 +939,43 @@ export default function ProfileSiteView() {
           hasViewerSession={hasViewerSession}
           allowCall={canExpressCall}
           requestMode="auto_glass"
+        />
+      </>
+    );
+  }
+
+  if (profile.slug === "pro-fab-specialty-services") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(itemShareMeta)}
+        />
+        <ProFabProfileTheme
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          onDirectConnect={() => setExpressPanelOpen(true)}
+          hasViewerSession={hasViewerSession}
+          tradeScoutReturnHref={tradeScoutReturnHref}
+          recommendationsDirectory={recommendationsDirectory}
+          trustActions={renderProfileTrustActions("dark")}
+          profileItems={
+            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+          }
+        />
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          businessName={displayName}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
         />
       </>
     );
@@ -945,10 +1005,10 @@ export default function ProfileSiteView() {
           galleryItems={galleryItems}
           sharedGallerySlug={sharedGallerySlug}
           recommendationsDirectory={recommendationsDirectory}
+          trustActions={renderProfileTrustActions("dark")}
           verificationStatus={business?.verificationStatus}
-          cvsScore={business?.cvsScore}
-          cvsPerformanceScore={business?.cvsPerformanceScore}
-          cvsBoostPoints={business?.cvsBoostPoints}
+          verifiedBadge={business?.verifiedBadge === true}
+          communityVerification={business?.communityVerification}
           profileItems={
             <PublicProfileItems items={profileItems} profileSections={profileSections} />
           }
@@ -1000,6 +1060,7 @@ export default function ProfileSiteView() {
           preScoutSignInHref={preScoutSignInHref}
           recommendationsDirectory={recommendationsDirectory}
           recommendationDirectorySummary={recommendationDirectorySummary}
+          trustActions={renderProfileTrustActions("light")}
           profileItems={
             <PublicProfileItems items={profileItems} profileSections={profileSections} />
           }
@@ -1084,6 +1145,7 @@ export default function ProfileSiteView() {
         </CardHeader>
 
         <CardContent className="p-4 md:p-6">
+          <div className="mb-6">{renderProfileTrustActions("dark")}</div>
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
               {profileSections.about !== false && (aboutText || profile.headline) ? (
@@ -1122,7 +1184,11 @@ export default function ProfileSiteView() {
               {profileSections.reviews !== false && recommendationsDirectory.length > 0 ? (
                 <section id="recommendations-directory" className="space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="text-white font-semibold text-lg">What people say</h2>
+                    <h2 className="text-white font-semibold text-lg">
+                      {recommendationDirectoryMode === "received"
+                        ? "What people say"
+                        : `Recommendations from ${displayName}`}
+                    </h2>
                     <div className="text-xs text-white/70">
                       {recommendationDirectorySummary.total}{" "}
                       {recommendationDirectorySummary.total === 1
@@ -1131,7 +1197,9 @@ export default function ProfileSiteView() {
                     </div>
                   </div>
                   <p className="text-xs text-white/60">
-                    Recommendations people choose to share appear here.
+                    {recommendationDirectoryMode === "received"
+                      ? "Recommendations people choose to share appear here."
+                      : "Providers this member chose to recommend appear here."}
                   </p>
                   <div className="space-y-3">
                     {recommendationsDirectory.slice(0, 24).map((entry) => (
@@ -1165,7 +1233,11 @@ export default function ProfileSiteView() {
                           </div>
                         </div>
                         <p className="text-sm text-white/80">{entry.comment}</p>
-                        {entry.contractor?.slug ? (
+                        {recommendationDirectoryMode === "received" ? (
+                          <p className="text-xs font-medium text-white/60">
+                            Shared by {entry.customerName || "a TradeScout member"}
+                          </p>
+                        ) : entry.contractor?.slug ? (
                           <Link
                             href={
                               entry.contractor.canonicalBusinessProfileUrl ||

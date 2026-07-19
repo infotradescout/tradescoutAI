@@ -22,7 +22,9 @@ describeDb("messages API helpers", () => {
 
     await db.delete(contractors).where(eq(contractors.slug, contractorSlug as any));
 
-    await db.delete(users).where(inArray(users.id, [userAId, contractorUserId]));
+    // User fixture IDs are unique per run. Avoid the unbounded parent-row
+    // cascade across the long-lived test database; scoped child data is removed
+    // above, matching the other integration fixture suites.
   }
 
   beforeAll(async () => {

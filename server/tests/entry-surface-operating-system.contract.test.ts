@@ -30,7 +30,7 @@ describe("entry surface operating-system contracts", () => {
     expect(source).toContain("TradeScout | The Local Operating System for Community Interaction");
   });
 
-  it("does not reintroduce the retired global beta notice", () => {
+  it("keeps the retired global beta notice out of the application shell", () => {
     const source = read("client/src/App.tsx");
 
     expect(source).not.toContain("TradeScout beta");

@@ -158,6 +158,21 @@ async function ensureCriticalSchema() {
   const client = new Client({ connectionString: testDatabaseUrl });
   await client.connect();
   try {
+    // Keep the lightweight bootstrap aligned with migrations 0103 and 0105. Most CI
+    // lanes intentionally skip the destructive full-sync path, so additive
+    // runtime columns that are exercised by release tests must be reconciled
+    // idempotently here as well.
+    await queryIfTableExists(
+      client,
+      "contractor_promos",
+      "ALTER TABLE contractor_promos ADD COLUMN IF NOT EXISTS image_url varchar(2048)"
+    );
+    await queryIfTableExists(
+      client,
+      "contractor_promos",
+      "ALTER TABLE contractor_promos ADD COLUMN IF NOT EXISTS project_request_count integer DEFAULT 0"
+    );
+
     // HomeID base vault schema. This mirrors migration 0053 so browser/E2E
     // flows do not depend on optional full-sync pushes.
     await client.query(`
@@ -1987,7 +2002,6 @@ async function ensureCriticalSchema() {
       );
     });
 
-
     await client.query(`
       CREATE TABLE IF NOT EXISTS xp_daily_counters (
         user_id varchar NOT NULL,
@@ -2083,12 +2097,7 @@ async function main() {
 
   await withBootstrapLock(async () => {
     if (fullSync) {
-      const pushCode = await runWithInput(
-        "npx",
-        ["drizzle-kit", "push", "--force"],
-        env,
-        "\r"
-      );
+      const pushCode = await runWithInput("npx", ["drizzle-kit", "push", "--force"], env, "\r");
       if (pushCode !== 0) {
         console.error("[bootstrap-test-db] drizzle-kit push failed.");
         process.exit(pushCode);

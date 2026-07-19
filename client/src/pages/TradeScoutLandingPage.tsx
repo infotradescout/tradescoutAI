@@ -4,56 +4,213 @@ import {
   trackDemandEvent,
   withDemandQueryParams,
 } from "@/lib/demandEngine";
+import {
+  explainerChapters,
+  type ExplainerCard,
+  type ExplainerChapter,
+  type ExplainerTopic,
+} from "./tradescoutExplainerData";
 import "./TradeScoutLandingPage.css";
 
 const LANDING_CONVERSION_VARIANT = "hybrid_public_landing";
 const LANDING_PRIMARY_REQUEST_SOURCE = "landing_primary_cta";
+const EXPLAINER_TOPIC_COUNT = explainerChapters.reduce(
+  (total, chapter) => total + chapter.topics.length,
+  0
+);
+const EXPLAINER_FEATURE_COUNT = explainerChapters.reduce(
+  (total, chapter) =>
+    total +
+    chapter.topics.reduce((chapterTotal, topic) => chapterTotal + (topic.features?.length || 0), 0),
+  0
+);
 
-const peopleSteps = [
-  {
-    number: "01",
-    title: "Start with what you need",
-    copy: "Open Scout, search local businesses, check Community, or browse the Exchange. Use whichever path feels natural.",
-  },
-  {
-    number: "02",
-    title: "See the useful proof",
-    copy: "Compare the offer, location, availability, real work, recommendations, and price context without paid ranking deciding for you.",
-  },
-  {
-    number: "03",
-    title: "Choose who gets the request",
-    copy: "Direct Connect sends your request only to the businesses you choose. Your contact information stays private until acceptance.",
-  },
-  {
-    number: "04",
-    title: "Keep the outcome",
-    copy: "Requests, photos, quotes, completed work, and follow-up stay together so the next decision does not start from zero.",
-  },
-];
+function scrollToExplainerAnchor(targetId: string) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
 
-const businessSteps = [
-  {
-    number: "01",
-    title: "Claim or create your profile",
-    copy: "Bring the business, its offer, and the strongest provable facts into one clear public presence.",
-  },
-  {
-    number: "02",
-    title: "Show what makes you worth choosing",
-    copy: "Keep services, products, availability, finished work, recommendations, and relevant proof current in one place.",
-  },
-  {
-    number: "03",
-    title: "Respond to chosen requests",
-    copy: "Review the work before contact opens. Accept what fits, decline what does not, and never buy a resold lead.",
-  },
-  {
-    number: "04",
-    title: "Let good work keep working",
-    copy: "Completed jobs and customer outcomes strengthen the profile naturally instead of disappearing into another app or spreadsheet.",
-  },
-];
+  const scrollRoot = [document.scrollingElement, document.body].find(
+    (surface): surface is HTMLElement =>
+      surface instanceof HTMLElement && surface.scrollHeight > surface.clientHeight + 1
+  );
+  if (!scrollRoot) {
+    target.scrollIntoView({ block: "start", behavior: "auto" });
+    return;
+  }
+
+  const scrollMarginTop = Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+  const nextScrollTop = scrollRoot.scrollTop + target.getBoundingClientRect().top - scrollMarginTop;
+  scrollRoot.scrollTop = Math.max(0, nextScrollTop);
+}
+
+function navigateToExplainerAnchor(event: React.MouseEvent<HTMLAnchorElement>, targetId: string) {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)
+    return;
+
+  event.preventDefault();
+  const nextHash = `#${encodeURIComponent(targetId)}`;
+  if (window.location.hash !== nextHash) {
+    window.history.pushState(null, "", nextHash);
+  }
+  scrollToExplainerAnchor(targetId);
+}
+
+function TradeScoutLogo({ backToTop = false }: { backToTop?: boolean }) {
+  return (
+    <a
+      className="ts-logo"
+      href={backToTop ? "#top" : "/"}
+      aria-label={backToTop ? "Back to top" : "TradeScout home"}
+      onClick={backToTop ? (event) => navigateToExplainerAnchor(event, "top") : undefined}
+    >
+      <span className="ts-logo-initials" aria-hidden="true">
+        TS
+      </span>
+      <span className="ts-logo-word">
+        Trade<strong>Scout</strong>
+      </span>
+    </a>
+  );
+}
+
+function ContentCard({ card }: { card: ExplainerCard }) {
+  const tone = card.tone ? ` ts-explainer-card-${card.tone}` : "";
+  return (
+    <article className={`ts-explainer-card${tone}`}>
+      {card.eyebrow ? <span className="ts-card-eyebrow">{card.eyebrow}</span> : null}
+      <h4>{card.title}</h4>
+      {card.body ? <p>{card.body}</p> : null}
+      {card.bullets?.length ? (
+        <ul>
+          {card.bullets.map((bullet) => (
+            <li key={bullet}>{bullet}</li>
+          ))}
+        </ul>
+      ) : null}
+      {card.chips?.length ? (
+        <div className="ts-card-chips" aria-label="Key conditions">
+          {card.chips.map((chip) => (
+            <span key={chip}>{chip}</span>
+          ))}
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function TopicContent({ topic }: { topic: ExplainerTopic }) {
+  return (
+    <div className="ts-topic-content">
+      {topic.intro ? (
+        <div className="ts-topic-intro">
+          <ContentCard card={{ ...topic.intro, tone: topic.intro.tone || "accent" }} />
+        </div>
+      ) : null}
+
+      {topic.moments?.length ? (
+        <div className="ts-moment-list" role="table" aria-label={`${topic.label} benefits`}>
+          {topic.moments.map((moment) => (
+            <div className="ts-moment-row" role="row" key={moment.number}>
+              <div className="ts-moment-label" role="rowheader">
+                <span>{moment.number}</span>
+                <strong>{moment.title}</strong>
+              </div>
+              <article role="cell">
+                <span>For the requester</span>
+                <h4>{moment.requester.title}</h4>
+                <p>{moment.requester.body}</p>
+              </article>
+              <article role="cell">
+                <span>For the business</span>
+                <h4>{moment.business.title}</h4>
+                <p>{moment.business.body}</p>
+              </article>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {topic.cards?.length ? (
+        <div className="ts-explainer-card-grid">
+          {topic.cards.map((card, index) => (
+            <ContentCard card={card} key={`${card.title}-${index}`} />
+          ))}
+        </div>
+      ) : null}
+
+      {topic.features?.length ? (
+        <div className="ts-feature-grid">
+          {topic.features.map((feature) => (
+            <article className="ts-feature-card" key={feature.number}>
+              <div className="ts-feature-card-heading">
+                <span className="ts-feature-number">{feature.number}</span>
+                <span className="ts-feature-action">{feature.action}</span>
+                <h4>{feature.name}</h4>
+              </div>
+              <p>{feature.description}</p>
+            </article>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ChapterPanel({ chapter }: { chapter: ExplainerChapter }) {
+  return (
+    <section
+      className="ts-explainer-chapter"
+      id={chapter.id}
+      aria-labelledby={`${chapter.id}-title`}
+    >
+      <div className="ts-chapter-heading">
+        <div>
+          <span className="ts-section-kicker">{chapter.kicker}</span>
+          <h2 id={`${chapter.id}-title`}>{chapter.title}</h2>
+        </div>
+        {chapter.description ? <p>{chapter.description}</p> : null}
+      </div>
+
+      <nav className="ts-topic-index" aria-label={`${chapter.navLabel} topics`}>
+        <span>{String(chapter.topics.length).padStart(2, "0")} topics in this chapter</span>
+        <div>
+          {chapter.topics.map((topic, index) => (
+            <a
+              href={`#${chapter.id}-${topic.id}`}
+              key={topic.id}
+              onClick={(event) => navigateToExplainerAnchor(event, `${chapter.id}-${topic.id}`)}
+            >
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              {topic.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+
+      <div className="ts-topic-list">
+        {chapter.topics.map((topic, topicIndex) => (
+          <section
+            className="ts-topic-section"
+            id={`${chapter.id}-${topic.id}`}
+            aria-labelledby={`${chapter.id}-${topic.id}-title`}
+            key={topic.id}
+          >
+            <header className="ts-topic-heading">
+              <span>
+                Topic {String(topicIndex + 1).padStart(2, "0")} /{" "}
+                {String(chapter.topics.length).padStart(2, "0")}
+              </span>
+              <h3 id={`${chapter.id}-${topic.id}-title`}>{topic.label}</h3>
+            </header>
+            <TopicContent topic={topic} />
+          </section>
+        ))}
+      </div>
+
+      {chapter.boundary ? <aside className="ts-chapter-boundary">{chapter.boundary}</aside> : null}
+    </section>
+  );
+}
 
 export default function TradeScoutLandingPage() {
   useEffect(() => {
@@ -62,6 +219,49 @@ export default function TradeScoutLandingPage() {
       variant: LANDING_CONVERSION_VARIANT,
       surface: "public_landing",
     });
+  }, []);
+
+  useEffect(() => {
+    const scrollSurfaces = [
+      document.documentElement,
+      document.body,
+      document.getElementById("root"),
+      document.getElementById("top"),
+    ].filter((surface): surface is HTMLElement => Boolean(surface));
+    const previousScrollBehaviors = scrollSurfaces.map((surface) => surface.style.scrollBehavior);
+    scrollSurfaces.forEach((surface) => {
+      surface.style.scrollBehavior = "auto";
+    });
+
+    const scrollToCurrentAnchor = () => {
+      const encodedId = String(window.location.hash || "").replace(/^#/, "");
+      if (!encodedId) return;
+
+      let targetId = encodedId;
+      try {
+        targetId = decodeURIComponent(encodedId);
+      } catch {
+        // Keep the literal hash when it is not valid URI encoding.
+      }
+
+      const scrollToTarget = () => scrollToExplainerAnchor(targetId);
+
+      window.requestAnimationFrame(scrollToTarget);
+      void document.fonts.ready.then(() => {
+        window.requestAnimationFrame(scrollToTarget);
+      });
+    };
+
+    scrollToCurrentAnchor();
+    window.addEventListener("hashchange", scrollToCurrentAnchor);
+    window.addEventListener("popstate", scrollToCurrentAnchor);
+    return () => {
+      window.removeEventListener("hashchange", scrollToCurrentAnchor);
+      window.removeEventListener("popstate", scrollToCurrentAnchor);
+      scrollSurfaces.forEach((surface, index) => {
+        surface.style.scrollBehavior = previousScrollBehaviors[index];
+      });
+    };
   }, []);
 
   const directConnectHref = withDemandQueryParams(
@@ -83,176 +283,82 @@ export default function TradeScoutLandingPage() {
   return (
     <main className="ts-landing-shell" id="top">
       <header className="ts-header" aria-label="TradeScout primary header">
-        <a className="ts-logo" href="/" aria-label="TradeScout home">
-          <img
-            className="ts-logo-mark"
-            src="/tradescout-logo-circle.png?v=10"
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-          />
-          <span className="ts-logo-text">TradeScout</span>
-        </a>
-
-        <nav className="ts-primary-nav" aria-label="Landing page navigation">
-          <a href="#people">For people</a>
-          <a href="#businesses">For businesses</a>
-          <a href="#two-paths">Use it your way</a>
-          <a href="#pricing">Pricing</a>
+        <TradeScoutLogo />
+        <span className="ts-header-context">Plain-language system explainer</span>
+        <nav className="ts-primary-nav" aria-label="Landing page actions">
           <a href="/login">Log in</a>
           <a
-            className="ts-nav-scout"
-            href={scoutHref}
-            onClick={() => trackClick("open_scout_header", "/scout")}
+            className="ts-nav-request"
+            href={directConnectHref}
+            onClick={() => trackClick("make_a_request", "/direct-connect")}
           >
-            Open Scout <span aria-hidden="true">↗</span>
+            Make A Request
           </a>
         </nav>
       </header>
 
       <section className="ts-hero" aria-labelledby="ts-hero-title">
         <div className="ts-hero-copy">
-          <p className="ts-kicker">For people and local businesses</p>
-          <h1 id="ts-hero-title">Connection Without Compromise</h1>
-          <p className="ts-hero-declaration">Find what you need. Show what you offer.</p>
+          <p className="ts-kicker">TradeScout for requesters and local businesses</p>
+          <h1 id="ts-hero-title">Connection Without Compromise.</h1>
+          <p className="ts-hero-declaration">Local recommendations should lead somewhere.</p>
           <p className="ts-hero-subheadline">
-            TradeScout brings local discovery, requests, work, and follow-up together without
-            selling your information or forcing either side into a lead auction.
+            Recommendations drive TradeScout. Local experience helps a requester choose, send one
+            protected request, connect only after both sides agree, and record the outcome for the
+            next requester—without selling the lead, ranking, trust, or contact information.
           </p>
-
           <div className="ts-hero-actions" aria-label="Primary actions">
             <a
               className="ts-button ts-button-primary"
+              href={directConnectHref}
+              onClick={() => trackClick("make_a_request", "/direct-connect")}
+            >
+              Make A Request
+            </a>
+            <a
+              className="ts-button ts-button-secondary"
               href={scoutHref}
               onClick={() => trackClick("open_scout", "/scout")}
             >
-              Open Scout <span aria-hidden="true">↗</span>
-            </a>
-            <a className="ts-button ts-button-secondary" href="#start">
-              Explore TradeScout
+              Open Scout ↗
             </a>
           </div>
-
-          <div className="ts-trust-row" aria-label="TradeScout promises">
-            <span>✓ No paid ranking</span>
-            <span>✓ You choose who gets a request</span>
-            <span>✓ Contact opens after acceptance</span>
+          <div className="ts-trust-row" aria-label="TradeScout product rules">
+            <span>✓ Payment cannot buy recommendations</span>
+            <span>✓ The requester chooses who receives a request</span>
+            <span>✓ Both sides choose before contact opens</span>
           </div>
         </div>
-
-        <div className="ts-start-panel" id="start" aria-label="Choose where to start">
-          <p className="ts-panel-label">Pick where to start</p>
-          <article className="ts-start-option">
-            <span className="ts-option-number">01</span>
-            <div>
-              <p className="ts-option-kicker">For people</p>
-              <h2>I need help, information, a product, or something local.</h2>
-              <p>
-                Use Scout or browse normally. When you want to reach someone, you stay in control.
-              </p>
-              <div className="ts-option-actions">
-                <a href="/find-local-businesses">Find local businesses</a>
-                <a
-                  href={directConnectHref}
-                  onClick={() => trackClick("make_a_request", "/direct-connect")}
-                >
-                  Make A Request <span aria-hidden="true">↗</span>
-                </a>
-              </div>
-            </div>
-          </article>
-          <article className="ts-start-option ts-start-option-business">
-            <span className="ts-option-number">02</span>
-            <div>
-              <p className="ts-option-kicker">For businesses</p>
-              <h2>I want people to understand and choose what I offer.</h2>
-              <p>
-                Build on what already works, show real proof, and respond only to chosen requests.
-              </p>
-              <div className="ts-option-actions">
-                <a href="/for-businesses">See how it works</a>
-                <a
-                  href={claimHref}
-                  onClick={() => trackClick("claim_business", "/claim-my-business")}
-                >
-                  Claim my business <span aria-hidden="true">↗</span>
-                </a>
-              </div>
-            </div>
-          </article>
-        </div>
       </section>
 
-      <section
-        className="ts-audience-section ts-people-section"
-        id="people"
-        aria-labelledby="ts-people-title"
-      >
-        <div className="ts-section-intro">
-          <p className="ts-section-kicker">For people</p>
-          <h2 id="ts-people-title">You start with what you need.</h2>
-          <p>
-            A service, a local question, a purchase, a rental, a property decision, or something
-            nearby—the first step should match the real intent.
-          </p>
+      <nav className="ts-chapter-nav" aria-label="TradeScout explainer sections">
+        <div className="ts-chapter-status">
+          <span>Full explainer</span>
+          <strong>
+            {String(explainerChapters.length).padStart(2, "0")} chapters · {EXPLAINER_TOPIC_COUNT}{" "}
+            topics · {EXPLAINER_FEATURE_COUNT} features
+          </strong>
+          <small>Everything is on this page. Read through or jump to a chapter.</small>
         </div>
-        <div className="ts-flow-grid">
-          {peopleSteps.map((step) => (
-            <article className="ts-flow-card" key={step.number}>
-              <span>{step.number}</span>
-              <h3>{step.title}</h3>
-              <p>{step.copy}</p>
-            </article>
+        <div className="ts-chapter-track">
+          {explainerChapters.map((chapter) => (
+            <a
+              href={`#${chapter.id}`}
+              key={chapter.id}
+              onClick={(event) => navigateToExplainerAnchor(event, chapter.id)}
+            >
+              <span>{chapter.number}</span>
+              {chapter.navLabel}
+            </a>
           ))}
         </div>
-        <div className="ts-inline-actions">
-          <a className="ts-text-action ts-text-action-strong" href={scoutHref}>
-            Open Scout ↗
-          </a>
-          <a className="ts-text-action" href="/community-feed">
-            Open Community ↗
-          </a>
-          <a className="ts-text-action" href="/exchange">
-            Browse the Exchange ↗
-          </a>
-        </div>
-      </section>
+      </nav>
 
-      <section
-        className="ts-audience-section ts-business-section"
-        id="businesses"
-        aria-labelledby="ts-business-title"
-      >
-        <div className="ts-section-intro">
-          <p className="ts-section-kicker">For businesses</p>
-          <h2 id="ts-business-title">You start with what you offer.</h2>
-          <p>
-            TradeScout is for the full local economy. Your profile should help people understand the
-            business, choose confidently, and keep the work moving—not give you another marketing
-            job.
-          </p>
-        </div>
-        <div className="ts-flow-grid">
-          {businessSteps.map((step) => (
-            <article className="ts-flow-card" key={step.number}>
-              <span>{step.number}</span>
-              <h3>{step.title}</h3>
-              <p>{step.copy}</p>
-            </article>
-          ))}
-        </div>
-        <div className="ts-inline-actions">
-          <a className="ts-text-action ts-text-action-strong" href={claimHref}>
-            Claim my business ↗
-          </a>
-          <a className="ts-text-action" href="/for-businesses">
-            For businesses ↗
-          </a>
-          <a className="ts-text-action" href="/trust-model">
-            How trust works ↗
-          </a>
-        </div>
-      </section>
+      <div className="ts-explainer-stage">
+        {explainerChapters.map((chapter) => (
+          <ChapterPanel chapter={chapter} key={chapter.id} />
+        ))}
+      </div>
 
       <section className="ts-pricing-reveal" id="pricing" aria-labelledby="ts-pricing-title">
         <div className="ts-pricing-punchline">
@@ -272,95 +378,46 @@ export default function TradeScoutLandingPage() {
             <li>No sold leads.</li>
             <li>No paid ranking.</li>
             <li>No payment required to connect.</li>
-            <li>Sponsored offers stay clearly separate from earned trust.</li>
+            <li>Sponsored offers stay separate from earned trust.</li>
           </ul>
           <a href="/pricing#how-tradescout-earns">See how we earn revenue here</a>
         </div>
       </section>
 
-      <section className="ts-two-paths" id="two-paths" aria-labelledby="ts-two-paths-title">
-        <div className="ts-section-intro ts-section-intro-dark">
-          <p className="ts-section-kicker">One TradeScout</p>
-          <h2 id="ts-two-paths-title">Use it your way.</h2>
-          <p>
-            Everything stays connected whether you tap through TradeScout or use Scout to handle the
-            next step.
-          </p>
-        </div>
-        <div className="ts-path-grid">
-          <article>
-            <p className="ts-path-number">01</p>
-            <h3>Classic TradeScout</h3>
-            <p>
-              Use normal navigation, profiles, directories, Community, Direct Connect, HomeID, and
-              the Exchange.
-            </p>
-            <a href="/find-local-businesses">Explore normally ↗</a>
-          </article>
-          <article>
-            <p className="ts-path-number">02</p>
-            <h3>Scout</h3>
-            <p>
-              Describe what you are trying to do. Scout carries the context, compares useful
-              options, and brings the right action forward.
-            </p>
-            <a href={scoutHref}>Open Scout ↗</a>
-          </article>
-          <article className="ts-path-shared">
-            <p className="ts-path-number">Shared context</p>
-            <h3>Switch without starting over.</h3>
-            <p>
-              Requests, businesses, properties, quotes, jobs, and outcomes remain the same record in
-              both paths.
-            </p>
-          </article>
-        </div>
-      </section>
-
-      <section className="ts-record-layer" aria-labelledby="ts-record-title">
-        <div>
-          <p className="ts-section-kicker">The useful outcome stays useful</p>
-          <h2 id="ts-record-title">The next decision starts with the full story.</h2>
-        </div>
-        <p>
-          Keep the request, selected business, photos, quote, job progress, completed work, and
-          recommendation connected. TradeScout turns each real outcome into better context for the
-          person, the business, and the next local decision.
-        </p>
-      </section>
-
       <section className="ts-final-choice" aria-labelledby="ts-final-title">
-        <p className="ts-section-kicker">Start where you are</p>
-        <h2 id="ts-final-title">What are you here to do?</h2>
+        <p className="ts-section-kicker">Use TradeScout now</p>
+        <h2 id="ts-final-title">Start with the real reason you came.</h2>
         <div className="ts-final-grid">
-          <a href={scoutHref}>
-            <span>For people</span>
-            <strong>Find an option and decide what happens next.</strong>
+          <a
+            className="ts-final-request"
+            href={directConnectHref}
+            onClick={() => trackClick("make_a_request", "/direct-connect")}
+          >
+            <span>I know what I need</span>
+            <strong>Prepare one protected request and choose who sees it.</strong>
+            <em>Make A Request ↗</em>
+          </a>
+          <a href={scoutHref} onClick={() => trackClick("open_scout_final", "/scout")}>
+            <span>I need a clear next step</span>
+            <strong>Use Scout to understand the need and compare the paths.</strong>
             <em>Open Scout ↗</em>
           </a>
-          <a href={claimHref}>
-            <span>For businesses</span>
-            <strong>Show what you offer and receive chosen requests.</strong>
+          <a href={claimHref} onClick={() => trackClick("claim_business", "/claim-my-business")}>
+            <span>I run a business</span>
+            <strong>Claim the business home people can actually use.</strong>
             <em>Claim my business ↗</em>
           </a>
         </div>
       </section>
 
       <footer className="ts-footer">
-        <a className="ts-logo" href="#top" aria-label="Back to top">
-          <img
-            className="ts-logo-mark"
-            src="/tradescout-logo-circle.png?v=10"
-            alt=""
-            aria-hidden="true"
-          />
-          <span className="ts-logo-text">TradeScout</span>
-        </a>
+        <TradeScoutLogo backToTop />
         <p>Connection Without Compromise</p>
         <nav aria-label="Footer navigation">
-          <a href="/how-it-works">How it works</a>
-          <a href="/for-businesses">For businesses</a>
-          <a href="/direct-connect">Direct Connect</a>
+          <a href={directConnectHref}>Direct Connect</a>
+          <a href="/community-feed">Open Community</a>
+          <a href="/find-local-businesses">Businesses</a>
+          <a href="/pricing">Pricing</a>
         </nav>
       </footer>
     </main>

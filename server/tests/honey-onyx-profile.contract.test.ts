@@ -15,6 +15,23 @@ describe("Honey Onyx standalone public profile contract", () => {
   it("publishes Honey Onyx separately while keeping JW Stone as distributor only", () => {
     const provisioner = read("server/services/honeyOnyxProfileProvisioning.ts");
     const entry = read("server/index.ts");
+    const recommendationInsertStart = provisioner.indexOf("} else if (hasNoRecommendationBinding)");
+    const recommendationUpdateStart = provisioner.indexOf(
+      "} else {",
+      recommendationInsertStart + 1
+    );
+    const recommendationBlockEnd = provisioner.indexOf(
+      "const profileValues",
+      recommendationUpdateStart
+    );
+    const newCompatibilityRowPath = provisioner.slice(
+      recommendationInsertStart,
+      recommendationUpdateStart
+    );
+    const existingRecommendationTargetPath = provisioner.slice(
+      recommendationUpdateStart,
+      recommendationBlockEnd
+    );
 
     expect(HONEY_ONYX_PROFILE_SLUG).toBe("honey-onyx");
     expect(HONEY_ONYX_DISTRIBUTOR_NAME).toBe("JW Stone");
@@ -28,6 +45,19 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(provisioner).toContain("publicDiscoveryEnabled: true");
     expect(provisioner).toContain('profileVisibility: "public"');
     expect(provisioner).toContain("profileOwnerUserId === String(steward.id)");
+    expect(provisioner).toContain("eq(contractors.userId, profileOwnerUserId)");
+    expect(provisioner).toContain("eq(contractors.businessId, business.id)");
+    expect(provisioner).toContain("hasNoRecommendationBinding");
+    expect(provisioner).toContain("hasSingleExactRecommendationBinding");
+    expect(provisioner).toContain("contractor binding is ambiguous or conflicting");
+    expect(provisioner).not.toContain('throw new Error("Honey Onyx contractor');
+    expect(provisioner).toContain("userId: profileOwnerUserId");
+    expect(newCompatibilityRowPath).toContain("verifiedLicensed: false");
+    expect(newCompatibilityRowPath).toContain("verifiedInsured: false");
+    expect(newCompatibilityRowPath).toContain("isActive: false");
+    expect(existingRecommendationTargetPath).not.toContain("verifiedLicensed:");
+    expect(existingRecommendationTargetPath).not.toContain("verifiedInsured:");
+    expect(existingRecommendationTargetPath).not.toContain("isActive:");
     expect(provisioner).not.toContain("activeBusinessId");
     expect(provisioner).not.toContain("activeProfileId");
     expect(entry).toContain("await provisionHoneyOnyxProfile()");

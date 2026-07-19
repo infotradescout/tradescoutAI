@@ -41,6 +41,10 @@ function safeImage(images: string[], index: number): string {
   return images[index] || images[0] || "";
 }
 
+function isPortraitProductPhoto(profileSlug: string, index: number): boolean {
+  return profileSlug === "honey-onyx" && (index === 1 || index === 2);
+}
+
 export default function PremiumProductProfileSections({
   profileSlug,
   profileName,
@@ -58,10 +62,25 @@ export default function PremiumProductProfileSections({
     if (activePhoto === null) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActivePhoto(null);
+      if (event.key === "ArrowLeft" && product.images.length > 1) {
+        setActivePhoto((current) =>
+          current === null ? null : (current - 1 + product.images.length) % product.images.length
+        );
+      }
+      if (event.key === "ArrowRight" && product.images.length > 1) {
+        setActivePhoto((current) =>
+          current === null ? null : (current + 1) % product.images.length
+        );
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = previous;
+      window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activePhoto]);
+  }, [activePhoto, product.images.length]);
 
   const openPhoto = (index: number) => setActivePhoto(index);
   const startProductRequest = () => onDirectConnect(product.name);
@@ -100,7 +119,7 @@ export default function PremiumProductProfileSections({
             </p>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-2 lg:gap-5">
+          <div className="grid items-start gap-3 lg:grid-cols-2 lg:gap-5">
             {[
               {
                 label: data.contrast.daylightLabel,
@@ -115,13 +134,15 @@ export default function PremiumProductProfileSections({
                 key={label}
                 type="button"
                 onClick={() => openPhoto(index)}
-                className="group relative min-h-[360px] overflow-hidden rounded-3xl border border-white/10 bg-stone-900 text-left sm:min-h-[520px]"
+                className={`group relative overflow-hidden rounded-3xl border border-white/10 bg-stone-900 text-left ${
+                  isPortraitProductPhoto(profileSlug, index) ? "aspect-[3/4]" : "aspect-[4/3]"
+                }`}
                 aria-label={`Open ${label.toLowerCase()} photo of ${product.name}`}
               >
                 <img
                   src={safeImage(product.images, index)}
                   alt={`${product.name} in ${label.toLowerCase()}`}
-                  className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
+                  className="absolute inset-0 h-full w-full object-contain transition duration-700 group-hover:scale-[1.015]"
                 />
                 <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/5 to-black/10" />
                 <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5 sm:p-7">
@@ -166,25 +187,18 @@ export default function PremiumProductProfileSections({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-12 sm:gap-4">
+          <div className="grid grid-cols-2 items-start gap-2.5 sm:grid-cols-3 sm:gap-4">
             {product.images.map((image, index) => {
               const photoDetail = data.gallery.photos?.[index];
-              const desktopPlacement = [
-                "sm:col-span-7 sm:row-span-2 sm:min-h-[580px]",
-                "sm:col-span-5 sm:min-h-[282px]",
-                "sm:col-span-5 sm:min-h-[282px]",
-                "sm:col-span-4 sm:min-h-[330px]",
-                "sm:col-span-4 sm:min-h-[330px]",
-                "sm:col-span-4 sm:min-h-[330px]",
-              ][index];
+              const isPortrait = isPortraitProductPhoto(profileSlug, index);
               return (
                 <button
                   key={image}
                   type="button"
                   onClick={() => openPhoto(index)}
-                  className={`group relative min-h-[190px] overflow-hidden rounded-2xl bg-stone-300 text-left shadow-sm ${
-                    index === 0 ? "col-span-2 min-h-[280px]" : ""
-                  } ${desktopPlacement || "sm:col-span-4 sm:min-h-[330px]"}`}
+                  className={`group relative overflow-hidden rounded-2xl bg-stone-300 text-left shadow-sm ${
+                    isPortrait ? "aspect-[3/4]" : "aspect-[4/3]"
+                  } ${index === 0 ? "col-span-2 sm:col-span-1" : ""}`}
                   aria-label={`Open ${photoDetail?.title || `${product.name} photo ${index + 1}`} of ${product.images.length}`}
                 >
                   <img
@@ -195,7 +209,7 @@ export default function PremiumProductProfileSections({
                         : `${product.name} material photo ${index + 1}`
                     }
                     loading={index < 2 ? "eager" : "lazy"}
-                    className="absolute inset-0 h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+                    className="absolute inset-0 h-full w-full object-contain transition duration-700 group-hover:scale-[1.015]"
                   />
                   <span className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent opacity-80" />
                   <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 sm:p-5">
@@ -241,14 +255,14 @@ export default function PremiumProductProfileSections({
             {data.applications.items.map((item, index) => (
               <article
                 key={item.title}
-                className="group relative min-h-[360px] overflow-hidden rounded-3xl border border-white/10 bg-stone-900"
+                className="group relative min-h-[320px] overflow-hidden rounded-3xl border border-white/10 bg-black sm:min-h-[360px]"
               >
                 <img
                   src={safeImage(product.images, item.imageIndex)}
                   alt=""
                   aria-hidden="true"
                   loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover opacity-65 transition duration-700 group-hover:scale-[1.025] group-hover:opacity-75"
+                  className="absolute inset-0 h-full w-full object-contain opacity-75 transition duration-700 group-hover:scale-[1.015] group-hover:opacity-85"
                 />
                 <span className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
@@ -347,12 +361,22 @@ export default function PremiumProductProfileSections({
         id="connect"
         className="relative isolate overflow-hidden px-4 py-20 text-white sm:px-6 sm:py-28"
       >
-        <img
-          src={safeImage(product.images, data.closing.imageIndex)}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 -z-20 h-full w-full object-cover"
-        />
+        <picture>
+          {profileSlug === "honey-onyx" ? (
+            <source
+              media="(min-width: 768px)"
+              srcSet={safeImage(product.images, data.contrast.backlitImageIndex)}
+            />
+          ) : null}
+          <img
+            src={safeImage(product.images, data.closing.imageIndex)}
+            alt=""
+            aria-hidden="true"
+            className={`absolute inset-0 -z-20 h-full w-full ${
+              profileSlug === "honey-onyx" ? "object-contain" : "object-cover"
+            }`}
+          />
+        </picture>
         <span className="absolute inset-0 -z-10 bg-gradient-to-r from-black via-black/80 to-black/35" />
         <div className="mx-auto max-w-6xl">
           <div className="max-w-3xl">

@@ -29,7 +29,12 @@ Force insert (ignore 24h window):
 node scripts/backfill-trust-snapshots.mjs --force
 ```
 
-## CVS v3 Scoring (current)
+## CVS v4 Scoring (current)
+
+Version 4 keeps the scoring weights below while tightening signal integrity:
+inactive compatibility contractors are excluded, cumulative local rollups are
+deduplicated, external business evidence stays on one unambiguous business row,
+and audited policy boosts use the shared governed registry.
 
 Verification is the starting line, not a performance reward.
 

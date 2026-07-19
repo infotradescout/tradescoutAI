@@ -99,7 +99,7 @@ test.describe("Pre-Scout auth integrity", () => {
 
     await page.locator(selectors.auth.createAccountSubmitButton).click();
 
-    await expect(page.getByText(/already exists/i)).toBeVisible();
+    await expect(page.getByTestId("signup-error")).toContainText(/already exists/i);
     await expectCreateMode(page);
     await expect(page.getByRole("button", { name: /Switch to sign in/i })).toBeVisible();
 
@@ -176,7 +176,7 @@ test.describe("Pre-Scout auth integrity", () => {
 
     await page.locator(selectors.auth.createAccountSubmitButton).click();
 
-    await expect(page.getByText(/already exists|account exists/i)).toBeVisible();
+    await expect(page.getByTestId("signup-error")).toContainText(/already exists|account exists/i);
     expect(registerCalls).toBeGreaterThan(0);
     expect(loginCalls).toBe(0);
   });

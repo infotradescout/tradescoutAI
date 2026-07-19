@@ -189,8 +189,8 @@ describe("generic business profile and tool contracts", () => {
 
     expect(source).toContain("Find Local Help");
     expect(source).toContain("Local Help Search");
-    expect(source).toContain("verified local providers");
-    expect(source).toContain("Become a Business Provider");
+    expect(source).toContain("verified TradeScout local help directory");
+    expect(source).toContain("For Businesses & Providers");
     expect(source).toContain("For Businesses");
     expect(source).not.toContain("Find Contractors");
     expect(source).not.toContain("Contractor Search");

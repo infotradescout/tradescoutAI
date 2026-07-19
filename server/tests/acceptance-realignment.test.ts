@@ -48,6 +48,8 @@ if (!hasTestDb) {
         firstName: "Promo",
         lastName: "Owner",
         role: "contractor" as any,
+        emailVerified: true,
+        addressVerified: true,
       } as any);
 
       await db.insert(contractors).values({
@@ -136,6 +138,12 @@ if (!hasTestDb) {
           userTypes: ["homeowner"],
         });
       expect(registerRes.status).toBe(200);
+
+      const onboardingRes = await agent
+        .post("/api/auth/skip-onboarding")
+        .set("Content-Type", "application/json")
+        .send({ role: "homeowner" });
+      expect(onboardingRes.status).toBe(200);
 
       const decisionScope = `marketplace_listing:${listing.id}`;
       const decisionCardRes = await agent

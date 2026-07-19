@@ -3,6 +3,7 @@ import {
   adminAuditLog,
   businesses,
   businessVerifications,
+  contractors,
   profiles,
   trustLedgerEvents,
   trustSnapshots,
@@ -118,6 +119,13 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
         : {};
     const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
     const roles = Array.from(new Set([...existingRoles, "specialty_tradesperson", "contractor"]));
+    const existingBadges = Array.isArray(existingOwner?.badges) ? existingOwner.badges : [];
+    // Community Builder is earned through its own program events. Preserve an
+    // existing award, but never manufacture the role or badge during profile
+    // provisioning.
+    const badges = Array.from(new Set(existingBadges));
+    const shouldShowBadges = existingPreferences.badges?.show !== false;
+    const shouldShowRolesAndBadges = existingPreferences.profileSections?.rolesAndBadges !== false;
 
     const ownerValues = {
       firstName: existingOwner?.firstName || "LA Plumbing",
@@ -132,6 +140,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       zipCode: "70401",
       role: "specialty_tradesperson" as const,
       roles,
+      badges,
       activeRole: "specialty_tradesperson",
       phone: existingOwner?.phone || LA_PLUMBING_ROUTING_PHONE,
       provider: existingOwner?.provider || "admin_provisioned",
@@ -148,17 +157,21 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       preferences: {
         ...existingPreferences,
         profileVisibility: "public",
+        badges: {
+          ...(existingPreferences.badges || {}),
+          show: shouldShowBadges,
+        },
         servicesDescription:
           "Residential and commercial plumbing repairs, renovations, water and sewer systems, gas, water heaters, backflow, and new construction.",
         profileSections: {
           ...(existingPreferences.profileSections || {}),
           about: true,
-          rolesAndBadges: true,
+          rolesAndBadges: shouldShowRolesAndBadges,
           stats: false,
           services: true,
           marketplaceListings: false,
           reviews: true,
-          communityActivity: false,
+          communityActivity: true,
           contactCard: true,
         },
       },
@@ -195,7 +208,7 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
       serviceTags: ["plumber", "commercial plumbing", "residential plumbing"],
       sellerTags: [],
       role: "specialty_tradesperson" as const,
-      roles: ["specialty_tradesperson", "contractor"],
+      roles,
       profileVisibility: "discoverable" as const,
       verifiedBadge: true,
       trustScore: existingVerificationProfile ? existingVerificationProfile.trustScore : 50,
@@ -377,6 +390,55 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
           .returning();
     if (!business) throw new Error("LA Plumbing business provisioning failed");
 
+    // Recommendations still reference a legacy contractor ID. A newly created
+    // compatibility row starts inactive and unverified. If an exact record
+    // already exists, preserve its directory and credential state rather than
+    // erasing legitimate historical verification during an idempotent boot.
+    const exactRecommendationTargets = await tx
+      .select()
+      .from(contractors)
+      .where(and(eq(contractors.userId, owner.id), eq(contractors.businessId, business.id)))
+      .limit(2);
+    const slugRecommendationTargets = await tx
+      .select()
+      .from(contractors)
+      .where(eq(contractors.slug, LA_PLUMBING_PROFILE_SLUG))
+      .limit(2);
+    const hasNoRecommendationBinding =
+      exactRecommendationTargets.length === 0 && slugRecommendationTargets.length === 0;
+    const hasSingleExactRecommendationBinding =
+      exactRecommendationTargets.length === 1 &&
+      slugRecommendationTargets.length === 1 &&
+      String(exactRecommendationTargets[0].id) === String(slugRecommendationTargets[0].id) &&
+      String(exactRecommendationTargets[0].slug) === LA_PLUMBING_PROFILE_SLUG;
+
+    if (!hasNoRecommendationBinding && !hasSingleExactRecommendationBinding) {
+      // Fail closed for Recommend without rolling back the otherwise valid
+      // profile. A later data repair can establish one exact binding.
+      console.warn(
+        "[profile-provisioning] Skipping LA Plumbing recommendation target mutation: contractor binding is ambiguous or conflicting"
+      );
+    } else if (hasNoRecommendationBinding) {
+      await tx.insert(contractors).values({
+        userId: owner.id,
+        businessId: business.id,
+        companyName: "LA Plumbing Solutions",
+        slug: LA_PLUMBING_PROFILE_SLUG,
+        verifiedLicensed: false,
+        verifiedInsured: false,
+        isActive: false,
+      });
+    } else {
+      const recommendationTarget = exactRecommendationTargets[0];
+      await tx
+        .update(contractors)
+        .set({
+          companyName: "LA Plumbing Solutions",
+          updatedAt: now,
+        })
+        .where(eq(contractors.id, recommendationTarget.id));
+    }
+
     const [existingProfile] = await tx
       .select()
       .from(profiles)
@@ -407,9 +469,9 @@ export async function provisionLaPlumbingProfile(): Promise<void> {
         description:
           "See residential and commercial work from LA Plumbing Solutions, then make a private request through TradeScout Direct Connect.",
         imageUrl:
-          "https://www.thetradescout.com/images/businesses/la-plumbing-solutions/bathroom.jpg",
-        imageWidth: 640,
-        imageHeight: 480,
+          "https://www.thetradescout.com/images/businesses/la-plumbing-solutions/social-preview.jpg",
+        imageWidth: 1200,
+        imageHeight: 630,
         faviconUrl:
           "https://www.thetradescout.com/images/businesses/la-plumbing-solutions/logo.jpg",
       },

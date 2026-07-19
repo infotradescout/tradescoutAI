@@ -101,7 +101,11 @@ describe("contractor promotion sharing", () => {
     const appRoutes = read("client/src/AppRoutes.tsx");
     const serverIndex = read("server/index.ts");
     const form = read("client/src/pages/contractor-promos.tsx");
-    const migration = read("migrations/0103_contractor_promo_image.sql");
+    const imageMigration = read("migrations/0103_contractor_promo_image.sql");
+    const requestCountMigration = read(
+      "migrations/0105_contractor_promo_project_request_count.sql"
+    );
+    const testDbBootstrap = read("scripts/bootstrap-test-db.mjs");
 
     expect(routes).toContain('app.get("/api/promo/:slug", sendPublicPromoJson)');
     expect(routes).toContain("hasExposureAuthority(authorityUserId)");
@@ -117,6 +121,16 @@ describe("contractor promotion sharing", () => {
     expect(serverIndex).toContain("buildPublicContractorPromoHtml");
     expect(form).toContain('name="imageUrl"');
     expect(form).toContain("uploadObject(file)");
-    expect(migration).toContain("ADD COLUMN IF NOT EXISTS image_url VARCHAR(2048)");
+    expect(imageMigration).toContain("ADD COLUMN IF NOT EXISTS image_url VARCHAR(2048)");
+    expect(requestCountMigration).toContain(
+      "ADD COLUMN IF NOT EXISTS project_request_count INTEGER DEFAULT 0"
+    );
+    expect(testDbBootstrap).toContain('"contractor_promos"');
+    expect(testDbBootstrap).toContain(
+      "ALTER TABLE contractor_promos ADD COLUMN IF NOT EXISTS image_url varchar(2048)"
+    );
+    expect(testDbBootstrap).toContain(
+      "ALTER TABLE contractor_promos ADD COLUMN IF NOT EXISTS project_request_count integer DEFAULT 0"
+    );
   });
 });
