@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect } from "react";
 import {
   bootstrapDemandAttribution,
   trackDemandEvent,
@@ -14,6 +14,16 @@ import "./TradeScoutLandingPage.css";
 
 const LANDING_CONVERSION_VARIANT = "hybrid_public_landing";
 const LANDING_PRIMARY_REQUEST_SOURCE = "landing_primary_cta";
+const EXPLAINER_TOPIC_COUNT = explainerChapters.reduce(
+  (total, chapter) => total + chapter.topics.length,
+  0
+);
+const EXPLAINER_FEATURE_COUNT = explainerChapters.reduce(
+  (total, chapter) =>
+    total +
+    chapter.topics.reduce((chapterTotal, topic) => chapterTotal + (topic.features?.length || 0), 0),
+  0
+);
 
 function TradeScoutLogo({ backToTop = false }: { backToTop?: boolean }) {
   return (
@@ -37,7 +47,7 @@ function ContentCard({ card }: { card: ExplainerCard }) {
   return (
     <article className={`ts-explainer-card${tone}`}>
       {card.eyebrow ? <span className="ts-card-eyebrow">{card.eyebrow}</span> : null}
-      <h3>{card.title}</h3>
+      <h4>{card.title}</h4>
       {card.body ? <p>{card.body}</p> : null}
       {card.bullets?.length ? (
         <ul>
@@ -76,12 +86,12 @@ function TopicContent({ topic }: { topic: ExplainerTopic }) {
               </div>
               <article role="cell">
                 <span>For the requester</span>
-                <h3>{moment.requester.title}</h3>
+                <h4>{moment.requester.title}</h4>
                 <p>{moment.requester.body}</p>
               </article>
               <article role="cell">
                 <span>For the business</span>
-                <h3>{moment.business.title}</h3>
+                <h4>{moment.business.title}</h4>
                 <p>{moment.business.body}</p>
               </article>
             </div>
@@ -100,17 +110,14 @@ function TopicContent({ topic }: { topic: ExplainerTopic }) {
       {topic.features?.length ? (
         <div className="ts-feature-grid">
           {topic.features.map((feature) => (
-            <details className="ts-feature-card" key={feature.number}>
-              <summary>
+            <article className="ts-feature-card" key={feature.number}>
+              <div className="ts-feature-card-heading">
                 <span className="ts-feature-number">{feature.number}</span>
                 <span className="ts-feature-action">{feature.action}</span>
-                <strong>{feature.name}</strong>
-                <span className="ts-feature-toggle" aria-hidden="true">
-                  +
-                </span>
-              </summary>
+                <h4>{feature.name}</h4>
+              </div>
               <p>{feature.description}</p>
-            </details>
+            </article>
           ))}
         </div>
       ) : null}
@@ -118,27 +125,7 @@ function TopicContent({ topic }: { topic: ExplainerTopic }) {
   );
 }
 
-function ChapterPanel({
-  chapter,
-  activeTopicId,
-  onTopicChange,
-}: {
-  chapter: ExplainerChapter;
-  activeTopicId: string;
-  onTopicChange: (topicId: string) => void;
-}) {
-  const activeTopicIndex = Math.max(
-    0,
-    chapter.topics.findIndex((topic) => topic.id === activeTopicId)
-  );
-  const activeTopic = chapter.topics[activeTopicIndex] || chapter.topics[0];
-
-  const moveTopic = (direction: -1 | 1) => {
-    const nextIndex =
-      (activeTopicIndex + direction + chapter.topics.length) % chapter.topics.length;
-    onTopicChange(chapter.topics[nextIndex].id);
-  };
-
+function ChapterPanel({ chapter }: { chapter: ExplainerChapter }) {
   return (
     <section
       className="ts-explainer-chapter"
@@ -153,70 +140,44 @@ function ChapterPanel({
         {chapter.description ? <p>{chapter.description}</p> : null}
       </div>
 
-      <div className="ts-topic-nav" aria-label={`${chapter.navLabel} topics`}>
-        <div className="ts-topic-status" aria-live="polite">
-          <div>
-            <span>{chapter.navLabel} topics</span>
-            <strong>{activeTopic.label}</strong>
-          </div>
-          <em>
-            {String(activeTopicIndex + 1).padStart(2, "0")} /{" "}
-            {String(chapter.topics.length).padStart(2, "0")}
-          </em>
+      <nav className="ts-topic-index" aria-label={`${chapter.navLabel} topics`}>
+        <span>{String(chapter.topics.length).padStart(2, "0")} topics in this chapter</span>
+        <div>
+          {chapter.topics.map((topic, index) => (
+            <a href={`#${chapter.id}-${topic.id}`} key={topic.id}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              {topic.label}
+            </a>
+          ))}
         </div>
-        <div className="ts-topic-controls">
-          <button type="button" onClick={() => moveTopic(-1)} aria-label="Previous topic">
-            ←
-          </button>
-          <div className="ts-topic-track" role="tablist">
-            {chapter.topics.map((topic, index) => (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={topic.id === activeTopic.id}
-                tabIndex={topic.id === activeTopic.id ? 0 : -1}
-                onClick={() => onTopicChange(topic.id)}
-                key={topic.id}
-              >
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                {topic.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" onClick={() => moveTopic(1)} aria-label="Next topic">
-            →
-          </button>
-        </div>
-      </div>
+      </nav>
 
-      {chapter.topics.map((topic) => (
-        <div
-          key={topic.id}
-          role="tabpanel"
-          hidden={topic.id !== activeTopic.id}
-          aria-hidden={topic.id !== activeTopic.id}
-        >
-          <TopicContent topic={topic} />
-        </div>
-      ))}
+      <div className="ts-topic-list">
+        {chapter.topics.map((topic, topicIndex) => (
+          <section
+            className="ts-topic-section"
+            id={`${chapter.id}-${topic.id}`}
+            aria-labelledby={`${chapter.id}-${topic.id}-title`}
+            key={topic.id}
+          >
+            <header className="ts-topic-heading">
+              <span>
+                Topic {String(topicIndex + 1).padStart(2, "0")} /{" "}
+                {String(chapter.topics.length).padStart(2, "0")}
+              </span>
+              <h3 id={`${chapter.id}-${topic.id}-title`}>{topic.label}</h3>
+            </header>
+            <TopicContent topic={topic} />
+          </section>
+        ))}
+      </div>
 
       {chapter.boundary ? <aside className="ts-chapter-boundary">{chapter.boundary}</aside> : null}
     </section>
   );
 }
 
-function getInitialChapterId() {
-  if (typeof window === "undefined") return explainerChapters[0].id;
-  const hash = String(window.location?.hash || "").replace(/^#/, "");
-  return explainerChapters.some((chapter) => chapter.id === hash) ? hash : explainerChapters[0].id;
-}
-
 export default function TradeScoutLandingPage() {
-  const [activeChapterId, setActiveChapterId] = useState(getInitialChapterId);
-  const [topicByChapter, setTopicByChapter] = useState<Record<string, string>>(() =>
-    Object.fromEntries(explainerChapters.map((chapter) => [chapter.id, chapter.topics[0].id]))
-  );
-
   useEffect(() => {
     bootstrapDemandAttribution();
     void trackDemandEvent("landing_view", {
@@ -226,14 +187,30 @@ export default function TradeScoutLandingPage() {
   }, []);
 
   useEffect(() => {
-    const syncHash = () => {
-      const hash = String(window.location.hash || "").replace(/^#/, "");
-      if (explainerChapters.some((chapter) => chapter.id === hash)) {
-        setActiveChapterId(hash);
+    const scrollToCurrentAnchor = () => {
+      const encodedId = String(window.location.hash || "").replace(/^#/, "");
+      if (!encodedId) return;
+
+      let targetId = encodedId;
+      try {
+        targetId = decodeURIComponent(encodedId);
+      } catch {
+        // Keep the literal hash when it is not valid URI encoding.
       }
+
+      const scrollToTarget = () => {
+        document.getElementById(targetId)?.scrollIntoView({ block: "start" });
+      };
+
+      window.requestAnimationFrame(scrollToTarget);
+      void document.fonts.ready.then(() => {
+        window.requestAnimationFrame(scrollToTarget);
+      });
     };
-    window.addEventListener("hashchange", syncHash);
-    return () => window.removeEventListener("hashchange", syncHash);
+
+    scrollToCurrentAnchor();
+    window.addEventListener("hashchange", scrollToCurrentAnchor);
+    return () => window.removeEventListener("hashchange", scrollToCurrentAnchor);
   }, []);
 
   const directConnectHref = withDemandQueryParams(
@@ -241,17 +218,6 @@ export default function TradeScoutLandingPage() {
   );
   const scoutHref = withDemandQueryParams("/scout?source=landing_scout");
   const claimHref = withDemandQueryParams("/claim-my-business?source=landing_business");
-
-  const activeChapterIndex = Math.max(
-    0,
-    explainerChapters.findIndex((chapter) => chapter.id === activeChapterId)
-  );
-  const activeChapter = explainerChapters[activeChapterIndex] || explainerChapters[0];
-
-  const activeTopicId = useMemo(
-    () => topicByChapter[activeChapter.id] || activeChapter.topics[0].id,
-    [activeChapter, topicByChapter]
-  );
 
   const trackClick = (cta: string, target: string) => {
     void trackDemandEvent("cta_click", {
@@ -261,13 +227,6 @@ export default function TradeScoutLandingPage() {
       source: LANDING_PRIMARY_REQUEST_SOURCE,
       target,
     });
-  };
-
-  const chooseChapter = (chapter: ExplainerChapter) => {
-    setActiveChapterId(chapter.id);
-    if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", `#${chapter.id}`);
-    }
   };
 
   return (
@@ -323,49 +282,26 @@ export default function TradeScoutLandingPage() {
 
       <nav className="ts-chapter-nav" aria-label="TradeScout explainer sections">
         <div className="ts-chapter-status">
-          <span>Main section</span>
+          <span>Full explainer</span>
           <strong>
-            {activeChapter.number} / {String(explainerChapters.length).padStart(2, "0")} ·{" "}
-            {activeChapter.navLabel}
+            {String(explainerChapters.length).padStart(2, "0")} chapters · {EXPLAINER_TOPIC_COUNT}{" "}
+            topics · {EXPLAINER_FEATURE_COUNT} features
           </strong>
-          <small>Choose a section, then a topic.</small>
+          <small>Everything is on this page. Read through or jump to a chapter.</small>
         </div>
-        <div className="ts-chapter-track" role="tablist">
+        <div className="ts-chapter-track">
           {explainerChapters.map((chapter) => (
-            <button
-              type="button"
-              role="tab"
-              aria-selected={chapter.id === activeChapter.id}
-              onClick={() => chooseChapter(chapter)}
-              key={chapter.id}
-            >
+            <a href={`#${chapter.id}`} key={chapter.id}>
               <span>{chapter.number}</span>
               {chapter.navLabel}
-            </button>
+            </a>
           ))}
         </div>
       </nav>
 
       <div className="ts-explainer-stage">
         {explainerChapters.map((chapter) => (
-          <div
-            className="ts-chapter-slot"
-            hidden={chapter.id !== activeChapter.id}
-            aria-hidden={chapter.id !== activeChapter.id}
-            key={chapter.id}
-          >
-            <ChapterPanel
-              chapter={chapter}
-              activeTopicId={
-                chapter.id === activeChapter.id
-                  ? activeTopicId
-                  : topicByChapter[chapter.id] || chapter.topics[0].id
-              }
-              onTopicChange={(topicId) =>
-                setTopicByChapter((current) => ({ ...current, [chapter.id]: topicId }))
-              }
-            />
-          </div>
+          <ChapterPanel chapter={chapter} key={chapter.id} />
         ))}
       </div>
 
