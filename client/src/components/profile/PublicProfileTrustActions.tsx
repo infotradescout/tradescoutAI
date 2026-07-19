@@ -4,6 +4,7 @@ import { RecommendationForm } from "@/components/RecommendationForm";
 import { ShareButton } from "@/components/ShareButton";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { cn } from "@/lib/utils";
 
 type ProfileTrustAction = "like" | "favorite";
@@ -140,7 +141,7 @@ export function PublicProfileTrustActions({
     } catch (error) {
       toast({
         title: "Action not saved",
-        description: error instanceof Error ? error.message : "Please try again in a moment.",
+        description: formatUserFacingErrorMessage(error, "Please try again in a moment."),
         variant: "destructive",
       });
     } finally {
@@ -174,7 +175,7 @@ export function PublicProfileTrustActions({
     } catch (error) {
       toast({
         title: "Recommendations are temporarily unavailable",
-        description: error instanceof Error ? error.message : "Please try again in a moment.",
+        description: formatUserFacingErrorMessage(error, "Please try again in a moment."),
         variant: "destructive",
       });
     }

@@ -23,7 +23,7 @@ const About = memo(function About() {
       />
       <div
         ref={hostRef}
-        className="fixed inset-0 z-[9999] overflow-y-auto bg-[#0a1016]"
+        className="fixed inset-0 z-[9999] overflow-y-auto bg-slate-950"
         aria-label="About TradeScout — complete system explainer"
       >
         {shadowRoot

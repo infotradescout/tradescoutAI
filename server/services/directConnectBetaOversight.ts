@@ -41,7 +41,7 @@ export async function notifySuperAdminsOfDirectConnectRequest({
   const deliveries = result.rows.map(({ id }) =>
     notificationService.createNotification({
       userId: String(id),
-      type: "direct_connect_beta_request",
+      type: "new_project_request",
       title,
       message,
       actionUrl: `/admin/direct-connect-requests?requestId=${encodeURIComponent(requestId)}`,

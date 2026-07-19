@@ -50,24 +50,24 @@ describe("Direct Connect inbox copy contract", () => {
   });
 
   it("formats inbox timestamps as user-safe display copy", () => {
-    const now = new Date("2026-06-15T16:00:00.000Z");
+    const now = new Date(2026, 5, 15, 16);
+    const todayTimestamp = new Date(2026, 5, 15, 10).toISOString();
+    const yesterdayTimestamp = new Date(2026, 5, 14, 10).toISOString();
+    const earlierTimestamp = new Date(2026, 5, 1, 10).toISOString();
 
-    expect(helpers.formatDirectConnectInboxTime("2026-06-15T10:00:00.000Z", now)).toBe(
-      "Updated today"
-    );
-    expect(helpers.formatDirectConnectInboxTime("2026-06-14T10:00:00.000Z", now)).toBe(
+    expect(helpers.formatDirectConnectInboxTime(todayTimestamp, now)).toBe("Updated today");
+    expect(helpers.formatDirectConnectInboxTime(yesterdayTimestamp, now)).toBe(
       "Updated yesterday"
     );
-    expect(helpers.formatDirectConnectInboxTime("2026-06-01T10:00:00.000Z", now)).toBe(
-      "Updated Jun 1"
-    );
+    expect(helpers.formatDirectConnectInboxTime(earlierTimestamp, now)).toBe("Updated Jun 1");
   });
 
   it("keeps default inbox display out of system-level matching language", () => {
+    const now = new Date(2026, 5, 15, 16);
     const display = helpers.buildDirectConnectInboxDisplay({
       status: "suggested",
-      timestamp: "2026-06-15T10:00:00.000Z",
-      now: new Date("2026-06-15T16:00:00.000Z"),
+      timestamp: new Date(2026, 5, 15, 10).toISOString(),
+      now,
       scoreSnapshot: {
         score: 91,
         distanceMiles: 3.2,

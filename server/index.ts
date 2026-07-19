@@ -1273,7 +1273,7 @@ app.use(landingContractHeaders);
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
                   if (!templateHtml) {
-                    return res.status(500).send("Application build not found");
+                    return res.status(503).send("Application temporarily unavailable");
                   }
 
                   const html = await buildPublicHelperProfileHtml({

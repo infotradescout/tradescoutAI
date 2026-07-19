@@ -261,7 +261,6 @@
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(9, 17, 25, 0.96);
-  backdrop-filter: blur(18px);
 }
 
 .ts-chapter-status {
@@ -531,7 +530,7 @@
 
 .ts-explainer-card-accent {
   border-color: rgba(255, 116, 23, 0.42);
-  background: linear-gradient(135deg, rgba(255, 116, 23, 0.12), rgba(255, 255, 255, 0.36));
+  background: rgba(255, 116, 23, 0.1);
 }
 
 .ts-explainer-card-positive {
@@ -786,7 +785,7 @@
 
 .ts-final-grid > .ts-final-request {
   border-color: rgba(255, 116, 23, 0.5);
-  background: linear-gradient(135deg, rgba(255, 116, 23, 0.12), rgba(255, 255, 255, 0.025));
+  background: rgba(255, 116, 23, 0.1);
 }
 
 .ts-final-grid span {

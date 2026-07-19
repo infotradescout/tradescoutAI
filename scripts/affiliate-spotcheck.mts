@@ -1,9 +1,22 @@
 import "dotenv/config";
-import { pool } from "../server/db.ts";
 
 const args = new Set(process.argv.slice(2));
 const strictMode = args.has("--strict") || args.has("--fail-on-issues");
 const jsonOnly = args.has("--json");
+const runIfConfigured = args.has("--if-configured");
+const isTestEnv = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST_WORKER_ID);
+const hasConfiguredDatabase = isTestEnv
+  ? Boolean(process.env.TEST_DATABASE_URL)
+  : Boolean(process.env.DATABASE_URL);
+
+if (runIfConfigured && !hasConfiguredDatabase) {
+  console.log(
+    "[affiliate-spotcheck] SKIPPED_DB_REQUIRED: no database is configured for this verification lane"
+  );
+  process.exit(0);
+}
+
+const { pool } = await import("../server/db.ts");
 
 const checks = [
   {

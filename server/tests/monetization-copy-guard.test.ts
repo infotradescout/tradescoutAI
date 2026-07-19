@@ -54,9 +54,11 @@ describe("public monetization copy guards", () => {
   it("pricing page keeps explicit no-fee language", () => {
     const pricing = read("client/src/pages/pricing.tsx");
 
-    expect(pricing).toContain("$0 for access to TradeScout features, connections, and information");
-    expect(pricing).toContain("Payment Safety Notice");
-    expect(pricing).toContain("Any request for payment in TradeScout's name");
+    expect(pricing).toContain("TradeScout is free forever");
+    expect(pricing).toContain(
+      "without a subscription, access tier, lead fee, or charge to connect"
+    );
+    expect(pricing).toContain("do not pay them. That is not TradeScout");
   });
 
   it("core trust pages include paid-exception and scam-safety language", () => {

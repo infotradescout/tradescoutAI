@@ -2521,7 +2521,7 @@ function DirectConnectRequestComposer({
 
       <div className="space-y-5">
         {describeStep === 0 && (
-          <div className="space-y-6 rounded-3xl border border-white/10 bg-[#121212]/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)] md:p-7">
+          <div className="space-y-6 rounded-3xl border border-white/10 bg-zinc-950/95 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)] md:p-7">
             <div className="space-y-4">
               {intentConfig ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-4">
@@ -2570,7 +2570,7 @@ function DirectConnectRequestComposer({
                     className={cn(
                       "min-h-[92px] rounded-2xl border px-4 py-3 text-left transition-all",
                       requestType === key
-                        ? "border-ts-orange/70 bg-ts-orange/[0.09] shadow-[inset_3px_0_0_#ff8a00]"
+                        ? "border-ts-orange/70 border-l-[3px] border-l-ts-orange bg-ts-orange/[0.09]"
                         : "border-white/10 bg-white/[0.025] hover:border-white/25 hover:bg-white/[0.05]"
                     )}
                   >
