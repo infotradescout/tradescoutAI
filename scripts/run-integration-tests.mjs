@@ -13,6 +13,7 @@ dotenv.config({ path: path.join(repoRoot, ".env.local") });
 dotenv.config({ path: path.join(repoRoot, ".env") });
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
+const integrationBailAfterFailures = Number(process.env.INTEGRATION_BAIL_AFTER_FAILURES || 0);
 const defaultIntegrationTestFiles = [
   "server/tests/community-causes-allocation.integration.test.ts",
   "server/tests/community-causes-route-integration.test.ts",
@@ -105,11 +106,11 @@ async function main() {
     process.exit(bootstrapCode);
   }
 
-  const server = await spawnCommand(
-    "npx",
-    ["tsx", "-r", "dotenv/config", "server/index.ts"],
-    { cwd: repoRoot, stdio: "inherit", env }
-  );
+  const server = await spawnCommand("npx", ["tsx", "-r", "dotenv/config", "server/index.ts"], {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env,
+  });
 
   let testExitCode = 1;
   try {
@@ -125,6 +126,9 @@ async function main() {
       "--maxWorkers=1",
       ...integrationTestFiles,
     ];
+    if (Number.isInteger(integrationBailAfterFailures) && integrationBailAfterFailures > 0) {
+      vitestArgs.push("--reporter=verbose", `--bail=${integrationBailAfterFailures}`);
+    }
     if (process.env.RUN_STRICT_INTEGRATION !== "true") {
       vitestArgs.push(
         "--exclude",

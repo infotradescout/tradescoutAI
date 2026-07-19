@@ -21,6 +21,9 @@ jobs:
       MASTER_ADMIN_EMAIL: ${{ secrets.MASTER_ADMIN_EMAIL }}
       MASTER_ADMIN_PASSWORD: ${{ secrets.MASTER_ADMIN_PASSWORD }}
       TEST_DB_LANE_LOCK_NAME: tradescout_test_db_integration_lane_v1
+      # Surface the first database integration failure promptly instead of
+      # accumulating repeated per-test timeouts. Passing runs still execute all tests.
+      INTEGRATION_BAIL_AFTER_FAILURES: "1"
 
     steps:
       - name: Checkout repository
