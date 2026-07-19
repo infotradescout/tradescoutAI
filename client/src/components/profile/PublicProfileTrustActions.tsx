@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BadgeCheck, Bookmark, Loader2, ThumbsUp } from "lucide-react";
+import { Bookmark, HeartHandshake, Loader2, ThumbsUp } from "lucide-react";
 import { RecommendationForm } from "@/components/RecommendationForm";
 import { ShareButton } from "@/components/ShareButton";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -184,7 +184,7 @@ export function PublicProfileTrustActions({
   const favoriteCount = state?.favoriteCount || 0;
   const recommendationCount = state?.recommendationCount ?? initialRecommendationCount;
   const buttonClass = cn(
-    "flex min-h-16 w-full flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-[11px] font-bold transition sm:text-xs",
+    "flex min-h-16 w-full min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-[11px] font-bold transition sm:text-xs",
     isLight
       ? "text-stone-700 hover:bg-stone-100 hover:text-stone-950"
       : "text-white/75 hover:bg-white/10 hover:text-white",
@@ -195,23 +195,64 @@ export function PublicProfileTrustActions({
     : "bg-ts-orange/15 text-ts-orange-light ring-1 ring-inset ring-ts-orange/40";
   const countClass = cn("text-[10px] font-semibold", isLight ? "text-stone-500" : "text-white/50");
   const ownerBlocked = state?.viewerIsOwner === true;
+  const recommendationButtonClass = cn(
+    "flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-black transition",
+    isLight
+      ? "bg-stone-900 text-white hover:bg-stone-800"
+      : "border border-ts-orange/40 bg-ts-orange/15 text-ts-orange-light hover:bg-ts-orange/25",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ts-orange"
+  );
 
   return (
     <>
       <div
         className={cn(
-          "rounded-2xl border p-2",
+          "rounded-2xl border p-2.5",
           isLight ? "border-stone-200 bg-white/85 shadow-sm" : "border-white/10 bg-black/20",
           className
         )}
         aria-label={`Community actions for ${profileName}`}
       >
-        <div className="grid grid-cols-4 gap-1" role="group" aria-label="Profile actions">
+        <p
+          className={cn(
+            "px-2 pb-2 pt-0.5 text-[10px] font-black uppercase tracking-[0.18em]",
+            isLight ? "text-stone-500" : "text-white/55"
+          )}
+        >
+          TradeScout Community
+        </p>
+
+        <button
+          type="button"
+          className={recommendationButtonClass}
+          onClick={openRecommendation}
+          title={
+            ownerBlocked
+              ? "Profile owners cannot recommend their own profile"
+              : `Recommend ${profileName}`
+          }
+          data-testid="button-public-profile-recommend"
+        >
+          <HeartHandshake className="h-5 w-5 flex-none" />
+          <span>Recommend</span>
+          {recommendationCount > 0 ? (
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-black",
+                isLight ? "bg-white/15 text-white" : "bg-ts-orange/20 text-ts-orange-light"
+              )}
+            >
+              {recommendationCount}
+            </span>
+          ) : null}
+        </button>
+
+        <div className="mt-1 grid grid-cols-3 gap-1" role="group" aria-label="Profile actions">
           <button
             type="button"
             className={cn(buttonClass, state?.viewerLiked && activeButtonClass)}
             onClick={() => toggleAction("like")}
-            disabled={pendingAction !== null || ownerBlocked}
+            disabled={pendingAction !== null}
             aria-pressed={state?.viewerLiked === true}
             title={
               ownerBlocked ? "Profile owners cannot like their own profile" : `Like ${profileName}`
@@ -223,34 +264,17 @@ export function PublicProfileTrustActions({
             ) : (
               <ThumbsUp className={cn("h-5 w-5", state?.viewerLiked && "fill-current")} />
             )}
-            <span>Like</span>
-            {likeCount > 0 ? <span className={countClass}>{likeCount}</span> : null}
-          </button>
-
-          <button
-            type="button"
-            className={buttonClass}
-            onClick={openRecommendation}
-            disabled={ownerBlocked}
-            title={
-              ownerBlocked
-                ? "Profile owners cannot recommend their own profile"
-                : `Recommend ${profileName}`
-            }
-            data-testid="button-public-profile-recommend"
-          >
-            <BadgeCheck className="h-5 w-5" />
-            <span>Recommend</span>
-            {recommendationCount > 0 ? (
-              <span className={countClass}>{recommendationCount}</span>
-            ) : null}
+            <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+              <span>Like</span>
+              {likeCount > 0 ? <span className={countClass}>{likeCount}</span> : null}
+            </span>
           </button>
 
           <button
             type="button"
             className={cn(buttonClass, state?.viewerFavorited && activeButtonClass)}
             onClick={() => toggleAction("favorite")}
-            disabled={pendingAction !== null || ownerBlocked}
+            disabled={pendingAction !== null}
             aria-pressed={state?.viewerFavorited === true}
             title={
               ownerBlocked
@@ -264,8 +288,10 @@ export function PublicProfileTrustActions({
             ) : (
               <Bookmark className={cn("h-5 w-5", state?.viewerFavorited && "fill-current")} />
             )}
-            <span>Favorite</span>
-            {favoriteCount > 0 ? <span className={countClass}>{favoriteCount}</span> : null}
+            <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+              <span>Favorite</span>
+              {favoriteCount > 0 ? <span className={countClass}>{favoriteCount}</span> : null}
+            </span>
           </button>
 
           <ShareButton
@@ -282,15 +308,7 @@ export function PublicProfileTrustActions({
             )}
           />
         </div>
-        <p
-          className={cn(
-            "px-2 pb-1 pt-2 text-center text-[10px] leading-4",
-            isLight ? "text-stone-500" : "text-white/45"
-          )}
-        >
-          Community actions are separate from TradeScout verification and CVS.
-          {loading && !state ? <span className="sr-only"> Loading saved actions.</span> : null}
-        </p>
+        {loading && !state ? <span className="sr-only">Loading saved actions.</span> : null}
       </div>
 
       <Dialog open={recommendationOpen} onOpenChange={setRecommendationOpen}>

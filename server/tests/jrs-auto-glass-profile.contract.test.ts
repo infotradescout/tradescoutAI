@@ -11,6 +11,25 @@ describe("JR's Auto Glass public profile contract", () => {
     const profileContent = read("shared/jrsAutoGlassProfile.ts");
     const authority = read("server/services/ownerConfirmedDirectProfile.ts");
     const entry = read("server/index.ts");
+    const recommendationInsertStart = provisioning.indexOf(
+      "} else if (hasNoRecommendationBinding)"
+    );
+    const recommendationUpdateStart = provisioning.indexOf(
+      "} else {",
+      recommendationInsertStart + 1
+    );
+    const recommendationBlockEnd = provisioning.indexOf(
+      "const [existingProfile]",
+      recommendationUpdateStart
+    );
+    const newCompatibilityRowPath = provisioning.slice(
+      recommendationInsertStart,
+      recommendationUpdateStart
+    );
+    const existingRecommendationTargetPath = provisioning.slice(
+      recommendationUpdateStart,
+      recommendationBlockEnd
+    );
 
     expect(authority).toContain('export const JRS_PROFILE_SLUG = "jrs-auto-glass"');
     expect(authority).toContain('OWNER_CONFIRMED_PROFILE_SOURCE = "owner_confirmed_profile"');
@@ -23,9 +42,25 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(provisioning).toContain(
       "notificationEmail: existingNotificationEmail || normalizedEmail"
     );
-    expect(provisioning).toContain("/images/businesses/jrs-auto-glass/cover.webp");
+    expect(provisioning).toContain("/images/businesses/jrs-auto-glass/social-preview.jpg");
     expect(provisioning).toContain("/images/businesses/jrs-auto-glass/logo.webp");
     expect(provisioning).toContain("contentBlocks: JRS_AUTO_GLASS_GALLERY_BLOCKS");
+    expect(provisioning).toContain("contractors");
+    expect(provisioning).toContain("eq(contractors.userId, owner.id)");
+    expect(provisioning).toContain("eq(contractors.businessId, business.id)");
+    expect(provisioning).toContain("hasNoRecommendationBinding");
+    expect(provisioning).toContain("hasSingleExactRecommendationBinding");
+    expect(provisioning).toContain("contractor binding is ambiguous or conflicting");
+    expect(provisioning).not.toContain("ownerContractors");
+    expect(provisioning).not.toContain(".where(eq(contractors.userId, owner.id));");
+    expect(provisioning).not.toContain("throw new Error(\"JR's Auto Glass contractor");
+    expect(provisioning).toContain("businessId: business.id");
+    expect(newCompatibilityRowPath).toContain("verifiedLicensed: false");
+    expect(newCompatibilityRowPath).toContain("verifiedInsured: false");
+    expect(newCompatibilityRowPath).toContain("isActive: false");
+    expect(existingRecommendationTargetPath).not.toContain("verifiedLicensed:");
+    expect(existingRecommendationTargetPath).not.toContain("verifiedInsured:");
+    expect(existingRecommendationTargetPath).not.toContain("isActive:");
     expect(profileContent).toContain('type: "gallery"');
     expect(profileContent).toContain('id: "windshield-before"');
     expect(profileContent).toContain('id: "windshield-after"');
@@ -57,6 +92,14 @@ describe("JR's Auto Glass public profile contract", () => {
         path.resolve(process.cwd(), "client/public/images/businesses/jrs-auto-glass/logo.webp")
       )
     ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.resolve(
+          process.cwd(),
+          "client/public/images/businesses/jrs-auto-glass/social-preview.jpg"
+        )
+      )
+    ).toBe(true);
     expect(theme.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(theme).not.toContain("Request auto glass service");
     expect(theme).not.toContain("Send job details");
@@ -73,7 +116,8 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(theme).toContain("Recent work");
     expect(theme).toContain("Before and after");
     expect(theme).not.toContain("PublicProfileProductCard");
-    expect(theme).toContain("You&apos;re here early");
+    expect(theme).not.toContain("You&apos;re here early");
+    expect(theme).toContain("0 customer recommendations have been published.");
     expect(theme).toContain("Your contact details stay private");
     expect(theme).not.toContain("TradeScout Business CV");
     expect(theme).not.toContain("Recommendations and completed activity");

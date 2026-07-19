@@ -406,7 +406,7 @@ export async function buildPublicExchangeListingHtml(
   const primaryImage = images[primaryImageIndex] || images[0] || null;
   const imageUrl = primaryImage
     ? new URL(primaryImage, origin).toString()
-    : `${origin}/tradescout-social-preview.png?v=11`;
+    : `${origin}/tradescout-social-preview.png?v=12`;
 
   // ── Build JSON-LD ──────────────────────────────────────────────────────────
 

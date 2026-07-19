@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="220" viewBox="0 0 720 220" role="img" aria-labelledby="title desc">
+  <title id="title">Pro Fab Specialty Services LLC</title>
+  <desc id="desc">Red and white Pro Fab wordmark on a transparent background.</desc>
+  <g transform="translate(14 20)">
+    <path d="M0 0h162l-28 30H42v32h72L86 92H42v68H0z" fill="#dc2626"/>
+    <path d="M54 0h112c36 0 58 18 58 48 0 32-24 52-64 52h-42l28-30h16c13 0 21-7 21-19 0-13-8-21-23-21H82z" fill="#fff"/>
+    <path d="M164 116h56l-28 44h-56z" fill="#dc2626"/>
+  </g>
+  <text x="254" y="100" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="78" font-weight="900" letter-spacing="-4">PRO</text>
+  <text x="406" y="100" fill="#dc2626" font-family="Arial, Helvetica, sans-serif" font-size="78" font-weight="900" letter-spacing="-4">FAB</text>
+  <rect x="258" y="120" width="418" height="5" rx="2.5" fill="#dc2626"/>
+  <text x="258" y="157" fill="#e4e4e7" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="4">SPECIALTY SERVICES</text>
+  <text x="258" y="188" fill="#a1a1aa" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="700" letter-spacing="7">LLC</text>
+</svg>

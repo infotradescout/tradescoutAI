@@ -41,6 +41,23 @@ type RecommendationEntry = {
   };
 };
 
+export type PublicCommunityVerification = {
+  score: number | null;
+  scoreHistoryStartsAt: string | null;
+  lifetimeScoreChange: number | null;
+  scoreChange30d: number | null;
+  scoreChange30dComparedAt: string | null;
+  activePolicyBoostPoints: number;
+  activeBoosts: Array<{
+    policyKey: string;
+    label: string;
+    points: number;
+    expiresAt: string | null;
+  }>;
+  badges: string[];
+  computedAt: string | null;
+};
+
 type Props = {
   profileSlug: string;
   platformBaseHref?: string;
@@ -56,9 +73,8 @@ type Props = {
   trustActions?: ReactNode;
   profileItems?: ReactNode;
   verificationStatus?: string | null;
-  cvsScore?: number | null;
-  cvsPerformanceScore?: number | null;
-  cvsBoostPoints?: number | null;
+  verifiedBadge?: boolean;
+  communityVerification?: PublicCommunityVerification | null;
 };
 
 const iconByName: Record<LocalServiceProfileIcon, typeof Wrench> = {
@@ -70,6 +86,21 @@ const iconByName: Record<LocalServiceProfileIcon, typeof Wrench> = {
   repair: Wrench,
   "water-heater": Building2,
 };
+
+function formatScoreHistoryDate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(parsed);
+}
+
+function isLandscapeServiceImage(imageUrl: string): boolean {
+  return /\/(?:bathroom|water-heaters)\.(?:jpe?g|png|webp)(?:\?|$)/i.test(imageUrl);
+}
 
 export default function LocalServiceProfileTheme({
   profileSlug,
@@ -86,9 +117,8 @@ export default function LocalServiceProfileTheme({
   trustActions,
   profileItems,
   verificationStatus = null,
-  cvsScore = null,
-  cvsPerformanceScore = null,
-  cvsBoostPoints = null,
+  verifiedBadge = false,
+  communityVerification = null,
 }: Props) {
   const [activeGalleryIndex, setActiveGalleryIndex] = useState<number | null>(null);
   const publicRecommendations = recommendationsDirectory.filter(
@@ -106,35 +136,40 @@ export default function LocalServiceProfileTheme({
     "--service-surface": presentation.brand.surface,
     "--service-background": presentation.brand.background,
   } as CSSProperties;
-  const isVerified = String(verificationStatus || "").toLowerCase() === "approved";
-  const normalizedCvsScore =
-    typeof cvsScore === "number" && Number.isFinite(cvsScore)
-      ? Math.max(0, Math.round(cvsScore))
+  const isVerified =
+    verifiedBadge === true && String(verificationStatus || "").toLowerCase() === "approved";
+  const normalizedVerificationScore =
+    typeof communityVerification?.score === "number" && Number.isFinite(communityVerification.score)
+      ? Math.max(0, Math.round(communityVerification.score))
       : null;
-  const normalizedBoostPoints =
-    typeof cvsBoostPoints === "number" && Number.isFinite(cvsBoostPoints)
-      ? Math.max(0, Math.round(cvsBoostPoints))
+  const normalizedActiveBoostPoints =
+    typeof communityVerification?.activePolicyBoostPoints === "number" &&
+    Number.isFinite(communityVerification.activePolicyBoostPoints)
+      ? Math.max(0, Math.round(communityVerification.activePolicyBoostPoints))
       : 0;
-  const normalizedPerformanceScore =
-    typeof cvsPerformanceScore === "number" && Number.isFinite(cvsPerformanceScore)
-      ? Math.max(0, Math.min(100, Math.round(cvsPerformanceScore)))
-      : normalizedCvsScore === null
-        ? null
-        : Math.max(0, Math.min(100, normalizedCvsScore - normalizedBoostPoints));
-  const cvsStanding =
-    normalizedPerformanceScore === null
-      ? null
-      : normalizedPerformanceScore === 50
-        ? "Verified baseline"
-        : normalizedPerformanceScore > 84
-          ? "Exceptional record"
-          : normalizedPerformanceScore > 69
-            ? "Proven record"
-            : normalizedPerformanceScore > 50
-              ? "Building a positive record"
-              : normalizedPerformanceScore > 34
-                ? "Needs attention"
-                : "At risk";
+  const normalizedScoreChange30d =
+    typeof communityVerification?.scoreChange30d === "number" &&
+    Number.isFinite(communityVerification.scoreChange30d)
+      ? Math.round(communityVerification.scoreChange30d)
+      : null;
+  const normalizedLifetimeScoreChange =
+    typeof communityVerification?.lifetimeScoreChange === "number" &&
+    Number.isFinite(communityVerification.lifetimeScoreChange)
+      ? Math.round(communityVerification.lifetimeScoreChange)
+      : null;
+  const scoreHistoryStart = formatScoreHistoryDate(communityVerification?.scoreHistoryStartsAt);
+  const score30dComparedAt = formatScoreHistoryDate(
+    communityVerification?.scoreChange30dComparedAt
+  );
+  const activeBoosts = Array.isArray(communityVerification?.activeBoosts)
+    ? communityVerification.activeBoosts
+    : [];
+  const profileBadges = Array.isArray(communityVerification?.badges)
+    ? communityVerification.badges
+    : [];
+  const verificationHistoryNote = (
+    presentation as LocalServiceProfilePresentation & { verificationHistoryNote?: string }
+  ).verificationHistoryNote;
   const activeGalleryItem =
     activeGalleryIndex === null ? null : galleryItems[activeGalleryIndex] || null;
 
@@ -169,7 +204,7 @@ export default function LocalServiceProfileTheme({
       data-testid="local-service-profile-theme"
     >
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#041017]/95 shadow-[0_10px_35px_rgba(0,0,0,0.3)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-3 sm:h-20 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-2.5 sm:h-20 sm:gap-3 sm:px-6">
           <a
             href={tradeScoutReturnHref}
             aria-label={
@@ -183,11 +218,11 @@ export default function LocalServiceProfileTheme({
           </a>
 
           <div className="flex min-w-0 flex-1 items-center sm:flex-none">
-            <div className="flex h-11 w-[190px] items-center justify-center overflow-hidden rounded-xl bg-white px-3 shadow-sm sm:h-14 sm:w-[245px] sm:px-4">
+            <div className="flex h-10 w-[142px] items-center justify-center overflow-hidden rounded-xl bg-white px-2 shadow-sm sm:h-14 sm:w-[245px] sm:px-4">
               <img
                 src={presentation.logoImage}
                 alt={presentation.logoAlt}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain contrast-125"
               />
             </div>
           </div>
@@ -219,24 +254,24 @@ export default function LocalServiceProfileTheme({
             type="button"
             onClick={onDirectConnect}
             aria-label={`Direct Connect with ${businessName}`}
-            className="inline-flex h-10 flex-none items-center justify-center gap-2 px-1 text-xs font-black text-ts-orange transition hover:text-ts-orange-light sm:rounded-full sm:border sm:border-ts-orange/35 sm:bg-ts-orange/10 sm:px-5 sm:hover:border-ts-orange/60 sm:hover:bg-ts-orange/15"
+            className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-ts-orange/35 bg-ts-orange/10 text-xs font-black text-ts-orange transition hover:border-ts-orange/60 hover:bg-ts-orange/15 hover:text-ts-orange-light sm:w-auto sm:gap-2 sm:px-5"
           >
-            <MessageCircle className="hidden h-4 w-4 sm:block" />
-            <span>Direct Connect</span>
+            <MessageCircle className="h-4 w-4" />
+            <span className="hidden sm:inline">Direct Connect</span>
           </button>
         </div>
       </header>
 
-      <section className="relative isolate min-h-[760px] overflow-hidden sm:min-h-[720px]">
+      <section className="relative isolate overflow-hidden bg-[var(--service-background)] lg:min-h-[720px]">
         <img
           src={presentation.heroImage}
           alt={presentation.heroImageAlt}
-          className="absolute inset-0 h-full w-full object-cover object-[58%_center] sm:object-[68%_center]"
+          className="h-[430px] w-full object-cover object-[58%_center] sm:h-[520px] lg:absolute lg:inset-0 lg:h-full lg:object-[68%_center]"
         />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,12,18,0.08)_0%,rgba(2,12,18,0.56)_35%,rgba(2,12,18,0.98)_82%)] sm:bg-[linear-gradient(90deg,rgba(2,12,18,0.98)_0%,rgba(2,12,18,0.9)_43%,rgba(2,12,18,0.25)_82%)]" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[var(--service-background)] to-transparent" />
+        <div className="absolute inset-0 hidden bg-[linear-gradient(90deg,rgba(2,12,18,0.99)_0%,rgba(2,12,18,0.91)_44%,rgba(2,12,18,0.32)_82%)] lg:block" />
+        <div className="absolute inset-x-0 bottom-0 hidden h-32 bg-gradient-to-t from-[var(--service-background)] to-transparent lg:block" />
 
-        <div className="relative mx-auto grid min-h-[760px] max-w-7xl items-end gap-8 px-4 pb-12 pt-24 sm:min-h-[720px] sm:px-6 sm:pb-16 lg:grid-cols-[1.25fr_0.75fr] lg:items-center lg:pb-14 lg:pt-20">
+        <div className="relative mx-auto grid max-w-7xl gap-8 bg-[var(--service-background)] px-4 pb-12 pt-10 sm:px-6 lg:min-h-[720px] lg:grid-cols-[1.2fr_0.8fr] lg:items-center lg:bg-transparent lg:pb-14 lg:pt-20">
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/45 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.15em] text-white backdrop-blur-md">
@@ -257,10 +292,10 @@ export default function LocalServiceProfileTheme({
             <p className="mt-2 max-w-2xl text-2xl font-black tracking-[-0.035em] text-white sm:text-3xl">
               {missionStatement}
             </p>
-            <h1 className="mt-5 max-w-3xl text-[2.65rem] font-black leading-[0.98] tracking-[-0.055em] text-white sm:text-6xl lg:text-[4.25rem]">
+            <h1 className="mt-5 max-w-3xl text-[2.25rem] font-black leading-[1] tracking-[-0.05em] text-white sm:text-5xl lg:text-[4.1rem] lg:leading-[0.98]">
               {presentation.heroTitle}
             </h1>
-            <p className="mt-5 max-w-2xl text-[15px] leading-7 text-slate-200 sm:text-lg sm:leading-8">
+            <p className="mt-5 line-clamp-4 max-w-2xl text-[15px] leading-7 text-slate-200 sm:line-clamp-none sm:text-lg sm:leading-8">
               {presentation.heroDescription}
             </p>
 
@@ -288,48 +323,85 @@ export default function LocalServiceProfileTheme({
             </p>
           </div>
 
-          <aside className="rounded-3xl border border-white/15 bg-[#061821]/88 p-5 shadow-2xl shadow-black/35 backdrop-blur-xl sm:p-6 lg:mb-0">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--service-brand)]">
-                  TradeScout trust snapshot
-                </p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">
-                  The useful proof, without the sales fog.
-                </p>
-              </div>
-              <ShieldCheck className="h-7 w-7 flex-none text-emerald-300" />
-            </div>
-
-            {isVerified && normalizedCvsScore !== null ? (
-              <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
-                <div className="flex items-end justify-between gap-3">
+          <aside className="rounded-3xl border border-white/15 bg-[#061821]/92 p-5 shadow-2xl shadow-black/35 backdrop-blur-xl sm:p-6 lg:mb-0">
+            {normalizedVerificationScore !== null ? (
+              <div
+                className="rounded-2xl border border-white/10 bg-black/25 p-4"
+                data-testid="community-verification-card"
+              >
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-300">
                       Community Verification Score
                     </p>
-                    <p className="mt-1 text-4xl font-black tracking-[-0.05em] text-white">
-                      CVS {normalizedCvsScore}
+                    <p className="mt-1 text-5xl font-black tracking-[-0.055em] text-white">
+                      {normalizedVerificationScore}
                     </p>
                   </div>
-                  {cvsStanding ? (
-                    <span className="rounded-full bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-emerald-200">
-                      {cvsStanding}
-                    </span>
-                  ) : null}
+                  <div className="flex flex-col items-end gap-2">
+                    <ShieldCheck className="h-7 w-7 flex-none text-emerald-300" />
+                    {normalizedScoreChange30d === null ? (
+                      <span className="rounded-full bg-amber-300/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-amber-200">
+                        30-day history unavailable
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+
+                <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
                   <div className="rounded-xl bg-white/5 px-3 py-2.5">
-                    <span className="block text-slate-500">Verified baseline</span>
+                    <span className="block text-slate-400">Lifetime score change</span>
                     <strong className="mt-0.5 block text-white">
-                      {normalizedPerformanceScore ?? 50}
+                      {normalizedLifetimeScoreChange === null
+                        ? "Building history"
+                        : `${normalizedLifetimeScoreChange > 0 ? "+" : ""}${normalizedLifetimeScoreChange}`}
                     </strong>
+                    {normalizedLifetimeScoreChange !== null && scoreHistoryStart ? (
+                      <span className="mt-0.5 block text-[10px] text-slate-400">
+                        Since {scoreHistoryStart}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="rounded-xl bg-white/5 px-3 py-2.5">
+                    <span className="block text-slate-400">30-day score change</span>
+                    <strong className="mt-0.5 block text-white">
+                      {normalizedScoreChange30d === null
+                        ? "Building history"
+                        : `${normalizedScoreChange30d > 0 ? "+" : ""}${normalizedScoreChange30d}`}
+                    </strong>
+                    {normalizedScoreChange30d !== null && score30dComparedAt ? (
+                      <span className="mt-0.5 block text-[10px] text-slate-400">
+                        Compared with {score30dComparedAt}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="rounded-xl bg-sky-400/10 px-3 py-2.5">
-                    <span className="block text-sky-200/65">Active boosts</span>
-                    <strong className="mt-0.5 block text-sky-100">+{normalizedBoostPoints}</strong>
+                    <span className="block text-sky-200/75">Active boosts</span>
+                    <strong className="mt-0.5 block text-sky-100">
+                      +{normalizedActiveBoostPoints}
+                    </strong>
                   </div>
                 </div>
+
+                {activeBoosts.length > 0 ? (
+                  <div className="mt-3 flex flex-wrap gap-2" aria-label="Active score boosts">
+                    {activeBoosts.map((boost) => (
+                      <span
+                        key={boost.policyKey}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/15 bg-sky-300/10 px-2.5 py-1 text-[10px] font-bold text-sky-100"
+                      >
+                        {boost.label}
+                        <strong>+{Math.max(0, Math.round(boost.points))}</strong>
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+
+                {verificationHistoryNote ? (
+                  <p className="mt-3 rounded-xl border border-amber-300/15 bg-amber-200/5 px-3 py-2 text-[11px] leading-5 text-amber-100/85">
+                    {verificationHistoryNote}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -337,22 +409,46 @@ export default function LocalServiceProfileTheme({
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3">
                 <BadgeCheck className="h-4 w-4 flex-none text-emerald-300" />
                 <span className="text-slate-200">
-                  {presentation.credentials.length} credential records reviewed
+                  {presentation.credentials.length} credentials listed by {businessName}
                 </span>
               </div>
               <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3">
                 <Sparkles className="h-4 w-4 flex-none text-[var(--service-brand)]" />
                 <span className="text-slate-200">
                   {publicRecommendations.length > 0
-                    ? `${publicRecommendations.length} local recommendation${publicRecommendations.length === 1 ? "" : "s"}`
-                    : "You’re here early—recommendations are opening now"}
+                    ? `${publicRecommendations.length} customer recommendation${publicRecommendations.length === 1 ? "" : "s"} published`
+                    : "0 customer recommendations have been published"}
                 </span>
               </div>
             </div>
-            {trustActions ? <div className="mt-4">{trustActions}</div> : null}
+
+            {profileBadges.length > 0 ? (
+              <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] px-3.5 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">
+                  Profile badges
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {profileBadges.map((badge) => (
+                    <span
+                      key={badge}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-emerald-300/10 px-2.5 py-1 text-[10px] font-bold text-emerald-100"
+                    >
+                      <BadgeCheck className="h-3.5 w-3.5" />
+                      {badge}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </aside>
         </div>
       </section>
+
+      {trustActions ? (
+        <section className="border-y border-white/10 bg-[var(--service-surface)] px-4 py-4 sm:px-6">
+          <div className="mx-auto max-w-3xl">{trustActions}</div>
+        </section>
+      ) : null}
 
       <section className="relative z-10 -mt-1 border-y border-white/10 bg-[var(--service-surface)]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-white/10 px-4 sm:grid-cols-4 sm:divide-y-0 sm:px-6">
@@ -387,25 +483,16 @@ export default function LocalServiceProfileTheme({
           </div>
 
           {galleryItems.length > 0 ? (
-            <div className="mt-10 grid auto-rows-[190px] grid-cols-2 gap-2.5 sm:auto-rows-[230px] sm:grid-cols-12 sm:gap-4">
+            <div className="mt-10 grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {galleryItems.map((item, index) => {
                 const isSharedItem = item.slug === sharedGallerySlug;
-                const placement = [
-                  "col-span-2 row-span-2 sm:col-span-7",
-                  "sm:col-span-5",
-                  "sm:col-span-5",
-                  "sm:col-span-4",
-                  "sm:col-span-4",
-                  "sm:col-span-4",
-                  "sm:col-span-6",
-                  "sm:col-span-6",
-                ][index];
+                const isLandscape = isLandscapeServiceImage(item.imageUrl);
                 return (
                   <article
                     id={`profile-gallery-${item.slug}`}
                     key={item.slug}
                     className={`group relative overflow-hidden rounded-2xl border bg-black ${
-                      placement || "sm:col-span-4"
+                      isLandscape ? "aspect-[4/3]" : "aspect-[3/4]"
                     } ${
                       isSharedItem ? "border-ts-orange ring-2 ring-ts-orange/50" : "border-white/10"
                     }`}
@@ -420,7 +507,7 @@ export default function LocalServiceProfileTheme({
                         src={item.imageUrl}
                         alt={item.imageAlt}
                         loading={index < 3 ? "eager" : "lazy"}
-                        className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+                        className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
                       />
                       <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/5 to-black/10" />
                       <span className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
@@ -448,9 +535,10 @@ export default function LocalServiceProfileTheme({
             </div>
           ) : (
             <div className="mt-10 rounded-2xl border border-dashed border-white/15 bg-white/[0.035] p-6">
-              <p className="font-bold text-white">You&apos;re here early.</p>
+              <p className="font-bold text-white">Completed work is being prepared.</p>
               <p className="mt-1 text-sm leading-6 text-slate-400">
-                Completed work is being prepared for this profile. Direct Connect still works now.
+                This profile will update as project photos are published. Direct Connect is
+                available now.
               </p>
             </div>
           )}
@@ -492,10 +580,9 @@ export default function LocalServiceProfileTheme({
         <section className="border-y border-white/10 bg-[var(--service-surface)] px-4 py-6 sm:px-6">
           <div className="mx-auto flex max-w-7xl flex-col gap-3 rounded-2xl border border-white/10 bg-black/15 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="font-black text-white">You&apos;re here early.</p>
+              <p className="font-black text-white">0 customer recommendations published.</p>
               <p className="mt-1 text-sm leading-6 text-slate-400">
-                Local recommendations are opening as customers join. The verified credentials and
-                real work are already here.
+                Customer recommendations will appear here after they are submitted and approved.
               </p>
             </div>
             <ShareButton
@@ -513,12 +600,12 @@ export default function LocalServiceProfileTheme({
       <section id="story" className="scroll-mt-24 px-4 py-16 sm:px-6 sm:py-24">
         <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] border border-white/10 bg-[var(--service-surface)] lg:grid-cols-[0.85fr_1.15fr]">
           {presentation.aboutImage ? (
-            <div className="relative min-h-[420px] overflow-hidden lg:min-h-[620px]">
+            <div className="relative aspect-[3/4] overflow-hidden lg:aspect-auto lg:min-h-[620px]">
               <img
                 src={presentation.aboutImage}
                 alt={presentation.aboutImageAlt || presentation.aboutTitle}
                 loading="lazy"
-                className="absolute inset-0 h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover object-[center_28%]"
               />
               <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
@@ -572,12 +659,16 @@ export default function LocalServiceProfileTheme({
                   key={group.title}
                   className="group overflow-hidden rounded-3xl border border-white/10 bg-[var(--service-surface)]"
                 >
-                  <div className="relative h-56 overflow-hidden">
+                  <div
+                    className={`relative overflow-hidden ${
+                      isLandscapeServiceImage(group.imageUrl) ? "aspect-[4/3]" : "aspect-[3/4]"
+                    }`}
+                  >
                     <img
                       src={group.imageUrl}
                       alt={group.imageAlt}
                       loading="lazy"
-                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.035]"
+                      className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.025]"
                     />
                     <span className="absolute inset-0 bg-gradient-to-t from-[var(--service-surface)] via-transparent to-transparent" />
                   </div>
@@ -668,7 +759,7 @@ export default function LocalServiceProfileTheme({
             <p className="mt-5 text-xs leading-5 text-slate-500">
               {isVerified
                 ? presentation.credentialDisclosure
-                : "Credential review is in progress. You’re here early, and this profile will update when the review is complete."}
+                : "Credential review is in progress. This profile will update when the review is complete."}
             </p>
           </article>
 
@@ -720,16 +811,18 @@ export default function LocalServiceProfileTheme({
         </section>
       ) : null}
 
-      <section className="relative isolate overflow-hidden px-4 py-20 text-white sm:px-6 sm:py-28">
-        <img
-          src="/images/businesses/la-plumbing-solutions/mechanical-room.jpg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 -z-20 h-full w-full object-cover"
-        />
-        <span className="absolute inset-0 -z-10 bg-gradient-to-r from-[#031017] via-[#031017]/90 to-[#031017]/45" />
-        <div className="mx-auto max-w-7xl">
-          <div className="max-w-3xl">
+      <section className="px-4 py-16 text-white sm:px-6 sm:py-24">
+        <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] border border-white/10 bg-[var(--service-surface)] lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="relative aspect-[3/4] max-h-[620px] overflow-hidden lg:order-2 lg:aspect-auto lg:max-h-none lg:min-h-[560px]">
+            <img
+              src="/images/businesses/la-plumbing-solutions/mechanical-room.jpg"
+              alt="Mechanical-room piping installed by LA Plumbing Solutions"
+              loading="lazy"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <span className="absolute inset-0 bg-gradient-to-t from-[#031017]/45 via-transparent to-transparent lg:bg-gradient-to-r lg:from-[#031017]/35 lg:to-transparent" />
+          </div>
+          <div className="flex max-w-3xl flex-col justify-center p-6 sm:p-10 lg:p-14">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--service-brand)]">
               Direct Connect
             </p>

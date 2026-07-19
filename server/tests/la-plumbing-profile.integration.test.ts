@@ -12,7 +12,7 @@ import {
 } from "@shared/schema";
 import { LA_PLUMBING_PROFILE_SLUG } from "@shared/localServiceProfile";
 import { db, pool } from "../db";
-import { getActiveCvsBoostPoints } from "../services/cvsBoostPolicy";
+import { getActiveCvsBoostPoints, getActiveCvsBoosts } from "../services/cvsBoostPolicy";
 import { provisionLaPlumbingProfile } from "../services/laPlumbingProfileProvisioning";
 import { TRUST_SNAPSHOTS_VERSION } from "../services/trustSnapshotsJob";
 
@@ -157,6 +157,10 @@ async function cleanupLaPlumbingFixture(): Promise<void> {
       .limit(1);
     expect(owner?.verificationStatus).toBe("approved");
     expect(owner?.verifiedBadge).toBe(true);
+    expect(owner?.roles).toContain("community_builder");
+    expect(owner?.badges).toContain("Community Builder Badge");
+    expect(owner?.preferences?.badges?.show).toBe(true);
+    expect(owner?.preferences?.profileSections?.communityActivity).toBe(true);
 
     const [snapshot] = await db
       .select()
@@ -167,6 +171,25 @@ async function cleanupLaPlumbingFixture(): Promise<void> {
     expect(Number(snapshot?.cvsScore)).toBe(70);
     expect(snapshot?.riskFlags).toContain("cvs_policy_boost_active");
     expect(await getActiveCvsBoostPoints(String(business?.ownerUserId))).toBe(20);
+    expect(await getActiveCvsBoosts(String(business?.ownerUserId))).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          policyKey: "verified_profile_launch",
+          label: "Verified profile launch",
+          points: 10,
+        }),
+        expect.objectContaining({
+          policyKey: "operator_firsthand_attestation",
+          label: "Firsthand operator attestation",
+          points: 5,
+        }),
+        expect.objectContaining({
+          policyKey: "verified_portfolio_evidence",
+          label: "Verified portfolio evidence",
+          points: 5,
+        }),
+      ])
+    );
     expect(Number(owner?.trustScore)).toBe(70);
 
     const grants = await db

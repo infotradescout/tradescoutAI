@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  ADMIN_MANAGED_PROFILE_SOURCE,
   JRS_PROFILE_SLUG,
   OWNER_CONFIRMED_PROFILE_SOURCE,
+  PRO_FAB_PROFILE_SLUG,
   isOwnerConfirmedDirectProfile,
 } from "../services/ownerConfirmedDirectProfile";
 
@@ -29,5 +31,30 @@ describe("owner-confirmed direct profile authority", () => {
     ["missing authority marker", { businessSources: [] }],
   ])("rejects %s", (_label, override) => {
     expect(isOwnerConfirmedDirectProfile({ ...approvedCandidate, ...override })).toBe(false);
+  });
+
+  it("allows the explicit Pro Fab admin-managed profile without treating another source as authority", () => {
+    const proFabCandidate = {
+      ...approvedCandidate,
+      profileSlug: PRO_FAB_PROFILE_SLUG,
+      businessSources: [ADMIN_MANAGED_PROFILE_SOURCE],
+    };
+
+    expect(isOwnerConfirmedDirectProfile(proFabCandidate)).toBe(true);
+    expect(
+      isOwnerConfirmedDirectProfile({
+        ...proFabCandidate,
+        businessSources: [OWNER_CONFIRMED_PROFILE_SOURCE],
+      })
+    ).toBe(false);
+  });
+
+  it("does not let the Pro Fab authority marker authorize another direct-profile slug", () => {
+    expect(
+      isOwnerConfirmedDirectProfile({
+        ...approvedCandidate,
+        businessSources: [ADMIN_MANAGED_PROFILE_SOURCE],
+      })
+    ).toBe(false);
   });
 });

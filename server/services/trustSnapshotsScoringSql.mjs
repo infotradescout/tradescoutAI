@@ -7,7 +7,7 @@
  * script can `import` it directly with plain `node`, no build step.
  */
 
-export const TRUST_SNAPSHOTS_VERSION = 3;
+export const TRUST_SNAPSHOTS_VERSION = 4;
 
 export function buildTrustSnapshotsInsertSql({
   forceOverwrite = false,
@@ -35,36 +35,33 @@ export function buildTrustSnapshotsInsertSql({
       WHERE verification_type IN ('license', 'insurance')
       ORDER BY provider_user_id, verification_type, COALESCE(verified_at, created_at) DESC
     ),
-    business_external_signals AS (
+    business_external_candidates AS (
       SELECT
         b.owner_user_id AS user_id,
-        MAX(
-          CASE
-            WHEN COALESCE(
+        b.id AS business_id,
+        CASE
+          WHEN COALESCE(
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_average_rating', ''),
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'average_rating', '')
+               ) ~ '^[0-9]+(\\.[0-9]+)?$'
+            THEN COALESCE(
                    NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_average_rating', ''),
                    NULLIF(b.profile_data -> 'importExtras' ->> 'average_rating', '')
-                 ) ~ '^[0-9]+(\\.[0-9]+)?$'
-              THEN COALESCE(
-                     NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_average_rating', ''),
-                     NULLIF(b.profile_data -> 'importExtras' ->> 'average_rating', '')
-                   )::numeric
-            ELSE NULL
-          END
-        ) AS external_avg_rating,
-        MAX(
-          CASE
-            WHEN COALESCE(
+                 )::numeric
+          ELSE NULL
+        END AS external_avg_rating,
+        CASE
+          WHEN COALESCE(
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_review_count', ''),
+                 NULLIF(b.profile_data -> 'importExtras' ->> 'review_count', '')
+               ) ~ '^[0-9]+$'
+            THEN COALESCE(
                    NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_review_count', ''),
                    NULLIF(b.profile_data -> 'importExtras' ->> 'review_count', '')
-                 ) ~ '^[0-9]+$'
-              THEN COALESCE(
-                     NULLIF(b.profile_data -> 'importExtras' ->> 'gmb_review_count', ''),
-                     NULLIF(b.profile_data -> 'importExtras' ->> 'review_count', '')
-                   )::int
-            ELSE NULL
-          END
-        ) AS external_review_count,
-        BOOL_OR(
+                 )::int
+          ELSE NULL
+        END AS external_review_count,
+        (
           COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'google_place_id', ''), '') <> ''
           OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'place_id', ''), '') <> ''
           OR COALESCE(NULLIF(b.profile_data -> 'importExtras' ->> 'places_place_id', ''), '') <> ''
@@ -73,18 +70,60 @@ export function buildTrustSnapshotsInsertSql({
         ) AS external_place_confirmed
       FROM businesses b
       WHERE b.owner_user_id IS NOT NULL
-      GROUP BY b.owner_user_id
+    ),
+    business_external_evidence_candidates AS (
+      SELECT
+        user_id,
+        business_id,
+        external_avg_rating,
+        external_review_count,
+        external_place_confirmed
+      FROM business_external_candidates
+      WHERE external_avg_rating IS NOT NULL
+        OR external_review_count IS NOT NULL
+        OR external_place_confirmed IS TRUE
+    ),
+    business_external_signals AS (
+      SELECT
+        candidate.user_id,
+        candidate.external_avg_rating,
+        candidate.external_review_count,
+        candidate.external_place_confirmed
+      FROM business_external_evidence_candidates candidate
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM business_external_evidence_candidates other
+        WHERE other.user_id = candidate.user_id
+          AND other.business_id <> candidate.business_id
+      )
+    ),
+    contractor_signals AS (
+      SELECT
+        user_id,
+        BOOL_OR(
+          COALESCE(verified_licensed, FALSE)
+          AND COALESCE(verified_insured, FALSE)
+        ) AS legacy_credentials_verified
+      FROM contractors
+      WHERE user_id IS NOT NULL
+        AND is_active IS TRUE
+      GROUP BY user_id
     ),
     provider_local_signals AS (
-      SELECT
+      SELECT DISTINCT ON (provider_user_id, county_fips)
         provider_user_id AS user_id,
         county_fips,
-        SUM(COALESCE(jobs_completed, 0))::int AS jobs_completed,
-        SUM(COALESCE(people_helped, 0))::int AS people_helped,
-        SUM(COALESCE(active_weeks, 0))::int AS active_weeks,
-        MAX(last_active_at) AS last_active_at
+        COALESCE(jobs_completed, 0)::int AS jobs_completed,
+        COALESCE(people_helped, 0)::int AS people_helped,
+        COALESCE(active_weeks, 0)::int AS active_weeks,
+        last_active_at
       FROM provider_local_stats
-      GROUP BY provider_user_id, county_fips
+      ORDER BY
+        provider_user_id,
+        county_fips,
+        updated_at DESC NULLS LAST,
+        created_at DESC NULLS LAST,
+        id DESC
     ),
     event_signals AS (
       SELECT
@@ -144,6 +183,7 @@ export function buildTrustSnapshotsInsertSql({
       FROM recommendations r
       JOIN contractors c ON c.id = r.contractor_id
       WHERE c.user_id IS NOT NULL
+        AND c.is_active IS TRUE
         AND r.is_verified IS TRUE
         AND r.is_public IS TRUE
         AND lower(COALESCE(r.moderation_status, '')) = 'approved'
@@ -196,30 +236,50 @@ export function buildTrustSnapshotsInsertSql({
       ) u
       GROUP BY u.user_id
     ),
-    cvs_boost_grants AS (
+    cvs_boost_policy(policy_key, points) AS (
+      VALUES
+        ('verified_profile_launch', 10::numeric),
+        ('operator_firsthand_attestation', 5::numeric),
+        ('verified_portfolio_evidence', 5::numeric)
+    ),
+    cvs_boost_grants_ranked AS (
       SELECT
         g.entity_id AS user_id,
-        (g.metadata ->> 'points')::numeric AS points
+        g.entity_type,
+        g.metadata ->> 'grantKey' AS grant_key,
+        g.metadata ->> 'policyKey' AS policy_key,
+        NULLIF(g.metadata ->> 'expiresAt', '') AS expires_at,
+        ROW_NUMBER() OVER (
+          PARTITION BY g.entity_id, g.metadata ->> 'grantKey'
+          ORDER BY g.created_at ASC, g.id ASC
+        ) AS grant_rank
       FROM trust_ledger_events g
       WHERE g.entity_type = 'user_cvs'
         AND g.event_type = 'cvs_boost_granted'
         AND g.verification_level = 'system_verified'
-        AND COALESCE(g.metadata ->> 'points', '') ~ '^[0-9]+(\\.[0-9]+)?$'
-        AND (g.metadata ->> 'points')::numeric > 0
+        AND g.created_at <= NOW()
+        AND COALESCE(g.metadata ->> 'grantKey', '') <> ''
+    ),
+    cvs_boost_grants AS (
+      SELECT g.user_id, p.points
+      FROM cvs_boost_grants_ranked g
+      INNER JOIN cvs_boost_policy p ON p.policy_key = g.policy_key
+      WHERE g.grant_rank = 1
         AND (
-          COALESCE(g.metadata ->> 'expiresAt', '') = ''
+          COALESCE(g.expires_at, '') = ''
           OR (
-            (g.metadata ->> 'expiresAt') ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
-            AND (g.metadata ->> 'expiresAt')::timestamptz > NOW()
+            g.expires_at ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
+            AND g.expires_at::timestamptz > NOW()
           )
         )
         AND NOT EXISTS (
           SELECT 1
           FROM trust_ledger_events r
           WHERE r.entity_type = g.entity_type
-            AND r.entity_id = g.entity_id
+            AND r.entity_id = g.user_id
             AND r.event_type = 'cvs_boost_revoked'
-            AND r.metadata ->> 'grantKey' = g.metadata ->> 'grantKey'
+            AND r.created_at <= NOW()
+            AND r.metadata ->> 'grantKey' = g.grant_key
         )
     ),
     cvs_boost_signals AS (
@@ -249,8 +309,8 @@ export function buildTrustSnapshotsInsertSql({
             'auto_service'
           )
           OR 'contractor' = ANY(u.roles) AS is_contractor,
-        c.verified_licensed AS contractor_license_verified,
-        c.verified_insured AS contractor_insurance_verified,
+        c.legacy_credentials_verified AS contractor_license_verified,
+        c.legacy_credentials_verified AS contractor_insurance_verified,
         lv_license.status AS license_status_raw,
         lv_license.expires_at AS license_expires_at,
         lv_insurance.status AS insurance_status_raw,
@@ -278,7 +338,7 @@ export function buildTrustSnapshotsInsertSql({
         COALESCE(ms.active_disputes, 0)::int AS active_disputes,
         COALESCE(cbs.boost_points, 0)::numeric AS cvs_boost_points
       FROM users u
-      LEFT JOIN contractors c ON c.user_id = u.id
+      LEFT JOIN contractor_signals c ON c.user_id = u.id
       LEFT JOIN business_external_signals bes ON bes.user_id = u.id
       LEFT JOIN provider_local_signals pls
         ON pls.user_id = u.id

@@ -12,13 +12,14 @@ const expressSource = fs.readFileSync(
 );
 
 describe("JW Stone profile presentation contract", () => {
-  it("uses the branded video hero with Amazonic Green context and a centered final crop", () => {
+  it("uses the branded video hero with a restrained, reduced-motion-safe crop", () => {
     expect(source).toContain('stone.slug === "amazonic-green"');
     expect(source).toContain("Amazonic Green · current inventory");
     expect(source).toContain("/images/businesses/jw-stone/video/hero.mp4");
     expect(source).toContain("/images/businesses/jw-stone/video/hero-poster.jpg");
-    expect(source).toContain('heroVideoZoomed ? "scale-105 md:scale-[1.25]" : "scale-100"');
-    expect(source).toContain("a 10% crop on every side");
+    expect(source).toContain('heroVideoZoomed ? "scale-100 md:scale-[1.12]" : "scale-100"');
+    expect(source).toContain('window.matchMedia("(prefers-reduced-motion: reduce)")');
+    expect(source).toContain("autoPlay={!prefersReducedMotion}");
   });
 
   it("makes the full catalog the primary JW Stone action", () => {

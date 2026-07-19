@@ -149,7 +149,7 @@ const computeBadgesForUser = (user: any): string[] => {
   return Array.from(merged);
 };
 
-const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-social-preview.png?v=11";
+const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-social-preview.png?v=12";
 const PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS = new Set<string>([
   "/tradescout-logo.png",
   "/tradescout-logo.jpg",

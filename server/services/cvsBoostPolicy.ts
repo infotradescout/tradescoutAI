@@ -40,6 +40,15 @@ export const CVS_BOOST_POLICIES = {
 
 export type CvsBoostPolicyKey = keyof typeof CVS_BOOST_POLICIES;
 
+export type ActiveCvsBoost = {
+  policyKey: string;
+  label: string;
+  points: number;
+  expiresAt: string | null;
+};
+
+export const CVS_BOOST_POINTS_CAP = 100;
+
 export async function ensureCvsPolicyBoost(
   tx: any,
   input: {
@@ -96,38 +105,104 @@ export async function ensureCvsPolicyBoost(
   return true;
 }
 
-export async function getActiveCvsBoostPoints(userId: string): Promise<number> {
+export async function getActiveCvsBoosts(
+  userId: string,
+  asOf: Date = new Date()
+): Promise<ActiveCvsBoost[]> {
   const normalizedUserId = String(userId || "").trim();
-  if (!normalizedUserId) return 0;
+  if (!normalizedUserId) return [];
+
+  if (Number.isNaN(asOf.getTime())) return [];
+
+  const publicPolicyKeys = Object.keys(CVS_BOOST_POLICIES) as CvsBoostPolicyKey[];
 
   const result: any = await pool.query(
     `
-      SELECT COALESCE(SUM((g.metadata ->> 'points')::numeric), 0)::numeric AS boost_points
-      FROM trust_ledger_events g
-      WHERE g.entity_type = $1
-        AND g.entity_id = $2
-        AND g.event_type = $3
-        AND g.verification_level = 'system_verified'
-        AND COALESCE(g.metadata ->> 'points', '') ~ '^[0-9]+(\\.[0-9]+)?$'
-        AND (g.metadata ->> 'points')::numeric > 0
+      WITH ranked_grants AS (
+        SELECT
+          g.entity_id,
+          g.metadata ->> 'grantKey' AS grant_key,
+          g.metadata ->> 'policyKey' AS policy_key,
+          NULLIF(g.metadata ->> 'expiresAt', '') AS expires_at,
+          g.created_at,
+          g.id,
+          ROW_NUMBER() OVER (
+            PARTITION BY g.entity_id, g.metadata ->> 'grantKey'
+            ORDER BY g.created_at ASC, g.id ASC
+          ) AS grant_rank
+        FROM trust_ledger_events g
+        WHERE g.entity_type = $1
+          AND g.entity_id = $2
+          AND g.event_type = $3
+          AND g.verification_level = 'system_verified'
+          AND g.created_at <= $6
+          AND COALESCE(g.metadata ->> 'grantKey', '') <> ''
+      )
+      SELECT policy_key, expires_at
+      FROM ranked_grants g
+      WHERE g.grant_rank = 1
+        AND g.policy_key = ANY($5::text[])
         AND (
-          COALESCE(g.metadata ->> 'expiresAt', '') = ''
+          COALESCE(g.expires_at, '') = ''
           OR (
-            (g.metadata ->> 'expiresAt') ~ '^\\d{4}-\\d{2}-\\d{2}T'
-            AND (g.metadata ->> 'expiresAt')::timestamptz > NOW()
+            g.expires_at ~ '^\\d{4}-\\d{2}-\\d{2}T'
+            AND g.expires_at::timestamptz > $6
           )
         )
         AND NOT EXISTS (
           SELECT 1
           FROM trust_ledger_events r
-          WHERE r.entity_type = g.entity_type
+          WHERE r.entity_type = $1
             AND r.entity_id = g.entity_id
             AND r.event_type = $4
-            AND r.metadata ->> 'grantKey' = g.metadata ->> 'grantKey'
+            AND r.created_at <= $6
+            AND r.metadata ->> 'grantKey' = g.grant_key
         )
+      ORDER BY created_at ASC, id ASC
     `,
-    [CVS_BOOST_ENTITY_TYPE, normalizedUserId, CVS_BOOST_GRANTED_EVENT, CVS_BOOST_REVOKED_EVENT]
+    [
+      CVS_BOOST_ENTITY_TYPE,
+      normalizedUserId,
+      CVS_BOOST_GRANTED_EVENT,
+      CVS_BOOST_REVOKED_EVENT,
+      publicPolicyKeys,
+      asOf,
+    ]
   );
-  const points = Number(result.rows?.[0]?.boost_points ?? 0);
-  return Number.isFinite(points) && points > 0 ? points : 0;
+
+  const registryGovernedBoosts = (result.rows || []).flatMap((row: any): ActiveCvsBoost[] => {
+    const policyKey = String(row.policy_key || "") as CvsBoostPolicyKey;
+    const policy = CVS_BOOST_POLICIES[policyKey];
+    if (!policy || policy.points <= 0) return [];
+
+    const rawExpiresAt = String(row.expires_at || "").trim();
+    const parsedExpiresAt = rawExpiresAt ? new Date(rawExpiresAt) : null;
+    const expiresAt =
+      parsedExpiresAt && !Number.isNaN(parsedExpiresAt.getTime())
+        ? parsedExpiresAt.toISOString()
+        : null;
+
+    // Labels come from the audited policy registry, never free-form ledger
+    // metadata. Evidence and operator-only rationale stay private.
+    return [{ policyKey, label: policy.label, points: policy.points, expiresAt }];
+  });
+
+  // The score SQL caps the audited boost layer at the same boundary. Truncate
+  // only the final visible item when necessary so the itemized breakdown and
+  // the number included in the score can never disagree.
+  let remainingPoints = CVS_BOOST_POINTS_CAP;
+  return registryGovernedBoosts.flatMap((boost): ActiveCvsBoost[] => {
+    if (remainingPoints <= 0) return [];
+    const points = Math.min(boost.points, remainingPoints);
+    remainingPoints -= points;
+    return [{ ...boost, points }];
+  });
+}
+
+export async function getActiveCvsBoostPoints(
+  userId: string,
+  asOf: Date = new Date()
+): Promise<number> {
+  const boosts = await getActiveCvsBoosts(userId, asOf);
+  return boosts.reduce((sum, boost) => sum + boost.points, 0);
 }

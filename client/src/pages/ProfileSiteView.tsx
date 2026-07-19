@@ -26,7 +26,10 @@ import { Page } from "@/components/layout/PagePrimitives";
 import { ShareButton } from "@/components/ShareButton";
 import WholesalerProfileTheme from "@/pages/profile-sites/WholesalerProfileTheme";
 import JrsAutoGlassProfileTheme from "@/pages/profile-sites/JrsAutoGlassProfileTheme";
-import LocalServiceProfileTheme from "@/pages/profile-sites/LocalServiceProfileTheme";
+import ProFabProfileTheme from "@/pages/profile-sites/ProFabProfileTheme";
+import LocalServiceProfileTheme, {
+  type PublicCommunityVerification,
+} from "@/pages/profile-sites/LocalServiceProfileTheme";
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
@@ -392,6 +395,7 @@ type PublicBusinessSubset = {
   cvsPerformanceScore?: number | null;
   cvsBoostPoints?: number | null;
   trustComputedAt?: string | null;
+  communityVerification?: PublicCommunityVerification | null;
   expressContactCapabilities?: {
     call?: boolean;
     request?: boolean;
@@ -940,6 +944,43 @@ export default function ProfileSiteView() {
     );
   }
 
+  if (profile.slug === "pro-fab-specialty-services") {
+    return (
+      <>
+        <SEOHelmet
+          title={seoTitle}
+          description={seoDescription}
+          canonical={seoCanonical}
+          ogType={inventoryItemShareMeta ? "product" : galleryItemShareMeta ? "article" : "profile"}
+          ogImage={seoImage}
+          structuredData={structuredData}
+          preserveCanonicalQuery={Boolean(itemShareMeta)}
+        />
+        <ProFabProfileTheme
+          profileSlug={profile.slug}
+          platformBaseHref={platformBaseHref}
+          onDirectConnect={() => setExpressPanelOpen(true)}
+          hasViewerSession={hasViewerSession}
+          tradeScoutReturnHref={tradeScoutReturnHref}
+          recommendationsDirectory={recommendationsDirectory}
+          trustActions={renderProfileTrustActions("dark")}
+          profileItems={
+            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+          }
+        />
+        <ExpressDirectConnectPanel
+          open={expressPanelOpen}
+          onClose={() => setExpressPanelOpen(false)}
+          profileSlug={profile.slug}
+          businessName={displayName}
+          hasViewerSession={hasViewerSession}
+          allowCall={canExpressCall}
+          requestMode="service"
+        />
+      </>
+    );
+  }
+
   if (localServicePresentation?.template === "local-service") {
     return (
       <>
@@ -966,9 +1007,8 @@ export default function ProfileSiteView() {
           recommendationsDirectory={recommendationsDirectory}
           trustActions={renderProfileTrustActions("dark")}
           verificationStatus={business?.verificationStatus}
-          cvsScore={business?.cvsScore}
-          cvsPerformanceScore={business?.cvsPerformanceScore}
-          cvsBoostPoints={business?.cvsBoostPoints}
+          verifiedBadge={business?.verifiedBadge === true}
+          communityVerification={business?.communityVerification}
           profileItems={
             <PublicProfileItems items={profileItems} profileSections={profileSections} />
           }
