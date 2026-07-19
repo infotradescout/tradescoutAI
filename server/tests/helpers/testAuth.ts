@@ -38,18 +38,16 @@ async function getTestApp() {
 
 async function createFixtureUser(values: Record<string, any>) {
   const email = String(values.email || "").toLowerCase();
-  const isSyntheticIntegrationSuperAdmin =
-    process.env.RUN_INTEGRATION_TESTS === "true" &&
-    values.role === "super_admin" &&
-    email.endsWith("@tradescout.test");
+  const isSyntheticIntegrationUser =
+    process.env.RUN_INTEGRATION_TESTS === "true" && email.endsWith("@tradescout.test");
 
-  if (!isSyntheticIntegrationSuperAdmin) {
+  if (!isSyntheticIntegrationUser) {
     return storage.createUser(values as any);
   }
 
   // These privileged-path fixtures test authorization, not the production
-  // super-admin-to-every-user backfill. Running that historical sweep for each
-  // synthetic admin makes the shared integration database slower on every run.
+  // super-admin relationship provisioning. Running those historical writes for
+  // synthetic users makes the shared integration database slower on every run.
   const [user] = await db
     .insert(users)
     .values(values as any)

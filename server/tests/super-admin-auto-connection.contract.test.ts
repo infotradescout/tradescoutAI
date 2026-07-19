@@ -39,11 +39,12 @@ describe("super-admin auto-connection contracts", () => {
     expect((match?.[1] ?? "").length).toBeLessThanOrEqual(30);
   });
 
-  it("keeps synthetic integration admins out of the historical connection sweep", () => {
+  it("keeps synthetic integration users out of production relationship provisioning", () => {
     const testAuthSource = read("server/tests/helpers/testAuth.ts");
 
     expect(testAuthSource).toContain('process.env.RUN_INTEGRATION_TESTS === "true"');
     expect(testAuthSource).toContain('email.endsWith("@tradescout.test")');
+    expect(testAuthSource).not.toContain('values.role === "super_admin"');
     expect(testAuthSource).toContain(".insert(users)");
   });
 });
