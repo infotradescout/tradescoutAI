@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
   Activity,
+  ArrowLeft,
   BriefcaseBusiness,
   CheckCircle2,
   CornerDownLeft,
@@ -339,7 +340,6 @@ export default function MessagesPanel() {
   useEffect(() => {
     if (activeThreadId && user) markThreadReadMutation.mutate(activeThreadId);
     // A thread is marked once when selection changes; query invalidation must not retrigger it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeThreadId, user?.id]);
 
   const homesQuery = useQuery<{ homes: UserHome[] }>({
@@ -520,9 +520,18 @@ export default function MessagesPanel() {
     if (typeof window !== "undefined") window.history.replaceState(null, "", thread.threadHref);
   };
 
+  const hasSelection =
+    activeView === "requests" ? Boolean(activeRequestId) : Boolean(activeThreadId);
+  const clearSelection = () => {
+    if (activeView === "requests") setActiveRequestId(null);
+    else setActiveThreadId(null);
+  };
+
   return (
-    <div className="flex h-full gap-4">
-      <Card className="w-[320px] flex flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
+    <div className="flex h-full flex-col gap-4 md:flex-row">
+      <Card
+        className={`w-full flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)] md:flex md:w-[320px] ${hasSelection ? "hidden md:flex" : "flex"}`}
+      >
         <div className="p-5 border-b border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -685,17 +694,30 @@ export default function MessagesPanel() {
         </ScrollArea>
       </Card>
 
-      <Card className="flex-1 flex flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)]">
-        <div className="p-5 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/60">
-              {activeView === "requests" ? "Review request" : activeContextLabel}
-            </p>
-            <h2 className="text-lg font-semibold text-white">
-              {activeView === "requests"
-                ? activeRequest?.fromName || "Select a request"
-                : activeTitle || "Select a thread"}
-            </h2>
+      <Card
+        className={`flex-1 flex-col bg-black/30 border border-white/10 shadow-[0_20px_60px_rgba(15,23,42,0.35)] md:flex ${hasSelection ? "flex" : "hidden md:flex"}`}
+      >
+        <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-none border-white/10 text-white/70 md:hidden"
+              onClick={clearSelection}
+              aria-label="Back to list"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.2em] text-white/60">
+                {activeView === "requests" ? "Review request" : activeContextLabel}
+              </p>
+              <h2 className="text-lg font-semibold text-white truncate">
+                {activeView === "requests"
+                  ? activeRequest?.fromName || "Select a request"
+                  : activeTitle || "Select a thread"}
+              </h2>
+            </div>
           </div>
           {activeView === "threads" && activeThread?.context.href && (
             <Button variant="outline" size="sm" className="border-white/10 text-white/70" asChild>
