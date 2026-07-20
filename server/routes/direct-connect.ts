@@ -70,6 +70,7 @@ import {
 } from "../utils/authorityPolicy";
 import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
 import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
+import { resolveAnonymousSessionId } from "../utils/anonymousSession";
 
 type AuthedRequest = Request & {
   user?: { id?: string; claims?: { sub?: string }; role?: string | null; [key: string]: any };
@@ -111,33 +112,6 @@ function resolveDirectConnectGiveawayEligibility(params: {
       evaluatedAt: new Date().toISOString(),
     },
   };
-}
-
-function readCookieValue(req: Request, name: string): string {
-  const raw = String((req.headers as any)?.cookie || "");
-  if (!raw) return "";
-  const parts = raw.split(";").map((part) => part.trim());
-  const hit = parts.find((part) => part.startsWith(`${name}=`));
-  if (!hit) return "";
-  const value = hit.slice(name.length + 1).trim();
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
-function resolveAnonymousSessionId(req: Request): string {
-  const fromHeader = String(req.headers["x-anonymous-session-id"] || "").trim();
-  if (fromHeader) return fromHeader;
-  const fromQuery = String((req.query as any)?.anonymousSessionId || "").trim();
-  if (fromQuery) return fromQuery;
-  const cookieCandidates = ["anonymousSessionId", "anonSessionId", "sessionId", "ts_session_id"];
-  for (const name of cookieCandidates) {
-    const value = readCookieValue(req, name);
-    if (value) return value;
-  }
-  return "";
 }
 
 function createId(prefix: string) {

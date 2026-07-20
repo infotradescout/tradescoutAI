@@ -1,7 +1,11 @@
 import type { Express, Request, Response } from "express";
+import { rateLimit } from "express-rate-limit";
 import { isStaff } from "../auth";
 import { pool } from "../db";
 import { storage } from "../storage";
+import { createPostgresRateLimitStore } from "../utils/postgresRateLimitStore";
+import { readPositiveIntegerEnv } from "../utils/rateLimitConfig";
+import { resolveAnonymousSessionId } from "../utils/anonymousSession";
 
 const DEMAND_EVENT_TYPES = [
   "demand.landing_view",
@@ -85,6 +89,107 @@ const DIRECT_CONNECT_SAFE_EVENT_KEYS = new Set([
   "userId",
   "contractorId",
 ]);
+
+// --- Direct Connect conversion-integrity lane ---------------------------
+// A deliberately narrower lane than DIRECT_CONNECT_SAFE_EVENT_KEYS above:
+// funnel stalls, blocked actions, and repeated-action friction, tagged
+// severity "high" and reused off the same events table + endpoint. Scope is
+// held strictly to Direct Connect conversion integrity -- not a general
+// observability pipeline.
+export const DIRECT_CONNECT_INTEGRITY_LANE = "direct_connect_conversion_integrity";
+
+export const DIRECT_CONNECT_INTEGRITY_EVENT_NAMES = new Set([
+  "direct_connect_integrity_blocked_action",
+  "direct_connect_integrity_repeated_click",
+  "direct_connect_integrity_repeated_submit",
+  "direct_connect_integrity_request_failed",
+  // Server-derived only (see server/services/directConnectFunnelIntegrity.ts).
+  // Never accepted from a client-submitted payload -- see the eventName +
+  // lane check in sanitizeConversionIntegrityEvent below.
+  "direct_connect_funnel_step_stalled",
+]);
+
+export const SAFE_ERROR_CODES = new Set([
+  "network_error",
+  "timeout",
+  "server_error",
+  "validation_failed",
+  "auth_required",
+  "rate_limited",
+  "unknown_error",
+]);
+
+const MAX_INTEGRITY_STRING_LENGTH = 200;
+
+function resolveReleaseSha(): string {
+  return (
+    process.env.RENDER_GIT_COMMIT ||
+    process.env.GITHUB_SHA ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.COMMIT_REF ||
+    "unknown"
+  );
+}
+
+/**
+ * Strict allowlist for the conversion-integrity lane: builds the persisted
+ * payload field-by-field from a fixed vocabulary (eventName, routeTemplate,
+ * funnelStep, safeErrorCode, statusCode, blocked, retryCount, clickCount)
+ * plus server-attached structural fields. Anything else -- including nested
+ * objects -- is discarded, not merged. Returns null for an unknown event
+ * name or a client attempt to submit the server-only stall event.
+ */
+export function sanitizeConversionIntegrityEvent(
+  event: Record<string, unknown>,
+  identity: { userId: string | null; anonymousSessionId: string | null },
+  isServerDerived: boolean
+): Record<string, unknown> | null {
+  const eventName = typeof event.eventName === "string" ? event.eventName : "";
+  if (!DIRECT_CONNECT_INTEGRITY_EVENT_NAMES.has(eventName)) return null;
+  if (eventName === "direct_connect_funnel_step_stalled" && !isServerDerived) return null;
+
+  const safe: Record<string, unknown> = { eventName, lane: DIRECT_CONNECT_INTEGRITY_LANE };
+
+  if (typeof event.routeTemplate === "string") {
+    safe.routeTemplate = event.routeTemplate.split(/[?#]/)[0].slice(0, MAX_INTEGRITY_STRING_LENGTH);
+  }
+  if (typeof event.funnelStep === "string") {
+    safe.funnelStep = event.funnelStep.slice(0, 80);
+  }
+  if (typeof event.safeErrorCode === "string" && SAFE_ERROR_CODES.has(event.safeErrorCode)) {
+    safe.safeErrorCode = event.safeErrorCode;
+  }
+  if (
+    typeof event.statusCode === "number" &&
+    Number.isInteger(event.statusCode) &&
+    event.statusCode >= 100 &&
+    event.statusCode < 600
+  ) {
+    safe.statusCode = event.statusCode;
+  }
+  if (typeof event.blocked === "boolean") {
+    safe.blocked = event.blocked;
+  }
+  if (typeof event.retryCount === "number" && Number.isFinite(event.retryCount)) {
+    safe.retryCount = Math.max(0, Math.min(9999, Math.trunc(event.retryCount)));
+  }
+  if (typeof event.clickCount === "number" && Number.isFinite(event.clickCount)) {
+    safe.clickCount = Math.max(0, Math.min(9999, Math.trunc(event.clickCount)));
+  }
+
+  safe.severity = "high";
+  safe.schema_version = typeof event.schema_version === "number" ? event.schema_version : 1;
+  safe.client_build =
+    typeof event.client_build === "string"
+      ? event.client_build.slice(0, MAX_INTEGRITY_STRING_LENGTH)
+      : "unknown";
+  safe.release_sha = resolveReleaseSha();
+  safe.ts = new Date().toISOString();
+  if (identity.userId) safe.userId = identity.userId;
+  else if (identity.anonymousSessionId) safe.anonymousSessionId = identity.anonymousSessionId;
+
+  return safe;
+}
 
 type DemandEventType = (typeof DEMAND_EVENT_TYPES)[number];
 
@@ -192,15 +297,53 @@ function sanitizeShellAnalyticsEvent(event: Record<string, unknown>): Record<str
   return safeEvent;
 }
 
+const MAX_SHELL_EVENT_BYTES = 8192;
+const isProductionEnv = process.env.NODE_ENV === "production";
+const noopRateLimiter: any = (_req: Request, _res: Response, next: () => void) => next();
+
+function shellAnalyticsRateLimitKey(req: Request): string {
+  const userId = (req as any)?.user?.id;
+  if (userId) return `u:${userId}`;
+  const anonymousSessionId = resolveAnonymousSessionId(req);
+  if (anonymousSessionId) return `anon:${anonymousSessionId}`;
+  return req.ip || "unknown";
+}
+
+// Telemetry must never surface a rate-limit error to the user -- silently
+// drop over-limit events rather than responding with 429.
+const shellAnalyticsLimiter = isProductionEnv
+  ? rateLimit({
+      windowMs: 60 * 1000,
+      max: readPositiveIntegerEnv("ANALYTICS_SHELL_LIMIT_1M", 120),
+      standardHeaders: true,
+      legacyHeaders: false,
+      keyGenerator: shellAnalyticsRateLimitKey,
+      store: createPostgresRateLimitStore({
+        pool,
+        prefix: "rl:analytics:shell",
+        cleanupIntervalMs: Number(process.env.RATE_LIMIT_CLEANUP_INTERVAL_MS || 10 * 60 * 1000),
+      }),
+      handler: (_req: Request, res: Response) => {
+        res.status(204).end();
+      },
+    })
+  : noopRateLimiter;
+
 export function registerAnalyticsRoutes(app: Express) {
   // This endpoint is intentionally soft: it should never block UX.
   // Guests are allowed; userId is optional.
-  app.post("/api/analytics/shell", async (req: Request, res: Response) => {
+  app.post("/api/analytics/shell", shellAnalyticsLimiter, async (req: Request, res: Response) => {
     try {
       const user = (req as any)?.user ?? null;
       const userId = user?.id ?? null;
       const contractorId = user?.contractorId ?? null;
-      const event = req.body as any;
+      const event = (req.body || {}) as Record<string, unknown>;
+
+      const rawSize = Number(req.headers["content-length"]) || JSON.stringify(event).length;
+      if (rawSize > MAX_SHELL_EVENT_BYTES) {
+        res.status(204).end();
+        return;
+      }
 
       // Avoid high-volume stdout logging in production.
       // If you need diagnostics, enable sampling via ANALYTICS_SHELL_LOG_SAMPLE_RATE (0..1).
@@ -226,6 +369,23 @@ export function registerAnalyticsRoutes(app: Express) {
       // Best-effort persistence into the generic events table.
       // Never block UX on analytics writes.
       try {
+        const isIntegrityLane = event.lane === DIRECT_CONNECT_INTEGRITY_LANE;
+
+        if (isIntegrityLane) {
+          const anonymousSessionId = userId ? null : resolveAnonymousSessionId(req) || null;
+          const safeEvent = sanitizeConversionIntegrityEvent(
+            event,
+            { userId, anonymousSessionId },
+            false
+          );
+          if (safeEvent) {
+            void storage.logEvent(String(safeEvent.eventName), safeEvent).catch((persistError) => {
+              console.error("[Analytics][Shell] Failed to persist integrity event", persistError);
+            });
+          }
+          return;
+        }
+
         const ipHeader = (req.headers["x-forwarded-for"] || req.headers["x-real-ip"]) as
           | string
           | undefined;
