@@ -36,28 +36,20 @@ describe("TradeScout About explainer route", () => {
   });
 
   it("keeps expandable summaries readable at phone widths", () => {
-    expect(explainerStyles).toContain(
-      ".content-section > summary strong { grid-column: 1;",
-    );
-    expect(explainerStyles).toContain(
-      ".content-section > summary small { grid-column: 1;",
-    );
+    expect(explainerStyles).toContain(".content-section > summary strong { grid-column: 1;");
+    expect(explainerStyles).toContain(".content-section > summary small { grid-column: 1;");
     expect(explainerStyles).toContain("grid-column: 2;");
     expect(explainerStyles).toContain("grid-row: 1 / span 2;");
     expect(explainerStyles).toContain(
-      ".explainer-stack[open] > summary::after { transform: rotate(225deg); }",
+      ".explainer-stack[open] > summary::after { transform: rotate(225deg); }"
     );
     expect(explainerStyles).toContain(
-      ".content-section[open] > summary::after { transform: rotate(225deg); }",
+      ".content-section[open] > summary::after { transform: rotate(225deg); }"
     );
+    expect(explainerStyles).toContain('.explainer-stack > summary::after {\n  content: "";');
+    expect(explainerStyles).toContain('.content-section > summary::after {\n  content: "";');
     expect(explainerStyles).toContain(
-      '.explainer-stack > summary::after {\n  content: "";',
-    );
-    expect(explainerStyles).toContain(
-      '.content-section > summary::after {\n  content: "";',
-    );
-    expect(explainerStyles).toContain(
-      ".public-tool-grid details[open] summary::after { top: 8px; transform: rotate(225deg); }",
+      ".public-tool-grid details[open] summary::after { top: 8px; transform: rotate(225deg); }"
     );
     expect(explainerStyles).not.toContain('.public-tool-grid summary::after { content: "+"');
   });

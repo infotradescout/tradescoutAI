@@ -47,8 +47,8 @@ describe("contractor project photo sharing contract", () => {
     const page = read("client/src/pages/contractor-profile.tsx");
 
     expect(page).toContain("const directConnectHref = `/direct-connect?intent=hire");
-    expect(page).toContain("mode=create&next");
-    expect(page).toContain("mode=signin&next");
+    expect(page).toContain("/pre-scout-setup?mode=create&next=");
+    expect(page).toContain("/pre-scout-setup?mode=signin&next=");
     expect(page).toContain("Direct Connect");
     expect(page).toContain("Sign In");
     expect(page).toContain("Contact is protected to prevent spam.");

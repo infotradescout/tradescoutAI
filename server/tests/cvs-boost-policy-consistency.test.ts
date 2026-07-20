@@ -119,7 +119,9 @@ describe("CVS boost policy consistency", () => {
     expect(scoringDictionary).toContain("The performance component uses `0-100`");
     expect(scoringDictionary).toContain("a policy boost is the only allowed path above 100");
     expect(trustSnapshots).toContain("The live performance score is clamped to `0-100`");
-    expect(trustSnapshots).toContain("only mechanism allowed to take the displayed CVS total above `100`");
+    expect(trustSnapshots).toContain(
+      "only mechanism allowed to take the displayed CVS total above `100`"
+    );
     expect(schema).toContain(
       "Performance is capped at 100; audited policy boosts may make the total exceed 100."
     );

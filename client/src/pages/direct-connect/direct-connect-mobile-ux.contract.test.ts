@@ -10,6 +10,7 @@ describe("Direct Connect mobile composer hierarchy", () => {
     const source = read("client/src/pages/direct-connect/DirectConnectShell.tsx");
 
     expect(source).toContain('data-testid="direct-connect-mobile-composer"');
+    expect(source).toContain("What do you need?");
     expect(source).toContain(
       "Describe the result, product, service, opportunity, or support you are looking for. You decide who sees it."
     );

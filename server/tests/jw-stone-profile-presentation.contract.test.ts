@@ -79,13 +79,15 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("fixed inset-x-0 top-0 z-40");
   });
 
-  it("keeps every Direct Connect entry action orange and consistently named", () => {
+  it("keeps every Direct Connect entry action orange and honestly, contextually labeled", () => {
     expect(source).toContain("border-2 border-ts-orange bg-white/12");
     expect(source).toContain("hover:bg-ts-orange-dark");
-    expect(source.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(8);
-    expect(source).not.toContain("Request this stone");
-    expect(source).not.toContain("Ask about this stone");
-    expect(source).not.toContain("Ask JW Stone");
+    // Every entry action still routes through startDirectConnect(...). The
+    // hero button opens a general request (no arguments) and stays labeled
+    // "Direct Connect"; buttons that carry a stone name or search term
+    // forward get a contextual label instead.
+    expect(source).toContain("Request this stone");
+    expect(source).toContain("Ask about this stone");
     expect(expressSource).toContain("text-ts-orange-dark");
     expect(expressSource).toContain("Fill out the form");
     expect(expressSource).toContain("Direct Connect");

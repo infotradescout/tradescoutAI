@@ -56,9 +56,7 @@ describe("Direct Connect inbox copy contract", () => {
     const earlierTimestamp = new Date(2026, 5, 1, 10).toISOString();
 
     expect(helpers.formatDirectConnectInboxTime(todayTimestamp, now)).toBe("Updated today");
-    expect(helpers.formatDirectConnectInboxTime(yesterdayTimestamp, now)).toBe(
-      "Updated yesterday"
-    );
+    expect(helpers.formatDirectConnectInboxTime(yesterdayTimestamp, now)).toBe("Updated yesterday");
     expect(helpers.formatDirectConnectInboxTime(earlierTimestamp, now)).toBe("Updated Jun 1");
   });
 

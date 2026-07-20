@@ -787,7 +787,7 @@ export default function WholesalerProfileTheme({
             onClick={() => startDirectConnect(stone.name, "request_material")}
             className="min-h-10 rounded-xl bg-ts-orange px-3 text-xs font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
           >
-            Direct Connect
+            Ask about {stone.name}
           </button>
         </div>
       </div>
@@ -1225,7 +1225,7 @@ export default function WholesalerProfileTheme({
                                   onClick={() => startDirectConnect(stone.name, "request_material")}
                                   className="min-h-10 rounded-xl bg-ts-orange px-2 text-[10px] font-extrabold text-white transition-colors hover:bg-ts-orange-dark sm:text-xs"
                                 >
-                                  Direct Connect
+                                  Ask about {stone.name}
                                 </button>
                               </div>
                             </div>
@@ -1399,7 +1399,7 @@ export default function WholesalerProfileTheme({
                                 }
                                 className="mt-5 rounded-full bg-ts-orange px-6 py-3 text-sm font-extrabold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-ts-orange-dark"
                               >
-                                Direct Connect
+                                Request this stone
                               </button>
                             ) : null}
                           </div>
@@ -1684,7 +1684,7 @@ export default function WholesalerProfileTheme({
                     }}
                     className="rounded-full bg-ts-orange px-6 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
                   >
-                    Direct Connect
+                    Ask about this stone
                   </button>
                 </div>
               </div>
@@ -1882,7 +1882,7 @@ export default function WholesalerProfileTheme({
                           onClick={() => startDirectConnect(stone.name, "request_material")}
                           className="w-full rounded-xl bg-ts-orange px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
                         >
-                          Direct Connect
+                          Ask about {stone.name}
                         </button>
                       </div>
                     </article>

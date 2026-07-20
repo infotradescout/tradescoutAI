@@ -741,7 +741,11 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const now = new Date();
   const ownerRoles = Array.isArray(ownerUser.roles) ? ownerUser.roles : [];
   const isContractorRole = [ownerUser.role, profile.roleContext, ...ownerRoles].some((role) =>
-    CONTRACTOR_VERIFICATION_ROLES.has(String(role || "").trim().toLowerCase())
+    CONTRACTOR_VERIFICATION_ROLES.has(
+      String(role || "")
+        .trim()
+        .toLowerCase()
+    )
   );
   const currentCredentialStatuses: Record<"license" | "insurance", string | null> = {
     license: null,
@@ -765,9 +769,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         )
       )
       .orderBy(
-        desc(
-          sql`COALESCE(${businessVerifications.verifiedAt}, ${businessVerifications.createdAt})`
-        )
+        desc(sql`COALESCE(${businessVerifications.verifiedAt}, ${businessVerifications.createdAt})`)
       );
     for (const row of currentCredentialRows) {
       const verificationType = String(row.verificationType) as "license" | "insurance";
@@ -775,7 +777,9 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
         continue;
       }
       if (currentCredentialStatuses[verificationType] !== null) continue;
-      const normalizedStatus = String(row.status || "").trim().toLowerCase();
+      const normalizedStatus = String(row.status || "")
+        .trim()
+        .toLowerCase();
       currentCredentialStatuses[verificationType] =
         row.expiresAt && row.expiresAt <= now ? "expired" : normalizedStatus;
     }
@@ -882,8 +886,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const snapshotIsFresh =
     latestSnapshotAgeMs >= 0 && latestSnapshotAgeMs <= PUBLIC_TRUST_SNAPSHOT_MAX_AGE_MS;
   const snapshotVerificationMatchesCurrent =
-    Boolean(currentVerificationStatus) &&
-    currentVerificationStatus === snapshotVerificationStatus;
+    Boolean(currentVerificationStatus) && currentVerificationStatus === snapshotVerificationStatus;
   const currentCredentialHardFailure = (
     Object.keys(currentCredentialStatuses) as Array<keyof typeof currentCredentialStatuses>
   ).some((type) => {
@@ -980,8 +983,8 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
   const firstSnapshotScore = Number(firstTrustSnapshot?.cvsScore);
   const hasDistinctLifetimeSnapshot = Boolean(
     firstTrustSnapshot?.computedAt &&
-      latestTrustSnapshot?.computedAt &&
-      firstTrustSnapshot.computedAt.getTime() < latestTrustSnapshot.computedAt.getTime()
+    latestTrustSnapshot?.computedAt &&
+    firstTrustSnapshot.computedAt.getTime() < latestTrustSnapshot.computedAt.getTime()
   );
   const publicLifetimeScoreChange =
     publicCvsScore !== null && hasDistinctLifetimeSnapshot && Number.isFinite(firstSnapshotScore)
@@ -1062,8 +1065,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any) => {
           scoreHistoryStartsAt: firstTrustSnapshot?.computedAt?.toISOString?.() || null,
           lifetimeScoreChange: publicLifetimeScoreChange,
           scoreChange30d: publicScoreChange30d,
-          scoreChange30dComparedAt:
-            prior30DayTrustSnapshot?.computedAt?.toISOString?.() || null,
+          scoreChange30dComparedAt: prior30DayTrustSnapshot?.computedAt?.toISOString?.() || null,
           activePolicyBoostPoints: publicCvsBoostPoints,
           activeBoosts: activeCvsBoosts,
           badges: publicProfileBadges,

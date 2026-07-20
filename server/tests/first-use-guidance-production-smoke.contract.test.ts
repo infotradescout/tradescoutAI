@@ -48,8 +48,8 @@ describe("first-use guidance production smoke", () => {
     const scoutSource = read("client/src/scout/ScoutHome.tsx");
     expect(homesSource).toContain("homeIdFirstTaskPrompt.message");
     expect(directConnectSource).toContain("directConnectFirstTaskPrompt.message");
-    expect(scoutSource).toContain("contextualPrompt.message");
     expect(scoutSource).toContain("contextualPrompt={scoutFirstTaskPrompt}");
+    expect(scoutSource).toContain("contextualPrompt.message");
   });
 
   it("avoids banned internal language in first-use guidance surfaces", () => {

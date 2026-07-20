@@ -10636,6 +10636,7 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "dc_provider_declined",
   "dc_provider_interested",
   "dc_request_completed",
+  "direct_connect_beta_request",
   // Marketing notifications
   "promotional",
   "feature_announcement",

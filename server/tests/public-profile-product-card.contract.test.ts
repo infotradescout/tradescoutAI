@@ -28,7 +28,7 @@ describe("public profile product-card contract", () => {
     expect(stone).toContain("buildProfileInventoryShareSearch(stone.slug)");
     expect(stone).toContain("View details");
     expect(stone).toContain('startDirectConnect(stone.name, "request_material")');
-    expect(stone).toContain("Direct Connect");
+    expect(stone).toContain("Ask about {stone.name}");
   });
 
   it("keeps JR's before-and-after proof separate from product inventory", () => {
@@ -49,19 +49,38 @@ describe("public profile Direct Connect entry contract", () => {
 
   it("limits request entry to Direct Connect or Make A Request and opens call-or-form choices", () => {
     expect(profile).toContain("Direct Connect");
-    expect(stone.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(8);
+    // "Direct Connect" labels the general, no-context entry points (nav
+    // references, and any button that opens the flow with no specific item
+    // attached). Buttons that carry something specific forward -- a stone
+    // name, a search term -- get a contextual label instead of the generic
+    // phrase repeated on every card and CTA.
+    expect(stone.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(5);
     expect(autoGlass.match(/Direct Connect/g)?.length || 0).toBeGreaterThanOrEqual(3);
     expect(express).toContain("Direct Connect");
     expect(express).toContain("Make A Request");
     expect(express).toContain("Call");
     expect(express).toContain("Fill out the form");
     expect(directConnect).toContain("Direct Connect");
-    for (const source of [profile, stone, autoGlass, directConnect]) {
+    for (const source of [profile, autoGlass, directConnect]) {
       expect(source).not.toContain("Make A Request");
     }
     expect(directConnect).not.toContain("Start request\n            </Button>");
 
-    for (const source of [stone, autoGlass]) {
+    // Wholesaler product cards use a contextual label only when the button
+    // actually carries something specific forward (a stone name, a search
+    // term). General entry points with no attached context stay "Direct
+    // Connect" rather than being given a label that overpromises specificity.
+    expect(stone).toContain('startDirectConnect(stone.name, "request_material")');
+    expect(stone).toContain("Ask about {stone.name}");
+    expect(stone).toContain("startDirectConnect(stoneName)");
+    expect(stone).toContain("Ask about this stone");
+    expect(stone).toContain("startDirectConnect(inventorySearch.trim()");
+    expect(stone).toContain("Request this stone");
+    expect(stone).not.toContain("Request material");
+    expect(stone).not.toContain("Send request");
+    expect(stone).not.toContain("Get started");
+
+    for (const source of [autoGlass]) {
       expect(source).not.toContain("Request material");
       expect(source).not.toContain("Request service");
       expect(source).not.toContain("Send request");

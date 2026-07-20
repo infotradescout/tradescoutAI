@@ -32,7 +32,7 @@ const About = memo(function About() {
                 <link rel="stylesheet" href="/about-explainer.css" />
                 <AboutExplainerContent />
               </>,
-              shadowRoot,
+              shadowRoot
             )
           : null}
       </div>
