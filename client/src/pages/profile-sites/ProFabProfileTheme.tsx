@@ -177,7 +177,7 @@ export default function ProFabProfileTheme({
           <button
             type="button"
             onClick={onDirectConnect}
-            className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-ts-orange px-5 text-sm font-black text-white transition-colors hover:bg-ts-orange-dark"
+            className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-red-500/50 px-5 text-sm font-black text-red-500 transition-colors hover:bg-red-500/10"
           >
             Direct Connect with Pro Fab
             <ChevronRight className="h-4 w-4" />

@@ -785,7 +785,7 @@ export default function WholesalerProfileTheme({
           <button
             type="button"
             onClick={() => startDirectConnect(stone.name, "request_material")}
-            className="min-h-10 rounded-xl bg-ts-orange px-3 text-xs font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
+            className="min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-3 text-xs font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
           >
             Ask about {stone.name}
           </button>
@@ -1219,7 +1219,7 @@ export default function WholesalerProfileTheme({
                                 <button
                                   type="button"
                                   onClick={() => startDirectConnect(stone.name, "request_material")}
-                                  className="min-h-10 rounded-xl bg-ts-orange px-2 text-[10px] font-extrabold text-white transition-colors hover:bg-ts-orange-dark sm:text-xs"
+                                  className="min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-2 text-[10px] font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 sm:text-xs"
                                 >
                                   Ask about {stone.name}
                                 </button>
@@ -1393,7 +1393,7 @@ export default function WholesalerProfileTheme({
                                 onClick={() =>
                                   startDirectConnect(inventorySearch.trim(), "request_material")
                                 }
-                                className="mt-5 rounded-full bg-ts-orange px-6 py-3 text-sm font-extrabold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-ts-orange-dark"
+                                className="mt-5 rounded-full border border-[var(--brand-accent)]/40 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-accent)]/10"
                               >
                                 Request this stone
                               </button>
@@ -1678,7 +1678,7 @@ export default function WholesalerProfileTheme({
                       setOpenStone(null);
                       startDirectConnect(stoneName);
                     }}
-                    className="rounded-full bg-ts-orange px-6 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
+                    className="rounded-full border border-[var(--brand-accent)]/50 px-6 py-2.5 text-sm font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
                   >
                     Ask about this stone
                   </button>
@@ -1783,7 +1783,7 @@ export default function WholesalerProfileTheme({
                         <button
                           type="button"
                           onClick={() => startDirectConnect()}
-                          className="mt-5 min-h-10 rounded-xl bg-ts-orange px-4 text-xs font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
+                          className="mt-5 min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-4 text-xs font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
                         >
                           Direct Connect
                         </button>
@@ -1876,7 +1876,7 @@ export default function WholesalerProfileTheme({
                         <button
                           type="button"
                           onClick={() => startDirectConnect(stone.name, "request_material")}
-                          className="w-full rounded-xl bg-ts-orange px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-ts-orange-dark"
+                          className="w-full rounded-xl border border-[var(--brand-accent)]/40 px-4 py-3 text-sm font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
                         >
                           Ask about {stone.name}
                         </button>
