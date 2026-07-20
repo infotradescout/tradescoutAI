@@ -19,7 +19,7 @@ describe("public profile TradeScout handoff", () => {
     expect(handoffSource).toContain("appendPublicProfileContinuation");
     expect(handoffSource).toContain("business_profile_call");
     expect(handoffSource).toContain("Connection Without Compromise");
-    expect(handoffSource).toContain("href={destinations[0].href}");
+    expect(handoffSource).toContain("destinations.map");
     expect(handoffSource).not.toContain('contextualHref("/home")');
     expect(handoffSource).not.toContain("ts-orange");
   });

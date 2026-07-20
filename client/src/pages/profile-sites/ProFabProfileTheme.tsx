@@ -271,9 +271,7 @@ export default function ProFabProfileTheme({
             <div className="mt-4 divide-y divide-white/10 overflow-hidden rounded-xl border border-white/10">
               {publicRecommendations.slice(0, 6).map((entry) => (
                 <article key={entry.id} className="p-4">
-                  <p className="font-bold text-white">
-                    {entry.customerName || "TradeScout member"}
-                  </p>
+                  <p className="font-bold text-white">{entry.customerName || "Customer"}</p>
                   {entry.projectType ? (
                     <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-ts-orange">
                       {entry.projectType}

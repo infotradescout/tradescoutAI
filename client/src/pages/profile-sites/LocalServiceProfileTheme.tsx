@@ -560,9 +560,7 @@ export default function LocalServiceProfileTheme({
                   key={entry.id}
                   className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"
                 >
-                  <p className="font-black text-white">
-                    {entry.customerName || "TradeScout member"}
-                  </p>
+                  <p className="font-black text-white">{entry.customerName || "Customer"}</p>
                   {entry.projectType ? (
                     <p className="mt-1 text-xs font-black uppercase tracking-[0.12em] text-[var(--service-brand)]">
                       {entry.projectType}
