@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { userRoleEnum } from "@shared/schema";
 import {
   MOULDING_MILLWORK_PROFILE_CONTENT_BLOCKS,
   MOULDING_MILLWORK_PROFILE_SLUG,
@@ -26,6 +27,25 @@ describe("Moulding & Millwork Supply public profile contract", () => {
       'import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";'
     );
     expect(entry).toContain("await provisionMouldingMillworkProfile()");
+  });
+
+  it("only ever assigns a role that actually exists in the user_role Postgres enum", () => {
+    // Regression: this provisioner previously wrote role/activeRole: "seller",
+    // which is not a member of user_role and threw invalid input value for
+    // enum user_role: "seller" at runtime (22P02) on every provisioning
+    // attempt in production. Assert against the real enum, not a hardcoded
+    // string, so a future rename/addition can't silently drift this test.
+    const provisioner = read("server/services/mouldingMillworkProfileProvisioning.ts");
+    const validRoles = userRoleEnum.enumValues;
+
+    const roleMatch = provisioner.match(/role: "([^"]+)" as const/);
+    const activeRoleMatch = provisioner.match(/activeRole: "([^"]+)"/);
+
+    expect(roleMatch, 'expected a role: "..." as const literal').not.toBeNull();
+    expect(activeRoleMatch, 'expected an activeRole: "..." literal').not.toBeNull();
+    expect(validRoles).toContain(roleMatch![1]);
+    expect(validRoles).toContain(activeRoleMatch![1]);
+    expect(provisioner).not.toContain('"seller"');
   });
 
   it("never asserts license, insurance, verification, or CVS-boost claims that were not authorized", () => {

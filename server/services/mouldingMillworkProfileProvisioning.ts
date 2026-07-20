@@ -44,7 +44,7 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
         ? (existingOwner.preferences as Record<string, any>)
         : {};
     const existingRoles = Array.isArray(existingOwner?.roles) ? existingOwner.roles : [];
-    const roles = Array.from(new Set([...existingRoles, "seller", "contractor"]));
+    const roles = Array.from(new Set([...existingRoles, "business_owner", "contractor"]));
 
     const ownerValues = {
       firstName: existingOwner?.firstName || "Brian",
@@ -53,9 +53,9 @@ export async function provisionMouldingMillworkProfile(): Promise<void> {
       state: "Louisiana",
       stateCode: "LA",
       zipCode: "70123",
-      role: "seller" as const,
+      role: "business_owner" as const,
       roles,
-      activeRole: "seller",
+      activeRole: "business_owner",
       phone: existingOwner?.phone || MOULDING_MILLWORK_ROUTING_PHONE,
       provider: existingOwner?.provider || "admin_provisioned",
       onboardingCompleted: true,
