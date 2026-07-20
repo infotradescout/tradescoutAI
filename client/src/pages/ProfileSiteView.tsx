@@ -1235,7 +1235,7 @@ export default function ProfileSiteView() {
                         <p className="text-sm text-white/80">{entry.comment}</p>
                         {recommendationDirectoryMode === "received" ? (
                           <p className="text-xs font-medium text-white/60">
-                            Shared by {entry.customerName || "a TradeScout member"}
+                            Shared by {entry.customerName || "a customer"}
                           </p>
                         ) : entry.contractor?.slug ? (
                           <Link

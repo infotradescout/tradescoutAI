@@ -252,9 +252,7 @@ export default function JrsAutoGlassProfileTheme({
               {publicRecommendations.slice(0, 6).map((entry) => (
                 <div key={entry.id} className="flex items-center gap-3 p-4">
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-white">
-                      {entry.customerName || "TradeScout member"}
-                    </p>
+                    <p className="font-bold text-white">{entry.customerName || "Customer"}</p>
                     {entry.projectType ? (
                       <p className="mt-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-ts-orange">
                         {entry.projectType}

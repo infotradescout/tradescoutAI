@@ -1062,7 +1062,7 @@ export default function WholesalerProfileTheme({
       </section>
 
       {trustActions ? (
-        <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-4">
+        <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
           <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
         </section>
       ) : null}
@@ -1083,13 +1083,17 @@ export default function WholesalerProfileTheme({
         />
       ) : (
         <>
-          {/* Trust strip -- confirmed facts only, sourced from the "trust" content block */}
+          {/* Company info strip -- confirmed facts only, sourced from the "trust" content block */}
           {trustFacts.length > 0 || serviceAreas.length > 0 ? (
             <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
-              <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-8 gap-y-3 px-4 text-sm font-semibold !text-stone-900 md:px-6">
+              <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-2 gap-y-2 px-4 text-sm font-semibold !text-stone-900 md:px-6">
                 {trustFacts.map((fact, i) => (
-                  <span key={i} className="inline-flex items-center gap-2">
-                    <ShieldCheck className="h-4 w-4 flex-shrink-0 text-[var(--brand-accent)]" />
+                  <span key={i} className="inline-flex items-center">
+                    {i > 0 ? (
+                      <span className="mx-3 text-[var(--brand-primary)]/25" aria-hidden="true">
+                        &bull;
+                      </span>
+                    ) : null}
                     {fact}
                   </span>
                 ))}
@@ -2022,7 +2026,7 @@ export default function WholesalerProfileTheme({
                       </div>
                       <p className="mb-3 text-sm text-[#241d0f]/80">{entry.comment}</p>
                       <p className="text-xs font-semibold text-[#241d0f]/75">
-                        Shared by {entry.customerName || "a TradeScout member"}
+                        Shared by {entry.customerName || "a customer"}
                       </p>
                     </div>
                   ))}

@@ -156,18 +156,18 @@ export default function PreScoutSetup() {
       ? "Create your account to send this Direct Connect request."
       : "Sign in to send this Direct Connect request."
     : authMode === "create"
-      ? "Create your account, then set your area."
-      : "Sign in, then set your area.";
+      ? "Create your account, then set your location."
+      : "Sign in, then set your location.";
   const authStepDescription = isDirectConnectDestination
     ? authMode === "create"
-      ? "Your request draft is safe. Create a free account, set your area, and go straight back to finish sending it."
-      : "Your request draft is safe. Sign in, confirm your area, and go straight back to finish sending it."
+      ? "Your request draft is safe. Create a free account, set your location, and go straight back to finish sending it."
+      : "Your request draft is safe. Sign in, confirm your location, and go straight back to finish sending it."
     : authMode === "create"
       ? "Start here so Scout can save your progress and keep your local context attached to your account."
-      : "Sign in to pick up where you left off and confirm your local area.";
+      : "Sign in to pick up where you left off and confirm your location.";
   const areaStepTitle = isDirectConnectDestination
-    ? "Set your area, then return to your request"
-    : "Set your local area";
+    ? "Set your location, then return to your request"
+    : "Set your location";
   const areaStepDescription = isDirectConnectDestination
     ? "Pick the county this request should use first. Then we will send you right back to Direct Connect."
     : "Pick the county you want Scout to use first.";
@@ -822,7 +822,7 @@ export default function PreScoutSetup() {
           canonical="https://www.thetradescout.com/pre-scout-setup"
           noIndex
         />
-        <div className="flex items-center justify-center px-3 py-4 md:px-4 md:py-8 text-white">
+        <div className="flex min-h-full items-center justify-center px-3 py-4 md:px-4 md:py-8 text-white">
           <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-[1.05fr_minmax(0,1fr)] gap-4 md:gap-6">
             <div className="space-y-3 md:space-y-4">
               <div className="inline-flex items-center rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-ts-orange">

@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   MessageCircle,
-  ShieldCheck,
   X,
 } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
@@ -95,9 +94,8 @@ export default function PremiumProductProfileSections({
             {trustFacts.map((fact) => (
               <div
                 key={fact}
-                className="flex min-h-20 items-center gap-2.5 border-b border-r border-white/10 px-3 py-4 text-xs font-bold leading-5 text-stone-100 last:border-r-0 sm:min-h-24 sm:px-5 sm:text-sm"
+                className="flex min-h-20 items-center border-b border-r border-white/10 px-3 py-4 text-xs font-bold leading-5 text-stone-100 last:border-r-0 sm:min-h-24 sm:px-5 sm:text-sm"
               >
-                <ShieldCheck className="h-4 w-4 flex-none text-amber-300" />
                 <span>{fact}</span>
               </div>
             ))}

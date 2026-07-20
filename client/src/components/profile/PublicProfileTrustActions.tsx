@@ -185,7 +185,7 @@ export function PublicProfileTrustActions({
   const favoriteCount = state?.favoriteCount || 0;
   const recommendationCount = state?.recommendationCount ?? initialRecommendationCount;
   const buttonClass = cn(
-    "flex min-h-16 w-full min-w-0 flex-col items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-[11px] font-bold transition sm:text-xs",
+    "flex min-h-11 w-full min-w-0 flex-row items-center justify-center gap-1.5 rounded-xl px-1.5 py-2 text-[11px] font-bold transition sm:text-xs",
     isLight
       ? "text-stone-700 hover:bg-stone-100 hover:text-stone-950"
       : "text-white/75 hover:bg-white/10 hover:text-white",
@@ -212,7 +212,7 @@ export function PublicProfileTrustActions({
           isLight ? "border-stone-200 bg-white/85 shadow-sm" : "border-white/10 bg-black/20",
           className
         )}
-        aria-label={`Community actions for ${profileName}`}
+        aria-label={`Trust actions for ${profileName}`}
       >
         <p
           className={cn(
@@ -220,7 +220,7 @@ export function PublicProfileTrustActions({
             isLight ? "text-stone-500" : "text-white/55"
           )}
         >
-          TradeScout Community
+          Support this business
         </p>
 
         <button
@@ -261,9 +261,9 @@ export function PublicProfileTrustActions({
             data-testid="button-public-profile-like"
           >
             {pendingAction === "like" ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 flex-none animate-spin" />
             ) : (
-              <ThumbsUp className={cn("h-5 w-5", state?.viewerLiked && "fill-current")} />
+              <ThumbsUp className={cn("h-4 w-4 flex-none", state?.viewerLiked && "fill-current")} />
             )}
             <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
               <span>Like</span>
@@ -285,9 +285,11 @@ export function PublicProfileTrustActions({
             data-testid="button-public-profile-favorite"
           >
             {pendingAction === "favorite" ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 flex-none animate-spin" />
             ) : (
-              <Bookmark className={cn("h-5 w-5", state?.viewerFavorited && "fill-current")} />
+              <Bookmark
+                className={cn("h-4 w-4 flex-none", state?.viewerFavorited && "fill-current")}
+              />
             )}
             <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
               <span>Favorite</span>
@@ -304,7 +306,7 @@ export function PublicProfileTrustActions({
             label="Share"
             className={cn(
               buttonClass,
-              "!h-auto !min-h-16 flex-col gap-1 border-0 [&>span]:!ml-0",
+              "!h-auto border-0 [&>span]:!ml-0",
               isLight ? "hover:bg-stone-100" : "hover:bg-white/10"
             )}
           />
