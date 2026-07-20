@@ -20,6 +20,7 @@ import { runBotArmyAutoPromotion } from "./missionControl";
 import { runIntentAutomationTick } from "../routes/observability";
 import { runMarketSignalsSnapshotJob } from "./marketSignalsSnapshotJob";
 import { runScoutLisaCleanupJob } from "./scoutLisaCleanupJob";
+import { detectDirectConnectFunnelStalls } from "./directConnectFunnelIntegrity";
 
 /**
  * Crawler Scheduler - Auto-crawling for cache updates + aggregation jobs
@@ -47,6 +48,7 @@ let botArmyAutoPromoteTask: any = null;
 let intentAutomationTask: any = null;
 let marketSignalsSnapshotTask: any = null;
 let scoutLisaCleanupTask: any = null;
+let directConnectFunnelStallTask: any = null;
 
 /**
  * Start the cron scheduler
@@ -79,6 +81,7 @@ export function startCrawlerScheduler() {
   startBotArmyAutoPromoteScheduler();
   startIntentAutomationScheduler();
   startScoutLisaCleanupScheduler();
+  startDirectConnectFunnelStallScheduler();
 }
 
 function startScoutLisaCleanupScheduler() {
@@ -117,6 +120,54 @@ function startScoutLisaCleanupScheduler() {
 
   void runTick();
   console.log("✅ Scout LISA cleanup scheduler started\n");
+}
+
+/**
+ * Direct Connect conversion-integrity: derives funnel stalls server-side
+ * from the persisted event stream (never a client-side timer) and logs one
+ * high-severity direct_connect_funnel_step_stalled event per newly detected
+ * stall. Idempotent across runs.
+ */
+function startDirectConnectFunnelStallScheduler() {
+  if (process.env.DISABLE_DIRECT_CONNECT_FUNNEL_STALL_JOB === "true") {
+    console.log(
+      "Direct Connect funnel stall job disabled via DISABLE_DIRECT_CONNECT_FUNNEL_STALL_JOB env flag"
+    );
+    return;
+  }
+
+  const schedule = process.env.DIRECT_CONNECT_FUNNEL_STALL_SCHEDULE || "*/15 * * * *"; // every 15 min
+  const jobName = "direct_connect_funnel_stall";
+
+  console.log(`\n🔌 Starting Direct Connect funnel stall scheduler with schedule: "${schedule}"`);
+
+  const runTick = async () => {
+    emitJobStart(jobName);
+    try {
+      const result = await withAdvisoryLock(`job:${jobName}`, async () =>
+        detectDirectConnectFunnelStalls()
+      );
+      if (result === null) {
+        console.log(`Skipping ${jobName} (advisory lock not acquired)`);
+        emitJobEnd(jobName, 0, false);
+        return;
+      }
+
+      console.log("✅ Direct Connect funnel stall job completed", result);
+      emitJobEnd(jobName, result.stalled, false);
+    } catch (error) {
+      console.error("❌ Direct Connect funnel stall job failed:", error);
+      emitJobError(jobName, error);
+    }
+  };
+
+  directConnectFunnelStallTask = cron.schedule(schedule, async () => {
+    console.log(`\n🔌 [${new Date().toISOString()}] Running Direct Connect funnel stall job...`);
+    await runTick();
+  });
+
+  void runTick();
+  console.log("✅ Direct Connect funnel stall scheduler started\n");
 }
 
 function startMarketSignalsSnapshotScheduler() {
