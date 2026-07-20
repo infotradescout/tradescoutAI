@@ -1062,7 +1062,7 @@ export default function WholesalerProfileTheme({
       </section>
 
       {trustActions ? (
-        <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-4">
+        <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
           <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
         </section>
       ) : null}

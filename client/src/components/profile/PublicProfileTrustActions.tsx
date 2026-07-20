@@ -212,7 +212,7 @@ export function PublicProfileTrustActions({
           isLight ? "border-stone-200 bg-white/85 shadow-sm" : "border-white/10 bg-black/20",
           className
         )}
-        aria-label={`Community actions for ${profileName}`}
+        aria-label={`Trust actions for ${profileName}`}
       >
         <p
           className={cn(
@@ -220,7 +220,7 @@ export function PublicProfileTrustActions({
             isLight ? "text-stone-500" : "text-white/55"
           )}
         >
-          TradeScout Community
+          Support this business
         </p>
 
         <button
