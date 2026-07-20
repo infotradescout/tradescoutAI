@@ -87,6 +87,7 @@ import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProv
 import { provisionLaPlumbingProfile } from "./services/laPlumbingProfileProvisioning";
 import { provisionHoneyOnyxProfile } from "./services/honeyOnyxProfileProvisioning";
 import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
+import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
 
 // ES module equivalent of __dirname
@@ -845,6 +846,7 @@ app.use(landingContractHeaders);
     await provisionLaPlumbingProfile();
     await provisionHoneyOnyxProfile();
     await provisionProFabProfile();
+    await provisionMouldingMillworkProfile();
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {
       await runSchemaPreflight();
