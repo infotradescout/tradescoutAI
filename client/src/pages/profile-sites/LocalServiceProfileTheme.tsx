@@ -303,7 +303,7 @@ export default function LocalServiceProfileTheme({
               <button
                 type="button"
                 onClick={onDirectConnect}
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full bg-ts-orange px-7 text-sm font-black text-white shadow-[0_18px_50px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:bg-ts-orange-dark"
+                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full border border-[var(--service-brand)]/50 px-7 text-sm font-black text-[var(--service-brand)] transition hover:-translate-y-0.5 hover:bg-[var(--service-brand)]/10"
               >
                 Direct Connect
                 <ChevronRight className="h-4 w-4" />
