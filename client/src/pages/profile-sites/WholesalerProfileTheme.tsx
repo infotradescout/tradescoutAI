@@ -1189,16 +1189,8 @@ export default function WholesalerProfileTheme({
                                 {offer.material}
                                 {offer.finish ? ` · ${offer.finish}` : ""}
                               </p>
-                              <div className="mt-2.5 flex items-end justify-between gap-2 border-t border-[#241d0f]/10 pt-2.5">
+                              <div className="mt-2.5 flex items-end justify-start gap-2 border-t border-[#241d0f]/10 pt-2.5">
                                 <div>
-                                  <p className="text-sm font-extrabold text-[#241d0f] sm:text-lg">
-                                    {offer.price}
-                                  </p>
-                                  <p className="text-[8px] font-semibold uppercase tracking-wide !text-[#4a4238] sm:text-[10px]">
-                                    Per sq. ft.
-                                  </p>
-                                </div>
-                                <div className="hidden text-right sm:block">
                                   <p className="text-[10px] font-semibold uppercase tracking-wide !text-[#4a4238]">
                                     Size
                                   </p>
