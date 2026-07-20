@@ -13,11 +13,13 @@ import {
   contractors,
   homeScoutListings,
   profiles,
+  profileViewEvents,
   publicProfileEngagements,
   recommendations,
   trustSnapshots,
   users,
 } from "../../shared/schema";
+import { detectActorFromUserAgent, getClientIp, hashIp } from "../utils/requestActor";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
 import { listHandmadeProductImageUrls } from "../../shared/handmadeProductShare";
 import { listCommunityPostImageUrls } from "../../shared/communityPostShare";
@@ -717,12 +719,37 @@ async function getPublicProfileContractorBinding(
   return matches.length === 1 ? matches[0] : null;
 }
 
-const sendPublicProfileBySlug = async (slug: string, res: any) => {
+function recordProfileView(profileId: string, req: any): void {
+  const userAgent = String(req?.headers?.["user-agent"] || "");
+  const { actorType } = detectActorFromUserAgent(userAgent);
+  if (actorType === "bot") return;
+
+  const { ip } = getClientIp(req);
+  const referrer = String(req?.headers?.referer || req?.headers?.referrer || "").slice(0, 512);
+  const viewerUserId = getAuthedUserId(req) || null;
+
+  void db
+    .insert(profileViewEvents)
+    .values({
+      profileId,
+      viewerUserId,
+      referrer: referrer || null,
+      userAgent: userAgent.slice(0, 512) || null,
+      ipHash: hashIp(ip) || null,
+    })
+    .catch((error) => {
+      console.error("[profiles] Failed recording profile view:", { profileId, error });
+    });
+}
+
+const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
   const profile = await storage.getProfileBySlugPublic(slug);
 
   if (!profile) {
     return res.status(404).json({ message: "Profile not found" });
   }
+
+  if (req) recordProfileView(profile.id, req);
 
   const [profileOwner] = await db
     .select({ ownerUserId: profiles.ownerUserId })
@@ -1535,10 +1562,43 @@ async function readPublicProfileTrustActions(
 router.get("/api/u/:slug", async (req, res) => {
   try {
     const slug = String(req.params.slug);
-    return await sendPublicProfileBySlug(slug, res);
+    return await sendPublicProfileBySlug(slug, res, req);
   } catch (error: any) {
     console.error("Error fetching public profile:", error);
     res.status(500).json({ message: "Failed to fetch profile" });
+  }
+});
+
+// Owner-only: total and recent real page-view counts for their own profile.
+// Never fed into CVS, trust snapshots, boosts, or exposure/ranking -- same
+// separation as trust-actions above.
+router.get("/api/u/:slug/views", isAuthenticated, async (req: any, res) => {
+  try {
+    const context = await getPublicProfileTrustContext(String(req.params.slug || ""));
+    if (!context) return res.status(404).json({ message: "Profile not found" });
+
+    const viewerUserId = getAuthedUserId(req);
+    if (!viewerUserId || viewerUserId !== context.ownerUserId) {
+      return res.status(403).json({ message: "Only the profile owner can view this" });
+    }
+
+    const [totals] = await db
+      .select({
+        total: sql<number>`count(*)`,
+        last7Days: sql<number>`count(*) filter (where ${profileViewEvents.createdAt} >= now() - interval '7 days')`,
+        last30Days: sql<number>`count(*) filter (where ${profileViewEvents.createdAt} >= now() - interval '30 days')`,
+      })
+      .from(profileViewEvents)
+      .where(eq(profileViewEvents.profileId, context.profileId));
+
+    res.json({
+      total: Number(totals?.total || 0),
+      last7Days: Number(totals?.last7Days || 0),
+      last30Days: Number(totals?.last30Days || 0),
+    });
+  } catch (error: any) {
+    console.error("Error fetching profile view counts:", error);
+    res.status(500).json({ message: "Failed to fetch view counts" });
   }
 });
 

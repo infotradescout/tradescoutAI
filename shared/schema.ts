@@ -1510,6 +1510,30 @@ export const publicProfileEngagements = pgTable(
   ]
 );
 
+// Real page-view events for public profiles. Recorded only on the client-side
+// profile data fetch, which real browsers hit after hydrating -- the separate
+// server-rendered crawler/SEO HTML path never touches this table, so counts
+// reflect human traffic rather than search-engine crawl volume. Deliberately
+// separate from CVS, trust snapshots, boosts, and exposure/ranking inputs,
+// same as publicProfileEngagements above.
+export const profileViewEvents = pgTable(
+  "profile_view_events",
+  {
+    id: varchar("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    profileId: varchar("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    viewerUserId: varchar("viewer_user_id").references(() => users.id, { onDelete: "set null" }),
+    referrer: varchar("referrer", { length: 512 }),
+    userAgent: varchar("user_agent", { length: 512 }),
+    ipHash: varchar("ip_hash", { length: 64 }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("profile_view_events_profile_created_idx").on(table.profileId, table.createdAt)]
+);
+
 // Car salesman profiles
 export const carSalesmanProfiles = pgTable("car_salesman_profiles", {
   id: varchar("id")

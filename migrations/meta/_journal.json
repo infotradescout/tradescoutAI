@@ -771,6 +771,13 @@
       "when": 1784435862514,
       "tag": "0106_notification_type_direct_connect_beta_request",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1784435922514,
+      "tag": "0107_profile_view_events",
+      "breakpoints": true
     }
   ]
 }
