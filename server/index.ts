@@ -235,6 +235,12 @@ app.use((req, res, next) => {
 
 app.use(
   helmet({
+    // Business photos and the favicon override are always loaded as
+    // absolute thetradescout.com URLs, including from a business's own
+    // custom domain (see the img-src comment below). Helmet's default
+    // Cross-Origin-Resource-Policy: same-origin silently blocks exactly
+    // that cross-origin embed regardless of CSP, so relax it here.
+    crossOriginResourcePolicy: { policy: "cross-origin" },
     contentSecurityPolicy: {
       directives: {
         ...helmet.contentSecurityPolicy.getDefaultDirectives(),
