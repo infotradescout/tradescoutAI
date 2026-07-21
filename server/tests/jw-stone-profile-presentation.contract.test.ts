@@ -40,6 +40,11 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('heroVideoZoomed ? "scale-100 md:scale-[1.12]" : "scale-100"');
     expect(source).toContain('window.matchMedia("(prefers-reduced-motion: reduce)")');
     expect(source).toContain("autoPlay={!prefersReducedMotion}");
+    // No full-bleed wash on JW Stone / Honey Onyx — stone/video stays true.
+    expect(source).toContain("{!isJwStone && !isHoneyOnyx ? (");
+    expect(source).not.toMatch(
+      /isJwStone \|\| isHoneyOnyx\s*\?\s*"bg-\[linear-gradient\(90deg,rgba\(9,7,4/
+    );
   });
 
   it("makes the full catalog the primary JW Stone action", () => {
@@ -126,7 +131,7 @@ describe("JW Stone profile presentation contract", () => {
   });
 
   it("keeps every Direct Connect entry action orange and honestly, contextually labeled", () => {
-    expect(source).toContain("border-2 border-ts-orange bg-white/12");
+    expect(source).toContain("border-2 border-ts-orange");
     expect(source).toContain("hover:bg-ts-orange-dark");
     // Every entry action still routes through startDirectConnect(...). The
     // hero button opens a general request (no arguments) and stays labeled

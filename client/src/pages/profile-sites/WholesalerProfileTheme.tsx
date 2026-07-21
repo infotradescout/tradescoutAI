@@ -136,8 +136,10 @@ type WholesalerProfileThemeProps = {
   preScoutSignInHref: string;
   recommendationsDirectory?: RecommendationEntry[];
   recommendationDirectorySummary?: RecommendationDirectorySummary;
-  trustActions?: ReactNode;
+  trustActions: ReactNode;
   profileItems?: ReactNode;
+  /** When set, Featured stones uses these inventory slugs instead of random picks. */
+  featuredStoneSlugs?: string[];
 };
 
 const DEFAULT_BRAND_COLORS: Required<WholesalerBrandColors> = {
@@ -307,6 +309,7 @@ export default function WholesalerProfileTheme({
   recommendationDirectorySummary,
   trustActions,
   profileItems,
+  featuredStoneSlugs = [],
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
@@ -514,12 +517,24 @@ export default function WholesalerProfileTheme({
     }
     return map;
   }, [inventoryCatalog]);
-  // Random 3 picks, refreshed every visit (memoized on inventoryCatalog, which
-  // is itself only reshuffled once per mount) -- not a fixed curated list, and
-  // not weekly-locked. Prices are intentionally not part of this section.
+  // Curated featured picks win when the owner/admin saved featuredStoneSlugs.
+  // Otherwise JW Stone keeps random 3 picks per visit.
   const featuredStones = useMemo(() => {
-    if (profileSlug !== "jw-stone") return [];
+    if (profileSlug !== "jw-stone" && featuredStoneSlugs.length === 0) return [];
     const allStones = inventoryCatalog.flatMap((category) => category.stones);
+    const bySlug = new Map(allStones.map((stone) => [stone.slug, stone]));
+    const curated = featuredStoneSlugs
+      .map((slug) => bySlug.get(slug))
+      .filter((stone): stone is (typeof allStones)[number] => Boolean(stone))
+      .slice(0, 3)
+      .map((stone) => ({
+        slug: stone.slug,
+        stone,
+        material: stoneCategoryBySlug.get(stone.slug) || "",
+        finish: stone.finishes?.[0],
+      }));
+    if (curated.length > 0) return curated;
+    if (profileSlug !== "jw-stone") return [];
     return shuffleStones(allStones)
       .slice(0, 3)
       .map((stone) => ({
@@ -528,7 +543,7 @@ export default function WholesalerProfileTheme({
         material: stoneCategoryBySlug.get(stone.slug) || "",
         finish: stone.finishes?.[0],
       }));
-  }, [profileSlug, inventoryCatalog, stoneCategoryBySlug]);
+  }, [profileSlug, inventoryCatalog, stoneCategoryBySlug, featuredStoneSlugs]);
   const hasInventoryFilters = activeCategorySlug !== "all" || normalizedInventorySearch.length > 0;
   useEffect(() => {
     setInventoryVisibleLimit(24);
@@ -973,10 +988,10 @@ export default function WholesalerProfileTheme({
 
       {/* Hero */}
       <section
-        className={`relative isolate flex items-end overflow-hidden bg-[var(--brand-primary)] py-8 md:items-center md:py-20 ${
+        className={`relative isolate flex items-end overflow-hidden py-8 md:items-center md:py-20 ${
           isJwStone || isHoneyOnyx
-            ? "min-h-[460px] md:min-h-[600px]"
-            : "min-h-[min(690px,calc(100svh-150px))] bg-cover bg-center md:min-h-[500px]"
+            ? "min-h-[460px] bg-transparent md:min-h-[600px]"
+            : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px]"
         }`}
       >
         {!heroVideo && heroImage ? (
@@ -984,9 +999,9 @@ export default function WholesalerProfileTheme({
             src={heroImage}
             alt=""
             aria-hidden="true"
-            className={`absolute inset-0 h-full w-full bg-stone-950 object-center ${
-              premiumProductData ? "object-contain" : "object-cover"
-            }`}
+            className={`absolute inset-0 h-full w-full object-center ${
+              isJwStone || isHoneyOnyx ? "bg-transparent" : "bg-stone-950"
+            } ${premiumProductData ? "object-contain" : "object-cover"}`}
           />
         ) : null}
         {heroVideo ? (
@@ -1005,14 +1020,13 @@ export default function WholesalerProfileTheme({
             <source src={heroVideo.src} type="video/mp4" />
           </video>
         ) : null}
-        <span
-          aria-hidden="true"
-          className={`absolute inset-0 ${
-            isJwStone || isHoneyOnyx
-              ? "bg-[linear-gradient(90deg,rgba(9,7,4,0.72)_0%,rgba(9,7,4,0.5)_44%,rgba(9,7,4,0.18)_78%,rgba(9,7,4,0.1)_100%)]"
-              : "bg-[linear-gradient(180deg,rgba(20,14,8,0.22)_0%,rgba(20,14,8,0.54)_42%,rgba(20,14,8,0.96)_100%)] md:bg-[linear-gradient(90deg,rgba(20,14,8,0.82)_0%,rgba(20,14,8,0.5)_55%,rgba(20,14,8,0.26)_100%)]"
-          }`}
-        />
+        {/* No full-bleed wash on JW Stone / Honey Onyx — stone/video stays true. */}
+        {!isJwStone && !isHoneyOnyx ? (
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,14,8,0.22)_0%,rgba(20,14,8,0.54)_42%,rgba(20,14,8,0.96)_100%)] md:bg-[linear-gradient(90deg,rgba(20,14,8,0.82)_0%,rgba(20,14,8,0.5)_55%,rgba(20,14,8,0.26)_100%)]"
+          />
+        ) : null}
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
             isJwStone || isHoneyOnyx ? "md:px-8" : "md:px-6 md:text-center"
@@ -1020,24 +1034,30 @@ export default function WholesalerProfileTheme({
         >
           {heroEyebrow ? (
             <span
-              className={`mb-3 inline-block rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm md:mb-6 md:px-4 md:text-xs ${heroReveal(1)}`}
+              className={`mb-3 inline-block rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white md:mb-6 md:px-4 md:text-xs ${
+                isJwStone || isHoneyOnyx
+                  ? "border-white/40 bg-black/35"
+                  : "border-white/25 bg-black/25 backdrop-blur-sm"
+              } ${heroReveal(1)}`}
             >
               {heroEyebrow}
             </span>
           ) : null}
           <h1
-            className={`mb-3 max-w-[18ch] font-bold text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
+            className={`mb-3 max-w-[18ch] font-bold text-white md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
               isJwStone || isHoneyOnyx
-                ? "text-[2.2rem] leading-[1.02] md:text-[2.7rem] md:leading-[0.96]"
-                : "text-[2.55rem] leading-[0.98] md:mx-auto"
+                ? "text-[2.2rem] leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96]"
+                : "text-[2.55rem] leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto"
             } ${DISPLAY_FONT} ${heroReveal(2)}`}
           >
             {heroHeadline}
           </h1>
           {heroTeaser ? (
             <p
-              className={`mb-5 max-w-[34rem] text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mb-10 md:text-lg ${
-                isJwStone || isHoneyOnyx ? "font-medium md:text-base" : "md:mx-auto"
+              className={`mb-5 max-w-[34rem] text-sm leading-relaxed text-white md:mb-10 md:text-lg ${
+                isJwStone || isHoneyOnyx
+                  ? "font-medium [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
+                  : "text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto"
               } ${heroReveal(3)}`}
             >
               {heroTeaser}
@@ -1052,7 +1072,7 @@ export default function WholesalerProfileTheme({
               <button
                 type="button"
                 onClick={openFullInventory}
-                className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-white/12 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
+                className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-[var(--brand-bg)]/92 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--brand-bg)] md:min-h-14 md:rounded-full md:py-3.5"
               >
                 Browse full inventory
                 <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -1071,7 +1091,11 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3 text-sm font-extrabold text-ts-orange-light backdrop-blur-xl transition-colors hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
+              className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
+                isJwStone || isHoneyOnyx
+                  ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
+                  : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
+              }`}
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
@@ -1080,11 +1104,13 @@ export default function WholesalerProfileTheme({
         </div>
       </section>
 
-      {trustActions ? (
-        <section className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5">
-          <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
-        </section>
-      ) : null}
+      <section
+        className="border-b border-[var(--brand-primary)]/10 bg-[var(--brand-surface)] py-5"
+        aria-label="Trust and profile actions"
+        data-testid="profile-trust-section"
+      >
+        <div className="container mx-auto max-w-3xl px-4 md:px-6">{trustActions}</div>
+      </section>
 
       {premiumProductData && premiumProduct ? (
         <PremiumProductProfileSections
