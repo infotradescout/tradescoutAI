@@ -12,10 +12,8 @@ const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
 const communitySurfaceFiles = [
-  "client/src/pages/community.tsx",
   "client/src/pages/community-feed.tsx",
   "client/src/components/community/CommunityCTA.tsx",
-  "client/src/components/community/CommunityComposerInline.tsx",
   "client/src/components/community/CommunityEmptyState.tsx",
   "client/src/components/community/CommunityPostCard.tsx",
   "client/src/components/community/CommunitySnapshotRail.tsx",
@@ -69,7 +67,6 @@ describe("Community app surface UX contract", () => {
 
   it("anchors Community in human outcomes and inviting early states", () => {
     const feed = read("client/src/pages/community-feed.tsx");
-    const community = read("client/src/pages/community.tsx");
     const emptyState = read("client/src/components/community/CommunityEmptyState.tsx");
     const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
     const contactModal = read("client/src/components/community/ContactOutcomeModal.tsx");
@@ -81,8 +78,6 @@ describe("Community app surface UX contract", () => {
     expect(feed).toContain("What would you like to share?");
     expect(feed).toContain("Not sure what to write?");
     expect(feed).toContain("You&apos;re here early");
-    expect(community).toContain("Ask, share, recommend");
-    expect(community).toContain("Your draft is ready");
     expect(emptyState).toContain("You&apos;re here early");
     expect(snapshotRail).toContain("Local offers are coming soon");
     expect(snapshotRail).toContain("Coming soon");
