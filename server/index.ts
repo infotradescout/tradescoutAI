@@ -848,11 +848,23 @@ app.use(landingContractHeaders);
     };
 
     await ensureMasterAdmin();
-    await provisionJrsAutoGlassProfile();
-    await provisionLaPlumbingProfile();
-    await provisionHoneyOnyxProfile();
-    await provisionProFabProfile();
-    await provisionMouldingMillworkProfile();
+    // Best-effort content seeding: a bug in any one profile's provisioner
+    // must never crash the whole server, since none of these are
+    // auth/security-critical (unlike ensureMasterAdmin/ensureTrustLedgerEventsTable
+    // above). This is what a "seller" enum-value bug in the Moulding & Millwork
+    // provisioner previously took the entire production server down on.
+    const provisionProfile = async (label: string, provision: () => Promise<void>) => {
+      try {
+        await provision();
+      } catch (err) {
+        console.error(`[Bootstrap] ${label} profile provisioning failed (non-fatal):`, err);
+      }
+    };
+    await provisionProfile("JR's Auto Glass", provisionJrsAutoGlassProfile);
+    await provisionProfile("LA Plumbing", provisionLaPlumbingProfile);
+    await provisionProfile("Honey Onyx", provisionHoneyOnyxProfile);
+    await provisionProfile("ProFab", provisionProFabProfile);
+    await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile);
     // Best-effort, read-only schema drift check: logs but never blocks startup.
     try {
       await runSchemaPreflight();

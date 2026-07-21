@@ -66,7 +66,9 @@ describe("JR's Auto Glass public profile contract", () => {
     expect(profileContent).toContain('id: "windshield-after"');
     expect(profileContent).toContain("/images/businesses/jrs-auto-glass/before.webp");
     expect(profileContent).toContain("/images/businesses/jrs-auto-glass/after.webp");
-    expect(entry).toContain("await provisionJrsAutoGlassProfile()");
+    expect(entry).toContain(
+      'await provisionProfile("JR\'s Auto Glass", provisionJrsAutoGlassProfile)'
+    );
   });
 
   it("mounts the branded theme on the canonical dynamic route", () => {
