@@ -1,30 +1,26 @@
 import { and, eq, or, sql } from "drizzle-orm";
 import { businesses, contractors, profiles, users } from "@shared/schema";
 import {
-  HONEY_ONYX_DISTRIBUTOR_NAME,
-  HONEY_ONYX_PROFILE_CONTENT_BLOCKS,
-  HONEY_ONYX_PROFILE_SLUG,
-} from "@shared/honeyOnyxProfile";
+  ISSA_BUILD_BUSINESS_NAME,
+  ISSA_BUILD_LEGACY_PROFILE_SLUG,
+  ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
+  ISSA_BUILD_PROFILE_SLUG,
+} from "@shared/issaBuildProfile";
 import { db } from "../db";
 
-export const HONEY_ONYX_PROFILE_PROVISIONING_SOURCE = "operator_confirmed_product_profile";
-export const HONEY_ONYX_STEWARDSHIP_STATUS = "tradescout_admin_pending_owner_account_transfer";
-
-const JW_STONE_PROFILE_SLUG = "jw-stone";
-const DISTRIBUTOR_SOURCE = "jw_stone_distributor_inventory";
-const DRIVE_SOURCE = "jw_stone_drive_source_2026_07_13";
+export const ISSA_BUILD_PROFILE_PROVISIONING_SOURCE = "operator_confirmed_business_profile";
+export const ISSA_BUILD_STEWARDSHIP_STATUS = "tradescout_admin_pending_owner_account_transfer";
 
 function recordValue(value: unknown): Record<string, any> {
   return value && typeof value === "object" ? (value as Record<string, any>) : {};
 }
 
 /**
- * Publishes Honey Onyx as its own product profile. JW Stone is copied only as
- * the current distribution contact; it is never recorded as the product owner.
- * Until the owner's account is attached, an already-verified TradeScout admin
- * holds the required profile FK without changing that admin's active profile.
+ * Publishes ISSA Build as its own independent business profile.
+ * Never use another business as owner, distributor, or Direct Connect routing.
+ * Private DC fields are only kept if already present on this record.
  */
-export async function provisionHoneyOnyxProfile(): Promise<void> {
+export async function provisionIssaBuildProfile(): Promise<void> {
   if (process.env.NODE_ENV !== "production") return;
 
   await db.transaction(async (tx) => {
@@ -57,35 +53,36 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       : await tx.select(stewardSelection).from(users).where(discoverableAdminPredicate).limit(1);
     const steward = configuredSteward || fallbackSteward;
     if (!steward?.id) {
-      throw new Error("Honey Onyx needs a verified admin steward before publication");
+      throw new Error("ISSA Build needs a verified admin steward before publication");
     }
 
-    const [distributorBusiness] = await tx
-      .select({ profileData: businesses.profileData })
-      .from(businesses)
-      .where(eq(businesses.slug, JW_STONE_PROFILE_SLUG))
-      .limit(1);
-    const distributorProfileData = recordValue(distributorBusiness?.profileData);
-    const distributorPhone = String(distributorProfileData.phone || "").trim();
-    const distributorNotificationEmail = String(
-      distributorProfileData.notificationEmail || distributorProfileData.email || ""
-    ).trim();
-    if (!distributorPhone || !distributorNotificationEmail) {
-      throw new Error(
-        "Honey Onyx Direct Connect requires JW Stone's private distribution phone and notification email"
-      );
-    }
-
-    const [existingBusiness] = await tx
+    const [existingByCanonical] = await tx
       .select()
       .from(businesses)
-      .where(eq(businesses.slug, HONEY_ONYX_PROFILE_SLUG))
+      .where(eq(businesses.slug, ISSA_BUILD_PROFILE_SLUG))
       .limit(1);
-    const [existingProfile] = await tx
+    const [existingByLegacy] = existingByCanonical
+      ? []
+      : await tx
+          .select()
+          .from(businesses)
+          .where(eq(businesses.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
+          .limit(1);
+    const existingBusiness = existingByCanonical || existingByLegacy;
+
+    const [existingProfileByCanonical] = await tx
       .select()
       .from(profiles)
-      .where(eq(profiles.slug, HONEY_ONYX_PROFILE_SLUG))
+      .where(eq(profiles.slug, ISSA_BUILD_PROFILE_SLUG))
       .limit(1);
+    const [existingProfileByLegacy] = existingProfileByCanonical
+      ? []
+      : await tx
+          .select()
+          .from(profiles)
+          .where(eq(profiles.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG))
+          .limit(1);
+    const existingProfile = existingProfileByCanonical || existingProfileByLegacy;
 
     const existingBusinessOwnerId = String(existingBusiness?.ownerUserId || "").trim();
     const existingProfileOwnerId = String(existingProfile?.ownerUserId || "").trim();
@@ -94,7 +91,7 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       existingProfileOwnerId &&
       existingBusinessOwnerId !== existingProfileOwnerId
     ) {
-      throw new Error("Honey Onyx business and profile ownership records disagree");
+      throw new Error("ISSA Build business and profile ownership records disagree");
     }
     const profileOwnerUserId =
       existingProfileOwnerId || existingBusinessOwnerId || String(steward.id);
@@ -106,11 +103,9 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       : [];
     const now = new Date();
 
-    // The canonical public-profile read requires the owning account to opt in
-    // to public visibility. During temporary TradeScout stewardship, make that
-    // opt-in explicit instead of bypassing the public-profile gate. Once the
-    // owner account is attached, its own visibility preference remains in
-    // control because this update only applies to the selected admin steward.
+    // Temporary TradeScout stewardship must explicitly opt the steward into
+    // public visibility for this profile gate — without borrowing another
+    // business's contact routing or changing the steward's active profile.
     if (profileOwnerUserId === String(steward.id)) {
       const stewardPreferences = recordValue(steward.preferences);
       if (stewardPreferences.profileVisibility !== "public") {
@@ -127,37 +122,48 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       }
     }
 
+    const cleanImportExtras = { ...existingImportExtras };
+    for (const key of [
+      "distributor_name",
+      "distributor_relationship",
+      "product_ownership",
+    ] as const) {
+      delete cleanImportExtras[key];
+    }
+
     const businessValues = {
-      name: "Honey Onyx",
-      slug: HONEY_ONYX_PROFILE_SLUG,
+      name: ISSA_BUILD_BUSINESS_NAME,
+      slug: ISSA_BUILD_PROFILE_SLUG,
       type: "vendor" as const,
       ownerUserId: profileOwnerUserId,
       roleContext: "business_owner" as const,
       profileData: {
         ...existingProfileData,
-        tagline: "Natural onyx that shifts from soft daylight movement to a warm backlit glow.",
+        tagline:
+          "Premium book-matched translucent onyx for luxury interiors — honey and jade tones that glow when lit.",
         description:
-          "Honey Onyx is a translucent natural stone with soft daylight movement and a dramatic warm glow when backlit.",
+          "ISSA Build supplies premium, book-matched translucent onyx slabs for high-end homes and interior design projects.",
         category: "Natural Onyx",
         services: [
-          "Honey Onyx slab availability",
+          "Translucent onyx slab availability",
           "Backlit application planning",
           "Project and fabrication coordination",
         ],
         contactPreference: "message",
-        phone: String(existingProfileData.phone || "").trim() || distributorPhone,
-        notificationEmail:
-          String(existingProfileData.notificationEmail || "").trim() ||
-          distributorNotificationEmail,
+        // Keep only contact already stored on this business. Never copy from
+        // another company. Owner attaches private DC routing later.
+        phone: String(existingProfileData.phone || "").trim(),
+        notificationEmail: String(
+          existingProfileData.notificationEmail || existingProfileData.email || ""
+        ).trim(),
         tradePartner: true,
         importExtras: {
-          ...existingImportExtras,
-          product_ownership: "independent_from_distributor",
+          ...cleanImportExtras,
+          business_identity: "issa_build",
+          ownership: "independent_business",
           owner_confirmation: "confirmed_by_tradescout_operator",
           owner_identity_visibility: "not_publicly_disclosed",
-          distributor_name: HONEY_ONYX_DISTRIBUTOR_NAME,
-          distributor_relationship: "distribution_and_availability_contact",
-          stewardship_status: HONEY_ONYX_STEWARDSHIP_STATUS,
+          stewardship_status: ISSA_BUILD_STEWARDSHIP_STATUS,
         },
         brandColors: {
           primary: "#342316",
@@ -175,10 +181,13 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       publicDiscoveryEnabled: true,
       sources: Array.from(
         new Set([
-          ...existingSources,
-          HONEY_ONYX_PROFILE_PROVISIONING_SOURCE,
-          DISTRIBUTOR_SOURCE,
-          DRIVE_SOURCE,
+          ...existingSources.filter(
+            (source) =>
+              source !== "jw_stone_distributor_inventory" &&
+              source !== "jw_stone_drive_source_2026_07_13" &&
+              !source.startsWith("jw_stone_")
+          ),
+          ISSA_BUILD_PROFILE_PROVISIONING_SOURCE,
         ])
       ),
       status: "active" as const,
@@ -195,13 +204,8 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
           .insert(businesses)
           .values(businessValues as any)
           .returning();
-    if (!business) throw new Error("Honey Onyx business provisioning failed");
+    if (!business) throw new Error("ISSA Build business provisioning failed");
 
-    // Recommendations require a legacy contractor foreign key. During
-    // temporary admin stewardship this is a Honey-specific row, never a
-    // fallback to another contractor owned by the steward. A new compatibility
-    // record starts inactive and unverified; an existing exact record keeps its
-    // earned directory and credential state.
     const exactRecommendationTargets = await tx
       .select()
       .from(contractors)
@@ -212,28 +216,30 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
     const slugRecommendationTargets = await tx
       .select()
       .from(contractors)
-      .where(eq(contractors.slug, HONEY_ONYX_PROFILE_SLUG))
+      .where(
+        or(
+          eq(contractors.slug, ISSA_BUILD_PROFILE_SLUG),
+          eq(contractors.slug, ISSA_BUILD_LEGACY_PROFILE_SLUG)
+        )
+      )
       .limit(2);
     const hasNoRecommendationBinding =
       exactRecommendationTargets.length === 0 && slugRecommendationTargets.length === 0;
     const hasSingleExactRecommendationBinding =
       exactRecommendationTargets.length === 1 &&
       slugRecommendationTargets.length === 1 &&
-      String(exactRecommendationTargets[0].id) === String(slugRecommendationTargets[0].id) &&
-      String(exactRecommendationTargets[0].slug) === HONEY_ONYX_PROFILE_SLUG;
+      String(exactRecommendationTargets[0].id) === String(slugRecommendationTargets[0].id);
 
     if (!hasNoRecommendationBinding && !hasSingleExactRecommendationBinding) {
-      // Fail closed for Recommend without rolling back the otherwise valid
-      // profile. A later data repair can establish one exact binding.
       console.warn(
-        "[profile-provisioning] Skipping Honey Onyx recommendation target mutation: contractor binding is ambiguous or conflicting"
+        "[profile-provisioning] Skipping ISSA Build recommendation target mutation: contractor binding is ambiguous or conflicting"
       );
     } else if (hasNoRecommendationBinding) {
       await tx.insert(contractors).values({
         userId: profileOwnerUserId,
         businessId: business.id,
-        companyName: "Honey Onyx",
-        slug: HONEY_ONYX_PROFILE_SLUG,
+        companyName: ISSA_BUILD_BUSINESS_NAME,
+        slug: ISSA_BUILD_PROFILE_SLUG,
         verifiedLicensed: false,
         verifiedInsured: false,
         isActive: false,
@@ -243,7 +249,8 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       await tx
         .update(contractors)
         .set({
-          companyName: "Honey Onyx",
+          companyName: ISSA_BUILD_BUSINESS_NAME,
+          slug: ISSA_BUILD_PROFILE_SLUG,
           updatedAt: now,
         })
         .where(eq(contractors.id, recommendationTarget.id));
@@ -253,10 +260,10 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
       ownerUserId: profileOwnerUserId,
       businessId: business.id,
       roleContext: "business_owner" as const,
-      slug: HONEY_ONYX_PROFILE_SLUG,
-      displayName: "Honey Onyx",
-      headline: "A natural onyx that changes when the light comes on.",
-      contentBlocks: HONEY_ONYX_PROFILE_CONTENT_BLOCKS,
+      slug: ISSA_BUILD_PROFILE_SLUG,
+      displayName: ISSA_BUILD_BUSINESS_NAME,
+      headline: "Premium book-matched translucent onyx for luxury interiors.",
+      contentBlocks: ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
       ctaConfig: {
         primary: {
           label: "Direct Connect",
@@ -265,10 +272,10 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
         },
       },
       seoMeta: {
-        title: "Honey Onyx | Natural Backlit Onyx",
+        title: "ISSA Build | Translucent Honey & Jade Onyx",
         description:
-          "Explore six real Honey Onyx slab photos in daylight and backlit conditions, then ask about availability through private TradeScout Direct Connect.",
-        imageUrl: "https://www.thetradescout.com/images/businesses/honey-onyx/2.jpg",
+          "Explore ISSA Build translucent onyx installations and material photos, then ask about availability through private TradeScout Direct Connect.",
+        imageUrl: "https://www.thetradescout.com/images/businesses/issa-build/applications/01.jpg",
         imageWidth: 1600,
         imageHeight: 1200,
       },
@@ -286,6 +293,9 @@ export async function provisionHoneyOnyxProfile(): Promise<void> {
           .insert(profiles)
           .values(profileValues as any)
           .returning();
-    if (!profile) throw new Error("Honey Onyx profile provisioning failed");
+    if (!profile) throw new Error("ISSA Build profile provisioning failed");
   });
 }
+
+/** @deprecated Use provisionIssaBuildProfile. */
+export const provisionHoneyOnyxProfile = provisionIssaBuildProfile;

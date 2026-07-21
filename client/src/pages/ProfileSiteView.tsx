@@ -48,14 +48,23 @@ import {
 } from "@shared/profileGalleryShare";
 import { JRS_AUTO_GLASS_GALLERY_BLOCKS } from "@shared/jrsAutoGlassProfile";
 import {
-  HONEY_ONYX_PROFILE_CONTENT_BLOCKS,
-  HONEY_ONYX_PROFILE_SLUG,
-} from "@shared/honeyOnyxProfile";
+  ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
+  isIssaBuildProfileSlug,
+} from "@shared/issaBuildProfile";
 import {
   LA_PLUMBING_PROFILE_PRESENTATION,
   LA_PLUMBING_PROFILE_SLUG,
   type LocalServiceProfilePresentation,
 } from "@shared/localServiceProfile";
+import {
+  readFeaturedStoneSlugs,
+  resolveSiteTemplateId,
+  seedBlocksForTemplate,
+  applyInventoryLeadImageOverrides,
+  readInventoryLeadImageBySlug,
+  type ProfileSiteTemplateId,
+} from "@shared/profileSiteTemplates";
+import ProfileSiteManageChrome from "@/components/profile/ProfileSiteManageChrome";
 
 // TradePartner is a paid tier: any business with `tradePartner: true` gets the
 // richer branded layout, regardless of category. It is not tied to being a
@@ -345,6 +354,7 @@ type PublicProfile = {
   contentBlocks: any;
   ctaConfig: any;
   seoMeta: any;
+  siteTemplate?: ProfileSiteTemplateId;
   profileSections?: ProfileSections | null;
   contactPolicy?: {
     mode?: "direct_connect_only";
@@ -406,6 +416,7 @@ type PublicBusinessSubset = {
 type PublicProfileResponse = {
   profile: PublicProfile;
   business: PublicBusinessSubset;
+  viewerCanManage?: boolean;
   profileItems?: CanonicalProfileItems;
   recommendationsDirectory?: Array<{
     id: string;
@@ -449,6 +460,10 @@ export default function ProfileSiteView() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const [expressPanelOpen, setExpressPanelOpen] = useState(false);
+  const [manageEditMode, setManageEditMode] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("edit") === "1";
+  });
 
   // Public profiles are commonly opened from texts, social posts, and QR
   // codes. Add one same-page history boundary so the browser Back control can
@@ -639,21 +654,30 @@ export default function ProfileSiteView() {
   // the public page cannot silently fall back to an older database seed. Drive
   // folder placement is evidence, not an assertion: uncertain materials stay
   // in "Material to Confirm" and finishes only appear when the source says so.
-  const contentBlocks =
-    profile.slug === HONEY_ONYX_PROFILE_SLUG
-      ? [...HONEY_ONYX_PROFILE_CONTENT_BLOCKS]
-      : profile.slug === "jw-stone"
-        ? [
-            ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
-            {
-              type: "inventoryCatalog",
-              data: { categories: JW_STONE_INVENTORY_CATEGORIES },
+  const contentBlocks = isIssaBuildProfileSlug(profile.slug)
+    ? [...ISSA_BUILD_PROFILE_CONTENT_BLOCKS]
+    : profile.slug === "jw-stone"
+      ? [
+          ...storedContentBlocks.filter((block: any) => block?.type !== "inventoryCatalog"),
+          {
+            type: "inventoryCatalog",
+            data: {
+              categories: JW_STONE_INVENTORY_CATEGORIES.map((category) => ({
+                ...category,
+                stones: applyInventoryLeadImageOverrides(
+                  category.stones,
+                  readInventoryLeadImageBySlug(storedContentBlocks)
+                ),
+              })),
+              featuredStoneSlugs: readFeaturedStoneSlugs(storedContentBlocks),
+              leadImageBySlug: readInventoryLeadImageBySlug(storedContentBlocks),
             },
-          ]
-        : profile.slug === "jrs-auto-glass" &&
-            !storedContentBlocks.some((block: any) => block?.type === "gallery")
-          ? [...storedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
-          : storedContentBlocks;
+          },
+        ]
+      : profile.slug === "jrs-auto-glass" &&
+          !storedContentBlocks.some((block: any) => block?.type === "gallery")
+        ? [...storedContentBlocks, ...JRS_AUTO_GLASS_GALLERY_BLOCKS]
+        : storedContentBlocks;
   const profileCustomDomain =
     typeof profile.seoMeta?.customDomain === "string"
       ? profile.seoMeta.customDomain.trim().toLowerCase()
@@ -680,6 +704,28 @@ export default function ProfileSiteView() {
     profile.slug === LA_PLUMBING_PROFILE_SLUG
       ? LA_PLUMBING_PROFILE_PRESENTATION
       : storedLocalServicePresentation;
+  const siteTemplate = resolveSiteTemplateId({
+    slug: profile.slug,
+    contentBlocks,
+    tradePartner: isTradePartner(business),
+    hasLocalServicePresentation: Boolean(localServicePresentation?.template === "local-service"),
+  });
+  const viewerCanManage = data.viewerCanManage === true;
+  const wantsManageUi =
+    manageEditMode ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("edit") === "1");
+  const featuredStoneSlugs = readFeaturedStoneSlugs(contentBlocks);
+  const resolvedLocalServicePresentation =
+    localServicePresentation ||
+    ((siteTemplate === "plumbing-company" || siteTemplate === "electrician-solo") &&
+      (() => {
+        const seeded = seedBlocksForTemplate(siteTemplate, contentBlocks, {
+          displayName,
+        });
+        const block = seeded.find((entry) => entry.type === "localServiceProfile");
+        return block?.data as LocalServiceProfilePresentation | undefined;
+      })());
   const itemShareParams =
     typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
   const inventoryItemShareMeta = createProfileInventoryItemShareMetadata({
@@ -905,7 +951,41 @@ export default function ProfileSiteView() {
     })
     .filter((item) => item.body.length > 0);
 
-  if (profile.slug === "jrs-auto-glass") {
+  const manageChrome = viewerCanManage ? (
+    <ProfileSiteManageChrome
+      profileId={profile.id}
+      profileSlug={profile.slug}
+      displayName={displayName}
+      headline={profile.headline}
+      contentBlocks={storedContentBlocks}
+      siteTemplate={siteTemplate}
+      editMode={manageEditMode}
+      platformBaseHref={platformBaseHref}
+      onSaved={() => setReloadKey((current) => current + 1)}
+      onToggleEdit={(next) => {
+        setManageEditMode(next);
+        if (typeof window === "undefined") return;
+        const url = new URL(window.location.href);
+        if (next) url.searchParams.set("edit", "1");
+        else url.searchParams.delete("edit");
+        window.history.replaceState(window.history.state, "", url.toString());
+      }}
+    />
+  ) : wantsManageUi ? (
+    <div
+      className="fixed inset-x-0 top-0 z-[80] border-b border-amber-400/40 bg-stone-950 px-4 py-3 text-center text-sm text-white"
+      data-testid="profile-site-manage-signin"
+    >
+      Sign in as the business owner or TradeScout admin on this same domain to edit this profile.{" "}
+      <a className="font-semibold text-amber-300 underline" href="/login">
+        Sign in
+      </a>
+    </div>
+  ) : null;
+  const manageChromeSpacer =
+    viewerCanManage || wantsManageUi ? <div className="h-14" aria-hidden /> : null;
+
+  if (siteTemplate === "auto-glass" || profile.slug === "jrs-auto-glass") {
     return (
       <>
         <SEOHelmet
@@ -943,10 +1023,13 @@ export default function ProfileSiteView() {
           allowCall={canExpressCall}
           requestMode="auto_glass"
         />
+        {manageChromeSpacer}
+        {manageChrome}
       </>
     );
   }
 
+  // Legacy specialty shell until a fabrication gallery template ships.
   if (profile.slug === "pro-fab-specialty-services") {
     return (
       <>
@@ -982,11 +1065,18 @@ export default function ProfileSiteView() {
           allowCall={canExpressCall}
           requestMode="service"
         />
+        {manageChromeSpacer}
+        {manageChrome}
       </>
     );
   }
 
-  if (localServicePresentation?.template === "local-service") {
+  if (
+    (siteTemplate === "plumbing-company" ||
+      siteTemplate === "electrician-solo" ||
+      resolvedLocalServicePresentation?.template === "local-service") &&
+    resolvedLocalServicePresentation
+  ) {
     return (
       <>
         <SEOHelmet
@@ -1002,7 +1092,7 @@ export default function ProfileSiteView() {
           profileSlug={profile.slug}
           platformBaseHref={platformBaseHref}
           businessName={displayName}
-          presentation={localServicePresentation}
+          presentation={resolvedLocalServicePresentation}
           onDirectConnect={() => setExpressPanelOpen(true)}
           hasViewerSession={hasViewerSession}
           tradeScoutReturnHref={tradeScoutReturnHref}
@@ -1029,11 +1119,13 @@ export default function ProfileSiteView() {
           allowCall={canExpressCall}
           requestMode="service"
         />
+        {manageChromeSpacer}
+        {manageChrome}
       </>
     );
   }
 
-  if (isTradePartner(business)) {
+  if (siteTemplate === "wholesaler" || isTradePartner(business)) {
     return (
       <>
         <SEOHelmet
@@ -1068,12 +1160,15 @@ export default function ProfileSiteView() {
           recommendationsDirectory={recommendationsDirectory}
           recommendationDirectorySummary={recommendationDirectorySummary}
           trustActions={renderProfileTrustActions("light")}
+          featuredStoneSlugs={featuredStoneSlugs}
           profileItems={
             hasVisiblePublicProfileItems(profileItems, profileSections) ? (
               <PublicProfileItems items={profileItems} profileSections={profileSections} />
             ) : null
           }
         />
+        {manageChromeSpacer}
+        {manageChrome}
       </>
     );
   }
@@ -1154,7 +1249,13 @@ export default function ProfileSiteView() {
         </CardHeader>
 
         <CardContent className="p-4 md:p-6">
-          <div className="mb-6">{renderProfileTrustActions("dark")}</div>
+          <div
+            className="mb-6"
+            data-testid="profile-trust-section"
+            aria-label="Trust and profile actions"
+          >
+            {renderProfileTrustActions("dark")}
+          </div>
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
               {profileSections.about !== false && (aboutText || profile.headline) ? (
@@ -1473,6 +1574,8 @@ export default function ProfileSiteView() {
         allowCall={canExpressCall}
         requestMode="service"
       />
+      {manageChromeSpacer}
+      {manageChrome}
     </Page>
   );
 }

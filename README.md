@@ -16,7 +16,7 @@ OpenAI Codex is an active engineering collaborator on TradeScout. Codex-assisted
 repository includes production implementation, debugging, tests, release verification, and UX
 polish across several core surfaces:
 
-- Public-profile architecture and branded operating profiles for JW Stone, Honey Onyx,
+- Public-profile architecture and branded operating profiles for JW Stone, ISSA Build,
   LA Plumbing, JR's Auto Glass, and ProFab Specialty Services.
 - TradeScout-native Like, Recommend, Favorite, and Share actions that preserve recommendation
   moderation, contact privacy, and the separation between community engagement and verification.

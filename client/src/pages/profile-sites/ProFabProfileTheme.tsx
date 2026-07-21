@@ -65,7 +65,7 @@ type Props = {
   hasViewerSession: boolean;
   tradeScoutReturnHref: string;
   recommendationsDirectory?: RecommendationEntry[];
-  trustActions?: ReactNode;
+  trustActions: ReactNode;
   profileItems?: ReactNode;
 };
 
@@ -176,14 +176,13 @@ export default function ProFabProfileTheme({
           </p>
         </section>
 
-        {trustActions ? (
-          <section
-            aria-label="TradeScout community actions"
-            className="border-b border-white/10 px-4 py-5 sm:px-6"
-          >
-            {trustActions}
-          </section>
-        ) : null}
+        <section
+          aria-label="Trust and profile actions"
+          data-testid="profile-trust-section"
+          className="border-b border-white/10 px-4 py-5 sm:px-6"
+        >
+          {trustActions}
+        </section>
 
         <section className="border-b border-white/10 px-4 py-6 sm:px-6">
           <div className="flex items-center justify-between gap-4">

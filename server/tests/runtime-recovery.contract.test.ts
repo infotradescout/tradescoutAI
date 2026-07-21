@@ -48,7 +48,7 @@ describe("runtime recovery contracts", () => {
       'await provisionProfile("JR\'s Auto Glass", provisionJrsAutoGlassProfile)'
     );
     expect(source).toContain('await provisionProfile("LA Plumbing", provisionLaPlumbingProfile)');
-    expect(source).toContain('await provisionProfile("Honey Onyx", provisionHoneyOnyxProfile)');
+    expect(source).toContain('await provisionProfile("ISSA Build", provisionIssaBuildProfile)');
     expect(source).toContain('await provisionProfile("ProFab", provisionProFabProfile)');
     expect(source).toContain(
       'await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile)'

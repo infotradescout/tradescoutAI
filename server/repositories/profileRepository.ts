@@ -185,6 +185,32 @@ export class ProfileRepository {
     return profile as Profile;
   }
 
+  /** Super-admin / staff manage path — does not require owner match. */
+  async updateProfileById(profileId: string, updates: Partial<ProfileMutation>): Promise<Profile> {
+    const [existing] = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);
+    if (!existing) throw new Error("Profile not found");
+
+    const nextSlug = updates.slug ? await this.generateUniqueProfileSlug(updates.slug) : undefined;
+    const rows = await db
+      .update(profiles)
+      .set({
+        ...updates,
+        ...(nextSlug ? { slug: nextSlug } : {}),
+        updatedAt: new Date(),
+      } as any)
+      .where(eq(profiles.id, profileId))
+      .returning();
+
+    const profile = rows[0];
+    if (!profile) throw new Error("Profile not found");
+    return profile as Profile;
+  }
+
+  async getProfileById(profileId: string): Promise<Profile | undefined> {
+    const [row] = await db.select().from(profiles).where(eq(profiles.id, profileId)).limit(1);
+    return row as Profile | undefined;
+  }
+
   async setUserActiveProfile(userId: string, profileId: string | null): Promise<User> {
     const rows = await db
       .update(users)
