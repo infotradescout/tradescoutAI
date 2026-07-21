@@ -456,34 +456,6 @@
       ]
     },
     {
-      "file": "client/src/scout/ScoutHome.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 42,
-          "lines": [
-            465,
-            471,
-            477,
-            482,
-            558
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 13,
-          "lines": [
-            464,
-            464,
-            470,
-            470,
-            476
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/profile-sites/PremiumProductProfileSections.tsx",
       "isRootViolation": false,
       "hits": [
@@ -524,6 +496,34 @@
             236,
             237,
             240
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/ScoutHome.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 42,
+          "lines": [
+            465,
+            471,
+            477,
+            482,
+            558
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 11,
+          "lines": [
+            464,
+            464,
+            470,
+            470,
+            476
           ]
         }
       ]
