@@ -73,12 +73,25 @@ function isTradePartner(business: PublicBusinessSubset): boolean {
   return Boolean(business?.tradePartner);
 }
 
+function isPrimaryTradeScoutHost(host: string): boolean {
+  return (
+    host === "thetradescout.com" ||
+    host === "www.thetradescout.com" ||
+    host === "localhost" ||
+    host === "127.0.0.1"
+  );
+}
+
+// A visitor on a business's own custom domain should never get sent to
+// thetradescout.com except by deliberately clicking a footer CTA -- so
+// "safe" here means the current domain's own root everywhere except on
+// thetradescout.com itself.
 function getSafeTradeScoutHome(): string {
   if (typeof window === "undefined") return "https://www.thetradescout.com/";
   const host = window.location.hostname.toLowerCase();
-  return host === "localhost" || host === "127.0.0.1"
-    ? `${window.location.origin}/`
-    : "https://www.thetradescout.com/";
+  return isPrimaryTradeScoutHost(host)
+    ? "https://www.thetradescout.com/"
+    : `${window.location.origin}/`;
 }
 
 function getProfileNameFromSlug(value: string): string {
@@ -474,21 +487,11 @@ export default function ProfileSiteView() {
 
     const guardKey = "__tradeScoutProfileHistoryBoundary";
     const currentState = (window.history.state || {}) as Record<string, unknown>;
-    // On a business's own custom domain, a visitor who isn't signed in and
-    // didn't arrive from thetradescout.com should never get bounced there --
-    // that's exclusively the footer's job. Default the back-button safety net
-    // to the current domain's own root; only thetradescout.com itself (or a
-    // referrer that was actually thetradescout.com, handled below) sends
-    // visitors to the TradeScout home.
-    const currentHost = window.location.hostname.toLowerCase();
-    const isPrimaryTradeScoutHost =
-      currentHost === "thetradescout.com" ||
-      currentHost === "www.thetradescout.com" ||
-      currentHost === "localhost" ||
-      currentHost === "127.0.0.1";
-    let safeReturnHref = isPrimaryTradeScoutHost
-      ? getSafeTradeScoutHome()
-      : `${window.location.origin}/`;
+    // getSafeTradeScoutHome() already resolves to the current domain's own
+    // root everywhere except thetradescout.com itself -- only a referrer that
+    // was actually thetradescout.com (handled below) sends visitors there
+    // from a custom domain.
+    let safeReturnHref = getSafeTradeScoutHome();
 
     try {
       const referrer = new URL(document.referrer);
