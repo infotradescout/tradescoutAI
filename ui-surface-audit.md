@@ -13,7 +13,7 @@ Files with bg-* classes: **286**
 - • `client/src/pages/direct-connect/DirectConnectShell.tsx` — bg-* (152) @ lines 201,786,789,792,794
 - • `client/src/pages/exchange.tsx` — bg-* (139) @ lines 885,886,887,888,889 | gradient (2) @ lines 316,2147
 - • `client/src/pages/settings.tsx` — bg-* (107) @ lines 762,780,784,791,798 | gradient (12) @ lines 762,762,762,906,906
-- • `client/src/pages/profile-sites/WholesalerProfileTheme.tsx` — bg-* (114) @ lines 700,728,731,750,758 | gradient (3) @ lines 1773,1773,1773
+- • `client/src/pages/profile-sites/WholesalerProfileTheme.tsx` — bg-* (113) @ lines 688,716,719,738,746 | gradient (3) @ lines 1742,1742,1742
 - • `client/src/pages/marketplace.tsx` — bg-* (73) @ lines 427,436,443,450,457 | gradient (27) @ lines 427,427,427,427,532
 - • `client/src/pages/profile-sites/LocalServiceProfileTheme.tsx` — bg-* (77) @ lines 203,206,215,221,246 | gradient (18) @ lines 272,272,512,512,512
 - • `client/src/pages/admin-users.tsx` — bg-* (80) @ lines 102,108,114,120,126
