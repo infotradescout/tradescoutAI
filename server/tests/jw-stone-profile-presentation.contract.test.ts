@@ -75,7 +75,11 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain("Three picks from the current collection -- reload to see more.");
     // Random every visit (memoized once per mount, not weekly-locked and not
     // a fixed curated list) -- see shuffleStones + the featuredStones useMemo.
-    expect(source).toContain("shuffleStones(allStones)");
+    // Unconfirmed/unnamed slabs are excluded from the random pool entirely --
+    // they don't get featured until identified.
+    expect(source).toContain(
+      'shuffleStones(allStones.filter((stone) => stone.materialStatus !== "unconfirmed"))'
+    );
     expect(source).not.toContain("JW_STONE_FEATURED_OFFERS");
     expect(source).not.toContain("offer.price");
     expect(source).not.toContain("offer.size");
@@ -83,10 +87,10 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).not.toContain("$/sf");
   });
 
-  it("randomizes stone order within each category on every visit, without reassigning categories", () => {
+  it("randomizes stone order within each category on every visit, without reassigning categories, keeping unconfirmed slabs last", () => {
     expect(source).toContain("function shuffleStones");
-    expect(source).toContain("inventoryCatalogFromContent.map((category) => ({");
-    expect(source).toContain("stones: shuffleStones(category.stones)");
+    expect(source).toContain("inventoryCatalogFromContent.map((category) => {");
+    expect(source).toContain("...shuffleStones(confirmed), ...shuffleStones(unconfirmed)");
   });
 
   it("shows featured inventory as image-forward product cards", () => {

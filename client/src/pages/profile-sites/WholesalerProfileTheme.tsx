@@ -248,6 +248,20 @@ function shuffleStones<T>(stones: T[]): T[] {
   return shuffled;
 }
 
+// An unconfirmed slab's data name (e.g. "Trending Selection 05") is an
+// internal catalog label, not a real product name -- showing it as-is reads
+// as a made-up marketing name for stone we don't actually know anything
+// about yet. Say plainly that it's unidentified.
+function getStoneDisplayName(stone: {
+  name: string;
+  slug: string;
+  materialStatus?: string;
+}): string {
+  if (stone.materialStatus !== "unconfirmed") return stone.name;
+  const match = stone.name.match(/(\d+)\s*$/) || stone.slug.match(/(\d+)\s*$/);
+  return match ? `Unnamed slab #${match[1]}` : "Unnamed slab";
+}
+
 // Horizontal, scroll-snapped rows keep the page short and let visitors jump
 // straight to what they came for instead of scrolling past every section.
 const SCROLL_ROW =
@@ -427,10 +441,19 @@ export default function WholesalerProfileTheme({
   // scrolling -- stones never move out of the category they belong to.
   const inventoryCatalog = useMemo(
     () =>
-      inventoryCatalogFromContent.map((category) => ({
-        ...category,
-        stones: shuffleStones(category.stones),
-      })),
+      inventoryCatalogFromContent.map((category) => {
+        // Unnamed/unconfirmed slabs shouldn't compete for the front of a rail
+        // with stone JW has actually identified -- keep them shuffled among
+        // themselves, but always after everything confirmed.
+        const confirmed = category.stones.filter((stone) => stone.materialStatus !== "unconfirmed");
+        const unconfirmed = category.stones.filter(
+          (stone) => stone.materialStatus === "unconfirmed"
+        );
+        return {
+          ...category,
+          stones: [...shuffleStones(confirmed), ...shuffleStones(unconfirmed)],
+        };
+      }),
     [inventoryCatalogBlock]
   );
   const [activeCategorySlug, setActiveCategorySlug] = useState("all");
@@ -496,14 +519,28 @@ export default function WholesalerProfileTheme({
   const jwStonePicks = [...JW_STONE_PICK_SLUGS]
     .map((slug) => allInventoryStones.find((stone) => stone.slug === slug))
     .filter((stone): stone is InventoryStone => Boolean(stone))
+    .filter((stone) => stone.materialStatus !== "unconfirmed")
     .slice(0, 3);
   const selectedCategory = inventoryCatalog.find(
     (category) => category.categorySlug === activeCategorySlug
   );
+  // "All stone" flattens every category back together, which would otherwise
+  // undo the confirmed-first ordering each category already has -- keep
+  // unconfirmed slabs last here too rather than wherever their category
+  // happened to fall.
+  const allInventoryStonesConfirmedFirst =
+    activeCategorySlug === "all"
+      ? [
+          ...allInventoryStones.filter((stone) => stone.materialStatus !== "unconfirmed"),
+          ...allInventoryStones.filter((stone) => stone.materialStatus === "unconfirmed"),
+        ]
+      : allInventoryStones;
   const categoryStones =
     activeCategorySlug === "jw-picks"
-      ? allInventoryStones.filter((stone) => JW_STONE_PICK_SLUGS.has(stone.slug))
-      : selectedCategory?.stones || allInventoryStones;
+      ? allInventoryStones.filter(
+          (stone) => JW_STONE_PICK_SLUGS.has(stone.slug) && stone.materialStatus !== "unconfirmed"
+        )
+      : selectedCategory?.stones || allInventoryStonesConfirmedFirst;
   const visibleStones = categoryStones.filter((stone) =>
     normalizedInventorySearch ? stone.name.toLowerCase().includes(normalizedInventorySearch) : true
   );
@@ -523,9 +560,14 @@ export default function WholesalerProfileTheme({
     if (profileSlug !== "jw-stone" && featuredStoneSlugs.length === 0) return [];
     const allStones = inventoryCatalog.flatMap((category) => category.stones);
     const bySlug = new Map(allStones.map((stone) => [stone.slug, stone]));
+    // Unnamed/unconfirmed slabs don't get featured until JW has actually
+    // identified them -- an unconfirmed stone showing up as a "trending pick"
+    // reads as a real recommendation for something we don't know anything
+    // about yet.
     const curated = featuredStoneSlugs
       .map((slug) => bySlug.get(slug))
       .filter((stone): stone is (typeof allStones)[number] => Boolean(stone))
+      .filter((stone) => stone.materialStatus !== "unconfirmed")
       .slice(0, 3)
       .map((stone) => ({
         slug: stone.slug,
@@ -535,7 +577,7 @@ export default function WholesalerProfileTheme({
       }));
     if (curated.length > 0) return curated;
     if (profileSlug !== "jw-stone") return [];
-    return shuffleStones(allStones)
+    return shuffleStones(allStones.filter((stone) => stone.materialStatus !== "unconfirmed"))
       .slice(0, 3)
       .map((stone) => ({
         slug: stone.slug,
@@ -630,6 +672,16 @@ export default function WholesalerProfileTheme({
         .getElementById("inventory-browser")
         ?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
+  };
+
+  // "View all" from deep inside a trending/category rail swaps the whole
+  // browse area to the filtered grid, which is usually much shorter -- left
+  // to the browser's default scroll retention, the viewport lands wherever
+  // that same pixel offset now falls (often an unrelated section further
+  // down the page) instead of the filtered results the click was for.
+  const filterToCategory = (slug: string) => {
+    setActiveCategorySlug(slug);
+    scrollToInventoryBrowser();
   };
 
   const openFullInventory = () => {
@@ -738,100 +790,110 @@ export default function WholesalerProfileTheme({
   const renderStoneCard = (
     stone: InventoryStone,
     priority: "high" | "eager" | "lazy",
-    wrapperClassName: string
-  ) => (
-    <article
-      key={stone.slug}
-      className={`group flex flex-col overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg ${wrapperClassName}`}
-      data-testid={isJwStone ? "jw-stone-inventory-card" : "profile-inventory-card"}
-    >
-      <div className="relative h-52 overflow-hidden bg-stone-200">
-        <button
-          type="button"
-          onClick={() => {
-            setOpenStone(stone);
-            setOpenImageIndex(0);
-          }}
-          className="block h-full w-full text-left"
-          aria-label={`View details for ${stone.name}`}
-        >
-          {stone.images[0] ? (
-            <img
-              src={stone.images[0]}
-              alt={stone.name}
-              loading={priority === "lazy" ? "lazy" : "eager"}
-              fetchPriority={priority === "high" ? "high" : "auto"}
-              data-fallback-index="0"
-              onError={handleStoneImageError(stone)}
-              onLoad={handleStoneImageLoad(stone)}
-              className="h-full w-full bg-stone-200 object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
-            />
-          ) : (
-            <span className="flex h-full items-center justify-center px-5 text-sm font-semibold text-stone-600">
-              Photo coming soon
-            </span>
-          )}
-        </button>
-        <span className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/35 bg-black/65 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
-          {stone.materialStatus === "unconfirmed" ? "Material to confirm" : "Current collection"}
-        </span>
-        <ShareButton
-          destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
-          title={stone.name}
-          text={`${stone.name} from ${displayName}`}
-          size="icon"
-          label=""
-          className="absolute right-3 top-3 rounded-full border-white/25 bg-black/70 text-white hover:bg-black"
-        />
-        {stone.images.length > 1 ? (
-          <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white">
-            {stone.images.length} photos
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-1 flex-col p-4">
-        <p className="text-base font-extrabold !text-[#241d0f]">{stone.name}</p>
-        {stone.slabCounts?.length ? (
-          <p className="mt-1 text-sm font-bold text-[var(--brand-primary)]">
-            {stone.slabCounts.length === 1
-              ? `${stone.slabCounts[0]} slabs`
-              : `Bundle counts: ${stone.slabCounts.join(", ")} slabs`}
-          </p>
-        ) : null}
-        {!stone.hideFinishDetails ? (
-          <p className="mt-1 text-xs font-medium !text-[#4a4238]">
-            {stone.finishes?.length
-              ? stone.finishes.join(" · ")
-              : `Finish details: ask ${displayName}`}
-          </p>
-        ) : null}
-        {stone.materialStatus === "unconfirmed" ? (
-          <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
-            Details being confirmed
-          </span>
-        ) : null}
-        <div className="mt-4 grid grid-cols-2 gap-2">
+    wrapperClassName: string,
+    categoryLabel?: string
+  ) => {
+    const stoneDisplayName = getStoneDisplayName(stone);
+
+    return (
+      <article
+        key={stone.slug}
+        className={`group flex flex-col overflow-hidden rounded-2xl border border-[#241d0f]/15 bg-white text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[var(--brand-accent)]/60 hover:shadow-lg ${wrapperClassName}`}
+        data-testid={isJwStone ? "jw-stone-inventory-card" : "profile-inventory-card"}
+      >
+        <div className="relative h-52 overflow-hidden bg-stone-200">
           <button
             type="button"
             onClick={() => {
               setOpenStone(stone);
               setOpenImageIndex(0);
             }}
-            className="min-h-10 rounded-xl border border-[var(--brand-primary)]/20 px-3 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5"
+            className="block h-full w-full text-left"
+            aria-label={`View details for ${stoneDisplayName}`}
           >
-            View details
+            {stone.images[0] ? (
+              <img
+                src={stone.images[0]}
+                alt={stoneDisplayName}
+                loading={priority === "lazy" ? "lazy" : "eager"}
+                fetchPriority={priority === "high" ? "high" : "auto"}
+                data-fallback-index="0"
+                onError={handleStoneImageError(stone)}
+                onLoad={handleStoneImageLoad(stone)}
+                className="h-full w-full bg-stone-200 object-contain p-1 transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+            ) : (
+              <span className="flex h-full items-center justify-center px-5 text-sm font-semibold text-stone-600">
+                Photo coming soon
+              </span>
+            )}
           </button>
-          <button
-            type="button"
-            onClick={() => startDirectConnect(stone.name, "request_material")}
-            className="min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-3 text-xs font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
-          >
-            Ask about {stone.name}
-          </button>
+          <span className="pointer-events-none absolute left-3 top-3 rounded-full border border-white/35 bg-black/65 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm">
+            {stone.materialStatus === "unconfirmed" ? "Material to confirm" : "Current collection"}
+          </span>
+          <ShareButton
+            destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
+            title={stoneDisplayName}
+            text={`${stoneDisplayName} from ${displayName}`}
+            size="icon"
+            label=""
+            className="absolute right-3 top-3 rounded-full border-white/25 bg-black/70 text-white hover:bg-black"
+          />
+          {stone.images.length > 1 ? (
+            <span className="pointer-events-none absolute bottom-3 right-3 rounded-full bg-black/65 px-2.5 py-1 text-[11px] font-semibold text-white">
+              {stone.images.length} photos
+            </span>
+          ) : null}
         </div>
-      </div>
-    </article>
-  );
+        <div className="flex flex-1 flex-col p-4">
+          {categoryLabel ? (
+            <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--brand-primary)]/60">
+              {categoryLabel}
+            </p>
+          ) : null}
+          <p className="text-base font-extrabold !text-[#241d0f]">{stoneDisplayName}</p>
+          {stone.slabCounts?.length ? (
+            <p className="mt-1 text-sm font-bold text-[var(--brand-primary)]">
+              {stone.slabCounts.length === 1
+                ? `${stone.slabCounts[0]} slabs`
+                : `Bundle counts: ${stone.slabCounts.join(", ")} slabs`}
+            </p>
+          ) : null}
+          {!stone.hideFinishDetails && stone.materialStatus !== "unconfirmed" ? (
+            <p className="mt-1 text-xs font-medium !text-[#4a4238]">
+              {stone.finishes?.length
+                ? stone.finishes.join(" · ")
+                : `Finish details: ask ${displayName}`}
+            </p>
+          ) : null}
+          {stone.materialStatus === "unconfirmed" ? (
+            <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
+              Name & finish pending confirmation
+            </span>
+          ) : null}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setOpenStone(stone);
+                setOpenImageIndex(0);
+              }}
+              className="min-h-10 rounded-xl border border-[var(--brand-primary)]/20 px-3 text-xs font-bold text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-primary)]/5"
+            >
+              View details
+            </button>
+            <button
+              type="button"
+              onClick={() => startDirectConnect(stoneDisplayName, "request_material")}
+              className="min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-3 text-xs font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10"
+            >
+              Ask about {stoneDisplayName}
+            </button>
+          </div>
+        </div>
+      </article>
+    );
+  };
 
   return (
     <div
@@ -1180,6 +1242,7 @@ export default function WholesalerProfileTheme({
                       {featuredStones.map((offer, offerIndex) => {
                         const stone = offer.stone;
                         if (!stone) return null;
+                        const stoneDisplayName = getStoneDisplayName(stone);
                         return (
                           <article
                             key={offer.slug}
@@ -1194,11 +1257,11 @@ export default function WholesalerProfileTheme({
                                   setOpenImageIndex(0);
                                 }}
                                 className="block h-full w-full"
-                                aria-label={`View details for ${stone.name}`}
+                                aria-label={`View details for ${stoneDisplayName}`}
                               >
                                 <img
                                   src={stone.images[0]}
-                                  alt={stone.name}
+                                  alt={stoneDisplayName}
                                   data-fallback-index="0"
                                   onError={handleStoneImageError(stone)}
                                   onLoad={handleStoneImageLoad(stone)}
@@ -1212,8 +1275,8 @@ export default function WholesalerProfileTheme({
                               ) : null}
                               <ShareButton
                                 destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
-                                title={stone.name}
-                                text={`${stone.name} at JW Stone`}
+                                title={stoneDisplayName}
+                                text={`${stoneDisplayName} at JW Stone`}
                                 size="icon"
                                 label=""
                                 className="absolute right-2 top-2 rounded-full border-white/25 bg-black/70 text-white hover:bg-black sm:right-3 sm:top-3"
@@ -1224,7 +1287,7 @@ export default function WholesalerProfileTheme({
                             </div>
                             <div className="flex flex-1 flex-col p-2.5 sm:p-4">
                               <p className="truncate text-xs font-extrabold !text-[#241d0f] sm:text-base">
-                                {stone.name}
+                                {stoneDisplayName}
                               </p>
                               <p className="mt-0.5 truncate text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--brand-accent)] sm:text-xs">
                                 {offer.material}
@@ -1243,10 +1306,12 @@ export default function WholesalerProfileTheme({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => startDirectConnect(stone.name, "request_material")}
+                                  onClick={() =>
+                                    startDirectConnect(stoneDisplayName, "request_material")
+                                  }
                                   className="min-h-10 rounded-xl border border-[var(--brand-accent)]/40 px-2 text-[10px] font-extrabold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10 sm:text-xs"
                                 >
-                                  Ask about {stone.name}
+                                  Ask about {stoneDisplayName}
                                 </button>
                               </div>
                             </div>
@@ -1299,8 +1364,8 @@ export default function WholesalerProfileTheme({
                         </p>
                       </div>
                       {allInventoryStones.length === 1 ? (
-                        <div className="mx-auto max-w-xl">
-                          {renderStoneCard(allInventoryStones[0], "high", "")}
+                        <div className={SCROLL_ROW}>
+                          {renderStoneCard(allInventoryStones[0], "high", SCROLL_CARD)}
                         </div>
                       ) : (
                         <div className="flex justify-center">
@@ -1450,7 +1515,7 @@ export default function WholesalerProfileTheme({
                               </h3>
                               <button
                                 type="button"
-                                onClick={() => setActiveCategorySlug("jw-picks")}
+                                onClick={() => filterToCategory("jw-picks")}
                                 className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
                               >
                                 View all
@@ -1458,7 +1523,11 @@ export default function WholesalerProfileTheme({
                             </div>
                             <div className={SCROLL_ROW}>
                               {allInventoryStones
-                                .filter((stone) => JW_STONE_PICK_SLUGS.has(stone.slug))
+                                .filter(
+                                  (stone) =>
+                                    JW_STONE_PICK_SLUGS.has(stone.slug) &&
+                                    stone.materialStatus !== "unconfirmed"
+                                )
                                 .map((stone, stoneIndex) =>
                                   renderStoneCard(
                                     stone,
@@ -1469,32 +1538,67 @@ export default function WholesalerProfileTheme({
                             </div>
                           </div>
                         ) : null}
-                        {inventoryCatalog.map((category) => (
-                          <div key={category.categorySlug}>
-                            <div className="mb-3 flex items-end justify-between gap-3">
-                              <h3 className="text-lg font-bold text-[var(--brand-primary)]">
-                                {category.category}
-                              </h3>
-                              {category.stones.length > 12 ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveCategorySlug(category.categorySlug)}
-                                  className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
-                                >
-                                  View all ({category.stones.length})
-                                </button>
-                              ) : null}
-                            </div>
-                            <div className={SCROLL_ROW}>
-                              {/* Every rail below the first competes for bandwidth if
+                        {inventoryCatalog
+                          .filter((category) => category.stones.length > 1)
+                          .map((category) => (
+                            <div key={category.categorySlug}>
+                              <div className="mb-3 flex items-end justify-between gap-3">
+                                <h3 className="text-lg font-bold text-[var(--brand-primary)]">
+                                  {category.category}
+                                </h3>
+                                {category.stones.length > 12 ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => filterToCategory(category.categorySlug)}
+                                    className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
+                                  >
+                                    View all ({category.stones.length})
+                                  </button>
+                                ) : null}
+                              </div>
+                              <div className={SCROLL_ROW}>
+                                {/* Every rail below the first competes for bandwidth if
                           eager-loaded simultaneously -- native lazy-loading
                           fetches these as the user actually scrolls to them. */}
-                              {category.stones
-                                .slice(0, 12)
-                                .map((stone) => renderStoneCard(stone, "lazy", SCROLL_CARD))}
+                                {category.stones
+                                  .slice(0, 12)
+                                  .map((stone) => renderStoneCard(stone, "lazy", SCROLL_CARD))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        {/* Categories with just one stone each get their own full
+                          header + rail if left in the loop above -- a page of
+                          single-item sections for e.g. Basalt, Onyx, etc. Group
+                          them into one shared rail instead, tagged by category. */}
+                        {(() => {
+                          const singleStoneCategories = inventoryCatalog
+                            .filter((category) => category.stones.length === 1)
+                            .sort((a, b) => {
+                              const aUnconfirmed = a.stones[0].materialStatus === "unconfirmed";
+                              const bUnconfirmed = b.stones[0].materialStatus === "unconfirmed";
+                              return aUnconfirmed === bUnconfirmed ? 0 : aUnconfirmed ? 1 : -1;
+                            });
+                          if (singleStoneCategories.length === 0) return null;
+                          return (
+                            <div>
+                              <div className="mb-3 flex items-end justify-between gap-3">
+                                <h3 className="text-lg font-bold text-[var(--brand-primary)]">
+                                  More stone
+                                </h3>
+                              </div>
+                              <div className={SCROLL_ROW}>
+                                {singleStoneCategories.map((category) =>
+                                  renderStoneCard(
+                                    category.stones[0],
+                                    "lazy",
+                                    SCROLL_CARD,
+                                    category.category
+                                  )
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
