@@ -43,16 +43,18 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('id="inventory-browser"');
   });
 
-  it("presents a premium featured row of fixed curated picks, without fashion-copy language or pricing", () => {
-    expect(source).toContain("Featured stone offers");
+  it("presents a premium featured row of random picks refreshed every visit, without fashion-copy language or pricing", () => {
+    expect(source).toContain("Featured stones");
     expect(source).not.toContain("The JW Stone edit");
     expect(source).toContain("Stone worth building around.");
-    expect(source).toContain(
-      "Three standouts from the current collection, ready for the next project."
-    );
-    expect(source).toContain("JW_STONE_FEATURED_OFFERS");
-    expect(source).toContain('slug: "rhino-white"');
+    expect(source).toContain("Three picks from the current collection -- reload to see more.");
+    // Random every visit (memoized once per mount, not weekly-locked and not
+    // a fixed curated list) -- see shuffleStones + the featuredStones useMemo.
+    expect(source).toContain("shuffleStones(allStones)");
+    expect(source).not.toContain("JW_STONE_FEATURED_OFFERS");
     expect(source).not.toContain("offer.price");
+    expect(source).not.toContain("offer.size");
+    expect(source).not.toContain("offer.availability");
     expect(source).not.toContain("$/sf");
   });
 
