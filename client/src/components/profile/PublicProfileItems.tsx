@@ -84,6 +84,43 @@ type PublicProfileItemsProps = {
   className?: string;
 };
 
+/**
+ * Whether PublicProfileItems will actually render anything for this data.
+ * A <PublicProfileItems /> element is always truthy as a React node even
+ * when it internally renders null -- callers that wrap it in a section
+ * (padding, background, borders) must check this first, or they'll render
+ * an empty, visually broken section.
+ */
+export function hasVisiblePublicProfileItems(
+  items?: CanonicalProfileItems | null,
+  profileSections?: PublicProfileItemsProps["profileSections"]
+): boolean {
+  const offers = Array.isArray(items?.offers) ? items.offers : [];
+  const handmadeProducts = Array.isArray(items?.handmadeProducts) ? items.handmadeProducts : [];
+  const marketplaceListings = Array.isArray(items?.marketplaceListings)
+    ? items.marketplaceListings
+    : [];
+  const homeScoutListings = Array.isArray(items?.homeScoutListings) ? items.homeScoutListings : [];
+  const contractorPromos = Array.isArray(items?.contractorPromos) ? items.contractorPromos : [];
+  const communityPosts = Array.isArray(items?.communityPosts) ? items.communityPosts : [];
+  const serviceOffers = offers.filter(
+    (offer) => offer.offerType === "service" && profileSections?.services !== false
+  );
+  const productOffers = offers.filter(
+    (offer) => offer.offerType === "item" && profileSections?.marketplaceListings !== false
+  );
+
+  return (
+    serviceOffers.length > 0 ||
+    productOffers.length > 0 ||
+    (profileSections?.marketplaceListings !== false && handmadeProducts.length > 0) ||
+    (profileSections?.marketplaceListings !== false && marketplaceListings.length > 0) ||
+    (profileSections?.marketplaceListings !== false && homeScoutListings.length > 0) ||
+    (profileSections?.services !== false && contractorPromos.length > 0) ||
+    (profileSections?.communityActivity !== false && communityPosts.length > 0)
+  );
+}
+
 function formatMoney(value: unknown, currency = "USD"): string {
   const amount = Number(value);
   const safeCurrency = /^[A-Z]{3}$/.test(currency.toUpperCase()) ? currency.toUpperCase() : "USD";
@@ -123,16 +160,7 @@ export function PublicProfileItems({
     profileSections?.marketplaceListings !== false && homeScoutListings.length > 0;
   const showContractorPromos = profileSections?.services !== false && contractorPromos.length > 0;
   const showPosts = profileSections?.communityActivity !== false && communityPosts.length > 0;
-  if (
-    !showServiceOffers &&
-    !showProfileProducts &&
-    !showHandmadeProducts &&
-    !showMarketplaceListings &&
-    !showHomeScoutListings &&
-    !showContractorPromos &&
-    !showPosts
-  )
-    return null;
+  if (!hasVisiblePublicProfileItems(items, profileSections)) return null;
 
   return (
     <div className={`space-y-6 ${className}`.trim()} data-testid="canonical-profile-items">

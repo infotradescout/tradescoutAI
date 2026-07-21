@@ -1052,7 +1052,7 @@ export default function WholesalerProfileTheme({
             </button>
             {!isJwStone && !hasViewerSession ? (
               <Link href={preScoutSignInHref} className="hidden md:block">
-                <button className="rounded-full border border-ts-orange-light/70 bg-ts-orange/15 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-ts-orange/30">
+                <button className="rounded-full border border-[var(--brand-accent)]/40 px-7 py-3.5 text-sm font-semibold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10">
                   Sign in
                 </button>
               </Link>
@@ -2055,7 +2055,7 @@ export default function WholesalerProfileTheme({
                 </button>
                 {!hasViewerSession ? (
                   <Link href={preScoutSignInHref}>
-                    <button className="rounded-full border border-ts-orange-light/70 bg-ts-orange/15 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-ts-orange/30">
+                    <button className="rounded-full border border-[var(--brand-accent)]/40 px-8 py-4 text-base font-semibold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10">
                       Sign in
                     </button>
                   </Link>

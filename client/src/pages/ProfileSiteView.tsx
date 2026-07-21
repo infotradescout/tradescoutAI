@@ -33,6 +33,7 @@ import LocalServiceProfileTheme, {
 import ExpressDirectConnectPanel from "@/pages/profile-sites/ExpressDirectConnectPanel";
 import TradeScoutProfileHandoff from "@/pages/profile-sites/TradeScoutProfileHandoff";
 import {
+  hasVisiblePublicProfileItems,
   PublicProfileItems,
   type CanonicalProfileItems,
 } from "@/components/profile/PublicProfileItems";
@@ -928,7 +929,9 @@ export default function ProfileSiteView() {
           recommendationsDirectory={recommendationsDirectory}
           trustActions={renderProfileTrustActions("dark")}
           profileItems={
-            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            ) : null
           }
         />
         <ExpressDirectConnectPanel
@@ -965,7 +968,9 @@ export default function ProfileSiteView() {
           recommendationsDirectory={recommendationsDirectory}
           trustActions={renderProfileTrustActions("dark")}
           profileItems={
-            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            ) : null
           }
         />
         <ExpressDirectConnectPanel
@@ -1010,7 +1015,9 @@ export default function ProfileSiteView() {
           verifiedBadge={business?.verifiedBadge === true}
           communityVerification={business?.communityVerification}
           profileItems={
-            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            ) : null
           }
         />
         <ExpressDirectConnectPanel
@@ -1062,7 +1069,9 @@ export default function ProfileSiteView() {
           recommendationDirectorySummary={recommendationDirectorySummary}
           trustActions={renderProfileTrustActions("light")}
           profileItems={
-            <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            hasVisiblePublicProfileItems(profileItems, profileSections) ? (
+              <PublicProfileItems items={profileItems} profileSections={profileSections} />
+            ) : null
           }
         />
       </>
