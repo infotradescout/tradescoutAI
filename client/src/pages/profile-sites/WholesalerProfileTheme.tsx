@@ -967,7 +967,7 @@ export default function WholesalerProfileTheme({
           aria-hidden="true"
           className={`absolute inset-0 ${
             isJwStone
-              ? "bg-[linear-gradient(90deg,rgba(9,7,4,0.92)_0%,rgba(9,7,4,0.72)_44%,rgba(9,7,4,0.3)_78%,rgba(9,7,4,0.5)_100%)]"
+              ? "bg-[linear-gradient(90deg,rgba(9,7,4,0.72)_0%,rgba(9,7,4,0.5)_44%,rgba(9,7,4,0.18)_78%,rgba(9,7,4,0.1)_100%)]"
               : "bg-[linear-gradient(180deg,rgba(20,14,8,0.22)_0%,rgba(20,14,8,0.54)_42%,rgba(20,14,8,0.96)_100%)] md:bg-[linear-gradient(90deg,rgba(20,14,8,0.82)_0%,rgba(20,14,8,0.5)_55%,rgba(20,14,8,0.26)_100%)]"
           }`}
         />
@@ -1157,9 +1157,6 @@ export default function WholesalerProfileTheme({
                                 label=""
                                 className="absolute right-2 top-2 rounded-full border-white/25 bg-black/70 text-white hover:bg-black sm:right-3 sm:top-3"
                               />
-                              <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[var(--brand-accent)] px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[#16200b] shadow-md sm:bottom-3 sm:left-3 sm:px-2.5 sm:text-[9px]">
-                                This week
-                              </span>
                               <span className="pointer-events-none absolute bottom-2 right-2 text-[9px] font-bold tracking-[0.14em] text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.85)] sm:bottom-3 sm:right-3 sm:text-[10px]">
                                 0{offerIndex + 1}
                               </span>
