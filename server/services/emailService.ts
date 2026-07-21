@@ -6,7 +6,12 @@ export type SendEmailParams = {
   subject: string;
   html?: string;
   text?: string;
-  from?: string;
+  // A display name lets business-specific sends (e.g. Express Direct
+  // Connect) read as coming from that business rather than TradeScout,
+  // while the underlying address still has to be one this account can
+  // actually send as (a verified sender, or any address on a verified
+  // domain).
+  from?: string | { name?: string; email: string };
   cc?: string[];
   bcc?: string[];
   replyTo?: string;
@@ -109,6 +114,11 @@ class EmailService {
       throw new Error("Email requires html or text content");
     }
 
+    const from =
+      typeof params.from === "object" && params.from
+        ? params.from
+        : { email: params.from || this.defaultFrom };
+
     if (this.provider === "sendgrid") {
       const content: Array<{ type: "text/html" | "text/plain"; value: string }> = [];
       if (params.html) content.push({ type: "text/html", value: params.html });
@@ -116,7 +126,7 @@ class EmailService {
 
       const payload: MailDataRequired = {
         to: params.to,
-        from: params.from || this.defaultFrom,
+        from: from.name ? { email: from.email, name: from.name } : from.email,
         subject: params.subject,
         content: content as any,
         cc: params.cc,
@@ -143,7 +153,7 @@ class EmailService {
 
       const toList = Array.isArray(params.to) ? params.to : [params.to];
       const payload = {
-        sender: { email: params.from || this.defaultFrom },
+        sender: from.name ? { email: from.email, name: from.name } : { email: from.email },
         to: toList.map((email) => ({ email })),
         subject: params.subject,
         ...(params.html ? { htmlContent: params.html } : {}),

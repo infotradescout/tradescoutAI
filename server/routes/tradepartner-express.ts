@@ -477,19 +477,27 @@ export function registerTradePartnerExpressRoutes(app: Express) {
             ? `${publicBase}/verify-email?token=${verification.token}&next=${encodeURIComponent(requestWorkspacePath)}`
             : null;
           try {
+            // A no-reply confirmation from TradeScout itself -- generic
+            // across every business. Real back-and-forth with the business
+            // happens separately, through whatever contact the business
+            // owner uses, once they accept the request.
             const emailResult = await emailService.sendEmail({
               to: requester.email,
               subject: `Your request was sent to ${target.businessName}`,
               html: [
-                `<p>Your request was sent directly to ${escapeHtml(target.businessName)}.</p>`,
+                `<p>Your request was sent directly to ${escapeHtml(target.businessName)}. This is a no-reply confirmation -- ${escapeHtml(target.businessName)} will follow up using the contact info you sent.</p>`,
+                "<hr />",
                 requesterWasCreated
-                  ? "<p>Your contact details also created your free TradeScout account so you can follow this request and Direct Connect with the business.</p>"
-                  : "<p>This request is now attached to your TradeScout account.</p>",
+                  ? `<p>We also set up a free TradeScout account with your contact details, so you can manage this request, message ${escapeHtml(target.businessName)} directly once they respond, and track the project in one place.</p>`
+                  : `<p>This request is attached to your existing TradeScout account, where you can manage it, message ${escapeHtml(target.businessName)} directly once they respond, and track the project alongside anything else you're working on.</p>`,
                 `<p><a href="${activationUrl}">${requesterWasCreated ? "Set up account access" : "Open My Requests"}</a>.</p>`,
                 verificationUrl ? `<p><a href="${verificationUrl}">Verify your email</a>.</p>` : "",
               ].join("\n"),
               text: [
-                `Your request was sent directly to ${target.businessName}.`,
+                `Your request was sent directly to ${target.businessName}. This is a no-reply confirmation -- ${target.businessName} will follow up using the contact info you sent.`,
+                requesterWasCreated
+                  ? `We also set up a free TradeScout account with your contact details, so you can manage this request, message ${target.businessName} directly, and track the project in one place.`
+                  : `This request is attached to your existing TradeScout account, where you can manage it and message ${target.businessName} directly once they respond.`,
                 `Open My Requests: ${activationUrl}`,
                 verificationUrl ? `Verify your email: ${verificationUrl}` : null,
               ]
