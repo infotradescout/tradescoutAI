@@ -7,6 +7,10 @@ export const HONEY_ONYX_PROFILE_SLUG = "honey-onyx";
 
 export const HONEY_ONYX_DISTRIBUTOR_NAME = "JW Stone";
 
+/** Full-bleed hero loop for the standalone Honey Onyx profile (not JW Stone). */
+export const HONEY_ONYX_HERO_VIDEO = "/images/businesses/honey-onyx/video/hero.mp4";
+export const HONEY_ONYX_HERO_POSTER = "/images/businesses/honey-onyx/video/hero-poster.jpg";
+
 export const HONEY_ONYX_PROFILE_IMAGES = [
   "/images/businesses/honey-onyx/2.jpg",
   "/images/businesses/honey-onyx/6.jpg",

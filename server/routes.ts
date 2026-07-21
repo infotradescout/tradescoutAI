@@ -6,6 +6,8 @@ import { scoutHomeSnapshotRouter } from "./routes/scout-home-snapshot";
 import { ClaimSource, ClaimType } from "./services/claimEventSchema";
 import { logger } from "./services/logger";
 import { ingestKnowledgeFolder } from "./services/knowledgeIngest";
+import { reflectCommunityAction } from "./services/communityActionReflection";
+import { EventTypes } from "./xp/eventTypes";
 import express from "express";
 import { z } from "zod";
 import fs from "fs";
@@ -20184,6 +20186,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           tags: tags.length ? tags : undefined,
         });
 
+        await reflectCommunityAction(storage, {
+          eventType: EventTypes.POST_CREATED,
+          actorUserId: String(userId),
+          postId: String(newPost.id),
+          extra: {
+            category: category || null,
+            scope: resolvedScope,
+            countyFips: resolvedCountyFips || null,
+          },
+        });
+
         // INTELLIGENT CATEGORY ROUTING
         // Maps human intent → system actions WITHOUT exposing internal system names to users
         // Philosophy: Users think "I need help", system routes to Direct Connect silently
@@ -20321,6 +20334,17 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         }
 
         const result = await storage.togglePostLike(userId, postId);
+
+        if (result.liked) {
+          await reflectCommunityAction(storage, {
+            eventType: EventTypes.POST_LIKED,
+            actorUserId: String(userId),
+            subjectUserId: String((post as any).authorId || ""),
+            postId: String(postId),
+            liked: true,
+          });
+        }
+
         res.json(result);
       } catch (error: any) {
         console.error("Error toggling post like:", error);
@@ -20409,7 +20433,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       try {
         const userId = req.user?.claims?.sub;
         const { id: postId } = req.params;
-        const { content } = req.body;
+        const { content, parentCommentId } = req.body;
 
         if (!userId) {
           return res.status(401).json({ message: "Unauthorized" });
@@ -20422,6 +20446,19 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         const post = await storage.getCommunityPost(postId);
         if (!post) {
           return res.status(404).json({ message: "Post not found" });
+        }
+
+        const normalizedParentCommentId =
+          typeof parentCommentId === "string" && parentCommentId.trim()
+            ? parentCommentId.trim()
+            : null;
+        let parentAuthorId: string | null = null;
+        if (normalizedParentCommentId) {
+          const parentComment = await storage.getPostComment(normalizedParentCommentId);
+          if (!parentComment || String(parentComment.postId) !== String(postId)) {
+            return res.status(400).json({ message: "Parent comment does not belong to this post" });
+          }
+          parentAuthorId = parentComment.authorId ? String(parentComment.authorId) : null;
         }
 
         const viewer = await storage.getUser(String(userId));
@@ -20492,7 +20529,36 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           postId,
           authorId: userId,
           content,
+          parentCommentId: normalizedParentCommentId,
         });
+
+        await reflectCommunityAction(storage, {
+          eventType: EventTypes.COMMENT_CREATED,
+          actorUserId: String(userId),
+          subjectUserId: String(post.authorId),
+          postId: String(postId),
+          commentId: String(comment.id),
+          parentCommentId: normalizedParentCommentId,
+          extra: parentAuthorId ? { parentAuthorId } : undefined,
+        });
+
+        // Debate/reply reflection: credit the parent comment author when a
+        // different user replies (quality signal; scoring SQL caps volume).
+        if (
+          parentAuthorId &&
+          parentAuthorId !== String(userId) &&
+          parentAuthorId !== String(post.authorId)
+        ) {
+          await reflectCommunityAction(storage, {
+            eventType: EventTypes.COMMENT_CREATED,
+            actorUserId: String(userId),
+            subjectUserId: parentAuthorId,
+            postId: String(postId),
+            commentId: String(comment.id),
+            parentCommentId: normalizedParentCommentId,
+            extra: { reflectionKind: "debate_reply" },
+          });
+        }
 
         res.status(201).json(comment);
       } catch (error: any) {
@@ -21280,6 +21346,22 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
 
         const validatedReport = parsedReport.data;
         const report = await storage.createModerationReport(validatedReport);
+
+        await reflectCommunityAction(storage, {
+          eventType: EventTypes.MODERATION_REPORT_FILED,
+          actorUserId: String(userId),
+          subjectUserId: validatedReport.contentOwnerId
+            ? String(validatedReport.contentOwnerId)
+            : null,
+          contentType: validatedReport.contentType ? String(validatedReport.contentType) : null,
+          reportId: report?.id ? String(report.id) : null,
+          extra: {
+            reason: validatedReport.reason || null,
+            // Pending reports do not move CVS; scoring SQL only counts
+            // upheld adverse final_action outcomes.
+            status: report?.status || "pending",
+          },
+        });
 
         res.json(report);
       } catch (error: any) {

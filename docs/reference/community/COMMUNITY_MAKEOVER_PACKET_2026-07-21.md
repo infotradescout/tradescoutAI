@@ -14,6 +14,21 @@ surface is off (post cards, profile presence, and the lack of any real
 "local" feel), and this should go through an audit-then-plan process before
 any code changes, the same way the theme convergence work did.
 
+**Process note:** this packet’s keep/discard lists are an instance of
+**selective inheritance as a model** (see `docs/LISA_PRODUCT_DEFINITION.md`) —
+not only a docs tool. Inherit what still earns its place; discard dead
+duplicates and waste; don’t regenerate the feed from a blank prompt.
+
+**North star (refined 2026-07-21):** TradeScout Community must be
+**replacement-grade for the local social job** — not a 1:1 Nextdoor clone.
+Nextdoor’s **social media craft** is the quality bar (daily local feed,
+neighbor presence, discourse, safety/moderation that feels native). We do
+**not** copy their product shape wholesale (polygon HOA politics, open
+neighbor DMs, ads model, etc.). We keep TradeScout law: visibility ≠ access,
+all contact Intent → Decision Card → Contact, Trust/CVS governs exposure, no
+pay-to-play — and we win by pairing top-tier local social with the path to
+real work (Scout / Direct Connect).
+
 ## Why this matters more than it looks
 
 This directly serves the project's own north star: **people don't believe
@@ -22,7 +37,9 @@ do.** Community is the one surface whose entire job is proving that belief
 socially — a neighbor seeing another neighbor get real help, in public,
 is a stronger trust signal than any amount of marketing copy. A feed that
 reads like a form instead of a place people want to check daily works
-against that goal directly.
+against that goal directly. “Top-notch social” means the local pulse feels
+as sticky and human as Nextdoor’s best feed moments — without pretending we
+are Nextdoor.
 
 ## Part 1 — What exists today (catalogued, not guessed)
 
@@ -222,10 +239,42 @@ One category taxonomy (post-Lane A), a real video post type, either a real
 poll data model or removing the fake poll button, and dropping the dead
 `title` field or actually wiring it into the UI.
 
-**Not proposed**: reviving `SocialFeed.tsx`/`social/*` as reachable pages,
-or merging any of the four branches via git — every lane above is a
-by-hand re-implementation against current main, informed by (not copied
-from) that prior work.
+### Lane G — Consolidate action reflection into Profile CVS
+**Implemented 2026-07-21 (v1 consolidation).** Product intent: community
+context and actions affect CVS for any user by completing the already-
+contracted Community → Signal → CVS loop — not inventing a parallel scorer.
+
+Shipped in this pass:
+- `server/services/communityActionReflection.ts` + emitters on canonical
+  `post.created` / `post.liked` / `comment.created` /
+  `moderation.report_filed`
+- `trustSnapshotsScoringSql.mjs` **v5**: reads
+  `community_posts`/`post_likes`/`post_comments`/`moderation_reports` into
+  capped `community_reputation_delta` (likes/comments/debates positive;
+  upheld adverse moderation negative). Pending reports do not move CVS.
+- Docs: `docs/trust-snapshots.md`, `docs/scoring-dictionary.md`
+- Contract: `server/tests/community-action-reflection-cvs.contract.test.ts`
+
+Still deferred (not blocking this consolidation):
+- Multi-reaction picker on community posts (Lane C) — when landed, reuse
+  existing helpful/thanks → `people_helped` path
+- Scout completion → subject CVS (actor telemetry exists; subject outcome
+  mapping needs a separate Decision Card completion signal)
+- Weight tuning beyond the conservative v5 caps
+
+Hard constraints preserved:
+- No pay-to-play; money cannot buy CVS lift.
+- Precompute-only (job/service writes `trust_snapshots`; UI never computes).
+- Audited weighting with version bump on `TRUST_SNAPSHOTS_VERSION`.
+- Visibility ≠ access; community engagement never grants contact or bypasses
+  Trust/CVS gating.
+- Negative signals (upheld adverse moderation) can lower score; popularity
+  alone cannot mint “exceptional” trust.
+
+**Not proposed** (applies to all lanes): reviving `SocialFeed.tsx`/`social/*`
+as reachable pages, or merging any of the four prior-art branches via git —
+every lane above is a by-hand re-implementation against current main,
+informed by (not copied from) that prior work.
 
 ## Selective inheritance: exact keep/discard list
 
@@ -274,25 +323,44 @@ everything," item by item:
 ## Decisions (2026-07-21)
 
 1. **Lane order**: feed upgrades first (A → B → C → D for a fast, visible
-   win), then E.
-2. **Scoping model (supersedes the original Lane E draft above)**: not
-   Nextdoor-style polygon neighborhoods -- three feed tabs instead of
-   today's `forYou | recent | vault` + separate Local/Global toggle:
-   - **Local** -- within 50 miles, radius-based off existing lat/lng (no
-     new geo data needed).
-   - **Trending** -- popular anywhere, ranked by engagement (likes +
-     reactions + comments, once Lane C/B exist to produce real counts).
-   - **For You** -- interest-based, personalized. Ranking signals are an
-     open sub-decision (see below); ships with a stated first-pass
-     heuristic (weight by the categories a user has posted in/reacted to
-     most) rather than blocking on a full recommendation system.
-
-   This redefines Lane E to be about *replacing the tab/scope model*, not
-   inventing neighborhood boundaries -- true polygon-level neighborhoods
-   ("Nextdoor did it, we can too") stays a stated future direction, not
-   in scope for this pass.
+   win), then E, then **H (replacement-grade local identity + neighbor
+   moderation UX)** — required for “replace Nextdoor,” not optional polish.
+2. **Scoping model (phased under the replace-Nextdoor north star)**:
+   - **Phase E (near-term):** three feed tabs — **Local** (≤50 miles off
+     existing lat/lng), **Trending**, **For You** — replacing today's
+     `forYou | recent | vault` + separate Local/Global toggle. This is the
+     first shippable “local pulse,” not the end state.
+   - **Phase H (replacement-required):** real neighborhood / locality
+     identity so a household has a named place they belong to (not only a
+     radius). Polygon/HOA/census-tract choice is still an open design
+     decision; “no neighborhoods ever” is **withdrawn** under the
+     replace-Nextdoor north star.
 3. **`community.tsx` retirement**: confirmed, delete outright as part of
    Lane A -- nothing in routing points to it.
+4. **Community actions → Profile CVS (Lane G)**: **implemented as
+   action-reflection consolidation (v5)** on 2026-07-21. Canonical community
+   actions emit reflection events; Profile CVS performance includes capped
+   `community_reputation_delta` from validated tables. Dictionary keeps
+   `moderation_community_score` (visibility) separate from Profile CVS;
+   only upheld adverse `final_action` outcomes enter CVS.
+5. **Quality bar, not a clone (product intent locked):** Nextdoor’s social
+   craft is the bar; TradeScout is not a Nextdoor fork. Done means a
+   household gets a **top-tier local social pulse** here and a better path
+   to real help — without needing Nextdoor for the social part.
+   Checklist (social excellence + TradeScout advantage):
+   - Daily **local** feed people actually open (E tabs → H named locality
+     when we need belonging, not because Nextdoor has polygons)
+   - Neighbor **presence** (author chip, real CVS, profiles that feel local)
+   - **Discourse** (threaded replies, reactions — B/C) at social-product
+     quality
+   - **Safety & community moderation** that feels native in the feed:
+     report on every post/comment, community vote/hide path surfaced
+     in-product (not admin-only) — backend exists; feed UX is the gap
+   - **Trust that matters**: actions reflect into CVS (G shipped v1);
+     visibility still ≠ contact
+   - **Path to action**: Scout / Direct Connect without leaving the local
+     social loop (TradeScout advantage — keep; do not add open neighbor DMs
+     just because Nextdoor has them)
 
 ## Still open
 
@@ -300,11 +368,24 @@ everything," item by item:
   heuristic above as a first pass; revisit once real usage data exists.
 - **Video posts (Lane D/F)** -- priority not yet confirmed; treated as
   lower priority than the three items above unless raised again.
+- **Lane G follow-ups** -- multi-reaction → helpful/thanks on canonical
+  feed (Lane C), Scout subject-outcome mapping, and weight tuning beyond
+  the conservative v5 caps. Core consolidation is shipped.
+- **Neighborhood identity model (Phase H)** -- polygon vs HOA vs city
+  cluster vs address-derived locality; must support “my neighborhood”
+  belonging, not only radius search.
+- **Neighbor moderation UX** -- report-on-card + community vote/hide in
+  the feed; map existing `moderation.ts` / `ReportContentModal` onto
+  canonical posts without reviving quarantined `SocialFeed`.
 
 ## Apply posture
 
 `applyAuthorized: true` for Lane A (retire duplicates + build the
 Local/Trending/For You tab model) as of 2026-07-21. Lanes B-D follow
-immediately after in the stated order. Lane E's original
-neighborhood-boundary framing is superseded by the decision above and
-is no longer separately gated.
+immediately after in the stated order. Lane E ships the 50-mile Local /
+Trending / For You model as the first local pulse. Lane G shipped v1
+(`TRUST_SNAPSHOTS_VERSION=5`). **Lane H (named locality + neighbor
+moderation UX)** stays on the path for social excellence —
+`applyAuthorized: false` until locality model + moderation UX shape are
+picked. Explicit non-goals: 1:1 Nextdoor UI clone, open neighbor DMs,
+copying their ads/HOA politics model.

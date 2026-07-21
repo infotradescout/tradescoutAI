@@ -1,8 +1,6 @@
 import { EventTypes, type EventType } from "./eventTypes";
 
-export type XpDecision =
-  | { grant: 0; reason: string }
-  | { grant: number; reason: string };
+export type XpDecision = { grant: 0; reason: string } | { grant: number; reason: string };
 
 export type XpContext = {
   dayKeyUtc: string; // normalized “day” in UTC, e.g. "2025-12-27"
@@ -81,6 +79,15 @@ export const xpRules: Record<string, XpRule> = {
       return `post.saved:post:${postId}`;
     },
     applyCap: (_base, dailyCount) => (dailyCount < 10 ? 15 : 0),
+  },
+
+  [EventTypes.POST_LIKED]: {
+    base: () => 5,
+    capKey: (d) => {
+      const postId = d?.postId ?? "unknown";
+      return `post.liked:post:${postId}`;
+    },
+    applyCap: (_base, dailyCount) => (dailyCount < 20 ? 5 : 0),
   },
 
   [EventTypes.REACTION_MARKED_HELPFUL]: {

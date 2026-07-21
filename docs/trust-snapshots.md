@@ -29,9 +29,31 @@ Force insert (ignore 24h window):
 node scripts/backfill-trust-snapshots.mjs --force
 ```
 
-## CVS v4 Scoring (current)
+## CVS v5 Scoring (current)
 
-Version 4 keeps the scoring weights below while tightening signal integrity:
+Version 5 keeps v4 verification gates and outcome weights, and consolidates
+**community action reflection** into Profile CVS performance:
+
+- Distinct non-self likers on published community posts: `+1` each, capped at `+4`
+- Distinct non-self commenters on those posts: `+1` each, capped at `+3`
+- Debate threads (replies received on the user's comments from others): `+1`
+  each, capped at `+2`
+- Upheld adverse moderation outcomes (`content_removed`, `content_hidden`,
+  `warning_issued`, `user_suspended` on community post/comment/profile):
+  `-4` each, capped at `-12`
+- Pending/dismissed reports do **not** move CVS (anti-weaponization)
+- Canonical community actions emit reflection events (`post.created`,
+  `post.liked`, `comment.created`, `moderation.report_filed`); score math
+  still reads validated tables at snapshot time (precompute-only)
+- Direct Connect completions/response behavior remain via
+  `direct_connect_signals` (already present since earlier versions)
+- Helpful/thanks events continue to feed `people_helped` (unchanged)
+
+No pay-to-play path: paid promotions never enter these signals.
+
+### CVS v4 notes (still true)
+
+Version 4 kept the scoring weights below while tightening signal integrity:
 inactive compatibility contractors are excluded, cumulative local rollups are
 deduplicated, external business evidence stays on one unambiguous business row,
 and audited policy boosts use the shared governed registry.

@@ -14,7 +14,6 @@ import {
   Settings,
   Truck,
   Wrench,
-  X,
 } from "lucide-react";
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 
@@ -90,17 +89,7 @@ export default function ProFabProfileTheme({
     <main className="min-h-screen bg-black text-zinc-100">
       <header className="sticky top-0 z-40 border-b border-white/10 bg-black/95 backdrop-blur-xl">
         <div className="mx-auto grid h-16 max-w-4xl grid-cols-[44px_1fr_44px] items-center px-2 sm:h-20 sm:grid-cols-[150px_1fr_150px] sm:px-4">
-          <a
-            href={tradeScoutReturnHref}
-            aria-label={
-              hasViewerSession
-                ? "Close Pro Fab and return to Direct Connect"
-                : "Close Pro Fab and return to TradeScout"
-            }
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white/75 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </a>
+          <span className="inline-flex h-10 w-10" aria-hidden="true" />
 
           <div className="flex min-w-0 items-center justify-center" aria-label="Pro Fab">
             <img

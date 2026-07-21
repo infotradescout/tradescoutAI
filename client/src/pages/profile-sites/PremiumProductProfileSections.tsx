@@ -11,7 +11,6 @@ import {
 import { ShareButton } from "@/components/ShareButton";
 import { buildProfileInventoryShareSearch } from "@shared/profileItemShare";
 import type { PremiumProductProfileData } from "@shared/premiumProductProfile";
-import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 
 type Product = {
   name: string;
@@ -52,7 +51,7 @@ export default function PremiumProductProfileSections({
   trustFacts,
   faqItems,
   profileShareDestination,
-  platformBaseHref = "",
+  platformBaseHref: _platformBaseHref = "",
   onDirectConnect,
 }: Props) {
   const [activePhoto, setActivePhoto] = useState<number | null>(null);
@@ -398,13 +397,6 @@ export default function PremiumProductProfileSections({
           </div>
         </div>
       </section>
-
-      <TradeScoutProfileHandoff
-        profileSlug={profileSlug}
-        profileName={profileName}
-        itemName={product.name}
-        platformBaseHref={platformBaseHref}
-      />
 
       {activePhoto !== null ? (
         <div

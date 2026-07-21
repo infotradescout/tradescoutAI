@@ -778,6 +778,13 @@
       "when": 1784435922514,
       "tag": "0107_profile_view_events",
       "breakpoints": true
+    },
+    {
+      "idx": 111,
+      "version": "7",
+      "when": 1784521200000,
+      "tag": "0108_post_comments_community_posts_fk",
+      "breakpoints": true
     }
   ]
 }

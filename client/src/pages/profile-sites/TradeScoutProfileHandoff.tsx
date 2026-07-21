@@ -63,24 +63,24 @@ export default function TradeScoutProfileHandoff({
   ];
 
   return (
-    <section
-      aria-label={`TradeScout quick access from ${contextLabel}`}
-      className={`border-t border-white/10 bg-stone-950 px-4 py-4 text-white sm:px-6 ${className}`}
+    <footer
+      aria-label={`TradeScout site footer from ${contextLabel}`}
+      className={`mt-auto border-t border-white/10 bg-stone-950 px-4 py-5 text-white sm:px-6 ${className}`}
       data-testid="profile-tradescout-handoff"
     >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-3">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-sky-300">
           TradeScout · Connection Without Compromise
         </p>
         <nav
           aria-label="TradeScout profile quick access"
-          className="flex flex-wrap items-center gap-2"
+          className="flex flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {destinations.map(({ href, label, icon: Icon }) => (
             <a
               key={label}
               href={href}
-              className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-stone-200 transition hover:bg-white/10 hover:text-sky-200"
+              className="inline-flex min-h-8 flex-none items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-stone-200 transition hover:bg-white/10 hover:text-sky-200"
             >
               <Icon className="h-3.5 w-3.5 flex-none" />
               {label}
@@ -88,6 +88,6 @@ export default function TradeScoutProfileHandoff({
           ))}
         </nav>
       </div>
-    </section>
+    </footer>
   );
 }

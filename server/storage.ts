@@ -6851,6 +6851,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(asc(postComments.createdAt));
   }
 
+  async getPostComment(id: string): Promise<PostComment | undefined> {
+    const [comment] = await db.select().from(postComments).where(eq(postComments.id, id));
+    return comment;
+  }
+
   async getCommunityGroups(filters?: {
     scope?: string;
     stateCode?: string;

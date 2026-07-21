@@ -9,8 +9,12 @@ export const EventTypes = {
 
   // Social proof / help
   POST_SAVED: "post.saved",
+  POST_LIKED: "post.liked",
   REACTION_MARKED_HELPFUL: "reaction.marked_helpful",
   USER_THANKED: "user.thanked",
+
+  // Moderation / safety reflection (CVS moves only on upheld adverse outcomes in scoring SQL)
+  MODERATION_REPORT_FILED: "moderation.report_filed",
 
   // Connections
   CONNECTION_CREATED: "connection.created",

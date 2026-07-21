@@ -3,6 +3,8 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   HONEY_ONYX_DISTRIBUTOR_NAME,
+  HONEY_ONYX_HERO_POSTER,
+  HONEY_ONYX_HERO_VIDEO,
   HONEY_ONYX_PROFILE_CONTENT_BLOCKS,
   HONEY_ONYX_PROFILE_IMAGES,
   HONEY_ONYX_PROFILE_SLUG,
@@ -80,6 +82,30 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect((inventoryBlock?.data as any)?.categories?.[0]?.stones?.[0]?.images).toHaveLength(6);
   });
 
+  it("uses the dedicated Honey Onyx hero video (not the JW Stone hero clip)", () => {
+    const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
+
+    expect(HONEY_ONYX_HERO_VIDEO).toBe("/images/businesses/honey-onyx/video/hero.mp4");
+    expect(HONEY_ONYX_HERO_POSTER).toBe("/images/businesses/honey-onyx/video/hero-poster.jpg");
+    expect(
+      fs.existsSync(
+        path.resolve(process.cwd(), "client/public", HONEY_ONYX_HERO_VIDEO.replace(/^\//, ""))
+      )
+    ).toBe(true);
+    expect(
+      fs.existsSync(
+        path.resolve(process.cwd(), "client/public", HONEY_ONYX_HERO_POSTER.replace(/^\//, ""))
+      )
+    ).toBe(true);
+    expect(theme).toContain("HONEY_ONYX_HERO_VIDEO");
+    expect(theme).toContain("HONEY_ONYX_HERO_POSTER");
+    expect(theme).toContain("profileSlug === HONEY_ONYX_PROFILE_SLUG");
+    expect(theme).toContain('src: "/images/businesses/jw-stone/video/hero.mp4"');
+    expect(theme.indexOf("HONEY_ONYX_HERO_VIDEO")).toBeLessThan(
+      theme.indexOf('src: "/images/businesses/jw-stone/video/hero.mp4"')
+    );
+  });
+
   it("uses the reusable editorial product template below the hero", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const sections = read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx");
@@ -90,6 +116,7 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect((premiumBlock?.data as any)?.variant).toBe("editorial-product");
     expect(theme).toContain("isPremiumProductProfileData");
     expect(theme).toContain("<PremiumProductProfileSections");
+    expect(theme).toContain("<TradeScoutProfileHandoff");
     expect(JSON.stringify(premiumBlock)).toContain("One stone. Two atmospheres.");
     expect((premiumBlock?.data as any)?.gallery?.title).toBe("See what backlighting changes.");
     expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(6);
@@ -104,7 +131,7 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(sections).toContain("buildProfileInventoryShareSearch");
     expect(sections).toContain("data.gallery.photos?.[index]");
     expect(sections).toContain("activePhotoDetail.body");
-    expect(sections).toContain("<TradeScoutProfileHandoff");
+    expect(sections).not.toContain("<TradeScoutProfileHandoff");
   });
 
   it("keeps market-facing copy focused on the product and Direct Connect", () => {
