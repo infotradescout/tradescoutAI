@@ -37,6 +37,26 @@ describe("runtime recovery contracts", () => {
     expect(source).toContain('res.setHeader("Surrogate-Control", "no-store")');
   });
 
+  it("never lets one business profile's boot-time provisioning crash the whole server", () => {
+    const source = read("server/index.ts");
+
+    // A bad value in any single provisioner (e.g. the "seller" user_role enum
+    // bug in Moulding & Millwork's provisioner) must not throw past this
+    // point and take down the entire boot sequence before app.listen().
+    expect(source).toContain("const provisionProfile = async (label: string");
+    expect(source).toContain(
+      'await provisionProfile("JR\'s Auto Glass", provisionJrsAutoGlassProfile)'
+    );
+    expect(source).toContain('await provisionProfile("LA Plumbing", provisionLaPlumbingProfile)');
+    expect(source).toContain('await provisionProfile("Honey Onyx", provisionHoneyOnyxProfile)');
+    expect(source).toContain('await provisionProfile("ProFab", provisionProFabProfile)');
+    expect(source).toContain(
+      'await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile)'
+    );
+    expect(source).not.toMatch(/await provisionJrsAutoGlassProfile\(\);/);
+    expect(source).not.toMatch(/await provisionMouldingMillworkProfile\(\);/);
+  });
+
   it("keeps giveaway rules available as a static fallback for legal links", () => {
     const source = read("client/public/giveaway-rules/index.html");
 

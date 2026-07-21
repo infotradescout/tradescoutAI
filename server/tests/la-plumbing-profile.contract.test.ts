@@ -72,9 +72,9 @@ describe("LA Plumbing Solutions public profile contract", () => {
     expect(provisioning).not.toContain("trustScore: 100");
     expect(entry).toContain("await ensureTrustLedgerEventsTable()");
     expect(entry.indexOf("await ensureTrustLedgerEventsTable()")).toBeLessThan(
-      entry.indexOf("await provisionLaPlumbingProfile()")
+      entry.indexOf('await provisionProfile("LA Plumbing", provisionLaPlumbingProfile)')
     );
-    expect(entry).toContain("await provisionLaPlumbingProfile()");
+    expect(entry).toContain('await provisionProfile("LA Plumbing", provisionLaPlumbingProfile)');
     expect(sourceRecord).toContain("CVS 50 baseline");
     expect(sourceRecord).toContain("No external rating/review score was imported");
     expect(sourceRecord).toContain("internal matching, deduplication");

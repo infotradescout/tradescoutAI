@@ -60,7 +60,7 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(existingRecommendationTargetPath).not.toContain("isActive:");
     expect(provisioner).not.toContain("activeBusinessId");
     expect(provisioner).not.toContain("activeProfileId");
-    expect(entry).toContain("await provisionHoneyOnyxProfile()");
+    expect(entry).toContain('await provisionProfile("Honey Onyx", provisionHoneyOnyxProfile)');
   });
 
   it("uses all six real product photos on the standalone profile", () => {

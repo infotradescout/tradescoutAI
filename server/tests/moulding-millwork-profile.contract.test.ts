@@ -26,7 +26,9 @@ describe("Moulding & Millwork Supply public profile contract", () => {
     expect(entry).toContain(
       'import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";'
     );
-    expect(entry).toContain("await provisionMouldingMillworkProfile()");
+    expect(entry).toContain(
+      'await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile)'
+    );
   });
 
   it("only ever assigns a role that actually exists in the user_role Postgres enum", () => {

@@ -10,10 +10,6 @@ const expressSource = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx"),
   "utf8"
 );
-const weeklyRotationSource = fs.readFileSync(
-  path.resolve(process.cwd(), "client/src/lib/weeklyFeaturedRotation.ts"),
-  "utf8"
-);
 
 describe("JW Stone profile presentation contract", () => {
   it("uses the branded video hero with a restrained, reduced-motion-safe crop", () => {
@@ -47,19 +43,23 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('id="inventory-browser"');
   });
 
-  it("presents a premium featured row, rotating weekly, without fashion-copy language or pricing", () => {
-    expect(source).toContain("Featured this week");
+  it("presents a premium featured row of fixed curated picks, without fashion-copy language or pricing", () => {
+    expect(source).toContain("Featured stone offers");
     expect(source).not.toContain("The JW Stone edit");
     expect(source).toContain("Stone worth building around.");
-    expect(source).toContain("Three picks from the current collection, refreshed every Monday.");
-    // Rotates the same 3 stones for everyone all week (Monday boundary), not a
-    // per-visitor/per-render shuffle, and not hardcoded to specific stones.
-    expect(source).toContain('from "@/lib/weeklyFeaturedRotation"');
-    expect(source).toContain("pickWeeklyRandomStones(allInventoryStones, 3)");
-    expect(weeklyRotationSource).toContain("getIsoWeekMondayKey");
-    expect(source).not.toContain("JW_STONE_FEATURED_OFFERS");
+    expect(source).toContain(
+      "Three standouts from the current collection, ready for the next project."
+    );
+    expect(source).toContain("JW_STONE_FEATURED_OFFERS");
+    expect(source).toContain('slug: "rhino-white"');
     expect(source).not.toContain("offer.price");
-    expect(source).not.toContain('slug: "rhino-white"');
+    expect(source).not.toContain("$/sf");
+  });
+
+  it("randomizes stone order within each category on every visit, without reassigning categories", () => {
+    expect(source).toContain("function shuffleStones");
+    expect(source).toContain("inventoryCatalogFromContent.map((category) => ({");
+    expect(source).toContain("stones: shuffleStones(category.stones)");
   });
 
   it("shows featured inventory as image-forward product cards", () => {

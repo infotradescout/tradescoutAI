@@ -106,7 +106,7 @@ describe("Pro Fab Specialty Services public profile contract", () => {
     expect(profileView).toContain("recommendationsDirectory={recommendationsDirectory}");
     expect(profileView).toContain('requestMode="service"');
     expect(entry).toContain("import { provisionProFabProfile }");
-    expect(entry).toContain("await provisionProFabProfile()");
+    expect(entry).toContain('await provisionProfile("ProFab", provisionProFabProfile)');
   });
 
   it("renders honest business-name artwork, responsive DOM service cards, and community actions near the top", () => {
