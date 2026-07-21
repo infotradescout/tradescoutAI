@@ -50,7 +50,11 @@ if (!connectionString) {
   if (useLocalNodePg) {
     const localPool = new NodePgPool({
       connectionString: resolvedConnectionString,
-      max: Number(process.env.PG_POOL_MAX || 20),
+      // The database itself allows far more than this (checked live: 901 max,
+      // typically under 25 in use) -- this cap was the actual bottleneck
+      // behind crawler-telemetry writes timing out under bot traffic spikes,
+      // not the database. PG_POOL_MAX still overrides this if ever needed.
+      max: Number(process.env.PG_POOL_MAX || 50),
       idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
       connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
     });
@@ -59,7 +63,11 @@ if (!connectionString) {
   } else {
     const neonPool = new Pool({
       connectionString: resolvedConnectionString,
-      max: Number(process.env.PG_POOL_MAX || 20),
+      // The database itself allows far more than this (checked live: 901 max,
+      // typically under 25 in use) -- this cap was the actual bottleneck
+      // behind crawler-telemetry writes timing out under bot traffic spikes,
+      // not the database. PG_POOL_MAX still overrides this if ever needed.
+      max: Number(process.env.PG_POOL_MAX || 50),
       idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT_MS || 30_000),
       connectionTimeoutMillis: Number(process.env.PG_CONN_TIMEOUT_MS || 10_000),
     });
