@@ -279,15 +279,19 @@ Do not, as part of this packet:
 
 ## Apply posture
 
-`applyAuthorized: false`
+`applyAuthorized: true` — all 4 blocking confirmations resolved 2026-07-21.
 
-Next required human confirmations before Lane 1 can start:
+Operator decisions:
 
-1. Canonical `Card` decision — `components/ui/card.tsx` (shadcn,
-   CSS-class-based) or `PagePrimitives.tsx` (Tailwind-arbitrary-based)?
-   Lane 1 cannot proceed without this.
-2. Dead-token disposition — delete all four, or does `--border-focus`
-   get wired into the real focus-ring rule instead of deleted?
-3. Confirm the 5-lane branch sequence above, or reorder.
-4. Confirm Admin stays fully out of scope across all 5 lanes (staff-only,
-   lowest priority per the original visual audit).
+1. **Canonical `Card`**: `components/ui/card.tsx` (shadcn, CSS-class-based).
+   `PagePrimitives.tsx`'s `Card` is the one to migrate off of and delete in
+   Lane 1.
+2. **Dead-token disposition**: delete all four (`--bg-tertiary`,
+   `--bg-quaternary`, `--orange-primary`, `--border-focus`). No rewiring —
+   every real focus ring already uses `--theme-accent-primary` directly, so
+   `--border-focus` was never load-bearing.
+3. **Lane sequence**: confirmed as-is (primitives → Scout → Direct Connect
+   → Community → Exchange).
+4. **Admin scope**: confirmed fully out of scope across all 5 lanes.
+
+Lane 1 (`fix/theme-enforcement-and-primitive-convergence`) may now start.
