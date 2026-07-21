@@ -57,7 +57,6 @@ body.ts-mobile-simplified .app-page [class*="bg-tsSurface"] {
 }
 
 body.ts-mobile-simplified .app-page .card-enhanced,
-body.ts-mobile-simplified .app-page .card-interactive,
 body.ts-mobile-simplified .app-page .theme-card-hover {
   transition:
     transform 0.18s ease,
@@ -66,7 +65,6 @@ body.ts-mobile-simplified .app-page .theme-card-hover {
 }
 
 body.ts-mobile-simplified .app-page .card-enhanced:active,
-body.ts-mobile-simplified .app-page .card-interactive:active,
 body.ts-mobile-simplified .app-page .theme-card-hover:active {
   transform: translateY(1px) scale(0.995);
 }
@@ -125,13 +123,6 @@ body.ts-mobile-simplified .app-page .ts-page-section-header {
   margin-bottom: 0.3rem;
   padding-bottom: 0.45rem;
   border-bottom: 1px solid color-mix(in oklab, var(--border-primary) 70%, transparent);
-}
-
-body.ts-mobile-simplified .app-page .ts-page-card {
-  border-color: color-mix(in oklab, var(--border-primary) 82%, transparent) !important;
-  box-shadow:
-    inset 0 1px 0 color-mix(in oklab, white 4%, transparent),
-    0 12px 28px color-mix(in oklab, black 22%, transparent) !important;
 }
 
 /* Conservative minimalist shell mode (reversible via VITE_UI_MINIMAL_V1). */
@@ -887,10 +878,6 @@ html {
     --border-secondary: color-mix(in oklab, var(--border-primary) 68%, transparent);
     --border-subtle: var(--ts-border-subtle, rgba(255, 255, 255, 0.06));
     --border-active: var(--ts-border-strong, rgba(255, 255, 255, 0.12));
-    --border-focus: var(--ts-border-strong, rgba(255, 255, 255, 0.18));
-    --bg-tertiary: var(--surface-intermediate);
-    --bg-quaternary: color-mix(in oklab, var(--surface-intermediate) 92%, white 8%);
-    --orange-primary: var(--ts-accent, #f97316);
     --bg-primary: var(--ts-bg, #2b2b2b);
     --shadow-card: var(--ts-shadow-soft, 0 18px 52px rgba(0, 0, 0, 0.42));
 
@@ -1765,18 +1752,6 @@ html {
       -webkit-user-select: none;
       user-select: none;
       touch-action: manipulation;
-    }
-
-    /* App-like card interactions */
-    .card-interactive {
-      transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease;
-    }
-
-    .card-interactive:active {
-      transform: scale(0.98);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     /* Smooth scrolling for mobile */
@@ -2767,18 +2742,6 @@ body {
   transform: translateY(-1px);
 }
 
-.theme-button-secondary {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
-  transition: all 0.2s ease;
-}
-
-.theme-button-secondary:hover {
-  background: var(--bg-quaternary);
-  border-color: var(--orange-primary);
-}
-
 /* Theme-aware text colors */
 .theme-text-primary {
   color: var(--text-primary);
@@ -2790,16 +2753,6 @@ body {
 
 .theme-text-muted {
   color: var(--text-muted);
-}
-
-.theme-text-accent {
-  color: var(--orange-primary);
-}
-
-/* Theme-aware skeleton loaders */
-.theme-skeleton {
-  background: var(--bg-tertiary);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* ============================================================================
@@ -4009,7 +3962,6 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
 }
 
 .ts-page-section,
-.ts-page-card,
 .theme-card,
 .theme-card-hover,
 .bg-tsCard,

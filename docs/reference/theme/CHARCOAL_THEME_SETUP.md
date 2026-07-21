@@ -1,5 +1,10 @@
 # Charcoal Universal Theme Setup Guide
 
+> **Note (2026-07-21):** This doc predates the current `--surface-*`/`--charcoal-*`
+> token system described in `docs/reference/theme/TOKEN_ADOPTION_PACKET_2026-07-20.md`.
+> `--bg-tertiary` and `--orange-primary` below were deleted as dead tokens
+> (zero real consumers) during that packet's Lane 1 -- do not reintroduce them.
+
 ## What Changed
 
 The entire TradeScout site now uses the **Charcoal system** as the universal default theme, BUT users can **fully customize ALL colors** including replacing the charcoal base.
