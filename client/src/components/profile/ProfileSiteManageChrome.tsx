@@ -31,6 +31,8 @@ type Props = {
   siteTemplate: ProfileSiteTemplateId;
   editMode: boolean;
   platformBaseHref?: string;
+  customDomain?: string | null;
+  isOnCustomDomain?: boolean;
   onSaved: () => void;
   onToggleEdit: (next: boolean) => void;
 };
@@ -63,6 +65,8 @@ export default function ProfileSiteManageChrome({
   siteTemplate,
   editMode,
   platformBaseHref = "",
+  customDomain = null,
+  isOnCustomDomain = false,
   onSaved,
   onToggleEdit,
 }: Props) {
@@ -70,6 +74,7 @@ export default function ProfileSiteManageChrome({
   const [saving, setSaving] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [leadPickerOpen, setLeadPickerOpen] = useState(false);
+  const [bridging, setBridging] = useState(false);
   const hero = useMemo(() => readHeroFields(contentBlocks), [contentBlocks]);
   const [draftDisplayName, setDraftDisplayName] = useState(displayName);
   const [draftHeadline, setDraftHeadline] = useState(headline || "");
@@ -154,6 +159,25 @@ export default function ProfileSiteManageChrome({
     await persistBlocks(upsertInventoryLeadImage(contentBlocks, stoneSlug, imageUrl));
   };
 
+  const openOnLiveDomain = async () => {
+    if (!customDomain) return;
+    setBridging(true);
+    try {
+      const { token } = await apiRequest("GET", `/api/profiles/${profileId}/manage-bridge-token`);
+      const target = new URL(`https://${customDomain}/u/${encodeURIComponent(profileSlug)}`);
+      target.searchParams.set("admin_token", token);
+      target.searchParams.set("edit", "1");
+      window.location.href = target.toString();
+    } catch (error: any) {
+      toast({
+        title: "Could not open live domain",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+      setBridging(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-x-0 top-0 z-[80] border-b border-white/10 bg-stone-950 text-white shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
@@ -211,6 +235,19 @@ export default function ProfileSiteManageChrome({
               Full editor
             </Button>
           </Link>
+          {customDomain && !isOnCustomDomain ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={bridging}
+              className="border-white/20 bg-white/5"
+              onClick={() => void openOnLiveDomain()}
+              data-testid="profile-manage-open-live-domain"
+            >
+              {bridging ? "Opening…" : `Open on ${customDomain}`}
+            </Button>
+          ) : null}
         </div>
 
         {showTemplatePicker ? (

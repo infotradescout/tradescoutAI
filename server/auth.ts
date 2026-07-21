@@ -110,9 +110,34 @@ export function getSession() {
 }
 
 // Initialize authentication
+function isPrimaryAppHost(host: string): boolean {
+  return (
+    host === "thetradescout.com" ||
+    host.endsWith(".thetradescout.com") ||
+    host.endsWith(".onrender.com") ||
+    host === "localhost" ||
+    host === "127.0.0.1"
+  );
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
+  // A business's custom domain (e.g. jwstonelogistics.com) is a different
+  // browser origin from thetradescout.com, so a cookie scoped to
+  // `.thetradescout.com` is never sent there — logging in on that domain
+  // would silently fail to persist a session. Downgrade to a host-only
+  // cookie for any request that didn't land on a thetradescout.com host, so
+  // login/session works natively wherever a profile is actually being viewed.
+  app.use((req, _res, next) => {
+    const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
+      .toLowerCase()
+      .split(":")[0];
+    if (req.session && host && !isPrimaryAppHost(host)) {
+      req.session.cookie.domain = undefined;
+    }
+    next();
+  });
   app.use(passport.initialize());
   app.use(passport.session());
 

@@ -20,6 +20,13 @@ import {
   users,
 } from "../../shared/schema";
 import { detectActorFromUserAgent, getClientIp, hashIp } from "../utils/requestActor";
+import {
+  PROFILE_MANAGE_BRIDGE_COOKIE,
+  PROFILE_MANAGE_BRIDGE_TTL_SECONDS,
+  readRawCookie,
+  signManageBridgeToken,
+  verifyManageBridgeToken,
+} from "../utils/profileManageBridge";
 import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectProfile";
 import { listHandmadeProductImageUrls } from "../../shared/handmadeProductShare";
 import { listCommunityPostImageUrls } from "../../shared/communityPostShare";
@@ -621,6 +628,32 @@ router.get("/api/profiles/:id", isAuthenticated, async (req, res) => {
   } catch (error: any) {
     console.error("Error fetching profile:", error);
     res.status(500).json({ message: "Failed to fetch profile" });
+  }
+});
+
+// Issues a short-lived token so a manager authenticated on the canonical
+// thetradescout.com session can hop onto a business's custom domain (a
+// different browser origin, where that session cookie never arrives) with
+// manage tools still active there.
+router.get("/api/profiles/:id/manage-bridge-token", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const profile = await storage.getProfileById(profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const canManage =
+      profile.ownerUserId === userId || isSuperAdminRequester(req) || isStaffProfileManager(req);
+    if (!canManage)
+      return res.status(403).json({ message: "Not authorized to manage this profile" });
+
+    const token = signManageBridgeToken({ uid: userId, profileId });
+    res.json({ token, expiresInSeconds: PROFILE_MANAGE_BRIDGE_TTL_SECONDS });
+  } catch (error: any) {
+    console.error("Error issuing profile manage bridge token:", error);
+    res.status(500).json({ message: "Failed to issue manage token" });
   }
 });
 
@@ -1443,11 +1476,50 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
   }
 
   const viewerUserId = req ? getAuthedUserId(req) : "";
-  const viewerCanManage =
+  let viewerCanManage =
     Boolean(viewerUserId) &&
     (viewerUserId === ownerUserId ||
       (req ? isSuperAdminRequester(req) : false) ||
       (req ? isStaffProfileManager(req) : false));
+
+  // The session cookie for thetradescout.com never reaches a business's
+  // custom domain (different browser origin), so a manager who is already
+  // authenticated there can hop over with a short-lived, profile-scoped
+  // bridge token instead. Re-derive authority from the DB rather than
+  // trusting anything embedded in the token.
+  let bridgeTokenToPersist: string | null = null;
+  if (!viewerCanManage && req) {
+    const candidateToken =
+      typeof req.query?.admin_token === "string"
+        ? req.query.admin_token
+        : readRawCookie(req, PROFILE_MANAGE_BRIDGE_COOKIE);
+    const bridged = verifyManageBridgeToken(candidateToken);
+    if (bridged && bridged.profileId === profile.id) {
+      const bridgedUser = await storage.getUser(bridged.uid);
+      const bridgedRole = String((bridgedUser as any)?.role || "")
+        .trim()
+        .toLowerCase();
+      const bridgedIsManager =
+        Boolean(bridgedUser) &&
+        (bridgedUser!.id === ownerUserId ||
+          bridgedRole === "super_admin" ||
+          bridgedRole === "head_admin");
+      if (bridgedIsManager) {
+        viewerCanManage = true;
+        if (typeof req.query?.admin_token === "string") bridgeTokenToPersist = candidateToken;
+      }
+    }
+  }
+  if (bridgeTokenToPersist && res) {
+    res.cookie(PROFILE_MANAGE_BRIDGE_COOKIE, bridgeTokenToPersist, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: PROFILE_MANAGE_BRIDGE_TTL_SECONDS * 1000,
+      // No `domain` set: host-only, scoped to whichever origin the request
+      // actually landed on (the custom domain), never thetradescout.com.
+    });
+  }
   const hasLocalServicePresentation = Array.isArray(profile.contentBlocks)
     ? profile.contentBlocks.some(
         (block: any) => block && typeof block === "object" && block.type === "localServiceProfile"
@@ -1464,7 +1536,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
   if (viewerCanManage || viewerUserId) {
     res.setHeader("Cache-Control", "private, no-store");
   } else {
-    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+    res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=120");
   }
 
   return res.json({
