@@ -227,34 +227,84 @@ or merging any of the four branches via git — every lane above is a
 by-hand re-implementation against current main, informed by (not copied
 from) that prior work.
 
-## Open questions before any lane starts
+## Selective inheritance: exact keep/discard list
 
-1. **Lane order** — B/C (comments/reactions) and D (card/profile) are
-   independent of E (neighborhood scoping) and could ship in parallel or
-   any order once A lands. E is the largest, riskiest lane (schema +
-   scoping-logic decisions with no existing pattern to follow). Confirm
-   priority: ship the "richer feed" lanes (B/C/D) first for a fast visible
-   win, then tackle E? Or is neighborhood scoping (E) the actual priority
-   since it's the core "Nextdoor" feeling?
-2. **Neighborhood scoping model (Lane E)** — TradeScout's location system
-   is county-first (FIPS-based) everywhere else in the app. Real
-   neighborhood boundaries aren't FIPS-coded. Options: (a) radius-based
-   ("within N miles" using existing lat/lng), (b) a lightweight
-   self-declared "neighborhood name" text field per user/post with no
-   real boundary enforcement, (c) something else. This decision shapes
-   the whole lane and needs your call, not a default.
-3. **`community.tsx` retirement (Lane A)** — confirm it's safe to fully
-   delete rather than keep as a fallback; nothing in current routing
-   points to it, but worth an explicit yes before deleting real code.
-4. **Video posts (Lane D/F)** — worth a real `communityPosts.postType =
-   "video"` treatment, or is video low-priority enough to leave as-is for
-   now?
+Before Lane A deletes anything, an explicit inventory of what gets carried
+forward vs. left behind -- not "rewrite everything" and not "delete
+everything," item by item:
+
+**Keep / port forward:**
+- **Report/flag a post** -- `social/ReportModal.tsx` is a real, fully-built
+  moderation report flow (category select + reason). The canonical
+  `CommunityPostCard.tsx` has **no report feature at all** today (its only
+  `report`-adjacent field is an unrelated `riskFlags: []`). This is a
+  genuine safety gap on a public social feed -- port the modal's pattern
+  and wire it to community posts as part of Lane D.
+- **Threaded comment replies + the `postComments` FK fix** -- from
+  `feature/community-neighborhood-feed-foundation` (Lane B, already
+  decided above).
+- **Multi-reaction picker UI** -- from quarantined `social/PostCard.tsx`,
+  reusing the already-defined `reactionTypeEnum` (Lane C, already decided).
+- **Category-filter bar wired to `GET /api/community/posts`** -- also from
+  the neighborhood-feed-foundation branch; tested, cheap, genuinely useful
+  regardless of the tab-model change.
+
+**Discard, not carried forward:**
+- `client/src/pages/CommunityFeed.tsx` (capital F) -- dead stub, no real
+  logic.
+- `client/src/pages/community.tsx` + `CommunityComposerInline.tsx` --
+  superseded by canonical's composer/category set once merged.
+- The "Scout draft" prefill flow (`postDraft` URL params +
+  `scout_draft_created/viewed/published` analytics events, legacy
+  `community.tsx` only) -- confirmed **orphaned**: nothing anywhere in the
+  app currently links to `/community?postDraft=...`. Not carried forward;
+  revive only if a real Scout-to-Community entry point is wanted later.
+- The fake "Poll" button (inserts a text template, no real data model) --
+  removed, not replaced, until/unless a real poll feature is requested
+  (Lane F note stands).
+- "Mood soon" / "Video soon" disabled stub buttons in the legacy
+  composer -- dead placeholders, go with the rest of `community.tsx`.
+- `SocialFeed.tsx`, `CreatePostModal.tsx`, `ShareModal.tsx` themselves --
+  stay quarantined/unreachable exactly as the existing
+  `canonical-surface-ownership.contract.test.ts` enforces. Only specific
+  internal logic (reaction picker, comment threading pattern, report
+  modal pattern) gets ported out; the files themselves don't become
+  reachable again.
+
+## Decisions (2026-07-21)
+
+1. **Lane order**: feed upgrades first (A → B → C → D for a fast, visible
+   win), then E.
+2. **Scoping model (supersedes the original Lane E draft above)**: not
+   Nextdoor-style polygon neighborhoods -- three feed tabs instead of
+   today's `forYou | recent | vault` + separate Local/Global toggle:
+   - **Local** -- within 50 miles, radius-based off existing lat/lng (no
+     new geo data needed).
+   - **Trending** -- popular anywhere, ranked by engagement (likes +
+     reactions + comments, once Lane C/B exist to produce real counts).
+   - **For You** -- interest-based, personalized. Ranking signals are an
+     open sub-decision (see below); ships with a stated first-pass
+     heuristic (weight by the categories a user has posted in/reacted to
+     most) rather than blocking on a full recommendation system.
+
+   This redefines Lane E to be about *replacing the tab/scope model*, not
+   inventing neighborhood boundaries -- true polygon-level neighborhoods
+   ("Nextdoor did it, we can too") stays a stated future direction, not
+   in scope for this pass.
+3. **`community.tsx` retirement**: confirmed, delete outright as part of
+   Lane A -- nothing in routing points to it.
+
+## Still open
+
+- **For You ranking signals** -- shipping with the category-affinity
+  heuristic above as a first pass; revisit once real usage data exists.
+- **Video posts (Lane D/F)** -- priority not yet confirmed; treated as
+  lower priority than the three items above unless raised again.
 
 ## Apply posture
 
-`applyAuthorized: false`
-
-Nothing above is code yet. Once the open questions are answered, Lane A
-can start immediately (it's pure deletion/consolidation, no new
-decisions required); Lanes B-D can follow in any order; Lane E waits on
-question 2.
+`applyAuthorized: true` for Lane A (retire duplicates + build the
+Local/Trending/For You tab model) as of 2026-07-21. Lanes B-D follow
+immediately after in the stated order. Lane E's original
+neighborhood-boundary framing is superseded by the decision above and
+is no longer separately gated.
