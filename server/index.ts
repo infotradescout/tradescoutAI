@@ -85,7 +85,7 @@ import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
 import { provisionLaPlumbingProfile } from "./services/laPlumbingProfileProvisioning";
-import { provisionHoneyOnyxProfile } from "./services/honeyOnyxProfileProvisioning";
+import { provisionIssaBuildProfile } from "./services/honeyOnyxProfileProvisioning";
 import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
 import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
@@ -862,7 +862,7 @@ app.use(landingContractHeaders);
     };
     await provisionProfile("JR's Auto Glass", provisionJrsAutoGlassProfile);
     await provisionProfile("LA Plumbing", provisionLaPlumbingProfile);
-    await provisionProfile("Honey Onyx", provisionHoneyOnyxProfile);
+    await provisionProfile("ISSA Build", provisionIssaBuildProfile);
     await provisionProfile("ProFab", provisionProFabProfile);
     await provisionProfile("Moulding & Millwork Supply", provisionMouldingMillworkProfile);
     // Best-effort, read-only schema drift check: logs but never blocks startup.

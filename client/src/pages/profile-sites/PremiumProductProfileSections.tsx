@@ -40,7 +40,9 @@ function safeImage(images: string[], index: number): string {
 }
 
 function isPortraitProductPhoto(profileSlug: string, index: number): boolean {
-  return profileSlug === "honey-onyx" && (index === 1 || index === 2);
+  return (
+    (profileSlug === "issa-build" || profileSlug === "honey-onyx") && (index === 1 || index === 2)
+  );
 }
 
 export default function PremiumProductProfileSections({
@@ -359,7 +361,7 @@ export default function PremiumProductProfileSections({
         className="relative isolate overflow-hidden px-4 py-20 text-white sm:px-6 sm:py-28"
       >
         <picture>
-          {profileSlug === "honey-onyx" ? (
+          {profileSlug === "issa-build" || profileSlug === "honey-onyx" ? (
             <source
               media="(min-width: 768px)"
               srcSet={safeImage(product.images, data.contrast.backlitImageIndex)}
@@ -370,7 +372,9 @@ export default function PremiumProductProfileSections({
             alt=""
             aria-hidden="true"
             className={`absolute inset-0 -z-20 h-full w-full ${
-              profileSlug === "honey-onyx" ? "object-contain" : "object-cover"
+              profileSlug === "issa-build" || profileSlug === "honey-onyx"
+                ? "object-contain"
+                : "object-cover"
             }`}
           />
         </picture>

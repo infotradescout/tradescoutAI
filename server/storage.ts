@@ -657,6 +657,11 @@ export interface IStorage {
     profileId: string,
     updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
   ): Promise<Profile>;
+  updateProfileById(
+    profileId: string,
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
+  ): Promise<Profile>;
+  getProfileById(profileId: string): Promise<Profile | undefined>;
   setUserActiveProfile(userId: string, profileId: string | null): Promise<User>;
   createProfileBookingRequest(
     input: Omit<InsertProfileBookingRequest, "id" | "createdAt" | "updatedAt">
@@ -1871,6 +1876,17 @@ export class DatabaseStorage implements IStorage {
     updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
   ): Promise<Profile> {
     return this.profileRepository.updateProfileForOwner(ownerUserId, profileId, updates);
+  }
+
+  async updateProfileById(
+    profileId: string,
+    updates: Partial<Omit<InsertProfile, "id" | "ownerUserId" | "createdAt" | "updatedAt">>
+  ): Promise<Profile> {
+    return this.profileRepository.updateProfileById(profileId, updates);
+  }
+
+  async getProfileById(profileId: string): Promise<Profile | undefined> {
+    return this.profileRepository.getProfileById(profileId);
   }
 
   async setUserActiveProfile(userId: string, profileId: string | null): Promise<User> {

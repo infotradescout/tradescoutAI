@@ -24,6 +24,7 @@ import { isOwnerConfirmedDirectProfile } from "../services/ownerConfirmedDirectP
 import { listHandmadeProductImageUrls } from "../../shared/handmadeProductShare";
 import { listCommunityPostImageUrls } from "../../shared/communityPostShare";
 import { sanitizePublicProfileOfferText, toPublicProfileOffer } from "../publicProfileOffer";
+import { resolveSiteTemplateId } from "../../shared/profileSiteTemplates";
 import {
   buildPublicBusinessListingCards,
   type PublicBusinessListingCard,
@@ -211,6 +212,35 @@ function buildRuntimeCorePaths(): string[] {
 
 function getAuthedUserId(req: any): string {
   return (req.user as any)?.id || (req.user as any)?.claims?.sub || "";
+}
+
+function isSuperAdminRequester(req: any): boolean {
+  const role = String((req.user as any)?.role || "")
+    .trim()
+    .toLowerCase();
+  if (role === "super_admin") return true;
+  if ((req.user as any)?.isSuperAdmin === true) return true;
+  const roles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
+  return roles.some(
+    (entry: unknown) =>
+      String(entry || "")
+        .trim()
+        .toLowerCase() === "super_admin"
+  );
+}
+
+function isStaffProfileManager(req: any): boolean {
+  const role = String((req.user as any)?.role || "")
+    .trim()
+    .toLowerCase();
+  if (role === "head_admin" || role === "super_admin") return true;
+  const roles = Array.isArray((req.user as any)?.roles) ? (req.user as any).roles : [];
+  return roles.some((entry: unknown) => {
+    const normalized = String(entry || "")
+      .trim()
+      .toLowerCase();
+    return normalized === "head_admin" || normalized === "super_admin";
+  });
 }
 
 function sanitizePublicCtaConfig(ctaConfig: unknown) {
@@ -420,10 +450,10 @@ function isBusinessDiscoverable(user: any): boolean {
 
 const contentBlockSchema = z
   .object({
-    type: z.enum(["hero", "about", "services", "gallery", "faq", "reviews", "cta", "custom"]),
-    data: z.record(z.any()),
+    type: z.string().min(1).max(64),
+    data: z.record(z.any()).optional().default({}),
   })
-  .strict();
+  .passthrough();
 
 const ctaSchema = z
   .object({
@@ -582,7 +612,9 @@ router.get("/api/profiles/:id", isAuthenticated, async (req, res) => {
     if (!userId) return res.status(401).json({ message: "Not authenticated" });
 
     const profileId = String(req.params.id);
-    const profile = await storage.getProfileByIdForOwner(userId, profileId);
+    const profile = isStaffProfileManager(req)
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
     if (!profile) return res.status(404).json({ message: "Profile not found" });
 
     res.json(profile);
@@ -599,16 +631,27 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
 
     const profileId = String(req.params.id);
     const updates = updateProfileSchema.parse(req.body);
-
-    const updated = await storage.updateProfileForOwner(userId, profileId, {
+    const payload = {
       ...updates,
       roleContext: updates.roleContext as any,
-    } as any);
+    } as any;
+
+    let updated;
+    if (isStaffProfileManager(req)) {
+      const existing = await storage.getProfileById(profileId);
+      if (!existing) return res.status(404).json({ message: "Profile not found" });
+      updated = await storage.updateProfileById(profileId, payload);
+    } else {
+      updated = await storage.updateProfileForOwner(userId, profileId, payload);
+    }
 
     res.json(updated);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: "Invalid request", errors: error.errors });
+    }
+    if (String(error?.message || "").includes("Profile not found")) {
+      return res.status(404).json({ message: "Profile not found" });
     }
     console.error("Error updating profile:", error);
     res
@@ -1399,7 +1442,31 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
     }
   }
 
-  res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+  const viewerUserId = req ? getAuthedUserId(req) : "";
+  const viewerCanManage =
+    Boolean(viewerUserId) &&
+    (viewerUserId === ownerUserId ||
+      (req ? isSuperAdminRequester(req) : false) ||
+      (req ? isStaffProfileManager(req) : false));
+  const hasLocalServicePresentation = Array.isArray(profile.contentBlocks)
+    ? profile.contentBlocks.some(
+        (block: any) => block && typeof block === "object" && block.type === "localServiceProfile"
+      )
+    : false;
+  const siteTemplate = resolveSiteTemplateId({
+    slug: profile.slug,
+    contentBlocks: profile.contentBlocks,
+    tradePartner: safeBusiness?.tradePartner === true,
+    hasLocalServicePresentation,
+  });
+
+  // Public caches must not store viewerCanManage — it is session-specific.
+  if (viewerCanManage || viewerUserId) {
+    res.setHeader("Cache-Control", "private, no-store");
+  } else {
+    res.setHeader("Cache-Control", "public, max-age=300, stale-while-revalidate=3600");
+  }
+
   return res.json({
     profile: {
       id: profile.id,
@@ -1412,6 +1479,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       seoMeta: effectiveSeoMeta,
       profileSections: profile.profileSections || null,
       profileBooking: sanitizePublicProfileBookingConfig(profile.profileBooking),
+      siteTemplate,
       contactPolicy: {
         mode: "direct_connect_only",
         requiresTradeScoutAccount: false,
@@ -1419,6 +1487,7 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
       },
     },
     business: safeBusiness,
+    viewerCanManage,
     recommendationsDirectory,
     recommendationDirectorySummary,
     recommendationDirectoryMode,

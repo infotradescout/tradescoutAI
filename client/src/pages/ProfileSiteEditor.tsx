@@ -19,6 +19,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { COLOR_PRESETS, getPresetNames } from "@shared/colorPresets";
 import { StateCountySelector } from "@/components/state-county-selector";
+import {
+  listSelectableProfileSiteTemplates,
+  readFeaturedStoneSlugs,
+  resolveSiteTemplateId,
+  seedBlocksForTemplate,
+  upsertFeaturedStoneSlugs,
+  upsertSiteTemplateBlock,
+  type ProfileSiteTemplateGalleryId,
+} from "@shared/profileSiteTemplates";
 
 type OwnedProfile = {
   id: string;
@@ -155,6 +164,10 @@ export default function ProfileSiteEditor() {
   const [contentBlocksText, setContentBlocksText] = useState("[]");
   const [ctaConfigText, setCtaConfigText] = useState("{}");
   const [seoMetaText, setSeoMetaText] = useState("{}");
+  const [showAdvancedJson, setShowAdvancedJson] = useState(false);
+  const [featuredSlugsText, setFeaturedSlugsText] = useState("");
+  const [heroTitle, setHeroTitle] = useState("");
+  const [heroText, setHeroText] = useState("");
   const [customDomain, setCustomDomain] = useState("");
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
@@ -217,6 +230,20 @@ export default function ProfileSiteEditor() {
         setContentBlocksText(JSON.stringify(detail.contentBlocks ?? [], null, 2));
         setCtaConfigText(JSON.stringify(detail.ctaConfig ?? {}, null, 2));
         setSeoMetaText(JSON.stringify(detail.seoMeta ?? {}, null, 2));
+        setFeaturedSlugsText(readFeaturedStoneSlugs(detail.contentBlocks).join(", "));
+        const heroBlock = Array.isArray(detail.contentBlocks)
+          ? detail.contentBlocks.find((block: any) => block?.type === "hero")
+          : null;
+        const heroData =
+          heroBlock?.data && typeof heroBlock.data === "object" ? heroBlock.data : {};
+        setHeroTitle(typeof heroData.title === "string" ? heroData.title : "");
+        setHeroText(
+          typeof heroData.text === "string"
+            ? heroData.text
+            : typeof heroData.body === "string"
+              ? heroData.body
+              : ""
+        );
         setCustomDomain(String(detail.seoMeta?.customDomain || ""));
         setOgImageUrl(String(detail.seoMeta?.imageUrl || ""));
         setFaviconUrl(String(detail.seoMeta?.faviconUrl || ""));
@@ -360,6 +387,67 @@ export default function ProfileSiteEditor() {
     }
   }, [contentBlocksText, ctaConfigText, seoMetaText]);
 
+  const selectedTemplateId = useMemo(
+    () =>
+      resolveSiteTemplateId({
+        slug: profile?.slug || slug,
+        contentBlocks: parsedPayload?.contentBlocks,
+      }),
+    [parsedPayload?.contentBlocks, profile?.slug, slug]
+  );
+
+  const applyTemplate = (templateId: ProfileSiteTemplateGalleryId) => {
+    let blocks: unknown[] = [];
+    try {
+      blocks = JSON.parse(contentBlocksText || "[]");
+      if (!Array.isArray(blocks)) blocks = [];
+    } catch {
+      blocks = [];
+    }
+    const next = seedBlocksForTemplate(templateId, blocks, {
+      displayName: displayName.trim() || profile?.displayName || "Your business",
+    });
+    setContentBlocksText(JSON.stringify(next, null, 2));
+    setFeaturedSlugsText(readFeaturedStoneSlugs(next).join(", "));
+    const hero = next.find((block: any) => block?.type === "hero") as any;
+    setHeroTitle(typeof hero?.data?.title === "string" ? hero.data.title : "");
+    setHeroText(typeof hero?.data?.text === "string" ? hero.data.text : "");
+    toast({
+      title: "Template selected",
+      description: "Save to publish this template on the live profile.",
+    });
+  };
+
+  const buildContentBlocksForSave = () => {
+    if (!parsedPayload) return null;
+    let blocks = Array.isArray(parsedPayload.contentBlocks) ? [...parsedPayload.contentBlocks] : [];
+    blocks = upsertSiteTemplateBlock(blocks, selectedTemplateId);
+    const heroIndex = blocks.findIndex((block: any) => block?.type === "hero");
+    const heroData = {
+      title: heroTitle,
+      text: heroText,
+    };
+    if (heroIndex >= 0) {
+      blocks[heroIndex] = {
+        ...blocks[heroIndex],
+        data: {
+          ...((blocks[heroIndex] as any).data || {}),
+          ...heroData,
+        },
+      };
+    } else {
+      blocks.push({ type: "hero", data: heroData });
+    }
+    if (selectedTemplateId === "wholesaler") {
+      const slugs = featuredSlugsText
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+      blocks = upsertFeaturedStoneSlugs(blocks, slugs);
+    }
+    return blocks;
+  };
+
   const save = async () => {
     if (!profile) return;
     if (!parsedPayload) {
@@ -372,28 +460,25 @@ export default function ProfileSiteEditor() {
     }
 
     try {
-      const allowedBlockTypes = new Set([
-        "hero",
-        "about",
-        "services",
-        "gallery",
-        "faq",
-        "reviews",
-        "cta",
-        "custom",
-      ]);
+      const builtBlocks = buildContentBlocksForSave();
+      if (!builtBlocks) {
+        toast({
+          title: "Invalid content",
+          description: "Could not build content blocks for save.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      const normalizeContentBlocks = Array.isArray(parsedPayload.contentBlocks)
-        ? parsedPayload.contentBlocks
-            .filter((block: any) => block && typeof block === "object")
-            .map((block: any) => ({
-              type: allowedBlockTypes.has(String(block.type || "")) ? String(block.type) : "custom",
-              data:
-                block.data && typeof block.data === "object" && !Array.isArray(block.data)
-                  ? block.data
-                  : {},
-            }))
-        : [];
+      const normalizeContentBlocks = builtBlocks
+        .filter((block: any) => block && typeof block === "object")
+        .map((block: any) => ({
+          type: String(block.type || "custom").slice(0, 64) || "custom",
+          data:
+            block.data && typeof block.data === "object" && !Array.isArray(block.data)
+              ? block.data
+              : {},
+        }));
 
       const normalizeCta = (cta: any) => {
         if (!cta || typeof cta !== "object") return undefined;
@@ -814,6 +899,32 @@ export default function ProfileSiteEditor() {
             </div>
 
             <div className="space-y-2">
+              <Label className="text-white/70">Template</Label>
+              <p className="text-xs text-white/55">
+                Wholesaler, Auto glass, Plumbing company, or Electrician (solo). More business
+                templates are planned in the profile template taxonomy.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {listSelectableProfileSiteTemplates().map((template) => (
+                  <button
+                    key={template.id}
+                    type="button"
+                    onClick={() => applyTemplate(template.id)}
+                    className={`rounded-xl border p-3 text-left transition ${
+                      selectedTemplateId === template.id
+                        ? "border-ts-orange bg-ts-orange/15"
+                        : "border-white/15 bg-white/5 hover:border-white/30"
+                    }`}
+                    data-testid={`profile-editor-template-${template.id}`}
+                  >
+                    <p className="text-sm font-bold text-white">{template.label}</p>
+                    <p className="mt-1 text-xs text-white/65">{template.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label className="text-white/70">Display name</Label>
               <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
             </div>
@@ -828,34 +939,73 @@ export default function ProfileSiteEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">Content blocks (JSON)</Label>
-              <Textarea
-                value={contentBlocksText}
-                onChange={(e) => setContentBlocksText(e.target.value)}
-                rows={10}
-              />
+              <Label className="text-white/70">Hero title</Label>
+              <Input value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-white/70">CTA config (JSON)</Label>
-              <Textarea
-                value={ctaConfigText}
-                onChange={(e) => setCtaConfigText(e.target.value)}
-                rows={6}
-              />
+              <Label className="text-white/70">Hero text</Label>
+              <Textarea value={heroText} onChange={(e) => setHeroText(e.target.value)} rows={3} />
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-white/70">SEO meta (JSON)</Label>
-              <Textarea
-                value={seoMetaText}
-                onChange={(e) => setSeoMetaText(e.target.value)}
-                rows={6}
-              />
-              <p className="text-white/60 text-xs">
-                Use this for title/description overrides. Share image and favicon have their own
-                fields below and take precedence over any imageUrl/faviconUrl set here.
-              </p>
+            {selectedTemplateId === "wholesaler" ? (
+              <div className="space-y-2">
+                <Label className="text-white/70">Featured inventory slugs</Label>
+                <Input
+                  value={featuredSlugsText}
+                  onChange={(e) => setFeaturedSlugsText(e.target.value)}
+                  placeholder="taj-mahal, rhino-white, cristallo"
+                  data-testid="profile-editor-featured-slugs"
+                />
+              </div>
+            ) : null}
+
+            <div className="space-y-2 rounded-lg border border-white/10 p-3">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-white/70">Advanced JSON</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-white/15"
+                  onClick={() => setShowAdvancedJson((open) => !open)}
+                  data-testid="profile-editor-toggle-advanced-json"
+                >
+                  {showAdvancedJson ? "Hide" : "Show"}
+                </Button>
+              </div>
+              {showAdvancedJson ? (
+                <div className="space-y-3 pt-2">
+                  <div className="space-y-2">
+                    <Label className="text-white/70">Content blocks (JSON)</Label>
+                    <Textarea
+                      value={contentBlocksText}
+                      onChange={(e) => setContentBlocksText(e.target.value)}
+                      rows={10}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/70">CTA config (JSON)</Label>
+                    <Textarea
+                      value={ctaConfigText}
+                      onChange={(e) => setCtaConfigText(e.target.value)}
+                      rows={6}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white/70">SEO meta (JSON)</Label>
+                    <Textarea
+                      value={seoMetaText}
+                      onChange={(e) => setSeoMetaText(e.target.value)}
+                      rows={6}
+                    />
+                    <p className="text-white/60 text-xs">
+                      Use this for title/description overrides. Share image and favicon have their
+                      own fields below and take precedence over any imageUrl/faviconUrl set here.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="space-y-2">

@@ -55,7 +55,7 @@ type Props = {
   galleryItems?: ResolvedProfileGalleryItem[];
   sharedGallerySlug?: string | null;
   recommendationsDirectory?: RecommendationEntry[];
-  trustActions?: ReactNode;
+  trustActions: ReactNode;
   profileItems?: ReactNode;
 };
 
@@ -148,7 +148,13 @@ export default function JrsAutoGlassProfileTheme({
           <p className="mt-2 text-center text-[11px] font-medium text-zinc-400">
             Tell JR&apos;s what happened. Your contact details stay private.
           </p>
-          {trustActions ? <div className="mt-4">{trustActions}</div> : null}
+          <div
+            className="mt-4"
+            data-testid="profile-trust-section"
+            aria-label="Trust and profile actions"
+          >
+            {trustActions}
+          </div>
         </section>
 
         <section className="border-b border-white/10 px-4 py-5 sm:px-6">

@@ -35,10 +35,10 @@ import {
 } from "@shared/profileGalleryShare";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
 import {
-  HONEY_ONYX_HERO_POSTER,
-  HONEY_ONYX_HERO_VIDEO,
-  HONEY_ONYX_PROFILE_SLUG,
-} from "@shared/honeyOnyxProfile";
+  ISSA_BUILD_HERO_POSTER,
+  ISSA_BUILD_HERO_VIDEO,
+  isIssaBuildProfileSlug,
+} from "@shared/issaBuildProfile";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -313,9 +313,9 @@ export default function WholesalerProfileTheme({
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
-  const isHoneyOnyx = profileSlug === HONEY_ONYX_PROFILE_SLUG;
-  const heroVideo = isHoneyOnyx
-    ? { src: HONEY_ONYX_HERO_VIDEO, poster: HONEY_ONYX_HERO_POSTER }
+  const isIssaBuild = isIssaBuildProfileSlug(profileSlug);
+  const heroVideo = isIssaBuild
+    ? { src: ISSA_BUILD_HERO_VIDEO, poster: ISSA_BUILD_HERO_POSTER }
     : isJwStone
       ? {
           src: "/images/businesses/jw-stone/video/hero.mp4",
@@ -989,7 +989,7 @@ export default function WholesalerProfileTheme({
       {/* Hero */}
       <section
         className={`relative isolate flex items-end overflow-hidden py-8 md:items-center md:py-20 ${
-          isJwStone || isHoneyOnyx
+          isJwStone || isIssaBuild
             ? "min-h-[460px] bg-transparent md:min-h-[600px]"
             : "min-h-[min(690px,calc(100svh-150px))] bg-[var(--brand-primary)] bg-cover bg-center md:min-h-[500px]"
         }`}
@@ -1000,7 +1000,7 @@ export default function WholesalerProfileTheme({
             alt=""
             aria-hidden="true"
             className={`absolute inset-0 h-full w-full object-center ${
-              isJwStone || isHoneyOnyx ? "bg-transparent" : "bg-stone-950"
+              isJwStone || isIssaBuild ? "bg-transparent" : "bg-stone-950"
             } ${premiumProductData ? "object-contain" : "object-cover"}`}
           />
         ) : null}
@@ -1020,8 +1020,8 @@ export default function WholesalerProfileTheme({
             <source src={heroVideo.src} type="video/mp4" />
           </video>
         ) : null}
-        {/* No full-bleed wash on JW Stone / Honey Onyx — stone/video stays true. */}
-        {!isJwStone && !isHoneyOnyx ? (
+        {/* No full-bleed wash on JW Stone / ISSA Build — stone/video stays true. */}
+        {!isJwStone && !isIssaBuild ? (
           <span
             aria-hidden="true"
             className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,14,8,0.22)_0%,rgba(20,14,8,0.54)_42%,rgba(20,14,8,0.96)_100%)] md:bg-[linear-gradient(90deg,rgba(20,14,8,0.82)_0%,rgba(20,14,8,0.5)_55%,rgba(20,14,8,0.26)_100%)]"
@@ -1029,13 +1029,13 @@ export default function WholesalerProfileTheme({
         ) : null}
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
-            isJwStone || isHoneyOnyx ? "md:px-8" : "md:px-6 md:text-center"
+            isJwStone || isIssaBuild ? "md:px-8" : "md:px-6 md:text-center"
           }`}
         >
           {heroEyebrow ? (
             <span
               className={`mb-3 inline-block rounded-full border px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.12em] text-white md:mb-6 md:px-4 md:text-xs ${
-                isJwStone || isHoneyOnyx
+                isJwStone || isIssaBuild
                   ? "border-white/40 bg-black/35"
                   : "border-white/25 bg-black/25 backdrop-blur-sm"
               } ${heroReveal(1)}`}
@@ -1045,7 +1045,7 @@ export default function WholesalerProfileTheme({
           ) : null}
           <h1
             className={`mb-3 max-w-[18ch] font-bold text-white md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
-              isJwStone || isHoneyOnyx
+              isJwStone || isIssaBuild
                 ? "text-[2.2rem] leading-[1.02] [text-shadow:0_1px_8px_rgba(0,0,0,0.55)] md:text-[2.7rem] md:leading-[0.96]"
                 : "text-[2.55rem] leading-[0.98] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mx-auto"
             } ${DISPLAY_FONT} ${heroReveal(2)}`}
@@ -1055,7 +1055,7 @@ export default function WholesalerProfileTheme({
           {heroTeaser ? (
             <p
               className={`mb-5 max-w-[34rem] text-sm leading-relaxed text-white md:mb-10 md:text-lg ${
-                isJwStone || isHoneyOnyx
+                isJwStone || isIssaBuild
                   ? "font-medium [text-shadow:0_1px_6px_rgba(0,0,0,0.55)] md:text-base"
                   : "text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mx-auto"
               } ${heroReveal(3)}`}
@@ -1065,7 +1065,7 @@ export default function WholesalerProfileTheme({
           ) : null}
           <div
             className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
-              isJwStone || isHoneyOnyx ? "max-w-[38rem]" : "md:justify-center"
+              isJwStone || isIssaBuild ? "max-w-[38rem]" : "md:justify-center"
             } ${heroReveal(4)}`}
           >
             {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
@@ -1092,7 +1092,7 @@ export default function WholesalerProfileTheme({
               type="button"
               onClick={() => startDirectConnect()}
               className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange px-6 py-3 text-sm font-extrabold transition-colors md:min-h-14 md:rounded-full md:py-3.5 ${
-                isJwStone || isHoneyOnyx
+                isJwStone || isIssaBuild
                   ? "bg-[var(--brand-bg)]/92 text-ts-orange shadow-sm hover:bg-[var(--brand-bg)]"
                   : "bg-white/12 text-ts-orange-light backdrop-blur-xl hover:bg-white/20"
               }`}

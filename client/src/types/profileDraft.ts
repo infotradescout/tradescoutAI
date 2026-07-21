@@ -30,5 +30,9 @@ export interface ProfileDraft {
   website?: string;
   description?: string;
   serviceAreas?: ProfileDraftServiceArea[];
+  /** Public profile starting template from onboarding gallery. */
+  siteTemplateId?: "wholesaler" | "auto-glass" | "plumbing-company" | "electrician-solo";
+  /** Optional per-field inheritance overrides (keep_source | keep_target | merge | discard). */
+  inheritanceDecisions?: Record<string, string>;
   capturedAt?: string;
 }

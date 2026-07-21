@@ -70,7 +70,7 @@ type Props = {
   galleryItems?: ResolvedProfileGalleryItem[];
   sharedGallerySlug?: string | null;
   recommendationsDirectory?: RecommendationEntry[];
-  trustActions?: ReactNode;
+  trustActions: ReactNode;
   profileItems?: ReactNode;
   verificationStatus?: string | null;
   verifiedBadge?: boolean;
@@ -434,11 +434,13 @@ export default function LocalServiceProfileTheme({
         </div>
       </section>
 
-      {trustActions ? (
-        <section className="border-y border-white/10 bg-[var(--service-surface)] px-4 py-4 sm:px-6">
-          <div className="mx-auto max-w-3xl">{trustActions}</div>
-        </section>
-      ) : null}
+      <section
+        className="border-y border-white/10 bg-[var(--service-surface)] px-4 py-4 sm:px-6"
+        aria-label="Trust and profile actions"
+        data-testid="profile-trust-section"
+      >
+        <div className="mx-auto max-w-3xl">{trustActions}</div>
+      </section>
 
       <section className="relative z-10 -mt-1 border-y border-white/10 bg-[var(--service-surface)]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 divide-x divide-y divide-white/10 px-4 sm:grid-cols-4 sm:divide-y-0 sm:px-6">

@@ -40,7 +40,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('heroVideoZoomed ? "scale-100 md:scale-[1.12]" : "scale-100"');
     expect(source).toContain('window.matchMedia("(prefers-reduced-motion: reduce)")');
     expect(source).toContain("autoPlay={!prefersReducedMotion}");
-    // No full-bleed wash on JW Stone / Honey Onyx — stone/video stays true.
+    // No full-bleed wash on JW Stone / ISSA Build — stone/video stays true.
     expect(source).toContain("{!isJwStone && !isHoneyOnyx ? (");
     expect(source).not.toMatch(
       /isJwStone \|\| isHoneyOnyx\s*\?\s*"bg-\[linear-gradient\(90deg,rgba\(9,7,4/

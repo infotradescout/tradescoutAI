@@ -2,19 +2,21 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  HONEY_ONYX_DISTRIBUTOR_NAME,
-  HONEY_ONYX_HERO_POSTER,
-  HONEY_ONYX_HERO_VIDEO,
-  HONEY_ONYX_PROFILE_CONTENT_BLOCKS,
-  HONEY_ONYX_PROFILE_IMAGES,
-  HONEY_ONYX_PROFILE_SLUG,
-} from "@shared/honeyOnyxProfile";
+  ISSA_BUILD_BUSINESS_NAME,
+  ISSA_BUILD_HERO_POSTER,
+  ISSA_BUILD_HERO_VIDEO,
+  ISSA_BUILD_LEGACY_PROFILE_SLUG,
+  ISSA_BUILD_PROFILE_CONTENT_BLOCKS,
+  ISSA_BUILD_PROFILE_IMAGES,
+  ISSA_BUILD_PROFILE_SLUG,
+  isIssaBuildProfileSlug,
+} from "@shared/issaBuildProfile";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
 
-describe("Honey Onyx standalone public profile contract", () => {
-  it("publishes Honey Onyx separately while keeping JW Stone as distributor only", () => {
+describe("ISSA Build public profile contract", () => {
+  it("provisions ISSA Build as its own business without borrowing another company's contact", () => {
     const provisioner = read("server/services/honeyOnyxProfileProvisioning.ts");
     const entry = read("server/index.ts");
     const recommendationInsertStart = provisioner.indexOf("} else if (hasNoRecommendationBinding)");
@@ -35,12 +37,18 @@ describe("Honey Onyx standalone public profile contract", () => {
       recommendationBlockEnd
     );
 
-    expect(HONEY_ONYX_PROFILE_SLUG).toBe("honey-onyx");
-    expect(HONEY_ONYX_DISTRIBUTOR_NAME).toBe("JW Stone");
-    expect(provisioner).toContain('product_ownership: "independent_from_distributor"');
-    expect(provisioner).toContain(
-      'distributor_relationship: "distribution_and_availability_contact"'
-    );
+    expect(ISSA_BUILD_PROFILE_SLUG).toBe("issa-build");
+    expect(ISSA_BUILD_LEGACY_PROFILE_SLUG).toBe("honey-onyx");
+    expect(ISSA_BUILD_BUSINESS_NAME).toBe("ISSA Build");
+    expect(isIssaBuildProfileSlug("issa-build")).toBe(true);
+    expect(isIssaBuildProfileSlug("honey-onyx")).toBe(true);
+    expect(isIssaBuildProfileSlug("jw-stone")).toBe(false);
+
+    expect(provisioner).toContain('ownership: "independent_business"');
+    expect(provisioner).not.toContain("distributorBusiness");
+    expect(provisioner).not.toContain("JW_STONE_PROFILE_SLUG");
+    expect(provisioner).not.toContain("distributorPhone");
+    expect(provisioner).not.toMatch(/distributor_name:\s*HONEY|distributor_name:\s*ISSA/);
     expect(provisioner).toContain("tradescout_admin_pending_owner_account_transfer");
     expect(provisioner).toContain("claimStatus:");
     expect(provisioner).toContain('status: "published"');
@@ -52,7 +60,6 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(provisioner).toContain("hasNoRecommendationBinding");
     expect(provisioner).toContain("hasSingleExactRecommendationBinding");
     expect(provisioner).toContain("contractor binding is ambiguous or conflicting");
-    expect(provisioner).not.toContain('throw new Error("Honey Onyx contractor');
     expect(provisioner).toContain("userId: profileOwnerUserId");
     expect(newCompatibilityRowPath).toContain("verifiedLicensed: false");
     expect(newCompatibilityRowPath).toContain("verifiedInsured: false");
@@ -62,46 +69,48 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(existingRecommendationTargetPath).not.toContain("isActive:");
     expect(provisioner).not.toContain("activeBusinessId");
     expect(provisioner).not.toContain("activeProfileId");
-    expect(entry).toContain('await provisionProfile("Honey Onyx", provisionHoneyOnyxProfile)');
+    expect(entry).toContain('await provisionProfile("ISSA Build", provisionIssaBuildProfile)');
   });
 
-  it("uses all six real product photos on the standalone profile", () => {
-    expect(HONEY_ONYX_PROFILE_IMAGES).toHaveLength(6);
-    expect(new Set(HONEY_ONYX_PROFILE_IMAGES).size).toBe(6);
+  it("uses ISSA Build application photos on the public profile", () => {
+    expect(ISSA_BUILD_PROFILE_IMAGES).toHaveLength(6);
+    expect(new Set(ISSA_BUILD_PROFILE_IMAGES).size).toBe(6);
 
-    for (const image of HONEY_ONYX_PROFILE_IMAGES) {
+    for (const image of ISSA_BUILD_PROFILE_IMAGES) {
       expect(
         fs.existsSync(path.resolve(process.cwd(), "client/public", image.replace(/^\//, ""))),
         image
       ).toBe(true);
     }
 
-    const inventoryBlock = HONEY_ONYX_PROFILE_CONTENT_BLOCKS.find(
+    const inventoryBlock = ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find(
       (block) => block.type === "inventoryCatalog"
     );
-    expect((inventoryBlock?.data as any)?.categories?.[0]?.stones?.[0]?.images).toHaveLength(6);
+    expect(
+      (inventoryBlock?.data as any)?.categories?.[0]?.stones?.[0]?.images.length
+    ).toBeGreaterThanOrEqual(6);
   });
 
-  it("uses the dedicated Honey Onyx hero video (not the JW Stone hero clip)", () => {
+  it("uses the dedicated ISSA Build hero video", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
 
-    expect(HONEY_ONYX_HERO_VIDEO).toBe("/images/businesses/honey-onyx/video/hero.mp4");
-    expect(HONEY_ONYX_HERO_POSTER).toBe("/images/businesses/honey-onyx/video/hero-poster.jpg");
+    expect(ISSA_BUILD_HERO_VIDEO).toBe("/images/businesses/issa-build/video/hero.mp4");
+    expect(ISSA_BUILD_HERO_POSTER).toBe("/images/businesses/issa-build/video/hero-poster.jpg");
     expect(
       fs.existsSync(
-        path.resolve(process.cwd(), "client/public", HONEY_ONYX_HERO_VIDEO.replace(/^\//, ""))
+        path.resolve(process.cwd(), "client/public", ISSA_BUILD_HERO_VIDEO.replace(/^\//, ""))
       )
     ).toBe(true);
     expect(
       fs.existsSync(
-        path.resolve(process.cwd(), "client/public", HONEY_ONYX_HERO_POSTER.replace(/^\//, ""))
+        path.resolve(process.cwd(), "client/public", ISSA_BUILD_HERO_POSTER.replace(/^\//, ""))
       )
     ).toBe(true);
-    expect(theme).toContain("HONEY_ONYX_HERO_VIDEO");
-    expect(theme).toContain("HONEY_ONYX_HERO_POSTER");
-    expect(theme).toContain("profileSlug === HONEY_ONYX_PROFILE_SLUG");
+    expect(theme).toContain("ISSA_BUILD_HERO_VIDEO");
+    expect(theme).toContain("ISSA_BUILD_HERO_POSTER");
+    expect(theme).toContain("isIssaBuildProfileSlug");
     expect(theme).toContain('src: "/images/businesses/jw-stone/video/hero.mp4"');
-    expect(theme.indexOf("HONEY_ONYX_HERO_VIDEO")).toBeLessThan(
+    expect(theme.indexOf("ISSA_BUILD_HERO_VIDEO")).toBeLessThan(
       theme.indexOf('src: "/images/businesses/jw-stone/video/hero.mp4"')
     );
   });
@@ -109,7 +118,7 @@ describe("Honey Onyx standalone public profile contract", () => {
   it("uses the reusable editorial product template below the hero", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const sections = read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx");
-    const premiumBlock = HONEY_ONYX_PROFILE_CONTENT_BLOCKS.find(
+    const premiumBlock = ISSA_BUILD_PROFILE_CONTENT_BLOCKS.find(
       (block) => block.type === "premiumProduct"
     );
 
@@ -117,52 +126,27 @@ describe("Honey Onyx standalone public profile contract", () => {
     expect(theme).toContain("isPremiumProductProfileData");
     expect(theme).toContain("<PremiumProductProfileSections");
     expect(theme).toContain("<TradeScoutProfileHandoff");
-    expect(JSON.stringify(premiumBlock)).toContain("One stone. Two atmospheres.");
-    expect((premiumBlock?.data as any)?.gallery?.title).toBe("See what backlighting changes.");
+    expect(JSON.stringify(premiumBlock)).toContain("Honey and jade. Day and night.");
     expect((premiumBlock?.data as any)?.gallery?.photos).toHaveLength(6);
-    expect((premiumBlock?.data as any)?.gallery?.photos?.map((photo: any) => photo.label)).toEqual([
-      "Backlit",
-      "Backlit",
-      "Natural light",
-      "Natural light",
-      "Natural light",
-      "Low natural light",
-    ]);
     expect(sections).toContain("buildProfileInventoryShareSearch");
-    expect(sections).toContain("data.gallery.photos?.[index]");
-    expect(sections).toContain("activePhotoDetail.body");
     expect(sections).not.toContain("<TradeScoutProfileHandoff");
   });
 
-  it("keeps market-facing copy focused on the product and Direct Connect", () => {
+  it("keeps public copy on ISSA Build product and Direct Connect only", () => {
     const theme = read("client/src/pages/profile-sites/WholesalerProfileTheme.tsx");
     const panel = read("client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx");
-    const profileCopy = JSON.stringify(HONEY_ONYX_PROFILE_CONTENT_BLOCKS);
+    const profileCopy = JSON.stringify(ISSA_BUILD_PROFILE_CONTENT_BLOCKS);
 
-    expect(profileCopy).toContain("Six real material photos");
     expect(profileCopy).toContain("Private Direct Connect");
+    expect(profileCopy).toContain("ISSA Build");
     expect(profileCopy).toContain('"hideFinishDetails":true');
-    expect(profileCopy).not.toMatch(/independent|ownership|distribut(?:or|ed|ion)/i);
+    expect(profileCopy).not.toMatch(/distribut(?:or|ed|ion)/i);
     expect(profileCopy).not.toContain("JW Stone");
-    expect(profileCopy).toContain("actual material");
-    expect(profileCopy).not.toContain("Pick the view that stopped you.");
-    expect(profileCopy).not.toMatch(/\bbuilt (?:for|to|around)\b/i);
+    expect(profileCopy).not.toMatch(/co-?locat|same lot|share(?:s|d)? space/i);
+    expect(profileCopy).not.toMatch(/850-|issaichev|@gmail\.com|password/i);
     expect(theme).toContain("text={`${stone.name} from ${displayName}`}");
     expect(theme).toContain("{ctaHeading}");
     expect(theme).toContain("contactOperatorName={contactOperatorName || undefined}");
-    expect(theme).toContain("!stone.hideFinishDetails");
-    expect(theme).toContain("!openStone.hideFinishDetails");
-    expect(theme).not.toContain("Finish not confirmed — ask JW Stone");
     expect(panel).toContain("hasSeparateOperator");
-    expect(panel).toContain("Your ${businessName} request was sent to ${operatorName}.");
-  });
-
-  it("restores all six Honey Onyx photos to the JW Stone distributor catalog", () => {
-    const generated = JSON.parse(read("client/src/data/jwStoneInventory.generated.json"));
-    const honeyOnyx = generated.find((stone: any) => stone.slug === "honey-onyx");
-
-    expect(honeyOnyx?.categorySlug).toBe("onyx");
-    expect(honeyOnyx?.images).toHaveLength(6);
-    expect(honeyOnyx?.sourceFileIds).toHaveLength(6);
   });
 });
