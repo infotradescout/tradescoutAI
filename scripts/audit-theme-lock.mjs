@@ -63,8 +63,45 @@ function main() {
   const suspiciousHex = /#[0-9a-fA-F]{6}/g;
   const unauthorizedGradient = /(linear-gradient|radial-gradient|conic-gradient)/i;
 
-  // Allowed Scout files (where gradients are ok)
-  const allowedScoutFiles = ["ScoutInput", "scout", "Scout"];
+  // Known, pre-existing, out-of-scope exceptions -- NOT a general bypass.
+  // Each entry is an exact basename (never a substring), with an owner,
+  // reason, and review-by date, per the theme convergence packet's "no
+  // permanent generic allowlist" rule. This replaced a blanket substring
+  // match on "Scout" that silently exempted every Scout file, including
+  // ScoutHome.tsx -- the actual violator the packet's audit was supposed
+  // to catch. New files are never covered by this list; only these named,
+  // already-reviewed ones are.
+  const HEX_AND_GRADIENT_EXCEPTIONS = [
+    {
+      file: "ScoutThread.tsx",
+      reason:
+        "Progress-bar gradient stop uses #ea580c, the same literal 'darker orange' value used ~10x elsewhere in index.css with no dedicated token -- adding one is a new-token decision out of scope for the Lane 1 audit-script fix.",
+      owner: "theme-convergence-packet",
+      reviewBy: "2026-09-01",
+    },
+    {
+      file: "scout-landing-lite.tsx",
+      reason:
+        "client/src/experiments/ -- pre-existing experiment page, not part of any of the 5 convergence lanes (Scout/Direct Connect/Community/Exchange/primitives).",
+      owner: "theme-convergence-packet",
+      reviewBy: "2026-09-01",
+    },
+    {
+      file: "ScoutFitters.tsx",
+      reason:
+        "client/src/pages/marketing/ -- marketing page, not part of any of the 5 convergence lanes.",
+      owner: "theme-convergence-packet",
+      reviewBy: "2026-09-01",
+    },
+    {
+      file: "scout-info-showcase.tsx",
+      reason:
+        "client/src/pages/ marketing/info page, not part of any of the 5 convergence lanes.",
+      owner: "theme-convergence-packet",
+      reviewBy: "2026-09-01",
+    },
+  ];
+  const exceptedFileNames = new Set(HEX_AND_GRADIENT_EXCEPTIONS.map((e) => e.file));
   // Allowed files for inline colors (component-specific)
   const allowedColorFiles = ["Icons", "Logo", "Theme"];
 
@@ -84,15 +121,14 @@ function main() {
     const allowHexByPath =
       /test-page/i.test(relativePath) || /\/demo\//i.test(relativePath) || /\/sandbox\//i.test(relativePath);
 
-    const isAllowedFile = [...allowedColorFiles, ...allowedScoutFiles].some((token) =>
-      fileName.includes(token)
-    );
+    const isAllowedFile = allowedColorFiles.some((token) => fileName.includes(token));
     if (isAllowedFile) continue;
+    const isExceptedFile = exceptedFileNames.has(fileName);
 
     const content = readFile(file);
     const lines = content.split(/\r?\n/);
 
-    if (!allowHexByPath) {
+    if (!allowHexByPath && !isExceptedFile) {
       for (let idx = 0; idx < lines.length; idx++) {
         const line = lines[idx] ?? "";
         if (!suspiciousHex.test(line)) continue;
@@ -116,8 +152,7 @@ function main() {
       }
     }
 
-    const isScoutFile = allowedScoutFiles.some((token) => fileName.includes(token));
-    if (!isScoutFile) {
+    if (!isExceptedFile) {
       for (let idx = 0; idx < lines.length; idx++) {
         const line = lines[idx] ?? "";
         if (

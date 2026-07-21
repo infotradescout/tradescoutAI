@@ -68,6 +68,19 @@ export default [
             'eqeqeq': ['error', 'always', { null: 'ignore' }],
 
             // Guardrails
+            'no-restricted-imports': [
+                'error',
+                {
+                    paths: [
+                        {
+                            name: '@/components/layout/PagePrimitives',
+                            importNames: ['Card', 'CardHeader', 'CardBody'],
+                            message:
+                                'PagePrimitives no longer exports Card/CardHeader/CardBody -- that competing Card was deleted as unused dead code during the theme convergence packet (Lane 1). Use Card/CardHeader/CardContent from @/components/ui/card instead.',
+                        },
+                    ],
+                },
+            ],
             'no-restricted-syntax': [
                 'warn',
                 {

@@ -1,142 +1,31 @@
 {
   "summary": {
-    "scannedFiles": 352,
-    "rootViolations": 12,
-    "filesWithViewportHeight": 12,
-    "filesWithBg": 262
+    "scannedFiles": 458,
+    "rootViolations": 3,
+    "filesWithViewportHeight": 3,
+    "filesWithBg": 286
   },
   "results": [
     {
-      "file": "client/src/pages/exchange/ExchangeListingDetail.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 3,
-          "lines": [
-            343,
-            351,
-            381
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 3,
-          "lines": [
-            343,
-            351,
-            381
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 38,
-          "lines": [
-            142,
-            149,
-            155,
-            343,
-            351
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/offer-services.tsx",
+      "file": "client/src/pages/ProfileSiteView.tsx",
       "isRootViolation": true,
       "hits": [
         {
           "pattern": "min-h-viewport",
           "count": 1,
           "lines": [
-            689
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            689
+            157
           ]
         },
         {
           "pattern": "bg-*",
-          "count": 39,
+          "count": 48,
           "lines": [
-            135,
-            141,
-            146,
-            689,
-            708
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 1,
-          "lines": [
-            629
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/procurement/ProcurementPages.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            145
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            145
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 40,
-          "lines": [
-            145,
-            166,
-            182,
-            186,
-            366
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            293
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            293
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 36,
-          "lines": [
-            293,
-            295,
-            308,
-            308,
-            334
+            139,
+            169,
+            169,
+            175,
+            177
           ]
         }
       ]
@@ -173,218 +62,32 @@
       ]
     },
     {
-      "file": "client/src/pages/exchange-rental-equipment.tsx",
+      "file": "client/src/pages/profile-sites/ProFabProfileTheme.tsx",
       "isRootViolation": true,
       "hits": [
         {
           "pattern": "min-h-viewport",
           "count": 1,
           "lines": [
-            77
+            90
           ]
         },
         {
           "pattern": "h-screen",
           "count": 1,
           "lines": [
-            77
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 21,
-          "lines": [
-            77,
-            86,
-            88,
-            96,
-            108
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/trade/TradeCountyPage.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            176
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            176
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 19,
-          "lines": [
-            123,
-            128,
-            128,
-            176,
-            180
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/exchange-rental-property.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            62
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            62
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 17,
-          "lines": [
-            62,
-            71,
-            73,
-            78,
-            89
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/profile-purchase-status.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            122
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            122
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 16,
-          "lines": [
-            122,
-            136,
-            140,
-            147,
-            157
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/county-directory.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            124
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            124
+            90
           ]
         },
         {
           "pattern": "bg-*",
           "count": 14,
           "lines": [
-            124,
-            135,
-            146,
-            196,
-            197
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/TradePartnersHub.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            195
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            195
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 12,
-          "lines": [
-            195,
-            203,
-            204,
-            219,
-            226
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/giveaway-rules.tsx",
-      "isRootViolation": true,
-      "hits": [
-        {
-          "pattern": "min-h-viewport",
-          "count": 1,
-          "lines": [
-            156
-          ]
-        },
-        {
-          "pattern": "h-screen",
-          "count": 1,
-          "lines": [
-            156
-          ]
-        },
-        {
-          "pattern": "bg-*",
-          "count": 6,
-          "lines": [
-            156,
-            171,
-            175,
-            179,
-            185
+            90,
+            91,
+            100,
+            117,
+            117
           ]
         }
       ]
@@ -412,7 +115,7 @@
       "hits": [
         {
           "pattern": "bg-*",
-          "count": 153,
+          "count": 152,
           "lines": [
             201,
             786,
@@ -477,6 +180,32 @@
       ]
     },
     {
+      "file": "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 114,
+          "lines": [
+            700,
+            728,
+            731,
+            750,
+            758
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 3,
+          "lines": [
+            1773,
+            1773,
+            1773
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/marketplace.tsx",
       "isRootViolation": false,
       "hits": [
@@ -500,6 +229,34 @@
             427,
             427,
             532
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 77,
+          "lines": [
+            203,
+            206,
+            215,
+            221,
+            246
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 18,
+          "lines": [
+            272,
+            272,
+            512,
+            512,
+            512
           ]
         }
       ]
@@ -682,23 +439,6 @@
       ]
     },
     {
-      "file": "client/src/pages/community-feed.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 55,
-          "lines": [
-            192,
-            193,
-            238,
-            239,
-            242
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/promotions.tsx",
       "isRootViolation": false,
       "hits": [
@@ -711,6 +451,79 @@
             88,
             88,
             89
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/ScoutHome.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 42,
+          "lines": [
+            465,
+            471,
+            477,
+            482,
+            558
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 13,
+          "lines": [
+            464,
+            464,
+            470,
+            470,
+            476
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/profile-sites/PremiumProductProfileSections.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 38,
+          "lines": [
+            90,
+            93,
+            135,
+            145,
+            155
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 16,
+          "lines": [
+            145,
+            145,
+            145,
+            145,
+            212
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/community-feed.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 53,
+          "lines": [
+            190,
+            191,
+            236,
+            237,
+            240
           ]
         }
       ]
@@ -1159,6 +972,47 @@
       ]
     },
     {
+      "file": "client/src/pages/offer-services.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 38,
+          "lines": [
+            135,
+            141,
+            146,
+            708,
+            721
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 1,
+          "lines": [
+            629
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/procurement/ProcurementPages.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 39,
+          "lines": [
+            166,
+            182,
+            186,
+            366,
+            370
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/event-management.tsx",
       "isRootViolation": false,
       "hits": [
@@ -1207,20 +1061,37 @@
           "pattern": "bg-*",
           "count": 34,
           "lines": [
-            430,
-            520,
-            529,
-            536,
-            546
+            459,
+            543,
+            552,
+            559,
+            569
           ]
         },
         {
           "pattern": "gradient",
           "count": 3,
           "lines": [
-            529,
-            529,
-            529
+            552,
+            552,
+            552
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/exchange/ExchangeListingDetail.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 36,
+          "lines": [
+            141,
+            148,
+            154,
+            395,
+            443
           ]
         }
       ]
@@ -1304,32 +1175,6 @@
       ]
     },
     {
-      "file": "client/src/pages/ProfileSettings.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 29,
-          "lines": [
-            851,
-            872,
-            882,
-            891,
-            914
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 3,
-          "lines": [
-            816,
-            1086,
-            1167
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/admin-commercial-contractors.tsx",
       "isRootViolation": false,
       "hits": [
@@ -1370,6 +1215,32 @@
             83,
             84,
             90
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/ProfileSettings.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 29,
+          "lines": [
+            851,
+            872,
+            882,
+            891,
+            914
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 3,
+          "lines": [
+            816,
+            1086,
+            1167
           ]
         }
       ]
@@ -1426,23 +1297,6 @@
       ]
     },
     {
-      "file": "client/src/pages/ProfileSiteView.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 31,
-          "lines": [
-            174,
-            374,
-            375,
-            380,
-            384
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/realtor-connections.tsx",
       "isRootViolation": false,
       "hits": [
@@ -1455,33 +1309,6 @@
             111,
             111,
             113
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/about.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 25,
-          "lines": [
-            142,
-            148,
-            179,
-            179,
-            185
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 4,
-          "lines": [
-            324,
-            324,
-            324,
-            324
           ]
         }
       ]
@@ -1602,8 +1429,8 @@
             206,
             215,
             215,
-            306,
-            307
+            308,
+            309
           ]
         }
       ]
@@ -1655,6 +1482,23 @@
             300,
             322,
             356
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/contractor-profile.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 27,
+          "lines": [
+            116,
+            120,
+            120,
+            235,
+            238
           ]
         }
       ]
@@ -1745,6 +1589,23 @@
       ]
     },
     {
+      "file": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 26,
+          "lines": [
+            279,
+            290,
+            292,
+            301,
+            319
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/community-builder/dashboard.tsx",
       "isRootViolation": false,
       "hits": [
@@ -1795,13 +1656,13 @@
       "hits": [
         {
           "pattern": "bg-*",
-          "count": 24,
+          "count": 25,
           "lines": [
-            47,
-            79,
-            80,
-            118,
-            131
+            55,
+            110,
+            111,
+            192,
+            205
           ]
         }
       ]
@@ -1913,6 +1774,23 @@
       ]
     },
     {
+      "file": "client/src/pages/BusinessProfileView.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 23,
+          "lines": [
+            331,
+            333,
+            336,
+            338,
+            339
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/car-sales-financing.tsx",
       "isRootViolation": false,
       "hits": [
@@ -1994,23 +1872,6 @@
       ]
     },
     {
-      "file": "client/src/pages/BusinessProfileView.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 22,
-          "lines": [
-            330,
-            332,
-            335,
-            337,
-            338
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/admin-cumulus-intelligence.tsx",
       "isRootViolation": false,
       "hits": [
@@ -2077,23 +1938,6 @@
             127,
             127,
             127
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/contractor-profile.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 22,
-          "lines": [
-            70,
-            74,
-            74,
-            159,
-            162
           ]
         }
       ]
@@ -2352,23 +2196,6 @@
       ]
     },
     {
-      "file": "client/src/pages/ProfileSiteEditor.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 20,
-          "lines": [
-            737,
-            744,
-            744,
-            757,
-            769
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/compare-homeadvisor.tsx",
       "isRootViolation": false,
       "hits": [
@@ -2441,6 +2268,23 @@
       ]
     },
     {
+      "file": "client/src/pages/exchange-rental-equipment.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 20,
+          "lines": [
+            86,
+            88,
+            96,
+            108,
+            108
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/license-verification.tsx",
       "isRootViolation": false,
       "hits": [
@@ -2453,6 +2297,40 @@
             188,
             191,
             210
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/ProfileSiteEditor.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 20,
+          "lines": [
+            762,
+            769,
+            769,
+            782,
+            794
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/PublicProfileView.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 20,
+          "lines": [
+            434,
+            442,
+            534,
+            536,
+            539
           ]
         }
       ]
@@ -2644,32 +2522,6 @@
       ]
     },
     {
-      "file": "client/src/pages/ProfilePage.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 15,
-          "lines": [
-            439,
-            449,
-            480,
-            521,
-            550
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 3,
-          "lines": [
-            684,
-            684,
-            684
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/background-check.tsx",
       "isRootViolation": false,
       "hits": [
@@ -2738,18 +2590,85 @@
       ]
     },
     {
-      "file": "client/src/pages/PublicProfileView.tsx",
+      "file": "client/src/pages/ProfilePage.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 15,
+          "lines": [
+            439,
+            449,
+            480,
+            521,
+            550
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 3,
+          "lines": [
+            684,
+            684,
+            684
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/trade/TradeCountyPage.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 18,
+          "lines": [
+            123,
+            128,
+            128,
+            180,
+            192
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/community.tsx",
       "isRootViolation": false,
       "hits": [
         {
           "pattern": "bg-*",
           "count": 17,
           "lines": [
-            417,
-            425,
-            517,
-            519,
-            522
+            170,
+            405,
+            410,
+            411,
+            421
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/pensacola.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 16,
+          "lines": [
+            78,
+            78,
+            91,
+            100,
+            100
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 1,
+          "lines": [
+            74
           ]
         }
       ]
@@ -2783,30 +2702,6 @@
       ]
     },
     {
-      "file": "client/src/pages/pensacola.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 16,
-          "lines": [
-            78,
-            78,
-            91,
-            100,
-            100
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 1,
-          "lines": [
-            74
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/administrative-dashboard.tsx",
       "isRootViolation": false,
       "hits": [
@@ -2824,44 +2719,18 @@
       ]
     },
     {
-      "file": "client/src/pages/community.tsx",
+      "file": "client/src/pages/exchange-rental-property.tsx",
       "isRootViolation": false,
       "hits": [
         {
           "pattern": "bg-*",
           "count": 16,
           "lines": [
-            164,
-            399,
-            404,
-            405,
-            415
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/for-businesses.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 13,
-          "lines": [
-            79,
-            79,
-            91,
-            103,
-            111
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 3,
-          "lines": [
-            15,
-            47,
-            62
+            71,
+            73,
+            78,
+            89,
+            89
           ]
         }
       ]
@@ -2889,34 +2758,6 @@
             97,
             97,
             97
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/pricing.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 9,
-          "lines": [
-            67,
-            97,
-            99,
-            115,
-            117
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 7,
-          "lines": [
-            40,
-            56,
-            57,
-            136,
-            136
           ]
         }
       ]
@@ -3112,6 +2953,23 @@
       ]
     },
     {
+      "file": "client/src/pages/profile-purchase-status.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 15,
+          "lines": [
+            136,
+            140,
+            147,
+            157,
+            188
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/realtor-application.tsx",
       "isRootViolation": false,
       "hits": [
@@ -3268,6 +3126,23 @@
       ]
     },
     {
+      "file": "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 14,
+          "lines": [
+            84,
+            85,
+            94,
+            111,
+            111
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/admin-address-verifications.tsx",
       "isRootViolation": false,
       "hits": [
@@ -3349,6 +3224,23 @@
             169,
             169,
             169
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/county-directory.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 13,
+          "lines": [
+            135,
+            146,
+            196,
+            197,
+            206
           ]
         }
       ]
@@ -3451,6 +3343,57 @@
             90,
             101,
             101
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/for-businesses.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 11,
+          "lines": [
+            101,
+            121,
+            121,
+            140,
+            159
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 1,
+          "lines": [
+            80
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/ScoutOS.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 8,
+          "lines": [
+            5174,
+            5188,
+            5202,
+            5287,
+            5380
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 4,
+          "lines": [
+            1931,
+            2701,
+            4648,
+            4719
           ]
         }
       ]
@@ -3620,6 +3563,32 @@
       ]
     },
     {
+      "file": "client/src/pages/pricing.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 8,
+          "lines": [
+            67,
+            95,
+            97,
+            114,
+            116
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 3,
+          "lines": [
+            114,
+            114,
+            114
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/register.tsx",
       "isRootViolation": false,
       "hits": [
@@ -3654,18 +3623,45 @@
       ]
     },
     {
-      "file": "client/src/pages/DashboardSettings.tsx",
+      "file": "client/src/pages/TradePartnersHub.tsx",
       "isRootViolation": false,
       "hits": [
         {
           "pattern": "bg-*",
-          "count": 10,
+          "count": 11,
           "lines": [
-            129,
-            129,
-            157,
-            157,
-            157
+            203,
+            204,
+            219,
+            226,
+            226
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/SystemAnchor.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 7,
+          "lines": [
+            12,
+            17,
+            27,
+            49,
+            51
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 4,
+          "lines": [
+            12,
+            12,
+            12,
+            12
           ]
         }
       ]
@@ -3700,6 +3696,23 @@
             311,
             312,
             325
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/DashboardSettings.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 10,
+          "lines": [
+            129,
+            129,
+            157,
+            157,
+            157
           ]
         }
       ]
@@ -3833,6 +3846,23 @@
       ]
     },
     {
+      "file": "client/src/pages/contractor-promo-detail.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 9,
+          "lines": [
+            60,
+            62,
+            64,
+            66,
+            67
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/daily-deals.tsx",
       "isRootViolation": false,
       "hits": [
@@ -3876,6 +3906,40 @@
       ]
     },
     {
+      "file": "client/src/pages/handmade-product-detail.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 9,
+          "lines": [
+            112,
+            114,
+            116,
+            118,
+            119
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/profile-service-offer-detail.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 9,
+          "lines": [
+            86,
+            88,
+            90,
+            92,
+            93
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/reset-password.tsx",
       "isRootViolation": false,
       "hits": [
@@ -3883,11 +3947,11 @@
           "pattern": "bg-*",
           "count": 9,
           "lines": [
-            126,
-            145,
-            151,
-            151,
-            165
+            140,
+            159,
+            165,
+            165,
+            179
           ]
         }
       ]
@@ -3951,11 +4015,11 @@
           "pattern": "bg-*",
           "count": 8,
           "lines": [
-            137,
-            315,
-            315,
-            332,
-            334
+            150,
+            337,
+            337,
+            354,
+            356
           ]
         }
       ]
@@ -4105,6 +4169,23 @@
       ]
     },
     {
+      "file": "client/src/pages/contractor-promos.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 7,
+          "lines": [
+            216,
+            217,
+            252,
+            590,
+            622
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/datasets/DatasetsLandingPage.tsx",
       "isRootViolation": false,
       "hits": [
@@ -4197,30 +4278,6 @@
       ]
     },
     {
-      "file": "client/src/pages/CommunityFeed.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 5,
-          "lines": [
-            146,
-            148,
-            150,
-            152,
-            154
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 1,
-          "lines": [
-            118
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/admin-tradepartner-rsvps.tsx",
       "isRootViolation": false,
       "hits": [
@@ -4262,6 +4319,47 @@
       ]
     },
     {
+      "file": "client/src/pages/community-post-detail.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 6,
+          "lines": [
+            74,
+            142,
+            149,
+            157,
+            199
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/CommunityFeed.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 5,
+          "lines": [
+            146,
+            148,
+            150,
+            152,
+            154
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 1,
+          "lines": [
+            118
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/contractor-dashboard.tsx",
       "isRootViolation": false,
       "hits": [
@@ -4274,23 +4372,6 @@
             111,
             132,
             142
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/contractor-promos.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 6,
-          "lines": [
-            182,
-            183,
-            479,
-            511,
-            513
           ]
         }
       ]
@@ -4313,24 +4394,18 @@
       ]
     },
     {
-      "file": "client/src/pages/CommunityProfile.tsx",
+      "file": "client/src/scout/modules/ServiceDirectoryModule.tsx",
       "isRootViolation": false,
       "hits": [
         {
           "pattern": "bg-*",
-          "count": 2,
+          "count": 6,
           "lines": [
-            142,
-            161
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 3,
-          "lines": [
-            142,
-            142,
-            142
+            31,
+            39,
+            51,
+            53,
+            87
           ]
         }
       ]
@@ -4376,6 +4451,29 @@
       ]
     },
     {
+      "file": "client/src/pages/CommunityProfile.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 2,
+          "lines": [
+            142,
+            161
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 3,
+          "lines": [
+            142,
+            142,
+            142
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/county-hub.tsx",
       "isRootViolation": false,
       "hits": [
@@ -4388,6 +4486,23 @@
             31,
             44,
             44
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/giveaway-rules.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 5,
+          "lines": [
+            171,
+            175,
+            179,
+            185,
+            201
           ]
         }
       ]
@@ -4456,22 +4571,6 @@
             38,
             50,
             50
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/Unauthorized.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 4,
-          "lines": [
-            8,
-            24,
-            24,
-            30
           ]
         }
       ]
@@ -4574,6 +4673,53 @@
             172,
             218,
             225
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/Unauthorized.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 4,
+          "lines": [
+            8,
+            24,
+            24,
+            30
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/modules/EventDiscoveryModule.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 4,
+          "lines": [
+            54,
+            55,
+            61,
+            93
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/about-explainer-content.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "gradient",
+          "count": 3,
+          "lines": [
+            203,
+            449,
+            1265
           ]
         }
       ]
@@ -4772,9 +4918,9 @@
           "pattern": "bg-*",
           "count": 3,
           "lines": [
-            1119,
-            1120,
-            1941
+            1134,
+            1135,
+            1956
           ]
         }
       ]
@@ -4825,15 +4971,61 @@
       ]
     },
     {
-      "file": "client/src/pages/BusinessProfileEditor.tsx",
+      "file": "client/src/pages/profile-sites/TradeScoutProfileHandoff.tsx",
       "isRootViolation": false,
       "hits": [
         {
           "pattern": "bg-*",
-          "count": 2,
+          "count": 3,
           "lines": [
-            768,
-            891
+            68,
+            83,
+            83
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/modules/GasTrackerModule.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 3,
+          "lines": [
+            38,
+            39,
+            51
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/scoutIntentSorter.ts",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "gradient",
+          "count": 3,
+          "lines": [
+            377,
+            938,
+            956
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/ScoutTrending.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 3,
+          "lines": [
+            75,
+            112,
+            134
           ]
         }
       ]
@@ -4862,6 +5054,20 @@
           "lines": [
             105,
             108
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/BusinessProfileEditor.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 2,
+          "lines": [
+            768,
+            891
           ]
         }
       ]
@@ -4979,6 +5185,20 @@
       ]
     },
     {
+      "file": "client/src/pages/tradescoutExplainerData.ts",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "gradient",
+          "count": 2,
+          "lines": [
+            457,
+            1379
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/vehicles.tsx",
       "isRootViolation": false,
       "hits": [
@@ -4993,14 +5213,70 @@
       ]
     },
     {
-      "file": "client/src/pages/CrmDashboard.tsx",
+      "file": "client/src/scout/ClaimConfirmationCard.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 2,
+          "lines": [
+            61,
+            74
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/ScoutLaunchContextCard.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 2,
+          "lines": [
+            61,
+            64
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/ScoutToolsDrawer.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 2,
+          "lines": [
+            37,
+            44
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/ScoutWorkAreaSheet.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 2,
+          "lines": [
+            42,
+            71
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/about.tsx",
       "isRootViolation": false,
       "hits": [
         {
           "pattern": "bg-*",
           "count": 1,
           "lines": [
-            822
+            26
           ]
         }
       ]
@@ -5066,6 +5342,19 @@
           "count": 1,
           "lines": [
             8
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/CrmDashboard.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 1,
+          "lines": [
+            822
           ]
         }
       ]
@@ -5175,19 +5464,6 @@
       ]
     },
     {
-      "file": "client/src/pages/for-businesses.contract.test.ts",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "gradient",
-          "count": 1,
-          "lines": [
-            15
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/legal/remote-notary.tsx",
       "isRootViolation": false,
       "hits": [
@@ -5214,34 +5490,56 @@
       ]
     },
     {
-      "file": "client/src/pages/CommunityModerationDemo.tsx",
+      "file": "client/src/scout/scoutExperience.ts",
       "isRootViolation": false,
-      "hits": []
+      "hits": [
+        {
+          "pattern": "gradient",
+          "count": 1,
+          "lines": [
+            647
+          ]
+        }
+      ]
     },
     {
-      "file": "client/src/pages/TradePartnerCountyLanding.tsx",
+      "file": "client/src/scout/ScoutHeader.tsx",
       "isRootViolation": false,
-      "hits": []
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 1,
+          "lines": [
+            25
+          ]
+        }
+      ]
     },
     {
-      "file": "client/src/pages/TradePartnerCumulusLanding.contract.test.ts",
+      "file": "client/src/scout/ScoutResultActionCard.tsx",
       "isRootViolation": false,
-      "hits": []
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 1,
+          "lines": [
+            147
+          ]
+        }
+      ]
     },
     {
-      "file": "client/src/pages/TradePartnerCumulusLanding.tsx",
+      "file": "client/src/scout/UniversalToolTray.tsx",
       "isRootViolation": false,
-      "hits": []
-    },
-    {
-      "file": "client/src/pages/TradePartnersHub.contract.test.ts",
-      "isRootViolation": false,
-      "hits": []
-    },
-    {
-      "file": "client/src/pages/TradeScoutLandingPage.tsx",
-      "isRootViolation": false,
-      "hits": []
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 1,
+          "lines": [
+            31
+          ]
+        }
+      ]
     },
     {
       "file": "client/src/pages/admin-audit-log.contract.test.ts",
@@ -5334,6 +5632,11 @@
       "hits": []
     },
     {
+      "file": "client/src/pages/CommunityModerationDemo.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
       "file": "client/src/pages/compare-community.tsx",
       "isRootViolation": false,
       "hits": []
@@ -5364,16 +5667,6 @@
       "hits": []
     },
     {
-      "file": "client/src/pages/direct-connect/DirectConnectNotificationsCenter.contract.test.ts",
-      "isRootViolation": false,
-      "hits": []
-    },
-    {
-      "file": "client/src/pages/direct-connect/WhyThisJobModal.tsx",
-      "isRootViolation": false,
-      "hits": []
-    },
-    {
       "file": "client/src/pages/direct-connect/direct-connect-mobile-ux.contract.test.ts",
       "isRootViolation": false,
       "hits": []
@@ -5390,6 +5683,11 @@
     },
     {
       "file": "client/src/pages/direct-connect/directConnectEntryContext.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/direct-connect/DirectConnectNotificationsCenter.contract.test.ts",
       "isRootViolation": false,
       "hits": []
     },
@@ -5430,6 +5728,16 @@
     },
     {
       "file": "client/src/pages/direct-connect/requestCardPresentation.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/direct-connect/WhyThisJobModal.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/exchange/categoryConfigs.tsx",
       "isRootViolation": false,
       "hits": []
     },
@@ -5499,7 +5807,7 @@
       "hits": []
     },
     {
-      "file": "client/src/pages/exchange/categoryConfigs.tsx",
+      "file": "client/src/pages/for-businesses.contract.test.ts",
       "isRootViolation": false,
       "hits": []
     },
@@ -5555,6 +5863,11 @@
     },
     {
       "file": "client/src/pages/messages.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/property-build.tsx",
       "isRootViolation": false,
       "hits": []
     },
@@ -5635,6 +5948,416 @@
     },
     {
       "file": "client/src/pages/trade-deals-lucky.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/TradePartnerCountyLanding.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/TradePartnerCumulusLanding.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/TradePartnerCumulusLanding.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/TradePartnersHub.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/pages/TradeScoutLandingPage.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/actionValidation.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/actionValidation.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/api.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/claimInference.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/claimTypes.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/contextRoles.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/contextRoles.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ctaHelpers.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/helpSources.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/hooks/useScoutHomeSnapshot.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/hooks/useScoutLocation.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/index.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/IntelligenceLayer.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/intentDetails.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/intentDetails.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/localIntents.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/localIntents.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/messageBuilders.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/messageBuilders.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/MorphicRenderer.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ObjectiveChip.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ObjectiveOnboardingFlow.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/OnboardingPrompt.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/PostOnboardingActionCard.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/provenance.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/provenance.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/resolvePostOnboardingActions.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/resolveScoutTiles.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/responseQuality.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/responseQuality.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/roleHelpers.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scout-authority-routing.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scout-entry-framing.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scout-home-personalization.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scout-location-authority.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scout-result-action-card-lifecycle.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scout-result-action-card.contract.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scout.eval.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutActionRouter.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutActionRouter.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutActionTiles.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutCommandRegistry.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutContextCards.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutContextCards.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutDirectConnectPanel.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutHasDonePanel.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutHumanFeel.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutInput.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutInputRow.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutIntegrationDemo.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutIntentSorter.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutLearningOptions.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutLearningOptions.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutMaterialSignals.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutModeTypes.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutOnboardingSession.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutQuickStartPrompts.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutQuickStartPrompts.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutSearchDock.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutThread.evidence.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ScoutThread.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutTiles.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutWorkAreas.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/scoutWorkAreas.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/state.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/textUtils.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/ToneAwareMessage.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/toolIntegrationExamples.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/TrustAwareDecisionCard.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/TrustSignalCard.tsx",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/unifiedRouterClient.test.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/unifiedRouterClient.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/useScoutController.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/useScoutLocalHandlers.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/useScoutMode.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/useScoutOnboarding.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/WatchdogInterventionBanner.tsx",
       "isRootViolation": false,
       "hits": []
     }

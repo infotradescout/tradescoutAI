@@ -213,7 +213,7 @@ export function ScoutInputRow({
         style={
           isFocused
             ? {
-                borderColor: "#f97316",
+                borderColor: "var(--theme-accent-primary)",
                 boxShadow: "0 0 0 3px rgba(249,115,22,0.12), 0 0 20px rgba(249,115,22,0.08)",
               }
             : {}

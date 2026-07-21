@@ -2,7 +2,13 @@ import fs from "fs";
 import path from "path";
 
 const ROOT = process.cwd();
-const PAGES_DIR = path.join(ROOT, "client", "src", "pages");
+// Scout previously had no coverage at all here -- this script only ever
+// walked client/src/pages/**, so client/src/scout/** (ScoutHome.tsx et al.)
+// was structurally invisible to it regardless of content.
+const SCAN_DIRS = [
+  path.join(ROOT, "client", "src", "pages"),
+  path.join(ROOT, "client", "src", "scout"),
+];
 
 const TARGET_EXTS = new Set([".ts", ".tsx"]);
 const PATTERNS = [
@@ -56,7 +62,7 @@ function scanFile(filePath) {
   return { file: rel, isRootViolation, hits };
 }
 
-const files = walk(PAGES_DIR);
+const files = SCAN_DIRS.flatMap((dir) => walk(dir));
 const results = files.map(scanFile);
 
 results.sort((a, b) => {

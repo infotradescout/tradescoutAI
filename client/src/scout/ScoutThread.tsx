@@ -623,7 +623,10 @@ function ClusterCard({
             >
               <Bookmark className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ts-orange" />
               <span className="min-w-0">
-                <span className="block text-[13px] font-semibold" style={{ color: "#fafafa" }}>
+                <span
+                  className="block text-[13px] font-semibold"
+                  style={{ color: "var(--text-primary)" }}
+                >
                   {item.label}
                 </span>
                 {item.description && (
