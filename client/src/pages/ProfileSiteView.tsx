@@ -474,7 +474,21 @@ export default function ProfileSiteView() {
 
     const guardKey = "__tradeScoutProfileHistoryBoundary";
     const currentState = (window.history.state || {}) as Record<string, unknown>;
-    let safeReturnHref = getSafeTradeScoutHome();
+    // On a business's own custom domain, a visitor who isn't signed in and
+    // didn't arrive from thetradescout.com should never get bounced there --
+    // that's exclusively the footer's job. Default the back-button safety net
+    // to the current domain's own root; only thetradescout.com itself (or a
+    // referrer that was actually thetradescout.com, handled below) sends
+    // visitors to the TradeScout home.
+    const currentHost = window.location.hostname.toLowerCase();
+    const isPrimaryTradeScoutHost =
+      currentHost === "thetradescout.com" ||
+      currentHost === "www.thetradescout.com" ||
+      currentHost === "localhost" ||
+      currentHost === "127.0.0.1";
+    let safeReturnHref = isPrimaryTradeScoutHost
+      ? getSafeTradeScoutHome()
+      : `${window.location.origin}/`;
 
     try {
       const referrer = new URL(document.referrer);
@@ -847,7 +861,7 @@ export default function ProfileSiteView() {
         : `/direct-connect?profile=${encodeURIComponent(profile.slug)}`;
   const preScoutCreateHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(directConnectHref)}`;
   const preScoutSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(directConnectHref)}`;
-  const profileActionSignInHref = `${platformBaseHref}/pre-scout-setup?mode=signin&next=${encodeURIComponent(
+  const profileActionSignInHref = `/pre-scout-setup?mode=signin&next=${encodeURIComponent(
     `/u/${profile.slug}`
   )}`;
   const renderProfileTrustActions = (tone: "light" | "dark") => (
@@ -961,6 +975,8 @@ export default function ProfileSiteView() {
       siteTemplate={siteTemplate}
       editMode={manageEditMode}
       platformBaseHref={platformBaseHref}
+      customDomain={profileCustomDomain || null}
+      isOnCustomDomain={isOnProfileCustomDomain}
       onSaved={() => setReloadKey((current) => current + 1)}
       onToggleEdit={(next) => {
         setManageEditMode(next);
