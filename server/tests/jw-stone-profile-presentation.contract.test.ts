@@ -10,6 +10,10 @@ const expressSource = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx"),
   "utf8"
 );
+const weeklyRotationSource = fs.readFileSync(
+  path.resolve(process.cwd(), "client/src/lib/weeklyFeaturedRotation.ts"),
+  "utf8"
+);
 
 describe("JW Stone profile presentation contract", () => {
   it("uses the branded video hero with a restrained, reduced-motion-safe crop", () => {
@@ -43,14 +47,19 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('id="inventory-browser"');
   });
 
-  it("presents a premium featured-offer row without fashion-copy language", () => {
-    expect(source).toContain("Featured stone offers");
+  it("presents a premium featured row, rotating weekly, without fashion-copy language or pricing", () => {
+    expect(source).toContain("Featured this week");
     expect(source).not.toContain("The JW Stone edit");
     expect(source).toContain("Stone worth building around.");
-    expect(source).toContain("Three standouts from the current collection");
-    expect(source).toContain("offer.availability");
-    expect(source).toMatch(/slug: "rhino-white"[\s\S]{0,260}badge: "New inventory"/);
-    expect(source).toContain("offer.badge");
+    expect(source).toContain("Three picks from the current collection, refreshed every Monday.");
+    // Rotates the same 3 stones for everyone all week (Monday boundary), not a
+    // per-visitor/per-render shuffle, and not hardcoded to specific stones.
+    expect(source).toContain('from "@/lib/weeklyFeaturedRotation"');
+    expect(source).toContain("pickWeeklyRandomStones(allInventoryStones, 3)");
+    expect(weeklyRotationSource).toContain("getIsoWeekMondayKey");
+    expect(source).not.toContain("JW_STONE_FEATURED_OFFERS");
+    expect(source).not.toContain("offer.price");
+    expect(source).not.toContain('slug: "rhino-white"');
   });
 
   it("shows featured inventory as image-forward product cards", () => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode, type SyntheticEvent } from "react";
 import { Link, useLocation } from "wouter";
 import {
   ArrowLeft,
@@ -25,6 +25,7 @@ import ExpressDirectConnectPanel, {
 import TradeScoutProfileHandoff from "./TradeScoutProfileHandoff";
 import PremiumProductProfileSections from "./PremiumProductProfileSections";
 import { ShareButton } from "@/components/ShareButton";
+import { pickWeeklyRandomStones } from "@/lib/weeklyFeaturedRotation";
 import {
   buildProfileInventoryShareSearch,
   resolveProfileInventoryItem,
@@ -228,36 +229,6 @@ const JW_STONE_PICK_SLUGS = new Set([
   "taj-mahal",
   "titanium",
 ]);
-
-const JW_STONE_FEATURED_OFFERS = [
-  {
-    slug: "taj-mahal",
-    material: "Quartzite",
-    finish: "Polished",
-    price: "$26.95/sf",
-    size: "126 × 79",
-    availability: "27 slabs",
-    badge: null,
-  },
-  {
-    slug: "titanium",
-    material: "Granite",
-    finish: "Leathered",
-    price: "$13.50/sf",
-    size: "115 × 76",
-    availability: "6 slabs",
-    badge: null,
-  },
-  {
-    slug: "rhino-white",
-    material: "Marble",
-    finish: "Polished",
-    price: "$26.50/sf",
-    size: "111 × 69.25",
-    availability: "7 slabs",
-    badge: "New inventory",
-  },
-] as const;
 
 // Horizontal, scroll-snapped rows keep the page short and let visitors jump
 // straight to what they came for instead of scrolling past every section.
@@ -498,13 +469,26 @@ export default function WholesalerProfileTheme({
     normalizedInventorySearch ? stone.name.toLowerCase().includes(normalizedInventorySearch) : true
   );
   const displayedStones = visibleStones.slice(0, inventoryVisibleLimit);
-  const featuredStones =
-    profileSlug === "jw-stone"
-      ? JW_STONE_FEATURED_OFFERS.map((offer) => ({
-          ...offer,
-          stone: allInventoryStones.find((stone) => stone.slug === offer.slug),
-        }))
-      : [];
+  const stoneCategoryBySlug = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const category of inventoryCatalog) {
+      for (const stone of category.stones) {
+        map.set(stone.slug, category.category);
+      }
+    }
+    return map;
+  }, [inventoryCatalog]);
+  // Rotates weekly (Monday), not per visitor/render -- see pickWeeklyRandomStones.
+  // Prices are intentionally not part of this section; see the section copy below.
+  const featuredStones = useMemo(() => {
+    if (profileSlug !== "jw-stone") return [];
+    return pickWeeklyRandomStones(allInventoryStones, 3).map((stone) => ({
+      slug: stone.slug,
+      stone,
+      material: stoneCategoryBySlug.get(stone.slug) || "",
+      finish: stone.finishes?.[0],
+    }));
+  }, [profileSlug, allInventoryStones, stoneCategoryBySlug]);
   const hasInventoryFilters = activeCategorySlug !== "all" || normalizedInventorySearch.length > 0;
   useEffect(() => {
     setInventoryVisibleLimit(24);
@@ -1026,7 +1010,7 @@ export default function WholesalerProfileTheme({
               <button
                 type="button"
                 onClick={openFullInventory}
-                className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-white/12 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
+                className="group flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-[var(--brand-accent)] bg-white/12 px-6 py-3 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
               >
                 Browse full inventory
                 <ChevronRight className="h-4 w-4 flex-shrink-0 transition-transform group-hover:translate-x-0.5" />
@@ -1037,7 +1021,7 @@ export default function WholesalerProfileTheme({
                 onClick={() =>
                   document.getElementById("collection")?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                className="flex min-h-14 items-center justify-center gap-2 rounded-full border-2 border-[var(--brand-accent)] bg-white/12 px-7 py-3.5 text-sm font-extrabold text-[var(--brand-accent)] backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/20"
               >
                 {premiumProductData ? "See the material" : "Explore Inventory"}
               </button>
@@ -1045,7 +1029,7 @@ export default function WholesalerProfileTheme({
             <button
               type="button"
               onClick={() => startDirectConnect()}
-              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3 text-sm font-extrabold text-ts-orange-light shadow-[0_12px_36px_rgba(0,0,0,0.3)] backdrop-blur-xl transition-colors hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
+              className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border-2 border-ts-orange bg-white/12 px-6 py-3 text-sm font-extrabold text-ts-orange-light backdrop-blur-xl transition-colors hover:bg-white/20 md:min-h-14 md:rounded-full md:py-3.5"
             >
               Direct Connect
               <ChevronRight className="h-4 w-4" />
@@ -1120,7 +1104,7 @@ export default function WholesalerProfileTheme({
                   <div className={inventoryExpanded ? "mb-11" : "mb-0"}>
                     <div className="mb-5 max-w-2xl">
                       <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--brand-accent)] md:text-xs">
-                        Featured stone offers
+                        Featured this week
                       </p>
                       <h2
                         className={`mt-1.5 text-[1.7rem] font-extrabold leading-tight text-[var(--brand-primary)] md:text-4xl ${DISPLAY_FONT}`}
@@ -1128,8 +1112,7 @@ export default function WholesalerProfileTheme({
                         Stone worth building around.
                       </h2>
                       <p className="mt-2 max-w-xl text-sm font-medium leading-relaxed !text-[#4a4238] md:text-base">
-                        Three standouts from the current collection, priced and ready for the next
-                        project.
+                        Three picks from the current collection, refreshed every Monday.
                       </p>
                     </div>
                     <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0">
@@ -1161,9 +1144,11 @@ export default function WholesalerProfileTheme({
                                   className="h-full w-full bg-[#e9e5dc] object-contain p-1 transition-transform duration-500 group-hover:scale-[1.02]"
                                 />
                               </button>
-                              <span className="absolute left-2 top-2 inline-flex items-center rounded-full border border-white/40 bg-black/55 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
-                                {offer.availability}
-                              </span>
+                              {stone.images.length > 1 ? (
+                                <span className="absolute left-2 top-2 inline-flex items-center rounded-full border border-white/40 bg-black/55 px-2 py-1 text-[8px] font-bold uppercase tracking-[0.12em] text-white backdrop-blur-sm sm:left-3 sm:top-3 sm:px-2.5 sm:text-[9px]">
+                                  {stone.images.length} photos
+                                </span>
+                              ) : null}
                               <ShareButton
                                 destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
                                 title={stone.name}
@@ -1172,11 +1157,9 @@ export default function WholesalerProfileTheme({
                                 label=""
                                 className="absolute right-2 top-2 rounded-full border-white/25 bg-black/70 text-white hover:bg-black sm:right-3 sm:top-3"
                               />
-                              {offer.badge ? (
-                                <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[var(--brand-accent)] px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[#16200b] shadow-md sm:bottom-3 sm:left-3 sm:px-2.5 sm:text-[9px]">
-                                  {offer.badge}
-                                </span>
-                              ) : null}
+                              <span className="absolute bottom-2 left-2 inline-flex items-center rounded-full bg-[var(--brand-accent)] px-2 py-1 text-[8px] font-extrabold uppercase tracking-[0.1em] text-[#16200b] shadow-md sm:bottom-3 sm:left-3 sm:px-2.5 sm:text-[9px]">
+                                This week
+                              </span>
                               <span className="pointer-events-none absolute bottom-2 right-2 text-[9px] font-bold tracking-[0.14em] text-white [text-shadow:0_1px_5px_rgba(0,0,0,0.85)] sm:bottom-3 sm:right-3 sm:text-[10px]">
                                 0{offerIndex + 1}
                               </span>
@@ -1189,23 +1172,7 @@ export default function WholesalerProfileTheme({
                                 {offer.material}
                                 {offer.finish ? ` · ${offer.finish}` : ""}
                               </p>
-                              <div className="mt-2.5 flex items-end justify-start gap-2 border-t border-[#241d0f]/10 pt-2.5">
-                                <div>
-                                  <p className="text-[10px] font-semibold uppercase tracking-wide !text-[#4a4238]">
-                                    Size
-                                  </p>
-                                  <p className="text-xs font-bold !text-[#241d0f]">{offer.size}</p>
-                                </div>
-                              </div>
-                              <div className="hidden text-right sm:mt-1 sm:block">
-                                <p className="text-[10px] font-semibold uppercase tracking-wide !text-[#4a4238]">
-                                  Available
-                                </p>
-                                <p className="text-xs font-bold !text-[#241d0f]">
-                                  {offer.availability}
-                                </p>
-                              </div>
-                              <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                              <div className="mt-3 grid grid-cols-1 gap-2 border-t border-[#241d0f]/10 pt-3 sm:grid-cols-2">
                                 <button
                                   type="button"
                                   onClick={() => {
