@@ -84,3 +84,40 @@ describe("theme audit scripts -- regression fixtures for the closed blind spots"
     expect(hit?.hits.some((h) => h.pattern === "bg-*")).toBe(true);
   });
 });
+
+describe("client/src/scout/ -- zero-tolerance clean zone (Lane 2)", () => {
+  it("has no forbidden hex/gradient values across the whole directory except the one documented, out-of-scope exception", () => {
+    // ScoutThread.tsx's progress-bar gradient stop (#ea580c) has no existing
+    // token equivalent and resolving it would mean inventing a new token,
+    // which Lane 1/2 both explicitly exclude -- see scripts/audit-theme-lock.mjs's
+    // HEX_AND_GRADIENT_EXCEPTIONS. Every other file under client/src/scout/
+    // must have zero exceptions: this test fails the moment a new one is
+    // added without a deliberate, reviewed change here.
+    const auditSource = fs.readFileSync(path.join(ROOT, "scripts/audit-theme-lock.mjs"), "utf8");
+    const exceptionBlockMatch = auditSource.match(
+      /HEX_AND_GRADIENT_EXCEPTIONS = \[([\s\S]*?)\n  \];/
+    );
+    expect(exceptionBlockMatch).toBeTruthy();
+    const exceptionBlock = exceptionBlockMatch![1];
+
+    const scoutFiles = fs
+      .readdirSync(path.join(ROOT, "client/src/scout"))
+      .filter((f) => f.endsWith(".tsx") || f.endsWith(".ts"));
+    const exemptedScoutFiles = scoutFiles.filter((f) => exceptionBlock.includes(`file: "${f}"`));
+    expect(exemptedScoutFiles).toEqual(["ScoutThread.tsx"]);
+  });
+
+  it("ScoutHome.tsx specifically has zero raw surface/border/text-hierarchy classes left (Lane 2 deliverable)", () => {
+    const source = fs.readFileSync(path.join(ROOT, "client/src/scout/ScoutHome.tsx"), "utf8");
+    expect(source).not.toMatch(/\b(zinc|slate|gray|neutral|stone)-\d+\b/);
+    expect(source).not.toMatch(/\btext-white\b/);
+    expect(source).not.toMatch(/\bbg-black\b|\bbg-white\b/);
+    expect(source).not.toMatch(/#[0-9a-fA-F]{6}/);
+    // Semantic multi-hue status/category coding (toneClasses, iconClass maps)
+    // is intentionally out of scope -- it represents distinct content
+    // categories, not page chrome, matching the same pattern already
+    // accepted in the already-wired ScoutOS.tsx (emerald-50/emerald-700).
+    expect(source).toContain("bg-[var(--surface-card)]");
+    expect(source).toContain("border-[var(--border-primary)]");
+  });
+});

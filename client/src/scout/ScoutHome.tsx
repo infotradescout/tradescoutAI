@@ -488,15 +488,20 @@ function ScoutHero({ locationLabel }: { locationLabel?: string }) {
   return (
     <section className="px-4 pt-3 pb-1">
       <div className="mb-1 flex items-center justify-between">
-        <h1 className="text-4xl font-black tracking-tight text-white">{t("scout.title")}</h1>
+        <h1 className="text-4xl font-black tracking-tight text-[var(--text-primary)]">
+          {t("scout.title")}
+        </h1>
         <LanguageSwitcher />
       </div>
-      <button type="button" className="mt-1.5 inline-flex items-center gap-2 text-sm text-zinc-300">
+      <button
+        type="button"
+        className="mt-1.5 inline-flex items-center gap-2 text-sm text-[var(--text-secondary)]"
+      >
         <MapPin className="h-4 w-4 text-ts-orange" />
         {locationLabel || t("scout.setLocation")}
         <ChevronDown className="h-4 w-4" />
       </button>
-      <p className="mt-2 max-w-[460px] text-sm leading-relaxed text-zinc-400">
+      <p className="mt-2 max-w-[460px] text-sm leading-relaxed text-[var(--text-secondary)]">
         Search, compare, or keep local work moving. You review before anything is shared.
       </p>
     </section>
@@ -555,13 +560,13 @@ function ScoutStartCard({
 
   return (
     <section className="px-4 pt-3">
-      <div className="overflow-hidden rounded-2xl border border-orange-500/25 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.16),rgba(9,9,11,0.98)_45%)] shadow-[0_18px_60px_rgba(0,0,0,0.24)]">
+      <div className="overflow-hidden rounded-2xl border border-[var(--theme-accent-primary)]/25 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--theme-accent-primary)_16%,transparent),color-mix(in_oklab,var(--surface-card)_98%,black)_45%)] shadow-[var(--surface-card-shadow)]">
         <div className="p-4 sm:p-5">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">Start here</p>
-          <h2 className="mt-1 text-2xl font-black leading-tight text-white">
+          <h2 className="mt-1 text-2xl font-black leading-tight text-[var(--text-primary)]">
             What should we solve?
           </h2>
-          <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+          <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
             Describe it below, or choose a common starting point.
           </p>
 
@@ -573,18 +578,20 @@ function ScoutStartCard({
                   key={action.label}
                   type="button"
                   onClick={() => onPromptSelect(action.prompt)}
-                  className="group flex min-h-[70px] items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/85 p-3 text-left transition-colors hover:border-orange-500/40 hover:bg-zinc-900"
+                  className="group flex min-h-[70px] items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)]/85 p-3 text-left transition-colors hover:border-ts-orange/40 hover:bg-[var(--surface-intermediate)]"
                 >
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-500/12 text-ts-orange">
+                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-orange/12 text-ts-orange">
                     <Icon className="h-4.5 w-4.5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-white">{action.label}</span>
-                    <span className="mt-0.5 block text-xs leading-snug text-zinc-500">
+                    <span className="block text-sm font-bold text-[var(--text-primary)]">
+                      {action.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-snug text-[var(--text-muted)]">
                       {action.detail}
                     </span>
                   </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600 transition-transform group-hover:translate-x-0.5" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5" />
                 </button>
               );
             })}
@@ -593,23 +600,25 @@ function ScoutStartCard({
           {hasContextualNextStep ? (
             <button
               type="button"
-              className="mt-3 flex w-full items-center justify-between rounded-xl border border-orange-500/25 bg-orange-500/10 px-3 py-3 text-left"
+              className="mt-3 flex w-full items-center justify-between rounded-xl border border-ts-orange/25 bg-ts-orange/10 px-3 py-3 text-left"
               onClick={openContextualNextStep}
             >
               <span>
                 <span className="block text-xs font-bold uppercase tracking-[0.12em] text-ts-orange">
                   Continue where you left off
                 </span>
-                <span className="mt-1 block text-sm text-zinc-300">{contextualPrompt.message}</span>
+                <span className="mt-1 block text-sm text-[var(--text-secondary)]">
+                  {contextualPrompt.message}
+                </span>
               </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-ts-orange" />
             </button>
           ) : null}
 
-          <details className="group mt-3 border-t border-zinc-800/80 pt-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-zinc-300 [&::-webkit-details-marker]:hidden">
+          <details className="group mt-3 border-t border-[var(--border-primary)]/80 pt-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
               How Scout works
-              <ChevronDown className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-180" />
+              <ChevronDown className="h-4 w-4 text-[var(--text-muted)] transition-transform group-open:rotate-180" />
             </summary>
             <div className="mt-3">
               <FirstUseGuidanceCard
@@ -644,20 +653,22 @@ function ProgressiveSection({
   return (
     <section className="px-4 pt-3">
       <details
-        className="group overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/80"
+        className="group overflow-hidden rounded-2xl border border-[var(--border-primary)] bg-[var(--surface-card)]/80"
         open={isOpen}
         onToggle={(event) => setIsOpen(event.currentTarget.open)}
       >
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-4 [&::-webkit-details-marker]:hidden">
           <span>
-            <span className="block text-base font-bold text-white">{title}</span>
-            <span className="mt-0.5 block text-sm leading-snug text-zinc-500">{description}</span>
+            <span className="block text-base font-bold text-[var(--text-primary)]">{title}</span>
+            <span className="mt-0.5 block text-sm leading-snug text-[var(--text-muted)]">
+              {description}
+            </span>
           </span>
-          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-900 text-zinc-400">
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--surface-intermediate)] text-[var(--text-secondary)]">
             <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
           </span>
         </summary>
-        <div className="-mx-4 border-t border-zinc-800 pb-3">{children}</div>
+        <div className="-mx-4 border-t border-[var(--border-primary)] pb-3">{children}</div>
       </details>
     </section>
   );
@@ -676,16 +687,16 @@ function ContinueCard({
     <button
       type="button"
       onClick={() => onPromptSelect(item.prompt)}
-      className="w-[160px] flex-[0_0_160px] snap-start overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 text-left"
+      className="w-[160px] flex-[0_0_160px] snap-start overflow-hidden rounded-2xl border border-[var(--border-primary)] bg-[var(--surface-card)] text-left"
     >
       <div className={`relative h-[96px] bg-gradient-to-br ${visual}`}>
-        <div className="absolute left-2 top-2 rounded-xl bg-orange-500 p-2">
-          <Icon className="h-4 w-4 text-white" />
+        <div className="absolute left-2 top-2 rounded-xl bg-ts-orange p-2">
+          <Icon className="h-4 w-4 text-[var(--text-primary)]" />
         </div>
       </div>
       <div className="p-3">
-        <p className="text-[15px] font-bold text-white">{item.title}</p>
-        <p className="mt-1 text-[13px] text-zinc-400">{item.subtitle}</p>
+        <p className="text-[15px] font-bold text-[var(--text-primary)]">{item.title}</p>
+        <p className="mt-1 text-[13px] text-[var(--text-secondary)]">{item.subtitle}</p>
         <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-bold ${badge}`}>
           {item.status}
         </span>
@@ -705,7 +716,9 @@ function ContinueRail({
   if (items.length === 0) return null;
   return (
     <section className="px-4 pt-1">
-      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.continueTitle")}</h2>
+      <h2 className="text-2xl font-bold leading-tight text-[var(--text-primary)]">
+        {t("scout.continueTitle")}
+      </h2>
       <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">
         <div className="mt-2 flex snap-x snap-mandatory gap-3">
           {items.map((item) => (
@@ -765,7 +778,9 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
   const { t } = useI18n();
   return (
     <section className="px-4 pt-1.5">
-      <h2 className="text-2xl font-bold leading-tight text-white">Explore what to review next</h2>
+      <h2 className="text-2xl font-bold leading-tight text-[var(--text-primary)]">
+        Explore what to review next
+      </h2>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
         {SCOUT_CAPABILITY_COPY.map((item) => {
           const Icon = item.icon;
@@ -774,17 +789,21 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
               key={item.title}
               type="button"
               onClick={() => onPromptSelect(item.prompt)}
-              className="min-h-[74px] rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-left"
+              className="min-h-[74px] rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-3 text-left"
             >
               <div className="flex items-center gap-2">
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-900">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--surface-intermediate)]">
                   <Icon className="h-4.5 w-4.5 text-ts-orange" />
                 </span>
-                <p className="text-[15px] font-semibold text-white leading-tight">{item.title}</p>
+                <p className="text-[15px] font-semibold text-[var(--text-primary)] leading-tight">
+                  {item.title}
+                </p>
               </div>
               <div className="mt-0.5 flex items-start justify-between gap-2">
-                <p className="text-xs leading-tight text-zinc-400 line-clamp-2">{item.detail}</p>
-                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" />
+                <p className="text-xs leading-tight text-[var(--text-secondary)] line-clamp-2">
+                  {item.detail}
+                </p>
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
               </div>
             </button>
           );
@@ -997,8 +1016,10 @@ function NearbyList({
   return (
     <section className="px-4 pt-2">
       {/* OpportunityMoveItem / formatPriceSignalFreshness(signal.updatedAt) / formatPriceSignalSource(signal) */}
-      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.nearbyTitle")}</h2>
-      <div className="mt-2 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+      <h2 className="text-2xl font-bold leading-tight text-[var(--text-primary)]">
+        {t("scout.nearbyTitle")}
+      </h2>
+      <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--border-primary)] bg-[var(--surface-card)]">
         {rows.map((row) => {
           const Icon = row.icon;
           return (
@@ -1006,7 +1027,7 @@ function NearbyList({
               key={row.id}
               type="button"
               onClick={() => onPromptSelect(row.prompt)}
-              className="flex h-[72px] w-full items-center gap-3 border-b border-zinc-800 px-3 py-2 text-left last:border-b-0"
+              className="flex h-[72px] w-full items-center gap-3 border-b border-[var(--border-primary)] px-3 py-2 text-left last:border-b-0"
             >
               <span
                 className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${row.iconClass}`}
@@ -1014,10 +1035,10 @@ function NearbyList({
                 <Icon className="h-4 w-4" />
               </span>
               <span className="min-w-0 flex-1">
-                <p className="text-[15px] font-semibold text-white">{row.title}</p>
-                <p className="text-[13px] text-zinc-400">{row.detail}</p>
+                <p className="text-[15px] font-semibold text-[var(--text-primary)]">{row.title}</p>
+                <p className="text-[13px] text-[var(--text-secondary)]">{row.detail}</p>
               </span>
-              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+              <span className="inline-flex items-center gap-1 text-xs text-[var(--text-muted)]">
                 {row.freshness}
                 <ChevronRight className="h-4 w-4" />
               </span>
@@ -1045,27 +1066,33 @@ function LocalSnapshot({
   if (!snapshot) return null;
   return (
     <section className="px-4 pt-2 pb-2">
-      <h2 className="text-2xl font-bold leading-tight text-white">{t("scout.snapshotTitle")}</h2>
+      <h2 className="text-2xl font-bold leading-tight text-[var(--text-primary)]">
+        {t("scout.snapshotTitle")}
+      </h2>
       <div className="mt-2 grid grid-cols-2 gap-2">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-          <p className="text-2xl font-semibold text-white">
+        <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-3">
+          <p className="text-2xl font-semibold text-[var(--text-primary)]">
             {formatCount(snapshot.activeListings)}
           </p>
-          <p className="text-xs text-zinc-400">Listings</p>
+          <p className="text-xs text-[var(--text-secondary)]">Listings</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-          <p className="text-2xl font-semibold text-white">{formatCount(snapshot.verifiedPros)}</p>
-          <p className="text-xs text-zinc-400">Local help</p>
+        <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-3">
+          <p className="text-2xl font-semibold text-[var(--text-primary)]">
+            {formatCount(snapshot.verifiedPros)}
+          </p>
+          <p className="text-xs text-[var(--text-secondary)]">Local help</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-          <p className="text-2xl font-semibold text-white">{String(snapshot.eventsThisWeek)}</p>
-          <p className="text-xs text-zinc-400">Events</p>
+        <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-3">
+          <p className="text-2xl font-semibold text-[var(--text-primary)]">
+            {String(snapshot.eventsThisWeek)}
+          </p>
+          <p className="text-xs text-[var(--text-secondary)]">Events</p>
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
-          <p className="text-2xl font-semibold text-white">
+        <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-3">
+          <p className="text-2xl font-semibold text-[var(--text-primary)]">
             {formatCount(snapshot.communityMembers)}
           </p>
-          <p className="text-xs text-zinc-400">Members</p>
+          <p className="text-xs text-[var(--text-secondary)]">Members</p>
         </div>
       </div>
     </section>
@@ -1114,27 +1141,29 @@ function LocalCommandCenter({
 
   return (
     <section className="px-4 pt-2">
-      <div className="overflow-hidden rounded-2xl border border-orange-500/20 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.18),rgba(9,9,11,0.96)_42%)] shadow-[0_20px_80px_rgba(0,0,0,0.28)]">
-        <div className="border-b border-zinc-800/80 p-4">
+      <div className="overflow-hidden rounded-2xl border border-[var(--theme-accent-primary)]/20 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--theme-accent-primary)_18%,transparent),color-mix(in_oklab,var(--surface-card)_96%,black)_42%)] shadow-[var(--surface-card-shadow-hover)]">
+        <div className="border-b border-[var(--border-primary)]/80 p-4">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">
             Local command center
           </p>
-          <h2 className="mt-1 text-2xl font-black leading-tight text-white">Your local snapshot</h2>
-          <p className="mt-1 text-sm leading-snug text-zinc-400">
+          <h2 className="mt-1 text-2xl font-black leading-tight text-[var(--text-primary)]">
+            Your local snapshot
+          </h2>
+          <p className="mt-1 text-sm leading-snug text-[var(--text-secondary)]">
             Open work, home context, recent activity, and suggested next actions in one place.
           </p>
           <button
             type="button"
             onClick={() => onPromptSelect("Search local help, requests, homes, and activity.")}
-            className="mt-3 flex w-full items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-3 text-left"
+            className="mt-3 flex w-full items-center justify-between rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)]/90 px-3 py-3 text-left"
           >
             <span className="inline-flex min-w-0 items-center gap-2">
               <Search className="h-4 w-4 shrink-0 text-ts-orange" />
-              <span className="truncate text-sm font-semibold text-white">
+              <span className="truncate text-sm font-semibold text-[var(--text-primary)]">
                 Search local help, requests, homes, and activity.
               </span>
             </span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" />
+            <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
           </button>
         </div>
 
@@ -1144,16 +1173,18 @@ function LocalCommandCenter({
             return (
               <div
                 key={stat.label}
-                className="rounded-xl border border-zinc-800 bg-zinc-950/80 p-3"
+                className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)]/80 p-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <Icon className="h-4 w-4 text-ts-orange" />
-                  <span className="text-2xl font-black text-white">{formatCount(stat.value)}</span>
+                  <span className="text-2xl font-black text-[var(--text-primary)]">
+                    {formatCount(stat.value)}
+                  </span>
                 </div>
-                <p className="mt-2 text-[13px] font-semibold leading-tight text-white">
+                <p className="mt-2 text-[13px] font-semibold leading-tight text-[var(--text-primary)]">
                   {stat.label}
                 </p>
-                <p className="mt-1 line-clamp-2 text-xs leading-snug text-zinc-500">
+                <p className="mt-1 line-clamp-2 text-xs leading-snug text-[var(--text-muted)]">
                   {stat.detail}
                 </p>
               </div>
@@ -1161,8 +1192,8 @@ function LocalCommandCenter({
           })}
         </div>
 
-        <div className="border-t border-zinc-800/80 p-3">
-          <p className="px-1 text-xs font-bold uppercase tracking-[0.16em] text-zinc-500">
+        <div className="border-t border-[var(--border-primary)]/80 p-3">
+          <p className="px-1 text-xs font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
             Suggested next actions
           </p>
           <div className="mt-2 space-y-2">
@@ -1173,16 +1204,20 @@ function LocalCommandCenter({
                   key={action.id}
                   type="button"
                   onClick={() => onPromptSelect(action.prompt)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 text-left"
+                  className="flex w-full items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)]/80 p-3 text-left"
                 >
-                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-ts-orange">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-orange/15 text-ts-orange">
                     <Icon className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-white">{action.label}</span>
-                    <span className="block truncate text-xs text-zinc-500">{action.detail}</span>
+                    <span className="block text-sm font-bold text-[var(--text-primary)]">
+                      {action.label}
+                    </span>
+                    <span className="block truncate text-xs text-[var(--text-muted)]">
+                      {action.detail}
+                    </span>
                   </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-zinc-600" />
+                  <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
                 </button>
               );
             })}
@@ -1201,9 +1236,9 @@ function EmptyContextHint() {
     "Search once, save something, or start a request and Scout will keep it here.";
   return (
     <section className="px-4 pt-3 pb-2">
-      <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-        <h2 className="text-base font-semibold text-white">{emptyTitle}</h2>
-        <p className="mt-1 text-sm text-zinc-400">{emptyBody}</p>
+      <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-4">
+        <h2 className="text-base font-semibold text-[var(--text-primary)]">{emptyTitle}</h2>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">{emptyBody}</p>
       </div>
     </section>
   );
@@ -1263,9 +1298,9 @@ function SetupNudgeCard({
 }) {
   return (
     <section className="px-4 pt-2">
-      <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
-        <h2 className="text-base font-semibold text-white">{config.title}</h2>
-        <p className="mt-1 text-sm text-zinc-400">{config.body}</p>
+      <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-4">
+        <h2 className="text-base font-semibold text-[var(--text-primary)]">{config.title}</h2>
+        <p className="mt-1 text-sm text-[var(--text-secondary)]">{config.body}</p>
         <button
           type="button"
           onClick={() => onPromptSelect(config.actionPrompt)}
@@ -1292,7 +1327,7 @@ function OnboardingPlanCard({
   if (isLoading) {
     return (
       <section className="px-4 pt-2">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-4 text-sm text-zinc-300">
+        <div className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-4 text-sm text-[var(--text-secondary)]">
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin text-ts-orange" />
             <span>Finishing your first-run plan from onboarding.</span>
@@ -1307,17 +1342,17 @@ function OnboardingPlanCard({
 
   return (
     <section className="px-4 pt-2">
-      <div className="rounded-2xl border border-ts-orange/35 bg-gradient-to-br from-ts-orange/12 via-zinc-950 to-zinc-950 p-4">
+      <div className="rounded-2xl border border-ts-orange/35 bg-gradient-to-br from-ts-orange/12 via-[var(--surface-card)] to-[var(--surface-card)] p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-ts-orange">
               <Sparkles className="h-3.5 w-3.5" />
               <span>{formatUrgencyTone(primaryFastWin.urgency)}</span>
             </div>
-            <h2 className="mt-2 text-lg font-semibold text-white">
+            <h2 className="mt-2 text-lg font-semibold text-[var(--text-primary)]">
               Your setup already built a plan
             </h2>
-            <p className="mt-1 text-sm text-zinc-300">
+            <p className="mt-1 text-sm text-[var(--text-secondary)]">
               TradeScout used your onboarding answers to line up a real first move before contact
               opens.
             </p>
@@ -1326,9 +1361,11 @@ function OnboardingPlanCard({
             Score {primaryFastWin.valueScore}
           </div>
         </div>
-        <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4">
-          <p className="text-base font-semibold text-white">{primaryFastWin.title}</p>
-          <p className="mt-1 text-sm text-zinc-300">{primaryFastWin.body}</p>
+        <div className="mt-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-intermediate)] p-4">
+          <p className="text-base font-semibold text-[var(--text-primary)]">
+            {primaryFastWin.title}
+          </p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">{primaryFastWin.body}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
@@ -1352,10 +1389,14 @@ function OnboardingPlanCard({
         {bundle?.fastWins && bundle.fastWins.length > 1 ? (
           <div className="mt-3 space-y-2">
             {bundle.fastWins.slice(1, 3).map((card) => (
-              <div key={card.id} className="flex items-start gap-2 text-sm text-zinc-400">
+              <div
+                key={card.id}
+                className="flex items-start gap-2 text-sm text-[var(--text-secondary)]"
+              >
                 <ArrowRight className="mt-0.5 h-4 w-4 text-ts-orange" />
                 <span>
-                  <span className="font-medium text-white">{card.title}.</span> {card.body}
+                  <span className="font-medium text-[var(--text-primary)]">{card.title}.</span>{" "}
+                  {card.body}
                 </span>
               </div>
             ))}
