@@ -29,10 +29,21 @@ describe("public profile TradeScout handoff", () => {
       "client/src/pages/profile-sites/LocalServiceProfileTheme.tsx",
       "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
       "client/src/pages/profile-sites/WholesalerProfileTheme.tsx",
-      "client/src/pages/profile-sites/PremiumProductProfileSections.tsx",
       "client/src/pages/ProfileSiteView.tsx",
     ]) {
       expect(read(relativePath), relativePath).toContain("<TradeScoutProfileHandoff");
     }
+    // Premium product sections stay mid-profile content; the site footer
+    // handoff is owned by WholesalerProfileTheme (absolute bottom).
+    expect(read("client/src/pages/profile-sites/PremiumProductProfileSections.tsx")).not.toContain(
+      "<TradeScoutProfileHandoff"
+    );
+  });
+
+  it("renders as a single-row site footer (not a wrapping mid-page chip row)", () => {
+    expect(handoffSource).toContain("<footer");
+    expect(handoffSource).toContain("mt-auto");
+    expect(handoffSource).toContain("flex-nowrap");
+    expect(handoffSource).not.toContain("flex-wrap");
   });
 });

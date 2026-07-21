@@ -1,7 +1,7 @@
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { SEOHelmet } from "@/components/SEOHelmet";
+import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
 import {
   MessageSquare,
   Image,
@@ -1217,6 +1217,26 @@ const CommunityFeed = memo(function CommunityFeed() {
     composerRef.current?.focus();
   };
 
+  const structuredData = useMemo(
+    () => ({
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "CollectionPage",
+          name: "TradeScout Community",
+          description:
+            "Local-area community feed for local posts, recommendations, project updates, and events.",
+          url: "https://www.thetradescout.com/community-feed",
+        },
+        createBreadcrumbStructuredData([
+          { name: "TradeScout", url: "/" },
+          { name: "Community", url: "/community-feed" },
+        ]),
+      ],
+    }),
+    []
+  );
+
   return (
     <>
       <SEOHelmet
@@ -1224,6 +1244,7 @@ const CommunityFeed = memo(function CommunityFeed() {
         description="Stay connected to local activity on TradeScout Community. Ask questions, share updates, follow neighborhood conversations, and keep up with what is happening nearby."
         keywords="tradescout community, local community feed, neighborhood activity, ask neighbors online, local updates"
         canonical="https://www.thetradescout.com/community-feed"
+        structuredData={structuredData}
       />
       <div className="community-feed-page">
         <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>

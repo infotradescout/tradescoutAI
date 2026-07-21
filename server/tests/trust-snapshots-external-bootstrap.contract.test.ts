@@ -65,6 +65,7 @@ describe("trust snapshots external bootstrap contracts", () => {
     expect(source).toContain("direct_connect_signals");
     expect(source).toContain("recommendation_signals");
     expect(source).toContain("marketplace_signals");
+    expect(source).toContain("community_reputation_signals");
     expect(source).not.toContain("listing_boosts");
     expect(source).not.toContain("accelerator_memberships");
   });

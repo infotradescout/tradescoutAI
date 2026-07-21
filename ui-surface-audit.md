@@ -1,9 +1,9 @@
 # UI Surface Audit
 
-Scanned files: **458**
+Scanned files: **456**
 Root violations (viewport-height + bg-*): **3**
 Files claiming viewport height: **3**
-Files with bg-* classes: **286**
+Files with bg-* classes: **284**
 
 ## Top offenders
 - 🚫 `client/src/pages/ProfileSiteView.tsx` — min-h-viewport (1) @ lines 157 | bg-* (48) @ lines 139,169,169,175,177
@@ -27,7 +27,7 @@ Files with bg-* classes: **286**
 - • `client/src/pages/promotions.tsx` — bg-* (55) @ lines 87,87,88,88,89
 - • `client/src/pages/profile-sites/PremiumProductProfileSections.tsx` — bg-* (38) @ lines 90,93,135,145,155 | gradient (16) @ lines 145,145,145,145,212
 - • `client/src/pages/community-feed.tsx` — bg-* (53) @ lines 190,191,236,237,240
-- • `client/src/scout/ScoutHome.tsx` — bg-* (42) @ lines 465,471,477,482,558 | gradient (11) @ lines 464,464,470,470,476
+- • `client/src/scout/ScoutHome.tsx` — bg-* (42) @ lines 465,471,477,482,563 | gradient (11) @ lines 464,464,470,470,476
 - • `client/src/pages/contractor-signup.tsx` — bg-* (52) @ lines 193,200,208,218,218
 - • `client/src/pages/tasks.tsx` — bg-* (52) @ lines 496,499,506,515,537
 - • `client/src/pages/finances-invoices.tsx` — bg-* (51) @ lines 448,451,454,457,459

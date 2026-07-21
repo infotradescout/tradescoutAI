@@ -15,9 +15,13 @@ function safeUserIdFromEvent(e: LoggedEvent): string | null {
 
   if (
     target &&
-    ["post.saved", "reaction.marked_helpful", "user.thanked", "user.profile_viewed"].includes(
-      String(e.eventType)
-    )
+    [
+      "post.saved",
+      "post.liked",
+      "reaction.marked_helpful",
+      "user.thanked",
+      "user.profile_viewed",
+    ].includes(String(e.eventType))
   ) {
     return target;
   }
@@ -29,6 +33,7 @@ function isDuplicateKeyUniqueToEventType(eventType: string): boolean {
     "community.viewed_scope",
     "user.profile_viewed",
     "post.saved",
+    "post.liked",
     "reaction.marked_helpful",
     "user.thanked",
     "beta_feature.used",
@@ -158,11 +163,11 @@ async function tryInsertUnique(
     const viewer = String(d?.userId ?? "");
     if (!viewer) return false;
     uniqueKey = `viewer:${viewer}`;
-  } else if (eventType === "post.saved") {
+  } else if (eventType === "post.saved" || eventType === "post.liked") {
     const saver = String(d?.userId ?? "");
     const postId = String(d?.postId ?? "");
     if (!saver || !postId) return false;
-    uniqueKey = `post:${postId}:saver:${saver}`;
+    uniqueKey = `post:${postId}:actor:${saver}`;
   } else if (eventType === "reaction.marked_helpful" || eventType === "user.thanked") {
     const actor = String(d?.userId ?? "");
     if (!actor) return false;

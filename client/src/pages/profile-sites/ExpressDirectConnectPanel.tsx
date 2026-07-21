@@ -30,6 +30,8 @@ type ExpressDirectConnectPanelProps = {
   businessName: string;
   hasViewerSession: boolean;
   allowCall: boolean;
+  /** Profile sites: success/call follow-ups stay on the profile; only the site footer may exit to TradeScout. */
+  stayInProfile?: boolean;
   requestMode?: ExpressDirectConnectMode;
   initialStoneName?: string | null;
   initialRequestType?: ExpressDirectConnectRequestType | null;
@@ -94,6 +96,7 @@ export default function ExpressDirectConnectPanel({
   businessName,
   hasViewerSession,
   allowCall,
+  stayInProfile = false,
   requestMode = "service",
   initialStoneName,
   initialRequestType,
@@ -503,16 +506,35 @@ export default function ExpressDirectConnectPanel({
               ) : null}
               {!hasViewerSession ? (
                 <div className="mt-7 rounded-2xl border border-black/5 bg-white p-5 text-left">
-                  <p className="font-bold text-neutral-900">Keep this connection organized.</p>
-                  <p className="mt-1 text-sm text-stone-600">
-                    Create a free TradeScout account to keep {businessName}, job notes, replies,
-                    progress, and follow-up together.
-                  </p>
-                  <Link href={postCallSignupHref}>
-                    <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                      Manage this in TradeScout
-                    </button>
-                  </Link>
+                  {stayInProfile ? (
+                    <>
+                      <p className="font-bold text-neutral-900">You can keep browsing here.</p>
+                      <p className="mt-1 text-sm text-stone-600">
+                        Use Scout, Community, Exchange, or HomeID in the site footer when you want
+                        TradeScout.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={onClose}
+                        className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                      >
+                        Back to {businessName}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-bold text-neutral-900">Keep this connection organized.</p>
+                      <p className="mt-1 text-sm text-stone-600">
+                        Create a free TradeScout account to keep {businessName}, job notes, replies,
+                        progress, and follow-up together.
+                      </p>
+                      <Link href={postCallSignupHref}>
+                        <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
+                          Manage this in TradeScout
+                        </button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -528,7 +550,15 @@ export default function ExpressDirectConnectPanel({
                   : `${businessName} received your project details.`}
               </p>
 
-              {!hasViewerSession ? (
+              {stayInProfile ? (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="mt-6 rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                >
+                  Back to {businessName}
+                </button>
+              ) : !hasViewerSession ? (
                 <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5 text-left">
                   <p className="font-bold text-neutral-900">
                     {accountCreated

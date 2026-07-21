@@ -1,9 +1,9 @@
 {
   "summary": {
-    "scannedFiles": 458,
+    "scannedFiles": 456,
     "rootViolations": 3,
     "filesWithViewportHeight": 3,
-    "filesWithBg": 286
+    "filesWithBg": 284
   },
   "results": [
     {
@@ -512,7 +512,7 @@
             471,
             477,
             482,
-            558
+            563
           ]
         },
         {
@@ -2633,23 +2633,6 @@
       ]
     },
     {
-      "file": "client/src/pages/community.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 17,
-          "lines": [
-            170,
-            405,
-            410,
-            411,
-            421
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/pensacola.tsx",
       "isRootViolation": false,
       "hits": [
@@ -4331,30 +4314,6 @@
             149,
             157,
             199
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/CommunityFeed.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 5,
-          "lines": [
-            146,
-            148,
-            150,
-            152,
-            154
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 1,
-          "lines": [
-            118
           ]
         }
       ]

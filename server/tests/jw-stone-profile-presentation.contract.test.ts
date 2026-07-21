@@ -10,6 +10,26 @@ const expressSource = fs.readFileSync(
   path.resolve(process.cwd(), "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx"),
   "utf8"
 );
+const inventory = JSON.parse(
+  fs.readFileSync(
+    path.resolve(process.cwd(), "client/src/data/jwStoneInventory.generated.json"),
+    "utf8"
+  )
+) as Array<{ slug: string; sourceFileIds?: string[] }>;
+const driveSource = JSON.parse(
+  fs.readFileSync(
+    path.resolve(process.cwd(), "docs/audits/data/jw-stone-drive-source-2026-07-13.json"),
+    "utf8"
+  )
+) as { files: Array<{ driveFileId: string; sourceName: string }> };
+const sourceNameById = new Map(
+  driveSource.files.map((file) => [file.driveFileId, file.sourceName] as const)
+);
+
+function isCloseUpLead(sourceName = "") {
+  const name = sourceName.toLowerCase().replace(/[_-]+/g, " ");
+  return /(close\s*up|closeup|close\s*look|scloseup|\bdetail\b|\btexture\b)/.test(name);
+}
 
 describe("JW Stone profile presentation contract", () => {
   it("uses the branded video hero with a restrained, reduced-motion-safe crop", () => {
@@ -72,22 +92,37 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).not.toContain("rotate-90 object-contain");
   });
 
+  it("leads each multi-photo stone with a full-slab context shot, not a close-up", () => {
+    const closeUpLeads = inventory
+      .filter((stone) => (stone.sourceFileIds?.length || 0) > 1)
+      .map((stone) => ({
+        slug: stone.slug,
+        lead: sourceNameById.get(stone.sourceFileIds![0]) || "",
+      }))
+      .filter((entry) => isCloseUpLead(entry.lead));
+    expect(closeUpLeads).toEqual([]);
+  });
+
   it("turns a zero-result search into a prefilled material request", () => {
     expect(source).toContain("Direct Connect");
     expect(source).toContain("JW Stone may be able to source it for your project.");
     expect(source).toContain('startDirectConnect(inventorySearch.trim(), "request_material")');
   });
 
-  it("unwinds JW Stone states before offering an account-aware TradeScout exit", () => {
+  it("unwinds JW Stone states in-profile; TradeScout exit stays in the site footer only", () => {
     expect(source).toContain('aria-label="Back within JW Stone"');
+    expect(source).toContain("const goBackWithinProfile = () =>");
     expect(source).toContain("if (expressPanelOpen)");
     expect(source).toContain("if (openStone)");
     expect(source).toContain("if (inventoryExpanded)");
-    expect(source).toContain("tradeScoutReturnHref");
-    expect(source).toContain('"Close JW Stone and return to Direct Connect"');
-    expect(source).toContain('"Close JW Stone and return to TradeScout"');
+    expect(source).toContain("const openFullInventory = () =>");
+    expect(source).toContain("View all inventory");
+    expect(source).toContain("stayInProfile");
+    expect(source).not.toContain('"Close JW Stone and return to Direct Connect"');
+    expect(source).not.toContain('"Close JW Stone and return to TradeScout"');
     expect(source).not.toContain("window.history.back()");
     expect(source).toContain("fixed inset-x-0 top-0 z-40");
+    expect(source).toContain("TradeScoutProfileHandoff");
   });
 
   it("keeps every Direct Connect entry action orange and honestly, contextually labeled", () => {
@@ -106,7 +141,7 @@ describe("JW Stone profile presentation contract", () => {
 
   it("keeps the JW Stone brand centered between profile navigation controls", () => {
     expect(source).toContain("grid-cols-[1fr_auto_1fr]");
-    expect(source).toContain('aria-label="JW Stone"');
+    expect(source).toContain('aria-label="JW Stone home"');
     expect(source).toContain('className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"');
     expect(source).toContain("justify-self-start");
     expect(source).toContain("justify-self-end");

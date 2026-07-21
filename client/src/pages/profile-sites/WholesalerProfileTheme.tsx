@@ -34,6 +34,11 @@ import {
   listProfileGalleryItems,
 } from "@shared/profileGalleryShare";
 import { isPremiumProductProfileData } from "@shared/premiumProductProfile";
+import {
+  HONEY_ONYX_HERO_POSTER,
+  HONEY_ONYX_HERO_VIDEO,
+  HONEY_ONYX_PROFILE_SLUG,
+} from "@shared/honeyOnyxProfile";
 
 /**
  * Premium profile theme for paid-tier businesses (wholesalers, suppliers,
@@ -305,11 +310,20 @@ export default function WholesalerProfileTheme({
 }: WholesalerProfileThemeProps) {
   const [, navigate] = useLocation();
   const isJwStone = profileSlug === "jw-stone";
+  const isHoneyOnyx = profileSlug === HONEY_ONYX_PROFILE_SLUG;
+  const heroVideo = isHoneyOnyx
+    ? { src: HONEY_ONYX_HERO_VIDEO, poster: HONEY_ONYX_HERO_POSTER }
+    : isJwStone
+      ? {
+          src: "/images/businesses/jw-stone/video/hero.mp4",
+          poster: "/images/businesses/jw-stone/video/hero-poster.jpg",
+        }
+      : null;
   const heroVideoRef = useRef<HTMLVideoElement>(null);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [heroVideoZoomed, setHeroVideoZoomed] = useState(false);
   useEffect(() => {
-    if (!isJwStone) return;
+    if (!heroVideo) return;
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     let zoomTimer: number | null = null;
     const syncMotionPreference = () => {
@@ -330,7 +344,7 @@ export default function WholesalerProfileTheme({
       if (zoomTimer !== null) window.clearTimeout(zoomTimer);
       motionQuery.removeEventListener("change", syncMotionPreference);
     };
-  }, [isJwStone]);
+  }, [heroVideo?.src]);
 
   const colors = { ...DEFAULT_BRAND_COLORS, ...brandColors };
   const themeVars = {
@@ -806,7 +820,7 @@ export default function WholesalerProfileTheme({
 
   return (
     <div
-      className={`wholesaler-public-profile min-h-full bg-[var(--brand-bg)] !text-stone-900 ${
+      className={`wholesaler-public-profile flex min-h-full flex-col bg-[var(--brand-bg)] !text-stone-900 ${
         isJwStone ? "pt-14 sm:pt-[96px] md:pt-[112px]" : ""
       }`}
       // eslint-disable-next-line no-restricted-syntax -- sets CSS custom properties for per-business dynamic brand colors, not literal color values
@@ -827,18 +841,7 @@ export default function WholesalerProfileTheme({
           {isJwStone ? (
             <>
               {isProfileHome ? (
-                <a
-                  href={tradeScoutReturnHref}
-                  aria-label={
-                    hasViewerSession
-                      ? "Close JW Stone and return to Direct Connect"
-                      : "Close JW Stone and return to TradeScout"
-                  }
-                  title={hasViewerSession ? "Return to Direct Connect" : "Return to TradeScout"}
-                  className="inline-flex h-10 w-10 items-center justify-center justify-self-start rounded-full border border-[var(--brand-primary)]/15 text-[var(--brand-primary)] transition-colors hover:bg-[var(--brand-surface)]"
-                >
-                  <X className="h-4.5 w-4.5" />
-                </a>
+                <span className="inline-flex h-10 w-10 justify-self-start" aria-hidden="true" />
               ) : (
                 <button
                   type="button"
@@ -850,18 +853,30 @@ export default function WholesalerProfileTheme({
                   <ArrowLeft className="h-5 w-5" />
                 </button>
               )}
-              <div className="flex items-center justify-center" aria-label="JW Stone">
+              <button
+                type="button"
+                onClick={() => {
+                  setExpressPanelOpen(false);
+                  setOpenStone(null);
+                  setInventoryExpanded(false);
+                  setActiveCategorySlug("all");
+                  setInventorySearch("");
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+                className="flex items-center justify-center"
+                aria-label="JW Stone home"
+              >
                 <img
                   src="/images/businesses/jw-stone/logo.svg"
                   alt="JW Stone — Premium Wholesale Stone Distributor"
                   className="h-auto w-[132px] sm:w-[164px] md:w-[204px]"
                 />
-              </div>
+              </button>
               <div className="flex items-center justify-self-end gap-2">
                 <ShareButton
                   destination={profileShareDestination}
                   title={displayName}
-                  text={`Check out ${displayName} on TradeScout`}
+                  text={`Check out ${displayName}`}
                   size="icon"
                   label=""
                   className="rounded-full border-[var(--brand-primary)]/15 bg-transparent text-[var(--brand-primary)] hover:bg-[var(--brand-surface)]"
@@ -959,12 +974,12 @@ export default function WholesalerProfileTheme({
       {/* Hero */}
       <section
         className={`relative isolate flex items-end overflow-hidden bg-[var(--brand-primary)] py-8 md:items-center md:py-20 ${
-          isJwStone
+          isJwStone || isHoneyOnyx
             ? "min-h-[460px] md:min-h-[600px]"
             : "min-h-[min(690px,calc(100svh-150px))] bg-cover bg-center md:min-h-[500px]"
         }`}
       >
-        {!isJwStone && heroImage ? (
+        {!heroVideo && heroImage ? (
           <img
             src={heroImage}
             alt=""
@@ -974,32 +989,33 @@ export default function WholesalerProfileTheme({
             }`}
           />
         ) : null}
-        {isJwStone ? (
+        {heroVideo ? (
           <video
             ref={heroVideoRef}
             autoPlay={!prefersReducedMotion}
             muted
+            loop
             playsInline
-            poster="/images/businesses/jw-stone/video/hero-poster.jpg"
+            poster={heroVideo.poster}
             aria-hidden="true"
             className={`absolute inset-0 h-full w-full object-cover object-center transition-transform duration-[5500ms] ease-out ${
               heroVideoZoomed ? "scale-100 md:scale-[1.12]" : "scale-100"
             }`}
           >
-            <source src="/images/businesses/jw-stone/video/hero.mp4" type="video/mp4" />
+            <source src={heroVideo.src} type="video/mp4" />
           </video>
         ) : null}
         <span
           aria-hidden="true"
           className={`absolute inset-0 ${
-            isJwStone
+            isJwStone || isHoneyOnyx
               ? "bg-[linear-gradient(90deg,rgba(9,7,4,0.72)_0%,rgba(9,7,4,0.5)_44%,rgba(9,7,4,0.18)_78%,rgba(9,7,4,0.1)_100%)]"
               : "bg-[linear-gradient(180deg,rgba(20,14,8,0.22)_0%,rgba(20,14,8,0.54)_42%,rgba(20,14,8,0.96)_100%)] md:bg-[linear-gradient(90deg,rgba(20,14,8,0.82)_0%,rgba(20,14,8,0.5)_55%,rgba(20,14,8,0.26)_100%)]"
           }`}
         />
         <div
           className={`relative z-10 container mx-auto px-5 text-left ${
-            isJwStone ? "md:px-8" : "md:px-6 md:text-center"
+            isJwStone || isHoneyOnyx ? "md:px-8" : "md:px-6 md:text-center"
           }`}
         >
           {heroEyebrow ? (
@@ -1011,7 +1027,7 @@ export default function WholesalerProfileTheme({
           ) : null}
           <h1
             className={`mb-3 max-w-[18ch] font-bold text-white [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] md:mb-6 md:max-w-3xl md:text-6xl md:leading-tight ${
-              isJwStone
+              isJwStone || isHoneyOnyx
                 ? "text-[2.2rem] leading-[1.02] md:text-[2.7rem] md:leading-[0.96]"
                 : "text-[2.55rem] leading-[0.98] md:mx-auto"
             } ${DISPLAY_FONT} ${heroReveal(2)}`}
@@ -1021,7 +1037,7 @@ export default function WholesalerProfileTheme({
           {heroTeaser ? (
             <p
               className={`mb-5 max-w-[34rem] text-sm leading-relaxed text-white/90 [text-shadow:0_1px_10px_rgba(0,0,0,0.65)] md:mb-10 md:text-lg ${
-                isJwStone ? "font-medium md:text-base" : "md:mx-auto"
+                isJwStone || isHoneyOnyx ? "font-medium md:text-base" : "md:mx-auto"
               } ${heroReveal(3)}`}
             >
               {heroTeaser}
@@ -1029,7 +1045,7 @@ export default function WholesalerProfileTheme({
           ) : null}
           <div
             className={`flex flex-col items-stretch gap-2.5 sm:flex-row sm:items-center sm:gap-3 ${
-              isJwStone ? "max-w-[38rem]" : "md:justify-center"
+              isJwStone || isHoneyOnyx ? "max-w-[38rem]" : "md:justify-center"
             } ${heroReveal(4)}`}
           >
             {profileSlug === "jw-stone" && allInventoryStones.length > 0 ? (
@@ -1060,13 +1076,6 @@ export default function WholesalerProfileTheme({
               Direct Connect
               <ChevronRight className="h-4 w-4" />
             </button>
-            {!isJwStone && !hasViewerSession ? (
-              <Link href={preScoutSignInHref} className="hidden md:block">
-                <button className="rounded-full border border-[var(--brand-accent)]/40 px-7 py-3.5 text-sm font-semibold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10">
-                  Sign in
-                </button>
-              </Link>
-            ) : null}
           </div>
         </div>
       </section>
@@ -1798,12 +1807,13 @@ export default function WholesalerProfileTheme({
                   >
                     Featured Materials
                   </h2>
-                  <a
-                    href="#collection"
+                  <button
+                    type="button"
+                    onClick={openFullInventory}
                     className="text-sm font-semibold text-[var(--brand-primary)] underline-offset-4 hover:underline"
                   >
                     View all inventory
-                  </a>
+                  </button>
                 </div>
                 <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
                   {jwStonePicks.map((stone, index) => (
@@ -2043,30 +2053,23 @@ export default function WholesalerProfileTheme({
                   <MessageCircle className="h-5 w-5" />
                   Direct Connect
                 </button>
-                {!hasViewerSession ? (
-                  <Link href={preScoutSignInHref}>
-                    <button className="rounded-full border border-[var(--brand-accent)]/40 px-8 py-4 text-base font-semibold text-[var(--brand-accent)] transition-colors hover:bg-[var(--brand-accent)]/10">
-                      Sign in
-                    </button>
-                  </Link>
-                ) : null}
               </div>
             </div>
           </section>
 
-          <TradeScoutProfileHandoff
-            profileSlug={profileSlug}
-            profileName={displayName}
-            platformBaseHref={platformBaseHref}
-          />
-
-          {/* Footer */}
+          {/* Brand footer, then TradeScout site footer at the absolute bottom */}
           <footer className="bg-[#241d0f] py-10 text-white/70">
             <div className="container mx-auto px-4 text-center text-sm md:px-6">
               <p className={`mb-2 text-lg font-bold text-white ${DISPLAY_FONT}`}>{displayName}</p>
               <p>{footerText}</p>
             </div>
           </footer>
+
+          <TradeScoutProfileHandoff
+            profileSlug={profileSlug}
+            profileName={displayName}
+            platformBaseHref={platformBaseHref}
+          />
         </>
       )}
       <ExpressDirectConnectPanel
@@ -2076,6 +2079,7 @@ export default function WholesalerProfileTheme({
         businessName={displayName}
         hasViewerSession={hasViewerSession}
         allowCall={allowExpressCall}
+        stayInProfile
         requestMode="materials"
         initialStoneName={expressStoneName}
         initialRequestType={expressRequestType}

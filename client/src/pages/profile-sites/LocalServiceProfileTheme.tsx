@@ -205,17 +205,7 @@ export default function LocalServiceProfileTheme({
     >
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#041017]/95 shadow-[0_10px_35px_rgba(0,0,0,0.3)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-2.5 sm:h-20 sm:gap-3 sm:px-6">
-          <a
-            href={tradeScoutReturnHref}
-            aria-label={
-              hasViewerSession
-                ? `Close ${businessName} and return to Direct Connect`
-                : `Close ${businessName} and return to TradeScout`
-            }
-            className="inline-flex h-10 w-10 flex-none items-center justify-center rounded-full border border-white/10 text-white/70 transition hover:border-white/25 hover:bg-white/5 hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </a>
+          <span className="inline-flex h-10 w-10 flex-none" aria-hidden="true" />
 
           <div className="flex min-w-0 flex-1 items-center sm:flex-none">
             <div className="flex h-10 w-[142px] items-center justify-center overflow-hidden rounded-xl bg-white px-2 shadow-sm sm:h-14 sm:w-[245px] sm:px-4">

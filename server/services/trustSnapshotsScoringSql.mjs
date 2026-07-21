@@ -7,7 +7,7 @@
  * script can `import` it directly with plain `node`, no build step.
  */
 
-export const TRUST_SNAPSHOTS_VERSION = 4;
+export const TRUST_SNAPSHOTS_VERSION = 5;
 
 export function buildTrustSnapshotsInsertSql({
   forceOverwrite = false,
@@ -142,12 +142,63 @@ export function buildTrustSnapshotsInsertSql({
             'reaction.marked_helpful',
             'user.thanked',
             'user.session_started',
-            'community.viewed_scope'
+            'community.viewed_scope',
+            'post.created',
+            'post.liked',
+            'comment.created'
           )
         ) AS last_active_at
       FROM events
       WHERE COALESCE(NULLIF(data ->> 'userId', ''), user_id) IS NOT NULL
       GROUP BY COALESCE(NULLIF(data ->> 'userId', ''), user_id)
+    ),
+    community_reputation_signals AS (
+      SELECT
+        cp.author_id AS user_id,
+        COUNT(DISTINCT pl.user_id) FILTER (
+          WHERE pl.user_id IS DISTINCT FROM cp.author_id
+        )::int AS distinct_likers,
+        COUNT(DISTINCT pc.author_id) FILTER (
+          WHERE pc.author_id IS DISTINCT FROM cp.author_id
+        )::int AS distinct_commenters
+      FROM community_posts cp
+      LEFT JOIN post_likes pl ON pl.post_id = cp.id
+      LEFT JOIN post_comments pc ON pc.post_id = cp.id
+      WHERE COALESCE(cp.is_published, TRUE) IS TRUE
+        AND COALESCE(cp.is_hidden, FALSE) IS NOT TRUE
+      GROUP BY cp.author_id
+    ),
+    community_debate_signals AS (
+      SELECT
+        parent.author_id AS user_id,
+        COUNT(DISTINCT parent.id) FILTER (
+          WHERE reply.author_id IS DISTINCT FROM parent.author_id
+        )::int AS debate_threads
+      FROM post_comments parent
+      INNER JOIN post_comments reply
+        ON reply.parent_comment_id = parent.id
+      INNER JOIN community_posts cp
+        ON cp.id = parent.post_id
+       AND COALESCE(cp.is_published, TRUE) IS TRUE
+       AND COALESCE(cp.is_hidden, FALSE) IS NOT TRUE
+      GROUP BY parent.author_id
+    ),
+    community_moderation_signals AS (
+      SELECT
+        content_owner_id AS user_id,
+        COUNT(*) FILTER (
+          WHERE status IN ('resolved', 'escalated')
+            AND final_action IN (
+              'content_removed',
+              'content_hidden',
+              'warning_issued',
+              'user_suspended'
+            )
+        )::int AS adverse_outcomes
+      FROM moderation_reports
+      WHERE content_owner_id IS NOT NULL
+        AND content_type IN ('community_post', 'post_comment', 'user_profile')
+      GROUP BY content_owner_id
     ),
     direct_connect_signals AS (
       SELECT
@@ -336,7 +387,11 @@ export function buildTrustSnapshotsInsertSql({
         COALESCE(ms.positive_reviews, 0)::int AS positive_reviews,
         COALESCE(ms.negative_reviews, 0)::int AS negative_reviews,
         COALESCE(ms.active_disputes, 0)::int AS active_disputes,
-        COALESCE(cbs.boost_points, 0)::numeric AS cvs_boost_points
+        COALESCE(cbs.boost_points, 0)::numeric AS cvs_boost_points,
+        COALESCE(crs.distinct_likers, 0)::int AS community_distinct_likers,
+        COALESCE(crs.distinct_commenters, 0)::int AS community_distinct_commenters,
+        COALESCE(cds.debate_threads, 0)::int AS community_debate_threads,
+        COALESCE(cms.adverse_outcomes, 0)::int AS community_adverse_outcomes
       FROM users u
       LEFT JOIN contractor_signals c ON c.user_id = u.id
       LEFT JOIN business_external_signals bes ON bes.user_id = u.id
@@ -344,6 +399,9 @@ export function buildTrustSnapshotsInsertSql({
         ON pls.user_id = u.id
        AND pls.county_fips = u.county_fips
       LEFT JOIN event_signals es ON es.user_id = u.id
+      LEFT JOIN community_reputation_signals crs ON crs.user_id = u.id
+      LEFT JOIN community_debate_signals cds ON cds.user_id = u.id
+      LEFT JOIN community_moderation_signals cms ON cms.user_id = u.id
       LEFT JOIN direct_connect_signals dcs
         ON dcs.user_id = u.id
        AND dcs.county_fips = u.county_fips
@@ -382,6 +440,10 @@ export function buildTrustSnapshotsInsertSql({
         negative_reviews,
         active_disputes,
         cvs_boost_points,
+        community_distinct_likers,
+        community_distinct_commenters,
+        community_debate_threads,
+        community_adverse_outcomes,
         CASE
           WHEN license_expires_at IS NOT NULL AND license_expires_at <= NOW() THEN 'expired'
           WHEN license_status_raw IS NOT NULL THEN license_status_raw
@@ -401,7 +463,12 @@ export function buildTrustSnapshotsInsertSql({
           WHEN external_avg_rating < 3.0 AND COALESCE(external_review_count, 0) >= 5 THEN -6
           WHEN external_avg_rating < 3.5 AND COALESCE(external_review_count, 0) >= 5 THEN -3
           ELSE 0
-        END AS external_performance_delta
+        END AS external_performance_delta,
+        LEAST(4, community_distinct_likers)
+        + LEAST(3, community_distinct_commenters)
+        + LEAST(2, community_debate_threads)
+        - LEAST(12, community_adverse_outcomes * 4)
+          AS community_reputation_delta
       FROM source
     ),
     performance AS (
@@ -435,7 +502,8 @@ export function buildTrustSnapshotsInsertSql({
         + LEAST(5, n.positive_reviews)
         - LEAST(12, n.negative_reviews * 3)
         - LEAST(12, n.active_disputes * 4)
-        + n.external_performance_delta AS performance_delta
+        + n.external_performance_delta
+        + n.community_reputation_delta AS performance_delta
       FROM normalized n
     ),
     scored AS (
@@ -483,6 +551,9 @@ export function buildTrustSnapshotsInsertSql({
           CASE WHEN n.negative_recommendations > 0 THEN 'negative_recommendation_signal' END,
           CASE WHEN n.negative_reviews > 0 THEN 'negative_marketplace_review_signal' END,
           CASE WHEN n.active_disputes > 0 THEN 'active_dispute_signal' END,
+          CASE
+            WHEN n.community_adverse_outcomes > 0 THEN 'community_moderation_adverse'
+          END,
           CASE
             WHEN n.external_performance_delta < 0 THEN 'external_rating_concern'
           END,

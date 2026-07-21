@@ -20,15 +20,22 @@ describe("canonical surface ownership", () => {
   it("keeps one routed Community feed and quarantines competing clients", () => {
     const routes = read("client/src/AppRoutes.tsx");
     const routedFeed = read("client/src/pages/community-feed.tsx");
-    const sampleFeed = read("client/src/pages/CommunityFeed.tsx");
     const socialFeed = read("client/src/components/social/SocialFeed.tsx");
 
     expect(routes).toContain('import("./pages/community-feed")');
     expect(routedFeed).toContain('className="community-feed-page"');
     expect(routedFeed).toContain("/api/community/posts");
     expect(routedFeed).toContain("<CommunityPostCard");
-    expect(sampleFeed).toContain("@deprecated Quarantined sample feed");
     expect(socialFeed).toContain("@deprecated Quarantined socialPosts client");
+    // The old sample/mock feed (pages/CommunityFeed.tsx, playgrounds/CommunityFeedMock.tsx)
+    // and the legacy pages/community.tsx were deleted outright as part of the
+    // Community makeover's Lane A consolidation -- nothing should reintroduce them.
+    expect(fs.existsSync(path.resolve(process.cwd(), "client/src/pages/CommunityFeed.tsx"))).toBe(
+      false
+    );
+    expect(fs.existsSync(path.resolve(process.cwd(), "client/src/pages/community.tsx"))).toBe(
+      false
+    );
 
     const clientFiles = fs
       .readdirSync(path.resolve(process.cwd(), "client/src"), { recursive: true })

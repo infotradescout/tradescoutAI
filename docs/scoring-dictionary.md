@@ -52,6 +52,13 @@ audited separately from performance. These are operational states, not popularit
   - completed work, helpful outcomes, activity, and response behavior
   - verified recommendations and verified marketplace outcomes
   - active disputes and other explicit negative outcome signals
+  - community action reflection (audited, capped `community_reputation_delta`):
+    - distinct non-self likers on the user's published community posts
+    - distinct non-self commenters on those posts
+    - debate threads (replies received on the user's comments)
+    - upheld adverse moderation outcomes on community content/profile
+      (`content_removed` / `content_hidden` / `warning_issued` /
+      `user_suspended` only — pending reports do not move CVS)
   - imported external performance evidence (bounded):
     - place identity confirmation
     - review count
@@ -176,6 +183,12 @@ audited separately from performance. These are operational states, not popularit
 - Not allowed to influence:
   - provider CVS directly
   - legal/professional verification state directly
+
+Important boundary: Profile CVS may include a separate audited
+`community_reputation_delta` that reads **upheld adverse**
+`moderation_reports.final_action` outcomes (and positive engagement
+tables). That is not this visibility score. Do not pipe
+`moderation_community_score` into `trust_snapshots.cvs_score`.
 
 ## 7) Ad Community Value Score (Ad Quality Layer)
 

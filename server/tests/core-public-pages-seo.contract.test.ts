@@ -10,7 +10,6 @@ const read = (relativePath: string) => {
 const corePublicPageFiles = [
   "client/src/pages/landing.tsx",
   "client/src/pages/direct-connect/DirectConnectShell.tsx",
-  "client/src/pages/community.tsx",
   "client/src/pages/community-feed.tsx",
   "client/src/pages/exchange.tsx",
   "client/src/pages/trade-deals-lucky.tsx",
@@ -63,7 +62,7 @@ describe("core public pages SEO contracts", () => {
   it("high-intent public pages define structured data for crawl context", () => {
     const highIntentFiles = [
       "client/src/pages/direct-connect/DirectConnectShell.tsx",
-      "client/src/pages/community.tsx",
+      "client/src/pages/community-feed.tsx",
       "client/src/pages/groups.tsx",
       "client/src/pages/county-directory.tsx",
       "client/src/pages/TradePartnerCumulusLanding.tsx",
