@@ -130,8 +130,13 @@ export function getProfileSiteTemplateMeta(
   return PROFILE_SITE_TEMPLATES.find((entry) => entry.id === id);
 }
 
-export function listSelectableProfileSiteTemplates(): ProfileSiteTemplateMeta[] {
-  return PROFILE_SITE_TEMPLATES.filter((entry) => entry.selectable);
+export function listSelectableProfileSiteTemplates(): Array<
+  ProfileSiteTemplateMeta & { id: ProfileSiteTemplateGalleryId }
+> {
+  return PROFILE_SITE_TEMPLATES.filter(
+    (entry): entry is ProfileSiteTemplateMeta & { id: ProfileSiteTemplateGalleryId } =>
+      entry.selectable && isProfileSiteTemplateGalleryId(entry.id)
+  );
 }
 
 export function readSiteTemplateIdFromBlocks(contentBlocks: unknown): ProfileSiteTemplateId | null {

@@ -1088,10 +1088,10 @@ export default function ProfileSiteView() {
   }
 
   if (
+    resolvedLocalServicePresentation &&
     (siteTemplate === "plumbing-company" ||
       siteTemplate === "electrician-solo" ||
-      resolvedLocalServicePresentation?.template === "local-service") &&
-    resolvedLocalServicePresentation
+      resolvedLocalServicePresentation.template === "local-service")
   ) {
     return (
       <>
