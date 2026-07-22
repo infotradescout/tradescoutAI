@@ -1180,6 +1180,14 @@ const sendPublicProfileBySlug = async (slug: string, res: any, req?: any) => {
           call: hasGatedDirectConnectPhone,
           request: Boolean(directConnectOwnerUserId),
         },
+        ...(business.tradePartner === true && business.address
+          ? {
+              address: business.address,
+              city: business.city || undefined,
+              stateCode: business.stateCode || undefined,
+              zipCode: business.zipCode || undefined,
+            }
+          : {}),
         ...(business.brandColors ? { brandColors: business.brandColors } : {}),
         // Targeting remains limited to a TradePartner or the explicit narrow
         // owner-confirmed profile exception. Other approved profiles still use

@@ -6,6 +6,7 @@ import {
   Loader2,
   MessageCircle,
   Phone,
+  MapPin,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -28,6 +29,7 @@ type ExpressDirectConnectPanelProps = {
   onClose: () => void;
   profileSlug: string;
   businessName: string;
+  businessAddress?: string | null;
   hasViewerSession: boolean;
   allowCall: boolean;
   /** Profile sites: success/call follow-ups stay on the profile; only the site footer may exit to TradeScout. */
@@ -94,6 +96,7 @@ export default function ExpressDirectConnectPanel({
   onClose,
   profileSlug,
   businessName,
+  businessAddress,
   hasViewerSession,
   allowCall,
   stayInProfile = false,
@@ -334,6 +337,12 @@ export default function ExpressDirectConnectPanel({
                   ? `Call ${operatorName}${operatorRole ? `, the ${operatorRole} for ${businessName},` : ""} or send the product details.`
                   : `Call now or send ${businessName} the details.`}
               </p>
+              {businessAddress ? (
+                <address className="mb-5 flex items-start gap-2 rounded-xl border border-black/10 bg-white px-4 py-3 text-sm not-italic leading-relaxed text-stone-700">
+                  <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-ts-orange" />
+                  <span>{businessAddress}</span>
+                </address>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
