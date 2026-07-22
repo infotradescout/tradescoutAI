@@ -54,6 +54,15 @@ type BusinessProfileLocation = {
   zipCode?: string | null;
 };
 
+type ProfileDomainVerification = {
+  state: "unverified" | "pending" | "verified" | "failed";
+  profileId?: string | null;
+  token?: string | null;
+  verifiedAt?: string | null;
+  lastCheckedAt?: string | null;
+  error?: string | null;
+};
+
 type UserLocationSettings = {
   address: string;
   city: string;
@@ -169,6 +178,14 @@ export default function ProfileSiteEditor() {
   const [heroTitle, setHeroTitle] = useState("");
   const [heroText, setHeroText] = useState("");
   const [customDomain, setCustomDomain] = useState("");
+  const [domainInput, setDomainInput] = useState("");
+  const [domainCandidate, setDomainCandidate] = useState("");
+  const [domainVerification, setDomainVerification] = useState<ProfileDomainVerification | null>(
+    null
+  );
+  const [domainStarting, setDomainStarting] = useState(false);
+  const [domainVerifying, setDomainVerifying] = useState(false);
+  const [domainDisconnecting, setDomainDisconnecting] = useState(false);
   const [ogImageUrl, setOgImageUrl] = useState("");
   const [faviconUrl, setFaviconUrl] = useState("");
   const [profileVisibility, setProfileVisibility] = useState<"public" | "private">(
@@ -229,7 +246,10 @@ export default function ProfileSiteEditor() {
         setHeadline(detail.headline || "");
         setContentBlocksText(JSON.stringify(detail.contentBlocks ?? [], null, 2));
         setCtaConfigText(JSON.stringify(detail.ctaConfig ?? {}, null, 2));
-        setSeoMetaText(JSON.stringify(detail.seoMeta ?? {}, null, 2));
+        const editableSeoMeta =
+          detail.seoMeta && typeof detail.seoMeta === "object" ? { ...detail.seoMeta } : {};
+        delete editableSeoMeta.customDomain;
+        setSeoMetaText(JSON.stringify(editableSeoMeta, null, 2));
         setFeaturedSlugsText(readFeaturedStoneSlugs(detail.contentBlocks).join(", "));
         const heroBlock = Array.isArray(detail.contentBlocks)
           ? detail.contentBlocks.find((block: any) => block?.type === "hero")
@@ -244,7 +264,9 @@ export default function ProfileSiteEditor() {
               ? heroData.body
               : ""
         );
-        setCustomDomain(String(detail.seoMeta?.customDomain || ""));
+        const activeCustomDomain = String(detail.seoMeta?.customDomain || "");
+        setCustomDomain(activeCustomDomain);
+        setDomainInput(activeCustomDomain);
         setOgImageUrl(String(detail.seoMeta?.imageUrl || ""));
         setFaviconUrl(String(detail.seoMeta?.faviconUrl || ""));
       } catch (error: any) {
@@ -261,6 +283,42 @@ export default function ProfileSiteEditor() {
 
     load();
   }, [slug, toast]);
+
+  useEffect(() => {
+    const loadDomainVerification = async () => {
+      if (!profile?.id) return;
+      try {
+        const response = await apiRequest(
+          "GET",
+          `/api/business-profile/domain/status?profileId=${encodeURIComponent(profile.id)}`
+        );
+        const payload = await response.json().catch(() => ({}) as any);
+        const domainStatus = payload?.domainStatus;
+        const verification = domainStatus?.verification as
+          | ProfileDomainVerification
+          | null
+          | undefined;
+        const verificationProfileId = String(verification?.profileId || "").trim();
+
+        if (verification && verificationProfileId === profile.id) {
+          const candidate = String(domainStatus?.candidateDomain || "").trim();
+          setDomainCandidate(candidate);
+          setDomainVerification(verification);
+          setDomainInput(candidate || customDomain);
+        } else {
+          setDomainCandidate("");
+          setDomainVerification(null);
+          setDomainInput(customDomain);
+        }
+      } catch {
+        setDomainCandidate("");
+        setDomainVerification(null);
+        setDomainInput(customDomain);
+      }
+    };
+
+    void loadDomainVerification();
+  }, [customDomain, profile?.id]);
 
   useEffect(() => {
     const loadPublicSettings = async () => {
@@ -502,12 +560,9 @@ export default function ProfileSiteEditor() {
         parsedPayload.seoMeta && typeof parsedPayload.seoMeta === "object"
           ? { ...(parsedPayload.seoMeta as Record<string, unknown>) }
           : {};
-      const normalizedDomain = customDomain.trim().toLowerCase();
-      if (normalizedDomain) {
-        seoMetaFromText.customDomain = normalizedDomain;
-      } else {
-        delete (seoMetaFromText as any).customDomain;
-      }
+      // Domain routing is server-owned and can only be changed after ownership
+      // and live-routing verification. Never publish it through an ordinary SEO save.
+      delete (seoMetaFromText as any).customDomain;
       const trimmedOgImageUrl = ogImageUrl.trim();
       if (trimmedOgImageUrl) {
         seoMetaFromText.imageUrl = trimmedOgImageUrl;
@@ -540,9 +595,6 @@ export default function ProfileSiteEditor() {
         ...(typeof (seoMetaFromText as any).faviconUrl === "string"
           ? { faviconUrl: String((seoMetaFromText as any).faviconUrl) }
           : {}),
-        ...(typeof (seoMetaFromText as any).customDomain === "string"
-          ? { customDomain: String((seoMetaFromText as any).customDomain) }
-          : {}),
       };
 
       const res = await apiRequest("PUT", `/api/profiles/${profile.id}`, {
@@ -562,6 +614,133 @@ export default function ProfileSiteEditor() {
         description: formatUserFacingErrorMessage(error, "Please try again."),
         variant: "destructive",
       });
+    }
+  };
+
+  const copyDomainValue = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast({ title: `${label} copied`, description: value });
+    } catch {
+      toast({ title: `Could not copy ${label.toLowerCase()}`, variant: "destructive" });
+    }
+  };
+
+  const startDomainVerification = async () => {
+    if (!profile) return;
+    const domain = domainInput.trim().toLowerCase();
+    if (!domain) {
+      toast({
+        title: "Enter a domain",
+        description: "Add the domain you own, for example example.com.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDomainStarting(true);
+    try {
+      const response = await apiRequest("POST", "/api/business-profile/domain/start", {
+        profileId: profile.id,
+        domain,
+      });
+      const payload = await response.json();
+      const candidate = String(
+        payload?.domainStatus?.candidateDomain || payload?.verification?.domain || domain
+      );
+      setDomainCandidate(candidate);
+      setDomainInput(candidate);
+      setDomainVerification(payload?.domainStatus?.verification || null);
+      toast({
+        title: "Ownership check started",
+        description:
+          "Add the TXT ownership record below. TradeScout must complete hosting and TLS before the domain can go live.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Could not start verification",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    } finally {
+      setDomainStarting(false);
+    }
+  };
+
+  const verifyDomain = async () => {
+    if (!profile || !domainCandidate || !domainVerification?.token) return;
+    setDomainVerifying(true);
+    try {
+      const response = await apiRequest("POST", "/api/business-profile/domain/verify", {
+        profileId: profile.id,
+      });
+      const payload = await response.json();
+      const nextVerification = payload?.domainStatus?.verification || null;
+      setDomainVerification(nextVerification);
+      const ownershipVerified = payload?.verification?.ownershipVerified === true;
+      toast(
+        ownershipVerified
+          ? {
+              title: "Ownership verified; hosting setup pending",
+              description:
+                payload?.verification?.error ||
+                "Your TradeScout profile remains canonical until TradeScout completes hosting and TLS.",
+            }
+          : {
+              title: "Domain not verified yet",
+              description: payload?.verification?.error || "Check the TXT record and try again.",
+              variant: "destructive",
+            }
+      );
+    } catch (error: any) {
+      toast({
+        title: "Domain not verified yet",
+        description: formatUserFacingErrorMessage(error, "Check the TXT record and try again."),
+        variant: "destructive",
+      });
+    } finally {
+      setDomainVerifying(false);
+    }
+  };
+
+  const disconnectDomain = async () => {
+    if (!profile || (!customDomain && !domainCandidate)) return;
+    const domainToDisconnect = customDomain || domainCandidate;
+    const confirmed = window.confirm(
+      `${customDomain ? "Disconnect" : "Cancel setup for"} ${domainToDisconnect}? Your TradeScout /u/${profile.slug} link and profile content will remain available.`
+    );
+    if (!confirmed) return;
+
+    setDomainDisconnecting(true);
+    try {
+      const response = await apiRequest("DELETE", "/api/business-profile/domain", {
+        profileId: profile.id,
+      });
+      const payload = await response.json();
+      setCustomDomain("");
+      setDomainCandidate("");
+      setDomainInput("");
+      setDomainVerification(null);
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              seoMeta: payload?.seoMeta || {},
+            }
+          : current
+      );
+      toast({
+        title: "Domain disconnected",
+        description: `Your /u/${profile.slug} profile and all content were preserved.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Could not disconnect domain",
+        description: formatUserFacingErrorMessage(error, "Please try again."),
+        variant: "destructive",
+      });
+    } finally {
+      setDomainDisconnecting(false);
     }
   };
 
@@ -1034,16 +1213,138 @@ export default function ProfileSiteEditor() {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-white/70">Custom domain (optional)</Label>
+            <div
+              className="space-y-4 rounded-lg border border-white/10 p-4"
+              data-testid="profile-editor-custom-domain"
+            >
+              <div className="space-y-1">
+                <Label className="text-white/70">Custom domain</Label>
+                <p className="text-white/60 text-xs">
+                  TradeScout verifies ownership here, then completes the hosting and TLS setup
+                  before making the domain canonical. Your current domain or TradeScout profile link
+                  stays live throughout.
+                </p>
+              </div>
+
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <div className="rounded-md border border-white/10 p-3">
+                  <p className="text-white/55 text-xs">TradeScout fallback</p>
+                  <p className="mt-1 break-all text-white">/u/{profile.slug}</p>
+                </div>
+                <div className="rounded-md border border-white/10 p-3">
+                  <p className="text-white/55 text-xs">Active canonical domain</p>
+                  <p className="mt-1 break-all text-white">
+                    {customDomain ? `https://${customDomain}` : "Not connected"}
+                  </p>
+                </div>
+              </div>
+
               <Input
-                value={customDomain}
-                onChange={(e) => setCustomDomain(e.target.value)}
-                placeholder="profile.yourdomain.com"
+                value={domainInput}
+                onChange={(event) => setDomainInput(event.target.value)}
+                placeholder="example.com"
+                data-testid="profile-editor-domain-input"
               />
-              <p className="text-white/60 text-xs">
-                When configured in DNS, this domain will resolve to this public profile.
-              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/15"
+                  onClick={startDomainVerification}
+                  disabled={domainStarting || !domainInput.trim()}
+                  data-testid="profile-editor-domain-start"
+                >
+                  {domainStarting ? "Starting…" : "Start ownership check"}
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-ts-orange hover:bg-ts-orange-dark text-white"
+                  onClick={verifyDomain}
+                  disabled={
+                    domainVerifying ||
+                    !domainCandidate ||
+                    !domainVerification?.token ||
+                    domainVerification.profileId !== profile.id
+                  }
+                  data-testid="profile-editor-domain-verify"
+                >
+                  {domainVerifying ? "Checking…" : "Verify ownership"}
+                </Button>
+                {customDomain || domainCandidate ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-red-400/30 text-red-200"
+                    onClick={disconnectDomain}
+                    disabled={domainDisconnecting}
+                    data-testid="profile-editor-domain-disconnect"
+                  >
+                    {domainDisconnecting
+                      ? "Disconnecting…"
+                      : customDomain
+                        ? "Disconnect"
+                        : "Cancel setup"}
+                  </Button>
+                ) : null}
+              </div>
+
+              {domainCandidate && domainVerification?.token ? (
+                <div className="space-y-3 rounded-md border border-white/10 bg-white/[0.03] p-3 text-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-white">
+                      Ownership check: {domainVerification.state}
+                    </p>
+                    <p className="break-all text-white/60">{domainCandidate}</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <p className="text-white/55">TXT host</p>
+                      <p className="mt-1 break-all text-white">
+                        _tradescout-verify.{domainCandidate}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-1 px-0 text-white/70"
+                        onClick={() =>
+                          void copyDomainValue("DNS host", `_tradescout-verify.${domainCandidate}`)
+                        }
+                      >
+                        Copy host
+                      </Button>
+                    </div>
+                    <div>
+                      <p className="text-white/55">TXT value</p>
+                      <p className="mt-1 break-all text-white">{domainVerification.token}</p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="mt-1 px-0 text-white/70"
+                        onClick={() =>
+                          void copyDomainValue("DNS value", String(domainVerification.token || ""))
+                        }
+                      >
+                        Copy value
+                      </Button>
+                    </div>
+                  </div>
+                  {domainVerification.error ? (
+                    <p
+                      className={
+                        domainVerification.state === "pending" ? "text-amber-200" : "text-red-200"
+                      }
+                    >
+                      {domainVerification.error}
+                    </p>
+                  ) : null}
+                  <p className="text-white/55">
+                    TradeScout keeps /u/{profile.slug} active and canonical until hosting and TLS
+                    are ready and the domain is activated.
+                  </p>
+                </div>
+              ) : null}
             </div>
 
             <div

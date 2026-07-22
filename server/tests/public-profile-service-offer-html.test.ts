@@ -86,6 +86,10 @@ describe("public profile service offer HTML", () => {
     expect(html).toContain('content="protected-request-only"');
     expect(html).not.toContain('property="og:image:width"');
     expect(html).not.toContain('property="og:image:height"');
+    expect(html).toContain('data-seo-profile-service="true"');
+    expect(html).toContain("<h1>Natural stone consultation</h1>");
+    expect(html).toContain("125.00 USD");
+    expect(html).not.toContain("TradeScout provider");
   });
 
   it("does not render missing or unavailable services", async () => {

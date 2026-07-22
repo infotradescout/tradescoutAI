@@ -42,7 +42,12 @@ import {
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { buildPublicProfileEarlyHtml, buildPublicProfileHtml } from "./publicProfileHtml";
+import {
+  buildPublicProfileEarlyHtml,
+  buildPublicProfileHtml,
+  buildPublicProfileLlmsText,
+  buildPublicProfileSitemapXml,
+} from "./publicProfileHtml";
 import { buildPublicHelperProfileHtml } from "./publicHelperProfileHtml";
 import { buildPublicBusinessHtml } from "./publicBusinessHtml";
 import { buildPublicContractorProfileHtml } from "./publicContractorProfileHtml";
@@ -56,7 +61,6 @@ import {
 import { buildPublicCityHtml } from "./publicCityHtml";
 import { buildPublicTradeCityHtml } from "./publicTradeCityHtml";
 import { buildPublicCountyHtml } from "./publicCountyHtml";
-import { detectActorFromUserAgent } from "./utils/requestActor";
 import { buildPublicBestTradeCityHtml, buildPublicBestTradeCountyHtml } from "./publicBestHtml";
 import {
   buildPublicCityRecentHtml,
@@ -80,7 +84,7 @@ import { buildPublicContractorPromoHtml } from "./publicContractorPromoHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
 import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
@@ -89,54 +93,20 @@ import { provisionIssaBuildProfile } from "./services/honeyOnyxProfileProvisioni
 import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
 import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
+import { preparePublicSeoHtmlForUserAgent } from "./publicSeoHtml";
+import { isSameRequestHttpOrigin, normalizeHttpOrigin } from "./utils/requestCors";
+import { CANONICAL_WEB_HOST, resolvePublicOrigin } from "./utils/publicOrigin";
+import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/publicPageResponse";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const publicProfileTemplateCache = new Map<string, string>();
-const CANONICAL_WEB_HOST = "www.thetradescout.com";
-
-function shouldRetainSeoSummaryForRequest(req: Request): boolean {
-  const userAgent = String(req.headers["user-agent"] || "").trim();
-  const actor = detectActorFromUserAgent(userAgent);
-
-  // Keep pre-rendered root summaries for known bots/crawlers and social unfurl bots.
-  // Human browsers should get an empty root to avoid visible text flash before React mounts.
-  return actor.actorType === "bot";
-}
-
-function stripSeoRootSummaryForHumans(html: string): string {
-  return html.replace(
-    /<div id="root">\s*<main data-seo-[\s\S]*?<\/main>\s*<\/div>/i,
-    '<div id="root"></div>'
-  );
-}
-
 function getForwardedProto(req: Request): string {
   return String(req.headers["x-forwarded-proto"] || "")
     .split(",")[0]
     .trim()
     .toLowerCase();
-}
-
-function resolvePublicOrigin(req: Request): string {
-  const host = String(req.headers["x-forwarded-host"] || req.headers.host || "")
-    .split(",")[0]
-    .trim();
-  const hostOnly = host.split(":")[0].toLowerCase();
-  const proto = getForwardedProto(req) || req.protocol || "https";
-  const isLocal = hostOnly === "localhost" || hostOnly === "127.0.0.1";
-
-  if (!host) return `https://${CANONICAL_WEB_HOST}`;
-  if (
-    hostOnly === "thetradescout.com" ||
-    hostOnly === CANONICAL_WEB_HOST ||
-    hostOnly.includes("tradescoutai.onrender.com")
-  ) {
-    return `https://${CANONICAL_WEB_HOST}`;
-  }
-  if (isLocal) return `${proto || "http"}://${host}`;
-  return `${proto || "https"}://${host}`;
 }
 
 function getCachedTemplate(indexPath: string) {
@@ -220,12 +190,10 @@ app.use((req, res, next) => {
   const originalSend = res.send.bind(res);
 
   res.send = ((body?: any) => {
-    if (
-      typeof body === "string" &&
-      body.includes("data-seo-") &&
-      !shouldRetainSeoSummaryForRequest(req)
-    ) {
-      return originalSend(stripSeoRootSummaryForHumans(body));
+    if (typeof body === "string" && body.includes("data-seo-")) {
+      return originalSend(
+        preparePublicSeoHtmlForUserAgent(body, String(req.headers["user-agent"] || ""))
+      );
     }
     return originalSend(body);
   }) as typeof res.send;
@@ -301,8 +269,7 @@ app.use((req, res, next) => {
   const forwardedProto = getForwardedProto(req);
 
   // If someone hits the Render URL directly or apex domain, send to canonical www host.
-  const hostNeedsCanonical =
-    host.includes("tradescoutai.onrender.com") || host === "thetradescout.com";
+  const hostNeedsCanonical = host === "tradescoutai.onrender.com" || host === "thetradescout.com";
   const protocolNeedsUpgrade = host === CANONICAL_WEB_HOST && forwardedProto === "http";
   if (hostNeedsCanonical || protocolNeedsUpgrade) {
     const redirectUrl = `https://${CANONICAL_WEB_HOST}${req.originalUrl || ""}`;
@@ -321,6 +288,24 @@ const CUSTOM_DOMAIN_CACHE = new Map<
   | { kind: "business"; slug: string; at: number }
 >();
 const CUSTOM_DOMAIN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const MAPPED_PROFILE_DOMAIN_HOST_KEY = "mappedProfileDomainHost";
+
+function markMappedProfileDomainRequest(req: Request, host: string): void {
+  (req as any)[MAPPED_PROFILE_DOMAIN_HOST_KEY] = host;
+}
+
+function isMappedProfileDomainSameOrigin(req: Request, origin: string): boolean {
+  const mappedHost = String((req as any)[MAPPED_PROFILE_DOMAIN_HOST_KEY] || "")
+    .trim()
+    .toLowerCase();
+  const normalizedOrigin = normalizeHttpOrigin(origin);
+  if (!mappedHost || !normalizedOrigin || !isSameRequestHttpOrigin(req, origin)) return false;
+  try {
+    return new URL(normalizedOrigin).hostname.toLowerCase() === mappedHost;
+  } catch {
+    return false;
+  }
+}
 
 function requestSearchSuffix(req: Request): string {
   const requestUrl = String(req.originalUrl || req.url || "");
@@ -332,9 +317,20 @@ function alternateCustomDomainHost(host: string): string {
   return host.startsWith("www.") ? host.slice(4) : `www.${host}`;
 }
 
-function isCustomDomainRootRequest(req: Request): boolean {
+function isCustomDomainAuthorityRequest(req: Request): boolean {
   const requestPath = req.path || "/";
-  return requestPath === "/" || requestPath === "";
+  return (
+    requestPath === "/" ||
+    requestPath === "" ||
+    requestPath === "/robots.txt" ||
+    requestPath === "/sitemap.xml" ||
+    requestPath === "/llms.txt" ||
+    requestPath === "/api" ||
+    requestPath.startsWith("/api/") ||
+    requestPath === "/auth" ||
+    requestPath.startsWith("/auth/") ||
+    requestPath.startsWith("/u/")
+  );
 }
 
 function redirectToCanonicalCustomDomain(req: Request, res: Response, canonicalHost: string) {
@@ -345,7 +341,91 @@ function redirectToCanonicalCustomDomain(req: Request, res: Response, canonicalH
   return res.redirect(301, `https://${canonicalHost}${normalizedPathAndQuery}`);
 }
 
-// A verified profile custom domain (e.g. jwstonelogistics.com) should show
+function isCustomDomainMechanicsPath(requestPath: string): boolean {
+  if (
+    requestPath.startsWith("/api/") ||
+    requestPath === "/api" ||
+    requestPath.startsWith("/auth/") ||
+    requestPath === "/auth" ||
+    requestPath.startsWith("/.well-known/")
+  ) {
+    return true;
+  }
+
+  if (
+    ["/login", "/register", "/reset-password", "/verify-email"].some(
+      (pathPrefix) => requestPath === pathPrefix || requestPath.startsWith(`${pathPrefix}/`)
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    ["/assets/", "/uploads/", "/images/", "/fonts/", "/icons/", "/landing/", "/scoutfitters/"].some(
+      (prefix) => requestPath.startsWith(prefix)
+    )
+  ) {
+    return true;
+  }
+
+  return (
+    /^\/(?:apple-touch-icon(?:-precomposed)?|favicon(?:-\d+x\d+)?|icon-\d+(?:-maskable)?|logo|tradescout-[a-z0-9-]+)\.(?:ico|jpe?g|png|svg|webp)$/i.test(
+      requestPath
+    ) ||
+    [
+      "/about-explainer.css",
+      "/firebase-messaging-sw.js",
+      "/manifest.json",
+      "/service-worker.js",
+      "/site.webmanifest",
+      "/sw.js",
+    ].includes(requestPath)
+  );
+}
+
+function isSameProfileCompatibilityPath(requestPath: string, slug: string): boolean {
+  const match = requestPath.match(/^\/u\/([^/]+)\/?$/);
+  if (!match) return false;
+  try {
+    return decodeURIComponent(match[1]).toLowerCase() === slug.toLowerCase();
+  } catch {
+    return false;
+  }
+}
+
+function redirectPublicRequestToPlatform(req: Request, res: Response): boolean {
+  const requestPath = req.path || "/";
+  if (isCustomDomainMechanicsPath(requestPath)) return false;
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+
+  const requestPathAndQuery = String(req.originalUrl || req.url || "/");
+  const normalizedPathAndQuery = requestPathAndQuery.startsWith("/")
+    ? requestPathAndQuery
+    : `/${requestPathAndQuery}`;
+  res.redirect(301, `https://${CANONICAL_WEB_HOST}${normalizedPathAndQuery}`);
+  return true;
+}
+
+function redirectUnhandledCustomProfilePath(
+  req: Request,
+  res: Response,
+  host: string,
+  slug: string
+): boolean {
+  const requestPath = req.path || "/";
+  if (isCustomDomainMechanicsPath(requestPath)) return false;
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+
+  const suffix = requestSearchSuffix(req);
+  if (isSameProfileCompatibilityPath(requestPath, slug)) {
+    res.redirect(301, `https://${host}/${suffix}`);
+    return true;
+  }
+
+  return redirectPublicRequestToPlatform(req, res);
+}
+
+// A configured profile custom domain should show
 // its own URL in the address bar, not redirect through /u/:slug -- so this
 // renders the same server-side HTML that route serves, in place, on the
 // custom host. Falls back to the old redirect if the build isn't available
@@ -353,12 +433,15 @@ function redirectToCanonicalCustomDomain(req: Request, res: Response, canonicalH
 async function renderProfileOnCustomDomain(
   req: Request,
   res: Response,
+  host: string,
   slug: string
 ): Promise<boolean> {
   const indexPath = path.join(process.cwd(), "dist/public", "index.html");
   const templateHtml = getCachedTemplate(indexPath);
   if (!templateHtml) return false;
-  const origin = resolvePublicOrigin(req);
+  // The database-resolved Host is the authority. Forwarded host headers are
+  // proxy metadata and must not be able to rewrite canonical profile output.
+  const origin = `https://${host}`;
   const html = await buildPublicProfileHtml({
     slug,
     origin,
@@ -375,7 +458,8 @@ async function renderProfileOnCustomDomain(
   // otherwise never get the bot-visibility signals every other page gets.
   // Set them explicitly instead of relying on that later middleware.
   const start = Date.now();
-  const contract = getLandingIntentContractForPath("/");
+  const canonicalProfilePath = `/u/${encodeURIComponent(slug)}`;
+  const contract = getLandingIntentContractForPath(canonicalProfilePath);
   res.setHeader("X-TradeScout-Intent-Stage", contract.intentStage);
   res.setHeader("X-TradeScout-Audience-Hint", contract.audienceHint);
   res.setHeader("X-TradeScout-Knowledge-Hint", contract.knowledgeHint);
@@ -385,13 +469,14 @@ async function renderProfileOnCustomDomain(
     void recordCrawlerRequestEvent(req, res.statusCode, {
       responseTimeMs: Date.now() - start,
       responseBytes: Buffer.byteLength(html),
+      pathOverride: canonicalProfilePath,
     });
   });
   res.send(html);
   return true;
 }
 
-// A verified profile custom domain needs its own robots.txt/sitemap.xml --
+// An active profile custom-domain mapping needs its own robots.txt/sitemap.xml --
 // falling through to the platform's generic ones would advertise TradeScout
 // routes (/u/, /business/, /admin/, ...) that don't exist on this domain,
 // and never mention the one URL that does. Returns true if the request was
@@ -421,26 +506,37 @@ async function serveCustomDomainProfilePath(
         conversionType: "public_profile_view",
       });
     }
-    if (await renderProfileOnCustomDomain(req, res, slug)) return true;
+    if (await renderProfileOnCustomDomain(req, res, host, slug)) return true;
     res.redirect(
       301,
-      `/u/${encodeURIComponent(slug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+      `https://${CANONICAL_WEB_HOST}/u/${encodeURIComponent(slug)}${requestSearchSuffix(req)}`
     );
     return true;
   }
   if (path === "/robots.txt") {
     res
       .type("text/plain")
-      .send(`User-agent: *\nAllow: /\n\nSitemap: https://${host}/sitemap.xml\n`);
+      .send(
+        `User-agent: *\nAllow: /\nAllow: /llms.txt\nDisallow: /api/\nDisallow: /admin/\nDisallow: /dashboard/\nDisallow: /scout/\nDisallow: /messages/\nDisallow: /settings/\nDisallow: /auth/\n\nSitemap: https://${host}/sitemap.xml\n`
+      );
     return true;
   }
   if (path === "/sitemap.xml") {
-    const lastmod = new Date().toISOString().slice(0, 10);
-    res
-      .type("application/xml")
-      .send(
-        `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://${host}/</loc>\n    <lastmod>${lastmod}</lastmod>\n  </url>\n</urlset>\n`
-      );
+    const sitemap = await buildPublicProfileSitemapXml({
+      slug,
+      origin: `https://${host}`,
+    });
+    if (!sitemap) return false;
+    res.type("application/xml").send(sitemap);
+    return true;
+  }
+  if (path === "/llms.txt") {
+    const guidance = await buildPublicProfileLlmsText({
+      slug,
+      origin: `https://${host}`,
+    });
+    if (!guidance) return false;
+    res.type("text/plain").send(guidance);
     return true;
   }
   return false;
@@ -454,8 +550,9 @@ app.use(async (req, res, next) => {
 
     // Ignore canonical + known infra hosts
     if (
-      host.endsWith("thetradescout.com") ||
-      host.includes("onrender.com") ||
+      host === "thetradescout.com" ||
+      host === CANONICAL_WEB_HOST ||
+      host === "tradescoutai.onrender.com" ||
       host === "localhost" ||
       host === "127.0.0.1"
     ) {
@@ -463,7 +560,7 @@ app.use(async (req, res, next) => {
     }
 
     const now = Date.now();
-    const shouldRevalidateProfileDomain = isCustomDomainRootRequest(req);
+    const shouldRevalidateProfileDomain = isCustomDomainAuthorityRequest(req);
     // Root profile requests carry attribution and public identity. Re-resolve
     // them on every request so a disconnected or reassigned domain cannot keep
     // serving (or crediting) the cached owner for up to an hour.
@@ -471,8 +568,10 @@ app.use(async (req, res, next) => {
     const cached = shouldRevalidateProfileDomain ? undefined : CUSTOM_DOMAIN_CACHE.get(host);
     if (cached && now - cached.at < CUSTOM_DOMAIN_TTL_MS) {
       if (cached.kind === "profile") {
+        markMappedProfileDomainRequest(req, host);
         if (await serveCustomDomainProfilePath(req, res, host, cached.slug, cached.ownerUserId))
           return;
+        if (redirectUnhandledCustomProfilePath(req, res, host, cached.slug)) return;
         return next();
       }
 
@@ -481,9 +580,10 @@ app.use(async (req, res, next) => {
         if (path === "/" || path === "") {
           return res.redirect(
             301,
-            `/business/${encodeURIComponent(cached.slug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+            `https://${CANONICAL_WEB_HOST}/business/${encodeURIComponent(cached.slug)}${requestSearchSuffix(req)}`
           );
         }
+        if (redirectPublicRequestToPlatform(req, res)) return;
         return next();
       }
 
@@ -522,7 +622,10 @@ app.use(async (req, res, next) => {
       (row) => String(row.configuredHost || "").trim() === alternateHost
     );
     // An exact profile-domain collision is unsafe to resolve by row order.
-    if (exactProfileDomains.length > 1) return next();
+    if (exactProfileDomains.length > 1) {
+      if (redirectPublicRequestToPlatform(req, res)) return;
+      return next();
+    }
     const profileDomain = exactProfileDomains.length === 1 ? exactProfileDomains[0] : undefined;
     const aliasProfileDomain =
       exactProfileDomains.length === 0 && aliasProfileDomains.length === 1
@@ -532,8 +635,10 @@ app.use(async (req, res, next) => {
     const profileSlug = typeof profileDomain?.slug === "string" ? profileDomain.slug.trim() : "";
     if (profileSlug) {
       const ownerUserId = String(profileDomain?.ownerUserId || "");
+      markMappedProfileDomainRequest(req, host);
       CUSTOM_DOMAIN_CACHE.set(host, { kind: "profile", slug: profileSlug, ownerUserId, at: now });
       if (await serveCustomDomainProfilePath(req, res, host, profileSlug, ownerUserId)) return;
+      if (redirectUnhandledCustomProfilePath(req, res, host, profileSlug)) return;
       return next();
     }
 
@@ -556,9 +661,10 @@ app.use(async (req, res, next) => {
       if (path === "/" || path === "") {
         return res.redirect(
           301,
-          `/business/${encodeURIComponent(businessSlug)}${req.url?.includes("?") ? req.url.slice(req.url.indexOf("?")) : ""}`
+          `https://${CANONICAL_WEB_HOST}/business/${encodeURIComponent(businessSlug)}${requestSearchSuffix(req)}`
         );
       }
+      if (redirectPublicRequestToPlatform(req, res)) return;
       return next();
     }
 
@@ -588,8 +694,10 @@ app.use(async (req, res, next) => {
       return redirectToCanonicalCustomDomain(req, res, aliasCanonicalHost);
     }
 
+    if (redirectPublicRequestToPlatform(req, res)) return;
     return next();
   } catch {
+    if (redirectPublicRequestToPlatform(req, res)) return;
     return next();
   }
 });
@@ -599,11 +707,6 @@ const ALLOWED_ORIGINS: string[] = [
   "https://www.thetradescout.com",
   "https://thetradescout.com",
   "https://tradescoutai.onrender.com",
-  // Verified profile custom domains -- served in place (see the custom-domain
-  // routing middleware above), so their own static assets/API calls need to
-  // be CORS-allowed from their own origin too.
-  "https://jwstonelogistics.com",
-  "https://www.jwstonelogistics.com",
 ].map((o) => o.toLowerCase());
 
 // Optionally extend/override CORS allowlist from env
@@ -639,42 +742,55 @@ if (!isProductionEnv) {
   }
 }
 
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    // No origin (curl/server-side) → allow
-    if (!origin) return callback(null, true);
-    const normalized = origin.toLowerCase();
+function corsOptionsForRequest(req: Request): cors.CorsOptions {
+  return {
+    origin: (origin, callback) => {
+      // No origin (curl/server-side) → allow
+      if (!origin) return callback(null, true);
+      const normalized = origin.toLowerCase();
 
-    // Temp escape hatch: allow all origins when explicitly configured
-    if (allowAllCors) {
-      return callback(null, true);
-    }
-
-    if (!isProductionEnv) {
-      // Always allow localhost loopback origins on any port in dev.
-      if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+      // Custom domains are not a global allowlist. A browser may call the API
+      // only when its HTTP(S) Origin exactly matches the current request origin,
+      // including non-default port semantics.
+      if (isMappedProfileDomainSameOrigin(req, origin)) {
         return callback(null, true);
       }
 
-      // Always allow same-host access on the API port in dev.
-      const sameHostOrigins = [
-        `http://localhost:${PORT}`.toLowerCase(),
-        `https://localhost:${PORT}`.toLowerCase(),
-      ];
-      if (sameHostOrigins.includes(normalized)) {
+      // Temp escape hatch: allow all origins when explicitly configured
+      if (allowAllCors) {
         return callback(null, true);
       }
-    }
 
-    if (ALLOWED_ORIGINS.includes(normalized)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS: Origin not allowed: ${origin}`));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Origin", "Accept"],
-  exposedHeaders: ["Content-Length", "ETag"],
+      if (!isProductionEnv) {
+        // Always allow localhost loopback origins on any port in dev.
+        if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized)) {
+          return callback(null, true);
+        }
+
+        // Always allow same-host access on the API port in dev.
+        const sameHostOrigins = [
+          `http://localhost:${PORT}`.toLowerCase(),
+          `https://localhost:${PORT}`.toLowerCase(),
+        ];
+        if (sameHostOrigins.includes(normalized)) {
+          return callback(null, true);
+        }
+      }
+
+      if (ALLOWED_ORIGINS.includes(normalized)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS: Origin not allowed: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Origin", "Accept"],
+    exposedHeaders: ["Content-Length", "ETag"],
+  };
+}
+
+const corsOptionsDelegate: cors.CorsOptionsDelegate<Request> = (req, callback) => {
+  callback(null, corsOptionsForRequest(req));
 };
 
 // Always vary by Origin
@@ -684,9 +800,9 @@ app.use((_, res, next) => {
 });
 
 // Apply CORS before routes
-app.use(cors(corsOptions));
+app.use(cors(corsOptionsDelegate));
 // Preflight handler
-app.options("*", cors(corsOptions));
+app.options("*", cors(corsOptionsDelegate));
 
 // Core body parsing – MUST come before any API routes
 const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
@@ -1391,7 +1507,7 @@ app.use(landingContractHeaders);
 
                   const slug = String(req.params.slug || "");
 
-                  // A profile with a verified custom domain is canonically
+                  // A profile with an active custom-domain mapping is canonically
                   // served there -- send visitors straight to the business's
                   // own domain instead of dual-hosting the same profile under
                   // /u/:slug too.
@@ -1457,8 +1573,18 @@ app.use(landingContractHeaders);
                       .select({ slug: profiles.slug })
                       .from(profiles)
                       .innerJoin(businesses, eq(businesses.id, profiles.businessId))
+                      .innerJoin(users, eq(users.id, profiles.ownerUserId))
                       .where(
-                        and(eq(businesses.slug, slug), eq(profiles.status, "published" as any))
+                        and(
+                          eq(businesses.slug, slug),
+                          eq(profiles.status, "published" as any),
+                          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
+                        )
+                      )
+                      .orderBy(
+                        sql`${profiles.updatedAt} DESC NULLS LAST`,
+                        sql`${profiles.createdAt} DESC NULLS LAST`,
+                        asc(profiles.slug)
                       )
                       .limit(1);
                     if (linkedProfile?.slug) {
@@ -1503,7 +1629,9 @@ app.use(landingContractHeaders);
                 try {
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
-                  if (!templateHtml) return res.status(404).send("Application files not found");
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
 
                   const origin = resolvePublicOrigin(req);
                   const html = await buildPublicTradeDirectoryHtml({ origin, templateHtml });
@@ -1991,7 +2119,9 @@ app.use(landingContractHeaders);
                 try {
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
-                  if (!templateHtml) return res.status(404).send("Application files not found");
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
 
                   const html = await buildPublicContractorPromoHtml({
                     origin: resolvePublicOrigin(req),
@@ -2000,8 +2130,7 @@ app.use(landingContractHeaders);
                   });
 
                   if (!html) {
-                    res.setHeader("Cache-Control", "no-store");
-                    return res.sendFile(indexPath);
+                    return sendPublicPageNotFound(res, "Contractor promotion not found");
                   }
 
                   res.setHeader(
@@ -2011,11 +2140,10 @@ app.use(landingContractHeaders);
                   res.type("html").send(html);
                 } catch (err) {
                   console.error("Error rendering contractor promotion page:", err);
-                  try {
-                    res.sendFile(path.join(publicDistPath, "index.html"));
-                  } catch {
-                    res.status(500).send("Failed to render contractor promotion page");
-                  }
+                  return sendPublicPageRenderFailure(
+                    res,
+                    "Failed to render contractor promotion page"
+                  );
                 }
               });
 
@@ -2024,7 +2152,9 @@ app.use(landingContractHeaders);
                 try {
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
-                  if (!templateHtml) return res.status(404).send("Application files not found");
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
 
                   const html = await buildPublicHomeScoutListingHtml({
                     origin: resolvePublicOrigin(req),
@@ -2033,8 +2163,7 @@ app.use(landingContractHeaders);
                   });
 
                   if (!html) {
-                    res.setHeader("Cache-Control", "no-store");
-                    return res.sendFile(indexPath);
+                    return sendPublicPageNotFound(res, "HomeScout listing not found");
                   }
 
                   res.setHeader(
@@ -2044,13 +2173,10 @@ app.use(landingContractHeaders);
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering HomeScout listing HTML:", err);
-                  const indexPath = path.join(publicDistPath, "index.html");
-                  if (fs.existsSync(indexPath)) {
-                    res.setHeader("Cache-Control", "no-store");
-                    res.sendFile(indexPath);
-                  } else {
-                    res.status(500).send("Failed to render HomeScout listing page");
-                  }
+                  return sendPublicPageRenderFailure(
+                    res,
+                    "Failed to render HomeScout listing page"
+                  );
                 }
               });
 
@@ -2059,7 +2185,9 @@ app.use(landingContractHeaders);
                 try {
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
-                  if (!templateHtml) return res.status(404).send("Application files not found");
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
 
                   const html = await buildPublicHandmadeProductHtml({
                     origin: resolvePublicOrigin(req),
@@ -2068,8 +2196,7 @@ app.use(landingContractHeaders);
                   });
 
                   if (!html) {
-                    res.setHeader("Cache-Control", "no-store");
-                    return res.sendFile(indexPath);
+                    return sendPublicPageNotFound(res, "Handmade product not found");
                   }
 
                   res.setHeader(
@@ -2079,13 +2206,7 @@ app.use(landingContractHeaders);
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering handmade product HTML:", err);
-                  const indexPath = path.join(publicDistPath, "index.html");
-                  if (fs.existsSync(indexPath)) {
-                    res.setHeader("Cache-Control", "no-store");
-                    res.sendFile(indexPath);
-                  } else {
-                    res.status(500).send("Failed to render handmade product page");
-                  }
+                  return sendPublicPageRenderFailure(res, "Failed to render handmade product page");
                 }
               });
 
@@ -2094,7 +2215,9 @@ app.use(landingContractHeaders);
                 try {
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
-                  if (!templateHtml) return res.status(404).send("Application files not found");
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
 
                   const html = await buildPublicProfileServiceOfferHtml({
                     origin: resolvePublicOrigin(req),
@@ -2103,8 +2226,7 @@ app.use(landingContractHeaders);
                   });
 
                   if (!html) {
-                    res.setHeader("Cache-Control", "no-store");
-                    return res.sendFile(indexPath);
+                    return sendPublicPageNotFound(res, "Service offer not found");
                   }
 
                   res.setHeader(
@@ -2114,13 +2236,7 @@ app.use(landingContractHeaders);
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering profile service offer HTML:", err);
-                  const indexPath = path.join(publicDistPath, "index.html");
-                  if (fs.existsSync(indexPath)) {
-                    res.setHeader("Cache-Control", "no-store");
-                    res.sendFile(indexPath);
-                  } else {
-                    res.status(500).send("Failed to render service page");
-                  }
+                  return sendPublicPageRenderFailure(res, "Failed to render service page");
                 }
               });
 
@@ -2130,7 +2246,9 @@ app.use(landingContractHeaders);
                 try {
                   const indexPath = path.join(publicDistPath, "index.html");
                   const templateHtml = getCachedTemplate(indexPath);
-                  if (!templateHtml) return res.status(404).send("Application files not found");
+                  if (!templateHtml) {
+                    return sendPublicPageRenderFailure(res, "Application files not found");
+                  }
 
                   const origin = resolvePublicOrigin(req);
                   const categoryParam = String(req.params.category || "");
@@ -2144,9 +2262,7 @@ app.use(landingContractHeaders);
                   });
 
                   if (!html) {
-                    // Listing not found — fall through to SPA (React will show 404)
-                    res.setHeader("Cache-Control", "no-store");
-                    return res.sendFile(indexPath);
+                    return sendPublicPageNotFound(res, "Exchange listing not found");
                   }
 
                   res.setHeader(
@@ -2156,14 +2272,7 @@ app.use(landingContractHeaders);
                   res.send(html);
                 } catch (err) {
                   console.error("Error rendering exchange listing HTML:", err);
-                  // Fall through to SPA on error
-                  const indexPath = path.join(publicDistPath, "index.html");
-                  if (fs.existsSync(indexPath)) {
-                    res.setHeader("Cache-Control", "no-store");
-                    res.sendFile(indexPath);
-                  } else {
-                    res.status(500).send("Failed to render exchange listing page");
-                  }
+                  return sendPublicPageRenderFailure(res, "Failed to render exchange listing page");
                 }
               });
 

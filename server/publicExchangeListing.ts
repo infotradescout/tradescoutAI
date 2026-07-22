@@ -126,7 +126,39 @@ export function toPublicExchangeListing(value: any): Record<string, unknown> | n
       ? requestedPrimary
       : 0;
   const sellerSource = value.seller && typeof value.seller === "object" ? value.seller : {};
-  const sellerName = cleanString(value.sellerName ?? sellerSource.name, 160) || "TradeScout seller";
+  const specificationSource =
+    value.specifications && typeof value.specifications === "object" ? value.specifications : {};
+  const specifications = sanitizeStructuredValue(specificationSource);
+  const businessName = cleanString(
+    value.businessName ?? value.sellerBusinessName ?? sellerSource.businessName,
+    160
+  );
+  const sellerName =
+    cleanString(value.sellerName ?? sellerSource.name, 160) || businessName || "TradeScout seller";
+  const rawCurrency = cleanString(value.currency ?? specificationSource.currency, 3).toUpperCase();
+  const currency = /^[A-Z]{3}$/.test(rawCurrency) ? rawCurrency : "USD";
+  const itemSku = cleanString(
+    value.itemSku ?? value.sku ?? specificationSource.itemSku ?? specificationSource.sku,
+    160
+  );
+  const itemStockQuantity = optionalNumber(
+    value.itemStockQuantity ??
+      value.stockQuantity ??
+      value.quantityAvailable ??
+      specificationSource.itemStockQuantity ??
+      specificationSource.stockQuantity ??
+      specificationSource.quantityAvailable
+  );
+  const explicitInStock =
+    typeof value.inStock === "boolean"
+      ? value.inStock
+      : typeof specificationSource.inStock === "boolean"
+        ? specificationSource.inStock
+        : null;
+  const availability = cleanString(
+    value.availability ?? value.inventoryStatus ?? specificationSource.availability,
+    80
+  );
   const price = optionalNumber(value.price) ?? 0;
   const originalPrice = optionalNumber(value.originalPrice);
   const shippingCost = optionalNumber(value.shippingCost);
@@ -140,6 +172,7 @@ export function toPublicExchangeListing(value: any): Record<string, unknown> | n
     title,
     description: cleanString(value.description, 4000),
     price: Math.max(0, price),
+    currency,
     priceType: cleanString(value.priceType, 40) || "fixed",
     originalPrice: originalPrice === null ? null : Math.max(0, originalPrice),
     county: cleanString(value.county, 160),
@@ -170,10 +203,20 @@ export function toPublicExchangeListing(value: any): Record<string, unknown> | n
     condition: cleanString(value.condition, 40),
     brand: cleanString(value.brand, 100),
     model: cleanString(value.model, 100),
+    itemSku: itemSku || null,
+    itemStockQuantity:
+      itemStockQuantity === null ? null : Math.max(0, Math.floor(itemStockQuantity)),
+    inStock:
+      explicitInStock === null
+        ? itemStockQuantity === null
+          ? null
+          : itemStockQuantity > 0
+        : explicitInStock,
+    availability: availability || null,
     year: optionalNumber(value.year),
     mileage: optionalNumber(value.mileage),
     hours: optionalNumber(value.hours),
-    specifications: sanitizeStructuredValue(value.specifications),
+    specifications,
     images,
     primaryImageIndex,
     requiresBuyerVerification: value.requiresBuyerVerification === true,
@@ -197,7 +240,8 @@ export function toPublicExchangeListing(value: any): Record<string, unknown> | n
     updatedAt: dateString(value.updatedAt),
     seller: {
       id: sellerId,
-      name: sellerName,
+      name: businessName || sellerName,
+      ...(businessName ? { businessName } : {}),
       rating: Math.max(
         0,
         Math.min(5, optionalNumber(value.sellerRating ?? sellerSource.rating) ?? 0)
@@ -207,6 +251,7 @@ export function toPublicExchangeListing(value: any): Record<string, unknown> | n
         value.isSellerVerified === true ||
         sellerSource.verified === true,
     },
+    businessName: businessName || null,
     sellerName,
     sellerRating: Math.max(
       0,

@@ -20,7 +20,17 @@ describe("buildScoutProvenance", () => {
         layer: 3,
         sources: [
           { title: "TradeScout Brain (data folder)" },
-          { title: "Internet Search (Not Local TradeScout Data)" },
+          {
+            title: "Travis County permit guidance",
+            url: "https://www.traviscountytx.gov/tnr/development-services",
+            type: "url_citation",
+            provider: "openai-web-search",
+          },
+          {
+            title: "Unsafe citation is discarded",
+            url: "javascript:alert(1)",
+            type: "url_citation",
+          },
         ],
       },
     });
@@ -33,7 +43,16 @@ describe("buildScoutProvenance", () => {
     expect(provenance?.knowledgeLayer).toBe(3);
     expect(provenance?.sourceTitles).toEqual([
       "TradeScout Brain (data folder)",
-      "Internet Search (Not Local TradeScout Data)",
+      "Travis County permit guidance",
+    ]);
+    expect(provenance?.sources).toEqual([
+      { title: "TradeScout Brain (data folder)" },
+      {
+        title: "Travis County permit guidance",
+        url: "https://www.traviscountytx.gov/tnr/development-services",
+        type: "url_citation",
+        provider: "openai-web-search",
+      },
     ]);
     expect(provenance?.resolvedStage).toBe("route_resolution");
     expect(provenance?.blockingReason).toBe("auth_required");
@@ -52,6 +71,7 @@ describe("buildScoutProvenance", () => {
     });
 
     expect(provenance?.sourceTitles).toEqual([]);
+    expect(provenance?.sources).toEqual([]);
     expect(provenance?.allowedActions).toEqual([]);
     expect(provenance?.blockingReason).toBeNull();
   });

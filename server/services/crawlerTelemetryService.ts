@@ -1244,6 +1244,12 @@ export async function recordCrawlerRequestEvent(
   metrics?: {
     responseTimeMs?: number | null;
     responseBytes?: number | null;
+    /**
+     * Canonical application path for host-rewritten surfaces. The request
+     * object still carries the public host path, but attribution should match
+     * the route family that supplied the response.
+     */
+    pathOverride?: string | null;
   }
 ): Promise<void> {
   crawlerPersistenceStats.attempted += 1;
@@ -1258,7 +1264,7 @@ export async function recordCrawlerRequestEvent(
     await ensureCrawlerRequestEventsTable();
     void pruneCrawlerRequestEventsIfNeeded();
     void backfillCountyFipsIfNeeded();
-    const originalUrl = String(req.originalUrl || req.path || "/");
+    const originalUrl = String(metrics?.pathOverride || req.originalUrl || req.path || "/");
     const parsedUrl = new URL(originalUrl, "https://www.thetradescout.com");
     const requestPath = cleanPath(parsedUrl.pathname);
     const requestType: RequestType = classifyRequestType(requestPath);

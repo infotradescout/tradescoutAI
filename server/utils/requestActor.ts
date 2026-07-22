@@ -6,6 +6,9 @@ export type RequestType = "page" | "api" | "asset" | "unknown";
 
 const BOT_PATTERNS: Array<{ re: RegExp; name: string }> = [
   { re: /googlebot/i, name: "Googlebot" },
+  { re: /google-inspectiontool/i, name: "Google-InspectionTool" },
+  { re: /googleother/i, name: "GoogleOther" },
+  { re: /google-extended/i, name: "Google-Extended" },
   { re: /bingbot/i, name: "Bingbot" },
   { re: /msnbot/i, name: "MSNBot" },
   { re: /petalbot/i, name: "PetalBot" },
@@ -24,6 +27,11 @@ const BOT_PATTERNS: Array<{ re: RegExp; name: string }> = [
   { re: /gptbot/i, name: "GPTBot" },
   { re: /chatgpt-user/i, name: "ChatGPT-User" },
   { re: /perplexitybot/i, name: "PerplexityBot" },
+  { re: /perplexity-user/i, name: "Perplexity-User" },
+  { re: /claude-user/i, name: "Claude-User" },
+  { re: /anthropic-ai/i, name: "Anthropic-AI" },
+  { re: /cohere-ai/i, name: "Cohere-AI" },
+  { re: /mistralai-user/i, name: "MistralAI-User" },
   { re: /twitterbot/i, name: "TwitterBot" },
   { re: /linkedinbot/i, name: "LinkedInBot" },
   { re: /crawler|spider|bot/i, name: "CrawlerBot" },

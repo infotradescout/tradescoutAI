@@ -1,6 +1,6 @@
 // client/src/scout/api.ts
 
-import type { ScoutMessage, ScoutAction } from "./state";
+import type { ScoutMessage, ScoutAction, ScoutKnowledgeSource } from "./state";
 import type { RecentActivityEvent } from "../agent/activity";
 import { sanitizeAreaLabel } from "@/lib/copyHelpers";
 import type { ScoutLaunchContext } from "@shared/scoutLaunchContext";
@@ -121,7 +121,7 @@ export interface ScoutBackendResponse {
   }>;
   knowledge?: {
     layer?: number;
-    sources?: Array<{ title: string; url?: string; type?: string }>;
+    sources?: Array<string | ScoutKnowledgeSource>;
   };
   timestamp?: string;
   metadata?: {

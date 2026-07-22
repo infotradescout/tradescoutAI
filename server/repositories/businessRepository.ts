@@ -2,6 +2,7 @@ import {
   businesses,
   businessCounties,
   businessVerifications,
+  counties,
   users,
   workers,
   type Business,
@@ -206,9 +207,14 @@ export class BusinessRepository {
     if (!business) return undefined;
 
     const countyRows = await db
-      .select({ countyId: businessCounties.countyId })
+      .select({
+        countyName: counties.name,
+        stateCode: counties.stateCode,
+      })
       .from(businessCounties)
-      .where(eq(businessCounties.businessId, businessId));
+      .innerJoin(counties, eq(counties.id, businessCounties.countyId))
+      .where(eq(businessCounties.businessId, businessId))
+      .orderBy(asc(counties.name), asc(counties.stateCode));
 
     const categories = business.profileData?.category ? [business.profileData.category] : [];
     const contactEmail = business.profileData?.email || undefined;
@@ -219,7 +225,17 @@ export class BusinessRepository {
       id: business.id,
       name: business.name,
       categories,
-      serviceAreas: countyRows.map((r) => r.countyId),
+      serviceAreas: Array.from(
+        new Set(
+          countyRows
+            .map((row) =>
+              [String(row.countyName || "").trim(), String(row.stateCode || "").trim()]
+                .filter(Boolean)
+                .join(", ")
+            )
+            .filter(Boolean)
+        )
+      ),
       tradePartner: isTradePartner,
       ...(business.profileData?.brandColors
         ? { brandColors: business.profileData.brandColors }

@@ -13,6 +13,7 @@ export type PublicProfileRecord = {
   ctaConfig: any;
   seoMeta: any;
   businessId: string | null;
+  updatedAt: Date | null;
   profileSections: any | null;
   profileBooking: any | null;
   ownerFirstName: string | null;
@@ -87,6 +88,7 @@ export class ProfileRepository {
         ctaConfig: profiles.ctaConfig,
         seoMeta: profiles.seoMeta,
         businessId: profiles.businessId,
+        updatedAt: profiles.updatedAt,
         profileSections: sql`(${users.preferences} -> 'profileSections')`,
         profileBooking: sql`(${users.preferences} -> 'profileBooking')`,
         ownerFirstName: users.firstName,

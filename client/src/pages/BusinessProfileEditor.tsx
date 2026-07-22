@@ -96,10 +96,6 @@ export default function BusinessProfileEditor() {
       ctaLabel?: string | null;
     }>
   >([]);
-  const [domainInput, setDomainInput] = useState("");
-  const [domainStarting, setDomainStarting] = useState(false);
-  const [domainVerifying, setDomainVerifying] = useState(false);
-
   // Scout Copy Assist state
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [copyVariants, setCopyVariants] = useState<ScoutCopyVariant[]>([]);
@@ -172,8 +168,6 @@ export default function BusinessProfileEditor() {
         );
         setBookingTimezone(data.bookingConfig?.timezone || "America/Chicago");
         setContentBlocks(Array.isArray(data.contentBlocks) ? data.contentBlocks : []);
-        setDomainInput(data.customDomain || "");
-
         // Non-optional telemetry
         recordActivity({
           type: "business_profile_edit_opened" as any,
@@ -397,107 +391,6 @@ export default function BusinessProfileEditor() {
     setContentBlocks((current) => current.filter((block) => block.id !== id));
   }
 
-  async function copyDomainValue(label: string, value: string) {
-    try {
-      await navigator.clipboard.writeText(value);
-      toast({ title: `${label} copied`, description: value });
-    } catch {
-      toast({ title: `Could not copy ${label.toLowerCase()}`, variant: "destructive" as any });
-    }
-  }
-
-  async function handleStartDomainVerification() {
-    if (!profile) return;
-
-    const normalized = domainInput.trim().toLowerCase();
-    if (!normalized) {
-      toast({
-        title: "Enter a domain",
-        description: "Add your domain first (for example: example.com).",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setDomainStarting(true);
-    try {
-      const response = await fetch("/api/business-profile/domain/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ domain: normalized }),
-      });
-
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
-        throw new Error(data?.message || "Failed to start domain verification");
-      }
-
-      if (data?.profile) {
-        setProfile(data.profile as BusinessProfile);
-        setDomainInput((data.profile as BusinessProfile).customDomain || normalized);
-      }
-
-      toast({
-        title: "Verification started",
-        description: "Add the TXT record shown below, then click Verify Domain.",
-      });
-    } catch (err: any) {
-      console.error("Error starting domain verification:", err);
-      toast({
-        title: "Could not start verification",
-        description: formatUserFacingErrorMessage(err, "Please try again."),
-        variant: "destructive",
-      });
-    } finally {
-      setDomainStarting(false);
-    }
-  }
-
-  async function handleVerifyDomain() {
-    if (!profile?.customDomain) {
-      toast({
-        title: "No domain configured",
-        description: "Start verification first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setDomainVerifying(true);
-    try {
-      const response = await fetch("/api/business-profile/domain/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await response.json().catch(() => null);
-      if (data?.profile) {
-        setProfile(data.profile as BusinessProfile);
-      }
-
-      if (!response.ok || !data?.success) {
-        throw new Error(data?.verification?.error || data?.message || "Verification failed");
-      }
-
-      toast({
-        title: "Domain verified",
-        description: "Your domain now points to your public business profile.",
-      });
-    } catch (err: any) {
-      console.error("Error verifying domain:", err);
-      toast({
-        title: "Verification failed",
-        description: formatUserFacingErrorMessage(
-          err,
-          "DNS may still be propagating. Try again soon."
-        ),
-        variant: "destructive",
-      });
-    } finally {
-      setDomainVerifying(false);
-    }
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -523,9 +416,6 @@ export default function BusinessProfileEditor() {
   }
 
   const publicUrl = `/business/${profile.slug}`;
-  const domainState = profile.customDomainVerification?.state || "unverified";
-  const domainToken = profile.customDomainVerification?.token || "";
-
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
       {/* Live Banner */}
@@ -764,184 +654,26 @@ export default function BusinessProfileEditor() {
                 </a>
               )}
 
-              <div className="pt-4 border-t space-y-3">
-                <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div>
-                      <Label htmlFor="customDomain">Custom Domain</Label>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Connect your own domain and use this TradeScout page as your free website
-                        equivalent.
-                      </p>
-                    </div>
-                    <Badge variant="secondary">{domainState}</Badge>
+              <div className="pt-4 border-t">
+                <div
+                  className="rounded-lg border bg-muted/20 p-4 space-y-3"
+                  data-testid="business-profile-domain-authority-notice"
+                >
+                  <div>
+                    <Label>Custom domain</Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Custom domains belong to your rich public profile. Manage DNS verification,
+                      replacement, and disconnects from the public profile editor.
+                    </p>
                   </div>
-
-                  <div className="grid gap-3 md:grid-cols-2 text-sm">
-                    <div className="rounded border p-3">
-                      <div className="font-medium">Default TradeScout URL</div>
-                      <div className="text-muted-foreground break-all mt-1">
-                        tradescout.com{publicUrl}
-                      </div>
-                    </div>
-                    <div className="rounded border p-3">
-                      <div className="font-medium">Your domain</div>
-                      <div className="text-muted-foreground break-all mt-1">
-                        {profile.customDomainVerification?.state === "verified" &&
-                        profile.customDomain
-                          ? `https://${profile.customDomain}`
-                          : domainInput
-                            ? `https://${domainInput}`
-                            : "Not connected yet"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <Input
-                  id="customDomain"
-                  type="text"
-                  value={domainInput}
-                  onChange={(e) => setDomainInput(e.target.value)}
-                  placeholder="example.com"
-                />
-
-                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => copyDomainValue("TradeScout URL", `tradescout.com${publicUrl}`)}
+                    onClick={() => navigate("/profile-settings")}
                   >
-                    Copy TradeScout URL
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleStartDomainVerification}
-                    disabled={domainStarting}
-                  >
-                    {domainStarting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Starting...
-                      </>
-                    ) : (
-                      "Start Verification"
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleVerifyDomain}
-                    disabled={domainVerifying || !profile.customDomain || !domainToken}
-                  >
-                    {domainVerifying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      "Verify Domain"
-                    )}
+                    Open public profile settings
                   </Button>
                 </div>
-
-                {profile.customDomainVerification?.state === "verified" && profile.customDomain ? (
-                  <Alert>
-                    <AlertDescription className="space-y-3 text-xs">
-                      <div>
-                        <strong>Your website is live on your custom domain.</strong>
-                      </div>
-                      <div className="break-all">https://{profile.customDomain}</div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            copyDomainValue("Custom domain", `https://${profile.customDomain}`)
-                          }
-                        >
-                          Copy Website URL
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() =>
-                            window.open(
-                              `https://${profile.customDomain}`,
-                              "_blank",
-                              "noopener,noreferrer"
-                            )
-                          }
-                        >
-                          Open Website
-                        </Button>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-
-                {profile.customDomain && domainToken && (
-                  <Alert>
-                    <AlertDescription className="space-y-2 text-xs">
-                      <div>
-                        Add this DNS TXT record at your registrar, then click{" "}
-                        <strong>Verify Domain</strong>.
-                      </div>
-                      <div className="rounded border bg-background p-3 space-y-2">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div>
-                              <strong>Host</strong>
-                            </div>
-                            <div className="break-all">
-                              _tradescout-verify.{profile.customDomain}
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              copyDomainValue(
-                                "DNS host",
-                                `_tradescout-verify.${profile.customDomain}`
-                              )
-                            }
-                          >
-                            Copy Host
-                          </Button>
-                        </div>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div>
-                              <strong>Value</strong>
-                            </div>
-                            <div className="break-all">{domainToken}</div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyDomainValue("DNS value", domainToken)}
-                          >
-                            Copy Value
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="text-muted-foreground">
-                        Once verified, visitors can use your domain as the main website for this
-                        business page.
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {profile.customDomainVerification?.error && (
-                  <p className="text-xs text-destructive">
-                    {profile.customDomainVerification.error}
-                  </p>
-                )}
               </div>
             </TabsContent>
 

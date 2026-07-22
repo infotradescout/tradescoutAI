@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import {
+  qualifyPublicProfileItemDestination,
+  requiresDocumentNavigation,
+} from "@/lib/publicProfileItemDestination";
+import {
   ArrowLeft,
   CheckCircle2,
   Loader2,
@@ -28,6 +32,7 @@ type ExpressDirectConnectPanelProps = {
   open: boolean;
   onClose: () => void;
   profileSlug: string;
+  platformBaseHref?: string;
   businessName: string;
   businessAddress?: string | null;
   hasViewerSession: boolean;
@@ -95,6 +100,7 @@ export default function ExpressDirectConnectPanel({
   open,
   onClose,
   profileSlug,
+  platformBaseHref = "",
   businessName,
   businessAddress,
   hasViewerSession,
@@ -180,6 +186,7 @@ export default function ExpressDirectConnectPanel({
     if (initialStoneName) params.set("item", initialStoneName);
     return `/direct-connect/engagements?${params.toString()}`;
   }, [businessName, initialStoneName, profileSlug, requestId, requestWorkspacePath]);
+  const requestHref = qualifyPublicProfileItemDestination(requestPath, platformBaseHref);
 
   if (!open) return null;
 
@@ -189,9 +196,20 @@ export default function ExpressDirectConnectPanel({
     profileName: businessName,
   });
   if (initialStoneName) postCallParams.set("item", initialStoneName);
-  const postCallSignupHref = `/pre-scout-setup?mode=create&next=${encodeURIComponent(
-    `/direct-connect?${postCallParams.toString()}`
-  )}`;
+  const postCallSignupHref = qualifyPublicProfileItemDestination(
+    `/pre-scout-setup?mode=create&next=${encodeURIComponent(
+      `/direct-connect?${postCallParams.toString()}`
+    )}`,
+    platformBaseHref
+  );
+  const manageRequestPath =
+    accountCreated && onboardingPath
+      ? onboardingPath
+      : `/pre-scout-setup?mode=signin&email=${encodeURIComponent(form.email)}&next=${encodeURIComponent(requestPath)}`;
+  const manageRequestHref = qualifyPublicProfileItemDestination(
+    manageRequestPath,
+    platformBaseHref
+  );
 
   const close = () => {
     if (!busy) onClose();
@@ -518,11 +536,21 @@ export default function ExpressDirectConnectPanel({
                     Create a free TradeScout account to keep {businessName}, job notes, replies,
                     progress, and follow-up together.
                   </p>
-                  <Link href={postCallSignupHref}>
-                    <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
+                  {requiresDocumentNavigation(postCallSignupHref) ? (
+                    <a
+                      href={postCallSignupHref}
+                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                    >
                       Manage this in TradeScout
-                    </button>
-                  </Link>
+                    </a>
+                  ) : (
+                    <Link
+                      href={postCallSignupHref}
+                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                    >
+                      Manage this in TradeScout
+                    </Link>
+                  )}
                   {stayInProfile ? (
                     <button
                       type="button"
@@ -567,17 +595,21 @@ export default function ExpressDirectConnectPanel({
                       No email is required to continue from this browser.
                     </p>
                   ) : null}
-                  <Link
-                    href={
-                      accountCreated && onboardingPath
-                        ? onboardingPath
-                        : `/pre-scout-setup?mode=signin&email=${encodeURIComponent(form.email)}&next=${encodeURIComponent(requestPath)}`
-                    }
-                  >
-                    <button className="mt-4 w-full rounded-xl bg-ts-orange px-6 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
+                  {requiresDocumentNavigation(manageRequestHref) ? (
+                    <a
+                      href={manageRequestHref}
+                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                    >
                       {accountCreated ? "Manage my request" : "Sign in and manage it"}
-                    </button>
-                  </Link>
+                    </a>
+                  ) : (
+                    <Link
+                      href={manageRequestHref}
+                      className="mt-4 block w-full rounded-xl bg-ts-orange px-6 py-3 text-center font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                    >
+                      {accountCreated ? "Manage my request" : "Sign in and manage it"}
+                    </Link>
+                  )}
                   <p className="mt-3 text-xs text-stone-500">
                     You can add this project to your HomeID later if you want it in your home
                     record.
@@ -592,11 +624,19 @@ export default function ExpressDirectConnectPanel({
                     </button>
                   ) : null}
                 </div>
+              ) : requiresDocumentNavigation(requestHref) ? (
+                <a
+                  href={requestHref}
+                  className="mt-6 inline-block rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                >
+                  Manage this request
+                </a>
               ) : (
-                <Link href={requestPath}>
-                  <button className="mt-6 rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark">
-                    Manage this request
-                  </button>
+                <Link
+                  href={requestHref}
+                  className="mt-6 inline-block rounded-xl bg-ts-orange px-7 py-3 font-semibold text-white transition-colors hover:bg-ts-orange-dark"
+                >
+                  Manage this request
                 </Link>
               )}
             </div>

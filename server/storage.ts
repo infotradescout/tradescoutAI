@@ -638,7 +638,9 @@ export interface IStorage {
   }): Promise<Array<{ countySlug: string; updatedAt: Date | null; allowedCategories: string[] }>>;
   listActiveExchangeListingsForSitemap(args?: {
     limit?: number;
-  }): Promise<Array<{ id: string; categoryName: string; updatedAt: Date | null }>>;
+  }): Promise<
+    Array<{ id: string; sellerUserId: string; categoryName: string; updatedAt: Date | null }>
+  >;
   searchProfilesPublic(args: { query: string; limit?: number }): Promise<
     Array<{
       id: string;
@@ -1847,7 +1849,9 @@ export class DatabaseStorage implements IStorage {
 
   async listActiveExchangeListingsForSitemap(args?: {
     limit?: number;
-  }): Promise<Array<{ id: string; categoryName: string; updatedAt: Date | null }>> {
+  }): Promise<
+    Array<{ id: string; sellerUserId: string; categoryName: string; updatedAt: Date | null }>
+  > {
     return this.sitemapRepository.listActiveExchangeListingsForSitemap(args);
   }
 

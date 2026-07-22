@@ -2,12 +2,12 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateGeminiTextWithFallback } from "../ai/geminiFallback";
 import { and, eq, or, sql } from "drizzle-orm";
 import mammoth from "mammoth";
 import { db } from ".././db";
 import { storage } from "../storage";
 import { chooseKnowledgeMode } from "../scout/brandGuard";
+import { webSearch, type WebSearchResult } from "./webSearchService";
 import { businesses, businessCounties, counties } from "../../shared/schema";
 
 // ES module equivalent of __dirname
@@ -66,9 +66,18 @@ interface KnowledgeRequest {
   stateCode?: string;
 }
 
+export interface KnowledgeSource {
+  title: string;
+  url?: string;
+  type?: string;
+  provider?: string;
+}
+
+export type KnowledgeSourceReference = string | KnowledgeSource;
+
 interface KnowledgeResponse {
   answer: string;
-  sources: string[];
+  sources: KnowledgeSourceReference[];
   layer: 1 | 2 | 3 | 4;
   confidence: "high" | "medium" | "low";
   meta?: {
@@ -80,7 +89,7 @@ interface KnowledgeResponse {
 interface InternetFallbackDecisionInput {
   message: string;
   mode: ReturnType<typeof chooseKnowledgeMode>;
-  sources: string[];
+  sources: KnowledgeSourceReference[];
   meta: KnowledgeResponse["meta"];
   hasManualOverride: boolean;
 }
@@ -101,9 +110,10 @@ export function shouldUseInternetFallback(input: InternetFallbackDecisionInput):
     return false;
   }
 
-  const hasWebsiteData = sources.some(
-    (source) => source.startsWith("TradeScout Cache") || source.startsWith("TradeScout Database")
-  );
+  const hasWebsiteData = sources.some((source) => {
+    const title = typeof source === "string" ? source : source.title;
+    return title.startsWith("TradeScout Cache") || title.startsWith("TradeScout Database");
+  });
   const localSupplyCount = Math.max(
     meta?.contractors?.count ?? 0,
     meta?.communityPosts?.count ?? 0
@@ -112,12 +122,14 @@ export function shouldUseInternetFallback(input: InternetFallbackDecisionInput):
 
   const hasOnlyKnowledgeDocs =
     sources.length > 0 &&
-    sources.every(
-      (source) =>
-        source === "TradeScout Brain (data folder)" ||
-        source.startsWith("Admin ") ||
-        source.startsWith("Admin County Override")
-    );
+    sources.every((source) => {
+      const title = typeof source === "string" ? source : source.title;
+      return (
+        title === "TradeScout Brain (data folder)" ||
+        title.startsWith("Admin ") ||
+        title.startsWith("Admin County Override")
+      );
+    });
 
   if (hasOnlyKnowledgeDocs) {
     return true;
@@ -318,7 +330,7 @@ export function appendChatKnowledge(entry: {
   countyCode?: string;
   stateCode?: string;
   layer?: number;
-  sources?: string[];
+  sources?: KnowledgeSourceReference[];
   actions?: string[];
 }): void {
   try {
@@ -821,14 +833,69 @@ async function queryWebsite(
  * LAYER 4: Search internet (last resort)
  * Only when all other layers insufficient
  */
+function normalizeKnowledgeSourceUrl(value: unknown): string | undefined {
+  if (typeof value !== "string" || value.trim().length === 0) return undefined;
+
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+export function buildInternetKnowledgeSources(
+  result: Pick<WebSearchResult, "provider" | "sources">
+): KnowledgeSource[] {
+  const sources = Array.isArray(result.sources) ? result.sources : [];
+  const normalized: KnowledgeSource[] = [];
+  const seen = new Set<string>();
+
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue;
+    const url = normalizeKnowledgeSourceUrl(source.url);
+    if (!url) continue;
+    const type = typeof source.type === "string" ? source.type.trim() : "";
+    const title =
+      typeof source.title === "string" && source.title.trim().length > 0
+        ? source.title.trim()
+        : url;
+    if (!title) continue;
+
+    const key = `${title}\n${url || ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    normalized.push({
+      title,
+      url,
+      ...(type ? { type } : { type: "internet" }),
+      ...(typeof source.provider === "string" && source.provider.trim()
+        ? { provider: source.provider.trim() }
+        : typeof result.provider === "string" && result.provider.trim()
+          ? { provider: result.provider.trim() }
+          : {}),
+    });
+  }
+  return normalized;
+}
+
+export function hasCitableInternetSource(sources: KnowledgeSourceReference[]): boolean {
+  return sources.some(
+    (source) => typeof source !== "string" && Boolean(normalizeKnowledgeSourceUrl(source?.url))
+  );
+}
+
 async function searchInternet(
-  gemini: GoogleGenerativeAI | null,
+  _gemini: GoogleGenerativeAI | null,
   message: string,
   countyCode?: string,
   stateCode?: string
 ): Promise<CacheResult> {
   try {
-    if (!gemini) return { source: "none", data: null, layer: 0 };
+    if (!process.env.OPENAI_API_KEY) {
+      return { source: "none", data: null, layer: 0 };
+    }
     const lower = message.toLowerCase();
 
     const codeOrPermit = isCodeOrPermitQuery(lower);
@@ -836,38 +903,33 @@ async function searchInternet(
 
     const localityHint = [countyCode, stateCode].filter(Boolean).join(", ");
 
-    const webPrompt =
+    const authorityInstruction =
       codeOrPermit || taxQuery
-        ? `You are helping with a local home or property question.
-
-User question: ${message}
-User locality (if provided, may be approximate): ${localityHint || "unknown"}.
-
-Task:
-- Search the web and summarize the most relevant, up-to-date information from OFFICIAL or authoritative sources.
-- If this involves building codes, permits, inspections, zoning, or safety rules:
-  - Focus on which code books or authorities apply (for example, "International Residential Code (IRC)", state code names, or local municipal code names).
-  - Mention SECTION NAMES or numbers only as references (e.g., "IRC R305 Ceiling Height"), do NOT quote long passages from the code itself.
-  - Emphasize that final authority is the local building department and licensed professionals.
-- If this involves taxes (property tax, assessments, homestead, etc.):
-  - Focus on how the tax is generally calculated, what offices administer it, and common exemptions or credits.
-  - Prefer official county or state tax authority information.
-
-Keep the answer compact (under ~8 sentences) and written as plain text notes that can be embedded into a larger AI response.`
-        : `Search the web and provide accurate, concise information about the following question.
-
-User question: ${message}
-User locality (if provided, may be approximate): ${localityHint || "unknown"}.
-
-Prefer official or authoritative sources when possible. Keep the answer compact (under ~8 sentences).`;
-
-    const { text } = await generateGeminiTextWithFallback(gemini, webPrompt);
-    if (text) {
-      return {
-        source: "internet",
-        data: { content: text },
-        layer: 4,
-      };
+        ? "Use the applicable official county, municipal, state, tax, or building-code authority."
+        : "Prefer official or authoritative sources.";
+    const query = [message, localityHint ? `Location: ${localityHint}.` : "", authorityInstruction]
+      .filter(Boolean)
+      .join("\n");
+    try {
+      const result = await webSearch(query, 5);
+      if (result.success && result.content) {
+        const internetSources = buildInternetKnowledgeSources(result);
+        if (!hasCitableInternetSource(internetSources)) {
+          console.warn("Citation-capable search returned no valid provider source");
+        } else {
+          return {
+            source: "internet",
+            data: {
+              content: result.content,
+              sources: internetSources,
+              provider: result.provider,
+            },
+            layer: 4,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Citation-capable internet search error:", error);
     }
   } catch (error) {
     console.error("Internet search error:", error);
@@ -887,7 +949,7 @@ export async function resolveKnowledge(
   gemini: GoogleGenerativeAI | null
 ): Promise<KnowledgeResponse> {
   const { message, userId, countyCode, stateCode } = request;
-  const sources: string[] = [];
+  const sources: KnowledgeSourceReference[] = [];
   const aggregatedContent: string[] = [];
   let highestLayer = 4;
   let hasManualOverride = false;
@@ -997,7 +1059,12 @@ export async function resolveKnowledge(
       if (internetResult.source === "internet" && internetResult.data?.content) {
         return {
           answer: String(internetResult.data.content),
-          sources: [...sources, "Internet Search (Not Local TradeScout Data)"],
+          sources: [
+            ...sources,
+            ...(Array.isArray(internetResult.data.sources)
+              ? internetResult.data.sources
+              : buildInternetKnowledgeSources({ provider: internetResult.data.provider })),
+          ],
           layer: 3,
           confidence: "medium",
           meta,
@@ -1037,7 +1104,11 @@ export async function resolveKnowledge(
   if (mode === "kb_site_then_web") {
     const internetResult = await searchInternet(gemini, message, countyCode, stateCode);
     if (internetResult.source === "internet" && internetResult.data?.content) {
-      sources.push("Internet Search (Not Local TradeScout Data)");
+      sources.push(
+        ...(Array.isArray(internetResult.data.sources)
+          ? internetResult.data.sources
+          : buildInternetKnowledgeSources({ provider: internetResult.data.provider }))
+      );
       return {
         answer: internetResult.data.content,
         sources,

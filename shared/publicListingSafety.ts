@@ -24,3 +24,20 @@ export function sanitizePublicListingText(value: unknown, maxLength = 4000): str
     .replace(/\s+/g, " ")
     .trim();
 }
+
+/**
+ * Discovery metadata also needs to remove bare domains that do not include a
+ * protocol or www prefix. Keep this separate from general listing copy so
+ * existing display behavior is not changed outside indexed/profile metadata.
+ */
+export function sanitizePublicDiscoveryText(value: unknown, maxLength = 4000): string {
+  const safeMaxLength = Math.max(0, Math.min(20_000, Number(maxLength) || 0));
+  return sanitizePublicListingText(value, safeMaxLength)
+    .replace(
+      /\b(?:[a-z0-9](?:[a-z0-9-]{0,62})\.)+[a-z]{2,63}\b(?:\/[^\s]*)?/gi,
+      PUBLIC_CONTACT_REPLACEMENT
+    )
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, safeMaxLength);
+}

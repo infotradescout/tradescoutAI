@@ -110,6 +110,8 @@ export interface BusinessProfile {
   customDomain?: string | null;
   customDomainVerification?: {
     state: "unverified" | "pending" | "verified" | "failed";
+    /** Exact public profile this ownership proof is allowed to publish to. */
+    profileId?: string | null;
     token?: string | null;
     verifiedAt?: string | null;
     lastCheckedAt?: string | null;

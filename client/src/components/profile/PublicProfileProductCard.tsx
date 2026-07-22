@@ -2,6 +2,7 @@ import { ArrowUpRight, MapPin, PackageOpen } from "lucide-react";
 import { Link } from "wouter";
 import { ShareButton } from "@/components/ShareButton";
 import { Button } from "@/components/ui/button";
+import { requiresDocumentNavigation } from "@/lib/publicProfileItemDestination";
 
 type PublicProfileProductCardProps = {
   title: string;
@@ -110,10 +111,17 @@ export function PublicProfileProductCard({
           asChild
           className="mt-5 min-h-11 w-full bg-white text-black hover:bg-ts-orange hover:text-white"
         >
-          <Link href={destination} aria-label={`${actionLabel}: ${title}`}>
-            {actionLabel}
-            <ArrowUpRight className="ml-2 h-4 w-4" />
-          </Link>
+          {requiresDocumentNavigation(destination) ? (
+            <a href={destination} aria-label={`${actionLabel}: ${title}`}>
+              {actionLabel}
+              <ArrowUpRight className="ml-2 h-4 w-4" />
+            </a>
+          ) : (
+            <Link href={destination} aria-label={`${actionLabel}: ${title}`}>
+              {actionLabel}
+              <ArrowUpRight className="ml-2 h-4 w-4" />
+            </Link>
+          )}
         </Button>
       </div>
     </article>

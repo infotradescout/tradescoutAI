@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
+import { normalizeAffiliateShareDestination } from "@/lib/publicProfileItemDestination";
 
 // A short, deterministic, non-cryptographic hash (cyrb53) so repeat shares of
 // the same content by the same user reuse one link instead of minting a new
@@ -63,18 +64,23 @@ export function ShareButton({
       let shareUrl = new URL(destination, `${origin}/`).toString();
 
       if (isAuthenticated && user?.id) {
-        const slug = `s-${shortHash(`${user.id}:${destination}`)}`;
+        const affiliateDestination = normalizeAffiliateShareDestination(destination);
+        const slug = affiliateDestination
+          ? `s-${shortHash(`${user.id}:${affiliateDestination}`)}`
+          : "";
         try {
-          const res = await apiRequest("POST", "/api/affiliate/share-links", {
-            destination,
-            slug,
-          });
-          const json = await res.json();
-          if (json?.shortUrl) shareUrl = json.shortUrl;
+          if (affiliateDestination) {
+            const res = await apiRequest("POST", "/api/affiliate/share-links", {
+              destination: affiliateDestination,
+              slug,
+            });
+            const json = await res.json();
+            if (json?.shortUrl) shareUrl = json.shortUrl;
+          }
         } catch (err: any) {
           // A 409 means this user already has a share link for this exact
           // destination (deterministic slug) -- reuse it rather than fail.
-          if (err?.status === 409) {
+          if (err?.status === 409 && slug) {
             shareUrl = `${origin}/r/${slug}`;
           }
           // Any other failure: fall back to the plain canonical link below.
