@@ -229,7 +229,7 @@ const SimpleHome = memo(function SimpleHome() {
                     <div className="text-center py-8">
                       <Wrench className="h-12 w-12 text-white/70 dark:text-white/60 mx-auto mb-3" />
                       <p className="text-white/70 mb-4">No active projects yet</p>
-                      <Link href="/business/requests">
+                      <Link href="/direct-connect/inbox">
                         <Button size="sm" className="bg-ts-orange-dark hover:bg-ts-orange-dark">
                           Browse Project Requests
                         </Button>
@@ -473,7 +473,7 @@ const SimpleHome = memo(function SimpleHome() {
               <CardContent className="space-y-2">
                 {isContractor ? (
                   <>
-                    <Link href="/business/requests">
+                    <Link href="/direct-connect/inbox">
                       <Button
                         size="sm"
                         className="bg-ts-orange hover:bg-ts-orange-dark text-white w-full justify-start"

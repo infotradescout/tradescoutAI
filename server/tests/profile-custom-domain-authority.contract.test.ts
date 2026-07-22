@@ -56,15 +56,15 @@ describe("profile custom-domain authority contract", () => {
 
   it("places publishing controls only in the rich profile editor", () => {
     const profileEditor = source("client/src/pages/ProfileSiteEditor.tsx");
-    const businessEditor = source("client/src/pages/BusinessProfileEditor.tsx");
+    const legacyEditorRedirect = source("client/src/pages/BusinessProfileEditor.tsx");
 
     expect(profileEditor).toContain("/api/business-profile/domain/status?profileId=");
     expect(profileEditor).toContain("delete (seoMetaFromText as any).customDomain");
     expect(profileEditor).toContain('data-testid="profile-editor-domain-start"');
     expect(profileEditor).toContain("Start ownership check");
     expect(profileEditor).toContain("hosting and TLS");
-    expect(businessEditor).toContain('data-testid="business-profile-domain-authority-notice"');
-    expect(businessEditor).not.toContain("/api/business-profile/domain/start");
-    expect(businessEditor).not.toContain("/api/business-profile/domain/verify");
+    expect(legacyEditorRedirect).toContain("Compatibility-only handoff");
+    expect(legacyEditorRedirect).not.toContain("/api/business-profile/domain/start");
+    expect(legacyEditorRedirect).not.toContain("/api/business-profile/domain/verify");
   });
 });

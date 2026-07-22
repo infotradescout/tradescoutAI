@@ -27,7 +27,7 @@ export const ROUTES = {
   // Contractor routes
   BUSINESS_DASHBOARD: "/business-dashboard",
   BUSINESS_APPLY: "/claim-my-business",
-  BUSINESS_REQUESTS: "/business/requests",
+  BUSINESS_REQUESTS: "/direct-connect/inbox",
   CONTRACTOR_DASHBOARD: "/business-dashboard",
   CONTRACTOR_APPLY: "/claim-my-business",
   CONTRACTOR_BOARD: "/contractor-board",

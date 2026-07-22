@@ -23,6 +23,7 @@ import type {
   BusinessProfile,
 } from "../../shared/businessProfile";
 import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
+import { resolveCanonicalBusinessProfileRoute } from "../services/canonicalBusinessProfileRoute";
 
 function sanitizePublicCtaConfig(ctaConfig: unknown) {
   const safe = (ctaConfig && typeof ctaConfig === "object" ? ctaConfig : {}) as Record<string, any>;
@@ -501,6 +502,12 @@ export function registerBusinessProfileRoutes(app: Express) {
       if (!isBusinessDiscoverable(ownerUser)) {
         return res.status(404).json({ message: "Profile not found" });
       }
+      let canonicalProfile: Awaited<ReturnType<typeof resolveCanonicalBusinessProfileRoute>> = null;
+      try {
+        canonicalProfile = await resolveCanonicalBusinessProfileRoute(slug);
+      } catch (canonicalRouteError) {
+        console.error("Error resolving canonical public profile route:", canonicalRouteError);
+      }
 
       // Resolve the owner's active Exchange catalog without exposing the
       // private owner/account ID to the browser. Listing detail pages retain
@@ -546,6 +553,7 @@ export function registerBusinessProfileRoutes(app: Express) {
         theme: profile.theme || buildDefaultTheme(),
         bookingConfig: sanitizePublicBookingConfig(profile.bookingConfig),
         marketplaceListings,
+        canonicalProfilePath: canonicalProfile?.path || null,
         visibility: profile.visibility,
         verificationStatus: profile.verificationStatus || null,
         addressVerified: profile.addressVerified ?? false,

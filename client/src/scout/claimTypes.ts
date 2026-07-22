@@ -134,7 +134,10 @@ export function routeFromClaims(claims: ClaimType[]): RoutingDecision {
 
   // Business + services → business profile first
   if (has("represent_business") && has("offer_services")) {
-    return { path: "/business-listing", reason: "business_plus_services" };
+    return {
+      path: "/claim-my-business?source=scout_claims_business_services",
+      reason: "business_plus_services",
+    };
   }
 
   // Conflicting: both hire and offer → Scout follow-up
@@ -152,11 +155,14 @@ export function routeFromClaims(claims: ClaimType[]): RoutingDecision {
   }
 
   if (has("represent_business")) {
-    return { path: "/business-listing", reason: "represent_business" };
+    return {
+      path: "/claim-my-business?source=scout_claims_represent_business",
+      reason: "represent_business",
+    };
   }
 
   if (has("posts_deals")) {
-    return { path: "/business-listing", reason: "posts_deals" };
+    return { path: "/exchange/list", reason: "posts_deals" };
   }
 
   if (

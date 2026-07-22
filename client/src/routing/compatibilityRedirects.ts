@@ -71,13 +71,13 @@ export const COMPATIBILITY_REDIRECTS = [
   },
   {
     from: "/contractor-leads",
-    to: "/business/requests",
+    to: "/direct-connect/inbox",
     access: "public",
     slot: "standard",
   },
   {
     from: "/contractor/leads",
-    to: "/business/requests",
+    to: "/direct-connect/inbox",
     access: "public",
     slot: "standard",
   },

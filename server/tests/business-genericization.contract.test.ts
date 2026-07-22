@@ -67,7 +67,7 @@ describe("generic business profile and tool contracts", () => {
     expect(routes).toContain('path="/business/requests"');
     expect(redirects).toContain('to: "/claim-my-business?source=contractor_apply_legacy"');
     expect(redirects).toContain('to: "/business-dashboard"');
-    expect(redirects).toContain('to: "/business/requests"');
+    expect(redirects).toContain('to: "/direct-connect/inbox"');
   });
 
   it("prefers generic business routes while preserving legacy contractor compatibility", () => {
@@ -88,14 +88,14 @@ describe("generic business profile and tool contracts", () => {
     expect(redirects).toContain('from: "/business-owner-dashboard"');
     expect(redirects).toContain('to: "/business-dashboard"');
     expect(routes).toContain('path="/business/requests"');
-    expect(routes).toContain("<LazyPage Component={ContractorLeads} />");
+    expect(routes).toContain('<RedirectTo to="/direct-connect/inbox" />');
     expect(redirects).toContain('from: "/contractor-leads"');
     expect(redirects).toContain('from: "/contractor/leads"');
-    expect(redirects).toContain('to: "/business/requests"');
+    expect(redirects).toContain('to: "/direct-connect/inbox"');
 
     expect(routeConstants).toContain('BUSINESS_DASHBOARD: "/business-dashboard"');
     expect(routeConstants).toContain('BUSINESS_APPLY: "/claim-my-business"');
-    expect(routeConstants).toContain('BUSINESS_REQUESTS: "/business/requests"');
+    expect(routeConstants).toContain('BUSINESS_REQUESTS: "/direct-connect/inbox"');
     expect(routeConstants).toContain("ALIASES: COMPATIBILITY_REDIRECT_ALIASES");
   });
 

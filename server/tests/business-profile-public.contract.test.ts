@@ -22,6 +22,8 @@ describe("business profile public contracts", () => {
     expect(source).toContain("buildPublicBusinessListingCards");
     expect(source).toContain("sellerId: profile.userId");
     expect(source).toContain("marketplaceListings");
+    expect(source).toContain("resolveCanonicalBusinessProfileRoute(slug)");
+    expect(source).toContain("canonicalProfilePath: canonicalProfile?.path || null");
   });
 
   it("business public page renders typed content blocks and CTA labels", () => {
@@ -42,6 +44,7 @@ describe("business profile public contracts", () => {
     expect(source).toContain("profile.marketplaceListings");
     expect(source).toContain("listing.detailPath");
     expect(source).toContain("<ShareButton");
+    expect(source).toContain('canonicalProfilePath.startsWith("/u/")');
     expect(source).not.toContain("sellerId: String(data.userId)");
   });
 
@@ -79,16 +82,14 @@ describe("business profile public contracts", () => {
     expect(source).toContain("makesOffer");
   });
 
-  it("business profile editor uses a real block-type select and block-specific fields", () => {
-    const source = read("client/src/pages/BusinessProfileEditor.tsx");
+  it("keeps all owner content editing in the canonical profile editor", () => {
+    const canonicalEditor = read("client/src/pages/ProfileSiteEditor.tsx");
+    const legacyEditorRedirect = read("client/src/pages/BusinessProfileEditor.tsx");
 
-    expect(source).toMatch(/<Select\s+value=\{block\.type \|\| "text"\}/);
-    expect(source).toContain('<SelectItem value="hero">Hero</SelectItem>');
-    expect(source).toContain('<SelectItem value="gallery">Gallery</SelectItem>');
-    expect(source).toContain('<SelectItem value="faq">FAQ</SelectItem>');
-    expect(source).toContain('<SelectItem value="proof">Proof</SelectItem>');
-    expect(source).toContain('<SelectItem value="cta">CTA</SelectItem>');
-    expect(source).toContain("secondaryBody");
-    expect(source).toContain("ctaLabel");
+    expect(canonicalEditor).toContain("contentBlocksText");
+    expect(canonicalEditor).toContain("buildContentBlocksForSave");
+    expect(canonicalEditor).toContain('apiRequest("PUT", `/api/profiles/${profile.id}`');
+    expect(legacyEditorRedirect).toContain("Compatibility-only handoff");
+    expect(legacyEditorRedirect).not.toContain("UpdateProfilePayload");
   });
 });

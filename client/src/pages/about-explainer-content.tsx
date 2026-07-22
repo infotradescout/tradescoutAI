@@ -26,7 +26,7 @@ const routes = {
   socialIntegration: `${productUrl}/social-integration`,
   notifications: `${productUrl}/notifications`,
   backgroundCheck: `${productUrl}/background-check`,
-  businessRequests: `${productUrl}/business/requests`,
+  businessRequests: `${productUrl}/direct-connect/inbox`,
   commercialDirectory: `${productUrl}/commercial-directory`,
   storyGenerator: `${productUrl}/story-generator`,
   privacyRequest: `${productUrl}/privacy-request`,

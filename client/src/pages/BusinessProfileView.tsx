@@ -212,6 +212,13 @@ export default function BusinessProfileView() {
         }
 
         const data = await response.json();
+        const canonicalProfilePath =
+          typeof data?.canonicalProfilePath === "string" ? data.canonicalProfilePath.trim() : "";
+        if (canonicalProfilePath.startsWith("/u/")) {
+          const search = typeof window === "undefined" ? "" : window.location.search;
+          setLocation(`${canonicalProfilePath}${search}`);
+          return;
+        }
         setProfileSource("published");
         setDirectoryBusinessId(null);
         setDirectoryClaimStatus(null);
@@ -814,10 +821,10 @@ export default function BusinessProfileView() {
                   className="w-full"
                   variant="outline"
                   data-testid="bp-edit"
-                  onClick={() => setLocation(`/business/${slug}/edit`)}
+                  onClick={() => setLocation("/profile")}
                 >
                   <Edit className="h-4 w-4 mr-2" />
-                  Edit Business Page
+                  Manage Profile
                 </Button>
               ) : (
                 <>
@@ -945,11 +952,7 @@ export default function BusinessProfileView() {
       ) : isOwner ? (
         <div className="ts-panel mb-6 p-5">
           <div className="text-sm font-semibold text-white">Add a short profile intro</div>
-          <Button
-            className="mt-3"
-            variant="outline"
-            onClick={() => setLocation(`/business/${slug}/edit`)}
-          >
+          <Button className="mt-3" variant="outline" onClick={() => setLocation("/profile")}>
             Add Business Description
           </Button>
         </div>

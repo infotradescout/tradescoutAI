@@ -10,7 +10,7 @@ import type { ClaimType } from "./claimTypes";
 import type { PostOnboardingAction } from "./scoutModeTypes";
 
 export interface PublishedProfile {
-  slug: string;
+  slug?: string | null;
   businessName?: string;
 }
 
@@ -23,6 +23,7 @@ export function resolvePostOnboardingActions(
   profile: PublishedProfile
 ): PostOnboardingAction[] {
   const actions: PostOnboardingAction[] = [];
+  const profileSlug = String(profile.slug || "").trim();
 
   // offer_services: primary actions are setting up services + viewing page
   if (claims.includes("offer_services")) {
@@ -42,11 +43,13 @@ export function resolvePostOnboardingActions(
       label: "Review finance records",
       destination: "/finances/records",
     });
-    actions.push({
-      id: "view_page",
-      label: "View your business page",
-      destination: `/business/${profile.slug}`,
-    });
+    if (profileSlug) {
+      actions.push({
+        id: "view_page",
+        label: "View your public profile",
+        destination: `/u/${encodeURIComponent(profileSlug)}`,
+      });
+    }
   }
 
   // find_help: primary actions are posting a request + browsing nearby help
@@ -68,8 +71,10 @@ export function resolvePostOnboardingActions(
   if (claims.includes("represent_business") && !claims.includes("offer_services")) {
     actions.push({
       id: "manage_profile",
-      label: "Manage your business profile",
-      destination: `/business/${profile.slug}/edit`,
+      label: profileSlug ? "Manage your business profile" : "Claim or create your business",
+      destination: profileSlug
+        ? `/u/${encodeURIComponent(profileSlug)}/edit`
+        : "/claim-my-business?source=scout_post_onboarding",
       primary: true,
     });
   }

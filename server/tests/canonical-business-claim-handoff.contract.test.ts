@@ -65,9 +65,10 @@ describe("canonical business claim handoff", () => {
     expect(offerServices).toContain("/u/${encodeURIComponent(activeBusinessProfile.slug)}/edit");
     expect(offerServices).not.toContain("/business-listing");
     expect(offerServices).not.toContain("/api/business-profile/me");
-    expect(legacyEditor).toContain('import { useLocation, useRoute } from "wouter";');
-    expect(legacyEditor).not.toContain('from "react-router-dom"');
-    expect(legacyEditor).toContain('onClick={() => navigate("/profile")}');
-    expect(legacyEditor).not.toContain("navigate(`/u/${profile.slug}/edit`)");
+    expect(legacyEditor).toContain("Compatibility-only handoff");
+    expect(legacyEditor).toContain("selectCanonicalOwnedProfile");
+    expect(legacyEditor).toContain("`/u/${encodeURIComponent(canonicalProfile.slug)}/edit`");
+    expect(legacyEditor).toContain("const destination = canonicalProfile?.slug");
+    expect(legacyEditor).not.toContain('apiRequest("PATCH", "/api/business-profile/me"');
   });
 });
