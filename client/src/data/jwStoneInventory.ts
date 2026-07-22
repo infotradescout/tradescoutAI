@@ -9,6 +9,8 @@ export type JwStoneInventoryStone = {
   name: string;
   slug: string;
   images: string[];
+  /** Stable share ordinal -> presentation image index. */
+  shareImageOrder?: number[];
   // Parallel to images: the finish stated in that specific photo's source
   // filename, when explicit (e.g. a stone shot in both polished and
   // leathered side by side). Undefined per-photo when no photo-specific
@@ -94,7 +96,8 @@ const stones = generatedInventory.map(
   ): JwStoneInventoryStone & {
     categorySlug: string;
   } => {
-    const { categorySlug, slug, name, images, slabCounts, sourceFileIds } = generated;
+    const { categorySlug, slug, name, images, shareImageOrder, slabCounts, sourceFileIds } =
+      generated;
     const status = materialStatus(slug, categorySlug);
     const finishes = EXPLICIT_FINISHES[slug];
     const imageFinishes = sourceFileIds?.map(
@@ -105,6 +108,7 @@ const stones = generatedInventory.map(
       name,
       slug,
       images,
+      shareImageOrder,
       imageFinishes: imageFinishes?.some((f: string[] | undefined) => f?.length)
         ? imageFinishes
         : undefined,

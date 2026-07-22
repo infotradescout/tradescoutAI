@@ -116,6 +116,11 @@ import {
   TRADESCOUT_TRANSACTION_FEE_MODEL,
 } from "../shared/platformRevenue";
 import { sendAutoClassifiedError } from "./utils/httpErrors";
+import { resolvePublicOrigin } from "./utils/publicOrigin";
+import {
+  isSafeAffiliateShareDestination,
+  resolveAffiliateShareDestinationOrigin,
+} from "./utils/affiliateShareDestination";
 import { hasPrivilegedVerificationBypass } from "./utils/privilegedVerification";
 import {
   collectAuthorityRoles,
@@ -3700,10 +3705,8 @@ export async function registerRoutes(app: any) {
       const description =
         typeof req.body?.description === "string" ? req.body.description.trim() : "";
 
-      if (!destination || !destination.startsWith("/")) {
-        return res
-          .status(400)
-          .json({ message: "destination must be a relative path starting with '/'" });
+      if (!isSafeAffiliateShareDestination(destination)) {
+        return res.status(400).json({ message: "destination must be a safe root-relative path" });
       }
 
       const safeSlug = slugInput || `link-${Math.random().toString(36).slice(2, 8)}`;
@@ -3730,7 +3733,14 @@ export async function registerRoutes(app: any) {
       }
 
       const baseOrigin = getPublicBaseUrlFromRequest(req).replace(/\/$/, "");
-      const full = new URL(destination, baseOrigin);
+      const destinationOrigin = resolveAffiliateShareDestinationOrigin(
+        req,
+        baseOrigin,
+        destination
+      );
+      const shortLinkOrigin =
+        destinationOrigin === baseOrigin ? baseOrigin : resolvePublicOrigin(req);
+      const full = new URL(destination, destinationOrigin);
       if (!full.searchParams.has("ref")) {
         full.searchParams.set("ref", referralCode);
       }
@@ -3760,7 +3770,9 @@ export async function registerRoutes(app: any) {
         id: created.id,
         slug: created.friendlySlug,
         destinationUrl: created.fullUrl,
-        shortUrl: `${baseOrigin}/r/${encodeURIComponent(String(created.friendlySlug || safeSlug))}`,
+        shortUrl: `${shortLinkOrigin}/r/${encodeURIComponent(
+          String(created.friendlySlug || safeSlug)
+        )}`,
       });
     } catch (error: any) {
       console.error("Error creating affiliate share link:", error);

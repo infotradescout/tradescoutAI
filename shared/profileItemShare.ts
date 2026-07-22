@@ -7,6 +7,7 @@ type RawInventoryStone = {
   name?: unknown;
   slug?: unknown;
   images?: unknown;
+  shareImageOrder?: unknown;
 };
 
 type RawInventoryCategory = {
@@ -21,6 +22,7 @@ export type ResolvedProfileInventoryItem = {
   category: string | null;
   images: string[];
   imageIndex: number;
+  shareImageIndex: number;
 };
 
 export type ProfileInventoryItemShareMetadata = {
@@ -93,6 +95,42 @@ export function buildProfileInventoryShareSearch(itemSlug: string, imageIndex = 
   return `?${params.toString()}`;
 }
 
+function normalizePublicImages(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.map(normalizePublicImageReference).filter((image): image is string => Boolean(image))
+    : [];
+}
+
+function normalizeShareImageOrder(value: unknown, imageCount: number): number[] {
+  if (!Array.isArray(value) || value.length !== imageCount) {
+    return Array.from({ length: imageCount }, (_, index) => index);
+  }
+  const order = value.map((index) =>
+    typeof index === "number" && Number.isInteger(index) ? index : -1
+  );
+  const unique = new Set(order);
+  return order.every((index) => index >= 0 && index < imageCount) && unique.size === imageCount
+    ? order
+    : Array.from({ length: imageCount }, (_, index) => index);
+}
+
+/**
+ * Maps a presentation-order photo back to its stable share-order ordinal.
+ * Profiles without a separate share order keep the existing index behavior.
+ */
+export function profileInventoryShareIndexForDisplay(
+  imagesValue: unknown,
+  shareImageOrderValue: unknown,
+  displayIndex: number
+): number {
+  const images = normalizePublicImages(imagesValue);
+  if (!Number.isInteger(displayIndex) || displayIndex < 0 || displayIndex >= images.length)
+    return 0;
+  const shareImageOrder = normalizeShareImageOrder(shareImageOrderValue, images.length);
+  const shareIndex = shareImageOrder.indexOf(displayIndex);
+  return shareIndex >= 0 ? shareIndex : displayIndex;
+}
+
 export function resolveProfileInventoryItem(
   categories: unknown,
   itemSlugValue: unknown,
@@ -114,19 +152,22 @@ export function resolveProfileInventoryItem(
       if (slug !== requestedSlug) continue;
 
       const name = firstQueryValue(rawStone.name);
-      const images = Array.isArray(rawStone.images)
-        ? rawStone.images
-            .map(normalizePublicImageReference)
-            .filter((image): image is string => Boolean(image))
-        : [];
+      const images = normalizePublicImages(rawStone.images);
       if (!name || images.length === 0) return null;
+      const shareImageOrder = normalizeShareImageOrder(rawStone.shareImageOrder, images.length);
+      const shareImageIndex = normalizeProfileInventoryPhotoIndex(
+        photoValue,
+        shareImageOrder.length
+      );
+      const displayImageIndex = shareImageOrder[shareImageIndex] ?? 0;
 
       return {
         name,
         slug,
         category: category || null,
         images,
-        imageIndex: normalizeProfileInventoryPhotoIndex(photoValue, images.length),
+        imageIndex: displayImageIndex,
+        shareImageIndex,
       };
     }
   }
@@ -149,16 +190,20 @@ export function listProfileInventoryItems(categories: unknown): ResolvedProfileI
       if (!rawStone || typeof rawStone !== "object") continue;
       const name = firstQueryValue(rawStone.name);
       const slug = normalizeProfileInventoryItemSlug(rawStone.slug);
-      const images = Array.isArray(rawStone.images)
-        ? rawStone.images
-            .map(normalizePublicImageReference)
-            .filter((image): image is string => Boolean(image))
-        : [];
+      const images = normalizePublicImages(rawStone.images);
       if (!name || !slug || images.length === 0 || items.some((item) => item.slug === slug)) {
         continue;
       }
 
-      items.push({ name, slug, category: category || null, images, imageIndex: 0 });
+      const shareImageOrder = normalizeShareImageOrder(rawStone.shareImageOrder, images.length);
+      items.push({
+        name,
+        slug,
+        category: category || null,
+        images,
+        imageIndex: shareImageOrder[0] ?? 0,
+        shareImageIndex: 0,
+      });
       if (items.length >= MAX_PROFILE_INVENTORY_ITEMS) return items;
     }
   }
@@ -181,7 +226,7 @@ export function createProfileInventoryItemShareMetadata(args: {
   try {
     const imageUrl = new URL(item.images[item.imageIndex], args.assetOrigin).toString();
     const canonicalUrl = new URL(args.profileUrl);
-    canonicalUrl.search = buildProfileInventoryShareSearch(item.slug, item.imageIndex);
+    canonicalUrl.search = buildProfileInventoryShareSearch(item.slug, item.shareImageIndex);
     canonicalUrl.hash = "";
     const categoryDetail = item.category ? ` (${item.category})` : "";
     const itemIsProfile =
@@ -201,8 +246,8 @@ export function createProfileInventoryItemShareMetadata(args: {
       ),
       imageUrl,
       imageAlt: itemIsProfile
-        ? `${item.name} material photo ${item.imageIndex + 1}`
-        : `${item.name} — ${profileName} inventory photo ${item.imageIndex + 1}`,
+        ? `${item.name} material photo ${item.shareImageIndex + 1}`
+        : `${item.name} — ${profileName} inventory photo ${item.shareImageIndex + 1}`,
       canonical: canonicalUrl.toString(),
     };
   } catch {

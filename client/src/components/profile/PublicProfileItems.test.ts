@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildAffiliateShareSlug,
   normalizeAffiliateShareDestination,
   qualifyPublicProfileItemDestination,
   requiresDocumentNavigation,
@@ -62,5 +63,21 @@ describe("public Profile item destinations", () => {
       normalizeAffiliateShareDestination("//www.thetradescout.com/exchange/item-1")
     ).toBeNull();
     expect(normalizeAffiliateShareDestination("javascript:alert(1)")).toBeNull();
+  });
+
+  it("scopes deterministic affiliate slugs to the exact resolved host", () => {
+    const first = buildAffiliateShareSlug(
+      "user-1",
+      "https://jwstonelogistics.com/?stone=blue-dunes"
+    );
+    const second = buildAffiliateShareSlug(
+      "user-1",
+      "https://another-stone.example/?stone=blue-dunes"
+    );
+
+    expect(first).not.toBe(second);
+    expect(first).toBe(
+      buildAffiliateShareSlug("user-1", "https://jwstonelogistics.com/?stone=blue-dunes")
+    );
   });
 });

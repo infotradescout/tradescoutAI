@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolvePublicOrigin } from "../utils/publicOrigin";
+import { resolveMappedProfileShareOrigin, resolvePublicOrigin } from "../utils/publicOrigin";
 
 function request(headers: Record<string, string>, protocol = "https") {
   return { headers, protocol } as any;
@@ -29,5 +29,26 @@ describe("resolvePublicOrigin", () => {
         request({ host: "localhost:5000", "x-forwarded-host": "attacker.example" }, "http")
       )
     ).toBe("http://localhost:5000");
+  });
+
+  it("uses only the database-mapped profile host for custom-domain share destinations", () => {
+    const mappedRequest = request({
+      host: "jwstonelogistics.com",
+      "x-forwarded-host": "attacker.example",
+    });
+    (mappedRequest as any).mappedProfileDomainHost = "jwstonelogistics.com";
+
+    expect(resolveMappedProfileShareOrigin(mappedRequest)).toBe("https://jwstonelogistics.com");
+    expect(
+      resolveMappedProfileShareOrigin({
+        ...mappedRequest,
+        mappedProfileDomainHost: "attacker.example/path",
+      } as any)
+    ).toBeNull();
+    expect(
+      resolveMappedProfileShareOrigin(
+        request({ host: "jwstonelogistics.com", "x-forwarded-host": "jwstonelogistics.com" })
+      )
+    ).toBeNull();
   });
 });
