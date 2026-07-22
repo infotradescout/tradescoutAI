@@ -96,7 +96,7 @@ describe("canonical public-profile trust actions", () => {
     expect(profileView).toContain('renderProfileTrustActions("light")');
     expect(profileView.match(/renderProfileTrustActions\("dark"\)/g)).toHaveLength(4);
     themes.forEach((theme) => {
-      expect(theme).toContain("trustActions?: ReactNode");
+      expect(theme).toContain("trustActions: ReactNode");
       expect(theme).toContain("{trustActions}");
     });
   });
