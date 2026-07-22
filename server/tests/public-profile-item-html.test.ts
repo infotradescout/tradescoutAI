@@ -119,7 +119,7 @@ describe("public profile item HTML", () => {
 
     expect(html).toContain('property="og:title" content="Blue Dunes at JW Stone LLC | TradeScout"');
     expect(html).toContain(
-      'property="og:image" content="https://jwstonelogistics.com/images/businesses/jw-stone/inventory-source/1h8REgL6CYv6b3NMAuFzt4mBXvItfAl7c.webp"'
+      'property="og:image" content="https://jwstonelogistics.com/images/businesses/jw-stone/inventory-source/1Hu2IWdWPGlItZtAxdAQFgnK3stA7DWE9.webp"'
     );
     expect(html).toContain(
       'property="og:url" content="https://jwstonelogistics.com/?stone=blue-dunes&amp;photo=2"'

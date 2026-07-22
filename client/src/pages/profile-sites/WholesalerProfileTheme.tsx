@@ -28,6 +28,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { requiresDocumentNavigation } from "@/lib/publicProfileItemDestination";
 import {
   buildProfileInventoryShareSearch,
+  profileInventoryShareIndexForDisplay,
   resolveProfileInventoryItem,
 } from "@shared/profileItemShare";
 import {
@@ -83,6 +84,7 @@ type InventoryStone = {
   name: string;
   slug: string;
   images: string[];
+  shareImageOrder?: number[];
   // Parallel to images -- the finish shown in that specific photo, when the
   // source filename states one explicitly (a stone can be photographed in
   // more than one finish, e.g. polished and leathered side by side).
@@ -801,6 +803,11 @@ export default function WholesalerProfileTheme({
     categoryLabel?: string
   ) => {
     const stoneDisplayName = getStoneDisplayName(stone);
+    const leadShareIndex = profileInventoryShareIndexForDisplay(
+      stone.images,
+      stone.shareImageOrder,
+      0
+    );
 
     return (
       <article
@@ -839,7 +846,10 @@ export default function WholesalerProfileTheme({
             {stone.materialStatus === "unconfirmed" ? "Material to confirm" : "Current collection"}
           </span>
           <ShareButton
-            destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
+            destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
+              stone.slug,
+              leadShareIndex
+            )}`}
             title={stoneDisplayName}
             text={`${stoneDisplayName} from ${displayName}`}
             size="icon"
@@ -1281,7 +1291,14 @@ export default function WholesalerProfileTheme({
                                 </span>
                               ) : null}
                               <ShareButton
-                                destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
+                                destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
+                                  stone.slug,
+                                  profileInventoryShareIndexForDisplay(
+                                    stone.images,
+                                    stone.shareImageOrder,
+                                    0
+                                  )
+                                )}`}
                                 title={stoneDisplayName}
                                 text={`${stoneDisplayName} at JW Stone`}
                                 size="icon"
@@ -1685,7 +1702,11 @@ export default function WholesalerProfileTheme({
                     <ShareButton
                       destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
                         openStone.slug,
-                        openImageIndex
+                        profileInventoryShareIndexForDisplay(
+                          openStone.images,
+                          openStone.shareImageOrder,
+                          openImageIndex
+                        )
                       )}`}
                       title={openStone.name}
                       text={`${openStone.name} from ${displayName}`}
@@ -1976,7 +1997,14 @@ export default function WholesalerProfileTheme({
                           />
                         </button>
                         <ShareButton
-                          destination={`${profileShareDestination}${buildProfileInventoryShareSearch(stone.slug)}`}
+                          destination={`${profileShareDestination}${buildProfileInventoryShareSearch(
+                            stone.slug,
+                            profileInventoryShareIndexForDisplay(
+                              stone.images,
+                              stone.shareImageOrder,
+                              0
+                            )
+                          )}`}
                           title={stone.name}
                           text={`${stone.name} at JW Stone`}
                           size="icon"

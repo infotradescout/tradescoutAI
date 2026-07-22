@@ -43,7 +43,7 @@ describe("JW Stone profile presentation contract", () => {
     // No full-bleed wash on JW Stone / ISSA Build — stone/video stays true.
     expect(source).toContain("{!isJwStone && !isIssaBuild ? (");
     expect(source).not.toMatch(
-      /isJwStone \|\| isHoneyOnyx\s*\?\s*"bg-\[linear-gradient\(90deg,rgba\(9,7,4/
+      /isJwStone \|\| isIssaBuild\s*\?\s*"bg-\[linear-gradient\(90deg,rgba\(9,7,4/
     );
   });
 
@@ -97,7 +97,7 @@ describe("JW Stone profile presentation contract", () => {
     expect(source).toContain('data-testid="jw-stone-featured-product-card"');
     expect(source).toContain('className="relative aspect-[4/3] overflow-hidden');
     expect(source).toContain("View details");
-    expect(source).toContain("buildProfileInventoryShareSearch(stone.slug)");
+    expect(source).toContain("profileInventoryShareIndexForDisplay(");
     expect(source).not.toContain("rotate-90 object-contain");
   });
 

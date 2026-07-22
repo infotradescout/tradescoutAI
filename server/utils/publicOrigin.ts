@@ -35,3 +35,26 @@ export function resolvePublicOrigin(req: Pick<Request, "headers" | "protocol">):
   // profile domains use their validated database host in renderProfileOnCustomDomain.
   return `https://${CANONICAL_WEB_HOST}`;
 }
+
+/**
+ * Returns the verified profile host attached by the custom-domain authority
+ * middleware. Raw Host and forwarded-host headers are never sufficient here.
+ */
+export function resolveMappedProfileShareOrigin(
+  req: Pick<Request, "headers" | "protocol">
+): string | null {
+  const mappedHost = String(
+    (req as Pick<Request, "headers" | "protocol"> & { mappedProfileDomainHost?: unknown })
+      .mappedProfileDomainHost || ""
+  )
+    .trim()
+    .toLowerCase();
+  if (
+    !mappedHost ||
+    mappedHost.length > 253 ||
+    !/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(mappedHost)
+  ) {
+    return null;
+  }
+  return `https://${mappedHost}`;
+}

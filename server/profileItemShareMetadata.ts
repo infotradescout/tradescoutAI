@@ -22,6 +22,7 @@ type GeneratedJwStone = {
   name?: string;
   slug?: string;
   images?: string[];
+  shareImageOrder?: number[];
 };
 
 type ProfileContentBlock = {
