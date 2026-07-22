@@ -3,6 +3,7 @@ import {
   buildProfileInventoryShareSearch,
   createProfileInventoryItemShareMetadata,
   normalizeProfileInventoryItemSlug,
+  profileInventoryShareIndexForDisplay,
 } from "@shared/profileItemShare";
 import { resolveProfileItemShareMetadata } from "../profileItemShareMetadata";
 
@@ -51,6 +52,39 @@ describe("profile inventory item sharing", () => {
       canonical: "https://example.com/?stone=sample-stone&photo=2",
     });
     expect(metadata?.description).toContain("protected TradeScout Direct Connect");
+  });
+
+  it("keeps exact-photo URLs stable when presentation order changes", () => {
+    const displayImages = ["/images/full-slab.webp", "/images/detail.webp", "/images/yard.webp"];
+    const shareImageOrder = [1, 2, 0];
+    const metadata = createProfileInventoryItemShareMetadata({
+      profileName: "Example Supply",
+      profileUrl: "https://example.com/",
+      assetOrigin: "https://example.com/",
+      categories: [
+        {
+          category: "Quartzite",
+          stones: [
+            {
+              name: "Stable Stone",
+              slug: "stable-stone",
+              images: displayImages,
+              shareImageOrder,
+            },
+          ],
+        },
+      ],
+      itemSlug: "stable-stone",
+      photo: "2",
+    });
+
+    expect(metadata).toMatchObject({
+      imageIndex: 2,
+      imageUrl: "https://example.com/images/yard.webp",
+      canonical: "https://example.com/?stone=stable-stone&photo=2",
+    });
+    expect(profileInventoryShareIndexForDisplay(displayImages, shareImageOrder, 0)).toBe(2);
+    expect(buildProfileInventoryShareSearch("stable-stone", 2)).toBe("?stone=stable-stone&photo=3");
   });
 
   it("does not describe a standalone product profile as its own inventory", () => {

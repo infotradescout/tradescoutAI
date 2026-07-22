@@ -14,6 +14,18 @@ const inventoryPath = path.join(
 const drive = JSON.parse(fs.readFileSync(drivePath, "utf8"));
 const inventory = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
 const nameById = new Map(drive.files.map((file) => [file.driveFileId, file.sourceName]));
+const driveOrderById = new Map(
+  drive.files.map((file, index) => [file.driveFileId, index])
+);
+
+// Share URLs existed before presentation-order ranking. Keep their photo
+// ordinals tied to the pre-ranking Drive order so a lead-image improvement
+// cannot silently make an existing `photo=N` URL point at another asset.
+// Taj Mahal intentionally promoted its second Drive photo before the general
+// full-slab ranking landed, so that one baseline lead is preserved explicitly.
+const BASELINE_SHARE_LEAD_FILE_IDS = {
+  "taj-mahal": "1WhkGLRxAOoWKJhaZznwf-Z9ER9wV5M-b",
+};
 
 /**
  * Prefer these drive file ids as lead when present — filename scoring alone
@@ -87,34 +99,57 @@ for (const stone of inventory) {
     const name = nameById.get(id) || "";
     return { index, id, name, score: score(name, preferredId, id) };
   });
+  const baselineShareLeadId = BASELINE_SHARE_LEAD_FILE_IDS[stone.slug] || "";
+  const shareOrder = [...ranked].sort((a, b) => {
+    if (baselineShareLeadId) {
+      if (a.id === baselineShareLeadId) return -1;
+      if (b.id === baselineShareLeadId) return 1;
+    }
+    return (driveOrderById.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+      (driveOrderById.get(b.id) ?? Number.MAX_SAFE_INTEGER);
+  });
+  const shareFileIds = shareOrder.map((entry) => entry.id);
 
   if (isCloseUp(ranked[0]?.name)) closeUpLeadBefore += 1;
 
   const sorted = [...ranked].sort((a, b) => b.score - a.score || a.index - b.index);
   if (isCloseUp(sorted[0]?.name)) closeUpLeadAfter += 1;
 
-  if (sorted.every((entry, index) => entry.index === ranked[index].index)) continue;
+  const displayOrderChanged = !sorted.every(
+    (entry, index) => entry.index === ranked[index].index
+  );
+  if (displayOrderChanged) {
+    const permutation = sorted.map((entry) => entry.index);
+    const reorder = (values) =>
+      Array.isArray(values) && values.length === permutation.length
+        ? permutation.map((index) => values[index])
+        : values;
 
-  const permutation = sorted.map((entry) => entry.index);
-  const reorder = (values) =>
-    Array.isArray(values) && values.length === permutation.length
-      ? permutation.map((index) => values[index])
-      : values;
+    const before = ranked[0]?.name || null;
+    stone.images = reorder(stone.images);
+    stone.sourceFileIds = reorder(stone.sourceFileIds);
+    stone.slabCounts = reorder(stone.slabCounts);
+    const after = nameById.get(stone.sourceFileIds[0]) || null;
+    changed += 1;
+    if (examples.length < 30) {
+      examples.push({
+        slug: stone.slug,
+        before,
+        after,
+        beforeScore: score(before || "", preferredId, ranked[0]?.id || ""),
+        afterScore: score(after || "", preferredId, stone.sourceFileIds[0] || ""),
+      });
+    }
+  }
 
-  const before = ranked[0]?.name || null;
-  stone.images = reorder(stone.images);
-  stone.sourceFileIds = reorder(stone.sourceFileIds);
-  stone.slabCounts = reorder(stone.slabCounts);
-  const after = nameById.get(stone.sourceFileIds[0]) || null;
-  changed += 1;
-  if (examples.length < 30) {
-    examples.push({
-      slug: stone.slug,
-      before,
-      after,
-      beforeScore: score(before || "", preferredId, ranked[0]?.id || ""),
-      afterScore: score(after || "", preferredId, stone.sourceFileIds[0] || ""),
-    });
+  const shareImageOrder = shareFileIds.map((id) => stone.sourceFileIds.indexOf(id));
+  if (
+    shareImageOrder.every((index) => index >= 0) &&
+    shareImageOrder.some((displayIndex, shareIndex) => displayIndex !== shareIndex)
+  ) {
+    stone.shareImageOrder = shareImageOrder;
+  } else {
+    delete stone.shareImageOrder;
   }
 }
 

@@ -25,7 +25,7 @@ describe("public profile product-card contract", () => {
   it("gives JW Stone inventory exact sharing, details, and protected request entry", () => {
     expect(stone).toContain('"jw-stone-inventory-card"');
     expect(stone).toContain('data-testid="jw-stone-featured-product-card"');
-    expect(stone).toContain("buildProfileInventoryShareSearch(stone.slug)");
+    expect(stone).toContain("profileInventoryShareIndexForDisplay(");
     expect(stone).toContain("View details");
     expect(stone).toContain('startDirectConnect(stone.name, "request_material")');
     expect(stone).toContain("Ask about {stone.name}");

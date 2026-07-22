@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyInventoryLeadImageOverrides,
   listSelectableProfileSiteTemplates,
   readFeaturedStoneSlugs,
   resolveSiteTemplateId,
@@ -38,6 +39,22 @@ describe("profile site templates", () => {
   it("persists featured stone slugs on inventoryCatalog", () => {
     const next = upsertFeaturedStoneSlugs([], ["taj-mahal", "rhino-white"]);
     expect(readFeaturedStoneSlugs(next)).toEqual(["taj-mahal", "rhino-white"]);
+  });
+
+  it("keeps share ordinals attached to their exact images when the lead changes", () => {
+    const [stone] = applyInventoryLeadImageOverrides(
+      [
+        {
+          slug: "sample-stone",
+          images: ["detail.webp", "yard.webp", "full-slab.webp"],
+          shareImageOrder: [0, 1, 2],
+        },
+      ],
+      { "sample-stone": "full-slab.webp" }
+    );
+
+    expect(stone.images).toEqual(["full-slab.webp", "detail.webp", "yard.webp"]);
+    expect(stone.shareImageOrder).toEqual([1, 2, 0]);
   });
 
   it("seeds electrician-solo with a localServiceProfile presentation", () => {

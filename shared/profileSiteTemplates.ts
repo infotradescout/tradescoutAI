@@ -307,10 +307,9 @@ function recordLeadMap(value: unknown): Record<string, string> {
 }
 
 /** Move each stone's preferred lead image to index 0 when the override is present. */
-export function applyInventoryLeadImageOverrides<T extends { slug: string; images: string[] }>(
-  stones: T[],
-  leadImageBySlug: Record<string, string>
-): T[] {
+export function applyInventoryLeadImageOverrides<
+  T extends { slug: string; images: string[]; shareImageOrder?: number[] },
+>(stones: T[], leadImageBySlug: Record<string, string>): T[] {
   return stones.map((stone) => {
     const preferred = leadImageBySlug[stone.slug];
     if (!preferred || !Array.isArray(stone.images) || stone.images.length < 2) return stone;
@@ -319,7 +318,13 @@ export function applyInventoryLeadImageOverrides<T extends { slug: string; image
     const images = [...stone.images];
     const [picked] = images.splice(index, 1);
     images.unshift(picked);
-    return { ...stone, images };
+    const shareImageOrder = Array.isArray(stone.shareImageOrder)
+      ? stone.shareImageOrder.map((displayIndex) => {
+          if (displayIndex === index) return 0;
+          return displayIndex < index ? displayIndex + 1 : displayIndex;
+        })
+      : undefined;
+    return { ...stone, images, ...(shareImageOrder ? { shareImageOrder } : {}) };
   });
 }
 
