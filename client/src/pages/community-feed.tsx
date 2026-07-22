@@ -1000,7 +1000,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   const renderFeedList = () => (
-    <div className="space-y-3 md:space-y-5">
+    <div className="ts-community-stream space-y-3 md:space-y-5">
       {postsLoading ? (
         <div className="text-center py-10">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ts-orange/30"></div>
@@ -1246,9 +1246,9 @@ const CommunityFeed = memo(function CommunityFeed() {
         canonical="https://www.thetradescout.com/community-feed"
         structuredData={structuredData}
       />
-      <div className="community-feed-page">
+      <div className="community-feed-page ts-community-workshop">
         <CountyRequiredGate locationOverride={location} allowBypass={isGlobalView}>
-          <div className="mx-auto w-full max-w-[1024px] px-2.5 py-2 md:px-3 md:py-3 overflow-x-hidden">
+          <div className="ts-community-workshop__inner mx-auto w-full max-w-[1180px] overflow-x-hidden px-3 pb-5 pt-2 sm:px-4 md:px-6 md:pb-8 md:pt-5">
             <CommunityTopNav />
 
             <Dialog
@@ -1342,65 +1342,67 @@ const CommunityFeed = memo(function CommunityFeed() {
               </DialogContent>
             </Dialog>
 
-            <Card className="mb-3 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.035))] shadow-[0_18px_44px_rgba(0,0,0,0.24)] md:rounded-xl md:bg-[color:var(--surface-card)] md:shadow-none">
-              <CardContent className="p-4 md:p-4">
+            <section className="ts-community-stage mb-4 overflow-hidden">
+              <div className="relative z-[1] px-4 py-6 sm:px-6 md:px-8 md:py-9">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-ts-orange/25 bg-ts-orange/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ts-orange">
+                      <span className="ts-community-eyebrow inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-white/62">
+                        <span className="h-1.5 w-1.5 rounded-full bg-ts-orange shadow-[0_0_12px_rgba(255,106,0,0.85)]" />
                         Your community
                       </span>
                     </div>
-                    <h1 className="mt-3 text-2xl font-semibold leading-tight text-white md:mt-1 md:text-lg">
-                      What&apos;s happening near you
+                    <h1 className="mt-4 max-w-2xl text-[2rem] font-bold leading-[1.05] tracking-[-0.035em] text-white sm:text-4xl md:text-5xl">
+                      What do you need nearby?
                     </h1>
-                    <p className="mt-1.5 max-w-[28rem] text-sm leading-5 text-white/72 md:text-xs md:text-[color:var(--text-secondary)]">
-                      Ask a question, recommend someone, share an update, or see what nearby
-                      businesses are offering.
+                    <p className="mt-3 max-w-xl text-sm leading-6 text-white/68 sm:text-base">
+                      Ask Scout for a next step, find someone for a job, or see what your county is
+                      talking about.
                     </p>
-                    <p className="mt-2 text-[11px] text-white/55 md:text-xs">
+                    <p className="mt-3 text-[11px] text-white/46 md:text-xs">
                       Posts are shown by county. Your exact address is never displayed.
                     </p>
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-[1fr_auto] gap-2 md:hidden">
-                  <button
-                    type="button"
-                    onClick={() => navigate("/scout")}
-                    className="flex min-h-12 items-center gap-2 rounded-2xl border border-white/10 bg-black/18 px-3 text-left text-sm text-white/72"
-                    aria-label="Get help with something nearby"
-                  >
-                    <MessageSquare className="h-4 w-4 shrink-0 text-white/55" />
-                    <span className="truncate">Get local help</span>
-                  </button>
+                <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
                   <Button
                     type="button"
-                    onClick={() => navigate("/direct-connect")}
-                    className="min-h-12 rounded-2xl bg-ts-orange px-4 text-sm font-semibold text-white hover:bg-ts-orange-dark"
+                    onClick={() => navigate("/scout")}
+                    className="ts-community-primary-action min-h-12 justify-between gap-4 rounded-xl bg-ts-orange px-5 text-sm font-bold text-black hover:bg-ts-orange-dark sm:min-w-[220px]"
+                    aria-label="Get help with something nearby"
                   >
-                    Find someone for a job
+                    <span>Ask Scout</span>
+                    <MessageSquare className="h-4 w-4 shrink-0" />
                   </Button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/direct-connect")}
+                    className="inline-flex min-h-12 items-center justify-between gap-4 rounded-xl border border-white/14 bg-white/[0.055] px-5 text-sm font-semibold text-white/82 transition hover:border-white/24 hover:bg-white/[0.09] hover:text-white sm:min-w-[220px]"
+                  >
+                    <span>Start a request</span>
+                    <Wrench className="h-4 w-4 shrink-0 text-white/55" />
+                  </button>
                 </div>
 
                 {(communityStats.postsToday > 0 ||
                   (communityStats.recommendations7d ?? 0) > 0 ||
                   (communityStats.verifiedPros ?? 0) > 0) && (
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/65">
+                  <div className="ts-community-pulse mt-6 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[0.07] pt-4 text-xs text-white/58">
                     {communityStats.postsToday > 0 ? (
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                      <span>
                         {communityStats.postsToday} new post
                         {communityStats.postsToday === 1 ? "" : "s"} today
                       </span>
                     ) : null}
                     {(communityStats.recommendations7d ?? 0) > 0 ? (
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                      <span>
                         {communityStats.recommendations7d} local recommendation
                         {communityStats.recommendations7d === 1 ? "" : "s"} this week
                       </span>
                     ) : null}
                     {(communityStats.verifiedPros ?? 0) > 0 ? (
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                      <span>
                         {communityStats.verifiedPros} verified local business
                         {communityStats.verifiedPros === 1 ? "" : "es"}
                       </span>
@@ -1479,20 +1481,20 @@ const CommunityFeed = memo(function CommunityFeed() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
+              </div>
+            </section>
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
               {/* Main Feed */}
-              <div className="lg:col-span-2 space-y-3 md:space-y-4">
+              <div className="min-w-0 space-y-3 md:space-y-4">
                 <Tabs
                   value={activeTab}
                   onValueChange={(value) => handleTabChange(value as FeedTab)}
                   className="w-full"
                 >
-                  <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] p-2.5 shadow-[0_10px_28px_rgba(0,0,0,0.16)] md:mb-4 md:rounded-xl md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-card)] md:p-3 md:shadow-none">
+                  <div className="ts-community-toolbar mb-4 border-b border-white/[0.08] pb-4 pt-1">
                     <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="flex min-h-11 items-center gap-1 rounded-2xl border border-white/10 bg-black/20 p-1 md:min-h-0 md:rounded-lg md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-intermediate)]">
+                        <div className="flex min-h-11 items-center gap-1 rounded-xl bg-black/20 p-1 md:min-h-0">
                           <button
                             onClick={() => handleScopeToggle("local")}
                             aria-pressed={!isGlobalView}
@@ -1525,7 +1527,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                         ) : null}
                       </div>
 
-                      <TabsList className="flex min-h-11 items-center gap-1.5 overflow-x-auto rounded-2xl bg-black/20 p-1 md:min-h-0 md:bg-transparent md:border-0 md:p-0">
+                      <TabsList className="ts-community-tabs flex min-h-11 items-center gap-1.5 overflow-x-auto rounded-xl bg-black/20 p-1 md:min-h-0">
                         <TabsTrigger
                           value="forYou"
                           className="rounded-xl px-3 py-2 text-xs font-semibold md:rounded-md md:py-1.5"
@@ -1549,7 +1551,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                   </div>
                   {/* Inline composer (local-only; global view is read-only) */}
                   {!isGlobalView ? (
-                    <Card className="mb-3 rounded-2xl border border-white/10 bg-white/[0.045] shadow-[0_12px_32px_rgba(0,0,0,0.18)] md:mb-5 md:sticky md:top-16 md:rounded-xl md:border-[color:var(--border-subtle)] md:bg-[color:var(--surface-card)] md:shadow-none">
+                    <Card className="ts-community-composer mb-5 overflow-hidden border border-white/[0.09] bg-white/[0.035] shadow-none md:sticky md:top-16">
                       <CardContent className="p-3.5 md:p-5">
                         <div className="flex gap-3 md:gap-4">
                           <Avatar className="w-10 h-10 md:w-11 md:h-11">
@@ -1597,7 +1599,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               value={newPostContent}
                               onChange={(e) => setNewPostContent(e.target.value)}
                               rows={3}
-                              className="min-h-[92px] rounded-2xl border-white/10 bg-black/18 text-sm text-white placeholder:text-white/42 focus-visible:ring-ts-orange/45 md:rounded-md"
+                              className="ts-community-composer__input min-h-[104px] rounded-xl border-white/[0.08] bg-black/25 text-sm text-white placeholder:text-white/42 focus-visible:ring-ts-orange/45"
                             />
 
                             {/* Hidden file inputs */}
@@ -1676,7 +1678,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                   title={intent}
                                   className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-2 text-xs font-medium transition-all md:rounded-md md:px-2.5 md:py-1 ${
                                     selectedCategory === key
-                                      ? "bg-ts-orange text-white"
+                                      ? "border border-white/18 bg-white/12 text-white"
                                       : "bg-[color:var(--surface-intermediate)] text-[color:var(--text-secondary)] hover:bg-[color:var(--surface-card)] border border-[color:var(--border-subtle)]"
                                   }`}
                                 >
@@ -1760,7 +1762,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                               </div>
 
                               <Button
-                                className="min-h-11 rounded-2xl bg-ts-orange hover:bg-ts-orange-dark w-full text-sm font-semibold sm:w-auto md:rounded-md md:min-h-0"
+                                className="ts-community-submit-action min-h-11 w-full rounded-xl bg-ts-orange text-sm font-bold text-black hover:bg-ts-orange-dark sm:w-auto md:min-h-0"
                                 onClick={handleCreatePost}
                                 disabled={!newPostContent.trim() || createPostMutation.isPending}
                                 data-testid="button-submit-post"
@@ -1799,7 +1801,7 @@ const CommunityFeed = memo(function CommunityFeed() {
               </div>
 
               {/* Right column: community snapshot + signals */}
-              <div className="lg:col-span-1 space-y-4">
+              <aside className="ts-community-rail space-y-4">
                 {countyFips ? (
                   <CommunitySnapshotRail
                     countyFips={countyFips}
@@ -1808,7 +1810,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                   />
                 ) : null}
                 {trendingTopics.length > 0 && (
-                  <Card className="border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
+                  <Card className="border border-white/[0.07] bg-transparent shadow-none">
                     <CardHeader className="pb-1.5">
                       <CardTitle className="text-sm text-white">Topics</CardTitle>
                     </CardHeader>
@@ -1824,7 +1826,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                     </CardContent>
                   </Card>
                 )}
-              </div>
+              </aside>
             </div>
           </div>
         </CountyRequiredGate>

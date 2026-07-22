@@ -619,6 +619,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     if (typeof document === "undefined") return;
 
     const shouldScopeAuthenticatedApp = Boolean(isAuthenticated) && !isAuthOrSetupSurface;
+    const shouldScopeAppWorkshop = !isAuthOrSetupSurface;
 
     if (shouldScopeAuthenticatedApp) {
       document.body.classList.add("ts-authenticated-app");
@@ -626,8 +627,15 @@ export function AppShell({ children, footer }: AppShellProps) {
       document.body.classList.remove("ts-authenticated-app");
     }
 
+    if (shouldScopeAppWorkshop) {
+      document.body.classList.add("ts-app-workshop");
+    } else {
+      document.body.classList.remove("ts-app-workshop");
+    }
+
     return () => {
       document.body.classList.remove("ts-authenticated-app");
+      document.body.classList.remove("ts-app-workshop");
     };
   }, [isAuthenticated, isAuthOrSetupSurface]);
 

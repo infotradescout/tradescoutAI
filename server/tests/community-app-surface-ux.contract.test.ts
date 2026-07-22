@@ -71,10 +71,10 @@ describe("Community app surface UX contract", () => {
     const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
     const contactModal = read("client/src/components/community/ContactOutcomeModal.tsx");
 
-    expect(feed).toContain("What&apos;s happening near you");
-    expect(feed).toContain("Ask a question, recommend someone, share an update");
-    expect(feed).toContain("Get local help");
-    expect(feed).toContain("Find someone for a job");
+    expect(feed).toContain("What do you need nearby?");
+    expect(feed).toContain("Ask Scout for a next step");
+    expect(feed).toContain("Ask Scout");
+    expect(feed).toContain("Start a request");
     expect(feed).toContain("What would you like to share?");
     expect(feed).toContain("Not sure what to write?");
     expect(feed).toContain("You&apos;re here early");
