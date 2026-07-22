@@ -49,4 +49,16 @@ describe("knowledgeService internet fallback sufficiency", () => {
 
     expect(shouldFallback).toBe(false);
   });
+
+  it("requires a current authority lookup for code and permit questions", () => {
+    const shouldFallback = shouldUseInternetFallback({
+      message: "Do I need a permit and inspections for a new deck?",
+      mode: "kb_site_then_web",
+      sources: ["TradeScout Brain (data folder)"],
+      meta: {},
+      hasManualOverride: false,
+    });
+
+    expect(shouldFallback).toBe(true);
+  });
 });

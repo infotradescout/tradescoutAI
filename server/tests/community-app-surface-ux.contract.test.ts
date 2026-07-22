@@ -77,8 +77,16 @@ describe("Community app surface UX contract", () => {
     expect(feed).not.toContain("What do you need nearby?");
     expect(feed).not.toContain("Ask Scout for a next step");
     expect(feed).toContain("Share with your community");
-    expect(feed).toContain("Open Community views");
-    expect(feed).toContain("Browse all communities");
+    expect(feed).toContain("Community feed views");
+    expect(feed).toContain("Explore");
+    expect(feed).toContain("New neighbors");
+    expect(feed).toContain("What do you need?");
+    expect(feed).toContain("Turn a need into action");
+    expect(feed).toContain("Reach interested buyers");
+    expect(feed).toContain("This week");
+    expect(feed).toContain("People need help with");
+    expect(feed).toContain("Your contact details stay private until you choose to connect");
+    expect(feed).toContain("buildCommunityRoutedDestination");
     expect(feed).not.toContain("CommunitySnapshotRail");
     expect(feed).not.toContain("Community scope");
     expect(feed).not.toContain("Feed order");
@@ -88,13 +96,27 @@ describe("Community app surface UX contract", () => {
     expect(feed).toContain("Not sure what to write?");
     expect(feed).toContain("You&apos;re here early");
     expect(emptyState).toContain("You&apos;re here early");
-    expect(snapshotRail).toContain("Local offers are coming soon");
+    expect(snapshotRail).toContain("Offers are coming soon");
     expect(snapshotRail).toContain("Coming soon");
     expect(snapshotRail).toContain("Try again");
     expect(contactModal).toContain("Your privacy stays protected");
     expect(contactModal).toContain("Send message");
     expect(contactModal).toContain("bg-[color:var(--surface-card)]");
     expect(contactModal).not.toContain("bg-white rounded-lg");
+  });
+
+  it("keeps county activity metrics aligned with the categories the composer writes", () => {
+    const routes = read("server/routes.ts");
+
+    expect(routes).toContain(
+      "category in ('request', 'question', 'questions', 'project', 'projects')"
+    );
+    expect(routes).toContain("category in ('recommendation', 'recommendations')");
+    expect(routes).toContain("(user as any).stateCode");
+    expect(routes).toContain("(user as any).countyName");
+    expect(routes).toContain("isUsefulPublicCommunityBrowsePost(post)");
+    expect(routes).toContain("furnace|\\bac\\b|air\\s+conditioner");
+    expect(routes).not.toContain("furnace|ac|air\\s+conditioner");
   });
 
   it("keeps default recommendation cards out of system-level framing", () => {
@@ -158,7 +180,7 @@ describe("Community app surface UX contract", () => {
       ).not.toContain(term.toLowerCase());
     }
 
-    expect(html).toContain("Local match");
+    expect(html).toContain("Good match");
     expect(html).toContain("Review before contact");
     expect(html).toContain("Why this appears");
     expect(html).toContain("Jordan Lee");

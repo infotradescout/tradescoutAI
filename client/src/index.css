@@ -4848,24 +4848,7 @@ body.ts-app-workshop .app-page {
 /* Community is the reference surface for the shared app language. */
 .ts-community-workshop {
   position: relative;
-  min-height: calc(100vh - var(--top-nav-h));
   isolation: isolate;
-  background:
-    radial-gradient(900px 440px at 12% -8%, rgba(255, 106, 0, 0.11), transparent 64%),
-    radial-gradient(720px 420px at 92% 18%, rgba(255, 255, 255, 0.045), transparent 66%),
-    linear-gradient(180deg, #111314, #0c0d0e);
-}
-
-.ts-community-workshop::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.22;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px);
-  background-size: 100% 72px;
-  mask-image: linear-gradient(to bottom, black, transparent 72%);
 }
 
 body.ts-app-workshop .app-page .ts-community-submit-action {
@@ -4901,19 +4884,59 @@ body.ts-app-workshop.ts-mobile-simplified .app-page button.ts-community-submit-a
   background: rgba(0, 0, 0, 0.24) !important;
 }
 .ts-community-stream {
-  border-top: 1px solid rgba(255, 255, 255, 0.065);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ts-community-viewbar__item {
+  display: inline-flex;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  color: rgba(251, 248, 243, 0.52);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.ts-community-viewbar__item:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(251, 248, 243, 0.84);
+}
+
+.ts-community-viewbar__item[aria-pressed="true"] {
+  background: rgba(255, 106, 0, 0.12);
+  color: #ff8b39;
+}
+
+.ts-community-context-card {
+  border-top: 2px solid rgba(255, 106, 0, 0.72);
+  background: linear-gradient(145deg, rgba(255, 106, 0, 0.075), rgba(255, 255, 255, 0.025));
+  padding: 1.15rem;
 }
 
 body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
   margin: 0 !important;
-  border-width: 0 0 1px !important;
-  border-color: rgba(255, 255, 255, 0.065) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+  border: 1px solid rgba(255, 255, 255, 0.075) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.025) !important;
   box-shadow: none !important;
 }
 
 @media (max-width: 640px) {
+  .ts-community-viewbar {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .ts-community-viewbar__divider {
+    height: 0;
+    flex-basis: 100%;
+    margin: 0;
+    opacity: 0;
+  }
   .ts-community-composer .w-10.h-10 {
     display: none;
   }

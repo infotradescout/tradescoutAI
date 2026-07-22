@@ -129,7 +129,7 @@ export const CommunitySnapshotRail: React.FC<{
           type: "trade_deal" as const,
           title: String(r.title ?? ""),
           description: String(r.shortDescription ?? r.description ?? ""),
-          label: "Local offer",
+          label: "Offer",
           imageUrl: r.imageUrl ?? r.image ?? null,
           href: r.href ?? (r.id ? `/trade-deals/${r.id}` : "/trade-deals"),
           ownerUserId: r.ownerUserId ?? r.providerUserId ?? null,
@@ -154,7 +154,7 @@ export const CommunitySnapshotRail: React.FC<{
             {
               id: "deals-coming-soon-1",
               type: "starter_invitation",
-              title: "Local offers are coming soon",
+              title: "Offers are coming soon",
               description: "Nearby businesses will be able to share useful offers here.",
               label: "Coming soon",
               icon: "sparkles",
@@ -163,7 +163,7 @@ export const CommunitySnapshotRail: React.FC<{
             {
               id: "deals-coming-soon-2",
               type: "starter_invitation",
-              title: "Find a local business",
+              title: "Find a business",
               description: "Browse businesses that serve your area right now.",
               label: "Available now",
               icon: "zap",
@@ -339,7 +339,7 @@ export const CommunitySnapshotRail: React.FC<{
           onClick={() => navigate("/trade-deals")}
           className="text-xs text-white/60 hover:text-white transition-colors"
         >
-          See local offers
+          See offers
         </button>
       </div>
 

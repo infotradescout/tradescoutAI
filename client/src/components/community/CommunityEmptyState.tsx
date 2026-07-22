@@ -14,7 +14,7 @@ export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStatePr
         <div>
           <h3 className="text-xl font-semibold text-white mb-2">You&apos;re here early</h3>
           <p className="text-white/70 text-sm max-w-xl mx-auto">
-            Your local community is just getting started. Ask the first question, recommend someone
+            People near you are just getting started. Ask the first question, recommend someone
             great, or share something worth knowing.
           </p>
         </div>
@@ -26,7 +26,7 @@ export function CommunityEmptyState({ onCreateFirstPost }: CommunityEmptyStatePr
             "Sharing photos from a recent repair"
           </span>
           <span className="px-3 py-1 rounded-full bg-ts-orange/10 border border-ts-orange/30">
-            "Heads up about a local safety issue"
+            "Heads up about a safety issue nearby"
           </span>
         </div>
         {onCreateFirstPost && (

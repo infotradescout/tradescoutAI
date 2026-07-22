@@ -1,4 +1,6 @@
 import type { CommunityPostCardAuthor, CommunityPostCardData } from "./CommunityPostCard";
+import { getCountyByFips } from "@shared/states-counties";
+import { stripCountySuffix } from "@/lib/userFacingCopy";
 
 type RawCommunityPost = Record<string, unknown>;
 
@@ -20,6 +22,28 @@ const numberValue = (...values: unknown[]): number => {
   return 0;
 };
 
+const profilePhotoValue = (...values: unknown[]): string | undefined => {
+  const candidate = stringValue(...values);
+  if (!candidate) return undefined;
+
+  try {
+    const pathname = new URL(candidate, "https://www.thetradescout.com").pathname.toLowerCase();
+    if (
+      pathname === "/tradescout-social-preview.png" ||
+      pathname === "/tradescout-logo.png" ||
+      pathname === "/tradescout-logo.jpg" ||
+      pathname === "/tradescout-brand.png" ||
+      pathname === "/logo.png"
+    ) {
+      return undefined;
+    }
+  } catch {
+    // Preserve valid relative object-storage identifiers.
+  }
+
+  return candidate;
+};
+
 export function toCommunityPostCardData(
   raw: RawCommunityPost,
   options: { canonicalProfileUrl?: string } = {}
@@ -27,6 +51,15 @@ export function toCommunityPostCardData(
   const rawAuthor = isRecord(raw.author) ? raw.author : {};
   const category = stringValue(raw.category) || "general";
   const systemPost = category.toLowerCase() === "system";
+  const stateCode = stringValue(raw.stateCode, raw.state);
+  const countyFips = stringValue(raw.countyFips);
+  const countyName = countyFips ? getCountyByFips(countyFips)?.name : undefined;
+  const explicitLocation = stringValue(raw.cityName, raw.regionName, raw.county);
+  const location = explicitLocation
+    ? `${stripCountySuffix(explicitLocation)}${stateCode ? `, ${stateCode}` : ""}`
+    : countyName
+      ? `${stripCountySuffix(countyName)}${stateCode ? `, ${stateCode}` : ""}`
+      : undefined;
   const authorName = systemPost
     ? "TradeScout"
     : stringValue(
@@ -38,19 +71,12 @@ export function toCommunityPostCardData(
   const author: CommunityPostCardAuthor = {
     id: systemPost ? undefined : stringValue(rawAuthor.id),
     name: authorName,
-    avatar: stringValue(rawAuthor.avatar, rawAuthor.profileImageUrl, rawAuthor.photoUrl),
-    role: systemPost ? "Platform" : stringValue(rawAuthor.role),
-    verified: systemPost
-      ? true
-      : typeof rawAuthor.verified === "boolean"
-        ? rawAuthor.verified
-        : undefined,
-    cvsScore:
-      typeof rawAuthor.cvsScore === "number" || typeof rawAuthor.cvsScore === "string"
-        ? rawAuthor.cvsScore
-        : null,
-    verificationStatus: stringValue(rawAuthor.verificationStatus),
-    badges: Array.isArray(rawAuthor.badges) ? rawAuthor.badges : undefined,
+    avatar: profilePhotoValue(rawAuthor.avatar, rawAuthor.profileImageUrl, rawAuthor.photoUrl),
+    role: systemPost ? "Platform" : undefined,
+    verified: systemPost ? true : rawAuthor.verified === true ? true : undefined,
+    cvsScore: null,
+    verificationStatus: undefined,
+    badges: undefined,
   };
 
   return {
@@ -62,7 +88,11 @@ export function toCommunityPostCardData(
     postType: stringValue(raw.postType, raw.type),
     pinned: raw.pinned === true || raw.isPinned === true,
     trending: raw.trending === true,
-    location: stringValue(raw.location, rawAuthor.location),
+    location:
+      location ||
+      (/^\d{5}$/.test(stringValue(raw.location, rawAuthor.location) || "")
+        ? undefined
+        : stringValue(raw.location, rawAuthor.location)),
     county: stringValue(raw.county),
     state: stringValue(raw.state),
     audienceScope: ["neighborhood", "county", "area", "global"].includes(String(raw.audienceScope))

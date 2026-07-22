@@ -1,9 +1,9 @@
 {
   "summary": {
-    "scannedFiles": 456,
+    "scannedFiles": 457,
     "rootViolations": 3,
     "filesWithViewportHeight": 3,
-    "filesWithBg": 284
+    "filesWithBg": 285
   },
   "results": [
     {
@@ -14,18 +14,18 @@
           "pattern": "min-h-viewport",
           "count": 1,
           "lines": [
-            157
+            179
           ]
         },
         {
           "pattern": "bg-*",
-          "count": 48,
+          "count": 49,
           "lines": [
-            139,
-            169,
-            169,
-            175,
-            177
+            161,
+            191,
+            191,
+            197,
+            199
           ]
         }
       ]
@@ -69,25 +69,25 @@
           "pattern": "min-h-viewport",
           "count": 1,
           "lines": [
-            90
+            89
           ]
         },
         {
           "pattern": "h-screen",
           "count": 1,
           "lines": [
-            90
+            89
           ]
         },
         {
           "pattern": "bg-*",
-          "count": 14,
+          "count": 13,
           "lines": [
+            89,
             90,
-            91,
-            100,
-            117,
-            117
+            106,
+            106,
+            114
           ]
         }
       ]
@@ -185,22 +185,22 @@
       "hits": [
         {
           "pattern": "bg-*",
-          "count": 113,
+          "count": 114,
           "lines": [
-            688,
-            716,
-            719,
-            738,
-            746
+            771,
+            803,
+            806,
+            825,
+            833
           ]
         },
         {
           "pattern": "gradient",
           "count": 3,
           "lines": [
-            1742,
-            1742,
-            1742
+            1883,
+            1883,
+            1883
           ]
         }
       ]
@@ -239,24 +239,24 @@
       "hits": [
         {
           "pattern": "bg-*",
-          "count": 77,
+          "count": 76,
           "lines": [
             203,
             206,
-            215,
-            221,
-            246
+            211,
+            236,
+            247
           ]
         },
         {
           "pattern": "gradient",
           "count": 18,
           "lines": [
-            272,
-            272,
-            512,
-            512,
-            512
+            262,
+            262,
+            504,
+            504,
+            504
           ]
         }
       ]
@@ -463,67 +463,22 @@
           "pattern": "bg-*",
           "count": 38,
           "lines": [
-            90,
-            93,
-            135,
-            145,
-            155
+            91,
+            94,
+            136,
+            146,
+            156
           ]
         },
         {
           "pattern": "gradient",
           "count": 16,
           "lines": [
-            145,
-            145,
-            145,
-            145,
-            212
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/community-feed.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 53,
-          "lines": [
-            190,
-            191,
-            236,
-            237,
-            240
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/scout/ScoutHome.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 42,
-          "lines": [
-            465,
-            471,
-            477,
-            482,
-            563
-          ]
-        },
-        {
-          "pattern": "gradient",
-          "count": 11,
-          "lines": [
-            464,
-            464,
-            470,
-            470,
-            476
+            146,
+            146,
+            146,
+            146,
+            213
           ]
         }
       ]
@@ -597,6 +552,34 @@
       ]
     },
     {
+      "file": "client/src/scout/ScoutHome.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 40,
+          "lines": [
+            502,
+            508,
+            514,
+            519,
+            568
+          ]
+        },
+        {
+          "pattern": "gradient",
+          "count": 11,
+          "lines": [
+            501,
+            501,
+            507,
+            507,
+            513
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/documentation.tsx",
       "isRootViolation": false,
       "hits": [
@@ -637,6 +620,23 @@
             159,
             159,
             161
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/community-feed.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 49,
+          "lines": [
+            189,
+            190,
+            237,
+            238,
+            241
           ]
         }
       ]
@@ -1538,6 +1538,23 @@
       ]
     },
     {
+      "file": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 27,
+          "lines": [
+            285,
+            296,
+            298,
+            307,
+            325
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/realtor-contacts.tsx",
       "isRootViolation": false,
       "hits": [
@@ -1584,23 +1601,6 @@
             149,
             150,
             151
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/profile-sites/ExpressDirectConnectPanel.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 26,
-          "lines": [
-            279,
-            290,
-            292,
-            301,
-            319
           ]
         }
       ]
@@ -2011,6 +2011,23 @@
       ]
     },
     {
+      "file": "client/src/pages/ProfileSiteEditor.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 22,
+          "lines": [
+            847,
+            854,
+            854,
+            867,
+            879
+          ]
+        }
+      ]
+    },
+    {
       "file": "client/src/pages/realtor-appointments.tsx",
       "isRootViolation": false,
       "hits": [
@@ -2297,23 +2314,6 @@
             188,
             191,
             210
-          ]
-        }
-      ]
-    },
-    {
-      "file": "client/src/pages/ProfileSiteEditor.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 20,
-          "lines": [
-            762,
-            769,
-            769,
-            782,
-            794
           ]
         }
       ]
@@ -3109,23 +3109,6 @@
       ]
     },
     {
-      "file": "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 14,
-          "lines": [
-            84,
-            85,
-            94,
-            111,
-            111
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/admin-address-verifications.tsx",
       "isRootViolation": false,
       "hits": [
@@ -3258,6 +3241,23 @@
             74,
             76,
             93
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/profile-sites/JrsAutoGlassProfileTheme.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 13,
+          "lines": [
+            84,
+            85,
+            101,
+            101,
+            109
           ]
         }
       ]
@@ -3901,6 +3901,23 @@
             116,
             118,
             119
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/pages/onboarding-profile.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 9,
+          "lines": [
+            377,
+            384,
+            396,
+            406,
+            407
           ]
         }
       ]
@@ -4900,21 +4917,6 @@
       ]
     },
     {
-      "file": "client/src/pages/onboarding-profile.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 3,
-          "lines": [
-            346,
-            353,
-            365
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/payment-success.tsx",
       "isRootViolation": false,
       "hits": [
@@ -5496,6 +5498,19 @@
           "count": 1,
           "lines": [
             31
+          ]
+        }
+      ]
+    },
+    {
+      "file": "client/src/scout/__UiSurfaceAuditFixture.tsx",
+      "isRootViolation": false,
+      "hits": [
+        {
+          "pattern": "bg-*",
+          "count": 1,
+          "lines": [
+            1
           ]
         }
       ]

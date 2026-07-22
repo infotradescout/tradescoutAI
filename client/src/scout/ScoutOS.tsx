@@ -120,17 +120,12 @@ import {
 import { ScoutLaunchContextCard } from "./ScoutLaunchContextCard";
 import { parseScoutLaunchLocation } from "@shared/scoutLaunchContext";
 
-const INTRO_DEMO_TEXT = "What can TradeScout do in my local area?";
-// Must match the key used by ScoutInput so the demo only runs once per session.
-const INTRO_DEMO_SESSION_KEY = "ts_intro_demo_session";
-
 const COUNTY_EXPLAINED_KEY = "scout:county_explained:v1";
 const COUNTY_EXPLAINED_AT_KEY = "scout:county_explained_at";
 const COUNTY_EXPLAINED_FOLLOWUP_KEY = "scout:county_explained_followup_recorded";
 
 const AUTO_ROUTE_ENABLED_KEY = "scout:auto_route_enabled:v1";
 const SCOUT_VIEW_MODE_KEY = "scout:view_mode:v1";
-const SCOUT_AUTO_START_SESSION_KEY = "scout:auto_profile_start:v1";
 const SCOUT_SAVED_THREADS_VERSION = 1;
 const SCOUT_SAVED_THREADS_LIMIT = 8;
 const SCOUT_SAVED_THREAD_MESSAGE_LIMIT = 40;
@@ -1812,7 +1807,6 @@ export default function ScoutOS() {
   const [hasGuestInteracted, setHasGuestInteracted] = useState(false);
   const [firstIntroAppendix, setFirstIntroAppendix] = useState<string>("");
   const [overridePendingScope, setOverridePendingScope] = useState<string | null>(null);
-  const [introDemoText, setIntroDemoText] = useState("");
   const [autoRouteEnabled, setAutoRouteEnabled] = useState<boolean>(() => {
     try {
       if (typeof window === "undefined") return AUTO_ROUTE_DEFAULT_ENABLED;
@@ -1890,33 +1884,6 @@ export default function ScoutOS() {
       document.body.classList.remove("ts-scout-active");
     };
   }, []);
-
-  const hasPlayedDemoThisSession = (() => {
-    try {
-      const played =
-        typeof window !== "undefined" &&
-        window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY) === "1";
-
-      // Allow forcing the intro demo via URL (e.g., /scout?forceIntro=1)
-      let forceIntro = false;
-      try {
-        if (typeof window !== "undefined") {
-          const params = new URLSearchParams(window.location.search);
-          forceIntro = params.get("forceIntro") === "1";
-        }
-      } catch {
-        // ignore
-      }
-
-      // In development, always allow the intro demo to re-run
-      // so designers/devs can validate the animation and auto-prompt.
-      if (import.meta.env.DEV) return false;
-
-      return played && !forceIntro;
-    } catch {
-      return false;
-    }
-  })();
 
   const {
     state,
@@ -2536,33 +2503,9 @@ export default function ScoutOS() {
     }
   }, [activeObjective?.id, refreshObjective]);
 
-  // Auto-demo typing for first-time guest sessions.
-  // This is intentionally session-scoped and can be forced via ?forceIntro=1.
-  const shouldPlayIntroDemo = useMemo(() => {
-    if (typeof window === "undefined") return false;
-    if (!location.startsWith("/scout")) return false;
-
-    let forceIntro = false;
-    try {
-      const params = new URLSearchParams(window.location.search);
-      forceIntro = params.get("forceIntro") === "1";
-    } catch {
-      // ignore
-    }
-
-    if (forceIntro) return true;
-    if (hasExplicitScoutLaunch) return false;
-    if (isAuthenticated) return false;
-    if (!isFirstGuestVisit) return false;
-    if (hasPlayedDemoThisSession) return false;
-    return true;
-  }, [
-    hasExplicitScoutLaunch,
-    hasPlayedDemoThisSession,
-    isAuthenticated,
-    isFirstGuestVisit,
-    location,
-  ]);
+  // Scout opens on the live snapshot. Nothing is submitted until the user
+  // searches, follows an explicit handoff, or opens a destination.
+  const shouldPlayIntroDemo = false;
 
   const urlIntent = scoutLaunch.context?.intent;
 
@@ -2677,27 +2620,6 @@ export default function ScoutOS() {
     onboarding.startOnboardingFlow(userIntentText, provisionalUserTypes, countyName, profileDraft);
   }, [location, user, locality.county, onboarding]);
 
-  // First-time guest state is derived earlier (before intro demo gating).
-  // Diagnostic: log intro demo gating values to verify which guard blocks (dev-only)
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-    try {
-      const sessionPlayed =
-        typeof window !== "undefined" && window.sessionStorage.getItem(INTRO_DEMO_SESSION_KEY);
-      // One-line truth for debugging
-      console.log("[INTRO DEMO CHECK]", {
-        isAuthenticated,
-        isGuest,
-        hasMessages,
-        hasUserMessages,
-        sessionPlayed,
-        shouldPlayIntroDemo,
-      });
-    } catch {
-      // ignore
-    }
-  }, [isAuthenticated, isGuest, hasMessages, hasUserMessages, shouldPlayIntroDemo]);
-
   // Keep an explicit classic-to-Scout handoff as a user-reviewed draft.
   useEffect(() => {
     if (!scoutLaunch.prompt) return;
@@ -2717,9 +2639,7 @@ export default function ScoutOS() {
   // The structured launch context stays in the URL for the rest of the conversation.
   useEffect(() => {
     if (!scoutLaunch.prompt || !hasUserMessages) return;
-    const params = new URLSearchParams(
-      typeof window === "undefined" ? "" : window.location.search
-    );
+    const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
     params.delete("prompt");
     const nextLocation = params.toString() ? `/scout?${params.toString()}` : "/scout";
     navigate(nextLocation, { replace: true });
@@ -2756,12 +2676,6 @@ export default function ScoutOS() {
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  // Seed auto-demo text with default, then prefer server auto-prompt
-  useEffect(() => {
-    // Use hardcoded intro demo text
-    setIntroDemoText(INTRO_DEMO_TEXT);
   }, []);
 
   const inferModeFromRoles = (roles: string[] | undefined | null): ScoutMode => {
@@ -4026,54 +3940,6 @@ export default function ScoutOS() {
     }
   }, [location, state.messages, shouldPlayIntroDemo, handleSend, setPrefillKey]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!isAuthenticated) return;
-    if (!location.startsWith("/scout")) return;
-    if (hasExplicitScoutLaunch) return;
-
-    const params = new URLSearchParams(location.split("?")[1] || "");
-    if (params.get("onboarding") === "true") return;
-
-    const hasUserMsgs = state.messages.some((m) => m.role === "user");
-    if (hasUserMsgs) return;
-    if (shouldPlayIntroDemo) return;
-
-    const userId = typeof (user as any)?.id === "string" ? (user as any).id : "authed-user";
-    const sessionKey = `${SCOUT_AUTO_START_SESSION_KEY}:${userId}`;
-
-    try {
-      if (window.sessionStorage.getItem(sessionKey) === "1") return;
-
-      const prefillMarker = window.localStorage.getItem("scout:prefill:scout-main");
-      if (prefillMarker === "__SCOUT_ONBOARDING__") return;
-      if (window.localStorage.getItem("scout:help-intent")) return;
-
-      window.sessionStorage.setItem(sessionKey, "1");
-    } catch {
-      // fail-soft
-    }
-
-    const setupComplete = hasCompletedSetup(user as any);
-    const kickoff = setupComplete
-      ? "I just landed on Scout. Use what you already know about my profile and location to suggest my best 3 starting actions."
-      : "I just landed on Scout. Use what you already know about my profile and location to suggest my best 3 starting actions, and make profile completion step 1 if anything critical is missing.";
-
-    setHasGuestInteracted(true);
-    void handleSend(kickoff, undefined, { isScriptedIntro: true });
-  }, [
-    handleSend,
-    hasExplicitScoutLaunch,
-    isAuthenticated,
-    location,
-    shouldPlayIntroDemo,
-    state.messages,
-    user,
-  ]);
-
-  // Intro demo typing is handled by ScoutInput; we only supply
-  // session-scoped enable flag and the demo text.
-
   const handleClusterAction = useCallback(
     async (action: ScoutAction) => {
       const learningSnapshot = persistScoutLearningSignalLocally(action, user);
@@ -4996,7 +4862,9 @@ export default function ScoutOS() {
     },
     [handleClusterAction, localDiscoveryLaunchers, prefillScoutMission]
   );
-  const showDiscoveryRail = !isMobile && !hasUserMessages;
+  // Scout is one control surface. Dashboard state lives in the main column;
+  // search and quick starts stay in the single dock instead of a second rail.
+  const showDiscoveryRail = false;
   const clearScoutLaunchContext = useCallback(() => {
     navigate("/scout", { replace: true });
     setScoutBrowserLocation("/scout");
@@ -6073,8 +5941,8 @@ export default function ScoutOS() {
                 prefillKey={prefillKey}
                 forcedPrefill={scoutLaunch.prompt}
                 hasMessages={hasMessages}
-                quickStartPrompts={hasMessages ? SCOUT_QUICK_START_PROMPTS : []}
-                autoDemoText={introDemoText}
+                quickStartPrompts={SCOUT_QUICK_START_PROMPTS}
+                autoDemoText=""
                 enableAutoDemo={shouldPlayIntroDemo}
                 onSend={(value) => handleSend(value)}
                 onTyping={() => {
@@ -6090,6 +5958,174 @@ export default function ScoutOS() {
             </div>
 
             {showDiscoveryRail && (
+              <aside className="scout-v2-command-rail">
+                <section className="scout-v2-rail-card scout-v2-rail-card--hero">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Scout
+                    </div>
+                    <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
+                      ready
+                    </span>
+                  </div>
+
+                  <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-[color:var(--text-primary)]">
+                    What do you need help with?
+                  </h2>
+                  <p className="mt-2 text-sm leading-relaxed text-[color:var(--text-muted)]">
+                    Describe the job, problem, or question. You stay in control of what happens
+                    next.
+                  </p>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {[
+                      "AC or heating",
+                      "Plumbing",
+                      "Electrical",
+                      "Roofing",
+                      "Concrete",
+                      "Handyman",
+                      "Not sure yet",
+                    ].map((label) => (
+                      <button
+                        key={label}
+                        type="button"
+                        onClick={() => prefillScoutMission(label)}
+                        className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+                        style={{
+                          borderColor: "var(--border-subtle)",
+                          color: "var(--text-primary)",
+                          backgroundColor: "var(--surface-intermediate)",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <details className="group mt-4 border-t border-[color:var(--border-subtle)] pt-3">
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 [&::-webkit-details-marker]:hidden">
+                      <span>
+                        <span className="block text-sm font-semibold text-[color:var(--text-primary)]">
+                          Add details
+                        </span>
+                        <span className="mt-0.5 block text-xs text-[color:var(--text-muted)]">
+                          Optional context, sources, and timing
+                        </span>
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-[color:var(--text-muted)] transition-transform group-open:rotate-180" />
+                    </summary>
+
+                    <div className="mt-4 space-y-4">
+                      <div className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--border-subtle)] px-3 py-2.5">
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-[color:var(--text-primary)]">
+                            {homeIdContextRail.hasHomeId
+                              ? homeIdContextRail.homeLabel
+                              : "Home details"}
+                          </span>
+                          <span className="mt-0.5 block text-[11px] text-[color:var(--text-muted)]">
+                            {homeIdContextRail.hasHomeId
+                              ? "Use saved property details when they matter"
+                              : "Optional for property-related questions"}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          className="shrink-0 text-xs font-semibold text-ts-orange"
+                          onClick={() =>
+                            navigate(
+                              homeIdContextRail.hasHomeId
+                                ? `/homes?homeId=${encodeURIComponent(homeIdContextRail.homeId)}`
+                                : "/homes"
+                            )
+                          }
+                        >
+                          {homeIdContextRail.hasHomeId ? "Review" : "Add"}
+                        </button>
+                      </div>
+
+                      <div>
+                        <p className="scout-builder-label">I want to</p>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {missionTypeOptions.map((option) => (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => {
+                                setMissionType(option.id);
+                                applyMissionDraft({ type: option.id });
+                              }}
+                              className={`scout-source-toggle ${missionType === option.id ? "active" : ""}`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="scout-builder-label">Include</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {sourceOptions.map((source) => (
+                            <button
+                              key={source.id}
+                              type="button"
+                              onClick={() => {
+                                const enabledCount =
+                                  Object.values(enabledMissionSources).filter(Boolean).length;
+                                const next = {
+                                  ...enabledMissionSources,
+                                  [source.id]:
+                                    enabledCount === 1 && enabledMissionSources[source.id]
+                                      ? true
+                                      : !enabledMissionSources[source.id],
+                                };
+                                setEnabledMissionSources(next);
+                                applyMissionDraft({ sources: next });
+                              }}
+                              className={`scout-source-toggle ${enabledMissionSources[source.id] ? "active" : ""}`}
+                            >
+                              {source.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="scout-builder-label">When</p>
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                          {urgencyOptions.map((option) => (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => {
+                                setMissionUrgency(option.id);
+                                applyMissionDraft({ urgency: option.id });
+                              }}
+                              className={`scout-source-toggle ${missionUrgency === option.id ? "active" : ""}`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => applyMissionDraft()}
+                        className="w-full rounded-xl bg-ts-orange px-3 py-2.5 text-sm font-semibold text-black"
+                      >
+                        Use these details
+                      </button>
+                    </div>
+                  </details>
+                </section>
+              </aside>
+            )}
+
+            {false && showDiscoveryRail && (
               <aside className="scout-v2-command-rail">
                 <div className="scout-v2-rail-card scout-v2-rail-card--hero">
                   <div className="flex items-center justify-between gap-3">

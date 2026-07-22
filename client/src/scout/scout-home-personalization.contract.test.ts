@@ -30,16 +30,8 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain(
       'const res = await fetch("/api/onboarding/status", { credentials: "include" });'
     );
-    expect(source).toContain("{hasRealContinuation ? (");
-    expect(source).toContain(
-      "<ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />"
-    );
-    expect(source).toContain("{hasPersonalizedFeed ? (");
-    expect(source).toContain("<NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />");
-    expect(source).toContain(
-      "{shouldShowSnapshot ? <LocalSnapshot snapshot={data?.snapshot} /> : null}"
-    );
-    expect(source).toContain("{shouldShowEmptyContext ? <EmptyContextHint /> : null}");
+    expect(source).toContain("<ScoutControlSnapshot");
+    expect(source).toContain('data-testid="scout-control-snapshot"');
     expect(source).toContain("if (interests.size === 0) return [];");
     expect(source).toContain("if (!isLikelyPersonalActivityQuery(activity.query)) continue;");
     expect(source).toContain(
@@ -50,7 +42,7 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain("median home price");
   });
 
-  it("shows onboarding setup nudges only when authenticated status exists and is incomplete", () => {
+  it("keeps onboarding state available without rendering another dashboard card", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 
     expect(source).toContain("if (!isAuthenticated || !onboardingStatus) return false;");
@@ -59,10 +51,8 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain("if (isCompleted) return false;");
     expect(source).toContain('return params.get("resumeSetup") === "1";');
     expect(source).toContain("return !isCompleted || Boolean(onboardingStatus.nextStep);");
-    expect(source).toContain("{shouldShowSetupNudge && setupNudge ? (");
-    expect(source).toContain(
-      "<SetupNudgeCard config={setupNudge} onPromptSelect={onPromptSelect} />"
-    );
+    const renderedHome = source.slice(source.lastIndexOf("return ("));
+    expect(renderedHome).not.toContain("<SetupNudgeCard");
   });
 
   it("contains lane-specific nudge copy", () => {
@@ -92,45 +82,51 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain("if (!looksLikeRealDisplayTitle(objectTitle)) return false;");
   });
 
-  it("exposes Scout as a local snapshot and action surface", () => {
+  it("exposes real work, conversations, HomeID, activity, and Community in one compact snapshot", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 
-    expect(source).toContain("Local command center");
-    expect(source).toContain("Your local snapshot");
-    expect(source).toContain("Open Direct Connect requests");
-    expect(source).toContain("HomeID reminders");
+    expect(source).toContain("Open work");
+    expect(source).toContain("Conversations");
+    expect(source).toContain("HomeID");
     expect(source).toContain("Recent activity");
-    expect(source).toContain("Suggested next actions");
-    expect(source).toContain("Search local help, requests, homes, and activity.");
+    expect(source).toContain("recentActivity.length + continuationCount");
+    expect(source).toContain("Community");
+    expect(source).toContain("Pick up where you left off");
+    expect(source).toContain("if (items.length === 0) return null");
     expect(source).toContain(
       'const res = await fetch("/api/direct-connect/requests", { credentials: "include" });'
     );
     expect(source).toContain('const res = await fetch("/api/homes", { credentials: "include" });');
-    expect(source).toContain(
-      "<LocalCommandCenter snapshot={localCommandSnapshot} onPromptSelect={onPromptSelect} />"
-    );
-    expect(source).toContain("You review before anything is shared.");
+    expect(source).toContain("fetchCommunityPostsForScout({");
+    expect(source).toContain("buildCommunityPostPath(post.id)");
+    expect(source).toContain("onNavigate={navigate}");
+    expect(source).toContain("You review every next step.");
     expect(source).not.toContain("Ask Scout to");
   });
 
-  it("keeps the first Scout choice clear while preserving deeper tools", () => {
+  it("renders one control snapshot and leaves the full site as direct destinations", () => {
     const homeSource = read("client/src/scout/ScoutHome.tsx");
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(homeSource).toContain("What should we solve?");
-    expect(homeSource).toContain("Find local help");
-    expect(homeSource).toContain("Check a price");
-    expect(homeSource).toContain("Start a request");
-    expect(homeSource).toContain("See nearby activity");
-    expect(homeSource).toContain('title="Your activity"');
-    expect(homeSource).toContain('title="More ways to use Scout"');
-    expect(homeSource).toContain("function ProgressiveSection");
-    expect(homeSource).toContain("<details");
-    expect(homeSource).toContain("<ExploreGrid onPromptSelect={onPromptSelect} />");
-    expect(scoutOsSource).toContain("Fine-tune your search");
-    expect(scoutOsSource).toContain("Optional filters, sources, and timing");
-    expect(scoutOsSource).toContain('<details className="scout-v2-rail-card group">');
-    expect(scoutOsSource).toContain("Review before contact");
+    expect(homeSource).not.toContain("What should we solve?");
+    expect(homeSource).toContain("<ScoutControlSnapshot");
+    const renderedHome = homeSource.slice(homeSource.lastIndexOf("return ("));
+    expect(renderedHome).not.toContain("<LocalCommandCenter");
+    expect(renderedHome).not.toContain("<CommunitySnapshot");
+    expect(renderedHome).not.toContain("<LocalSnapshot");
+    expect(renderedHome).not.toContain("<ContinueRail");
+    expect(homeSource).toContain('route: "/homes"');
+    expect(homeSource).toContain('route: "/vehicles"');
+    expect(homeSource).toContain('route: "/direct-connect"');
+    expect(homeSource).toContain('route: "/exchange"');
+    expect(homeSource).toContain('route: "/find-local-businesses"');
+    expect(homeSource).toContain('route: "/community-feed"');
+    expect(scoutOsSource).toContain("const showDiscoveryRail = false");
+    expect(scoutOsSource).toContain("quickStartPrompts={SCOUT_QUICK_START_PROMPTS}");
+    expect(scoutOsSource).toContain("const shouldPlayIntroDemo = false;");
+    expect(scoutOsSource).toContain('autoDemoText=""');
+    expect(scoutOsSource).not.toContain("What can TradeScout do in my local area?");
+    expect(scoutOsSource).not.toContain("best 3 starting actions");
   });
 
   it("scopes nearby rows to user interests and dedupes by category and title", () => {
@@ -144,20 +140,16 @@ describe("Scout home personalization contracts", () => {
     expect(source).not.toContain("fallback-4");
   });
 
-  it("locks no-context screen against home metric filler copy", () => {
+  it("keeps no-context Scout free of filler modules", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 
     expect(source).toContain("Home prices shifted nearby");
     expect(source).toContain("Homes are sitting longer");
-    expect(source).toContain("<NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />");
-    expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
-    expect(source).toContain(
-      "<ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />"
-    );
-    expect(source).toContain(
-      "const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;"
-    );
-    expect(source).toContain("const shouldShowSnapshot =");
-    expect(source).toContain("Nothing to continue yet.");
+    expect(source).toContain("if (items.length === 0) return null;");
+    const renderedHome = source.slice(source.lastIndexOf("return ("));
+    expect(renderedHome).not.toContain("<NearbyList");
+    expect(renderedHome).not.toContain("<ContinueRail");
+    expect(renderedHome).not.toContain("<LocalSnapshot");
+    expect(renderedHome).not.toContain("<EmptyContextHint");
   });
 });

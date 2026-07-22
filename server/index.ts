@@ -89,6 +89,7 @@ import { provisionIssaBuildProfile } from "./services/honeyOnyxProfileProvisioni
 import { provisionProFabProfile } from "./services/proFabProfileProvisioning";
 import { provisionMouldingMillworkProfile } from "./services/mouldingMillworkProfileProvisioning";
 import { normalizeProfileGalleryItemSlug } from "@shared/profileGalleryShare";
+import { resolveCurrentEntryStylesheet } from "./staticAssetRecovery";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -1201,6 +1202,25 @@ app.use(landingContractHeaders);
                     },
                   })
                 );
+
+                // A tab left open across a deploy can still request the prior
+                // entry CSS hash. Serve the current entry stylesheet for that
+                // narrow case so custom domains do not render unstyled. Never
+                // substitute arbitrary JS chunks: their module graph may differ.
+                app.get("/assets/:assetName", (req, res, next) => {
+                  const currentStylesheet = resolveCurrentEntryStylesheet(
+                    publicDistPath,
+                    req.path || ""
+                  );
+                  if (!currentStylesheet) return next();
+
+                  res.setHeader("Cache-Control", "no-store");
+                  res.setHeader("CDN-Cache-Control", "no-store");
+                  res.setHeader("Surrogate-Control", "no-store");
+                  res.setHeader("X-TradeScout-Asset-Recovery", "current-entry-css");
+                  res.type("text/css");
+                  return res.sendFile(currentStylesheet);
+                });
               }
 
               // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)

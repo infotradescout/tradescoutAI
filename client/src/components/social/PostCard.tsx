@@ -12,12 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { CommentsSection } from "./CommentsSection";
-import { ShareModal } from "./ShareModal";
 import { ReportModal } from "./ReportModal";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
+import { share } from "@/utils/share";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
@@ -50,7 +50,6 @@ export function PostCard({ post }: PostCardProps) {
   const [, navigate] = useLocation();
 
   const [showComments, setShowComments] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
   const [isLiked, setIsLiked] = useState(Boolean(post.userReaction || post.isLiked));
@@ -115,7 +114,18 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const handleShare = () => {
-    setShowShareModal(true);
+    void share({
+      path: `/community/post/${post.id}`,
+      title: post.title || "TradeScout community post",
+      text: String(post.content || ""),
+      contextLabel: "Post link",
+      kind: "community_post",
+      imageUrl: Array.isArray(post.imageUrls)
+        ? post.imageUrls[0]
+        : Array.isArray(post.images)
+          ? post.images[0]
+          : undefined,
+    });
   };
 
   const handleSave = () => {
@@ -439,9 +449,6 @@ export function PostCard({ post }: PostCardProps) {
       {contactOutcome && (
         <ContactOutcomeModal outcome={contactOutcome} onClose={() => setContactOutcome(null)} />
       )}
-
-      {/* Share Modal */}
-      <ShareModal open={showShareModal} onOpenChange={setShowShareModal} post={post} />
 
       {/* Report Modal */}
       <ReportModal

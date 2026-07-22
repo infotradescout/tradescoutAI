@@ -19,6 +19,7 @@ import { getRecentActivity } from "./agent/activity";
 import { evaluateProgressiveExposure } from "./lib/progressiveExposure";
 import TradeScoutBackground from "./components/TradeScoutBackground";
 import { Toaster } from "./components/ui/toaster";
+import { ShareCardHost } from "./components/share/ShareCardHost";
 
 // Only load essential components eagerly
 import SimpleMobileGestures from "./components/SimpleMobileGestures";
@@ -379,6 +380,7 @@ const App = memo(function App() {
                 <Router>
                   <AppLayout />
                 </Router>
+                <ShareCardHost />
                 <Toaster />
               </SessionProvider>
             </ThemeProvider>

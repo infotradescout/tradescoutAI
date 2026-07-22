@@ -5,11 +5,12 @@ import * as AvatarPrimitive from "@radix-ui/react-avatar";
 
 import { cn } from "@/lib/utils";
 
-const CANONICAL_DEFAULT_AVATAR_SRC = "/tradescout-brand.png?v=8";
 const LEGACY_PLATFORM_AVATAR_PATHS = new Set<string>([
   "/tradescout-logo.png",
   "/tradescout-logo.jpg",
   "/tradescout-logo-circle.png",
+  "/tradescout-brand.png",
+  "/tradescout-social-preview.png",
   "/logo.png",
   "/favicon.ico",
   "/favicon.svg",
@@ -23,16 +24,16 @@ const LEGACY_PLATFORM_AVATAR_PATHS = new Set<string>([
   "/icon-512-maskable.png",
 ]);
 
-function normalizeAvatarSource(src: unknown): string {
-  if (typeof src !== "string") return CANONICAL_DEFAULT_AVATAR_SRC;
+function normalizeAvatarSource(src: unknown): string | undefined {
+  if (typeof src !== "string") return undefined;
   const trimmed = src.trim();
-  if (!trimmed) return CANONICAL_DEFAULT_AVATAR_SRC;
+  if (!trimmed) return undefined;
   if (trimmed.startsWith("data:")) return trimmed;
 
   try {
     const parsed = new URL(trimmed, "https://www.thetradescout.com");
     if (LEGACY_PLATFORM_AVATAR_PATHS.has(parsed.pathname.toLowerCase())) {
-      return CANONICAL_DEFAULT_AVATAR_SRC;
+      return undefined;
     }
   } catch {
     // Fall through to string return for non-URL-like values.
@@ -59,23 +60,12 @@ const AvatarImage = React.forwardRef<
 >(({ className, src, onError, ...props }, ref) => {
   const normalizedSrc = normalizeAvatarSource(src);
 
-  const handleImageError: React.ReactEventHandler<HTMLImageElement> = (event) => {
-    const image = event.currentTarget;
-    if (image.dataset.fallbackApplied === "1") {
-      onError?.(event);
-      return;
-    }
-    image.dataset.fallbackApplied = "1";
-    image.src = CANONICAL_DEFAULT_AVATAR_SRC;
-    onError?.(event);
-  };
-
   return (
     <AvatarPrimitive.Image
       ref={ref}
       src={normalizedSrc}
       className={cn("aspect-square h-full w-full", className)}
-      onError={handleImageError}
+      onError={onError}
       {...props}
     />
   );

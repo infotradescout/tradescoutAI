@@ -6470,6 +6470,7 @@ export class DatabaseStorage implements IStorage {
     excludeFollowing?: boolean;
     viewerId?: string;
     radiusMiles?: number;
+    demoteOnboardingWelcomes?: boolean;
   }): Promise<
     Array<
       CommunityPost & {
@@ -6575,11 +6576,15 @@ export class DatabaseStorage implements IStorage {
 
     const pageLimit = filters?.limit ?? 20;
     const pageOffset = filters?.offset ?? 0;
+    const onboardingWelcomeRank = filters?.demoteOnboardingWelcomes
+      ? sql`CASE WHEN ${communityPosts.category} = 'announcements' AND ${communityPosts.tags} @> ARRAY['welcome']::text[] THEN 1 ELSE 0 END`
+      : sql`0`;
 
     // Ordering: keep recent as baseline; "recommended" boosts high-intent, high-signal posts.
     const orderedQuery =
       sortMode === "recommended"
         ? baseQuery.orderBy(
+            onboardingWelcomeRank,
             // Boost recommendation-style posts and those with attached work requests
             desc(
               sql`CASE WHEN ${communityPosts.category} = 'recommendation_request' THEN 1 ELSE 0 END`
@@ -6589,10 +6594,11 @@ export class DatabaseStorage implements IStorage {
           )
         : sortMode === "trending"
           ? baseQuery.orderBy(
+              onboardingWelcomeRank,
               desc(sql`${communityPosts.likeCount} + ${communityPosts.commentCount}`),
               desc(communityPosts.createdAt)
             )
-          : baseQuery.orderBy(desc(communityPosts.createdAt));
+          : baseQuery.orderBy(onboardingWelcomeRank, desc(communityPosts.createdAt));
 
     type CommunityPostJoinRow = {
       post: CommunityPost;
@@ -6623,6 +6629,7 @@ export class DatabaseStorage implements IStorage {
       const fallbackOrderedQuery =
         sortMode === "recommended"
           ? fallbackBaseQuery.orderBy(
+              onboardingWelcomeRank,
               desc(
                 sql`CASE WHEN ${communityPosts.category} = 'recommendation_request' THEN 1 ELSE 0 END`
               ),
@@ -6631,10 +6638,11 @@ export class DatabaseStorage implements IStorage {
             )
           : sortMode === "trending"
             ? fallbackBaseQuery.orderBy(
+                onboardingWelcomeRank,
                 desc(sql`${communityPosts.likeCount} + ${communityPosts.commentCount}`),
                 desc(communityPosts.createdAt)
               )
-            : fallbackBaseQuery.orderBy(desc(communityPosts.createdAt));
+            : fallbackBaseQuery.orderBy(onboardingWelcomeRank, desc(communityPosts.createdAt));
 
       const fallbackRows = await fallbackOrderedQuery.limit(pageLimit).offset(pageOffset);
       results = fallbackRows.map((row: { post: CommunityPost; user: User | null }) => ({

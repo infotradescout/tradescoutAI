@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   DollarSign,
   Globe,
-  MoreHorizontal,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +43,8 @@ import { useLocation } from "wouter";
 import { OutcomeConfirmationCard } from "@/components/OutcomeConfirmationCard";
 import { CommunityPostCard } from "@/components/community/CommunityPostCard";
 import { toCommunityPostCardData } from "@/components/community/communityPostCardAdapter";
+import { buildCommunityRoutedDestination } from "@/components/community/communityRouting";
+import { stripCountySuffix } from "@/lib/userFacingCopy";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
@@ -164,7 +164,7 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
     if (readOnly) {
       toast({
         title: "Read-only view",
-        description: "Switch back to Local to comment on posts.",
+        description: "Switch back to Near me to comment on posts.",
         variant: "destructive",
       });
       return;
@@ -182,51 +182,55 @@ function CommunityComments({ postId, readOnly }: { postId: string; readOnly?: bo
 
   return (
     <div className="mt-3 space-y-3">
-      <form onSubmit={handleSubmit} className="space-y-2">
-        <div className="flex items-start gap-2">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={user?.avatar as string | undefined} />
-            <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
-              <TradeScoutLogo size="sm" className="h-6 w-6 bg-transparent ring-0" />
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 flex flex-col gap-2">
-            <Textarea
-              placeholder="Add a comment to this post..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              rows={2}
-              className="text-xs md:text-sm"
-            />
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                size="sm"
-                className="h-7 px-3 text-xs"
-                disabled={createComment.isPending}
-              >
-                {createComment.isPending ? (
-                  <>
-                    <Send className="h-3 w-3 mr-1 animate-pulse" />
-                    Posting
-                  </>
-                ) : (
-                  <>
-                    <Send className="h-3 w-3 mr-1" />
-                    Post Comment
-                  </>
-                )}
-              </Button>
+      {!readOnly ? (
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <div className="flex items-start gap-2">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={user?.avatar as string | undefined} />
+              <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                <TradeScoutLogo size="sm" className="h-6 w-6 bg-transparent ring-0" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 flex flex-col gap-2">
+              <Textarea
+                placeholder="Add a comment to this post..."
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                rows={2}
+                className="text-xs md:text-sm"
+              />
+              <div className="flex justify-end">
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-7 px-3 text-xs"
+                  disabled={createComment.isPending}
+                >
+                  {createComment.isPending ? (
+                    <>
+                      <Send className="h-3 w-3 mr-1 animate-pulse" />
+                      Posting
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3 w-3 mr-1" />
+                      Post Comment
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </form>
+        </form>
+      ) : null}
 
       <div className="space-y-2">
         {isLoading ? (
           <p className="text-[11px] text-white/60">Loading comments...</p>
         ) : comments.length === 0 ? (
-          <p className="text-[11px] text-white/60">No comments yet. Be the first to reply.</p>
+          <p className="text-[11px] text-white/60">
+            {readOnly ? "No comments yet." : "No comments yet. Be the first to reply."}
+          </p>
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="flex items-start gap-2 text-xs md:text-sm">
@@ -308,6 +312,17 @@ type TrendingTopic = {
   source?: "community" | "news";
 };
 
+type CommunityStats = {
+  totalMembers: number;
+  activeToday: number;
+  postsToday: number;
+  countiesActive: number;
+  helpRequests7d: number;
+  recommendations7d: number;
+  verifiedPros: number;
+  medianFirstReplyMinutes7d: number | null;
+};
+
 const CommunityFeed = memo(function CommunityFeed() {
   type FeedTab = "forYou" | "recent" | "vault";
   const [activeTab, setActiveTab] = useState<FeedTab>("forYou");
@@ -333,6 +348,7 @@ const CommunityFeed = memo(function CommunityFeed() {
   const stateCode = location.stateCode as string | undefined;
   const countyFips = location.countyFips as string | undefined;
   const countyCommitted = hasCountyContext(location);
+  const areaName = stripCountySuffix(location.countyName) || "Near you";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -423,6 +439,30 @@ const CommunityFeed = memo(function CommunityFeed() {
     const nextSearch = `?${nextParams.toString()}`;
     setSearchState(nextSearch);
     navigate(`${currentPath}${nextSearch}`);
+  };
+
+  const startCommunityRoute = (category: string) => {
+    const nextParams = new URLSearchParams(queryParams);
+    nextParams.set("geo", "local");
+    nextParams.set("feed", "forYou");
+    nextParams.set("compose", "1");
+    nextParams.set("category", category);
+    nextParams.delete("scope");
+    const destination = `${currentPath}?${nextParams.toString()}`;
+
+    if (!isAuthenticated) {
+      navigate(`/login?next=${encodeURIComponent(destination)}`);
+      return;
+    }
+
+    if (isGlobalView) {
+      navigate(destination);
+      return;
+    }
+
+    setSelectedCategory(category);
+    setIsComposerOpen(true);
+    window.setTimeout(() => composerRef.current?.focus(), 0);
   };
 
   useEffect(() => {
@@ -600,16 +640,42 @@ const CommunityFeed = memo(function CommunityFeed() {
         images: postData.images,
       });
     },
-    onSuccess: (created: any) => {
+    onSuccess: (created: any, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/community/posts"] });
       setNewPostContent("");
       setUploadedImages([]);
       setSelectedCategory("general");
       setIsComposerOpen(false);
       setLastCreatedPostId(created?.id ?? null);
+
+      const routedDestination = buildCommunityRoutedDestination({
+        category: variables.category,
+        postId: String(created?.id || ""),
+        content: variables.content,
+        countyFips,
+        countyName: location.countyName,
+      });
+      if (variables.category === "request" && routedDestination) {
+        toast({
+          title: "Posted",
+          description: "Add a few details so TradeScout can help you find the right people.",
+        });
+        navigate(routedDestination);
+        return;
+      }
+
+      if (variables.category === "forsale" && routedDestination) {
+        toast({
+          title: "Posted",
+          description: "Add the listing details so interested buyers know what to expect.",
+        });
+        navigate(routedDestination);
+        return;
+      }
+
       toast({
-        title: "Post Created",
-        description: "Your post has been shared with the community!",
+        title: "Posted",
+        description: "Your post is now visible to people near you.",
       });
     },
     onError: () => {
@@ -652,7 +718,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (isGlobalView) {
       toast({
         title: "Read-only view",
-        description: "Switch back to Local to create a post.",
+        description: "Switch back to Near me to create a post.",
         variant: "destructive",
       });
       return;
@@ -679,7 +745,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (isGlobalView) {
       toast({
         title: "Read-only view",
-        description: "Switch back to Local to like or comment on posts.",
+        description: "Switch back to Near me to like or comment on posts.",
         variant: "destructive",
       });
       return;
@@ -699,7 +765,7 @@ const CommunityFeed = memo(function CommunityFeed() {
     if (isGlobalView) {
       toast({
         title: "Read-only view",
-        description: "Switch back to Local to save posts.",
+        description: "Switch back to Near me to save posts.",
         variant: "destructive",
       });
       return;
@@ -712,12 +778,17 @@ const CommunityFeed = memo(function CommunityFeed() {
   const posts = activePostsSource || [];
 
   const { data: trendingTopicsData } = useQuery<TrendingTopic[]>({
-    queryKey: ["/api/community/trending", stateCode, countyFips],
+    queryKey: [
+      "/api/community/trending",
+      isGlobalView ? "global" : "county",
+      stateCode,
+      countyFips,
+    ],
     enabled: countyCommitted,
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (stateCode) params.set("stateCode", stateCode);
-      if (countyFips) params.set("countyFips", countyFips);
+      if (!isGlobalView && stateCode) params.set("stateCode", stateCode);
+      if (!isGlobalView && countyFips) params.set("countyFips", countyFips);
       params.set("limit", "10");
 
       const response = await fetch(`/api/community/trending?${params.toString()}`);
@@ -730,11 +801,27 @@ const CommunityFeed = memo(function CommunityFeed() {
     ? trendingTopicsData
     : [];
 
+  const { data: communityStats } = useQuery<CommunityStats>({
+    queryKey: ["/api/community/stats", isGlobalView ? "global" : "county", stateCode, countyFips],
+    enabled: isGlobalView || countyCommitted,
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (!isGlobalView && stateCode) params.set("stateCode", stateCode);
+      if (!isGlobalView && countyFips) params.set("countyFips", countyFips);
+      const response = await fetch(`/api/community/stats?${params.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch community stats");
+      return response.json();
+    },
+    staleTime: 60_000,
+  });
+
   function getAuthorName(post: any) {
+    const welcomeTitleName = /^welcome\s+(.+)$/i.exec(String(post.title || "").trim())?.[1];
     return (
       post.author?.name ||
       [post.author?.firstName, post.author?.lastName].filter(Boolean).join(" ") ||
       post.author?.username ||
+      welcomeTitleName ||
       "Community Member"
     );
   }
@@ -902,10 +989,26 @@ const CommunityFeed = memo(function CommunityFeed() {
     const params = new URLSearchParams(search);
     const compose = params.get("compose");
     const prefill = params.get("prefill");
+    const category = params.get("category");
 
     if (compose === "1") {
       setIsComposerOpen(true);
       if (prefill) setNewPostContent(prefill);
+      if (
+        category &&
+        [
+          "general",
+          "question",
+          "recommendation",
+          "event",
+          "tip",
+          "request",
+          "alert",
+          "forsale",
+        ].includes(category)
+      ) {
+        setSelectedCategory(category);
+      }
       window.setTimeout(() => composerRef.current?.focus(), 0);
     }
   }, [route]);
@@ -913,13 +1016,37 @@ const CommunityFeed = memo(function CommunityFeed() {
   const seededPrompts: string[] = [
     "Can anyone recommend a reliable electrician?",
     "I'm looking for someone to repair a fence.",
-    "Has anyone used a local HVAC company they would recommend?",
+    "Has anyone used an HVAC company they would recommend?",
     "Where do you buy quality deck materials nearby?",
     "Who has done good bathroom remodeling work?",
   ];
 
-  const hasUserPosts = Array.isArray(posts) && posts.length > 0;
-  const displayPosts: any[] = posts;
+  const welcomePosts = useMemo(
+    () => posts.filter((post: any) => post.feedKind === "onboarding_welcome"),
+    [posts]
+  );
+  const displayPosts: any[] = useMemo(
+    () => posts.filter((post: any) => post.feedKind !== "onboarding_welcome"),
+    [posts]
+  );
+  const openCommunityNeeds = useMemo(
+    () =>
+      displayPosts
+        .filter((post: any) => {
+          const category = String(post?.category || "").toLowerCase();
+          const tags = Array.isArray(post?.tags)
+            ? post.tags.map((tag: unknown) => String(tag).toLowerCase())
+            : [];
+          return (
+            ["request", "question", "questions", "project", "projects"].includes(category) ||
+            tags.includes("request") ||
+            tags.includes("question")
+          );
+        })
+        .slice(0, 4),
+    [displayPosts]
+  );
+  const hasUserPosts = displayPosts.length > 0;
   const tabSortedPosts = useMemo(() => {
     const list = [...displayPosts];
     if (activeTab === "recent") {
@@ -939,18 +1066,14 @@ const CommunityFeed = memo(function CommunityFeed() {
   };
 
   const handleTogglePostComments = (postId: string) => {
+    if (isGlobalView) {
+      setOpenCommentsForPostId((current) => (current === postId ? null : postId));
+      return;
+    }
     if (!isAuthenticated) {
       toast({
         title: "Sign In Required",
         description: "Please sign in to discuss community posts.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (isGlobalView) {
-      toast({
-        title: "Read-only view",
-        description: "Switch back to Local to comment on posts.",
         variant: "destructive",
       });
       return;
@@ -982,10 +1105,13 @@ const CommunityFeed = memo(function CommunityFeed() {
       ) : tabSortedPosts.length === 0 ? (
         <Card className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 md:p-8 text-center">
-            <h3 className="text-lg md:text-xl font-semibold text-white">You&apos;re here early</h3>
+            <h3 className="text-lg md:text-xl font-semibold text-white">
+              {isGlobalView ? "No useful public posts yet" : "You&apos;re here early"}
+            </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-[color:var(--text-secondary)]">
-              This part of your local community is just getting started. Ask the first question,
-              share a recommendation, or post something useful.
+              {isGlobalView
+                ? "Questions, recommendations, events, and useful updates from other communities will appear here."
+                : "People near you are just getting started. Ask the first question, share a recommendation, or post something useful."}
             </p>
             {!isGlobalView ? (
               <Button
@@ -1036,6 +1162,21 @@ const CommunityFeed = memo(function CommunityFeed() {
               />
             );
           })}
+          {!isGlobalView && tabSortedPosts.length < 3 ? (
+            <section className="ts-community-endcap rounded-xl border border-dashed border-white/[0.09] px-5 py-6 text-center">
+              <p className="text-sm font-semibold text-white/78">
+                That&apos;s everything near {areaName}.
+              </p>
+              <button
+                type="button"
+                onClick={() => handleCommunityView("global", "forYou")}
+                className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-ts-orange"
+              >
+                <Globe className="h-4 w-4" />
+                Browse all communities
+              </button>
+            </section>
+          ) : null}
         </>
       )}
     </div>
@@ -1055,6 +1196,12 @@ const CommunityFeed = memo(function CommunityFeed() {
         title: post.title || "TradeScout community post",
         text: (post.content || "").toString(),
         contextLabel: "Post link",
+        kind: "community_post",
+        imageUrl: Array.isArray(post.imageUrls)
+          ? post.imageUrls[0]
+          : Array.isArray(post.images)
+            ? post.images[0]
+            : undefined,
       });
     } catch (err) {
       console.error("Failed to share community post", err);
@@ -1187,7 +1334,7 @@ const CommunityFeed = memo(function CommunityFeed() {
           "@type": "CollectionPage",
           name: "TradeScout Community",
           description:
-            "Local-area community feed for local posts, recommendations, project updates, and events.",
+            "Community posts, recommendations, project updates, and events from people nearby.",
           url: "https://www.thetradescout.com/community-feed",
         },
         createBreadcrumbStructuredData([
@@ -1202,9 +1349,9 @@ const CommunityFeed = memo(function CommunityFeed() {
   return (
     <>
       <SEOHelmet
-        title="TradeScout Community | Local Updates, Questions, and Neighborhood Activity"
-        description="Stay connected to local activity on TradeScout Community. Ask questions, share updates, follow neighborhood conversations, and keep up with what is happening nearby."
-        keywords="tradescout community, local community feed, neighborhood activity, ask neighbors online, local updates"
+        title="TradeScout Community | Questions, Recommendations, and Nearby Activity"
+        description="Ask questions, share updates, recommend people you trust, and keep up with what is happening nearby on TradeScout Community."
+        keywords="tradescout community, nearby community feed, neighborhood activity, ask neighbors online, community updates"
         canonical="https://www.thetradescout.com/community-feed"
         structuredData={structuredData}
       />
@@ -1314,12 +1461,12 @@ const CommunityFeed = memo(function CommunityFeed() {
                     <MapPin className="h-3 w-3 text-ts-orange" />
                   )}
                   {isGlobalView
-                    ? "All communities · Browse only"
+                    ? "Explore · Browse only"
                     : activeTab === "vault"
                       ? "Saved posts"
                       : activeTab === "recent"
-                        ? `Newest in ${location.countyName || "your county"}`
-                        : location.countyName || "Your county"}
+                        ? `Newest near ${areaName}`
+                        : areaName}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -1341,51 +1488,150 @@ const CommunityFeed = memo(function CommunityFeed() {
                     {isAuthenticated ? "Create post" : "Sign in to post"}
                   </Button>
                 ) : null}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label="Open Community views"
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.035] text-white/65 transition hover:bg-white/[0.07] hover:text-white"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuItem onClick={() => handleCommunityView("local", "forYou")}>
-                      County feed
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleCommunityView("local", "recent")}>
-                      Newest posts
-                    </DropdownMenuItem>
-                    {isAuthenticated ? (
-                      <DropdownMenuItem onClick={() => handleCommunityView("local", "vault")}>
-                        Saved posts
-                      </DropdownMenuItem>
-                    ) : null}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleCommunityView("global", "forYou")}>
-                      Browse all communities
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </div>
             </header>
-            <div
-              className={`grid grid-cols-1 gap-5 lg:gap-8 ${
-                activeConnections.length > 0 || trendingTopics.length > 0
-                  ? "lg:grid-cols-[minmax(0,1fr)_260px]"
-                  : "lg:grid-cols-1"
-              }`}
+            <nav
+              className="ts-community-viewbar mb-5 flex items-center gap-2 overflow-x-auto border-b border-white/[0.07] pb-3"
+              aria-label="Community feed views"
             >
-              {/* Main Feed */}
-              <div
-                className={`min-w-0 space-y-3 md:space-y-4 ${
-                  activeConnections.length === 0 && trendingTopics.length === 0
-                    ? "mx-auto w-full max-w-[860px]"
-                    : ""
-                }`}
+              <button
+                type="button"
+                onClick={() => handleCommunityView("local", "forYou")}
+                aria-pressed={!isGlobalView}
+                className="ts-community-viewbar__item"
               >
+                <MapPin className="h-3.5 w-3.5" />
+                Near me
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCommunityView("global", "forYou")}
+                aria-pressed={isGlobalView}
+                className="ts-community-viewbar__item"
+              >
+                <Globe className="h-3.5 w-3.5" />
+                Explore
+              </button>
+              <span className="ts-community-viewbar__divider mx-1 h-5 w-px shrink-0 bg-white/[0.08]" />
+              <button
+                type="button"
+                onClick={() => handleCommunityView(isGlobalView ? "global" : "local", "forYou")}
+                aria-pressed={activeTab === "forYou"}
+                className="ts-community-viewbar__item"
+              >
+                For you
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCommunityView(isGlobalView ? "global" : "local", "recent")}
+                aria-pressed={activeTab === "recent"}
+                className="ts-community-viewbar__item"
+              >
+                Newest
+              </button>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => handleCommunityView("local", "vault")}
+                  aria-pressed={activeTab === "vault"}
+                  className="ts-community-viewbar__item"
+                >
+                  Saved
+                </button>
+              ) : null}
+            </nav>
+
+            <section
+              className="mb-5 overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(110deg,rgba(255,107,0,0.10),rgba(255,255,255,0.025)_42%,rgba(255,255,255,0.015))]"
+              aria-labelledby="community-action-title"
+              data-testid="community-action-panel"
+            >
+              <div className="flex flex-col gap-3 px-3 py-3.5 sm:px-4 lg:flex-row lg:items-center">
+                <div className="min-w-0 lg:w-[210px] lg:shrink-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ts-orange">
+                    Get it done
+                  </p>
+                  <h2
+                    id="community-action-title"
+                    className="mt-1 text-base font-semibold text-white"
+                  >
+                    What do you need?
+                  </h2>
+                  <p className="mt-1 text-xs leading-5 text-white/48">
+                    Ask, recommend, alert people, find help, or sell something.
+                  </p>
+                </div>
+                <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 lg:grid lg:grid-cols-5 lg:overflow-visible lg:pb-0">
+                  {[
+                    {
+                      key: "request",
+                      label: "Find help",
+                      detail: "Turn a need into action",
+                      icon: Wrench,
+                    },
+                    {
+                      key: "question",
+                      label: "Ask a question",
+                      detail: "Get useful answers",
+                      icon: HelpCircle,
+                    },
+                    {
+                      key: "recommendation",
+                      label: "Recommend",
+                      detail: "Share who delivered",
+                      icon: Award,
+                    },
+                    {
+                      key: "alert",
+                      label: "Share an alert",
+                      detail: "Help people prepare",
+                      icon: AlertTriangle,
+                    },
+                    {
+                      key: "forsale",
+                      label: "Sell something",
+                      detail: "Reach interested buyers",
+                      icon: DollarSign,
+                    },
+                  ].map(({ key, label, detail, icon: Icon }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => startCommunityRoute(key)}
+                      className="group flex min-w-[142px] items-center gap-2.5 rounded-xl border border-white/[0.07] bg-black/20 px-3 py-2.5 text-left transition hover:border-ts-orange/45 hover:bg-ts-orange/[0.08] lg:min-w-0"
+                      data-testid={`community-route-${key}`}
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.055] text-ts-orange transition group-hover:bg-ts-orange/15">
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-xs font-semibold text-white">{label}</span>
+                        <span className="mt-0.5 block whitespace-nowrap text-[10px] text-white/38">
+                          {detail}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="border-t border-white/[0.06] px-3 py-2 text-[10px] text-white/38 sm:px-4">
+                Your contact details stay private until you choose to connect.
+              </div>
+            </section>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-8">
+              {/* Main Feed */}
+              <div className="min-w-0 space-y-3 md:space-y-4">
+                <div className="flex items-end justify-between gap-3 px-1">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/38">
+                      {isGlobalView ? "Across TradeScout" : "Near you"}
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold text-white">
+                      {activeTab === "recent" ? "Newest posts" : "What people are sharing"}
+                    </h2>
+                  </div>
+                </div>
                 {!isGlobalView && isComposerOpen ? (
                   <Card className="ts-community-composer mb-5 overflow-hidden border border-white/[0.09] bg-white/[0.035] shadow-none md:sticky md:top-16">
                     <CardContent className="p-3.5 md:p-5">
@@ -1403,10 +1649,18 @@ const CommunityFeed = memo(function CommunityFeed() {
                           <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0">
                               <div className="text-sm font-semibold text-white">
-                                Share with your community
+                                {selectedCategory === "request"
+                                  ? "Describe what you need"
+                                  : selectedCategory === "forsale"
+                                    ? "Start a listing"
+                                    : "Share with your community"}
                               </div>
                               <div className="ts-community-composer__hint text-xs text-white/55">
-                                Questions, updates, recommendations, and events belong here.
+                                {selectedCategory === "request"
+                                  ? "Share the need, then add a few details so TradeScout can help you find the right people."
+                                  : selectedCategory === "forsale"
+                                    ? "Share it, then add price, condition, and pickup details."
+                                    : "Share something useful with people near you."}
                               </div>
                             </div>
                             <button
@@ -1504,7 +1758,7 @@ const CommunityFeed = memo(function CommunityFeed() {
                                 key: "forsale",
                                 label: "For Sale",
                                 icon: DollarSign,
-                                intent: "Sell something locally",
+                                intent: "Sell something",
                               },
                             ].map(({ key, label, icon: Icon, intent }) => (
                               <button
@@ -1603,7 +1857,13 @@ const CommunityFeed = memo(function CommunityFeed() {
                               disabled={!newPostContent.trim() || createPostMutation.isPending}
                               data-testid="button-submit-post"
                             >
-                              {createPostMutation.isPending ? "Posting..." : "Post"}
+                              {createPostMutation.isPending
+                                ? "Posting..."
+                                : selectedCategory === "request"
+                                  ? "Continue"
+                                  : selectedCategory === "forsale"
+                                    ? "Continue"
+                                    : "Post"}
                             </Button>
                           </div>
                         </div>
@@ -1625,97 +1885,231 @@ const CommunityFeed = memo(function CommunityFeed() {
                 {renderFeedList()}
               </div>
 
-              {/* Secondary local context stays quiet and only appears when there is real data. */}
-              {activeConnections.length > 0 || trendingTopics.length > 0 ? (
-                <aside className="ts-community-rail space-y-4">
-                  {activeConnections.length > 0 ? (
-                    <section className="border-b border-white/[0.07] pb-4">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/55">
-                          Active nearby
-                        </h2>
-                        <span className="text-xs text-white/38">
-                          {connectionActivityData?.activeNowCount ?? activeConnections.length}
-                        </span>
-                      </div>
-                      <div className="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
-                        {activeConnections.slice(0, 8).map((neighbor) => {
-                          const name =
-                            [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||
-                            "Connection";
-
-                          return (
-                            <DropdownMenu key={neighbor.id}>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  type="button"
-                                  className="group flex w-12 shrink-0 flex-col items-center gap-1.5"
-                                  title={`${name} actions`}
-                                  aria-label={`Open actions for ${name}`}
-                                >
-                                  <div className="relative">
-                                    <Avatar className="h-10 w-10 ring-1 ring-white/10 transition group-hover:ring-ts-orange/70">
-                                      <AvatarImage src={neighbor.profileImageUrl ?? undefined} />
-                                      <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
-                                        <TradeScoutLogo
-                                          size="sm"
-                                          className="h-7 w-7 bg-transparent ring-0"
-                                        />
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    {neighbor.isActiveNow ? (
-                                      <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[color:var(--ts-bg)]" />
-                                    ) : null}
-                                  </div>
-                                  <span className="w-full truncate text-center text-[10px] text-white/48 group-hover:text-white/75">
-                                    {String(neighbor.firstName || name).split(" ")[0]}
-                                  </span>
-                                </button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="center" className="w-56">
-                                <DropdownMenuItem
-                                  onClick={() => handleOpenActiveUserProfile(neighbor.id)}
-                                >
-                                  View public profile
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() =>
-                                    handleOpenDirectConnectForActiveUser(neighbor.id, name)
-                                  }
-                                >
-                                  Start a Request
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleCreateConnectionRequest(neighbor)}
-                                >
-                                  Send connection request
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          );
-                        })}
-                      </div>
-                    </section>
+              <aside className="ts-community-rail space-y-4">
+                <section className="ts-community-context-card rounded-xl border border-white/[0.07]">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ts-orange">
+                    {isGlobalView ? "Explore" : "Around you"}
+                  </p>
+                  <h2 className="mt-2 text-lg font-semibold text-white">
+                    {isGlobalView ? "See what people are sharing" : areaName}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 text-white/55">
+                    {isGlobalView
+                      ? "Read useful posts from other communities. Come back to Near me when you want to join in."
+                      : "See what people need, who they recommend, and what is happening nearby."}
+                  </p>
+                  {isGlobalView ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCommunityView("local", "forYou")}
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ts-orange"
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Back to Near me
+                    </button>
+                  ) : !isAuthenticated ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = `${currentPath}?compose=1`;
+                        navigate(`/login?next=${encodeURIComponent(next)}`);
+                      }}
+                      className="mt-4 text-sm font-semibold text-ts-orange"
+                    >
+                      Sign in to join the conversation
+                    </button>
                   ) : null}
-                  {trendingTopics.length > 0 && (
-                    <Card className="border border-white/[0.07] bg-transparent shadow-none">
-                      <CardHeader className="pb-1.5">
-                        <CardTitle className="text-sm text-white">Topics</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex flex-wrap gap-2">
-                        {trendingTopics.slice(0, 6).map((topic) => (
-                          <span
-                            key={topic.tag}
-                            className="inline-flex items-center rounded-full border border-ts-orange/30 bg-ts-orange/10 px-2.5 py-1 text-[11px] text-ts-orange"
-                          >
-                            #{topic.tag}
+                </section>
+
+                {!isGlobalView && communityStats ? (
+                  <section
+                    className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4"
+                    data-testid="community-county-pulse"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/42">
+                          This week
+                        </p>
+                        <h3 className="mt-1 text-sm font-semibold text-white">At a glance</h3>
+                      </div>
+                      <span className="rounded-full border border-ts-orange/25 bg-ts-orange/10 px-2 py-1 text-[10px] text-ts-orange">
+                        Live data
+                      </span>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.06]">
+                      {[
+                        ["Help wanted", communityStats.helpRequests7d],
+                        ["Recommendations", communityStats.recommendations7d],
+                        ["Verified businesses", communityStats.verifiedPros],
+                        [
+                          "Typical first reply",
+                          communityStats.medianFirstReplyMinutes7d == null
+                            ? "No replies yet"
+                            : communityStats.medianFirstReplyMinutes7d < 60
+                              ? `${Math.round(communityStats.medianFirstReplyMinutes7d)} min`
+                              : `${Math.round(communityStats.medianFirstReplyMinutes7d / 60)} hr`,
+                        ],
+                      ].map(([label, value]) => (
+                        <div
+                          key={String(label)}
+                          className="bg-[color:var(--surface-app-bg)] px-3 py-2.5"
+                        >
+                          <dt className="text-[10px] leading-4 text-white/38">{label}</dt>
+                          <dd className="mt-0.5 text-sm font-semibold text-white/82">{value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                ) : null}
+
+                {openCommunityNeeds.length > 0 ? (
+                  <section className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">
+                        People need help with
+                      </h3>
+                      <span className="text-xs font-semibold text-ts-orange">
+                        {openCommunityNeeds.length}
+                      </span>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {openCommunityNeeds.map((post: any) => (
+                        <button
+                          key={`need-${post.id}`}
+                          type="button"
+                          onClick={() => {
+                            const element = document.querySelector(
+                              `[data-post-id="${CSS.escape(String(post.id))}"]`
+                            ) as HTMLElement | null;
+                            element?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          }}
+                          className="block w-full rounded-lg border border-white/[0.06] bg-black/15 px-3 py-2.5 text-left transition hover:border-ts-orange/35 hover:bg-ts-orange/[0.06]"
+                        >
+                          <span className="block line-clamp-2 text-xs font-medium leading-5 text-white/75">
+                            {String(post.title || post.content || "Help wanted").slice(0, 110)}
                           </span>
-                        ))}
-                      </CardContent>
-                    </Card>
-                  )}
-                </aside>
-              ) : null}
+                          <span className="mt-1 block text-[10px] text-white/35">
+                            {getAuthorName(post)} · {formatCommunityPostTime(post.createdAt)}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {welcomePosts.length > 0 ? (
+                  <section className="rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/48">
+                      New neighbors
+                    </h3>
+                    <div className="mt-3 space-y-2.5">
+                      {welcomePosts.slice(0, 5).map((post: any) => (
+                        <div
+                          key={post.id}
+                          className="flex items-center justify-between gap-3 text-sm"
+                        >
+                          <span className="truncate font-medium text-white/78">
+                            {getAuthorName(post)}
+                          </span>
+                          <span className="shrink-0 text-xs text-white/38">
+                            {formatCommunityPostTime(post.createdAt)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                ) : null}
+
+                {!isGlobalView && activeConnections.length > 0 ? (
+                  <section className="border-b border-white/[0.07] pb-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/55">
+                        Your active connections
+                      </h2>
+                      <span className="text-xs text-white/38">
+                        {connectionActivityData?.activeNowCount ?? activeConnections.length}
+                      </span>
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
+                      {activeConnections.slice(0, 8).map((neighbor) => {
+                        const name =
+                          [neighbor.firstName, neighbor.lastName].filter(Boolean).join(" ") ||
+                          "Connection";
+
+                        return (
+                          <DropdownMenu key={neighbor.id}>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="group flex w-12 shrink-0 flex-col items-center gap-1.5"
+                                title={`${name} actions`}
+                                aria-label={`Open actions for ${name}`}
+                              >
+                                <div className="relative">
+                                  <Avatar className="h-10 w-10 ring-1 ring-white/10 transition group-hover:ring-ts-orange/70">
+                                    <AvatarImage src={neighbor.profileImageUrl ?? undefined} />
+                                    <AvatarFallback className="bg-[color:var(--surface-intermediate)]">
+                                      <TradeScoutLogo
+                                        size="sm"
+                                        className="h-7 w-7 bg-transparent ring-0"
+                                      />
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  {neighbor.isActiveNow ? (
+                                    <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-[color:var(--ts-bg)]" />
+                                  ) : null}
+                                </div>
+                                <span className="w-full truncate text-center text-[10px] text-white/48 group-hover:text-white/75">
+                                  {String(neighbor.firstName || name).split(" ")[0]}
+                                </span>
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center" className="w-56">
+                              <DropdownMenuItem
+                                onClick={() => handleOpenActiveUserProfile(neighbor.id)}
+                              >
+                                View public profile
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() =>
+                                  handleOpenDirectConnectForActiveUser(neighbor.id, name)
+                                }
+                              >
+                                Start a Request
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleCreateConnectionRequest(neighbor)}
+                              >
+                                Send connection request
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ) : null}
+                {trendingTopics.length > 0 && (
+                  <Card className="border border-white/[0.07] bg-transparent shadow-none">
+                    <CardHeader className="pb-1.5">
+                      <CardTitle className="text-sm text-white">Topics</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex flex-wrap gap-2">
+                      {trendingTopics.slice(0, 6).map((topic) => (
+                        <button
+                          key={topic.tag}
+                          type="button"
+                          onClick={() => setActiveTopic(topic.tag)}
+                          className="inline-flex items-center rounded-full border border-ts-orange/30 bg-ts-orange/10 px-2.5 py-1 text-[11px] text-ts-orange"
+                        >
+                          #{topic.tag}
+                        </button>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </aside>
             </div>
           </div>
         </CountyRequiredGate>

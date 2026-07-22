@@ -29,7 +29,7 @@ describe("Scout entry framing contracts", () => {
     const inputSource = read("client/src/scout/ScoutInputRow.tsx");
     const promptsSource = read("client/src/scout/scoutQuickStartPrompts.ts");
 
-    expect(inputSource).toContain("Search local help, compare options, or review your next step.");
+    expect(inputSource).toContain("Describe a project, permit question, estimate, or decision.");
     expect(inputSource).toContain("Search");
     expect(inputSource).toContain("Compare");
     expect(inputSource).toContain("Choose");
@@ -37,10 +37,12 @@ describe("Scout entry framing contracts", () => {
     expect(inputSource).not.toContain("Send message");
     expect(inputSource).not.toContain("Your area:");
     expect(inputSource).not.toContain("Use current location");
-    expect(promptsSource).toContain("What's happening near me today?");
-    expect(promptsSource).toContain("Who nearby can help with this?");
-    expect(promptsSource).toContain("Any local prices or deals I should know about?");
-    expect(promptsSource).toContain("What's my next step?");
+    expect(promptsSource).toContain("Continue my open work");
+    expect(promptsSource).toContain("Plan my project");
+    expect(promptsSource).toContain("Check codes and permits");
+    expect(promptsSource).toContain("Build a realistic estimate");
+    expect(promptsSource).toContain("Compare a quote");
+    expect(promptsSource).toContain("Find the right professional");
   });
 
   it("Scout home exposes the production Scout 2 capability map honestly", () => {
@@ -248,7 +250,7 @@ describe("Scout entry framing contracts", () => {
   it("active Scout conversations use a focused result layout", () => {
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(scoutOsSource).toContain("const showDiscoveryRail = !isMobile && !hasUserMessages");
+    expect(scoutOsSource).toContain("const showDiscoveryRail = false");
     expect(scoutOsSource).toContain('showDiscoveryRail ? "max-w-7xl" : "max-w-4xl"');
     expect(scoutOsSource).toContain("{showDiscoveryRail && (");
     expect(scoutOsSource).not.toContain("pendingContextCards={scoutContextCards}");

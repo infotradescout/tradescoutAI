@@ -51,12 +51,12 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
   const [showFitDetails, setShowFitDetails] = useState(false);
   const contactReason =
     recommendation.suggestedIntent === "hire"
-      ? `I'm interested in your ${recommendation.targetRole} services and would like to talk about a local project.`
+      ? `I'm interested in your ${recommendation.targetRole} services and would like to talk about a project.`
       : recommendation.suggestedIntent === "advise"
         ? `I'd appreciate your advice about ${recommendation.targetRole.toLowerCase()} work in my area.`
         : recommendation.suggestedIntent === "reconnect"
           ? "I'd like to reconnect and catch up."
-          : "I'd like to talk about working together locally.";
+          : "I'd like to talk about working together.";
 
   // Action mutation (accept/dismiss)
   const actionMutation = useMutation({
@@ -149,7 +149,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
         {/* Header */}
         <div className="flex items-center gap-2 text-sm text-white/60">
           <TrendingUp className="w-4 h-4" />
-          <span className="font-medium">Local match</span>
+          <span className="font-medium">Good match</span>
         </div>
 
         {/* Target User */}
@@ -193,7 +193,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
         {showFitDetails && (
           <div className="space-y-3 rounded-lg border border-white/10 bg-tsBg/60 p-3">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-white/70">Local fit</p>
+              <p className="text-sm font-medium text-white/70">Why it fits</p>
               <p className="text-sm text-white/60">
                 This profile matches the kind of {recommendation.targetRole.toLowerCase()} help
                 you&apos;re looking for
@@ -271,7 +271,7 @@ export const ScoutRecommendationCard: React.FC<ScoutRecommendationCardProps> = (
             riskFlags: recommendation.riskFlags,
             sourceScoutRecommendationId: recommendation.recommendationId, // D2: Scout rec ID
             decisionScope: recommendation.decisionScope || "",
-            decisionTitle: "Local suggestion",
+            decisionTitle: "Suggested connection",
           }}
           onClose={() => setShowContactModal(false)}
         />

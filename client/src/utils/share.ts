@@ -98,7 +98,16 @@ export async function buildAffiliateUrl(
   }
 }
 
-interface ShareOptions {
+export type ShareContextKind =
+  | "community_post"
+  | "profile"
+  | "business"
+  | "listing"
+  | "offer"
+  | "event"
+  | "page";
+
+export interface ShareOptions {
   path?: string;
   url?: string;
   title?: string;
@@ -119,6 +128,38 @@ interface ShareOptions {
    * Force attaching ?ref=... even if another caller might otherwise suppress it.
    */
   forceRef?: boolean;
+  /** Optional richer preview details for the universal Share Card. */
+  kind?: ShareContextKind;
+  imageUrl?: string;
+  sourceName?: string;
+}
+
+export type ShareCardPayload = {
+  url: string;
+  title: string;
+  text: string;
+  contextLabel: string;
+  kind: ShareContextKind;
+  imageUrl?: string;
+  sourceName: string;
+};
+
+export const SHARE_CARD_EVENT = "tradescout:open-share-card";
+
+export function inferShareKind(pathOrUrl: string): ShareContextKind {
+  let pathname = pathOrUrl;
+  try {
+    pathname = new URL(pathOrUrl, resolveOrigin() || "https://www.thetradescout.com").pathname;
+  } catch {
+    // Use the raw path for the conservative fallbacks below.
+  }
+  if (/^\/community\/(post\/)?/i.test(pathname)) return "community_post";
+  if (/^\/(u|p|profile|contractors|helpers)\//i.test(pathname)) return "profile";
+  if (/^\/business\//i.test(pathname)) return "business";
+  if (/^\/(exchange|marketplace|handmade|homescout)/i.test(pathname)) return "listing";
+  if (/offer|promo|deal/i.test(pathname)) return "offer";
+  if (/event/i.test(pathname)) return "event";
+  return "page";
 }
 
 export async function share(options: ShareOptions): Promise<void> {
@@ -140,39 +181,21 @@ export async function share(options: ShareOptions): Promise<void> {
       forceRef: options.forceRef,
     });
 
-    const title = options.title;
+    const title = options.title || "Share from TradeScout";
     const text = (options.text || "").toString().slice(0, 200);
     const label = options.contextLabel || "Link";
+    if (typeof window === "undefined") return;
 
-    if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try {
-        await (navigator as any).share({ title, text, url: finalUrl });
-        return;
-      } catch (err: any) {
-        if (err && (err.name === "AbortError" || err.name === "NotAllowedError")) {
-          return;
-        }
-        // Fall through to clipboard on other errors
-      }
-    }
-
-    if (
-      typeof navigator !== "undefined" &&
-      (navigator as any).clipboard &&
-      typeof (navigator as any).clipboard.writeText === "function"
-    ) {
-      await (navigator as any).clipboard.writeText(finalUrl);
-      toast({
-        title: `${label} copied`,
-        description: `${label} copied to your clipboard.`,
-      });
-    } else {
-      toast({
-        title: "Unable to share automatically",
-        description: "Copy the link from your browser address bar to share.",
-        variant: "destructive",
-      });
-    }
+    const payload: ShareCardPayload = {
+      url: finalUrl,
+      title,
+      text,
+      contextLabel: label,
+      kind: options.kind || inferShareKind(finalUrl),
+      imageUrl: options.imageUrl,
+      sourceName: options.sourceName || "TradeScout",
+    };
+    window.dispatchEvent(new CustomEvent<ShareCardPayload>(SHARE_CARD_EVENT, { detail: payload }));
   } catch {
     toast({
       title: "Unable to share",

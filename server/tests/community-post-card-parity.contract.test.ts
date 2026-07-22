@@ -9,6 +9,7 @@ describe("canonical Community post card parity", () => {
   const feed = read("client/src/pages/community-feed.tsx");
   const card = read("client/src/components/community/CommunityPostCard.tsx");
   const adapter = read("client/src/components/community/communityPostCardAdapter.ts");
+  const avatar = read("client/src/components/ui/avatar.tsx");
 
   it("owns routed feed post presentation through CommunityPostCard", () => {
     expect(feed).toContain(
@@ -27,7 +28,10 @@ describe("canonical Community post card parity", () => {
     expect(feed).toContain("<CommunityComments postId={cardPost.id}");
 
     expect(card).toContain("if (readOnly) return;");
-    expect(card).toContain("disabled={readOnly}");
+    expect(card).toContain("readOnly ? (");
+    expect(card).toContain("View comments");
+    expect(card).toContain("commentsOpen && commentsSlot");
+    expect(card).not.toContain("disabled={readOnly}");
     expect(card).toContain("!readOnly && (");
   });
 
@@ -44,10 +48,14 @@ describe("canonical Community post card parity", () => {
     }
 
     expect(card).toContain("post.imageUrls.slice(0, 8)");
+    expect(card).toContain('"Read more"');
+    expect(card).toContain(".slice(0, 5)");
     expect(card).toContain("onTagSelect(tag.key)");
     expect(card).toContain("Pin post");
     expect(card).toContain("Hide from feed");
     expect(card).toContain("Remove from feed");
+    expect(card).toContain("Report post");
+    expect(card).toContain('contentType="community_post"');
   });
 
   it("normalizes routed response aliases without changing APIs", () => {
@@ -56,5 +64,12 @@ describe("canonical Community post card parity", () => {
     expect(adapter).toContain("numberValue(raw.shareCount, raw.shares)");
     expect(adapter).toContain("raw.saved === true");
     expect(adapter).toContain("raw.liked === true");
+  });
+
+  it("uses each surface's intentional avatar fallback instead of a share-preview image", () => {
+    expect(card).toContain('<TradeScoutLogo size="sm"');
+    expect(avatar).toContain('"/tradescout-social-preview.png"');
+    expect(avatar).toContain("return undefined;");
+    expect(avatar).not.toContain("CANONICAL_DEFAULT_AVATAR_SRC");
   });
 });

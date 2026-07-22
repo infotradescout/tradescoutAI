@@ -92,7 +92,12 @@ import {
   toPublicHandmadeSellerProfile,
 } from "./publicHandmadeProduct";
 import { toPublicContractorRecommendations } from "./publicContractorRecommendations";
-import { sanitizePublicCommunityFeedPost, toPublicCommunityPost } from "./publicCommunityPost";
+import {
+  isUsefulPublicCommunityBrowsePost,
+  isAutomaticCommunityWelcomePost,
+  sanitizePublicCommunityFeedPost,
+  toPublicCommunityPost,
+} from "./publicCommunityPost";
 import {
   getHomeScoutAuthorityUserId,
   HOME_SCOUT_REPORT_DOWNLOAD_MAX_BYTES,
@@ -2328,11 +2333,14 @@ export async function registerRoutes(app: any) {
     return Array.from(merged);
   };
 
-  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-social-preview.png?v=12";
+  // Missing profile photos stay missing so avatar components can render the
+  // compact TradeScout mark. The social-share preview is not a member photo.
+  const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "";
   const PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS = new Set<string>([
     "/tradescout-logo.png",
     "/tradescout-logo.jpg",
     "/tradescout-brand.png",
+    "/tradescout-social-preview.png",
     "/logo.png",
     "/favicon.ico",
     "/favicon.svg",
@@ -19469,6 +19477,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
         authorId: req.query.authorId as string,
         limit: req.query.limit ? parseInt(req.query.limit as string, 10) : 20,
         offset: req.query.offset ? parseInt(req.query.offset as string, 10) : 0,
+        demoteOnboardingWelcomes: true,
       };
 
       // Attach viewer context for social scopes when authenticated
@@ -19590,16 +19599,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
           post?.content,
           post?.category
         );
-        const roleTagRaw =
-          typeof post?.author?.role === "string"
-            ? String(post.author.role).trim().toLowerCase()
-            : "";
-        const roleTag = roleTagRaw
-          ? roleTagRaw.replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "")
-          : "";
-        const merged = Array.from(
-          new Set([...cleaned, ...derivedFromContent, roleTag].filter(Boolean))
-        )
+        const merged = Array.from(new Set([...cleaned, ...derivedFromContent].filter(Boolean)))
           .filter(Boolean)
           .slice(0, 12);
         const author =
@@ -19612,8 +19612,30 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
                 avatar: normalizeProfileImageUrl(post.author.avatar ?? post.author.profileImageUrl),
               }
             : post?.author;
-        return { ...post, author, tags: merged };
+        const automaticWelcome = isAutomaticCommunityWelcomePost(post);
+        const welcomeName = /^welcome\s+(.+)$/i.exec(String(post?.title || "").trim())?.[1];
+        const welcomeArea =
+          typeof post?.county === "string" && post.county.trim()
+            ? `${post.county.trim().replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}${post?.state ? `, ${post.state}` : ""}`
+            : typeof post?.countyName === "string" && post.countyName.trim()
+              ? `${post.countyName.trim().replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}${post?.stateCode ? `, ${post.stateCode}` : ""}`
+              : null;
+        const normalizedWelcomeContent = automaticWelcome
+          ? `${welcomeName || "A new neighbor"} recently joined${welcomeArea ? ` near ${welcomeArea}` : " TradeScout"}. Say hello and help them get started.`
+          : post?.content;
+
+        return {
+          ...post,
+          content: normalizedWelcomeContent,
+          author,
+          tags: automaticWelcome ? ["new_neighbor"] : merged,
+          ...(automaticWelcome ? { feedKind: "onboarding_welcome" } : {}),
+        };
       });
+
+      if (normalizedScope === "global" || normalizedScope === "all") {
+        posts = posts.filter((post: any) => isUsefulPublicCommunityBrowsePost(post));
+      }
 
       // Attach related, verified, on-platform businesses to posts that mention a
       // supplier/materials need (e.g. natural stone work), scoped to the same
@@ -19641,30 +19663,6 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
       // Public feed payloads never expose moderation notes, moderator identity,
       // or author contact fields, regardless of geographic scope.
       posts = posts.map(sanitizePublicCommunityFeedPost);
-
-      // Phase 1: Fail-safe field stripping for global scope (posts-only)
-      // Strip contact fields, profile shortcuts, action-enabling metadata
-      if (wantsGlobalScope && !isSuperAdminLike) {
-        posts = posts.map((post) => {
-          const { author, ...safePost } = post as any;
-
-          // Strip sensitive author fields, keep only safe display fields
-          const safeAuthor = author
-            ? {
-                id: author.id,
-                firstName: author.firstName,
-                lastName: author.lastName,
-                profileImageUrl: author.profileImageUrl,
-                // Explicitly exclude: email, phone, address, city, state, zipCode, etc.
-              }
-            : null;
-
-          return {
-            ...safePost,
-            author: safeAuthor,
-          };
-        });
-      }
 
       // Phase 2B/2C authority surfaces are guarded by observation mode and explicit toggles.
       // - Phase 2B: render interpretive labels
@@ -19728,13 +19726,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             from community_posts
             where created_at >= ${sevenDaysAgo}
               and county_fips = ${countyFips}
-              and category in ('questions', 'projects')
+              and category in ('request', 'question', 'questions', 'project', 'projects')
           `)) as any)
         : ((await db.execute(sql`
             select count(*)::int as count
             from community_posts
             where created_at >= ${sevenDaysAgo}
-              and category in ('questions', 'projects')
+              and category in ('request', 'question', 'questions', 'project', 'projects')
           `)) as any);
 
       const recommendationsResult = hasCountyScope
@@ -19743,13 +19741,13 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             from community_posts
             where created_at >= ${sevenDaysAgo}
               and county_fips = ${countyFips}
-              and category = 'recommendations'
+              and category in ('recommendation', 'recommendations')
           `)) as any)
         : ((await db.execute(sql`
             select count(*)::int as count
             from community_posts
             where created_at >= ${sevenDaysAgo}
-              and category = 'recommendations'
+              and category in ('recommendation', 'recommendations')
           `)) as any);
 
       const verifiedProsResult = hasCountyScope
@@ -20024,7 +20022,7 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     if (/insulation|spray\s+foam|attic\s+insulation/.test(text)) tags.add("insulation");
     if (/plumb|leak|pipe|drain/.test(text)) tags.add("plumbing");
     if (/electric|breaker|panel|outlet|switch/.test(text)) tags.add("electrical");
-    if (/hvac|furnace|ac|air\s+conditioner|heat\s+pump/.test(text)) tags.add("hvac");
+    if (/hvac|furnace|\bac\b|air\s+conditioner|heat\s+pump/.test(text)) tags.add("hvac");
     if (/concrete|foundation|slab|driveway/.test(text)) tags.add("concrete");
     if (/siding|stucco|fascia/.test(text)) tags.add("siding");
     if (/window|windows|door|doors|garage\s+door/.test(text)) tags.add("windows_doors");
@@ -20058,7 +20056,12 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     if (/event|meetup|meeting|gathering/.test(text)) tags.add("events");
     if (/recommendation|recommendations|who do you recommend|who would you recommend/.test(text))
       tags.add("recommendations");
-    if (/lead|leads|job|jobs|work\b|bid|estimate|quote/.test(text)) tags.add("work");
+    if (
+      /\b(leads?|jobs?|bids?|estimates?|quotes?)\b|looking\s+for\s+work|work\s+(needed|available|wanted)|need\s+[^.!?]{0,48}\s+work/.test(
+        text
+      )
+    )
+      tags.add("work");
     if (/diy|do\s+it\s+yourself|how\s+to\b|tutorial/.test(text)) tags.add("diy");
 
     if (category && typeof category === "string") {
@@ -20074,9 +20077,19 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
     _options?: { createdViaScout?: boolean }
   ): Promise<void> {
     try {
-      const resolvedStateCode = (user.state as string | undefined) || undefined;
+      const resolvedStateCode =
+        ((user as any).stateCode as string | undefined) ||
+        (user.state as string | undefined) ||
+        undefined;
       const resolvedCountyFips = ((user as any).countyFips as string | undefined) || undefined;
-      const countyLabel = ((user as any).county as string | undefined) || undefined;
+      const countyLabel =
+        ((user as any).countyName as string | undefined) ||
+        ((user as any).county as string | undefined) ||
+        undefined;
+
+      // Community activity is county-bound. Do not create orphan announcements
+      // before onboarding has committed a real county context.
+      if (!resolvedStateCode || !/^\d{5}$/.test(resolvedCountyFips || "")) return;
 
       const rolesRaw: string[] =
         Array.isArray((user as any).roles) && (user as any).roles.length
@@ -20085,38 +20098,29 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
             ? [(user as any).role]
             : [];
 
-      const formatRoleLabel = (role: string) =>
-        role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-
-      const rolesLabel = rolesRaw.length ? rolesRaw.map((r) => formatRoleLabel(r)).join(", ") : "";
-
       const firstName = (user.firstName as string | undefined) || "A neighbor";
       const lastName = (user.lastName as string | undefined) || "";
+      const displayName = `${firstName}${lastName ? ` ${lastName[0]}.` : ""}`;
 
       const locationLabel =
         countyLabel && resolvedStateCode
-          ? `${countyLabel} County, ${resolvedStateCode}`
+          ? `${countyLabel.replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}, ${resolvedStateCode}`
           : resolvedStateCode || "your area";
 
       const roleContext = (() => {
-        if (!rolesLabel) return "";
         const lowerRoles = rolesRaw.map((r) => String(r).toLowerCase());
         if (lowerRoles.some((r) => r.includes("contractor") || r.includes("builder"))) {
-          return " They offer local services and project support.";
+          return "They joined to share practical experience and take part in project conversations.";
         }
         if (lowerRoles.some((r) => r.includes("homeowner"))) {
-          return " They are here to connect with trusted local services and neighbors.";
+          return "They joined to exchange recommendations, questions, and useful advice.";
         }
-        return " They are joining to stay connected and contribute locally.";
+        return "They joined to stay informed and contribute to the community.";
       })();
 
       const welcomeTitle = `Welcome ${firstName}`;
-      const welcomeContent =
-        `Say hello to ${firstName}${lastName ? " " + lastName[0] + "." : ""} in ${locationLabel}. ` +
-        `Share helpful tips, local recommendations, or groups worth following.` +
-        roleContext;
-
-      const welcomeTags = deriveCommunityTagsFromContent(welcomeTitle, welcomeContent, "welcome");
+      const welcomeContent = `${displayName} recently joined ${locationLabel}. ${roleContext}`;
+      const welcomeTags = ["new_neighbor"];
 
       await storage.createCommunityPost({
         title: welcomeTitle,

@@ -8,6 +8,7 @@ import {
   Loader2,
   Home,
   MapPin,
+  MessageCircle,
   Search,
   Sparkles,
   Tag,
@@ -23,9 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useScoutLocation } from "./hooks/useScoutLocation";
-import { FirstUseGuidanceCard } from "@/components/guidance/FirstUseGuidanceCard";
-import { SCOUT_GUIDANCE_TEXT } from "@/lib/firstUseGuidance";
-import { resolveScoutFirstUseTaskPrompt } from "@/lib/firstUseTaskPrompts";
+import { buildCommunityPostPath } from "@shared/communityPostShare";
 import {
   useScoutHomeSnapshot,
   type OpportunityMove,
@@ -50,6 +49,19 @@ interface ScoutHomeProps {
   onPromptSelect: (text: string) => void;
   continuationThreads?: Array<ContinuityThread>;
 }
+
+type ScoutCommunityPost = {
+  id: string;
+  title?: string | null;
+  content: string;
+  category?: string | null;
+  createdAt?: string | null;
+  commentCount?: number | null;
+  likeCount?: number | null;
+  author?: {
+    name?: string | null;
+  } | null;
+};
 
 type ContinueItem = {
   id: string;
@@ -155,15 +167,18 @@ type LocalSnapshotAction = {
   label: string;
   detail: string;
   prompt: string;
+  route?: string;
   icon: LucideIcon;
 };
 
 type LocalCommandSnapshot = {
   openRequestCount: number;
+  conversationCount: number;
   latestRequestTitle: string;
   homeRecordCount: number;
   homeReminderCount: number;
   recentActivityCount: number;
+  communityPostCount: number;
   localSignalCount: number;
   nextActions: LocalSnapshotAction[];
 };
@@ -299,6 +314,23 @@ async function fetchHomeRecordsForScout(): Promise<ScoutHomeRecordSummary[]> {
   return [];
 }
 
+async function fetchCommunityPostsForScout(args: {
+  countyFips?: string | null;
+  stateCode?: string | null;
+}): Promise<ScoutCommunityPost[]> {
+  if (!args.countyFips) return [];
+  const params = new URLSearchParams({ scope: "county", limit: "4", offset: "0" });
+  params.set("countyFips", args.countyFips);
+  if (args.stateCode) params.set("stateCode", args.stateCode);
+
+  const res = await fetch(`/api/community/posts?${params.toString()}`, {
+    credentials: "include",
+  });
+  if (!res.ok) return [];
+  const json = await res.json();
+  return Array.isArray(json) ? (json as ScoutCommunityPost[]) : [];
+}
+
 const CLOSED_DIRECT_CONNECT_STATES = new Set([
   "archived",
   "cancelled",
@@ -328,12 +360,16 @@ function buildLocalCommandSnapshot({
   homeRecords,
   recentActivity,
   localSignalCount,
+  communityPostCount,
+  continuationCount,
   hasRealContinuation,
 }: {
   directConnectRequests: ScoutLocalWorkRequest[];
   homeRecords: ScoutHomeRecordSummary[];
   recentActivity: RecentActivity[];
   localSignalCount: number;
+  communityPostCount: number;
+  continuationCount: number;
   hasRealContinuation: boolean;
 }): LocalCommandSnapshot {
   const openRequests = directConnectRequests.filter(isOpenDirectConnectRequest);
@@ -347,6 +383,7 @@ function buildLocalCommandSnapshot({
       label: "Review open request",
       detail: latestRequestTitle,
       prompt: "Show my open Direct Connect requests and the next safe step.",
+      route: "/direct-connect",
       icon: Hammer,
     });
   }
@@ -357,6 +394,7 @@ function buildLocalCommandSnapshot({
       label: "Review HomeID context",
       detail: `${formatCount(homeRecords.length)} saved home${homeRecords.length === 1 ? "" : "s"}`,
       prompt: "Review my HomeID reminders and home context.",
+      route: "/homes",
       icon: Home,
     });
   } else {
@@ -365,6 +403,7 @@ function buildLocalCommandSnapshot({
       label: "Add a HomeID when useful",
       detail: "Optional context for future requests",
       prompt: "Show me how HomeID can help after I start a request.",
+      route: "/homes",
       icon: Home,
     });
   }
@@ -373,7 +412,7 @@ function buildLocalCommandSnapshot({
     nextActions.push({
       id: "continue-activity",
       label: "Continue recent activity",
-      detail: `${formatCount(recentActivity.length)} recent item${recentActivity.length === 1 ? "" : "s"}`,
+      detail: `${formatCount(recentActivity.length + continuationCount)} recent item${recentActivity.length + continuationCount === 1 ? "" : "s"}`,
       prompt: "Continue my recent local activity and show what needs attention.",
       icon: Calendar,
     });
@@ -389,10 +428,12 @@ function buildLocalCommandSnapshot({
 
   return {
     openRequestCount: openRequests.length,
+    conversationCount: continuationCount,
     latestRequestTitle,
     homeRecordCount: homeRecords.length,
     homeReminderCount,
-    recentActivityCount: recentActivity.length,
+    recentActivityCount: recentActivity.length + continuationCount,
+    communityPostCount,
     localSignalCount,
     nextActions: nextActions.slice(0, 4),
   };
@@ -501,134 +542,10 @@ function ScoutHero({ locationLabel }: { locationLabel?: string }) {
         {locationLabel || t("scout.setLocation")}
         <ChevronDown className="h-4 w-4" />
       </button>
-      <p className="mt-2 max-w-[460px] text-sm leading-relaxed text-[var(--text-secondary)]">
-        Search, compare, or keep local work moving. You review before anything is shared.
+      <p className="mt-2 max-w-[620px] text-sm leading-relaxed text-[var(--text-secondary)]">
+        Plan the job, understand codes and permits, price the work, compare options, and keep the
+        project moving. You review every next step.
       </p>
-    </section>
-  );
-}
-
-const SCOUT_START_ACTIONS: Array<{
-  label: string;
-  detail: string;
-  prompt: string;
-  icon: LucideIcon;
-}> = [
-  {
-    label: "Find local help",
-    detail: "People and businesses near you",
-    prompt: "Find trusted local help for a project or problem near me.",
-    icon: Users2,
-  },
-  {
-    label: "Check a price",
-    detail: "Quotes, costs, and local ranges",
-    prompt: "Help me check whether a quote or local price is fair.",
-    icon: Tag,
-  },
-  {
-    label: "Start a request",
-    detail: "Prepare it before anyone is contacted",
-    prompt:
-      "Help me prepare a Direct Connect request. Keep it in review until I choose to share it.",
-    icon: Hammer,
-  },
-  {
-    label: "See nearby activity",
-    detail: "Useful updates from your area",
-    prompt: "Show me useful local activity and updates near me.",
-    icon: MapPin,
-  },
-];
-
-function ScoutStartCard({
-  contextualPrompt,
-  onPromptSelect,
-}: {
-  contextualPrompt: ReturnType<typeof resolveScoutFirstUseTaskPrompt>;
-  onPromptSelect: (prompt: string) => void;
-}) {
-  const hasContextualNextStep = contextualPrompt.ctaLabel !== "Pick a start";
-
-  const openContextualNextStep = () => {
-    if (contextualPrompt.ctaLabel === "Review HomeID") {
-      onPromptSelect("Review my HomeID updates and what to check next.");
-      return;
-    }
-    onPromptSelect("Review my saved context and show what I should continue.");
-  };
-
-  return (
-    <section className="px-4 pt-3">
-      <div className="overflow-hidden rounded-2xl border border-[var(--theme-accent-primary)]/25 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--theme-accent-primary)_16%,transparent),color-mix(in_oklab,var(--surface-card)_98%,black)_45%)] shadow-[var(--surface-card-shadow)]">
-        <div className="p-4 sm:p-5">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">Start here</p>
-          <h2 className="mt-1 text-2xl font-black leading-tight text-[var(--text-primary)]">
-            What should we solve?
-          </h2>
-          <p className="mt-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-            Describe it below, or choose a common starting point.
-          </p>
-
-          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {SCOUT_START_ACTIONS.map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.label}
-                  type="button"
-                  onClick={() => onPromptSelect(action.prompt)}
-                  className="group flex min-h-[70px] items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)]/85 p-3 text-left transition-colors hover:border-ts-orange/40 hover:bg-[var(--surface-intermediate)]"
-                >
-                  <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ts-orange/12 text-ts-orange">
-                    <Icon className="h-4.5 w-4.5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-bold text-[var(--text-primary)]">
-                      {action.label}
-                    </span>
-                    <span className="mt-0.5 block text-xs leading-snug text-[var(--text-muted)]">
-                      {action.detail}
-                    </span>
-                  </span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5" />
-                </button>
-              );
-            })}
-          </div>
-
-          {hasContextualNextStep ? (
-            <button
-              type="button"
-              className="mt-3 flex w-full items-center justify-between rounded-xl border border-ts-orange/25 bg-ts-orange/10 px-3 py-3 text-left"
-              onClick={openContextualNextStep}
-            >
-              <span>
-                <span className="block text-xs font-bold uppercase tracking-[0.12em] text-ts-orange">
-                  Continue where you left off
-                </span>
-                <span className="mt-1 block text-sm text-[var(--text-secondary)]">
-                  {contextualPrompt.message}
-                </span>
-              </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-ts-orange" />
-            </button>
-          ) : null}
-
-          <details className="group mt-3 border-t border-[var(--border-primary)]/80 pt-3">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-[var(--text-secondary)] [&::-webkit-details-marker]:hidden">
-              How Scout works
-              <ChevronDown className="h-4 w-4 text-[var(--text-muted)] transition-transform group-open:rotate-180" />
-            </summary>
-            <div className="mt-3">
-              <FirstUseGuidanceCard
-                title="Scout is your discovery page."
-                description={SCOUT_GUIDANCE_TEXT}
-              />
-            </div>
-          </details>
-        </div>
-      </div>
     </section>
   );
 }
@@ -734,47 +651,47 @@ const SCOUT_CAPABILITY_COPY: Array<{
   title: string;
   detail: string;
   icon: LucideIcon;
-  prompt: string;
+  route: string;
 }> = [
   {
     title: "Homes",
     detail: "Repairs, records, inspections",
     icon: Home,
-    prompt: "Search homes, repairs, records, inspections, or projects near me.",
+    route: "/homes",
   },
   {
     title: "Vehicles",
     detail: "Service, repairs, selling",
     icon: Car,
-    prompt: "Search vehicle service, repairs, records, or listings near me.",
+    route: "/vehicles",
   },
   {
     title: "Projects",
     detail: "Quotes, requests, updates",
     icon: Hammer,
-    prompt: "Search projects, quotes, jobs, and updates.",
+    route: "/direct-connect",
   },
   {
     title: "Listings",
     detail: "Tools, materials, vehicles",
     icon: Tag,
-    prompt: "Search local listings for tools, materials, vehicles, or property.",
+    route: "/exchange",
   },
   {
     title: "People",
     detail: "Local help, saved providers",
     icon: Users2,
-    prompt: "Search local help and saved providers near me.",
+    route: "/find-local-businesses",
   },
   {
     title: "Community",
     detail: "Posts, events, activity • Opportunity Radar • Price signal freshness",
     icon: UsersRound,
-    prompt: "Search local posts, events, and nearby activity.",
+    route: "/community-feed",
   },
 ];
 
-function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => void }) {
+function ExploreGrid({ onNavigate }: { onNavigate: (route: string) => void }) {
   const { t } = useI18n();
   return (
     <section className="px-4 pt-1.5">
@@ -788,7 +705,7 @@ function ExploreGrid({ onPromptSelect }: { onPromptSelect: (prompt: string) => v
             <button
               key={item.title}
               type="button"
-              onClick={() => onPromptSelect(item.prompt)}
+              onClick={() => onNavigate(item.route)}
               className="min-h-[74px] rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)] p-3 text-left"
             >
               <div className="flex items-center gap-2">
@@ -1050,6 +967,96 @@ function NearbyList({
   );
 }
 
+function communityPostLabel(post: ScoutCommunityPost): string {
+  const title = String(post.title || "").trim();
+  if (title) return title;
+  const content = String(post.content || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return content.length > 96 ? `${content.slice(0, 95).trimEnd()}…` : content;
+}
+
+function formatCommunityPostAge(value?: string | null): string {
+  if (!value) return "Recent";
+  const createdAt = new Date(value).getTime();
+  if (!Number.isFinite(createdAt)) return "Recent";
+  const elapsedMinutes = Math.max(1, Math.floor((Date.now() - createdAt) / 60_000));
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `${elapsedHours}h`;
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  return `${elapsedDays}d`;
+}
+
+function CommunitySnapshot({
+  posts,
+  onNavigate,
+}: {
+  posts: ScoutCommunityPost[];
+  onNavigate: (route: string) => void;
+}) {
+  if (posts.length === 0) return null;
+
+  return (
+    <section className="px-4 pt-2">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-ts-orange">Community</p>
+          <h2 className="mt-1 text-2xl font-black leading-tight text-[var(--text-primary)]">
+            Happening around you
+          </h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate("/community-feed")}
+          className="inline-flex items-center gap-1 text-sm font-semibold text-[var(--text-secondary)]"
+        >
+          View all
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--border-primary)] bg-[var(--surface-card)]">
+        {posts.map((post) => {
+          const postPath = buildCommunityPostPath(post.id);
+          const label = communityPostLabel(post);
+          if (!postPath || !label) return null;
+
+          return (
+            <button
+              key={post.id}
+              type="button"
+              onClick={() => onNavigate(postPath)}
+              className="flex w-full items-start gap-3 border-b border-[var(--border-primary)] p-3 text-left last:border-b-0 hover:bg-[var(--surface-intermediate)]"
+            >
+              <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-orange/12 text-ts-orange">
+                <MessageCircle className="h-4 w-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                  <span className="truncate font-semibold text-[var(--text-secondary)]">
+                    {post.author?.name || "Community member"}
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span>{formatCommunityPostAge(post.createdAt)}</span>
+                </span>
+                <span className="mt-1 block line-clamp-2 text-sm font-semibold leading-snug text-[var(--text-primary)]">
+                  {label}
+                </span>
+                <span className="mt-1 flex items-center gap-3 text-xs text-[var(--text-muted)]">
+                  <span>{Number(post.commentCount || 0)} comments</span>
+                  <span>{Number(post.likeCount || 0)} likes</span>
+                </span>
+              </span>
+              <ChevronRight className="mt-3 h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function LocalSnapshot({
   snapshot,
 }: {
@@ -1102,9 +1109,11 @@ function LocalSnapshot({
 function LocalCommandCenter({
   snapshot,
   onPromptSelect,
+  onNavigate,
 }: {
   snapshot: LocalCommandSnapshot;
   onPromptSelect: (prompt: string) => void;
+  onNavigate: (route: string) => void;
 }) {
   const stats = [
     {
@@ -1115,6 +1124,7 @@ function LocalCommandCenter({
           ? snapshot.latestRequestTitle
           : "No open request waiting on you",
       icon: Hammer,
+      route: "/direct-connect",
     },
     {
       label: "HomeID reminders",
@@ -1124,18 +1134,21 @@ function LocalCommandCenter({
           ? `${formatCount(snapshot.homeRecordCount)} saved home${snapshot.homeRecordCount === 1 ? "" : "s"}`
           : "Optional, not required to start",
       icon: Home,
+      route: "/homes",
     },
     {
       label: "Recent activity",
       value: snapshot.recentActivityCount,
       detail: "Searches and local context",
       icon: Calendar,
+      route: null,
     },
     {
-      label: "Local signals",
-      value: snapshot.localSignalCount,
-      detail: "County activity and market context",
-      icon: MapPin,
+      label: "Community posts",
+      value: snapshot.communityPostCount,
+      detail: "Recent posts from your county",
+      icon: MessageCircle,
+      route: "/community-feed",
     },
   ];
 
@@ -1143,14 +1156,12 @@ function LocalCommandCenter({
     <section className="px-4 pt-2">
       <div className="overflow-hidden rounded-2xl border border-[var(--theme-accent-primary)]/20 bg-[radial-gradient(circle_at_top_left,color-mix(in_oklab,var(--theme-accent-primary)_18%,transparent),color-mix(in_oklab,var(--surface-card)_96%,black)_42%)] shadow-[var(--surface-card-shadow-hover)]">
         <div className="border-b border-[var(--border-primary)]/80 p-4">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">
-            Local command center
-          </p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ts-orange">Snapshot</p>
           <h2 className="mt-1 text-2xl font-black leading-tight text-[var(--text-primary)]">
-            Your local snapshot
+            Right now
           </h2>
           <p className="mt-1 text-sm leading-snug text-[var(--text-secondary)]">
-            Open work, home context, recent activity, and suggested next actions in one place.
+            Your requests, saved context, activity, and what people are sharing nearby.
           </p>
           <button
             type="button"
@@ -1171,8 +1182,14 @@ function LocalCommandCenter({
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div
+              <button
                 key={stat.label}
+                type="button"
+                onClick={() =>
+                  stat.route
+                    ? onNavigate(stat.route)
+                    : onPromptSelect("Continue my recent activity and show what needs attention.")
+                }
                 className="rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)]/80 p-3"
               >
                 <div className="flex items-center justify-between gap-2">
@@ -1187,7 +1204,7 @@ function LocalCommandCenter({
                 <p className="mt-1 line-clamp-2 text-xs leading-snug text-[var(--text-muted)]">
                   {stat.detail}
                 </p>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -1203,7 +1220,9 @@ function LocalCommandCenter({
                 <button
                   key={action.id}
                   type="button"
-                  onClick={() => onPromptSelect(action.prompt)}
+                  onClick={() =>
+                    action.route ? onNavigate(action.route) : onPromptSelect(action.prompt)
+                  }
                   className="flex w-full items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--surface-card)]/80 p-3 text-left"
                 >
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ts-orange/15 text-ts-orange">
@@ -1222,6 +1241,108 @@ function LocalCommandCenter({
               );
             })}
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ScoutControlSnapshot({
+  snapshot,
+  onNavigate,
+  onPromptSelect,
+}: {
+  snapshot: LocalCommandSnapshot;
+  onNavigate: (route: string) => void;
+  onPromptSelect: (prompt: string) => void;
+}) {
+  const items = [
+    snapshot.openRequestCount > 0
+      ? {
+          id: "work",
+          label: "Open work",
+          detail: `${snapshot.openRequestCount} active`,
+          icon: Hammer,
+          onClick: () => onNavigate("/direct-connect"),
+        }
+      : null,
+    snapshot.conversationCount > 0
+      ? {
+          id: "conversations",
+          label: "Conversations",
+          detail: `${snapshot.conversationCount} to continue`,
+          icon: MessageCircle,
+          onClick: () => onNavigate("/messages"),
+        }
+      : null,
+    snapshot.homeRecordCount > 0
+      ? {
+          id: "homes",
+          label: "HomeID",
+          detail: `${snapshot.homeRecordCount} saved`,
+          icon: Home,
+          onClick: () => onNavigate("/homes"),
+        }
+      : null,
+    snapshot.recentActivityCount > snapshot.conversationCount
+      ? {
+          id: "activity",
+          label: "Recent activity",
+          detail: `${snapshot.recentActivityCount - snapshot.conversationCount} items`,
+          icon: Calendar,
+          onClick: () =>
+            onPromptSelect("Continue what I was doing and show me what needs attention."),
+        }
+      : null,
+    snapshot.communityPostCount > 0
+      ? {
+          id: "community",
+          label: "Community",
+          detail: `${snapshot.communityPostCount} new`,
+          icon: UsersRound,
+          onClick: () => onNavigate("/community-feed"),
+        }
+      : null,
+  ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  if (items.length === 0) return null;
+
+  return (
+    <section className="px-4 pt-2" data-testid="scout-control-snapshot">
+      <div className="rounded-2xl border border-[var(--border-primary)] bg-[var(--surface-card)] px-3 py-3">
+        <div className="flex items-center justify-between gap-3 px-1">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-ts-orange">
+              Continue
+            </p>
+            <h2 className="mt-0.5 text-sm font-semibold text-[var(--text-primary)]">
+              Pick up where you left off
+            </h2>
+          </div>
+          <span className="text-xs text-[var(--text-muted)]">{items.length}</span>
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={item.onClick}
+                className="flex items-center gap-3 rounded-xl border border-[var(--border-primary)] bg-[var(--surface-intermediate)] px-3 py-2.5 text-left transition hover:border-ts-orange/40"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ts-orange/10 text-ts-orange">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-semibold text-[var(--text-primary)]">
+                    {item.label}
+                  </span>
+                  <span className="block text-xs text-[var(--text-muted)]">{item.detail}</span>
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -1427,6 +1548,16 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
     enabled: isAuthenticated,
     staleTime: 60_000,
   });
+  const { data: communityPosts = [] } = useQuery<ScoutCommunityPost[]>({
+    queryKey: ["/api/community/posts", "scout-snapshot", location.fips || "", location.state || ""],
+    queryFn: () =>
+      fetchCommunityPostsForScout({
+        countyFips: location.fips,
+        stateCode: location.state,
+      }),
+    enabled: location.status === "resolved" && Boolean(location.fips),
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -1510,8 +1641,6 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   const hasPersonalizedScoutContext = hasRealContinuation || hasCategorySelectionOrSearch;
   const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;
   const shouldShowEmptyContext = !hasPersonalizedScoutContext;
-  const shouldShowSnapshot =
-    hasPersonalizedScoutContext && (hasCategorySelectionOrSearch || hasRealContinuation);
   const localCommandSnapshot = useMemo(
     () =>
       buildLocalCommandSnapshot({
@@ -1519,23 +1648,19 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
         homeRecords,
         recentActivity: data?.recentActivity ?? [],
         localSignalCount: nearbyRows.length,
+        communityPostCount: communityPosts.length,
+        continuationCount: continueItems.length,
         hasRealContinuation,
       }),
     [
       data?.recentActivity,
       directConnectRequests,
+      communityPosts.length,
+      continueItems.length,
       hasRealContinuation,
       homeRecords,
       nearbyRows.length,
     ]
-  );
-  const scoutFirstTaskPrompt = useMemo(
-    () =>
-      resolveScoutFirstUseTaskPrompt({
-        hasHomeIdUpdates: nearbyRows.some((row) => row.category === "homes"),
-        hasSavedContext: hasRealContinuation,
-      }),
-    [hasRealContinuation, nearbyRows]
   );
   const shouldShowSetupNudge = useMemo(() => {
     if (!isAuthenticated || !onboardingStatus) return false;
@@ -1560,44 +1685,11 @@ export function ScoutHome({ onPromptSelect, continuationThreads = [] }: ScoutHom
   return (
     <div className="scout-home-surface pb-[calc(var(--scout-search-dock-height)+var(--global-nav-height)+env(safe-area-inset-bottom)+96px)]">
       <ScoutHero locationLabel={location.label} />
-      <ScoutStartCard contextualPrompt={scoutFirstTaskPrompt} onPromptSelect={onPromptSelect} />
-      <OnboardingPlanCard
-        bundle={objectiveBundle}
-        isLoading={objectiveBundlePending}
+      <ScoutControlSnapshot
+        snapshot={localCommandSnapshot}
         onPromptSelect={onPromptSelect}
-        onOpenTarget={(target) => {
-          const nextTarget = String(target || "").trim();
-          if (!nextTarget.startsWith("/")) {
-            onPromptSelect("Help me choose the right next step from my onboarding plan.");
-            return;
-          }
-          navigate(nextTarget);
-        }}
+        onNavigate={navigate}
       />
-      {shouldShowSetupNudge && setupNudge ? (
-        <SetupNudgeCard config={setupNudge} onPromptSelect={onPromptSelect} />
-      ) : null}
-      {hasRealContinuation ? (
-        <ContinueRail items={continueItems} onPromptSelect={onPromptSelect} />
-      ) : null}
-      <ProgressiveSection
-        title="Your activity"
-        description="Requests, HomeID reminders, saved work, and nearby updates."
-        defaultOpen={hasRealContinuation}
-      >
-        <LocalCommandCenter snapshot={localCommandSnapshot} onPromptSelect={onPromptSelect} />
-        {hasPersonalizedFeed ? (
-          <NearbyList rows={nearbyRows} onPromptSelect={onPromptSelect} />
-        ) : null}
-        {shouldShowSnapshot ? <LocalSnapshot snapshot={data?.snapshot} /> : null}
-        {shouldShowEmptyContext ? <EmptyContextHint /> : null}
-      </ProgressiveSection>
-      <ProgressiveSection
-        title="More ways to use Scout"
-        description="Browse homes, vehicles, projects, listings, people, and community."
-      >
-        <ExploreGrid onPromptSelect={onPromptSelect} />
-      </ProgressiveSection>
     </div>
   );
 }

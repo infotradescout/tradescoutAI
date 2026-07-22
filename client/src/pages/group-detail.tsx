@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useParams } from "wouter";
+import { share } from "@/utils/share";
 
 interface GroupPost {
   id: string;
@@ -129,7 +130,18 @@ export default function GroupDetail() {
               Back to Groups
             </Button>
           </Link>
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              void share({
+                path: `/groups/${groupId}`,
+                title: group.name || "TradeScout group",
+                text: group.description || "",
+                contextLabel: "Group link",
+              })
+            }
+          >
             <Share2 className="w-4 h-4 mr-2" />
             Share Group
           </Button>
@@ -309,6 +321,16 @@ export default function GroupDetail() {
                       variant="ghost"
                       size="sm"
                       className="text-white/60 hover:text-green-400"
+                      onClick={() =>
+                        void share({
+                          path: `/groups/${groupId}?post=${encodeURIComponent(post.id)}`,
+                          title: `${group.name || "TradeScout group"} post`,
+                          text: post.content,
+                          contextLabel: "Post link",
+                          kind: "community_post",
+                          imageUrl: post.images?.[0],
+                        })
+                      }
                     >
                       <Share2 className="w-4 h-4 mr-1" />
                       Share
