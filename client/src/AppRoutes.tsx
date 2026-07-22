@@ -277,7 +277,6 @@ const ContractorPromoDetail = React.lazy(() => import("./pages/contractor-promo-
 const AdminShell = React.lazy(() => import("./pages/admin"));
 
 // Marketplace & Social
-const ContractorLeads = React.lazy(() => import("./pages/contractor-leads"));
 const Chat = React.lazy(() => import("./pages/chat"));
 const Messages = React.lazy(() => import("./pages/messages"));
 const SavedAds = React.lazy(() => import("./pages/saved-ads"));
@@ -920,10 +919,10 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={DirectConnectPros} />
               </Route>
 
-              {/* Business/provider project requests. Legacy contractor paths remain compatibility aliases. */}
+              {/* Legacy business request URL. Direct Connect owns the canonical inbox. */}
               <Route path="/business/requests">
                 <ProtectedRoute>
-                  <LazyPage Component={ContractorLeads} />
+                  <RedirectTo to="/direct-connect/inbox" />
                 </ProtectedRoute>
               </Route>
 
@@ -1014,6 +1013,9 @@ export const AppRoutes = memo(function AppRoutes({
                 </ProtectedRoute>
               </Route>
               <Route path="/business-listing">
+                <RedirectTo to="/exchange/sell-business" />
+              </Route>
+              <Route path="/exchange/sell-business">
                 <LazyPage Component={BusinessListing} />
               </Route>
               <Route path="/business-dashboard">

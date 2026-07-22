@@ -8,26 +8,23 @@ const read = (relativePath: string) =>
 describe("booking surface consistency", () => {
   it("describes deposits as an optional business setting instead of paid booking mode", () => {
     const profileEditor = read("client/src/pages/ProfileSiteEditor.tsx");
-    const businessEditor = read("client/src/pages/BusinessProfileEditor.tsx");
     const businessView = read("client/src/pages/BusinessProfileView.tsx");
 
     expect(profileEditor).toContain("Require a booking deposit");
     expect(profileEditor).toContain("Booking requests are free by default.");
     expect(profileEditor).not.toContain("Enable paid bookings");
-    expect(businessEditor).toContain("Require a booking deposit");
-    expect(businessEditor).toContain("Booking requests are free by default.");
     expect(businessView).toContain("Send a booking request through TradeScout.");
     expect(businessView).toContain("deposit after the request is created");
     expect(businessView).not.toContain("Paid booking available");
   });
 
-  it("round-trips the optional deposit setting in the legacy business editor", () => {
-    const editor = read("client/src/pages/BusinessProfileEditor.tsx");
+  it("keeps the legacy business editor URL as a handoff with no second booking state", () => {
+    const redirect = read("client/src/pages/BusinessProfileEditor.tsx");
 
-    expect(editor).toContain("const [paidBookings, setPaidBookings] = useState(false)");
-    expect(editor).toContain("setPaidBookings(data.bookingConfig?.paidBookings === true)");
-    expect(editor).toMatch(/bookingConfig:\s*\{[\s\S]*?paidBookings,[\s\S]*?bookingPriceUsd:/);
-    expect(editor).toContain("checked={paidBookings}");
+    expect(redirect).toContain("Compatibility-only handoff");
+    expect(redirect).toContain("selectCanonicalOwnedProfile");
+    expect(redirect).not.toContain("paidBookings");
+    expect(redirect).not.toContain("bookingPriceUsd");
   });
 
   it("uses the shared request-first flow on the legacy public profile", () => {

@@ -2544,6 +2544,22 @@ export default function ScoutOS() {
   // PHASE 3d-B: Scout Mode State Machine (onboarding -> post_onboarding -> freeform)
   const provisional = (user as any)?.preferences?.provisional;
   const profileDraft: ProfileDraft | undefined = provisional?.profileDraft;
+  const { data: ownedProfiles = [] } = useQuery<
+    Array<{ id: string; slug?: string | null; status?: string | null }>
+  >({
+    queryKey: ["/api/profiles"],
+    enabled: Boolean(isAuthenticated && (user as any)?.id),
+    queryFn: async () => {
+      const profiles = await apiRequest("GET", "/api/profiles");
+      return Array.isArray(profiles) ? profiles : [];
+    },
+    staleTime: 30_000,
+  });
+  const activeProfileId = String((user as any)?.activeProfileId || "").trim();
+  const canonicalOwnedProfile =
+    ownedProfiles.find((profile) => activeProfileId && String(profile.id) === activeProfileId) ||
+    ownedProfiles.find((profile) => profile.status === "published" && profile.slug) ||
+    ownedProfiles.find((profile) => profile.slug);
   const scoutModeHook = useScoutMode({
     userId: (user as any)?.id,
     profileDraftComplete: !!(profileDraft?.countyFips && profileDraft?.presenceType),
@@ -2555,7 +2571,7 @@ export default function ScoutOS() {
     confirmedClaims: Array.isArray((user as any)?.confirmedClaims)
       ? (user as any).confirmedClaims
       : [],
-    publishedProfileSlug: (user as any)?.businessSlug || undefined,
+    publishedProfileSlug: canonicalOwnedProfile?.slug || undefined,
   });
 
   // Local intent handlers — encapsulates the 4 early-return branches in handleSend
@@ -5087,7 +5103,7 @@ export default function ScoutOS() {
                     actions={resolvePostOnboardingActions(
                       scoutModeHook.confirmedClaims as ClaimType[],
                       {
-                        slug: scoutModeHook.publishedProfileSlug || "my-business",
+                        slug: scoutModeHook.publishedProfileSlug,
                         businessName: profileDraft?.businessName,
                       }
                     )}

@@ -119,6 +119,7 @@ describe("sitemap contracts", () => {
   it("selects one newest public linked profile and preserves private-linked business pages", () => {
     const sitemapSource = read("server/routes/profiles.ts");
     const serverIndex = read("server/index.ts");
+    const canonicalRoute = read("server/services/canonicalBusinessProfileRoute.ts");
 
     expect(sitemapSource).toContain("indexPublicLinkedProfilesByBusinessSlug");
     expect(sitemapSource).toContain("!target.isPublic || indexed.has(target.businessSlug)");
@@ -130,11 +131,12 @@ describe("sitemap contracts", () => {
       "return `${args.baseUrl}/business/${encodeURIComponent(args.businessSlug)}`"
     );
 
-    expect(serverIndex).toContain(".innerJoin(users, eq(users.id, profiles.ownerUserId))");
-    expect(serverIndex).toContain("profileVisibility'), 'private') = 'public'");
-    expect(serverIndex).toContain("${profiles.updatedAt} DESC NULLS LAST");
-    expect(serverIndex).toContain("${profiles.createdAt} DESC NULLS LAST");
-    expect(serverIndex).toContain("asc(profiles.slug)");
+    expect(serverIndex).toContain("resolveCanonicalBusinessProfileRoute(slug)");
+    expect(canonicalRoute).toContain(".innerJoin(users, eq(users.id, profiles.ownerUserId))");
+    expect(canonicalRoute).toContain("profileVisibility'), 'private') = 'public'");
+    expect(canonicalRoute).toContain("${profiles.updatedAt} DESC NULLS LAST");
+    expect(canonicalRoute).toContain("${profiles.createdAt} DESC NULLS LAST");
+    expect(canonicalRoute).toContain("asc(profiles.slug)");
   });
 
   it("restores existing Handmade product detail routes to a public-gated XML sitemap", () => {

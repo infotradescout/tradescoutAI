@@ -3,7 +3,7 @@
 Scanned files: **454**
 Root violations (viewport-height + bg-*): **3**
 Files claiming viewport height: **3**
-Files with bg-* classes: **282**
+Files with bg-* classes: **280**
 
 ## Top offenders
 - 🚫 `client/src/pages/ProfileSiteView.tsx` — min-h-viewport (1) @ lines 184 | bg-* (47) @ lines 166,196,196,202,204
@@ -13,7 +13,7 @@ Files with bg-* classes: **282**
 - • `client/src/pages/direct-connect/DirectConnectShell.tsx` — bg-* (152) @ lines 201,786,789,792,794
 - • `client/src/pages/exchange.tsx` — bg-* (139) @ lines 885,886,887,888,889 | gradient (2) @ lines 316,2147
 - • `client/src/pages/settings.tsx` — bg-* (107) @ lines 762,780,784,791,798 | gradient (12) @ lines 762,762,762,906,906
-- • `client/src/pages/profile-sites/WholesalerProfileTheme.tsx` — bg-* (114) @ lines 776,808,811,830,838 | gradient (3) @ lines 1888,1888,1888
+- • `client/src/pages/profile-sites/WholesalerProfileTheme.tsx` — bg-* (114) @ lines 778,815,818,837,845 | gradient (3) @ lines 1909,1909,1909
 - • `client/src/pages/marketplace.tsx` — bg-* (73) @ lines 427,436,443,450,457 | gradient (27) @ lines 427,427,427,427,532
 - • `client/src/pages/profile-sites/LocalServiceProfileTheme.tsx` — bg-* (76) @ lines 203,206,211,236,247 | gradient (18) @ lines 262,262,504,504,504
 - • `client/src/pages/admin-users.tsx` — bg-* (80) @ lines 102,108,114,120,126

@@ -123,7 +123,7 @@ const MyTradeScoutPage = memo(function MyTradeScoutPage() {
         reason: "You are set up as a business provider but have no active projects here yet.",
         action: {
           label: "Browse local requests",
-          path: "/business/requests",
+          path: "/direct-connect/inbox",
         },
       });
     }

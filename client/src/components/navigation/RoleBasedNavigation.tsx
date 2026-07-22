@@ -75,7 +75,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
       { label: "Browse Exchange", href: "/exchange", icon: Briefcase },
       { label: "Rental Property", href: "/exchange/rental-property", icon: Building },
       { label: "Rental Equipment", href: "/exchange/rental-equipment", icon: Briefcase },
-      { label: "Business Listing", href: "/business-listing", icon: Building },
+      { label: "Sell a Business", href: "/exchange/sell-business", icon: Building },
     ],
   },
 
@@ -95,6 +95,7 @@ const NAVIGATION_ITEMS: NavigationItem[] = [
     requiresBusinessProvider: true,
     children: [
       { label: "Dashboard", href: "/business-dashboard", icon: Home },
+      { label: "Public Profile", href: "/profile", icon: Building },
       // Accelerator entry removed
       { label: "Promotions", href: "/promotions", icon: Star },
       // Growth Pack entry removed

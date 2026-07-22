@@ -3,7 +3,7 @@
     "scannedFiles": 454,
     "rootViolations": 3,
     "filesWithViewportHeight": 3,
-    "filesWithBg": 282
+    "filesWithBg": 280
   },
   "results": [
     {
@@ -187,20 +187,20 @@
           "pattern": "bg-*",
           "count": 114,
           "lines": [
-            776,
-            808,
-            811,
-            830,
-            838
+            778,
+            815,
+            818,
+            837,
+            845
           ]
         },
         {
           "pattern": "gradient",
           "count": 3,
           "lines": [
-            1888,
-            1888,
-            1888
+            1909,
+            1909,
+            1909
           ]
         }
       ]
@@ -1753,11 +1753,11 @@
           "pattern": "bg-*",
           "count": 23,
           "lines": [
-            332,
-            334,
-            337,
             339,
-            340
+            341,
+            344,
+            346,
+            347
           ]
         }
       ]
@@ -2520,23 +2520,6 @@
       ]
     },
     {
-      "file": "client/src/pages/contractor-leads.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 18,
-          "lines": [
-            50,
-            54,
-            56,
-            58,
-            98
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/direct-connect-info.tsx",
       "isRootViolation": false,
       "hits": [
@@ -3071,11 +3054,11 @@
           "pattern": "bg-*",
           "count": 10,
           "lines": [
-            5048,
-            5062,
-            5076,
-            5161,
-            5254
+            5064,
+            5078,
+            5092,
+            5177,
+            5270
           ]
         },
         {
@@ -3083,9 +3066,9 @@
           "count": 4,
           "lines": [
             1898,
-            2623,
-            4514,
-            4585
+            2639,
+            4530,
+            4601
           ]
         }
       ]
@@ -5169,19 +5152,6 @@
       ]
     },
     {
-      "file": "client/src/pages/BusinessProfileEditor.tsx",
-      "isRootViolation": false,
-      "hits": [
-        {
-          "pattern": "bg-*",
-          "count": 1,
-          "lines": [
-            674
-          ]
-        }
-      ]
-    },
-    {
       "file": "client/src/pages/CrmDashboard.tsx",
       "isRootViolation": false,
       "hits": [
@@ -5453,6 +5423,11 @@
           ]
         }
       ]
+    },
+    {
+      "file": "client/src/pages/BusinessProfileEditor.tsx",
+      "isRootViolation": false,
+      "hits": []
     },
     {
       "file": "client/src/pages/CommunityModerationDemo.tsx",
@@ -5996,6 +5971,11 @@
     },
     {
       "file": "client/src/scout/api.ts",
+      "isRootViolation": false,
+      "hits": []
+    },
+    {
+      "file": "client/src/scout/canonicalOwnerProfileRouting.test.ts",
       "isRootViolation": false,
       "hits": []
     },

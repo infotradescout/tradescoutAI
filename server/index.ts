@@ -83,8 +83,8 @@ import { buildPublicHomeScoutListingHtml } from "./publicHomeScoutListingHtml";
 import { buildPublicContractorPromoHtml } from "./publicContractorPromoHtml";
 import { buildWorkRequestShareHtml } from "./workRequestShareHtml";
 import { registerUploadsFallback } from "./uploadsFallback";
-import { affiliateAccounts, businesses, profiles, users } from "@shared/schema";
-import { and, asc, eq, sql } from "drizzle-orm";
+import { affiliateAccounts, profiles, users } from "@shared/schema";
+import { and, eq, sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { closeRedisClient } from "./utils/redisClient";
 import { provisionJrsAutoGlassProfile } from "./services/jrsAutoGlassProfileProvisioning";
@@ -99,6 +99,7 @@ import { CANONICAL_WEB_HOST, resolvePublicOrigin } from "./utils/publicOrigin";
 import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/publicPageResponse";
 import { resolveCurrentEntryStylesheet } from "./staticAssetRecovery";
 import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
+import { resolveCanonicalBusinessProfileRoute } from "./services/canonicalBusinessProfileRoute";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -1590,32 +1591,12 @@ app.use(landingContractHeaders);
                   // (/u/:slug), consolidate authority there instead of serving a
                   // competing, self-canonicalized duplicate at /business/:slug.
                   try {
-                    const [linkedProfile] = await db
-                      .select({ slug: profiles.slug })
-                      .from(profiles)
-                      .innerJoin(businesses, eq(businesses.id, profiles.businessId))
-                      .innerJoin(users, eq(users.id, profiles.ownerUserId))
-                      .where(
-                        and(
-                          eq(businesses.slug, slug),
-                          eq(profiles.status, "published" as any),
-                          sql`COALESCE((${users.preferences} ->> 'profileVisibility'), 'private') = 'public'`
-                        )
-                      )
-                      .orderBy(
-                        sql`${profiles.updatedAt} DESC NULLS LAST`,
-                        sql`${profiles.createdAt} DESC NULLS LAST`,
-                        asc(profiles.slug)
-                      )
-                      .limit(1);
-                    if (linkedProfile?.slug) {
+                    const canonicalProfile = await resolveCanonicalBusinessProfileRoute(slug);
+                    if (canonicalProfile) {
                       const gallerySearch = gallerySlug
                         ? `?gallery=${encodeURIComponent(gallerySlug)}`
                         : "";
-                      return res.redirect(
-                        301,
-                        `${origin}/u/${encodeURIComponent(linkedProfile.slug)}${gallerySearch}`
-                      );
+                      return res.redirect(301, `${origin}${canonicalProfile.path}${gallerySearch}`);
                     }
                   } catch (redirectCheckErr) {
                     console.error(
