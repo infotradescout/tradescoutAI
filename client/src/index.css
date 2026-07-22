@@ -4815,3 +4815,132 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   color: var(--ts-accent, #f97316);
   flex-shrink: 0;
 }
+
+/* Dark workshop: AppShell owns this scope; standalone public profiles bypass it. */
+body.ts-app-workshop {
+  --ts-bg: #101112;
+  --ts-surface: #191b1d;
+  --ts-surface-strong: #0b0c0d;
+  --ts-surface-hover: #232629;
+  --ts-input-bg: #141617;
+  --ts-text: #fbf8f3;
+  --ts-text-muted: rgba(251, 248, 243, 0.66);
+  --ts-border-subtle: rgba(255, 255, 255, 0.075);
+  --ts-border-strong: rgba(255, 255, 255, 0.15);
+  --ts-shadow-soft: 0 22px 60px rgba(0, 0, 0, 0.34);
+  background-color: var(--ts-bg);
+  color: var(--ts-text);
+}
+
+body.ts-app-workshop .ts-shell-header,
+body.ts-app-workshop .ts-shell-header-mobile,
+body.ts-app-workshop .ts-bottom-nav-inner {
+  background: color-mix(in oklab, var(--ts-surface-strong) 88%, transparent) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+body.ts-app-workshop .app-page { background: transparent; }
+
+/* Community is the reference surface for the shared app language. */
+.ts-community-workshop {
+  position: relative;
+  min-height: calc(100vh - var(--top-nav-h));
+  isolation: isolate;
+  background:
+    radial-gradient(900px 440px at 12% -8%, rgba(255, 106, 0, 0.11), transparent 64%),
+    radial-gradient(720px 420px at 92% 18%, rgba(255, 255, 255, 0.045), transparent 66%),
+    linear-gradient(180deg, #111314, #0c0d0e);
+}
+
+.ts-community-workshop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.22;
+  background-image: linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 100% 72px;
+  mask-image: linear-gradient(to bottom, black, transparent 72%);
+}
+
+.ts-community-stage {
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 24px;
+  background:
+    radial-gradient(520px 260px at 94% 8%, rgba(255, 106, 0, 0.2), transparent 68%),
+    linear-gradient(125deg, rgba(255, 255, 255, 0.072), rgba(255, 255, 255, 0.018) 62%);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.055), 0 26px 70px rgba(0, 0, 0, 0.2);
+}
+
+.ts-community-stage::after {
+  content: "";
+  position: absolute;
+  top: -96px;
+  right: -42px;
+  width: 290px;
+  height: 290px;
+  border: 1px solid rgba(255, 106, 0, 0.13);
+  border-radius: 50%;
+  box-shadow: 0 0 0 42px rgba(255, 106, 0, 0.025), 0 0 0 94px rgba(255, 106, 0, 0.018);
+  pointer-events: none;
+}
+
+body.ts-app-workshop .app-page .ts-community-primary-action,
+body.ts-app-workshop .app-page .ts-community-submit-action {
+  background: var(--theme-accent-primary) !important;
+  color: var(--ts-text-on-accent, #101112) !important;
+}
+
+body.ts-app-workshop .app-page .ts-community-primary-action {
+  border: 1px solid rgba(255, 154, 82, 0.42) !important;
+  box-shadow: 0 14px 34px rgba(255, 106, 0, 0.2), inset 0 1px rgba(255, 255, 255, 0.22) !important;
+}
+
+body.ts-app-workshop .app-page button.ts-community-submit-action:disabled,
+body.ts-app-workshop.ts-mobile-simplified .app-page button.ts-community-submit-action:disabled {
+  background: rgba(255, 106, 0, 0.13) !important;
+  color: rgba(255, 185, 135, 0.54) !important;
+  box-shadow: none !important;
+}
+
+.ts-community-toolbar [role="tablist"] {
+  border: 0 !important;
+  background: rgba(0, 0, 0, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.045);
+}
+
+.ts-community-toolbar [aria-pressed="true"],
+.ts-community-toolbar [data-state="active"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+.ts-community-composer {
+  border-radius: 18px !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022)) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035) !important;
+}
+
+.ts-community-composer__input { background: rgba(0, 0, 0, 0.24) !important; }
+.ts-community-stream { border-top: 1px solid rgba(255, 255, 255, 0.065); }
+
+body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
+  margin: 0 !important;
+  border-width: 0 0 1px !important;
+  border-color: rgba(255, 255, 255, 0.065) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  .ts-community-stage { border-radius: 20px; }
+  .ts-community-stage::after { top: -132px; right: -124px; }
+  .ts-community-composer .w-10.h-10 { display: none; }
+}

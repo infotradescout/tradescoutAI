@@ -467,7 +467,7 @@ export function CommunityPostCard({
       <Card
         data-testid={`card-post-${post.id}`}
         data-post-id={post.id}
-        className={`bg-tsCard border border-white/10 shadow-sm rounded-xl hover:border-ts-orange/30 transition-all ${isAdminNotice ? "ring-1 ring-ts-orange/70 bg-tsCard/95" : ""}`}
+        className={`ts-community-post border border-white/[0.075] bg-transparent shadow-none transition-colors hover:border-white/15 ${isAdminNotice ? "ring-1 ring-ts-orange/60 bg-tsCard/95" : ""}`}
       >
         <CardContent data-testid="community-post-card" className="p-4 sm:p-5 space-y-3">
           {(isPinned || isTrending || isAdminNotice) && (
