@@ -131,20 +131,9 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
     .first()
     .isVisible();
   if (!needsCounty) {
-    const firstPostCard = page.locator('[data-testid^="card-post-"]').first();
-    if (await firstPostCard.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await expect(
-        firstPostCard
-          .getByRole("button", {
-            name: /Ask about this|Find help for this|Tell us what you need|Message/i,
-          })
-          .first()
-      ).toBeVisible();
-    } else {
-      await expect(
-        page.getByText(/You're here early|That didn't load|No posts yet for this view/i).first()
-      ).toBeVisible();
-    }
+    await expect(page.getByTestId("community-action-panel")).toBeVisible();
+    await expect(page.getByTestId("community-route-request")).toBeVisible();
+    await expect(page.getByTestId("community-route-question")).toBeVisible();
   }
 
   const countyFips = await prepareDirectConnectEntry(page);
