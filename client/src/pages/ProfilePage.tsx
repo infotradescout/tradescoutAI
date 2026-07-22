@@ -88,6 +88,7 @@ export default function ProfilePage() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
+  const [profileStatus, setProfileStatus] = useState<OwnedProfile["status"]>(undefined);
   const [businessSlug, setBusinessSlug] = useState<string | null>(null);
   const [activatingPublic, setActivatingPublic] = useState(false);
 
@@ -133,6 +134,7 @@ export default function ProfilePage() {
 
         if (!cancelled) {
           setProfileSlug(active.slug);
+          setProfileStatus(active.status);
         }
       } catch (error) {
         console.error("Error loading profile site slug for share URL:", error);
@@ -223,11 +225,12 @@ export default function ProfilePage() {
     ["--user-border" as any]: "var(--border-primary)",
   } as React.CSSProperties;
 
-  const profileUrl = businessSlug
-    ? `${getCanonicalAppOrigin()}/business/${businessSlug}`
-    : profileSlug
-      ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
-      : `${getCanonicalAppOrigin()}/profile/${user.id}`;
+  const profileUrl =
+    profileSlug && profileStatus === "published"
+      ? `${getCanonicalAppOrigin()}/u/${encodeURIComponent(profileSlug)}`
+      : businessSlug
+        ? `${getCanonicalAppOrigin()}/business/${encodeURIComponent(businessSlug)}`
+        : `${getCanonicalAppOrigin()}/profile/${user.id}`;
   const isPublic = user.preferences?.profileVisibility === "public";
 
   const copyProfileUrl = async () => {

@@ -25,6 +25,7 @@ import { Link } from "wouter";
 import { useLocationContext } from "@/hooks/useLocationContext";
 import { GroupsShell } from "@/shells/GroupsShell";
 import { SEOHelmet, createBreadcrumbStructuredData } from "@/components/SEOHelmet";
+import { buildCommunityGroupPath } from "@/components/community/communityRouting";
 
 interface Group {
   id: string;
@@ -442,7 +443,7 @@ export default function Groups() {
                             {group.memberCount} members
                           </span>
                         </div>
-                        <Link href={`/groups/${group.id}`}>
+                        <Link href={buildCommunityGroupPath(group.id)}>
                           <Button
                             variant="outline"
                             className="w-full"
@@ -512,7 +513,7 @@ export default function Groups() {
                       </div>
 
                       {isUserMember(group) ? (
-                        <Link href={`/groups/${group.id}`}>
+                        <Link href={buildCommunityGroupPath(group.id)}>
                           <Button
                             variant="outline"
                             className="w-full"

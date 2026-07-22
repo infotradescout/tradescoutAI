@@ -149,11 +149,14 @@ const computeBadgesForUser = (user: any): string[] => {
   return Array.from(merged);
 };
 
-const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-social-preview.png?v=12";
+// Missing profile photos stay missing so avatar components can render the
+// compact TradeScout mark. The social-share preview is not a member photo.
+const CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "";
 const PLATFORM_DEFAULT_PROFILE_IMAGE_PATHS = new Set<string>([
   "/tradescout-logo.png",
   "/tradescout-logo.jpg",
   "/tradescout-brand.png",
+  "/tradescout-social-preview.png",
   "/logo.png",
   "/favicon.ico",
   "/favicon.svg",

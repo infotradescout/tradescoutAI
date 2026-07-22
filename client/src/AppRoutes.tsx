@@ -452,7 +452,6 @@ const Unauthorized = React.lazy(() => import("./pages/Unauthorized"));
 // Marketing & Promotions
 const Promotions = React.lazy(() => import("./pages/promotions"));
 const AdCreator = React.lazy(() => import("./pages/ad-creator"));
-const Analytics = React.lazy(() => import("./pages/analytics"));
 const ProjectTracker = React.lazy(() => import("./pages/lead-management"));
 
 // Additional Missing Pages
@@ -484,7 +483,6 @@ const Compliance = React.lazy(() => import("./pages/compliance"));
 const Documentation = React.lazy(() => import("./pages/documentation"));
 
 // New Complete Pages
-const CRM = React.lazy(() => import("./pages/crm"));
 const VehicleMarketplace = React.lazy(() => import("./pages/vehicle-marketplace"));
 const HOADashboard = React.lazy(() => import("./pages/hoa-dashboard"));
 const RealEstateMarketplace = React.lazy(() => import("./pages/real-estate-marketplace"));
@@ -1019,7 +1017,9 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={BusinessListing} />
               </Route>
               <Route path="/business-dashboard">
-                <LazyPage Component={BusinessOwnerDashboard} />
+                <ProtectedRoute>
+                  <LazyPage Component={BusinessOwnerDashboard} />
+                </ProtectedRoute>
               </Route>
               <Route path="/contractor-promos">
                 <LazyPage Component={ContractorPromos} />
@@ -1392,6 +1392,11 @@ export const AppRoutes = memo(function AppRoutes({
                   <LazyPage Component={Checkout} />
                 </ProtectedRoute>
               </Route>
+              <Route path="/checkout/:type/:id">
+                <ProtectedRoute>
+                  <LazyPage Component={Checkout} />
+                </ProtectedRoute>
+              </Route>
               <Route path="/payment-success">
                 <ProtectedRoute>
                   <LazyPage Component={PaymentSuccess} />
@@ -1413,10 +1418,10 @@ export const AppRoutes = memo(function AppRoutes({
                 <LazyPage Component={Boosts} />
               </Route>
               <Route path="/analytics">
-                <LazyPage Component={Analytics} />
+                <RedirectTo to="/business-dashboard" />
               </Route>
               <Route path="/crm">
-                <LazyPage Component={CRM} />
+                <RedirectTo to="/finances/clients" />
               </Route>
               <Route path="/marketing/scoutfitters">
                 <ProtectedRoute>

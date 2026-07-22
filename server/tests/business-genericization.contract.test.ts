@@ -22,13 +22,21 @@ describe("generic business profile and tool contracts", () => {
   it("turns the business owner dashboard into a generic business operations hub", () => {
     const source = read("client/src/pages/business-owner-dashboard.tsx");
 
-    expect(source).toContain("Business demand surfaces");
-    expect(source).toContain("Browse Businesses");
-    expect(source).toContain("Direct Connect");
-    expect(source).toContain("Services & Items");
-    expect(source).toContain("Books & Records");
-    expect(source).toContain("Estimates & Materials");
-    expect(source).toContain("Create Business Profile");
+    expect(source).toContain("Run the work behind your profile");
+    expect(source).toContain("Direct Connect inbox");
+    expect(source).toContain("Services & items");
+    expect(source).toContain("Books & records");
+    expect(source).toContain("Estimates");
+    expect(source).toContain("Create public profile");
+    expect(source).toContain('queryKey: ["/api/accounting/job-flows"]');
+    expect(source).toContain('queryKey: ["/api/accounting/reports/summary"]');
+    expect(source).toContain('queryKey: ["/api/profile-booking/requests/incoming"]');
+    expect(source).toContain('queryKey: ["/api/direct-connect/inbox", "business-dashboard"]');
+    expect(source).toContain("`/api/u/${encodeURIComponent(primaryProfile!.slug!)}/views`");
+    expect(source).not.toContain("$45,250");
+    expect(source).not.toContain("+15.3%");
+    expect(source).not.toContain('href="/business-listing"');
+    expect(source).not.toContain('href="/utilities/supply-run"');
     expect(source).not.toContain("Find Contractors");
   });
 

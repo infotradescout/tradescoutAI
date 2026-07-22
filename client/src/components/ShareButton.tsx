@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { normalizeAffiliateShareDestination } from "@/lib/publicProfileItemDestination";
+import { inferShareKind, share, type ShareContextKind } from "@/utils/share";
 
 // A short, deterministic, non-cryptographic hash (cyrb53) so repeat shares of
 // the same content by the same user reuse one link instead of minting a new
@@ -33,6 +33,8 @@ type ShareButtonProps = {
   variant?: "default" | "outline" | "ghost" | "secondary";
   size?: "default" | "sm" | "lg" | "icon";
   label?: string;
+  kind?: ShareContextKind;
+  imageUrl?: string;
 };
 
 /**
@@ -50,9 +52,10 @@ export function ShareButton({
   variant = "outline",
   size = "sm",
   label = "Share",
+  kind,
+  imageUrl,
 }: ShareButtonProps) {
   const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
   const [isSharing, setIsSharing] = useState(false);
   const accessibleLabel = label?.trim() || `Share ${title?.trim() || "link"}`;
 
@@ -87,30 +90,14 @@ export function ShareButton({
         }
       }
 
-      if (typeof navigator.share === "function") {
-        try {
-          await navigator.share({ title, text, url: shareUrl });
-          return;
-        } catch (err: any) {
-          // Closing the native share sheet is an intentional user action. Other
-          // failures should still leave the visitor with a usable share link.
-          if (err?.name === "AbortError") return;
-        }
-      }
-
-      try {
-        if (!navigator.clipboard?.writeText) {
-          throw new Error("Clipboard API unavailable");
-        }
-        await navigator.clipboard.writeText(shareUrl);
-        toast({ title: "Link copied", description: shareUrl });
-      } catch {
-        toast({
-          title: "Unable to share automatically",
-          description: "Copy the link from your browser address bar to share.",
-          variant: "destructive",
-        });
-      }
+      await share({
+        url: shareUrl,
+        title,
+        text,
+        contextLabel: label?.trim() ? `${label.trim()} link` : "Link",
+        kind: kind || inferShareKind(destination),
+        imageUrl,
+      });
     } finally {
       setIsSharing(false);
     }

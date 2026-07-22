@@ -18,7 +18,6 @@ import {
   Calendar,
   Clock3,
   Compass,
-  DollarSign,
   Flag,
   RefreshCw,
   Sparkles,
@@ -42,6 +41,7 @@ import {
   type CanonicalProfileItems,
 } from "@/components/profile/PublicProfileItems";
 import { PublicProfileTrustActions } from "@/components/profile/PublicProfileTrustActions";
+import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import { JW_STONE_INVENTORY_CATEGORIES } from "@/data/jwStoneInventory";
 import { createProfileInventoryItemShareMetadata } from "@shared/profileItemShare";
 import {
@@ -581,6 +581,7 @@ export default function ProfileSiteView() {
         if (
           typeof customDomain === "string" &&
           customDomain.trim() &&
+          new URLSearchParams(window.location.search).get("book") !== "1" &&
           window.location.hostname.toLowerCase() !== customDomain.trim().toLowerCase()
         ) {
           const redirectUrl = new URL("/", `https://${customDomain.trim()}`);
@@ -689,6 +690,11 @@ export default function ProfileSiteView() {
   const publicCategories = (Array.isArray(business?.categories) ? business.categories : [])
     .map((value) => sanitizePublicDiscoveryText(value, 120))
     .filter(Boolean);
+  const bookingCategory = [profile.roleContext, ...publicCategories].some((value) =>
+    /notary/i.test(value)
+  )
+    ? "legal_notary"
+    : publicCategories[0] || profile.roleContext;
   const publicServiceAreas = (Array.isArray(business?.serviceAreas) ? business.serviceAreas : [])
     .map((value) => sanitizePublicDiscoveryText(value, 160))
     .filter(Boolean);
@@ -932,10 +938,8 @@ export default function ProfileSiteView() {
     `/pre-scout-setup?mode=signin&next=${encodeURIComponent(`/u/${profile.slug}`)}`,
     platformBaseHref
   );
-  const bookingCheckoutHref = qualifyPublicProfileItemDestination(
-    `/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(
-      String(bookingPriceUsd)
-    )}&description=${encodeURIComponent(`Booking deposit for ${displayName}`)}`,
+  const bookingSignInHref = qualifyPublicProfileItemDestination(
+    `/pre-scout-setup?mode=create&next=${encodeURIComponent(`/u/${profile.slug}?book=1`)}`,
     platformBaseHref
   );
   const renderProfileTrustActions = (tone: "light" | "dark") => (
@@ -1607,6 +1611,20 @@ export default function ProfileSiteView() {
                     </div>
                   ) : null}
                   <div className="flex flex-wrap gap-3">
+                    <ProfileBookingRequestDialog
+                      profileId={profile.id}
+                      profileName={displayName}
+                      timezone={timezone}
+                      pricingRows={pricingRows}
+                      paidBookings={paidBookings}
+                      bookingPriceUsd={bookingPriceUsd}
+                      bookingCategory={bookingCategory}
+                      bookingStateCode={business?.stateCode || ""}
+                      hasViewerSession={hasViewerSession}
+                      viewerCanManage={viewerCanManage}
+                      signInHref={bookingSignInHref}
+                      platformBaseHref={platformBaseHref}
+                    />
                     <Button asChild className="bg-ts-orange hover:bg-ts-orange-dark text-white">
                       {requiresDocumentNavigation(
                         hasViewerSession ? directConnectHref : preScoutCreateHref
@@ -1620,21 +1638,6 @@ export default function ProfileSiteView() {
                         </Link>
                       )}
                     </Button>
-                    {paidBookings && bookingPriceUsd > 0 ? (
-                      <Button asChild className="bg-ts-orange hover:bg-ts-orange-dark text-white">
-                        {requiresDocumentNavigation(bookingCheckoutHref) ? (
-                          <a href={bookingCheckoutHref}>
-                            <DollarSign className="h-4 w-4 mr-1" />
-                            Pay deposit (${bookingPriceUsd.toFixed(2)})
-                          </a>
-                        ) : (
-                          <Link href={bookingCheckoutHref}>
-                            <DollarSign className="h-4 w-4 mr-1" />
-                            Pay deposit (${bookingPriceUsd.toFixed(2)})
-                          </Link>
-                        )}
-                      </Button>
-                    ) : null}
                   </div>
                 </section>
               ) : null}

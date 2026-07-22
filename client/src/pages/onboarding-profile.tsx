@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,10 +14,11 @@ import {
   type PlaceResult,
 } from "@/components/GooglePlacesLocationInput";
 import { apiRequest } from "@/lib/queryClient";
+import { uploadObject } from "@/lib/objectUpload";
 import { inferCountyForCityState } from "@/lib/countyInference";
 import { CURRENT_PROFILE_VERSION } from "@shared/profile";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
-import { CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { CheckCircle2, AlertTriangle, Camera, Loader2 } from "lucide-react";
 import {
   resolveDirectConnectLandingRoute,
   storeOnboardingNext,
@@ -70,6 +71,9 @@ export default function OnboardingProfile() {
   const [countyFips, setCountyFips] = useState("");
   const [countyName, setCountyName] = useState<string | undefined>(undefined);
   const [city, setCity] = useState("");
+  const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
   const [countyInferenceStatus, setCountyInferenceStatus] = useState<CountyInferenceStatus>("idle");
   const [countyInferenceNote, setCountyInferenceNote] = useState("");
   // Track whether the location was resolved via Google Places (vs. manual typing)
@@ -117,7 +121,33 @@ export default function OnboardingProfile() {
     setCountyFips(anyUser.countyFips || "");
     setCountyName(anyUser.countyName || undefined);
     setCity(anyUser.city || "");
+    setProfileImageUrl(anyUser.profileImageUrl || "");
   }, [user, isAuthenticated, navigate, postProfileNext]);
+
+  const handlePhotoSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingPhoto(true);
+    try {
+      const { publicUrl } = await uploadObject(file);
+      setProfileImageUrl(publicUrl);
+      toast({
+        title: "Photo ready",
+        description: "It will be saved with the rest of your profile.",
+      });
+    } catch (error) {
+      toast({
+        title: "Couldn't upload photo",
+        description: formatUserFacingErrorMessage(error, "Choose another image and try again."),
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      input.value = "";
+    }
+  };
 
   // Auto-infer county from city + state when user types manually (debounced, 350 ms)
   useEffect(() => {
@@ -259,6 +289,7 @@ export default function OnboardingProfile() {
         stateCode,
         countyFips,
         countyName,
+        profileImageUrl: profileImageUrl || undefined,
         preferences: existingPrefs,
       });
     },
@@ -372,6 +403,56 @@ export default function OnboardingProfile() {
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-3 sm:flex-row sm:items-center">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-ts-orange/70 bg-black/30">
+                  {profileImageUrl ? (
+                    <img
+                      src={profileImageUrl}
+                      alt="Your profile"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <TradeScoutLogo size="sm" className="h-10 w-10 bg-transparent ring-0" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-sm font-semibold text-white">Add a profile photo</div>
+                    <span className="rounded-full border border-ts-orange/35 bg-ts-orange/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-ts-orange">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-white/55">
+                    People are more likely to respond when they can recognize who they&apos;re
+                    talking to. If you skip this, the TradeScout logo appears instead.
+                  </p>
+                </div>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/heic,image/heif"
+                  className="hidden"
+                  onChange={handlePhotoSelected}
+                  data-testid="onboarding-profile-photo-input"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={isUploadingPhoto}
+                  onClick={() => photoInputRef.current?.click()}
+                  className="shrink-0 border-ts-orange/45 bg-ts-orange/10 text-white hover:bg-ts-orange/20"
+                  data-testid="onboarding-profile-photo-button"
+                >
+                  {isUploadingPhoto ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Camera className="mr-2 h-4 w-4" />
+                  )}
+                  {profileImageUrl ? "Change photo" : "Add profile photo"}
+                </Button>
+              </div>
+
               {/* Name row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>

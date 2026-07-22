@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { createProfileServiceOfferDecisionAuthority } from "@/lib/profileOfferAuthority";
 import { ShareButton } from "@/components/ShareButton";
+import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import {
   buildProfileOfferExchangePath,
   buildProfileServiceOfferPath,
@@ -47,7 +48,6 @@ import {
   Users,
   Shield,
   Clock3,
-  DollarSign,
 } from "lucide-react";
 
 interface PublicProfile {
@@ -550,12 +550,6 @@ export default function PublicProfileView() {
     if (verificationStatus === "suspended") return "Verification Suspended";
     return "Verification Pending";
   })();
-
-  const handleBookingDeposit = () => {
-    if (!paidBookings || bookingPriceUsd <= 0 || !profile?.id) return;
-    const description = encodeURIComponent(`Booking deposit for ${displayName}`);
-    window.location.href = `/checkout/booking/${encodeURIComponent(profile.id)}?amount=${encodeURIComponent(String(bookingPriceUsd))}&description=${description}`;
-  };
 
   const handlePurchaseProfileOffer = async (
     offer: ProfileOfferSummary,
@@ -1517,12 +1511,22 @@ export default function PublicProfileView() {
                     >
                       Direct Connect
                     </Button>
-                    {paidBookings && bookingPriceUsd > 0 && (
-                      <Button variant="outline" onClick={handleBookingDeposit}>
-                        <DollarSign className="h-4 w-4 mr-1" />
-                        Pay booking deposit (${bookingPriceUsd.toFixed(2)})
-                      </Button>
-                    )}
+                    <ProfileBookingRequestDialog
+                      ownerUserId={profile.id}
+                      profileName={displayName}
+                      timezone={timezone}
+                      pricingRows={pricingRows}
+                      paidBookings={paidBookings}
+                      bookingPriceUsd={bookingPriceUsd}
+                      bookingCategory="general"
+                      bookingStateCode={profile.state || ""}
+                      hasViewerSession={Boolean(user?.id)}
+                      viewerCanManage={viewerIsSelf}
+                      signInHref={`/pre-scout-setup?mode=create&next=${encodeURIComponent(
+                        `/profile/${profile.id}?book=1`
+                      )}`}
+                      platformBaseHref=""
+                    />
                   </div>
                 </CardContent>
               </Card>

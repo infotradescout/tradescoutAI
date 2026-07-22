@@ -110,6 +110,10 @@ type ProfileBookingSettings = {
   pricingRows?: ProfilePricingRow[];
 };
 
+type ProfileBookingResponse = {
+  profileBooking?: ProfileBookingSettings;
+};
+
 const PROFILE_SECTION_OPTIONS: Array<{
   key: keyof ProfileSections;
   label: string;
@@ -269,6 +273,28 @@ export default function ProfileSiteEditor() {
         setDomainInput(activeCustomDomain);
         setOgImageUrl(String(detail.seoMeta?.imageUrl || ""));
         setFaviconUrl(String(detail.seoMeta?.faviconUrl || ""));
+
+        try {
+          const bookingRes = await apiRequest(
+            "GET",
+            `/api/profiles/${encodeURIComponent(detail.id)}/profile-booking`
+          );
+          const bookingPayload = (await bookingRes.json()) as ProfileBookingResponse;
+          const stored = bookingPayload.profileBooking;
+          setProfileBooking(
+            stored && typeof stored === "object"
+              ? {
+                  ...buildDefaultBooking(),
+                  ...stored,
+                  slots: Array.isArray(stored.slots) ? stored.slots : [],
+                  pricingRows: Array.isArray(stored.pricingRows) ? stored.pricingRows : [],
+                }
+              : buildDefaultBooking()
+          );
+        } catch (bookingError) {
+          console.error("Error loading Profile booking settings:", bookingError);
+          setProfileBooking(buildDefaultBooking());
+        }
       } catch (error: any) {
         console.error("Error loading profile:", error);
         toast({
@@ -346,19 +372,6 @@ export default function ProfileSiteEditor() {
             ? prefs.profileSections
             : {}
         );
-        setProfileBooking(
-          prefs?.profileBooking && typeof prefs.profileBooking === "object"
-            ? {
-                ...buildDefaultBooking(),
-                ...prefs.profileBooking,
-                slots: Array.isArray(prefs.profileBooking.slots) ? prefs.profileBooking.slots : [],
-                pricingRows: Array.isArray(prefs.profileBooking.pricingRows)
-                  ? prefs.profileBooking.pricingRows
-                  : [],
-              }
-            : buildDefaultBooking()
-        );
-
         const preset =
           typeof prefs?.colorScheme?.preset === "string" ? prefs.colorScheme.preset : "default";
         setColorPreset(preset);
@@ -959,25 +972,32 @@ export default function ProfileSiteEditor() {
   };
 
   const saveProfileBooking = async () => {
+    if (!profile) return;
     setSavingPublicSettings(true);
     try {
-      await apiRequest("PATCH", "/api/users/profile-booking", {
-        ...profileBooking,
-        slots: (profileBooking.slots || []).filter(
-          (slot) =>
-            Number.isInteger(slot.dayOfWeek) &&
-            slot.dayOfWeek >= 0 &&
-            slot.dayOfWeek <= 6 &&
-            Boolean(slot.startTime) &&
-            Boolean(slot.endTime)
-        ),
-        pricingRows: (profileBooking.pricingRows || []).filter(
-          (row) => row.name?.trim().length && row.priceLabel?.trim().length
-        ),
-      });
+      const response = await apiRequest(
+        "PATCH",
+        `/api/profiles/${encodeURIComponent(profile.id)}/profile-booking`,
+        {
+          ...profileBooking,
+          slots: (profileBooking.slots || []).filter(
+            (slot) =>
+              Number.isInteger(slot.dayOfWeek) &&
+              slot.dayOfWeek >= 0 &&
+              slot.dayOfWeek <= 6 &&
+              Boolean(slot.startTime) &&
+              Boolean(slot.endTime)
+          ),
+          pricingRows: (profileBooking.pricingRows || []).filter(
+            (row) => row.name?.trim().length && row.priceLabel?.trim().length
+          ),
+        }
+      );
+      const payload = (await response.json()) as ProfileBookingResponse;
+      if (payload.profileBooking) setProfileBooking(payload.profileBooking);
       toast({
         title: "Saved",
-        description: "Booking and pricing settings updated.",
+        description: "Booking and pricing settings updated for this Profile.",
       });
     } catch (error: any) {
       toast({
@@ -1714,7 +1734,13 @@ export default function ProfileSiteEditor() {
                   </div>
                   <div className="rounded-md border border-white/10 p-3">
                     <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm text-white">Enable paid bookings</p>
+                      <div>
+                        <p className="text-sm text-white">Require a booking deposit</p>
+                        <p className="mt-1 text-xs text-white/50">
+                          Booking requests are free by default. Turn this on only when a deposit is
+                          required before confirmation.
+                        </p>
+                      </div>
                       <Switch
                         data-testid="profile-editor-booking-paid"
                         checked={profileBooking.paidBookings === true}
@@ -1731,7 +1757,7 @@ export default function ProfileSiteEditor() {
                     <Input
                       type="number"
                       data-testid="profile-editor-booking-deposit"
-                      min={0}
+                      min={0.01}
                       step="0.01"
                       value={String(profileBooking.bookingPriceUsd ?? 0)}
                       onChange={(event) =>

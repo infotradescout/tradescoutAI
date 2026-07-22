@@ -52,6 +52,7 @@ import { SEOHelmet, createLocalBusinessStructuredData } from "@/components/SEOHe
 import { useToast } from "@/hooks/use-toast";
 import { DecisionCard } from "@/components/community/DecisionCard";
 import { ShareButton } from "@/components/ShareButton";
+import { ProfileBookingRequestDialog } from "@/components/profile/ProfileBookingRequestDialog";
 import { apiRequest } from "@/lib/queryClient";
 import { getCategoryPlaceholderSrc } from "@/lib/categoryPlaceholders";
 import { matchFlowCopy, stripCountySuffix } from "@/lib/userFacingCopy";
@@ -1158,9 +1159,12 @@ export default function BusinessProfileView() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm text-muted-foreground">
             <p>
-              {bookingConfig.paidBookings
-                ? `Paid booking available${typeof bookingConfig.bookingPriceUsd === "number" ? ` · $${bookingConfig.bookingPriceUsd}` : ""}`
-                : "Booking available through TradeScout."}
+              Send a booking request through TradeScout.
+              {bookingConfig.paidBookings === true &&
+              typeof bookingConfig.bookingPriceUsd === "number" &&
+              bookingConfig.bookingPriceUsd > 0
+                ? ` This business requires a $${bookingConfig.bookingPriceUsd.toFixed(2)} deposit after the request is created.`
+                : " No deposit is required to send it."}
             </p>
             {bookingConfig.timezone ? <p>Timezone: {bookingConfig.timezone}</p> : null}
             {bookingConfig.pricingTableEnabled &&
@@ -1179,6 +1183,32 @@ export default function BusinessProfileView() {
                 ))}
               </div>
             ) : null}
+            <ProfileBookingRequestDialog
+              ownerUserId={profile.id}
+              businessProfileSlug={profile.slug}
+              profileName={profile.name}
+              timezone={bookingConfig.timezone || "America/Chicago"}
+              pricingRows={
+                Array.isArray(bookingConfig.pricingRows)
+                  ? bookingConfig.pricingRows.map((row) => ({
+                      id: row.id,
+                      name: row.name,
+                      priceLabel: row.priceLabel,
+                      description: row.description || undefined,
+                    }))
+                  : []
+              }
+              paidBookings={bookingConfig.paidBookings === true}
+              bookingPriceUsd={Number(bookingConfig.bookingPriceUsd || 0)}
+              bookingCategory={profile.services?.[0] || "general"}
+              bookingStateCode={profile.stateCode || ""}
+              hasViewerSession={isAuthenticated || Boolean(user?.id)}
+              viewerCanManage={isOwner}
+              signInHref={`/pre-scout-setup?mode=create&next=${encodeURIComponent(
+                `/business/${profile.slug}?book=1`
+              )}`}
+              platformBaseHref=""
+            />
           </CardContent>
         </Card>
       ) : null}

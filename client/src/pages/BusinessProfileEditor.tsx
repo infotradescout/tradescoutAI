@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useRoute } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,8 +41,9 @@ import {
  * - Telemetry: business_profile_edit_opened, business_profile_updated
  */
 export default function BusinessProfileEditor() {
-  const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
+  const [, params] = useRoute<{ slug: string }>("/business/:slug/edit");
+  const slug = params?.slug || "";
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
   const [profile, setProfile] = useState<BusinessProfile | null>(null);
@@ -82,6 +83,7 @@ export default function BusinessProfileEditor() {
   const [secondaryCtaLabel, setSecondaryCtaLabel] = useState("");
   const [secondaryCtaKind, setSecondaryCtaKind] = useState("message");
   const [bookingEnabled, setBookingEnabled] = useState(false);
+  const [paidBookings, setPaidBookings] = useState(false);
   const [pricingTableEnabled, setPricingTableEnabled] = useState(false);
   const [bookingPriceUsd, setBookingPriceUsd] = useState("");
   const [bookingTimezone, setBookingTimezone] = useState("America/Chicago");
@@ -160,6 +162,7 @@ export default function BusinessProfileEditor() {
         setSecondaryCtaLabel(data.ctaConfig?.secondary?.label || "");
         setSecondaryCtaKind(data.ctaConfig?.secondary?.kind || "message");
         setBookingEnabled(data.bookingConfig?.enabled === true);
+        setPaidBookings(data.bookingConfig?.paidBookings === true);
         setPricingTableEnabled(data.bookingConfig?.pricingTableEnabled === true);
         setBookingPriceUsd(
           typeof data.bookingConfig?.bookingPriceUsd === "number"
@@ -247,6 +250,17 @@ export default function BusinessProfileEditor() {
 
   async function handleSave() {
     if (!profile) return;
+    if (
+      paidBookings &&
+      (!Number.isFinite(Number(bookingPriceUsd)) || Number(bookingPriceUsd) <= 0)
+    ) {
+      toast({
+        title: "Deposit amount required",
+        description: "Enter a deposit greater than zero, or turn off the deposit requirement.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSaving(true);
 
@@ -295,6 +309,7 @@ export default function BusinessProfileEditor() {
         },
         bookingConfig: {
           enabled: bookingEnabled,
+          paidBookings,
           pricingTableEnabled,
           bookingPriceUsd: bookingPriceUsd ? Number(bookingPriceUsd) : 0,
           timezone: bookingTimezone,
@@ -625,7 +640,7 @@ export default function BusinessProfileEditor() {
                 Coverage and address settings are now managed in the unified public page settings
                 flow so user and business addresses stay separate.
               </p>
-              <Button variant="outline" onClick={() => navigate(`/u/${profile.slug}/edit`)}>
+              <Button variant="outline" onClick={() => navigate("/profile")}>
                 Open unified public page settings
               </Button>
             </TabsContent>
@@ -821,6 +836,21 @@ export default function BusinessProfileEditor() {
                     onChange={(e) => setBookingEnabled(e.target.checked)}
                   />
                 </label>
+                <label className="flex items-start justify-between gap-3 rounded border p-3 text-sm">
+                  <span>
+                    <span className="block">Require a booking deposit</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Booking requests are free by default. Turn this on only when a deposit is
+                      required before confirmation.
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={paidBookings}
+                    disabled={!bookingEnabled}
+                    onChange={(e) => setPaidBookings(e.target.checked)}
+                  />
+                </label>
                 <label className="flex items-center justify-between rounded border p-3 text-sm">
                   <span>Enable Pricing Table</span>
                   <input
@@ -829,14 +859,19 @@ export default function BusinessProfileEditor() {
                     onChange={(e) => setPricingTableEnabled(e.target.checked)}
                   />
                 </label>
-                <div className="space-y-2">
-                  <Label>Booking Price (USD)</Label>
-                  <Input
-                    value={bookingPriceUsd}
-                    onChange={(e) => setBookingPriceUsd(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
+                {paidBookings ? (
+                  <div className="space-y-2">
+                    <Label>Booking deposit (USD)</Label>
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={bookingPriceUsd}
+                      onChange={(e) => setBookingPriceUsd(e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                ) : null}
                 <div className="space-y-2">
                   <Label>Timezone</Label>
                   <Input

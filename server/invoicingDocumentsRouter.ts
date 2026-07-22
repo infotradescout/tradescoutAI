@@ -700,6 +700,7 @@ export function createInvoicingDocumentsRouter(pool: Pool) {
         ) {
           if (req.path === "/api/accounting/reports/summary") {
             return res.json({
+              sourceAvailable: false,
               lifetime: {
                 invoiceCount: 0,
                 paidCount: 0,

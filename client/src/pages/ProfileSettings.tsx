@@ -81,12 +81,14 @@ type ProfileBookingSettings = {
 
 type ProfileSettingsUser = User & {
   activeProfileId?: string;
+  activeBusinessId?: string | null;
   businessSlug?: string | null;
   customThemeColors?: string | null;
 };
 
 type ProfileListItem = {
   id: string;
+  businessId?: string | null;
   slug: string;
   status?: "draft" | "published" | string;
 };
@@ -126,7 +128,12 @@ export default function ProfileSettings() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("identity");
   const [profileSlug, setProfileSlug] = useState<string | null>(null);
+  const [bookingProfileId, setBookingProfileId] = useState<string | null>(null);
   const [profileStatus, setProfileStatus] = useState<"draft" | "published" | null>(null);
+  const [businessProfileSlug, setBusinessProfileSlug] = useState<string | null>(null);
+  const [businessProfileStatus, setBusinessProfileStatus] = useState<"draft" | "published" | null>(
+    null
+  );
   const [profileBasics, setProfileBasics] = useState({
     firstName: "",
     lastName: "",
@@ -210,23 +217,26 @@ export default function ProfileSettings() {
 
   useEffect(() => {
     if (user?.preferences) {
-      setPreferences({
+      setPreferences((current) => ({
         defaultHomePage: user.preferences.defaultHomePage || "llm",
         profileVisibility: user.preferences.profileVisibility || "public",
         colorScheme: user.preferences.colorScheme || { preset: "default" },
         profileSections: user.preferences.profileSections || {},
         servicesDescription: user.preferences.servicesDescription || "",
-        profileBooking: user.preferences.profileBooking || {
-          enabled: false,
-          paidBookings: false,
-          bookingPriceUsd: 0,
-          calendarVisibility: "public",
-          timezone: "America/Chicago",
-          slots: [],
-          pricingTableEnabled: false,
-          pricingRows: [],
-        },
-      });
+        profileBooking:
+          bookingProfileId !== null
+            ? current.profileBooking
+            : user.preferences.profileBooking || {
+                enabled: false,
+                paidBookings: false,
+                bookingPriceUsd: 0,
+                calendarVisibility: "public",
+                timezone: "America/Chicago",
+                slots: [],
+                pricingTableEnabled: false,
+                pricingRows: [],
+              },
+      }));
 
       const scheme = user.preferences.colorScheme;
       if (scheme && scheme.preset === "custom") {
@@ -271,7 +281,7 @@ export default function ProfileSettings() {
         // ignore malformed theme payloads
       }
     }
-  }, [profileUser, user]);
+  }, [bookingProfileId, profileUser, user]);
 
   useEffect(() => {
     setProfileBasics({
@@ -298,9 +308,38 @@ export default function ProfileSettings() {
           active = list.find((p) => p.status === "published") || list[0];
         }
 
+        let resolvedBooking: ProfileBookingSettings | undefined;
+        if (active?.id) {
+          const bookingResponse = await fetch(
+            `/api/profiles/${encodeURIComponent(active.id)}/profile-booking`,
+            { credentials: "include" }
+          );
+          if (bookingResponse.ok) {
+            const bookingPayload = (await bookingResponse.json()) as ProfileBookingResponse;
+            resolvedBooking = bookingPayload.profileBooking;
+          }
+        }
+
         if (!cancelled) {
+          setBookingProfileId(active?.id || null);
           setProfileSlug(active?.slug || null);
           setProfileStatus((active?.status as "draft" | "published" | undefined) || null);
+          if (resolvedBooking) {
+            setPreferences((current) => ({
+              ...current,
+              profileBooking: resolvedBooking,
+            }));
+          }
+          const activeBusinessProfile = profileUser?.activeBusinessId
+            ? list.find(
+                (profile) =>
+                  String(profile.businessId || "") === String(profileUser.activeBusinessId)
+              )
+            : undefined;
+          setBusinessProfileSlug(activeBusinessProfile?.slug || null);
+          setBusinessProfileStatus(
+            (activeBusinessProfile?.status as "draft" | "published" | undefined) || null
+          );
         }
       } catch (err) {
         console.error("Error loading profile site slug for public links:", err);
@@ -312,7 +351,7 @@ export default function ProfileSettings() {
     return () => {
       cancelled = true;
     };
-  }, [profileUser?.activeProfileId, user?.id]);
+  }, [profileUser?.activeBusinessId, profileUser?.activeProfileId, user?.id]);
 
   // Lightweight onboarding hint when redirected after social sign-up
   const isOnboarding = location.includes("onboarding=1");
@@ -691,22 +730,33 @@ export default function ProfileSettings() {
   };
 
   const saveProfileBooking = async () => {
+    if (!bookingProfileId) {
+      toast({
+        title: "Create a Profile first",
+        description: "Booking settings belong to a specific public Profile.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoading(true);
     try {
-      const response = await fetch("/api/users/profile-booking", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          ...profileBooking,
-          slots: (profileBooking.slots || []).filter(
-            (slot) => slot.startTime && slot.endTime && Number.isInteger(slot.dayOfWeek)
-          ),
-          pricingRows: (profileBooking.pricingRows || []).filter(
-            (row) => row.name?.trim().length && row.priceLabel?.trim().length
-          ),
-        }),
-      });
+      const response = await fetch(
+        `/api/profiles/${encodeURIComponent(bookingProfileId)}/profile-booking`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            ...profileBooking,
+            slots: (profileBooking.slots || []).filter(
+              (slot) => slot.startTime && slot.endTime && Number.isInteger(slot.dayOfWeek)
+            ),
+            pricingRows: (profileBooking.pricingRows || []).filter(
+              (row) => row.name?.trim().length && row.priceLabel?.trim().length
+            ),
+          }),
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to update booking settings");
       const data = (await response.json()) as ProfileBookingResponse;
@@ -715,11 +765,9 @@ export default function ProfileSettings() {
         ...prev,
         profileBooking: data.profileBooking || prev.profileBooking,
       }));
-      await refetch();
-
       toast({
         title: "Booking settings saved",
-        description: "Public booking, calendar, and pricing preferences are updated.",
+        description: "Booking, calendar, and pricing are updated for this Profile.",
       });
     } catch {
       toast({
@@ -834,17 +882,21 @@ export default function ProfileSettings() {
   };
 
   const profilePageLabel =
-    profileStatus === "published"
-      ? `${getCanonicalAppOrigin()}/u/${profileSlug}`
+    profileStatus === "published" && profileSlug
+      ? `${getCanonicalAppOrigin()}/u/${encodeURIComponent(profileSlug)}`
       : profileSlug
         ? "Draft ready. Open the editor to review and publish your public page."
         : "No profile page found yet. Open the editor to finish setup.";
 
   const businessSlug = profileUser?.businessSlug ?? null;
 
-  const businessPageLabel = businessSlug
-    ? `${window.location.origin}/business/${businessSlug}`
-    : "No business page yet. Add a business persona in account settings to create one.";
+  const businessPageLabel = businessProfileSlug
+    ? businessProfileStatus === "published"
+      ? `${getCanonicalAppOrigin()}/u/${encodeURIComponent(businessProfileSlug)}`
+      : "Your canonical business profile is ready to review in the profile editor."
+    : businessSlug
+      ? `${window.location.origin}/business/${encodeURIComponent(businessSlug)}`
+      : "No business page yet. Add a business persona in account settings to create one.";
 
   return (
     <Page className="max-w-6xl">
@@ -1099,14 +1151,15 @@ export default function ProfileSettings() {
                   <div className="break-all text-xs text-white/60">{businessPageLabel}</div>
                 </div>
                 <div className="flex gap-2">
-                  {businessSlug ? (
+                  {businessProfileSlug ? (
                     <>
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         data-testid="profile-settings-identity-view-live-business"
-                        onClick={() => navigate(`/business/${encodeURIComponent(businessSlug)}`)}
+                        disabled={businessProfileStatus !== "published"}
+                        onClick={() => navigate(`/u/${encodeURIComponent(businessProfileSlug)}`)}
                       >
                         View live page
                       </Button>
@@ -1116,10 +1169,31 @@ export default function ProfileSettings() {
                         size="sm"
                         data-testid="profile-settings-identity-open-business-editor"
                         onClick={() =>
-                          navigate(`/business/${encodeURIComponent(businessSlug)}/edit`)
+                          navigate(`/u/${encodeURIComponent(businessProfileSlug)}/edit`)
                         }
                       >
                         Open editor
+                      </Button>
+                    </>
+                  ) : businessSlug ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        data-testid="profile-settings-identity-view-live-business"
+                        onClick={() => navigate(`/business/${encodeURIComponent(businessSlug)}`)}
+                      >
+                        View legacy page
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        data-testid="profile-settings-identity-open-business-editor"
+                        onClick={() => navigate("/profile")}
+                      >
+                        Create profile page
                       </Button>
                     </>
                   ) : (
@@ -1546,8 +1620,8 @@ export default function ProfileSettings() {
                 Booking, calendar, and pricing
               </CardTitle>
               <CardDescription>
-                Configure bookings, deposits, availability, and pricing rows for your public
-                profile.
+                Booking requests are free by default. Set availability and pricing, and optionally
+                require a deposit before confirmation.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1597,7 +1671,7 @@ export default function ProfileSettings() {
                 }}
               >
                 <div className="min-w-0 space-y-0.5">
-                  <Label>Enable paid bookings</Label>
+                  <Label>Require a booking deposit</Label>
                   <p className="text-sm text-white/60">
                     Require a Stripe deposit before confirmation.
                   </p>
@@ -1619,7 +1693,7 @@ export default function ProfileSettings() {
                   <Input
                     data-testid="profile-settings-booking-deposit"
                     type="number"
-                    min={0}
+                    min={0.01}
                     step="0.01"
                     value={String(profileBooking.bookingPriceUsd ?? 0)}
                     onChange={(e) =>

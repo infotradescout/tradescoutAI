@@ -31,8 +31,7 @@ const AUTO_DEMO_START_DELAY_MS = 600;
 const AUTO_DEMO_TYPE_DELAY_MS = 45;
 const AUTO_DEMO_SEND_DELAY_MS = 400;
 const SCOUT_INPUT_ACTION_HINT = "Search • Compare • Choose";
-const SCOUT_INPUT_ACCESSIBLE_PROMPT =
-  "Search local help, compare options, or review your next step.";
+const SCOUT_INPUT_ACCESSIBLE_PROMPT = "Describe a project, permit question, estimate, or decision.";
 
 export function ScoutInputRow({
   isBusy,
@@ -181,20 +180,23 @@ export function ScoutInputRow({
   }, [enableAutoDemo, autoDemoText, prefillKey]);
 
   const isButtonDisabled = isBusy || isSubmitting || (!value.trim() && !isTypingDemo);
-  const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts.slice(0, 2) : [];
+  const promptList = Array.isArray(quickStartPrompts) ? quickStartPrompts : [];
 
   return (
     <div className="space-y-2">
       {/* Quick-start prompts — shown only when no messages yet */}
       {promptList.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 px-1" aria-label={SCOUT_INPUT_ACTION_HINT}>
+        <div
+          className="flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          aria-label={SCOUT_INPUT_ACTION_HINT}
+        >
           {promptList.map((prompt) => (
             <button
               key={prompt}
               type="button"
               onClick={() => onSend(prompt)}
               disabled={isBusy}
-              className="rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
+              className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors disabled:opacity-50"
               style={{
                 background: "var(--surface-intermediate)",
                 border: "1px solid rgba(255,255,255,0.08)",
@@ -235,7 +237,7 @@ export function ScoutInputRow({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           disabled={isBusy}
-          placeholder="Search local help, compare options, or review your next step."
+          placeholder="Describe a project, permit question, estimate, or decision."
           rows={1}
           className="scout-command-bar__input"
           aria-label={SCOUT_INPUT_ACCESSIBLE_PROMPT}

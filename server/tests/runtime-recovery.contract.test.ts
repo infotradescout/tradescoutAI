@@ -35,6 +35,8 @@ describe("runtime recovery contracts", () => {
     expect(source).toContain('res.setHeader("Cache-Control", "no-store")');
     expect(source).toContain('res.setHeader("CDN-Cache-Control", "no-store")');
     expect(source).toContain('res.setHeader("Surrogate-Control", "no-store")');
+    expect(source).toContain("resolveCurrentEntryStylesheet");
+    expect(source).toContain('res.setHeader("X-TradeScout-Asset-Recovery", "current-entry-css")');
   });
 
   it("never lets one business profile's boot-time provisioning crash the whole server", () => {

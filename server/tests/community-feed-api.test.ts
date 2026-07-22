@@ -13,6 +13,8 @@ describeDb("community feed scoping", () => {
   const countyAFips = "00101";
   const countyBFips = "00202";
   const stateCode = "TX";
+  const standardOrderingContent = "Community ordering fixture: standard post";
+  const welcomeOrderingContent = "Community ordering fixture: generated welcome";
 
   beforeAll(async () => {
     // Clear existing posts for our fake counties. Keep the two stable fixture
@@ -63,6 +65,28 @@ describeDb("community feed scoping", () => {
       scope: "county",
       category: "general",
     });
+
+    await db.insert(communityPosts).values([
+      {
+        authorId: "test-user-a",
+        content: standardOrderingContent,
+        stateCode,
+        countyFips: countyAFips,
+        scope: "county",
+        category: "general",
+        createdAt: new Date("2020-01-01T00:00:00.000Z"),
+      },
+      {
+        authorId: "test-user-a",
+        content: welcomeOrderingContent,
+        stateCode,
+        countyFips: countyAFips,
+        scope: "county",
+        category: "announcements",
+        tags: ["new_neighbor"],
+        createdAt: new Date("2021-01-01T00:00:00.000Z"),
+      },
+    ]);
   });
 
   it("returns only posts for the requested county", async () => {
@@ -72,6 +96,7 @@ describeDb("community feed scoping", () => {
       countyFips: countyAFips,
       limit: 10,
       offset: 0,
+      demoteOnboardingWelcomes: false,
     });
 
     expect(postsForA.length).toBeGreaterThan(0);
@@ -87,5 +112,44 @@ describeDb("community feed scoping", () => {
 
     expect(postsForB.length).toBeGreaterThan(0);
     expect(postsForB.every((p) => p.location === countyBFips)).toBe(true);
+  });
+
+  it("demotes generated welcomes only when requested", async () => {
+    const recentPosts = await storage.getCommunityPosts({
+      scope: "county",
+      stateCode,
+      countyFips: countyAFips,
+      limit: 10,
+      offset: 0,
+      demoteOnboardingWelcomes: false,
+    });
+    const demotedPosts = await storage.getCommunityPosts({
+      scope: "county",
+      stateCode,
+      countyFips: countyAFips,
+      limit: 10,
+      offset: 0,
+      demoteOnboardingWelcomes: true,
+    });
+
+    const recentWelcomeIndex = recentPosts.findIndex(
+      (post) => post.content === welcomeOrderingContent
+    );
+    const recentStandardIndex = recentPosts.findIndex(
+      (post) => post.content === standardOrderingContent
+    );
+    const demotedWelcomeIndex = demotedPosts.findIndex(
+      (post) => post.content === welcomeOrderingContent
+    );
+    const demotedStandardIndex = demotedPosts.findIndex(
+      (post) => post.content === standardOrderingContent
+    );
+
+    expect(recentWelcomeIndex).toBeGreaterThanOrEqual(0);
+    expect(recentStandardIndex).toBeGreaterThanOrEqual(0);
+    expect(recentWelcomeIndex).toBeLessThan(recentStandardIndex);
+    expect(demotedWelcomeIndex).toBeGreaterThanOrEqual(0);
+    expect(demotedStandardIndex).toBeGreaterThanOrEqual(0);
+    expect(demotedStandardIndex).toBeLessThan(demotedWelcomeIndex);
   });
 });

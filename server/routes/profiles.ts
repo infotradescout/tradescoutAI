@@ -52,6 +52,12 @@ import {
   type PublicContractorPromoCard,
 } from "../../shared/contractorPromoShare";
 import { prepareSitemapUrlSetEntries } from "../sitemapUrlSet";
+import {
+  readProfileBookingConfigBlock,
+  upsertProfileBookingConfigBlock,
+} from "../../shared/profileBookingConfig";
+import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
+import { resolveProfileBookingConfig } from "../services/profileBookingConfig";
 
 const router = Router();
 
@@ -735,6 +741,87 @@ router.get("/api/profiles/public-search", async (req, res) => {
   }
 });
 
+router.get("/api/profiles/:id/profile-booking", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const profile = isStaffProfileManager(req)
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const owner = await storage.getUser(profile.ownerUserId);
+    if (!owner) return res.status(404).json({ message: "Profile owner not found" });
+
+    const resolved = resolveProfileBookingConfig(profile, owner);
+    res.json({
+      profileId: profile.id,
+      profileBooking: resolved.profileBooking,
+      source: resolved.source,
+    });
+  } catch (error: any) {
+    console.error("Error fetching Profile booking settings:", error);
+    res.status(500).json({ message: "Failed to fetch Profile booking settings" });
+  }
+});
+
+router.patch("/api/profiles/:id/profile-booking", isAuthenticated, async (req, res) => {
+  try {
+    const userId = getAuthedUserId(req);
+    if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+    const profileId = String(req.params.id);
+    const profile = isStaffProfileManager(req)
+      ? await storage.getProfileById(profileId)
+      : await storage.getProfileByIdForOwner(userId, profileId);
+    if (!profile) return res.status(404).json({ message: "Profile not found" });
+
+    const owner = await storage.getUser(profile.ownerUserId);
+    if (!owner) return res.status(404).json({ message: "Profile owner not found" });
+
+    const existing = resolveProfileBookingConfig(profile, owner).profileBooking;
+    const incoming = req.body && typeof req.body === "object" ? req.body : {};
+    const normalized = normalizeProfileBookingPrefs({
+      ...existing,
+      ...incoming,
+      slots: Object.prototype.hasOwnProperty.call(incoming, "slots")
+        ? (incoming as any).slots
+        : existing.slots,
+      pricingRows: Object.prototype.hasOwnProperty.call(incoming, "pricingRows")
+        ? (incoming as any).pricingRows
+        : existing.pricingRows,
+    });
+
+    if (normalized.paidBookings && normalized.bookingPriceUsd <= 0) {
+      return res.status(400).json({
+        message: "A booking deposit must be greater than zero",
+      });
+    }
+
+    const contentBlocks = upsertProfileBookingConfigBlock(
+      profile.contentBlocks,
+      normalized as unknown as Record<string, unknown>
+    );
+    if (isStaffProfileManager(req)) {
+      await storage.updateProfileById(profileId, { contentBlocks } as any);
+    } else {
+      await storage.updateProfileForOwner(userId, profileId, { contentBlocks } as any);
+    }
+
+    res.json({
+      message: "Profile booking settings updated",
+      profileId,
+      profileBooking: normalized,
+      source: "profile",
+    });
+  } catch (error: any) {
+    console.error("Error updating Profile booking settings:", error);
+    res.status(500).json({ message: "Failed to update Profile booking settings" });
+  }
+});
+
 router.get("/api/profiles/:id", isAuthenticated, async (req, res) => {
   try {
     const userId = getAuthedUserId(req);
@@ -803,9 +890,17 @@ router.put("/api/profiles/:id", isAuthenticated, async (req, res) => {
             ...updates.seoMeta,
             ...(existingCustomDomain ? { customDomain: existingCustomDomain } : {}),
           };
+    const existingProfileBooking = readProfileBookingConfigBlock(existing.contentBlocks);
+    const nextContentBlocks =
+      updates.contentBlocks === undefined
+        ? undefined
+        : existingProfileBooking === undefined
+          ? updates.contentBlocks
+          : upsertProfileBookingConfigBlock(updates.contentBlocks, existingProfileBooking);
     const payload = {
       ...updates,
       ...(nextSeoMeta === undefined ? {} : { seoMeta: nextSeoMeta }),
+      ...(nextContentBlocks === undefined ? {} : { contentBlocks: nextContentBlocks }),
       roleContext: updates.roleContext as any,
     } as any;
 

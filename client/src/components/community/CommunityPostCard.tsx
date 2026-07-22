@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
+import { stripCountySuffix } from "@/lib/userFacingCopy";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,16 +31,17 @@ import {
   Trash2,
   MessagesSquare,
   Store,
+  Flag,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { UserBadges } from "@/components/user-badges";
-import { CommunityCTA } from "./CommunityCTA";
 import { ContactOutcomeModal, type ContactOutcome } from "./ContactOutcomeModal";
 import { formatContextTag, toContextTagKey } from "@/utils/formatContextTag";
 import { TradeScoutLogo } from "@/components/TradeScoutIcons";
 import { buildCommunityPostPath } from "@shared/communityPostShare";
+import { ReportModal } from "@/components/social/ReportModal";
 
 const UPLOAD_ID_PATH_PATTERN = /\/uploads\/[0-9a-f-]{36}$/i;
 const UPLOAD_FALLBACK_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"] as const;
@@ -184,7 +186,7 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
 
   if (normalized === "promotion" || normalized === "marketplace") {
     return {
-      label: "Local Offer",
+      label: "Offer",
       icon: <Store className="w-3.5 h-3.5" />,
       className: "bg-emerald-500/10 border-emerald-500/40 text-emerald-300",
       accentClassName: "border-l-2 border-emerald-500/60 pl-4",
@@ -193,7 +195,7 @@ function getCategoryMeta(category?: string, postTypeRaw?: string, authorRole?: s
 
   if (normalized === "events") {
     return {
-      label: "Local Event",
+      label: "Event",
       icon: <MessageSquare className="w-3.5 h-3.5" />,
       className: "bg-sky-500/10 border-sky-500/40 text-sky-300",
       accentClassName: "border-l-2 border-sky-500/60 pl-4",
@@ -260,6 +262,8 @@ export function CommunityPostCard({
     initialWorkBoardState
   );
   const [contactOutcome, setContactOutcome] = useState<ContactOutcome | null>(null);
+  const [contentExpanded, setContentExpanded] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const role = (user as any)?.role as string | undefined;
   const canModerate =
     !readOnly &&
@@ -290,6 +294,8 @@ export function CommunityPostCard({
       title: post.title || "TradeScout community post",
       text: (post.content || "").toString(),
       contextLabel: "Post link",
+      kind: "community_post",
+      imageUrl: post.imageUrls?.[0],
     });
   };
 
@@ -313,6 +319,7 @@ export function CommunityPostCard({
   const isPinned = post.pinned === true;
   const isTrending = !isPinned && post.trending === true;
   const isAdminNotice = (categoryMeta as any).adminNotice === true;
+  const hasLongContent = post.content.trim().length > 520;
   const canOpenMessages = !readOnly && isAuthenticated && !!post.author?.id && !isAuthor;
 
   const invalidateCommunityQueries = () => {
@@ -335,7 +342,9 @@ export function CommunityPostCard({
 
     const authorName = post.author?.name || "Community member";
     const targetLocation =
-      post.county && post.state ? `${post.county}, ${post.state}` : post.location || undefined;
+      post.county && post.state
+        ? `${stripCountySuffix(post.county)}, ${post.state}`
+        : post.location || undefined;
     const suggestedIntent: ContactOutcome["suggestedIntent"] = post.hasWorkRequest
       ? "hire"
       : "collaborate";
@@ -454,20 +463,12 @@ export function CommunityPostCard({
     return null;
   })();
 
-  const canDirectConnect =
-    !readOnly &&
-    (!!post.hasWorkRequest ||
-      post.category === "recommendation_request" ||
-      post.postType === "recommendation_request");
-
-  const isContractor = (role || "").toLowerCase().includes("contractor");
-
   return (
     <>
       <Card
         data-testid={`card-post-${post.id}`}
         data-post-id={post.id}
-        className={`bg-tsCard border border-white/10 shadow-sm rounded-xl hover:border-ts-orange/30 transition-all ${isAdminNotice ? "ring-1 ring-ts-orange/70 bg-tsCard/95" : ""}`}
+        className={`ts-community-post border border-white/[0.075] bg-transparent shadow-none transition-colors hover:border-white/15 ${isAdminNotice ? "ring-1 ring-ts-orange/60 bg-tsCard/95" : ""}`}
       >
         <CardContent data-testid="community-post-card" className="p-4 sm:p-5 space-y-3">
           {(isPinned || isTrending || isAdminNotice) && (
@@ -485,7 +486,7 @@ export function CommunityPostCard({
                 {isPinned
                   ? "Pinned · From TradeScout"
                   : isAdminNotice
-                    ? `Official TradeScout Update${post.county ? ` — ${post.county}` : post.location ? ` — ${post.location}` : ""}`
+                    ? `Official TradeScout Update${post.county ? ` — ${stripCountySuffix(post.county)}` : post.location ? ` — ${post.location}` : ""}`
                     : "Trending in your area"}
               </span>
             </div>
@@ -669,6 +670,17 @@ export function CommunityPostCard({
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[190px] text-xs">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      navigate(
+                        `/scout?source=community_post&postId=${encodeURIComponent(String(post.id))}`
+                      )
+                    }
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 mr-2" />
+                    Ask about this
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   {canOpenMessages && (
                     <DropdownMenuItem onClick={handleOpenMessages}>
                       <MessagesSquare className="w-3.5 h-3.5 mr-2" />
@@ -691,6 +703,15 @@ export function CommunityPostCard({
                   {!readOnly && (onStartRequest || onRequestConnection) && (
                     <DropdownMenuSeparator />
                   )}
+                  {isAuthenticated && !isAuthor && !canModerate ? (
+                    <>
+                      <DropdownMenuItem onClick={() => setShowReportModal(true)}>
+                        <Flag className="mr-2 h-3.5 w-3.5" />
+                        Report post
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  ) : null}
                   {isAuthor && (
                     <>
                       {!workBoardInfo.sent ? (
@@ -742,9 +763,22 @@ export function CommunityPostCard({
             {post.title && (
               <h3 className="text-base font-medium text-ts-orange mb-1">{post.title}</h3>
             )}
-            <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+            <p
+              className={`text-sm text-white/70 leading-relaxed whitespace-pre-wrap ${
+                hasLongContent && !contentExpanded ? "line-clamp-6" : ""
+              }`}
+            >
               {post.content}
             </p>
+            {hasLongContent ? (
+              <button
+                type="button"
+                onClick={() => setContentExpanded((expanded) => !expanded)}
+                className="mt-2 text-xs font-semibold text-ts-orange hover:text-orange-300"
+              >
+                {contentExpanded ? "Show less" : "Read more"}
+              </button>
+            ) : null}
             {post.imageUrls && post.imageUrls.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {post.imageUrls.slice(0, 8).map((url, index) => (
@@ -771,7 +805,7 @@ export function CommunityPostCard({
                     label: formatContextTag(raw),
                   }))
                   .filter((t) => t.key && t.label)
-                  .slice(0, 12)
+                  .slice(0, 5)
                   .map((tag, idx) => {
                     return (
                       <button
@@ -820,72 +854,85 @@ export function CommunityPostCard({
           {!isAdminNotice && (
             <>
               <Separator className="bg-white/10" />
-              <div className="flex items-center justify-between text-[11px] text-white/70 font-medium">
-                <span>{post.upvotes || 0} likes</span>
-                <span>{post.comments || 0} comments</span>
-                {(post.shareCount || 0) > 0 && <span>{post.shareCount} shares</span>}
-              </div>
-              <div
-                className={`mt-1 grid ${onSave ? "grid-cols-4" : "grid-cols-3"} text-[12px] overflow-hidden border border-white/10 rounded-lg bg-tsBg/40`}
-              >
-                <button
-                  onClick={handleLikeClick}
-                  disabled={readOnly}
-                  data-testid={`button-like-${post.id}`}
-                  className={`flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors disabled:pointer-events-none disabled:opacity-50 ${post.liked ? "text-red-400" : ""}`}
-                >
-                  <Heart className={`w-4 h-4 ${post.liked ? "fill-current" : ""}`} />
-                  <span>Like</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={readOnly}
-                  aria-expanded={commentsOpen}
-                  data-testid={`button-comment-${post.id}`}
-                  onClick={() => {
-                    if (!readOnly) onComment?.(post.id);
-                  }}
-                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10 disabled:pointer-events-none disabled:opacity-50"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Comment</span>
-                </button>
-                <button
-                  className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10"
-                  onClick={handleShareClick}
-                  data-testid={`button-share-${post.id}`}
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span>Share</span>
-                </button>
-                {onSave && (
-                  <button
-                    type="button"
-                    disabled={readOnly}
-                    onClick={() => {
-                      if (!readOnly) onSave(post.id);
-                    }}
-                    data-testid={`button-save-${post.id}`}
-                    className={`flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10 disabled:pointer-events-none disabled:opacity-50 ${post.saved ? "text-ts-orange" : ""}`}
+              {readOnly ? (
+                <div className="flex items-center justify-between gap-4 text-[11px] text-white/50">
+                  <span>
+                    {post.upvotes || post.comments
+                      ? `${post.upvotes || 0} likes · ${post.comments || 0} comments`
+                      : ""}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      aria-expanded={commentsOpen}
+                      onClick={() => onComment?.(post.id)}
+                      data-testid={`button-comment-${post.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-white/72 transition hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      View comments
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleShareClick}
+                      data-testid={`button-share-${post.id}`}
+                      className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 font-medium text-white/72 transition hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                      Share
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-[11px] text-white/70 font-medium">
+                    <span>{post.upvotes || 0} likes</span>
+                    <span>{post.comments || 0} comments</span>
+                    {(post.shareCount || 0) > 0 && <span>{post.shareCount} shares</span>}
+                  </div>
+                  <div
+                    className={`mt-1 grid ${onSave ? "grid-cols-4" : "grid-cols-3"} text-[12px] overflow-hidden border border-white/10 rounded-lg bg-tsBg/40`}
                   >
-                    <Bookmark className={`w-4 h-4 ${post.saved ? "fill-current" : ""}`} />
-                    <span>{post.saved ? "Saved" : "Save"}</span>
-                  </button>
-                )}
-              </div>
-              {!readOnly && (
-                <CommunityCTA
-                  layout="grid"
-                  source="community_post"
-                  contextId={post.id}
-                  ownerUserId={post.author?.id ? String(post.author.id) : undefined}
-                  canDirectConnect={canDirectConnect}
-                  canMessage={canOpenMessages}
-                  disableDirectConnect={isContractor}
-                  scope={post.county} // Pass county for authority scope
-                />
+                    <button
+                      onClick={handleLikeClick}
+                      data-testid={`button-like-${post.id}`}
+                      className={`flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors ${post.liked ? "text-red-400" : ""}`}
+                    >
+                      <Heart className={`w-4 h-4 ${post.liked ? "fill-current" : ""}`} />
+                      <span>Like</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-expanded={commentsOpen}
+                      data-testid={`button-comment-${post.id}`}
+                      onClick={() => onComment?.(post.id)}
+                      className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10"
+                    >
+                      <MessageSquare className="w-4 h-4" />
+                      <span>Comment</span>
+                    </button>
+                    <button
+                      className="flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10"
+                      onClick={handleShareClick}
+                      data-testid={`button-share-${post.id}`}
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Share</span>
+                    </button>
+                    {onSave && (
+                      <button
+                        type="button"
+                        onClick={() => onSave(post.id)}
+                        data-testid={`button-save-${post.id}`}
+                        className={`flex items-center justify-center gap-1.5 py-2 hover:bg-tsBg transition-colors border-l border-white/10 ${post.saved ? "text-ts-orange" : ""}`}
+                      >
+                        <Bookmark className={`w-4 h-4 ${post.saved ? "fill-current" : ""}`} />
+                        <span>{post.saved ? "Saved" : "Save"}</span>
+                      </button>
+                    )}
+                  </div>
+                </>
               )}
-
               {commentsOpen && commentsSlot}
 
               {/* Authority label - interpretive guidance from Scout */}
@@ -904,6 +951,12 @@ export function CommunityPostCard({
       {contactOutcome && (
         <ContactOutcomeModal outcome={contactOutcome} onClose={() => setContactOutcome(null)} />
       )}
+      <ReportModal
+        open={showReportModal}
+        onOpenChange={setShowReportModal}
+        contentId={post.id}
+        contentType="community_post"
+      />
     </>
   );
 }

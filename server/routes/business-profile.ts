@@ -22,6 +22,7 @@ import type {
   UpdateProfilePayload,
   BusinessProfile,
 } from "../../shared/businessProfile";
+import { normalizeProfileBookingPrefs } from "../services/profileBookingService";
 
 function sanitizePublicCtaConfig(ctaConfig: unknown) {
   const safe = (ctaConfig && typeof ctaConfig === "object" ? ctaConfig : {}) as Record<string, any>;
@@ -408,6 +409,13 @@ export function registerBusinessProfileRoutes(app: Express) {
 
         // Check if user already has a published profile
         const existing = await storage.getBusinessProfileByUserId(userId);
+        const requestedBookingConfig = payload.bookingConfig ?? existing?.bookingConfig ?? null;
+        const normalizedBookingConfig = requestedBookingConfig
+          ? normalizeProfileBookingPrefs(requestedBookingConfig)
+          : null;
+        if (normalizedBookingConfig?.paidBookings && normalizedBookingConfig.bookingPriceUsd <= 0) {
+          return res.status(400).json({ message: "A booking deposit must be greater than zero" });
+        }
 
         const now = new Date().toISOString();
 
@@ -439,7 +447,7 @@ export function registerBusinessProfileRoutes(app: Express) {
           profileSections:
             payload.profileSections || existing?.profileSections || buildDefaultSections(),
           theme: payload.theme || existing?.theme || buildDefaultTheme(),
-          bookingConfig: payload.bookingConfig || existing?.bookingConfig || null,
+          bookingConfig: normalizedBookingConfig,
           visibility:
             payload.visibility === "public" && discoveryUnlocked
               ? "public"
@@ -615,6 +623,14 @@ export function registerBusinessProfileRoutes(app: Express) {
       if (nextCountyFips && !/^\d{5}$/.test(nextCountyFips)) {
         return res.status(400).json({ message: "countyFips must be a 5-digit FIPS value" });
       }
+      const requestedBookingConfig =
+        updates.bookingConfig !== undefined ? updates.bookingConfig : existing.bookingConfig;
+      const normalizedBookingConfig = requestedBookingConfig
+        ? normalizeProfileBookingPrefs(requestedBookingConfig)
+        : null;
+      if (normalizedBookingConfig?.paidBookings && normalizedBookingConfig.bookingPriceUsd <= 0) {
+        return res.status(400).json({ message: "A booking deposit must be greater than zero" });
+      }
 
       const updatedProfile: BusinessProfile = {
         ...existing,
@@ -660,10 +676,7 @@ export function registerBusinessProfileRoutes(app: Express) {
           updates.theme !== undefined
             ? updates.theme || buildDefaultTheme()
             : existing.theme || buildDefaultTheme(),
-        bookingConfig:
-          updates.bookingConfig !== undefined
-            ? updates.bookingConfig || null
-            : existing.bookingConfig || null,
+        bookingConfig: normalizedBookingConfig,
         visibility:
           updates.visibility !== undefined
             ? updates.visibility === "public"

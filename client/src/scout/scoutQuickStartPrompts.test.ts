@@ -9,7 +9,14 @@ describe("SCOUT_QUICK_START_PROMPTS", () => {
     expect(SCOUT_QUICK_START_PROMPTS[0]).toBe(LIVE_READINESS_QUICK_START_PROMPT);
   });
 
-  it("keeps the shortcut as a question Scout can route through readiness", () => {
-    expect(SCOUT_QUICK_START_PROMPTS[0].toLowerCase()).toContain("next step");
+  it("covers the expert jobs Scout is expected to perform", () => {
+    expect(SCOUT_QUICK_START_PROMPTS).toEqual([
+      "Continue my open work",
+      "Plan my project",
+      "Check codes and permits",
+      "Build a realistic estimate",
+      "Compare a quote",
+      "Find the right professional",
+    ]);
   });
 });

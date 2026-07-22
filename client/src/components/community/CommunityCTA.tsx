@@ -237,7 +237,7 @@ export const CommunityCTA: React.FC<CommunityCTAProps> = ({
             targetRole: isTradeDeal ? "Trade Deal Author" : "Community Post Author",
             suggestedIntent: isTradeDeal ? "hire" : "collaborate",
             reasonForContact: isTradeDeal
-              ? "Ask about a local offer and confirm the details."
+              ? "Ask about this offer and confirm the details."
               : "Follow up on a community post to coordinate next steps.",
             riskFlags:
               currentAuthority.action === "COMPLY"

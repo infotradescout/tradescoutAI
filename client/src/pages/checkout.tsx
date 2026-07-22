@@ -72,6 +72,7 @@ const CheckoutForm = ({
       if (!res.ok) return [];
       return res.json();
     },
+    enabled: paymentType !== "booking",
   });
 
   // Get fee calculation
@@ -83,7 +84,8 @@ const CheckoutForm = ({
         paymentType:
           paymentType === "contractor" ? "contractor_service" : "marketplace_transaction",
         processingMethod,
-      }).then((res) => res.json()),
+      }),
+    enabled: paymentType !== "booking",
   });
 
   // Wallet balance (for marketplace payments)
@@ -387,6 +389,7 @@ export default function Checkout() {
   const urlParams = new URLSearchParams(location.split("?")[1] || "");
   const urlAmount = Number(urlParams.get("amount")) || 0;
   const urlDescription = urlParams.get("description") || "Payment";
+  const bookingRequestId = urlParams.get("bookingRequestId")?.trim() || "";
   const isOffPlatform = urlParams.get("off_platform") === "true";
 
   const { data: marketplaceTx } = useQuery<any>({
@@ -441,6 +444,7 @@ export default function Checkout() {
 
   useEffect(() => {
     if (!match || !paymentType || !paymentId) return;
+    if (paymentType === "booking" && !bookingRequestId) return;
     if (isOffPlatform) return;
     if (!stripePromise) return;
 
@@ -455,13 +459,12 @@ export default function Checkout() {
       paymentType === "contractor"
         ? { contractorPaymentId: paymentId }
         : paymentType === "booking"
-          ? { ownerUserId: paymentId, amount: baseAmount, description }
+          ? { bookingRequestId, amount: baseAmount, description }
           : { transactionId: paymentId, processingMethod };
 
     setClientSecret("");
 
     apiRequest("POST", endpoint, body)
-      .then((res) => res.json())
       .then((data) => {
         setClientSecret(String(data.clientSecret || ""));
         if (paymentType === "marketplace") {
@@ -480,9 +483,19 @@ export default function Checkout() {
           variant: "destructive",
         });
       });
-  }, [match, paymentType, paymentId, isOffPlatform, processingMethod, baseAmount, toast]);
+  }, [
+    match,
+    paymentType,
+    paymentId,
+    bookingRequestId,
+    isOffPlatform,
+    processingMethod,
+    baseAmount,
+    description,
+    toast,
+  ]);
 
-  if (!match || !paymentType || !paymentId) {
+  if (!match || !paymentType || !paymentId || (paymentType === "booking" && !bookingRequestId)) {
     return (
       <div className="max-w-md mx-auto p-6 text-center">
         <Card>
@@ -490,7 +503,8 @@ export default function Checkout() {
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Invalid Payment Link</h2>
             <p className="text-white/60">
-              The payment link appears to be invalid. Please contact support if this issue persists.
+              This payment link is missing its booking request. Return to the business profile and
+              submit the booking request again.
             </p>
           </CardContent>
         </Card>
@@ -505,6 +519,26 @@ export default function Checkout() {
   const handleCancel = () => {
     window.history.back();
   };
+
+  if (paymentType === "booking" && (isOffPlatform || !stripePromise)) {
+    return (
+      <div className="max-w-md mx-auto p-6 text-center">
+        <Card>
+          <CardContent className="pt-6">
+            <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Secure deposit unavailable</h2>
+            <p className="text-white/60">
+              Booking deposits must be paid securely through Stripe. The request remains pending; no
+              off-platform payment has been recorded.
+            </p>
+            <Button onClick={handleCancel} variant="outline" className="mt-6">
+              Back to booking
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Render without Stripe Elements for off-platform payments
   if (isOffPlatform || !stripePromise) {

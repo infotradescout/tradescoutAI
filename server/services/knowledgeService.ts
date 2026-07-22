@@ -101,6 +101,11 @@ export function shouldUseInternetFallback(input: InternetFallbackDecisionInput):
   if (mode !== "kb_site_then_web") return false;
 
   const lower = message.toLowerCase();
+  // Codes, permits, inspections, zoning, and tax rules are authority- and
+  // freshness-sensitive. A matching internal guide is useful context, but it
+  // is not enough by itself to claim the current rule for a jurisdiction.
+  if (isCodeOrPermitQuery(lower) || isTaxQuery(lower)) return true;
+
   const isExternalDiscoveryQuery =
     /\b(find|looking for|near me|best|compare|review|quote|estimate|price|cost|contractor|roofer|plumber|electrician|hvac|handyman|service)\b/.test(
       lower

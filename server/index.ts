@@ -97,6 +97,8 @@ import { preparePublicSeoHtmlForUserAgent } from "./publicSeoHtml";
 import { isSameRequestHttpOrigin, normalizeHttpOrigin } from "./utils/requestCors";
 import { CANONICAL_WEB_HOST, resolvePublicOrigin } from "./utils/publicOrigin";
 import { sendPublicPageNotFound, sendPublicPageRenderFailure } from "./utils/publicPageResponse";
+import { resolveCurrentEntryStylesheet } from "./staticAssetRecovery";
+import { preserveStripeWebhookRawBody } from "./paymentWebhookRoutes";
 
 // ES module equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -806,7 +808,7 @@ app.options("*", cors(corsOptionsDelegate));
 
 // Core body parsing – MUST come before any API routes
 const bodyLimit = process.env.JSON_BODY_LIMIT || "1mb";
-app.use(express.json({ limit: bodyLimit }));
+app.use(express.json({ limit: bodyLimit, verify: preserveStripeWebhookRawBody }));
 app.use(express.urlencoded({ extended: true, limit: bodyLimit }));
 
 // Serve uploads with resilient fallback (disk + R2 + extension compatibility).
@@ -1317,6 +1319,25 @@ app.use(landingContractHeaders);
                     },
                   })
                 );
+
+                // A tab left open across a deploy can still request the prior
+                // entry CSS hash. Serve the current entry stylesheet for that
+                // narrow case so custom domains do not render unstyled. Never
+                // substitute arbitrary JS chunks: their module graph may differ.
+                app.get("/assets/:assetName", (req, res, next) => {
+                  const currentStylesheet = resolveCurrentEntryStylesheet(
+                    publicDistPath,
+                    req.path || ""
+                  );
+                  if (!currentStylesheet) return next();
+
+                  res.setHeader("Cache-Control", "no-store");
+                  res.setHeader("CDN-Cache-Control", "no-store");
+                  res.setHeader("Surrogate-Control", "no-store");
+                  res.setHeader("X-TradeScout-Asset-Recovery", "current-entry-css");
+                  res.type("text/css");
+                  return res.sendFile(currentStylesheet);
+                });
               }
 
               // 1.5) Force revalidation for app identity assets (favicons, manifest, logos)
@@ -1513,7 +1534,7 @@ app.use(landingContractHeaders);
                   // /u/:slug too.
                   const profileRecord = await storage.getProfileBySlugPublic(slug);
                   const customDomain = profileRecord?.seoMeta?.customDomain?.trim().toLowerCase();
-                  if (customDomain) {
+                  if (customDomain && String(req.query.book || "") !== "1") {
                     return res.redirect(301, `https://${customDomain}/${requestSearchSuffix(req)}`);
                   }
 

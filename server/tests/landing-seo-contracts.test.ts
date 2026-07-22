@@ -104,8 +104,6 @@ describe("landing SEO contracts", () => {
       read("server/publicRecentHtml.ts"),
       read("server/publicTradeCityHtml.ts"),
       read("server/publicTradeHtml.ts"),
-      read("server/routes.ts"),
-      read("server/routes/worker-tasks.ts"),
       read("server/workRequestShareHtml.ts"),
     ];
 
@@ -120,5 +118,21 @@ describe("landing SEO contracts", () => {
       expect(source).toContain("/tradescout-social-preview.png?v=12");
       expect(source).not.toContain("/tradescout-social-preview.png?v=11");
     }
+  });
+
+  it("keeps social previews separate from missing member avatars", () => {
+    const avatarSources = [read("server/routes.ts"), read("server/routes/worker-tasks.ts")];
+    const avatarComponent = read("client/src/components/ui/avatar.tsx");
+
+    for (const source of avatarSources) {
+      expect(source).toContain('CANONICAL_DEFAULT_PROFILE_IMAGE_URL = ""');
+      expect(source).toContain('"/tradescout-social-preview.png"');
+      expect(source).not.toContain(
+        'CANONICAL_DEFAULT_PROFILE_IMAGE_URL = "/tradescout-social-preview.png?v=12"'
+      );
+    }
+
+    expect(avatarComponent).toContain('"/tradescout-social-preview.png"');
+    expect(avatarComponent).toContain("return undefined");
   });
 });

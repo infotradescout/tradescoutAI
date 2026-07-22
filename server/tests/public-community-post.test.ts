@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { sanitizePublicCommunityFeedPost, toPublicCommunityPost } from "../publicCommunityPost";
+import {
+  isAutomaticCommunityWelcomePost,
+  isUsefulPublicCommunityBrowsePost,
+  normalizeAutomaticCommunityWelcomePost,
+  sanitizePublicCommunityFeedPost,
+  toPublicCommunityPost,
+} from "../publicCommunityPost";
 
 const post = {
   id: "post-123",
@@ -78,8 +84,11 @@ describe("public community post boundary", () => {
         email: "private@example.com",
         phone: "555-0100",
         role: "homeowner",
-        verified: true,
+        verified: false,
+        cvsScore: 82,
+        verificationStatus: "pending",
       },
+      location: "12033",
     });
 
     expect(result).not.toHaveProperty("moderatorNotes");
@@ -87,5 +96,153 @@ describe("public community post boundary", () => {
     expect(result).not.toHaveProperty("moderatedAt");
     expect(result.author).not.toHaveProperty("email");
     expect(result.author).not.toHaveProperty("phone");
+    expect(result.author).not.toHaveProperty("role");
+    expect(result.author).not.toHaveProperty("verified");
+    expect(result.author).not.toHaveProperty("cvsScore");
+    expect(result.author).not.toHaveProperty("verificationStatus");
+    expect(result).not.toHaveProperty("location");
+  });
+
+  it("keeps branded share previews out of public member avatars", () => {
+    const result = toPublicCommunityPost(post, {
+      ...author,
+      profileImageUrl: "https://www.thetradescout.com/tradescout-social-preview.png?v=12",
+    });
+
+    expect(result?.author.avatar).toBeNull();
+    expect(
+      sanitizePublicCommunityFeedPost({
+        ...post,
+        author: {
+          id: "author-1",
+          name: "Taylor Neighbor",
+          avatar: "/tradescout-social-preview.png?v=12",
+          profileImageUrl: "/uploads/profiles/taylor.webp",
+        },
+      }).author
+    ).toMatchObject({
+      avatar: null,
+      profileImageUrl: "/uploads/profiles/taylor.webp",
+    });
+  });
+
+  it("recognizes only generated onboarding welcome announcements", () => {
+    expect(
+      isAutomaticCommunityWelcomePost({
+        category: "announcements",
+        title: "Welcome Jacob",
+        content:
+          "Say hello to Jacob M. in your area. Share helpful tips, local recommendations, or groups worth following. They are here to connect.",
+      })
+    ).toBe(true);
+    expect(
+      isAutomaticCommunityWelcomePost({
+        category: "announcements",
+        title: "Welcome Taylor",
+        content:
+          "Taylor N. recently joined Hamilton County, TN. They joined to exchange recommendations, questions, and useful local knowledge.",
+        tags: ["new_neighbor"],
+      })
+    ).toBe(true);
+    expect(
+      isAutomaticCommunityWelcomePost({
+        category: "announcements",
+        title: "Welcome to the summer market",
+        content: "Market hours have changed this weekend.",
+      })
+    ).toBe(false);
+  });
+
+  it("normalizes generated welcome posts without rewriting ordinary announcements", () => {
+    const generatedWelcome = normalizeAutomaticCommunityWelcomePost({
+      category: "announcements",
+      title: "Welcome Taylor",
+      content: "Taylor N. recently joined the community.",
+      tags: ["new_neighbor", "old_tag"],
+      countyName: "Hamilton County",
+      stateCode: "TN",
+    });
+
+    expect(generatedWelcome).toMatchObject({
+      content: "Taylor recently joined near Hamilton, TN. Say hello and help them get started.",
+      tags: ["new_neighbor"],
+      feedKind: "onboarding_welcome",
+    });
+
+    const ordinaryAnnouncement = {
+      category: "announcements",
+      title: "Road closure Saturday",
+      content: "The eastbound lane will close at noon.",
+      tags: ["traffic"],
+    };
+    expect(normalizeAutomaticCommunityWelcomePost(ordinaryAnnouncement)).toBe(ordinaryAnnouncement);
+  });
+
+  it("keeps useful signals in public browse and removes test, cross-product, and stale filler", () => {
+    const now = new Date("2026-07-22T12:00:00.000Z");
+    expect(
+      isUsefulPublicCommunityBrowsePost(
+        {
+          category: "question",
+          content: "Can anyone recommend a licensed electrician for a panel inspection?",
+          createdAt: "2026-07-20T12:00:00.000Z",
+        },
+        now
+      )
+    ).toBe(true);
+    expect(
+      isUsefulPublicCommunityBrowsePost(
+        { category: "general", content: "How does this community work?" },
+        now
+      )
+    ).toBe(false);
+    expect(
+      isUsefulPublicCommunityBrowsePost(
+        { category: "general", content: "We are expanding MealScout host locations this week." },
+        now
+      )
+    ).toBe(false);
+    expect(
+      isUsefulPublicCommunityBrowsePost(
+        {
+          category: "event",
+          content: "Community market and neighborhood cleanup this Saturday morning.",
+          createdAt: "2026-02-01T12:00:00.000Z",
+        },
+        now
+      )
+    ).toBe(false);
+    expect(
+      isUsefulPublicCommunityBrowsePost(
+        {
+          category: "general",
+          content: "Good morning!",
+          imageUrls: ["/uploads/community/sunrise.jpg"],
+          createdAt: "2026-07-20T12:00:00.000Z",
+        },
+        now
+      )
+    ).toBe(false);
+    expect(
+      isUsefulPublicCommunityBrowsePost(
+        {
+          category: "question",
+          content: "Can anyone recommend a dependable plumber for a leaking water heater?",
+          author: { name: "Playwright E2E" },
+          createdAt: "2026-07-20T12:00:00.000Z",
+        },
+        now
+      )
+    ).toBe(false);
+    expect(
+      isUsefulPublicCommunityBrowsePost(
+        {
+          category: "general",
+          content: "SIGNATURE EVENTS - hockey, markets, live music events, and weekend listings.",
+          createdAt: "2026-02-27T12:00:00.000Z",
+        },
+        now
+      )
+    ).toBe(false);
   });
 });

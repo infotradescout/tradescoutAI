@@ -4815,3 +4815,188 @@ body.ts-mobile-density.ts-mobile-simplified .app-page .overflow-x-auto {
   color: var(--ts-accent, #f97316);
   flex-shrink: 0;
 }
+
+/* Dark workshop: AppShell owns this scope; standalone public profiles bypass it. */
+body.ts-app-workshop {
+  --ts-bg: #101112;
+  --ts-surface: #191b1d;
+  --ts-surface-strong: #0b0c0d;
+  --ts-surface-hover: #232629;
+  --ts-input-bg: #141617;
+  --ts-text: #fbf8f3;
+  --ts-text-muted: rgba(251, 248, 243, 0.66);
+  --ts-border-subtle: rgba(255, 255, 255, 0.075);
+  --ts-border-strong: rgba(255, 255, 255, 0.15);
+  --ts-shadow-soft: 0 22px 60px rgba(0, 0, 0, 0.34);
+  background-color: var(--ts-bg);
+  color: var(--ts-text);
+}
+
+body.ts-app-workshop .ts-shell-header,
+body.ts-app-workshop .ts-shell-header-mobile,
+body.ts-app-workshop .ts-bottom-nav-inner {
+  background: color-mix(in oklab, var(--ts-surface-strong) 88%, transparent) !important;
+  border-color: rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+body.ts-app-workshop .ts-bottom-nav-inner {
+  position: relative;
+}
+
+body.ts-app-workshop .ts-shell-header::before,
+body.ts-app-workshop .ts-shell-header-mobile::before,
+body.ts-app-workshop .ts-bottom-nav-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  backdrop-filter: blur(18px) saturate(1.1);
+}
+
+body.ts-app-workshop .ts-shell-header > *,
+body.ts-app-workshop .ts-shell-header-mobile > *,
+body.ts-app-workshop .ts-bottom-nav-inner > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.ts-app-workshop .app-page {
+  background: transparent;
+}
+
+/* Community is the reference surface for the shared app language. */
+.ts-community-workshop {
+  position: relative;
+  isolation: isolate;
+}
+
+body.ts-app-workshop .app-page .ts-community-submit-action {
+  background: var(--theme-accent-primary) !important;
+  color: var(--ts-text-on-accent, #101112) !important;
+}
+
+body.ts-app-workshop .app-page .ts-community-create-action {
+  border: 1px solid rgba(255, 154, 82, 0.36) !important;
+  background: #ff6a00 !important;
+  color: #101112 !important;
+  box-shadow: 0 8px 24px rgba(255, 106, 0, 0.16) !important;
+}
+
+body.ts-app-workshop .app-page button.ts-community-submit-action:disabled,
+body.ts-app-workshop.ts-mobile-simplified .app-page button.ts-community-submit-action:disabled {
+  background: rgba(255, 106, 0, 0.13) !important;
+  color: rgba(255, 185, 135, 0.54) !important;
+  box-shadow: none !important;
+}
+
+.ts-community-composer {
+  border-radius: 18px !important;
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.055),
+    rgba(255, 255, 255, 0.022)
+  ) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035) !important;
+}
+
+.ts-community-composer__input {
+  background: rgba(0, 0, 0, 0.24) !important;
+}
+.ts-community-stream {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ts-community-viewbar__item {
+  display: inline-flex;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  color: rgba(251, 248, 243, 0.52);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: color 150ms ease, background 150ms ease;
+}
+
+.ts-community-viewbar__item:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: rgba(251, 248, 243, 0.84);
+}
+
+.ts-community-viewbar__item[aria-pressed="true"] {
+  background: rgba(255, 106, 0, 0.12);
+  color: #ff8b39;
+}
+
+.ts-community-context-card {
+  border-top: 2px solid rgba(255, 106, 0, 0.72);
+  background: linear-gradient(145deg, rgba(255, 106, 0, 0.075), rgba(255, 255, 255, 0.025));
+  padding: 1.15rem;
+}
+
+body.ts-app-workshop .app-page .ts-community-stream .ts-community-post {
+  margin: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.075) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 640px) {
+  .ts-community-viewbar {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+  .ts-community-viewbar__divider {
+    height: 0;
+    flex-basis: 100%;
+    margin: 0;
+    opacity: 0;
+  }
+  .ts-community-composer .w-10.h-10 {
+    display: none;
+  }
+  .ts-community-workshop__inner {
+    padding-top: 0.75rem;
+  }
+  .ts-community-composer {
+    border-radius: 14px !important;
+  }
+  .ts-community-composer > div {
+    padding: 0.75rem !important;
+  }
+  .ts-community-composer__hint {
+    display: none;
+  }
+  .ts-community-composer__input {
+    min-height: 72px !important;
+  }
+  .ts-community-composer__types {
+    margin-top: -0.125rem;
+  }
+  .ts-community-composer__actions {
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ts-community-composer__actions > div {
+    flex-wrap: nowrap;
+  }
+  .ts-community-composer__actions .ts-community-submit-action {
+    min-height: 36px !important;
+    width: auto !important;
+    padding-inline: 1rem;
+  }
+}
+
+@media (max-width: 1023px) {
+  .ts-community-rail {
+    display: none;
+  }
+}
