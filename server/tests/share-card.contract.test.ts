@@ -25,12 +25,34 @@ describe("dedicated Share Card contract", () => {
     expect(card).not.toContain('apiRequest("POST", "/api/community/posts"');
   });
 
-  it("uses the dedicated card from reusable and legacy social share buttons", () => {
+  it("uses the dedicated card from reusable buttons without inventing a social-post route", () => {
     const shareButton = read("client/src/components/ShareButton.tsx");
     const socialPost = read("client/src/components/social/PostCard.tsx");
+    const socialFeed = read("client/src/components/social/SocialFeed.tsx");
 
     expect(shareButton).toContain("await share({");
-    expect(socialPost).toContain("void share({");
+    expect(socialFeed).toContain("@deprecated Quarantined socialPosts client");
+    expect(socialPost).not.toContain("void share({");
+    expect(socialPost).not.toContain("buildCommunityPostPath");
     expect(socialPost).not.toContain("<ShareModal");
+    expect(
+      fs.existsSync(path.resolve(process.cwd(), "client/src/components/social/ShareModal.tsx"))
+    ).toBe(false);
+  });
+
+  it("keeps group and group-post share destinations on the mounted detail route", () => {
+    const appRoutes = read("client/src/AppRoutes.tsx");
+    const groupDetail = read("client/src/pages/group-detail.tsx");
+    const groups = read("client/src/pages/groups.tsx");
+
+    expect(appRoutes).toContain('<Route path="/group/:id">');
+    expect(groupDetail).toContain("const groupId = params?.id");
+    expect(groupDetail).toContain("buildCommunityGroupPath(groupId)");
+    expect(groupDetail).toContain("buildCommunityGroupPath(groupId, post.id)");
+    expect(groupDetail).toContain('new URLSearchParams(search).get("post")');
+    expect(groupDetail).toContain("getElementById(`group-post-${sharedPostId}`)");
+    expect(groups).toContain("buildCommunityGroupPath(group.id)");
+    expect(groupDetail).not.toContain("`/groups/${groupId}");
+    expect(groups).not.toContain("`/groups/${group.id}");
   });
 });

@@ -66,13 +66,13 @@ describe("profile item sharing contract", () => {
   });
 
   it("falls back to a visible copy path when native sharing fails", () => {
-    const shareButton = read("client/src/components/ShareButton.tsx");
+    const shareCard = read("client/src/components/share/ShareCardHost.tsx");
 
-    expect(shareButton).toContain('if (err?.name === "AbortError") return;');
-    expect(shareButton).toContain("await navigator.clipboard.writeText(shareUrl)");
-    expect(shareButton).toContain('title: "Unable to share automatically"');
-    expect(shareButton).not.toContain(
-      "navigator.share({ title, text, url: shareUrl }).catch(() => {})"
+    expect(shareCard).toContain('if (error?.name === "AbortError") return;');
+    expect(shareCard).toContain("await navigator.clipboard.writeText(payload.url)");
+    expect(shareCard).toContain('title: "Could not copy the link"');
+    expect(shareCard).not.toContain(
+      "navigator.share({ title: payload.title, text: payload.text, url: payload.url }).catch"
     );
   });
 

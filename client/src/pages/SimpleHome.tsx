@@ -30,6 +30,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { Page, Section } from "@/components/layout/PagePrimitives";
+import { buildCommunityPostPath } from "@shared/communityPostShare";
 
 interface SimpleHomeDashboard {
   stats: {
@@ -587,7 +588,7 @@ const SimpleHome = memo(function SimpleHome() {
                     {dashboardData.recentActivity!.slice(0, 5).map((activity: any, idx: number) => (
                       <Link
                         key={idx}
-                        href={`/community/post/${activity.id}`}
+                        href={buildCommunityPostPath(activity.id)}
                         className="block text-sm hover:bg-tsBg p-2 rounded transition-colors cursor-pointer"
                       >
                         <p className="text-white hover:text-ts-orange transition-colors">

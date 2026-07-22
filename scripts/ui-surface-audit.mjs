@@ -21,8 +21,16 @@ const PATTERNS = [
   { id: "gradient", re: /\b(bg-gradient-to|from-|via-|to-)\b/gi },
 ];
 
+function compareStableText(a, b) {
+  if (a < b) return -1;
+  if (a > b) return 1;
+  return 0;
+}
+
 function walk(dir, out = []) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const entries = fs
+    .readdirSync(dir, { withFileTypes: true })
+    .sort((a, b) => compareStableText(a.name, b.name));
   for (const e of entries) {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) {
@@ -69,7 +77,9 @@ results.sort((a, b) => {
   if (a.isRootViolation !== b.isRootViolation) return a.isRootViolation ? -1 : 1;
   const aCount = a.hits.reduce((s, h) => s + h.count, 0);
   const bCount = b.hits.reduce((s, h) => s + h.count, 0);
-  return bCount - aCount;
+  const countDelta = bCount - aCount;
+  if (countDelta !== 0) return countDelta;
+  return compareStableText(a.file, b.file);
 });
 
 const summary = {

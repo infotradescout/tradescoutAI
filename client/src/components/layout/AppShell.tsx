@@ -201,6 +201,12 @@ const buildFeatureNav = (opts?: {
       description: "Open Scout to review what to do next.",
     },
     {
+      label: "Businesses",
+      href: ROUTES.CONTRACTORS ?? "/contractors",
+      icon: <Building className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
+      description: "Find businesses that serve your area.",
+    },
+    {
       label: "Commercial Jobs",
       href: "/commercial-directory",
       icon: <Wrench className="h-5 w-5" style={{ color: "var(--theme-accent-primary)" }} />,
@@ -454,6 +460,7 @@ export function AppShell({ children, footer }: AppShellProps) {
     const primaryHrefs = new Set([
       "/scout",
       "/direct-connect",
+      ROUTES.CONTRACTORS ?? "/contractors",
       "/commercial-directory",
       ROUTES.COMMUNITY ?? "/community",
       "/share",

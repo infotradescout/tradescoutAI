@@ -17,7 +17,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
 import { formatUserFacingErrorMessage } from "@/lib/userFacingError";
 import { useToast } from "@/hooks/use-toast";
-import { share } from "@/utils/share";
 import {
   ContactOutcomeModal,
   type ContactOutcome,
@@ -25,7 +24,6 @@ import {
 import {
   Heart,
   MessageCircle,
-  Share2,
   MoreHorizontal,
   Pin,
   BookmarkPlus,
@@ -111,21 +109,6 @@ export function PostCard({ post }: PostCardProps) {
       return;
     }
     likeMutation.mutate();
-  };
-
-  const handleShare = () => {
-    void share({
-      path: `/community/post/${post.id}`,
-      title: post.title || "TradeScout community post",
-      text: String(post.content || ""),
-      contextLabel: "Post link",
-      kind: "community_post",
-      imageUrl: Array.isArray(post.imageUrls)
-        ? post.imageUrls[0]
-        : Array.isArray(post.images)
-          ? post.images[0]
-          : undefined,
-    });
   };
 
   const handleSave = () => {
@@ -405,16 +388,6 @@ export function PostCard({ post }: PostCardProps) {
             >
               <MessageCircle className="h-4 w-4" />
               <span>{post.commentCount || 0}</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleShare}
-              className="flex items-center space-x-2 text-muted-foreground hover:text-primary"
-            >
-              <Share2 className="h-4 w-4" />
-              <span>Share</span>
             </Button>
           </div>
 

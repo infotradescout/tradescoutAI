@@ -4,6 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 const ROOT = process.cwd();
+const UI_AUDIT_ARTIFACTS = [
+  path.join(ROOT, "ui-surface-audit.json"),
+  path.join(ROOT, "ui-surface-audit.md"),
+];
+
+type ArtifactSnapshot = { existed: true; content: Buffer } | { existed: false };
 
 function runAudit(script: string): { code: number; output: string } {
   try {
@@ -17,10 +23,33 @@ function runAudit(script: string): { code: number; output: string } {
 
 describe("theme audit scripts -- regression fixtures for the closed blind spots", () => {
   const fixturePaths: string[] = [];
+  let artifactSnapshots: Map<string, ArtifactSnapshot> | null = null;
+
+  const snapshotUiAuditArtifacts = () => {
+    artifactSnapshots = new Map<string, ArtifactSnapshot>(
+      UI_AUDIT_ARTIFACTS.map((artifactPath): [string, ArtifactSnapshot] => [
+        artifactPath,
+        fs.existsSync(artifactPath)
+          ? { existed: true, content: fs.readFileSync(artifactPath) }
+          : { existed: false },
+      ])
+    );
+  };
 
   afterEach(() => {
     for (const p of fixturePaths.splice(0)) {
       if (fs.existsSync(p)) fs.unlinkSync(p);
+    }
+
+    if (artifactSnapshots) {
+      for (const [artifactPath, snapshot] of artifactSnapshots) {
+        if (snapshot.existed) {
+          fs.writeFileSync(artifactPath, snapshot.content);
+        } else if (fs.existsSync(artifactPath)) {
+          fs.unlinkSync(artifactPath);
+        }
+      }
+      artifactSnapshots = null;
     }
   });
 
@@ -71,6 +100,7 @@ describe("theme audit scripts -- regression fixtures for the closed blind spots"
     // ScoutHome.tsx -- was structurally invisible to it regardless of content.
     const fixture = path.join(ROOT, "client/src/scout/__UiSurfaceAuditFixture.tsx");
     fixturePaths.push(fixture);
+    snapshotUiAuditArtifacts();
     fs.writeFileSync(fixture, `export const X = () => <div className="bg-black/40" />;\n`);
 
     execSync("node scripts/ui-surface-audit.mjs", { cwd: ROOT, encoding: "utf8" });

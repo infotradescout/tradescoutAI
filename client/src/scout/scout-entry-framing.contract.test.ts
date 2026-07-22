@@ -45,13 +45,17 @@ describe("Scout entry framing contracts", () => {
     expect(promptsSource).toContain("Find the right professional");
   });
 
-  it("Scout home exposes the production Scout 2 capability map honestly", () => {
+  it("keeps the capability map in the full Scout experience while home stays compact", () => {
     const homeSource = read("client/src/scout/ScoutHome.tsx");
     const experienceSource = read("client/src/scout/scoutExperience.ts");
     const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
 
-    expect(homeSource).toContain("Explore what to review next");
-    expect(homeSource).toContain("SCOUT_CAPABILITY_COPY");
+    expect(homeSource).toContain("understand codes and permits");
+    expect(homeSource).toContain("price the work");
+    expect(homeSource).toContain("compare options");
+    expect(homeSource).toContain("You review every next step.");
+    expect(homeSource).toContain("<ScoutControlSnapshot");
+    expect(homeSource).not.toContain("SCOUT_CAPABILITY_COPY");
     expect(experienceSource).toContain("Plan work");
     expect(experienceSource).toContain("Collect the right details");
     expect(experienceSource).toContain("Find local help");
@@ -96,11 +100,9 @@ describe("Scout entry framing contracts", () => {
     expect(experienceSource).toContain("formatPriceSignalSource");
     expect(experienceSource).toContain("priceSignalEvidenceSources");
     expect(experienceSource).toContain("Snapshot freshness unavailable");
-    expect(homeSource).toContain("Price signal freshness");
-    expect(homeSource).toContain("Opportunity Radar");
-    expect(homeSource).toContain("OpportunityMoveItem");
-    expect(homeSource).toContain("formatPriceSignalFreshness(signal.updatedAt)");
-    expect(homeSource).toContain("formatPriceSignalSource(signal)");
+    expect(homeSource).not.toContain("OpportunityMoveItem");
+    expect(homeSource).not.toContain("formatPriceSignalFreshness");
+    expect(homeSource).not.toContain("formatPriceSignalSource");
     expect(scoutOsSource).toContain("priceSignals: Array.isArray(data?.priceSignals)");
     expect(scoutOsSource).toContain("opportunityMoves: Array.isArray(data?.opportunityMoves)");
     expect(scoutOsSource).toContain("sourceSignals: scoutSourceSignalsQuery.data");

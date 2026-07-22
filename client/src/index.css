@@ -4838,7 +4838,29 @@ body.ts-app-workshop .ts-bottom-nav-inner {
   background: color-mix(in oklab, var(--ts-surface-strong) 88%, transparent) !important;
   border-color: rgba(255, 255, 255, 0.07) !important;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
+}
+
+body.ts-app-workshop .ts-bottom-nav-inner {
+  position: relative;
+}
+
+body.ts-app-workshop .ts-shell-header::before,
+body.ts-app-workshop .ts-shell-header-mobile::before,
+body.ts-app-workshop .ts-bottom-nav-inner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
   backdrop-filter: blur(18px) saturate(1.1);
+}
+
+body.ts-app-workshop .ts-shell-header > *,
+body.ts-app-workshop .ts-shell-header-mobile > *,
+body.ts-app-workshop .ts-bottom-nav-inner > * {
+  position: relative;
+  z-index: 1;
 }
 
 body.ts-app-workshop .app-page {

@@ -49,6 +49,28 @@ export function isAutomaticCommunityWelcomePost(post: Record<string, any>): bool
   );
 }
 
+export function normalizeAutomaticCommunityWelcomePost<T extends Record<string, any>>(
+  post: T,
+  automaticWelcome: boolean = isAutomaticCommunityWelcomePost(post)
+): T {
+  if (!automaticWelcome) return post;
+
+  const welcomeName = /^welcome\s+(.+)$/i.exec(String(post?.title || "").trim())?.[1];
+  const welcomeArea =
+    typeof post?.county === "string" && post.county.trim()
+      ? `${post.county.trim().replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}${post?.state ? `, ${post.state}` : ""}`
+      : typeof post?.countyName === "string" && post.countyName.trim()
+        ? `${post.countyName.trim().replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}${post?.stateCode ? `, ${post.stateCode}` : ""}`
+        : null;
+
+  return {
+    ...post,
+    content: `${welcomeName || "A new neighbor"} recently joined${welcomeArea ? ` near ${welcomeArea}` : " TradeScout"}. Say hello and help them get started.`,
+    tags: ["new_neighbor"],
+    feedKind: "onboarding_welcome",
+  };
+}
+
 /**
  * Global browse is TradeScout's public window, not an archive of every test,
  * stale event, or internal operating note. This is response-only: county
@@ -72,7 +94,7 @@ export function isUsefulPublicCommunityBrowsePost(
     .toLowerCase();
 
   // Other product brands and internal launch notes are never Community filler.
-  if (/\b(mealscout|meal scout|trader'?s corner)\b/i.test(normalized)) return false;
+  if (/\b(meal\s*scout|trader'?s corner)\b/i.test(normalized)) return false;
   if (/\b(playwright|e2e|test user|qa bot)\b/i.test(authorName)) return false;
   if (
     /\b(submit button|who can see this|how does this community work|bugs? and formatting|first day live)\b/i.test(

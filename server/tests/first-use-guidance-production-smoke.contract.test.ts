@@ -49,8 +49,10 @@ describe("first-use guidance production smoke", () => {
     expect(homesSource).toContain("homeIdFirstTaskPrompt.message");
     expect(directConnectSource).toContain("directConnectFirstTaskPrompt.message");
     expect(scoutSource).not.toContain("contextualPrompt={scoutFirstTaskPrompt}");
-    expect(scoutSource).toContain("<LocalCommandCenter");
-    expect(scoutSource).toContain("<CommunitySnapshot");
+    expect(scoutSource).toContain("<ScoutControlSnapshot");
+    expect(scoutSource).toContain('data-testid="scout-control-snapshot"');
+    expect(scoutSource).not.toContain("<LocalCommandCenter");
+    expect(scoutSource).not.toContain("<CommunitySnapshot");
   });
 
   it("avoids banned internal language in first-use guidance surfaces", () => {

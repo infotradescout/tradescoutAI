@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   isAutomaticCommunityWelcomePost,
   isUsefulPublicCommunityBrowsePost,
+  normalizeAutomaticCommunityWelcomePost,
   sanitizePublicCommunityFeedPost,
   toPublicCommunityPost,
 } from "../publicCommunityPost";
@@ -150,6 +151,31 @@ describe("public community post boundary", () => {
         content: "Market hours have changed this weekend.",
       })
     ).toBe(false);
+  });
+
+  it("normalizes generated welcome posts without rewriting ordinary announcements", () => {
+    const generatedWelcome = normalizeAutomaticCommunityWelcomePost({
+      category: "announcements",
+      title: "Welcome Taylor",
+      content: "Taylor N. recently joined the community.",
+      tags: ["new_neighbor", "old_tag"],
+      countyName: "Hamilton County",
+      stateCode: "TN",
+    });
+
+    expect(generatedWelcome).toMatchObject({
+      content: "Taylor recently joined near Hamilton, TN. Say hello and help them get started.",
+      tags: ["new_neighbor"],
+      feedKind: "onboarding_welcome",
+    });
+
+    const ordinaryAnnouncement = {
+      category: "announcements",
+      title: "Road closure Saturday",
+      content: "The eastbound lane will close at noon.",
+      tags: ["traffic"],
+    };
+    expect(normalizeAutomaticCommunityWelcomePost(ordinaryAnnouncement)).toBe(ordinaryAnnouncement);
   });
 
   it("keeps useful signals in public browse and removes test, cross-product, and stale filler", () => {

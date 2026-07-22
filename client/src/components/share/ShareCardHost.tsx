@@ -132,7 +132,7 @@ export function ShareCardHost() {
   return (
     <Dialog open onOpenChange={(open) => !open && setPayload(null)}>
       <DialogContent
-        className="max-w-[520px] overflow-hidden border-white/[0.10] bg-[#111315] p-0 text-white shadow-2xl"
+        className="max-w-[520px] overflow-hidden border-[var(--border-primary)] bg-[var(--surface-card)] p-0 text-[var(--text-primary)] shadow-2xl"
         data-testid="share-card"
       >
         <DialogHeader className="border-b border-white/[0.07] px-5 pb-4 pt-5 text-left">

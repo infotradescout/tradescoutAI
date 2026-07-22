@@ -1,5 +1,13 @@
 export type CommunityRoutedCategory = "request" | "forsale";
 
+export function buildCommunityGroupPath(groupId: string, postId?: string): string {
+  const normalizedGroupId = groupId.trim();
+  const basePath = `/group/${encodeURIComponent(normalizedGroupId)}`;
+  const normalizedPostId = postId?.trim();
+  if (!normalizedPostId) return basePath;
+  return `${basePath}?${new URLSearchParams({ post: normalizedPostId }).toString()}`;
+}
+
 type CommunityRoutingArgs = {
   category?: string;
   postId: string;

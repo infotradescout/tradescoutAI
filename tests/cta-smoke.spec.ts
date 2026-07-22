@@ -121,7 +121,7 @@ test("CTA smoke: community shell, Direct Connect entry, and TradeDeals CTAs rend
 
   await expect(
     page
-      .getByRole("heading", { name: /What's happening near you/i })
+      .getByRole("heading", { name: /^Community$/i })
       .or(page.getByText(/Set your local area/i).first())
   ).toBeVisible();
   await expect(page.getByRole("link", { name: /Direct Connect/i }).first()).toBeVisible();

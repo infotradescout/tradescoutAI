@@ -95,6 +95,7 @@ import { toPublicContractorRecommendations } from "./publicContractorRecommendat
 import {
   isUsefulPublicCommunityBrowsePost,
   isAutomaticCommunityWelcomePost,
+  normalizeAutomaticCommunityWelcomePost,
   sanitizePublicCommunityFeedPost,
   toPublicCommunityPost,
 } from "./publicCommunityPost";
@@ -19612,25 +19613,10 @@ ${verifyLink ? `<p><a href="${verifyLink}">Verify my email</a> (required)</p>` :
                 avatar: normalizeProfileImageUrl(post.author.avatar ?? post.author.profileImageUrl),
               }
             : post?.author;
-        const automaticWelcome = isAutomaticCommunityWelcomePost(post);
-        const welcomeName = /^welcome\s+(.+)$/i.exec(String(post?.title || "").trim())?.[1];
-        const welcomeArea =
-          typeof post?.county === "string" && post.county.trim()
-            ? `${post.county.trim().replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}${post?.state ? `, ${post.state}` : ""}`
-            : typeof post?.countyName === "string" && post.countyName.trim()
-              ? `${post.countyName.trim().replace(/\s+(county|parish|borough|census area|municipality)$/i, "")}${post?.stateCode ? `, ${post.stateCode}` : ""}`
-              : null;
-        const normalizedWelcomeContent = automaticWelcome
-          ? `${welcomeName || "A new neighbor"} recently joined${welcomeArea ? ` near ${welcomeArea}` : " TradeScout"}. Say hello and help them get started.`
-          : post?.content;
-
-        return {
-          ...post,
-          content: normalizedWelcomeContent,
-          author,
-          tags: automaticWelcome ? ["new_neighbor"] : merged,
-          ...(automaticWelcome ? { feedKind: "onboarding_welcome" } : {}),
-        };
+        return normalizeAutomaticCommunityWelcomePost(
+          { ...post, author, tags: merged },
+          isAutomaticCommunityWelcomePost(post)
+        );
       });
 
       if (normalizedScope === "global" || normalizedScope === "all") {

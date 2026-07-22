@@ -3,7 +3,7 @@ import { inferShareKind } from "./share";
 
 describe("universal share context", () => {
   it.each([
-    ["/community/post/post-1", "community_post"],
+    ["/community/posts/post-1", "community_post"],
     ["/u/jw-stone", "profile"],
     ["/business/jw-stone", "business"],
     ["/exchange/tools/listing-1", "listing"],

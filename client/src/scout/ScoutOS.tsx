@@ -4968,6 +4968,12 @@ export default function ScoutOS() {
                     setHasGuestInteracted(true);
                     handleSend(text);
                   }}
+                  onContinuationSelect={(threadId) => {
+                    const thread = savedThreadPreview.find(
+                      (candidate) => candidate.id === threadId
+                    );
+                    if (thread) handleLoadSavedThread(thread);
+                  }}
                   continuationThreads={savedThreadPreview.map((thread) => ({
                     id: thread.id,
                     title: thread.title,

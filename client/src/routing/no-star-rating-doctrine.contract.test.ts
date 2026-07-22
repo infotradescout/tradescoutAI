@@ -72,6 +72,8 @@ describe("TradeScout trust presentation doctrine", () => {
   it("uses business language in primary navigation", () => {
     const source = read("client/src/components/layout/AppShell.tsx");
     expect(source).toContain('label: "Businesses"');
+    expect(source).toContain('href: ROUTES.CONTRACTORS ?? "/contractors"');
+    expect(source).toContain('label: "Commercial Jobs"');
     expect(source).not.toContain('label: "Commercial"');
   });
 });

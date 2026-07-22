@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { buildCommunityRoutedDestination } from "./communityRouting";
+import { buildCommunityGroupPath, buildCommunityRoutedDestination } from "./communityRouting";
 
 describe("Community outcome routing", () => {
+  it("builds canonical group and group-post destinations", () => {
+    expect(buildCommunityGroupPath("group-123")).toBe("/group/group-123");
+    expect(buildCommunityGroupPath("group 123", "post/456")).toBe(
+      "/group/group%20123?post=post%2F456"
+    );
+  });
+
   it("carries a county help signal into a Direct Connect request", () => {
     const destination = buildCommunityRoutedDestination({
       category: "request",

@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Router } from "wouter";
 import { describe, expect, it } from "vitest";
 import { ContactOutcomeModal } from "../../client/src/components/community/ContactOutcomeModal";
-import { ScoutRecommendationCard } from "../../client/src/components/community/ScoutRecommendationCard";
 
 const read = (relativePath: string) =>
   fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf8");
@@ -14,12 +13,9 @@ const read = (relativePath: string) =>
 const communitySurfaceFiles = [
   "client/src/pages/community-feed.tsx",
   "client/src/components/community/CommunityCTA.tsx",
-  "client/src/components/community/CommunityEmptyState.tsx",
   "client/src/components/community/CommunityPostCard.tsx",
-  "client/src/components/community/CommunitySnapshotRail.tsx",
   "client/src/components/community/ContactOutcomeModal.tsx",
   "client/src/components/community/DecisionCard.tsx",
-  "client/src/components/community/ScoutRecommendationCard.tsx",
 ];
 
 describe("Community app surface UX contract", () => {
@@ -68,8 +64,6 @@ describe("Community app surface UX contract", () => {
   it("anchors Community in human outcomes and inviting early states", () => {
     const feed = read("client/src/pages/community-feed.tsx");
     const postCard = read("client/src/components/community/CommunityPostCard.tsx");
-    const emptyState = read("client/src/components/community/CommunityEmptyState.tsx");
-    const snapshotRail = read("client/src/components/community/CommunitySnapshotRail.tsx");
     const contactModal = read("client/src/components/community/ContactOutcomeModal.tsx");
 
     expect(feed).toContain("Community");
@@ -95,10 +89,6 @@ describe("Community app surface UX contract", () => {
     expect(postCard).not.toContain("Messaging soon");
     expect(feed).toContain("Not sure what to write?");
     expect(feed).toContain("You&apos;re here early");
-    expect(emptyState).toContain("You&apos;re here early");
-    expect(snapshotRail).toContain("Offers are coming soon");
-    expect(snapshotRail).toContain("Coming soon");
-    expect(snapshotRail).toContain("Try again");
     expect(contactModal).toContain("Your privacy stays protected");
     expect(contactModal).toContain("Send message");
     expect(contactModal).toContain("bg-[color:var(--surface-card)]");
@@ -119,71 +109,20 @@ describe("Community app surface UX contract", () => {
     expect(routes).not.toContain("furnace|ac|air\\s+conditioner");
   });
 
-  it("keeps default recommendation cards out of system-level framing", () => {
-    const queryClient = new QueryClient({
-      defaultOptions: {
-        queries: { retry: false },
-        mutations: { retry: false },
-      },
-    });
-
-    const html = renderToStaticMarkup(
-      React.createElement(
-        QueryClientProvider,
-        { client: queryClient },
-        React.createElement(ScoutRecommendationCard, {
-          recommendation: {
-            recommendationId: "rec_1",
-            targetUserId: "user_1",
-            targetUserName: "Jordan Lee",
-            targetRole: "Electrician",
-            targetLocation: "Fort Worth",
-            suggestedIntent: "hire",
-            reasoning:
-              "Internal AI scoring says confidence tier is high from recommendation vector weights.",
-            confidenceScore: 0.91,
-            confidenceTier: "auto_allow",
-            confidenceComponents: {
-              expertise_match: 0.95,
-              location_match: 0.9,
-              trust_signal: 0.86,
-              past_success: 0.82,
-              availability_match: 0.76,
-            },
-            riskFlags: ["debug risk flag should stay hidden by default"],
-            decisionScope: "system state: mutationAllowed=true",
-            createdAt: new Date("2026-06-15T00:00:00.000Z"),
-          },
-        })
-      )
-    );
-
-    const defaultVisibleForbiddenTerms = [
-      "assistant",
-      "recommendation vector",
-      "AI scoring",
-      "scoring",
-      "confidence",
-      "confidence tier",
-      "risk flag",
-      "mutationAllowed",
-      "raw JSON",
-      "debug",
-      "system state",
-      "recommendation engine",
+  it("deletes displaced Community snapshot, recommendation, and duplicate empty-state sources", () => {
+    const removedFiles = [
+      "client/src/components/community/CommunitySnapshotRail.tsx",
+      "client/src/components/community/ScoutRecommendationCard.tsx",
+      "client/src/components/community/CommunityEmptyState.tsx",
     ];
+    const feed = read("client/src/pages/community-feed.tsx");
 
-    for (const term of defaultVisibleForbiddenTerms) {
-      expect(
-        html.toLowerCase(),
-        `Default Community recommendation HTML leaked "${term}"`
-      ).not.toContain(term.toLowerCase());
+    for (const file of removedFiles) {
+      expect(fs.existsSync(path.resolve(process.cwd(), file))).toBe(false);
     }
-
-    expect(html).toContain("Good match");
-    expect(html).toContain("Review before contact");
-    expect(html).toContain("Why this appears");
-    expect(html).toContain("Jordan Lee");
+    expect(feed).not.toContain("CommunitySnapshotRail");
+    expect(feed).not.toContain("ScoutRecommendationCard");
+    expect(feed).not.toContain("CommunityEmptyState");
   });
 
   it("renders contact review as a readable TradeScout surface", () => {

@@ -1,9 +1,9 @@
 # UI Surface Audit
 
-Scanned files: **457**
+Scanned files: **456**
 Root violations (viewport-height + bg-*): **3**
 Files claiming viewport height: **3**
-Files with bg-* classes: **285**
+Files with bg-* classes: **284**
 
 ## Top offenders
 - 🚫 `client/src/pages/ProfileSiteView.tsx` — min-h-viewport (1) @ lines 179 | bg-* (49) @ lines 161,191,191,197,199
@@ -30,19 +30,19 @@ Files with bg-* classes: **285**
 - • `client/src/pages/tasks.tsx` — bg-* (52) @ lines 496,499,506,515,537
 - • `client/src/pages/finances-invoices.tsx` — bg-* (51) @ lines 448,451,454,457,459
 - • `client/src/pages/system-settings.tsx` — bg-* (51) @ lines 172,187,190,197,204
-- • `client/src/scout/ScoutHome.tsx` — bg-* (40) @ lines 502,508,514,519,568 | gradient (11) @ lines 501,501,507,507,513
 - • `client/src/pages/documentation.tsx` — bg-* (34) @ lines 113,119,125,131,141 | gradient (16) @ lines 113,113,113,119,119
 - • `client/src/pages/api-integrations.tsx` — bg-* (49) @ lines 157,157,159,159,161
-- • `client/src/pages/community-feed.tsx` — bg-* (49) @ lines 189,190,237,238,241
+- • `client/src/pages/community-feed.tsx` — bg-* (49) @ lines 190,191,239,240,243
 - • `client/src/pages/hoa-management.tsx` — bg-* (45) @ lines 543,550,550,564,575 | gradient (3) @ lines 564,564,564
 - • `client/src/pages/admin-business-import.tsx` — bg-* (44) @ lines 635,655,661,661,701 | gradient (2) @ lines 240,296
 - • `client/src/pages/referral-dashboard.tsx` — bg-* (46) @ lines 164,177,190,203,218
 - • `client/src/pages/social-integration.tsx` — bg-* (46) @ lines 41,50,59,68,77
-- • `client/src/pages/SimpleHome.tsx` — bg-* (45) @ lines 108,120,138,153,166
+- • `client/src/pages/SimpleHome.tsx` — bg-* (45) @ lines 109,121,139,154,167
+- • `client/src/pages/commercial-directory.tsx` — bg-* (37) @ lines 290,292,298,302,306 | gradient (7) @ lines 292,292,292,292,338
 - • `client/src/pages/compliance.tsx` — bg-* (41) @ lines 57,59,61,63,90 | gradient (3) @ lines 68,82,286
 - • `client/src/pages/worker-marketplace.tsx` — bg-* (44) @ lines 62,204,204,213,216
 - • `client/src/pages/landing.tsx` — bg-* (42) @ lines 182,182,213,213,233 | gradient (1) @ lines 499
 - • `client/src/pages/maps.tsx` — bg-* (43) @ lines 66,67,72,73,78
-- • `client/src/pages/commercial-directory.tsx` — bg-* (35) @ lines 292,294,302,306,310 | gradient (7) @ lines 294,294,294,294,341
 - • `client/src/pages/groups.tsx` — bg-* (23) @ lines 215,229,229,266,279 | gradient (19) @ lines 266,266,266,338,338
 - • `client/src/pages/analytics.tsx` — bg-* (41) @ lines 104,106,108,110,112
+- • `client/src/pages/exchange/ExchangeCategoryPage.tsx` — bg-* (41) @ lines 316,322,325,334,337

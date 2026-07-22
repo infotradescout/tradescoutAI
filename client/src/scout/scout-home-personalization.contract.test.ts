@@ -2,75 +2,45 @@ import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 
-const read = (relativePath: string) => {
-  const fullPath = path.resolve(process.cwd(), relativePath);
-  return fs.readFileSync(fullPath, "utf-8");
-};
+const read = (relativePath: string) =>
+  fs.readFileSync(path.resolve(process.cwd(), relativePath), "utf-8");
 
 describe("Scout home personalization contracts", () => {
-  it("enforces no context, no feed", () => {
+  it("renders one compact control snapshot and no filler modules", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
+    const renderedHome = source.slice(source.lastIndexOf("return ("));
 
-    expect(source).toContain("Nothing to continue yet.");
-    expect(source).toContain(
-      "Search once, save something, or start a request and Scout will keep it here."
-    );
-    expect(source).toContain("const hasRealContinuation = continueItems.length > 0;");
-    expect(source).toContain("const hasCategorySelectionOrSearch = interests.size > 0;");
-    expect(source).toContain(
-      "const hasPersonalizedScoutContext = hasRealContinuation || hasCategorySelectionOrSearch;"
-    );
-    expect(source).toContain(
-      "const hasPersonalizedFeed = hasPersonalizedScoutContext && nearbyRows.length > 0;"
-    );
-    expect(source).toContain("const shouldShowEmptyContext = !hasPersonalizedScoutContext;");
-    expect(source).toContain(
-      "const [onboardingStatus, setOnboardingStatus] = useState<UnifiedOnboardingState | null>(null);"
-    );
-    expect(source).toContain(
-      'const res = await fetch("/api/onboarding/status", { credentials: "include" });'
-    );
     expect(source).toContain("<ScoutControlSnapshot");
     expect(source).toContain('data-testid="scout-control-snapshot"');
-    expect(source).toContain("if (interests.size === 0) return [];");
-    expect(source).toContain("if (!isLikelyPersonalActivityQuery(activity.query)) continue;");
-    expect(source).toContain(
-      "const interests = inferUserInterestCategories(continueItems, data?.recentActivity ?? []);"
-    );
-    expect(source).toContain("const NON_PERSONAL_ACTIVITY_PHRASES = [");
-    expect(source).toContain("home prices shifted nearby");
-    expect(source).toContain("median home price");
-  });
-
-  it("keeps onboarding state available without rendering another dashboard card", () => {
-    const source = read("client/src/scout/ScoutHome.tsx");
-
-    expect(source).toContain("if (!isAuthenticated || !onboardingStatus) return false;");
-    expect(source).toContain("if (!lane) return false;");
-    expect(source).toContain('if (lane === "browse_only") {');
-    expect(source).toContain("if (isCompleted) return false;");
-    expect(source).toContain('return params.get("resumeSetup") === "1";');
-    expect(source).toContain("return !isCompleted || Boolean(onboardingStatus.nextStep);");
-    const renderedHome = source.slice(source.lastIndexOf("return ("));
+    expect(source).toContain("if (items.length === 0) return null;");
+    expect(renderedHome).toContain("<ScoutHero");
+    expect(renderedHome).toContain("<ScoutControlSnapshot");
+    expect(renderedHome).not.toContain("<LocalCommandCenter");
+    expect(renderedHome).not.toContain("<CommunitySnapshot");
+    expect(renderedHome).not.toContain("<LocalSnapshot");
+    expect(renderedHome).not.toContain("<ContinueRail");
+    expect(renderedHome).not.toContain("<NearbyList");
     expect(renderedHome).not.toContain("<SetupNudgeCard");
+    expect(renderedHome).not.toContain("<EmptyContextHint");
   });
 
-  it("contains lane-specific nudge copy", () => {
+  it("builds the snapshot only from real account and location data", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 
-    expect(source).toContain("Finish setting up your home");
-    expect(source).toContain("Add your vehicle");
-    expect(source).toContain("Complete your service profile");
-    expect(source).toContain("Create your first listing");
-    expect(source).toContain("Set your local interests");
-    expect(source).toContain('actionPrompt: "Open /homes to add my home profile."');
-    expect(source).toContain('actionPrompt: "Open /vehicles to add my vehicle."');
-    expect(source).toContain(
-      'actionPrompt: "Open /exchange/new so I can create my first listing."'
-    );
+    expect(source).toContain('fetch("/api/direct-connect/requests"');
+    expect(source).toContain('fetch("/api/homes"');
+    expect(source).toContain("fetchCommunityPostsForScout({");
+    expect(source).toContain('enabled: location.status === "resolved" && Boolean(location.fips)');
+    expect(source).toContain("recentActivity: data?.recentActivity ?? []");
+    expect(source).toContain("args.recentActivity.length + args.continuationCount");
+    expect(source).not.toContain('fetch("/api/onboarding/status"');
+    expect(source).not.toContain("UnifiedOnboardingState");
+    expect(source).not.toContain("ObjectiveOnboardingBundle");
+    expect(source).not.toContain("fallback-1");
+    expect(source).not.toContain("fallback-2");
   });
 
-  it("rejects generic continuity labels", () => {
+  it("rejects generic continuity labels instead of manufacturing activity", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 
     expect(source).toContain("home project");
@@ -80,76 +50,61 @@ describe("Scout home personalization contracts", () => {
     expect(source).toContain("client work");
     expect(source).toContain("local help");
     expect(source).toContain("if (!looksLikeRealDisplayTitle(objectTitle)) return false;");
+    expect(source).toContain("getMeaningfulContinuations(continuationThreads)");
   });
 
-  it("exposes real work, conversations, HomeID, activity, and Community in one compact snapshot", () => {
+  it("exposes real work, conversations, HomeID, activity, and Community as direct actions", () => {
     const source = read("client/src/scout/ScoutHome.tsx");
 
     expect(source).toContain("Open work");
     expect(source).toContain("Conversations");
     expect(source).toContain("HomeID");
     expect(source).toContain("Recent activity");
-    expect(source).toContain("recentActivity.length + continuationCount");
     expect(source).toContain("Community");
     expect(source).toContain("Pick up where you left off");
-    expect(source).toContain("if (items.length === 0) return null");
-    expect(source).toContain(
-      'const res = await fetch("/api/direct-connect/requests", { credentials: "include" });'
-    );
-    expect(source).toContain('const res = await fetch("/api/homes", { credentials: "include" });');
-    expect(source).toContain("fetchCommunityPostsForScout({");
-    expect(source).toContain("buildCommunityPostPath(post.id)");
+    expect(source).toContain('onNavigate("/direct-connect")');
+    expect(source).toContain("onClick: onContinueConversation");
+    expect(source).toContain('onNavigate("/homes")');
+    expect(source).toContain('onNavigate("/community-feed")');
     expect(source).toContain("onNavigate={navigate}");
+    expect(source).toContain("onContinuationSelect(meaningfulContinuations[0].id)");
+
+    const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+    expect(scoutOsSource).toContain("onContinuationSelect={(threadId) => {");
+    expect(scoutOsSource).toContain("handleLoadSavedThread(thread)");
+  });
+
+  it("does not present freshness or location controls without supporting evidence", () => {
+    const source = read("client/src/scout/ScoutHome.tsx");
+
+    expect(source).toContain("detail: `${snapshot.communityPostCount} nearby`");
+    expect(source).not.toContain("detail: `${snapshot.communityPostCount} new`");
+    expect(source).toContain("{locationLabel ? (");
+    expect(source).not.toContain('t("scout.setLocation")');
+    expect(source).not.toContain("ChevronDown");
+  });
+
+  it("describes current Scout capability without claiming the unfinished intelligence layer", () => {
+    const source = read("client/src/scout/ScoutHome.tsx");
+
+    expect(source).toContain("understand codes and permits");
+    expect(source).toContain("price the work");
+    expect(source).toContain("compare options");
     expect(source).toContain("You review every next step.");
+    expect(source).not.toContain("world-premier");
+    expect(source).not.toContain("world premier");
+    expect(source).not.toContain("expert in every trade");
     expect(source).not.toContain("Ask Scout to");
   });
 
-  it("renders one control snapshot and leaves the full site as direct destinations", () => {
-    const homeSource = read("client/src/scout/ScoutHome.tsx");
-    const scoutOsSource = read("client/src/scout/ScoutOS.tsx");
+  it("keeps the empty-state demo disabled in ScoutOS", () => {
+    const source = read("client/src/scout/ScoutOS.tsx");
 
-    expect(homeSource).not.toContain("What should we solve?");
-    expect(homeSource).toContain("<ScoutControlSnapshot");
-    const renderedHome = homeSource.slice(homeSource.lastIndexOf("return ("));
-    expect(renderedHome).not.toContain("<LocalCommandCenter");
-    expect(renderedHome).not.toContain("<CommunitySnapshot");
-    expect(renderedHome).not.toContain("<LocalSnapshot");
-    expect(renderedHome).not.toContain("<ContinueRail");
-    expect(homeSource).toContain('route: "/homes"');
-    expect(homeSource).toContain('route: "/vehicles"');
-    expect(homeSource).toContain('route: "/direct-connect"');
-    expect(homeSource).toContain('route: "/exchange"');
-    expect(homeSource).toContain('route: "/find-local-businesses"');
-    expect(homeSource).toContain('route: "/community-feed"');
-    expect(scoutOsSource).toContain("const showDiscoveryRail = false");
-    expect(scoutOsSource).toContain("quickStartPrompts={SCOUT_QUICK_START_PROMPTS}");
-    expect(scoutOsSource).toContain("const shouldPlayIntroDemo = false;");
-    expect(scoutOsSource).toContain('autoDemoText=""');
-    expect(scoutOsSource).not.toContain("What can TradeScout do in my local area?");
-    expect(scoutOsSource).not.toContain("best 3 starting actions");
-  });
-
-  it("scopes nearby rows to user interests and dedupes by category and title", () => {
-    const source = read("client/src/scout/ScoutHome.tsx");
-
-    expect(source).toContain("filter((row) => interests.has(row.category))");
-    expect(source).toContain("const key = `${row.category}:${row.title.trim().toLowerCase()}`;");
-    expect(source).not.toContain("fallback-1");
-    expect(source).not.toContain("fallback-2");
-    expect(source).not.toContain("fallback-3");
-    expect(source).not.toContain("fallback-4");
-  });
-
-  it("keeps no-context Scout free of filler modules", () => {
-    const source = read("client/src/scout/ScoutHome.tsx");
-
-    expect(source).toContain("Home prices shifted nearby");
-    expect(source).toContain("Homes are sitting longer");
-    expect(source).toContain("if (items.length === 0) return null;");
-    const renderedHome = source.slice(source.lastIndexOf("return ("));
-    expect(renderedHome).not.toContain("<NearbyList");
-    expect(renderedHome).not.toContain("<ContinueRail");
-    expect(renderedHome).not.toContain("<LocalSnapshot");
-    expect(renderedHome).not.toContain("<EmptyContextHint");
+    expect(source).toContain("const showDiscoveryRail = false");
+    expect(source).toContain("quickStartPrompts={SCOUT_QUICK_START_PROMPTS}");
+    expect(source).toContain("const shouldPlayIntroDemo = false;");
+    expect(source).toContain('autoDemoText=""');
+    expect(source).not.toContain("What can TradeScout do in my local area?");
+    expect(source).not.toContain("best 3 starting actions");
   });
 });
