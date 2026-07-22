@@ -24,6 +24,15 @@ if (!testDatabaseUrl) {
   process.exit(2);
 }
 
+// A prior step in this same job/run already bootstrapped the shared test DB.
+// The bootstrap is idempotent either way, but re-running it costs a full
+// pass of network round-trips against Neon for no behavior change -- so
+// callers that know they're redundant (see release-gates.yml) can opt out.
+if (process.env.SKIP_TEST_DB_BOOTSTRAP === "true") {
+  console.log("[bootstrap-test-db] SKIP_TEST_DB_BOOTSTRAP=true; a prior step already bootstrapped this DB. Skipping.");
+  process.exit(0);
+}
+
 async function runWithInput(command, args, env = process.env, input = "") {
   const child = await spawnCommand(command, args, {
     cwd: repoRoot,

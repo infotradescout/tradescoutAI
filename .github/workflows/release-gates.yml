@@ -79,13 +79,15 @@ jobs:
         run: npm run db:push:test
 
       - name: Direct Connect gate integration
+        env:
+          SKIP_TEST_DB_BOOTSTRAP: "true"
         run: node scripts/with-test-db-lane-lock.mjs -- npm run test:direct-connect:gates:db
 
-      - name: Run integration tests (default)
+      - name: Run integration tests (default + strict)
+        env:
+          SKIP_TEST_DB_BOOTSTRAP: "true"
+          RUN_ALL_INTEGRATION_TESTS: "true"
         run: node scripts/with-test-db-lane-lock.mjs -- npm run test:integration
-
-      - name: Run integration tests (strict)
-        run: node scripts/with-test-db-lane-lock.mjs -- npm run test:integration:strict
 
       - name: Seed E2E user
         run: npm run seed:e2e-user

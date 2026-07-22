@@ -145,8 +145,14 @@ async function main() {
   let testExitCode = 1;
   try {
     await waitForHealth(`http://localhost:${port}/api/health`);
-    const integrationTestFiles =
-      process.env.RUN_STRICT_INTEGRATION === "true"
+    // RUN_ALL_INTEGRATION_TESTS runs the default and strict suites together in
+    // one server boot instead of two separate boot/health-check/teardown
+    // cycles -- both were already forced fully serial (--maxWorkers=1), so
+    // combining them changes nothing about test isolation, only overhead.
+    const runAll = process.env.RUN_ALL_INTEGRATION_TESTS === "true";
+    const integrationTestFiles = runAll
+      ? [...defaultIntegrationTestFiles, ...strictIntegrationTestFiles]
+      : process.env.RUN_STRICT_INTEGRATION === "true"
         ? strictIntegrationTestFiles
         : defaultIntegrationTestFiles;
     const vitestArgs = [
@@ -159,7 +165,7 @@ async function main() {
     if (Number.isInteger(integrationBailAfterFailures) && integrationBailAfterFailures > 0) {
       vitestArgs.push("--reporter=verbose", `--bail=${integrationBailAfterFailures}`);
     }
-    if (process.env.RUN_STRICT_INTEGRATION !== "true") {
+    if (!runAll && process.env.RUN_STRICT_INTEGRATION !== "true") {
       vitestArgs.push(
         "--exclude",
         "server/tests/d3-messaging-authority.test.ts",
