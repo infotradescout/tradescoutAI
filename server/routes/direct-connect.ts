@@ -16,6 +16,7 @@ import {
   counties,
   businesses,
   businessCounties,
+  profiles,
   workers,
   userHomes,
   userHomeRecords,
@@ -7651,6 +7652,150 @@ export function registerDirectConnectRoutes(app: Express) {
           message: "Failed to create request",
           requestId: (req as any).requestId || null,
         });
+      }
+    }
+  );
+
+  // Beta super-admin oversight: view the specific Direct Connect request that
+  // triggered a "Review request" notification (see directConnectBetaOversight.ts).
+  // Read-only -- deliberately does not replicate the full homeowner/business
+  // Direct Connect workspace (estimates, payments, schedules, etc.).
+  app.get(
+    "/api/admin/direct-connect/requests/:id",
+    isAuthenticated,
+    isStaff,
+    async (req: AuthedRequest, res: Response) => {
+      try {
+        const requestId = String(req.params.id || "").trim();
+        if (!requestId) return res.status(400).json({ message: "Request id is required" });
+
+        const [request] = await db
+          .select()
+          .from(workRequests)
+          .where(eq(workRequests.id, requestId))
+          .limit(1);
+        if (!request) return res.status(404).json({ message: "Request not found" });
+
+        const requester = await storage.getUser(String(request.createdByUserId));
+
+        let originatingProfile: {
+          id: string;
+          slug: string;
+          businessName: string;
+          ownerUserId: string;
+        } | null = null;
+        if (request.source === "direct_connect" && request.sourceRefId) {
+          const [profileRow] = await db
+            .select({
+              profileId: profiles.id,
+              profileSlug: profiles.slug,
+              businessName: businesses.name,
+              ownerUserId: profiles.ownerUserId,
+            })
+            .from(profiles)
+            .innerJoin(businesses, eq(profiles.businessId, businesses.id))
+            .where(eq(profiles.id, String(request.sourceRefId)))
+            .limit(1);
+          if (profileRow) {
+            originatingProfile = {
+              id: String(profileRow.profileId),
+              slug: String(profileRow.profileSlug),
+              businessName: String(profileRow.businessName),
+              ownerUserId: String(profileRow.ownerUserId),
+            };
+          }
+        }
+
+        const assignments = await db
+          .select()
+          .from(workRequestAssignments)
+          .where(eq(workRequestAssignments.workRequestId, requestId))
+          .orderBy(asc(workRequestAssignments.createdAt));
+
+        const responderUserIds: string[] = Array.from(
+          new Set(
+            (assignments as any[])
+              .map((a) => (a.responderUserId ? String(a.responderUserId) : null))
+              .filter((id): id is string => Boolean(id))
+          )
+        );
+        const responders = responderUserIds.length
+          ? await Promise.all(responderUserIds.map((id: string) => storage.getUser(id)))
+          : [];
+        const responderById = new Map(
+          responders
+            .filter((u): u is NonNullable<typeof u> => Boolean(u))
+            .map((u) => [String(u.id), u])
+        );
+
+        const events = await db
+          .select()
+          .from(workRequestEvents)
+          .where(eq(workRequestEvents.workRequestId, requestId))
+          .orderBy(asc(workRequestEvents.createdAt));
+
+        const accepted = assignments.find((a) => a.status === "accepted");
+        let conversationId: string | null = null;
+        if (accepted?.responderUserId) {
+          const [convo] = await db
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(
+              and(
+                eq(conversations.homeownerId, String(request.createdByUserId)),
+                eq(conversations.contractorId, String(accepted.responderUserId))
+              )
+            )
+            .limit(1);
+          if (convo) conversationId = String(convo.id);
+        }
+
+        return res.status(200).json({
+          request: {
+            id: request.id,
+            title: request.title,
+            description: request.description,
+            category: request.category,
+            status: request.status,
+            source: request.source,
+            createdAt: request.createdAt,
+            updatedAt: request.updatedAt,
+          },
+          requester: requester
+            ? {
+                id: requester.id,
+                name: [requester.firstName, requester.lastName].filter(Boolean).join(" ") || null,
+                email: requester.email || null,
+                phone: (requester as any).phone || null,
+              }
+            : null,
+          originatingProfile,
+          assignments: assignments.map((a) => {
+            const responder = a.responderUserId
+              ? responderById.get(String(a.responderUserId))
+              : null;
+            return {
+              id: a.id,
+              status: a.status,
+              responderUserId: a.responderUserId,
+              responderName: responder
+                ? [responder.firstName, responder.lastName].filter(Boolean).join(" ") ||
+                  responder.email
+                : null,
+              createdAt: a.createdAt,
+            };
+          }),
+          events: events.map((e) => ({
+            id: e.id,
+            type: e.type,
+            metadata: e.metadata,
+            createdAt: e.createdAt,
+          })),
+          conversationId,
+        });
+      } catch (error) {
+        console.error("Error loading admin direct connect request detail:", error);
+        return res.status(500).json({ message: "Failed to load request" });
       }
     }
   );
