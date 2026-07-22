@@ -88,7 +88,8 @@ describe("Community app surface UX contract", () => {
     expect(postCard).not.toContain("Job help soon");
     expect(postCard).not.toContain("Messaging soon");
     expect(feed).toContain("Not sure what to write?");
-    expect(feed).toContain("You&apos;re here early");
+    expect(feed).toContain(`"You're here early"`);
+    expect(feed).not.toContain("You&apos;re here early");
     expect(contactModal).toContain("Your privacy stays protected");
     expect(contactModal).toContain("Send message");
     expect(contactModal).toContain("bg-[color:var(--surface-card)]");
@@ -123,6 +124,17 @@ describe("Community app surface UX contract", () => {
     expect(feed).not.toContain("CommunitySnapshotRail");
     expect(feed).not.toContain("ScoutRecommendationCard");
     expect(feed).not.toContain("CommunityEmptyState");
+  });
+
+  it("demotes generated welcome posts without emitting positional ORDER BY zero", () => {
+    const storage = read("server/storage.ts");
+
+    expect(storage).toContain("ARRAY['welcome']::text[]");
+    expect(storage).toContain("ARRAY['new_neighbor']::text[]");
+    expect(storage).toContain("const onboardingWelcomeOrder = onboardingWelcomeRank");
+    expect(storage).toContain("baseQuery.orderBy(...recentOrder)");
+    expect(storage).toContain("fallbackBaseQuery.orderBy(...recentOrder)");
+    expect(storage).not.toContain(": sql`0`;");
   });
 
   it("renders contact review as a readable TradeScout surface", () => {

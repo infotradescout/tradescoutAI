@@ -1106,7 +1106,7 @@ const CommunityFeed = memo(function CommunityFeed() {
         <Card className="rounded-xl border border-[color:var(--border-subtle)] bg-[color:var(--surface-card)]">
           <CardContent className="p-6 md:p-8 text-center">
             <h3 className="text-lg md:text-xl font-semibold text-white">
-              {isGlobalView ? "No useful public posts yet" : "You&apos;re here early"}
+              {isGlobalView ? "No useful public posts yet" : "You're here early"}
             </h3>
             <p className="mx-auto mt-2 max-w-md text-sm text-[color:var(--text-secondary)]">
               {isGlobalView

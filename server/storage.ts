@@ -6577,28 +6577,30 @@ export class DatabaseStorage implements IStorage {
     const pageLimit = filters?.limit ?? 20;
     const pageOffset = filters?.offset ?? 0;
     const onboardingWelcomeRank = filters?.demoteOnboardingWelcomes
-      ? sql`CASE WHEN ${communityPosts.category} = 'announcements' AND ${communityPosts.tags} @> ARRAY['welcome']::text[] THEN 1 ELSE 0 END`
-      : sql`0`;
+      ? sql`CASE WHEN ${communityPosts.category} = 'announcements' AND (${communityPosts.tags} @> ARRAY['welcome']::text[] OR ${communityPosts.tags} @> ARRAY['new_neighbor']::text[]) THEN 1 ELSE 0 END`
+      : null;
+    const onboardingWelcomeOrder = onboardingWelcomeRank ? [onboardingWelcomeRank] : [];
+    const recommendedOrder = [
+      ...onboardingWelcomeOrder,
+      // Boost recommendation-style posts and those with attached work requests
+      desc(sql`CASE WHEN ${communityPosts.category} = 'recommendation_request' THEN 1 ELSE 0 END`),
+      desc(communityPosts.likeCount),
+      desc(communityPosts.createdAt),
+    ];
+    const trendingOrder = [
+      ...onboardingWelcomeOrder,
+      desc(sql`${communityPosts.likeCount} + ${communityPosts.commentCount}`),
+      desc(communityPosts.createdAt),
+    ];
+    const recentOrder = [...onboardingWelcomeOrder, desc(communityPosts.createdAt)];
 
     // Ordering: keep recent as baseline; "recommended" boosts high-intent, high-signal posts.
     const orderedQuery =
       sortMode === "recommended"
-        ? baseQuery.orderBy(
-            onboardingWelcomeRank,
-            // Boost recommendation-style posts and those with attached work requests
-            desc(
-              sql`CASE WHEN ${communityPosts.category} = 'recommendation_request' THEN 1 ELSE 0 END`
-            ),
-            desc(communityPosts.likeCount),
-            desc(communityPosts.createdAt)
-          )
+        ? baseQuery.orderBy(...recommendedOrder)
         : sortMode === "trending"
-          ? baseQuery.orderBy(
-              onboardingWelcomeRank,
-              desc(sql`${communityPosts.likeCount} + ${communityPosts.commentCount}`),
-              desc(communityPosts.createdAt)
-            )
-          : baseQuery.orderBy(onboardingWelcomeRank, desc(communityPosts.createdAt));
+          ? baseQuery.orderBy(...trendingOrder)
+          : baseQuery.orderBy(...recentOrder);
 
     type CommunityPostJoinRow = {
       post: CommunityPost;
@@ -6628,21 +6630,10 @@ export class DatabaseStorage implements IStorage {
 
       const fallbackOrderedQuery =
         sortMode === "recommended"
-          ? fallbackBaseQuery.orderBy(
-              onboardingWelcomeRank,
-              desc(
-                sql`CASE WHEN ${communityPosts.category} = 'recommendation_request' THEN 1 ELSE 0 END`
-              ),
-              desc(communityPosts.likeCount),
-              desc(communityPosts.createdAt)
-            )
+          ? fallbackBaseQuery.orderBy(...recommendedOrder)
           : sortMode === "trending"
-            ? fallbackBaseQuery.orderBy(
-                onboardingWelcomeRank,
-                desc(sql`${communityPosts.likeCount} + ${communityPosts.commentCount}`),
-                desc(communityPosts.createdAt)
-              )
-            : fallbackBaseQuery.orderBy(onboardingWelcomeRank, desc(communityPosts.createdAt));
+            ? fallbackBaseQuery.orderBy(...trendingOrder)
+            : fallbackBaseQuery.orderBy(...recentOrder);
 
       const fallbackRows = await fallbackOrderedQuery.limit(pageLimit).offset(pageOffset);
       results = fallbackRows.map((row: { post: CommunityPost; user: User | null }) => ({
